@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <string>
 
-namespace poopdish {
+namespace terrier {
 /**
  * Stateless interface to allow printing of debug information
  *

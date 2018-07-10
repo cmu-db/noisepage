@@ -3,8 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 
-// TODO(Tianyu): Rename me!
-namespace poopdish {
+namespace terrier {
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints
