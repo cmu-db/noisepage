@@ -1,0 +1,10 @@
+/* Sources directory */
+#define SOURCE_FOLDER "${PROJECT_SOURCE_DIR}"
+
+/* Binaries directory */
+#define BINARY_FOLDER "${PROJECT_BINARY_DIR}"
+
+#define DATA_DIR "${DATA_DIR}/"
+
+#define CMAKE_SOURCE_DIR SOURCE_FOLDER "/src/"
+#define CMAKE_EXT ".gen.cmake"
