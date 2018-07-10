@@ -32,4 +32,3 @@ foreach(exe_name ${EXE_LIST})
         set_target_properties(${exe_name} PROPERTIES LINK_FLAGS ${EXE_LINK_FLAGS})
     endif ()
 endforeach()
-
