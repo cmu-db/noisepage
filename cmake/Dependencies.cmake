@@ -34,5 +34,5 @@ list(APPEND TERRIER_LINKER_LIBS ${LLVM_LIBRARIES})
 
 # ---[ Doxygen
 if(BUILD_docs)
-    find_package(Doxygen)
+    doxygen_configure(src/)
 endif()
