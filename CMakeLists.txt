@@ -1,6 +1,6 @@
 project(terrier)
 # ---------------------------------------------------------
-# CMAKE
+# CMake
 # ---------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.10)
@@ -36,7 +36,6 @@ include(cmake/Sanitizers.cmake)
 include(cmake/Dependencies.cmake)
 include(cmake/Targets.cmake)
 include(cmake/Utils.cmake)
-include(cmake/GoogleTest.cmake)
 include(cmake/ConfigGen.cmake)
 
 # ---[ Config generation
@@ -51,3 +50,4 @@ include_directories(${TERRIER_SRC_INCLUDE_DIR} ${TERRIER_TEST_INCLUDE_DIR} ${TER
 # ---[ Subdirectories
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(third_party/googletest)

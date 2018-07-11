@@ -43,7 +43,7 @@ foreach(test_src ${test_srcs} )
     add_dependencies(check ${test_name})
     
     # link libraries
-    target_link_libraries(${test_name} terrier)
+    target_link_libraries(${test_name} terrier gtest gtest_main)
 
 	# set target properties    
 	set_target_properties(${test_name}

@@ -10,6 +10,10 @@ find_package(GFlags)
 include_directories(SYSTEM ${GFLAGS_INCLUDE_DIRS})
 list(APPEND TERRIER_LINKER_LIBS ${GFLAGS_LIBRARIES})
 
+# ---[ Google Test
+set(gtest_SOURCE_DIR third_party/googletest)
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
 # ---[ Intel TBB
 find_package(TBB REQUIRED)
 include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
