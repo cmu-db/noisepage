@@ -16,6 +16,8 @@ endif()
 # Project
 # ---------------------------------------------------------
 
+include(cmake/Utils.cmake)
+
 # ---[ Terrier version
 set(TERRIER_TARGET_VERSION "0.0.1" CACHE STRING "Terrier logical version")
 set(TERRIER_TARGET_SOVERSION "0.0.1" CACHE STRING "Terrier soname version")
@@ -29,14 +31,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # ---[ Using cmake scripts and modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
-include(ExternalProject)
 include(cmake/Compiler.cmake)
 include(cmake/CompilerFlags.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/Dependencies.cmake)
 include(cmake/Targets.cmake)
-include(cmake/Utils.cmake)
 include(cmake/ConfigGen.cmake)
+
+# ---[ Documentation
+terrier_option(BUILD_docs   "Build documentation" ON IF UNIX OR APPLE)
 
 # ---[ Config generation
 configure_file(cmake/Templates/terrier_config.h.in "${PROJECT_BINARY_DIR}/terrier_config.h")
