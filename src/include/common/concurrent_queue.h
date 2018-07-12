@@ -7,8 +7,9 @@ namespace terrier {
 /**
  * A thread-safe queue implementation
  * @tparam T element type
+ * @tparam Alloc allocator used
  */
-template<typename T>
+template<typename T, typename Alloc = tbb::cache_aligned_allocator<T>>
 class ConcurrentQueue {
 // This wrapper is here so we are free to swap out underlying implementation
 // of the data structure or hand-craft it ourselves. Compiler should inline
@@ -50,6 +51,6 @@ class ConcurrentQueue {
   }
 
  private:
-  tbb::concurrent_queue<T> queue_;
+  tbb::concurrent_queue<T, Alloc> queue_;
 };
 }
