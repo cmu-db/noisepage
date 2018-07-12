@@ -5,7 +5,8 @@
 #include <string>
 
 namespace terrier {
-using byte = uint8_t;
+// TODO(Tianyu): Maybe?
+using byte = std::byte;
 
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
@@ -72,7 +73,24 @@ class StrongTypeAlias {
   T val_;
 };
 
+namespace std {
+template<class Tag, typename T>
+template <> struct hash<StrongTypeAlias<Tag, T>> {
+  size_t operator()(const StrongTypeAlias<Tag, T> &alias) {
+    return hash<T>()(!alias);
+  }
+};
+}
 
+// TODO(Tianyu): Remove this if we don't end up using tbb
+namespace tbb {
+template <class Tag, typename T>
+template <> struct tbb_hash<StrongTypeAlias<Tag, T>> {
+  size_t operator()(const StrongTypeAlias<Tag, T> &alias) {
+    return tbb_hash<T>(!alias);
+  }
+};
+}
 
 template<typename E>
 class EnumHash {
@@ -83,4 +101,9 @@ class EnumHash {
   }
 };
 
+class Constants {
+ public:
+  // 1 Megabyte, in bytes
+  const static uint32_t BLOCK_SIZE = 1048576;
+};
 }
