@@ -2,6 +2,7 @@
 
 #include <tbb/concurrent_unordered_map.h>
 #include <functional>
+#include "common/common_defs.h"
 #include "common/macros.h"
 
 namespace terrier {
@@ -48,4 +49,12 @@ class ConcurrentMap {
   tbb::concurrent_unordered_map<K, V, Hasher, Equality, Alloc> map_;
 };
 
+// TODO(Tianyu): Remove this if we don't end up using tbb
+namespace tbb {
+template <class Tag, typename T> struct tbb_hash<StrongTypeAlias<Tag, T>> {
+size_t operator()(const StrongTypeAlias<Tag, T> &alias) {
+  return tbb_hash<T>(!alias);
+}
+};
+}
 }

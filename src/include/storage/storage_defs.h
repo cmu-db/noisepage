@@ -72,5 +72,4 @@ class RawBlock {
 //  uint32_t num_tuples_, num_slots_;
 //  byte contents_[0];
 //};
-
 }
