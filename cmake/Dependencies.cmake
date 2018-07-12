@@ -19,6 +19,9 @@ find_package(TBB REQUIRED)
 include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 list(APPEND TERRIER_LINKER_LIBS ${TBB_LIBRARIES})
 
+# ---[ ClangTools
+find_package(ClangTools)
+
 # ---[  Google Test
 list(APPEND TERRIER_LINKER_LIBS gtest_main)
 

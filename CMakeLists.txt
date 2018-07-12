@@ -34,6 +34,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 # ---[ Documentation
 terrier_option(BUILD_docs   "Build documentation" ON IF UNIX OR APPLE)
 
+# CodeInspection.cmake has to be put after Dependencies.cmake in the include order
 include(cmake/Compiler.cmake)
 include(cmake/CompilerFlags.cmake)
 include(cmake/Sanitizers.cmake)
@@ -41,6 +42,7 @@ include(cmake/Doxygen.cmake)
 include(cmake/Dependencies.cmake)
 include(cmake/Targets.cmake)
 include(cmake/ConfigGen.cmake)
+include(cmake/CodeInspection.cmake)
 
 # ---[ Config generation
 configure_file(cmake/Templates/terrier_config.h.in "${PROJECT_BINARY_DIR}/terrier_config.h")
