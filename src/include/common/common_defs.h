@@ -74,15 +74,9 @@ class StrongTypeAlias {
   T val_;
 };
 
-template<typename E>
-class EnumHash {
- public:
-  uint64_t operator()(const E &e) const {
-    return std::hash<typename std::underlying_type<E>::type>()(
-        static_cast<typename std::underlying_type<E>::type>(e));
-  }
-};
-
+/**
+ * Declare all system-level constants that cannot change at runtime here.
+ */
 class Constants {
  public:
   // 1 Megabyte, in bytes

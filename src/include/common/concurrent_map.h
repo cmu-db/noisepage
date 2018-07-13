@@ -29,10 +29,24 @@ class ConcurrentMap {
 //
 // Keep the interface minimalistic until we figure out what implementation to use.
  public:
+  /**
+   * Insert the specified key and value into the map. Overwrites mapping if a
+   * mapping already exists.
+   * @param key key to insert
+   * @param value value to insert
+   * @return whether the insertion actually took place
+   */
   bool Insert(const K &key, V value) {
     return map_.insert(std::make_pair(key, value)).second;
   }
 
+  /**
+   * Finds the value mapped to by the supplied key, or return false if no such
+   * value exists.
+   * @param key key to lookup
+   * @param value location to write the mapped value to
+   * @return whether the key exists in the map
+   */
   bool Find(const K &key, V &value) {
     auto it = map_.find(key);
     if (it == map_.end())
@@ -41,6 +55,11 @@ class ConcurrentMap {
     return true;
   }
 
+  /**
+   * Deletes the key and associated value if it exists (or no-op otherwise).
+   * This operation is not safe to call concurrently.
+   * @param key key to remove
+   */
   void UnsafeErase(const K &key) {
     map_.unsafe_erase(key);
   }
@@ -48,13 +67,13 @@ class ConcurrentMap {
  private:
   tbb::concurrent_unordered_map<K, V, Hasher, Equality, Alloc> map_;
 };
+}
 
 // TODO(Tianyu): Remove this if we don't end up using tbb
 namespace tbb {
-template <class Tag, typename T> struct tbb_hash<StrongTypeAlias<Tag, T>> {
-size_t operator()(const StrongTypeAlias<Tag, T> &alias) {
-  return tbb_hash<T>(!alias);
+template<class Tag, typename T> struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
+size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) {
+  return tbb_hash<T>()(!alias);
 }
 };
-}
 }
