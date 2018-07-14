@@ -21,7 +21,7 @@ class ObjectPool {
    */
   explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
 
-  /**
+  virtual /**
    * Destructs the memory pool. Frees any memory it holds.
    *
    * Beware that the object pool will not deallocate some piece of memory
@@ -39,7 +39,7 @@ class ObjectPool {
   // A very clear improvement would be to bulk-malloc objects into the reuse queue,
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
-  /**
+  virtual /**
    * Returns a piece of memory to hold an object of T.
    *
    * Beware that the memory returned is not guaranteed to be initialized.
@@ -50,7 +50,7 @@ class ObjectPool {
     return reuse_queue_.Dequeue(result) ? result : new T();
   }
 
-  /**
+  virtual /**
    * Releases the piece of memory given, allowing it to be freed or reused for
    * later. Although the memory is not necessarily immediately reclaimed, it will
    * be unsafe to access after entering this call.

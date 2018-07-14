@@ -1,14 +1,16 @@
 #include <unordered_set>
 #include <atomic>
-#include <random>
 #include <thread>
+
 #include "gtest/gtest.h"
+#include "common/test_util.h"
 #include "common/object_pool.h"
 
 namespace terrier {
 // TODO(Tianyu): This should eventually extend harness we define.
 class ObjectPoolTests : public ::testing::Test {};
 
+// Rather minimalistic checks for whether we reuse memory
 TEST_F(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t reuse_limit = 1;
@@ -49,40 +51,30 @@ TEST_F(ObjectPoolTests, ConcurrentCorrectnessTest) {
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
   ObjectPool<ObjectPoolTestType> tested(reuse_limit);
-  auto workload = [&] {
-    const double get_new_ratio = 0.5;
-
+  auto workload = [&](uint32_t) {
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
-    std::bernoulli_distribution op_distribution(get_new_ratio);
     // Store the pointers we use.
     std::vector<ObjectPoolTestType *> ptrs;
-
-    const uint32_t trial = 100;
-    for (uint32_t i = 0; i < trial; i++) {
-      bool allocate = op_distribution(generator);
-      if (allocate)
-        ptrs.push_back(tested.Get()->Use());
-      else if (!ptrs.empty()) {
-        // Randomly pick a pointer to release
-        auto pos = std::uniform_int_distribution(0, (int) ptrs.size() - 1)(generator);
-        tested.Release(ptrs[pos]->Release());
-        ptrs.erase(ptrs.begin() + pos);
+    auto allocate = [&] {
+      ptrs.push_back(tested.Get()->Use());
+    };
+    auto free = [&] {
+      if (!ptrs.empty()) {
+        auto pos = testutil::UniformRandomElement(ptrs, generator);
+        tested.Release((*pos)->Release());
+        ptrs.erase(pos);
       }
-    }
+    };
+    testutil::InvokeWorkloadWithDistribution({free, allocate},
+                                             {0.5, 0.5},
+                                             generator,
+                                             100);
     for (auto *ptr : ptrs)
       tested.Release(ptr->Release());
   };
 
-  const uint32_t repeat = 100;
-  for (uint32_t i = 0; i < repeat; i++) {
-    std::vector<std::thread> threads;
-    const uint32_t num_threads = 8;
-    for (uint32_t j = 0; j < num_threads; j++)
-      threads.emplace_back(workload);
-    for (auto &thread : threads)
-      thread.join();
-  }
+  testutil::RunThreadsUntilFinish(8, workload, 100);
 }
 }
 

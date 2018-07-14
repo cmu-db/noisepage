@@ -18,6 +18,12 @@ struct TupleId : public Printable {
 };
 
 class RawBlock {
+ public:
+  RawBlock() {
+    // Intentionally unused
+    (void) content_;
+  }
+
   byte content_[Constants::BLOCK_SIZE];
 };
 
