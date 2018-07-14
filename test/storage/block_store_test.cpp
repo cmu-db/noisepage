@@ -12,7 +12,7 @@ class BlockStoreTests : public ::testing::Test {
     // This should have no bearing on the correctness of test
     const uint64_t reuse_limit = 100;
     testutil::FakeObjectPool<RawBlock> pool(reuse_limit);
-    BlockStore store(pool);
+    storage::BlockStore store(pool);
     const uint32_t num_threads = 8;
     std::vector<std::vector<block_id_t>> block_ids(num_threads);
     std::vector<std::vector<RawBlock *>> blocks(num_threads);

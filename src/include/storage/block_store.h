@@ -5,9 +5,11 @@
 #include "storage/storage_defs.h"
 
 namespace terrier {
+namespace storage {
 class BlockStore {
  public:
-  explicit BlockStore(ObjectPool<RawBlock> &block_pool) : block_pool_(block_pool) {}
+  explicit BlockStore(ObjectPool<RawBlock> &block_pool)
+      : block_pool_(block_pool) {}
   DISALLOW_COPY_AND_MOVE(BlockStore);
 
   ~BlockStore() {
@@ -37,4 +39,5 @@ class BlockStore {
   // TODO(Tianyu): the representation of block_id is subject to change
   std::atomic<block_id_t> next_block_id_;
 };
+}
 }

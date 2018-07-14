@@ -57,12 +57,7 @@ class StrongTypeAlias {
  public:
   StrongTypeAlias() : val_() {}
   explicit StrongTypeAlias(const T &val) : val_(val) {}
-  explicit StrongTypeAlias(T &&val)
-      noexcept(std::is_nothrow_move_constructible<T>::value): val_(std::move(val)) {}
-
-  StrongTypeAlias(const StrongTypeAlias &other) = default;
-  StrongTypeAlias(StrongTypeAlias &&other)
-      noexcept(std::is_nothrow_move_constructible<T>::value) = default;
+  explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
 
   T &operator!() {
     return val_;
