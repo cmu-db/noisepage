@@ -33,7 +33,7 @@ class ConcurrentMap {
   class Iterator {
     using val = std::pair<const K, V>;
    public:
-    Iterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it)
+    explicit Iterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it)
         : it_(it) {}
 
     val &operator*() const {
@@ -102,11 +102,11 @@ class ConcurrentMap {
   }
 
   Iterator Begin() {
-    return {map_.begin()};
+    return Iterator(map_.begin());
   }
 
   Iterator End() {
-    return {map_.end()};
+    return Iterator(map_.end());
   }
 
  private:
