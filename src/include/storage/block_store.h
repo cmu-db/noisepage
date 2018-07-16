@@ -18,12 +18,10 @@ class BlockStore {
   }
 
   RawBlock *RetrieveBlock(block_id_t block_id) {
-    RawBlock *result;
-    if (!blocks_map_.Find(block_id, result)) {
-      // block_id is unforgeable, i.e. only handed out from NewBlock()
-      throw std::runtime_error("Invalid block id, unable to retrieve block");
-    }
-    return result;
+    RawBlock *block = nullptr;
+    blocks_map_.Find(block_id, block);
+    // TODO(Matt): Is nullptr the correct return value if not present?
+    return block;
   }
 
   std::pair<block_id_t, RawBlock *> NewBlock() {
