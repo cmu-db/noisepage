@@ -2,6 +2,6 @@
 #include "common/common_defs.h"
 #include "common/logger.h"
 int main() {
-	terrier::Logger::InitializeLogger();
+  terrier::Logger::InitializeLogger();
   LOG_INFO("hello world!");
 }
