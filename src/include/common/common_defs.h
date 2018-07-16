@@ -149,7 +149,7 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
     return t(result);
   }
 
-  const t operator++(int) volatile noexcept {
+  t operator++(int) volatile noexcept {
     const uint32_t result = underlying_++;
     return t(result);
   }
