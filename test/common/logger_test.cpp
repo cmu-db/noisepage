@@ -207,5 +207,4 @@ TEST_F(LoggerTests, LogLevelTest) {
 
 }
 */
-}  // namespace test
-}  // namespace peloton
+}  // namespace terrier
