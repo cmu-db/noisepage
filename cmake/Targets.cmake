@@ -56,6 +56,9 @@ function(terrier_pickup_terrier_sources root)
 
   # ART
   file(GLOB_RECURSE art_srcs ${root}/third_party/adaptive_radix_tree/*.cpp)
+  
+  # Easylogging++
+  file(GLOB_RECURSE elpp_srcs ${root}/third_party/easylogging++/*.cc)
 
   # adding headers to make the visible in some IDEs (Qt, VS, Xcode)
   list(APPEND srcs ${hdrs} ${PROJECT_BINARY_DIR}/terrier_config.h)
@@ -63,7 +66,7 @@ function(terrier_pickup_terrier_sources root)
 
   # add proto to make them editable in IDEs too
   file(GLOB_RECURSE proto_files ${root}/src/terrier/*.proto)
-  list(APPEND srcs ${proto_files} ${murmur_srcs} ${libcount_srcs} ${art_srcs} ${jsoncpp_srcs})
+  list(APPEND srcs ${proto_files} ${murmur_srcs} ${libcount_srcs} ${art_srcs} ${elpp_srcs} ${jsoncpp_srcs})
 
   # propogate to parent scope
   set(srcs ${srcs} PARENT_SCOPE)
