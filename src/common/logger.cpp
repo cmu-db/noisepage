@@ -27,13 +27,19 @@ void Logger::InitializeLogger() {
   el::Configurations logger_conf;
   logger_conf.setToDefault();
 
-  /*
-   * ToDo: Need settings_manager and internal_types to set log level on booting
-   *
+  // log flush threshold
+  logger_conf.set(el::Level::Global,
+                  el::ConfigurationType::LogFlushThreshold,
+                  PELOTON_LOG_FLUSH_THERESHOLD);
+
   // log format setting
   logger_conf.set(el::Level::Global,
                   el::ConfigurationType::Format,
                   PELOTON_LOG_FORMAT);
+
+  /*
+   * ToDo: Need settings_manager and internal_types to set log level on booting
+   *
 
   // standard output setting
   logger_conf.set(el::Level::Global,
@@ -54,12 +60,6 @@ void Logger::InitializeLogger() {
                     settings::SettingsManager::GetString(
                         settings::SettingId::log_file_path));
   }
-
-
-  // log flush threshold
-  logger_conf.set(el::Level::Global,
-                  el::ConfigurationType::LogFlushThreshold,
-                  PELOTON_LOG_FLUSH_THERESHOLD);
 
   // log level setting for Easylogging++ by log_level setting parameter in Peloton
   auto log_level = StringToPelotonLogLevel(
