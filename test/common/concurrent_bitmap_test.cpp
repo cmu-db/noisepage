@@ -1,7 +1,8 @@
-#include <unordered_set>
-#include <bitset>
+#include <algorithm>
 #include <atomic>
+#include <bitset>
 #include <thread>
+#include <unordered_set>
 
 #include "gtest/gtest.h"
 #include "common/test_util.h"
@@ -49,6 +50,40 @@ TEST_F(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   // Verify that Flip fails if expected_val doesn't match current value
   auto element = std::uniform_int_distribution(0, (int) num_elements - 1)(generator);
   EXPECT_FALSE(bitmap.Flip(element, !bitmap.Test(element)));
+}
+// The test attempts to concurrently flip every bit from 0 to 1, and
+// record successful flips into thread-local storage
+// This is equivalent to grabbing a free slot if used in an
+// allocator
+TEST_F(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
+  const uint32_t num_elements = 1000000;
+  const uint32_t num_threads = 8;
+  ConcurrentBitmap<num_elements> bitmap;
+  std::vector<std::vector<uint32_t>> elements(num_threads);
+
+  auto workload = [&](uint32_t thread_id) {
+    for (uint32_t i = 0; i < num_elements; ++i) {
+      if (bitmap.Flip(i, false)) elements[thread_id].push_back(i);
+    }
+  };
+
+  testutil::RunThreadsUntilFinish(num_threads, workload);
+
+  // Coalesce the thread-local result vectors into one vector, and
+  // then sort the results
+  std::vector<uint32_t> all_elements;
+  for (uint32_t i = 0; i < num_threads; ++i) {
+    all_elements.insert(all_elements.end(), elements[i].begin(), elements[i].end());
+  }
+
+  // Verify coalesced result size
+  EXPECT_EQ(num_elements, all_elements.size());
+  std::sort(all_elements.begin(), all_elements.end());
+  // Verify 1:1 mapping of indices to element value
+  // This represents that every slot was grabbed by only one thread
+  for (uint32_t i = 0; i < num_elements; ++i) {
+    EXPECT_EQ(i, all_elements[i]);
+  }
 }
 
 }
