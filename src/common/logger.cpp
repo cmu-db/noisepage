@@ -30,12 +30,12 @@ void Logger::InitializeLogger() {
   // log flush threshold
   logger_conf.set(el::Level::Global,
                   el::ConfigurationType::LogFlushThreshold,
-                  PELOTON_LOG_FLUSH_THERESHOLD);
+                  LOG_FLUSH_THERESHOLD);
 
   // log format setting
   logger_conf.set(el::Level::Global,
                   el::ConfigurationType::Format,
-                  PELOTON_LOG_FORMAT);
+                  LOG_FORMAT);
 
   /*
    * ToDo: Need settings_manager and internal_types to set log level on booting
@@ -97,7 +97,7 @@ void Logger::InitializeLogger() {
 	*/
 
   // apply the logger configuration
-  el::Loggers::reconfigureLogger(PELOTON_LOGGER_NAME, logger_conf);
+  el::Loggers::reconfigureLogger(LOGGER_NAME, logger_conf);
 }
 
 }

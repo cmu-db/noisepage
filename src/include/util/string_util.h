@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace peloton {
+namespace terrier {
 
 /**
  * This is the string that we should always use whenever we need
@@ -148,4 +148,4 @@ class StringUtil {
   static std::string Strip(const std::string &str, char c);
 };
 
-}  // namespace peloton
+}  // namespace terrier
