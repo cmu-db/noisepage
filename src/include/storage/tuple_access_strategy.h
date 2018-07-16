@@ -50,8 +50,16 @@ struct BlockLayout {
 // ----------------------------------------------------------
 // | nul-bitmap (pad up to byte-aligned) | val1 | val2 | ... |
 // ----------------------------------------------------------
+template <AttributeSize size>
 class PACKED MiniBlock {
+ public:
   // TODO(Tianyu): Implement
+  template <typename T>
+  bool GetAttr(uint32_t, T *&) {
+    static_assert(sizeof(T) == ByteSize(size),
+                  "Invalid type when accessing attribute");
+    return false;
+  }
  private:
   MiniBlock() {
     (void) varlen_contents_;
