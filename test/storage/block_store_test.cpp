@@ -67,7 +67,7 @@ TEST_F(BlockStoreTests, SimpleCorrectnessTest) {
   EXPECT_EQ(new_block.second, store.RetrieveBlock(new_block.first));
 
   store.UnsafeDeallocate(new_block.first);
-  EXPECT_THROW(store.RetrieveBlock(new_block.first), std::runtime_error);
+  EXPECT_EQ(nullptr, store.RetrieveBlock(new_block.first));
 }
 
 // Tests that multiple threads allocating and accessing blocks will get
