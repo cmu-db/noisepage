@@ -56,6 +56,20 @@ class BlockStoreTests : public ::testing::Test {
   }
 };
 
+// Tests that a block can be retrieved after calling new block and that
+// the retrieved block matches the new block. Then, test that block can
+// be erased and that a subsequent lookup on that block throws an error
+TEST_F(BlockStoreTests, SimpleCorrectnessTest) {
+  const uint64_t reuse_limit = 100;
+  ObjectPool<RawBlock> pool(reuse_limit);
+  storage::BlockStore store(pool);
+  auto new_block = store.NewBlock();
+  EXPECT_EQ(new_block.second, store.RetrieveBlock(new_block.first));
+
+  store.UnsafeDeallocate(new_block.first);
+  EXPECT_THROW(store.RetrieveBlock(new_block.first), std::runtime_error);
+}
+
 // Tests that multiple threads allocating and accessing blocks will get
 // back unique block_id -> RawBlock *pairs.
 TEST_F(BlockStoreTests, ConcurrentUniquenessTest) {

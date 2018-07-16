@@ -19,13 +19,17 @@ class BlockStore {
 
   RawBlock *RetrieveBlock(block_id_t block_id) {
     RawBlock *result;
-    if (!blocks_map_.Find(block_id, result))
+    if (!blocks_map_.Find(block_id, result)) {
+      // block_id is unforgeable, i.e. only handed out from NewBlock()
       throw std::runtime_error("Invalid block id, unable to retrieve block");
+    }
     return result;
   }
 
   std::pair<block_id_t, RawBlock *> NewBlock() {
-    return {next_block_id_++, block_pool_.Get()};
+    auto new_block_pair = std::make_pair<block_id_t, RawBlock *>(next_block_id_++, block_pool_.Get());
+    blocks_map_.Insert(new_block_pair.first, new_block_pair.second);
+    return new_block_pair;
   }
 
   void UnsafeDeallocate(block_id_t block_id) {
