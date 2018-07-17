@@ -130,9 +130,6 @@ class PACKED Block {
   byte varlen_contents_[0];
 };
 
-// TODO(Tianyu): write implementation
-struct TupleSlot;
-
 class TupleAccessStrategy {
  public:
   TupleAccessStrategy(BlockLayout layout,
@@ -145,11 +142,11 @@ class TupleAccessStrategy {
   }
 
   // TODO(Tianyu): Roughly what the API should look like?
-  TupleSlot *Access(TupleId) { return nullptr; }
+  byte *Access(TupleSlot, uint16_t column_offset) { return nullptr; }
 
-  TupleSlot *AllocateSlot() { return nullptr; }
+  void Allocate(uint32_t num_tuples, TupleSlot *tuple_slots) { return; }
 
-  void UnsafeDeallocate(TupleId) {}
+  void UnsafeDeallocate(TupleSlot) {}
 
  private:
   // TODO(Tianyu): This will be baked in for codegen, not a field.

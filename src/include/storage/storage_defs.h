@@ -6,7 +6,7 @@
 
 namespace terrier {
 STRONG_TYPEDEF(block_id_t, uint32_t)
-struct TupleId : public Printable {
+struct TupleSlot : public Printable {
   block_id_t block_id_;
   uint32_t offset_;
 
