@@ -80,7 +80,7 @@
 #endif
 #if LOG_LEVEL <= LOG_LEVEL_ERROR
 #define LOG_ERROR_ENABLED
-#define LOG_ERROR(...) CLOG(ERROR, terrier::LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
+#define LOG_ERROR(...) CLOG(ERROR, LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
 #else
 #define LOG_ERROR(...) ((void)0)
 #endif
@@ -90,7 +90,7 @@
 #endif
 #if LOG_LEVEL <= LOG_LEVEL_WARN
 #define LOG_WARN_ENABLED
-#define LOG_WARN(...) CLOG(WARNING, terrier::LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
+#define LOG_WARN(...) CLOG(WARNING, LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
 #else
 #define LOG_WARN(...) ((void)0)
 #endif
@@ -100,7 +100,7 @@
 #endif
 #if LOG_LEVEL <= LOG_LEVEL_INFO
 #define LOG_INFO_ENABLED
-#define LOG_INFO(...) CLOG(INFO, terrier::LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
+#define LOG_INFO(...) CLOG(INFO, LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
 #else
 #define LOG_INFO(...) ((void)0)
 #endif
@@ -110,7 +110,7 @@
 #endif
 #if LOG_LEVEL <= LOG_LEVEL_DEBUG
 #define LOG_DEBUG_ENABLED
-#define LOG_DEBUG(...) CLOG(DEBUG, terrier::LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
+#define LOG_DEBUG(...) CLOG(DEBUG, LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
 #else
 #define LOG_DEBUG(...) ((void)0)
 #endif
@@ -120,7 +120,7 @@
 #endif
 #if LOG_LEVEL <= LOG_LEVEL_TRACE
 #define LOG_TRACE_ENABLED
-#define LOG_TRACE(...) CLOG(TRACE, terrier::LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
+#define LOG_TRACE(...) CLOG(TRACE, LOGGER_NAME) << terrier::StringUtil::Format(__VA_ARGS__);
 #else
 #define LOG_TRACE(...) ((void)0)
 #endif
