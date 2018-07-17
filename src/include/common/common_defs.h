@@ -44,6 +44,7 @@ using byte = std::byte;
   struct name##_typedef_tag {};                    \
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
 
+#define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
  *
@@ -63,7 +64,7 @@ class StrongTypeAlias {
     return val_;
   }
 
-  bool operator==(const StrongTypeAlias& rhs) const {
+  bool operator==(const StrongTypeAlias &rhs) const {
     return val_ == rhs.val_;
   }
 
@@ -71,7 +72,8 @@ class StrongTypeAlias {
     return val_ != rhs.val_;
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) {
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const StrongTypeAlias &alias) {
     return os << alias.val_;
   }
 
@@ -86,6 +88,10 @@ class StrongTypeAlias {
 //  // Write your operator here!
 //};
 
+template<class Tag, typename T>
+StrongTypeAlias<Tag, T> ValueOf(T val) {
+  return StrongTypeAlias<Tag, T>(val);
+};
 
 /**
  * Declare all system-level constants that cannot change at runtime here.
@@ -95,10 +101,8 @@ class StrongTypeAlias {
  * a top level program (e.g. a unit test, main.cpp), instead of referred directly
  * in code.
  */
-class Constants {
- public:
-  // 1 Megabyte, in bytes
-  const static uint32_t BLOCK_SIZE = 1048576;
+struct Constants {
+  static const uint32_t BLOCK_SIZE = 1048576u;
 };
 }
 
@@ -109,7 +113,7 @@ namespace std {
 
 // TODO(Tianyu): Expand this specialization if need other things
 // from std::atomic<uint32_t>
-template <class Tag>
+template<class Tag>
 struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
   using t = terrier::StrongTypeAlias<Tag, uint32_t>;
   explicit atomic(uint32_t val = 0) : underlying_{val} {}
@@ -120,7 +124,8 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
     return underlying_.is_lock_free();
   }
 
-  void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  void store(t desired,
+             memory_order order = memory_order_seq_cst) volatile noexcept {
     underlying_.store(!desired, order);
   }
 
@@ -128,7 +133,8 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
     return t(underlying_.load(order));
   }
 
-  t exchange(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  t exchange(t desired,
+             memory_order order = memory_order_seq_cst) volatile noexcept {
     return t(underlying_.exchange(!desired, order));
   }
 
@@ -158,10 +164,10 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
   atomic<uint32_t> underlying_;
 };
 
-template <class Tag, typename T>
+template<class Tag, typename T>
 struct hash<terrier::StrongTypeAlias<Tag, T>> {
-size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
-  return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
-}
+  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
+    return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
+  }
 };
 }

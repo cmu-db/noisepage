@@ -96,7 +96,7 @@ std::string StringUtil::Prefix(const std::string &str,
   if (lines.empty()) return ("");
 
   std::ostringstream os;
-  for (int i = 0, cnt = lines.size(); i < cnt; i++) {
+  for (int i = 0, cnt = static_cast<int>(lines.size()); i < cnt; i++) {
     if (i > 0) os << std::endl;
     os << prefix << lines[i];
   }  // FOR
@@ -153,12 +153,13 @@ std::string StringUtil::Format(const std::string fmt_str, ...) {
   std::unique_ptr<char[]> formatted;
   va_list ap;
 
-  while (1) {
+  while (true) {
     // Wrap the plain char array into the unique_ptr
-    formatted.reset(new char[n]);
+    formatted = std::make_unique<char[]>(static_cast<size_t>(n));
     strcpy(&formatted[0], fmt_str.c_str());
     va_start(ap, fmt_str);
-    final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+    final_n = vsnprintf(&formatted[0],
+                        static_cast<size_t>(n), fmt_str.c_str(), ap);
     va_end(ap);
     if (final_n < 0 || final_n >= n)
       n += abs(final_n - n + 1);
@@ -183,7 +184,7 @@ std::vector<std::string> StringUtil::Split(const std::string &input,
 
     // Push the substring [last, next) on to splits
     std::string substr = input.substr(last, next - last);
-    if (substr.empty() == false) {
+    if (!substr.empty()) {
       splits.push_back(substr);
     }
     last = next + split_len;

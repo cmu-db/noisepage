@@ -1,9 +1,7 @@
 #include <random>
 #include <functional>
 #include <thread>
-
 #include "common/object_pool.h"
-
 namespace terrier {
 namespace testutil {
 

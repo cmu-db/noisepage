@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/concurrent_queue.h"
+#include "common_defs.h"
 namespace terrier {
 
 // TODO(Tianyu): Should this be by size or by class type?
@@ -9,7 +10,7 @@ namespace terrier {
  *
  * This prevents liberal calls to malloc and new in the code and makes tracking
  * our memory performance easier.
- * @tparam T the type of objects in the pool. It must have an empty constructor.
+ * @tparam T the type of objects in the pool.
  */
 template <typename T>
 class ObjectPool {
@@ -40,14 +41,17 @@ class ObjectPool {
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
   virtual /**
-   * Returns a piece of memory to hold an object of T.
+   * Returns a piece of memory to hold an object of T. The memory is always
+   * 0-initialized.
    *
-   * Beware that the memory returned is not guaranteed to be initialized.
    * @return pointer to memory that can hold T
    */
   T *Get() {
     T *result;
-    return reuse_queue_.Dequeue(result) ? result : new T();
+    if (!reuse_queue_.Dequeue(result))
+      result = reinterpret_cast<T *>(new byte[sizeof(T)]);
+    PELOTON_MEMSET(result, 0, sizeof(T));
+    return result;
   }
 
   virtual /**
@@ -62,6 +66,10 @@ class ObjectPool {
       delete obj;
     else
       reuse_queue_.Enqueue(std::move(obj));
+  }
+
+  virtual size_t ObjectSize() {
+    return sizeof(T);
   }
 
  private:

@@ -1,10 +1,8 @@
 #include <random>
 #include <unordered_set>
-
 #include "gtest/gtest.h"
-#include "storage/block_store.h"
 #include "common/test_util.h"
-
+#include "storage/block_store.h"
 namespace terrier {
 class BlockStoreTests : public ::testing::Test {
  public:
@@ -65,7 +63,6 @@ TEST_F(BlockStoreTests, SimpleCorrectnessTest) {
   storage::BlockStore store(pool);
   auto new_block = store.NewBlock();
   EXPECT_EQ(new_block.second, store.RetrieveBlock(new_block.first));
-
   store.UnsafeDeallocate(new_block.first);
   EXPECT_EQ(nullptr, store.RetrieveBlock(new_block.first));
 }
