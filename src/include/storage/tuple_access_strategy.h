@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "common/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 #include "storage/block_store.h"
@@ -44,44 +45,45 @@ struct BlockLayout {
     return result;
   }
 };
+// TODO(Tianyu): These should be aligned for LLVM
 
 // For individual columns
 // Mini block layout:
 // ----------------------------------------------------------
 // | nul-bitmap (pad up to byte-aligned) | val1 | val2 | ... |
 // ----------------------------------------------------------
-template <AttributeSize size>
-class PACKED MiniBlock {
+class MiniBlock {
  public:
-  // TODO(Tianyu): Implement
-  template <typename T>
-  bool GetAttr(uint32_t, T *&) {
-    static_assert(sizeof(T) == ByteSize(size),
-                  "Invalid type when accessing attribute");
-    return false;
+  bool GetAttr(uint32_t offset, byte *&result, uint32_t num_columns) {
+    if (!nul_bitmap()[offset]) return false;
+    result = columns(num_columns) + offset;
+    return true;
   }
  private:
   MiniBlock() {
     (void) varlen_contents_;
   }
 
+  RawBitmap &nul_bitmap() {
+    return *reinterpret_cast<RawBitmap *>(varlen_contents_);
+  }
+
+  template <typename T>
+  T *columns(uint32_t num_columns) {
+    return reinterpret_cast<T *>(varlen_contents_ + BitmapSize(num_columns));
+  }
   // Because where the other fields start will depend on the specific layout,
   // reinterpreting the rest as bytes is the best we can do without LLVM.
   byte varlen_contents_[0]{};
 };
 
-// TODO(Tianyu): Think about alignment choices
-// (Should blocks and the bytes inside be aligned?)
-
 // Block Header layout:
 // -----------------------------------------------------------------------
-// | block_id | num_records | num_slots | attr_offsets[num_attributes - 1]| // 32-bit fields
+// | block_id | num_records | num_slots | attr_offsets[num_attributes]| // 32-bit fields
 // -----------------------------------------------------------------------
 // | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) | ...content       |
 // -----------------------------------------------------------------------
 //
-// attr_offsets has (num_attributes - 1) because we always assume the first column
-// to start immediately after the header, making it always 0.
 //
 // This is laid out in this order, because except for num_records,
 // the other fields are going to be immutable for a block's lifetime,
@@ -106,17 +108,17 @@ class PACKED Block {
         + layout.num_attrs_ * sizeof(AttributeSize);
   }
 
-  uint32_t *num_slots() {
-    return reinterpret_cast<uint32_t *>(varlen_contents_);
+  uint32_t &num_slots() {
+    return *reinterpret_cast<uint32_t *>(varlen_contents_);
   }
 
   /* Helper methods to navigate fields in the header */
   uint32_t *attr_offsets() {
-    return num_slots() + 1;
+    return &num_slots() + 1;
   }
 
-  uint16_t *num_attrs(const BlockLayout &layout) {
-    return reinterpret_cast<uint16_t *>(attr_offsets()[layout.num_attrs_ - 1]);
+  uint16_t &num_attrs(const BlockLayout &layout) {
+    return *reinterpret_cast<uint16_t *>(attr_offsets()[layout.num_attrs_]);
   }
 
   AttributeSize *attr_sizes(const BlockLayout &layout) {

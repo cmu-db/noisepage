@@ -18,14 +18,49 @@ constexpr uint32_t BitmapSize(uint32_t n) {
   return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1;
 }
 
+// Reinterpret casted from raw memory
+// Therefore, there is absolutely no bounds check on anything.
+class RawBitmap {
+ public:
+  // Always reinterpret_cast from raw memory.
+  RawBitmap() = delete;
+  DISALLOW_COPY_AND_MOVE(RawBitmap);
+  ~RawBitmap() = delete;
+
+  bool Test(uint32_t pos) const {
+    return static_cast<bool>(bits_[pos / BYTE_SIZE]
+        & ONE_HOT_MASK(pos & BYTE_SIZE));
+  }
+
+  bool operator[](uint32_t pos) const {
+    return Test(pos);
+  }
+
+  RawBitmap &Set(uint32_t pos, bool val) {
+    if (val)
+      bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
+    else
+      bits_[pos / BYTE_SIZE] &= ONE_COLD_MASK(pos);
+    return *this;
+  }
+
+  RawBitmap &Flip(uint32_t pos) {
+    bits_[pos / BYTE_SIZE] ^= ONE_HOT_MASK(pos % BYTE_SIZE);
+    return *this;
+  }
+
+ private:
+  // TODO(Tianyu): Make concurrent if need be?
+  uint8_t bits_[0];
+};
+
+// TODO(Tianyu): We probably need to lose the template argument since the
+// size we want will not be known at compile time.
 // TODO(Tianyu): Pretty sure we need this? Maybe not concurrent...
 // C++ bitmap pads an unspecified amount of bytes.
-// TODO(Tianyu): Implement
-template <uint32_t N>
+template<uint32_t N>
 class PACKED ConcurrentBitmap {
-
  public:
-
   bool Test(uint32_t pos) const {
     PELOTON_ASSERT(pos < N);
     return static_cast<bool>(
@@ -44,7 +79,7 @@ class PACKED ConcurrentBitmap {
     return BitmapSize(N);
   }
 
-  // For test or initialization only
+  // Not thread-safe
   ConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
     PELOTON_ASSERT(pos < N);
     if (val)
@@ -68,8 +103,8 @@ class PACKED ConcurrentBitmap {
     uint32_t element = pos / BYTE_SIZE;
     auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     for (uint8_t old_val = bits_[element].load();
-        static_cast<bool>(old_val & mask) == expected_val;
-        old_val = bits_[element].load()) {
+         static_cast<bool>(old_val & mask) == expected_val;
+         old_val = bits_[element].load()) {
       uint8_t new_val = old_val ^ mask;
       if (bits_[element].compare_exchange_strong(old_val, new_val)) return true;
     }
@@ -77,6 +112,6 @@ class PACKED ConcurrentBitmap {
   }
 
  private:
-  std::atomic<uint8_t> bits_[BitmapSize(N)] {};
+  std::atomic<uint8_t> bits_[BitmapSize(N)];
 };
 }
