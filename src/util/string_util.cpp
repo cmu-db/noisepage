@@ -20,7 +20,7 @@
 #include <sstream>
 #include <string>
 
-namespace peloton {
+namespace terrier {
 
 bool StringUtil::Contains(const std::string &haystack,
                           const std::string &needle) {

@@ -18,51 +18,28 @@ constexpr uint32_t BitmapSize(uint32_t n) {
   return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1;
 }
 
-// Reinterpret casted from raw memory
-// Therefore, there is absolutely no bounds check on anything.
-class RawBitmap {
+/**
+ * A RawConcurrentBitmap is a bitmap that does not have the compile-time
+ * information about sizes, because we expect it to be reinterpreted from
+ * raw memory bytes.
+ *
+ * Therefore, you should never construct an instance of a RawConcurrentBitmap.
+ * Reinterpret an existing block of memory that you know will be a valid bitmap.
+ *
+ * Use @see terrier::BitmapSize to get the correct size for a bitmap of n
+ * elements. Beware that because the size information is lost at compile time,
+ * there is ABSOLUTELY no bounds check and you have to rely on programming
+ * discipline to ensure safe access.
+ *
+ * For easy initialization in tests and such, @see ConcurrentBitmap which is
+ * a thin wrapper around this class with a templatized size field.
+ */
+class RawConcurrentBitmap {
  public:
-  // Always reinterpret_cast from raw memory.
-  RawBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawBitmap);
-  ~RawBitmap() = delete;
+  DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap);
+  virtual ~RawConcurrentBitmap() = default;
 
   bool Test(uint32_t pos) const {
-    return static_cast<bool>(bits_[pos / BYTE_SIZE]
-        & ONE_HOT_MASK(pos & BYTE_SIZE));
-  }
-
-  bool operator[](uint32_t pos) const {
-    return Test(pos);
-  }
-
-  RawBitmap &Set(uint32_t pos, bool val) {
-    if (val)
-      bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
-    else
-      bits_[pos / BYTE_SIZE] &= ONE_COLD_MASK(pos);
-    return *this;
-  }
-
-  RawBitmap &Flip(uint32_t pos) {
-    bits_[pos / BYTE_SIZE] ^= ONE_HOT_MASK(pos % BYTE_SIZE);
-    return *this;
-  }
-
- private:
-  // TODO(Tianyu): Make concurrent if need be?
-  uint8_t bits_[0];
-};
-
-// TODO(Tianyu): We probably need to lose the template argument since the
-// size we want will not be known at compile time.
-// TODO(Tianyu): Pretty sure we need this? Maybe not concurrent...
-// C++ bitmap pads an unspecified amount of bytes.
-template<uint32_t N>
-class PACKED ConcurrentBitmap {
- public:
-  bool Test(uint32_t pos) const {
-    PELOTON_ASSERT(pos < N);
     return static_cast<bool>(
         bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
   }
@@ -71,17 +48,8 @@ class PACKED ConcurrentBitmap {
     return Test(pos);
   }
 
-  uint32_t Size() const {
-    return N;
-  }
-
-  uint32_t ByteSize() {
-    return BitmapSize(N);
-  }
-
   // Not thread-safe
-  ConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
-    PELOTON_ASSERT(pos < N);
+  RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
     if (val)
       bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
     else
@@ -99,7 +67,6 @@ class PACKED ConcurrentBitmap {
    * @return true if flip succeeds, otherwise expected_val didn't match
    */
   bool Flip(uint32_t pos, bool expected_val) {
-    PELOTON_ASSERT(pos < N);
     uint32_t element = pos / BYTE_SIZE;
     auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     for (uint8_t old_val = bits_[element].load();
@@ -111,7 +78,21 @@ class PACKED ConcurrentBitmap {
     return false;
   }
 
+  // TODO(Tianyu): We will eventually need optimization for bulk checks and
+  // bulk flips. This thing is embarrassingly easy to vectorize.
+
+ protected:
+  // Always reinterpret_cast from raw memory.
+  RawConcurrentBitmap() = default;
+
  private:
-  std::atomic<uint8_t> bits_[BitmapSize(N)];
+  std::atomic<uint8_t> bits_[0];
+};
+
+// TODO(Tianyu): Do we really need this?
+template<uint32_t N>
+class ConcurrentBitmap : public RawConcurrentBitmap {
+ private:
+  std::atomic<uint8_t> bits_[BitmapSize(N)] {};
 };
 }

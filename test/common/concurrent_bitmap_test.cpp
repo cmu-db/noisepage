@@ -32,9 +32,6 @@ TEST_F(ConcurrentBitmapTests, SimpleCorrectnessTest) {
     EXPECT_FALSE(bitmap.Test(i));
   }
 
-  // Verify size is correct
-  EXPECT_EQ(num_elements, bitmap.Size());
-
   // Randomly permute bitmap and STL bitmap and compare equality
   std::bitset<num_elements> stl_bitmap;
   CheckReferenceBitmap<num_elements>(bitmap, stl_bitmap);

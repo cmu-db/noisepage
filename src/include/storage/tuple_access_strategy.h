@@ -49,26 +49,25 @@ struct BlockLayout {
 
 // For individual columns
 // Mini block layout:
-// ----------------------------------------------------------
-// | nul-bitmap (pad up to byte-aligned) | val1 | val2 | ... |
-// ----------------------------------------------------------
+// ------------------------------------------------------------
+// | null-bitmap (pad up to byte-aligned) | val1 | val2 | ... |
+// ------------------------------------------------------------
 class MiniBlock {
  public:
-  bool GetAttr(uint32_t offset, byte *&result, uint32_t num_columns) {
-    if (!nul_bitmap()[offset]) return false;
-    result = columns(num_columns) + offset;
-    return true;
+  byte *GetAttr(uint32_t, uint32_t) {
+    return nullptr;
   }
+
  private:
   MiniBlock() {
     (void) varlen_contents_;
   }
 
-  RawBitmap &nul_bitmap() {
-    return *reinterpret_cast<RawBitmap *>(varlen_contents_);
+  RawConcurrentBitmap &null_bitmap() {
+    return *reinterpret_cast<RawConcurrentBitmap *>(varlen_contents_);
   }
 
-  template <typename T>
+  template<typename T>
   T *columns(uint32_t num_columns) {
     return reinterpret_cast<T *>(varlen_contents_ + BitmapSize(num_columns));
   }
@@ -78,11 +77,11 @@ class MiniBlock {
 };
 
 // Block Header layout:
-// -----------------------------------------------------------------------
-// | block_id | num_records | num_slots | attr_offsets[num_attributes]| // 32-bit fields
-// -----------------------------------------------------------------------
-// | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) | ...content       |
-// -----------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// | block_id | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
+// ---------------------------------------------------------------------
+// | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content  |
+// ---------------------------------------------------------------------
 //
 //
 // This is laid out in this order, because except for num_records,
@@ -100,7 +99,13 @@ class PACKED Block {
   static Block *Initialize(RawBlock *raw,
                            const BlockLayout &layout,
                            block_id_t block_id);
+  MiniBlock *Column(uint16_t offset) {
+    byte *head = reinterpret_cast<byte *>(this) + attr_offsets()[offset];
+    return reinterpret_cast<MiniBlock *>(head);
+  }
+
  private:
+  friend class TupleAccessStrategy;
   static uint32_t HeaderSize(const BlockLayout &layout) {
     return sizeof(Block)
         + layout.num_attrs_ * sizeof(uint32_t)
@@ -135,18 +140,21 @@ class PACKED Block {
 class TupleAccessStrategy {
  public:
   TupleAccessStrategy(BlockLayout layout,
-                      BlockStore &store,
-                      ObjectPool<TupleSlot> &slot_pool)
-      : layout_(std::move(layout)), store_(store), slot_pool_(slot_pool) {
+                      BlockStore &store)
+      : layout_(std::move(layout)), store_(store) {
     (void) layout_;
     (void) store_;
-    (void) slot_pool_;
   }
 
   // TODO(Tianyu): Roughly what the API should look like?
-  byte *Access(TupleSlot, uint16_t column_offset) { return nullptr; }
+  byte *Access(TupleSlot slot, uint16_t column_offset) {
+    auto *block =
+        reinterpret_cast<Block *>(store_.RetrieveBlock(slot.block_id_));
+    return block->Column(column_offset)
+                ->GetAttr(slot.offset_, block->num_records_);
+  }
 
-  void Allocate(uint32_t num_tuples, TupleSlot *tuple_slots) { return; }
+  void Allocate(uint32_t, TupleSlot *) {}
 
   void UnsafeDeallocate(TupleSlot) {}
 
@@ -154,10 +162,6 @@ class TupleAccessStrategy {
   // TODO(Tianyu): This will be baked in for codegen, not a field.
   const BlockLayout layout_;
   BlockStore &store_;
-  // Presumably we do not want to create these on the fly.
-  // These can be relatively large for larger tables, and we will
-  // cal TupleAccessStrategy very frequently
-  ObjectPool<TupleSlot> &slot_pool_;
 };
 }
 }
