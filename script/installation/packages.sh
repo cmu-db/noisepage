@@ -46,15 +46,18 @@ if [ "$DISTRO" = "UBUNTU" ]; then
     if [ "$MAJOR_VER" == "14" -o "$MAJOR_VER" == "18" ]; then
         if [ "$MAJOR_VER" == "14" ]; then
             LLVM_PKG_URL="http://llvm.org/apt/trusty/"
-            LLVM_PKG_TARGET="llvm-toolchain-trusty-3.7 main"
+            LLVM_PKG_TARGET="llvm-toolchain-trusty-6.0 main"
         fi
         if [ "$MAJOR_VER" == "18" ]; then
             LLVM_PKG_URL="http://apt.llvm.org/bionic/"
-            LLVM_PKG_TARGET="llvm-toolchain-bionic main"
+            LLVM_PKG_TARGET="llvm-toolchain-bionic-6.0 main"
         fi
 
         if ! grep -q "deb $LLVM_PKG_URL $LLVM_PKG_TARGET" /etc/apt/sources.list; then
-            echo -e "\n# Added by Peloton 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET" | sudo tee -a /etc/apt/sources.list > /dev/null
+            echo -e "\n# Added by Terrier 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET" | sudo tee -a /etc/apt/sources.list > /dev/null
+            if [ "$MAJOR_VER" == "14" ]; then
+            echo -e "\ndeb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list > /dev/null
+            fi
         fi
         sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
     fi
