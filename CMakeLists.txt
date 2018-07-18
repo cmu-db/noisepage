@@ -57,3 +57,4 @@ include_directories(${TERRIER_SRC_INCLUDE_DIR} ${TERRIER_TEST_INCLUDE_DIR} ${TER
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(third_party/googletest)
+add_subdirectory(third_party/jsoncpp)

@@ -13,6 +13,12 @@ list(APPEND TERRIER_LINKER_LIBS ${GFLAGS_LIBRARIES})
 # ---[ Google Test
 set(gtest_SOURCE_DIR third_party/googletest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+list(APPEND TERRIER_LINKER_LIBS gtest_main)
+
+# ---[ JsonCpp
+set(jsoncpp_SOURCE_DIR third_party/jsoncpp)
+include_directories(${jsoncpp_SOURCE_DIR}/include ${jsoncpp_SOURCE_DIR})
+list(APPEND TERRIER_LINKER_LIBS ${jsoncpp_LIBRARIES})
 
 # ---[ Intel TBB
 find_package(TBB REQUIRED)
@@ -21,9 +27,6 @@ list(APPEND TERRIER_LINKER_LIBS ${TBB_LIBRARIES})
 
 # ---[ ClangTools
 find_package(ClangTools)
-
-# ---[  Google Test
-list(APPEND TERRIER_LINKER_LIBS gtest_main)
 
 # --[ LLVM 6.0+
 find_package(LLVM REQUIRED CONFIG)
