@@ -112,6 +112,7 @@ elif [ "$DISTRO" = "DARWIN" ]; then
     brew install curl
     brew install wget
     brew install python
+    brew upgrade python
 
 ## ------------------------------------------------
 ## UNKNOWN
