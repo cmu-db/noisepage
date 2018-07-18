@@ -39,7 +39,7 @@ class BlockStore : public Statistics {
   }
 
   void SetStats() {
-    json_value_["block_counter"] = Json::Value(block_counter_);
+//    json_value_["block_counter"] = Json::Value(block_counter_);
   }
 
  private:
