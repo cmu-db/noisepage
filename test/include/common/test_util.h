@@ -65,26 +65,5 @@ void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads
   for (uint32_t i = 0; i < repeat; i++)
     workloads[dist(generator)]();
 }
-
-// Fake class to keep the memory utilization down if we don't care about the
-// actual content (maybe we don't want to actually allocate 1mb for a fake page)
-template<typename T>
-class FakeObjectPool : public ObjectPool<T> {
- public:
-  explicit FakeObjectPool(uint32_t reuse_limit)
-      : ObjectPool<T>(0), fake_pool_(reuse_limit) {}
-
-  ~FakeObjectPool() = default;
-
-  T *Get() override {
-    return reinterpret_cast<T *>(fake_pool_.Get());
-  }
-
-  void Release(T *obj) override {
-    fake_pool_.Release(reinterpret_cast<char *>(obj));
-  }
- private:
-  ObjectPool<char> fake_pool_;
-};
 }
 }

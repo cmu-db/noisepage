@@ -21,10 +21,8 @@ namespace terrier {
 // Logger Tests
 //===--------------------------------------------------------------------===//
 
-class LoggerTests : public ::testing::Test {};
-
-// ToDo:: Need settings_manager and internal_types to test all settings
-TEST_F(LoggerTests, StandardOutputTest) {
+// TODO(Kazuhiro):: Need settings_manager and internal_types to test all settings
+TEST(LoggerTests, StandardOutputTest) {
   LOG_ERROR("error message to standard output");
   LOG_WARN("warning message to standard output");
   LOG_TRACE("trace message to standard output");

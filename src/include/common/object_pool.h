@@ -40,13 +40,13 @@ class ObjectPool {
   // A very clear improvement would be to bulk-malloc objects into the reuse queue,
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
-  virtual /**
+  /**
    * Returns a piece of memory to hold an object of T. The memory is always
    * 0-initialized.
    *
    * @return pointer to memory that can hold T
    */
-  T *Get() {
+  virtual T *Get() {
     T *result;
     if (!reuse_queue_.Dequeue(result))
       result = reinterpret_cast<T *>(new byte[sizeof(T)]);

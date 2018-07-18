@@ -7,7 +7,8 @@
 #include "storage/block_store.h"
 
 // We will always layout the primary key column (or a column that is part of the
-// primary key if multi-column), so that its nulmap
+// primary key if multi-column), so that its nullmap will effectively be the
+// presence bit for tuples in this block.
 #define PRIMARY_KEY_OFFSET 0
 namespace terrier {
 namespace storage {
@@ -59,27 +60,48 @@ struct BlockLayout {
 
 };
 
-// raw should be zeroed out.
+/**
+ * Initializes a new block to conform to the layout given. This will write the
+ * headers and divide up the blocks into mini blocks(each mini block contains
+ * a column). The raw block needs to be 0-initialized (by default when given out
+ * from a block store), otherwise it will cause undefined behavior.
+ *
+ * @param raw pointer to the raw block to initialize
+ * @param layout block layout to use (can be compiled)
+ * @param id the block id to use
+ */
 void InitializeRawBlock(RawBlock *raw,
                         const BlockLayout &layout,
                         block_id_t id);
 namespace {
 // TODO(Tianyu): These two classes should be aligned for LLVM
-// For individual columns
-// Mini block layout:
-// ------------------------------------------------------------
-// | null-bitmap (pad up to byte-aligned) | val1 | val2 | ... |
-// ------------------------------------------------------------
-// Warning, 0 means null
+/**
+ * A mini block stores individual columns. Mini block layout:
+ * ----------------------------------------------------
+ * | null-bitmap (pad up to byte) | val1 | val2 | ... |
+ * ----------------------------------------------------
+ * Warning, 0 means null
+ */
 struct MiniBlock {
  public:
+  /**
+   * A mini-block is always reinterpreted from a raw piece of memory
+   * and should never be initialized, copied, moved, or on the stack.
+   */
   MiniBlock() = delete;
   DISALLOW_COPY_AND_MOVE(MiniBlock);
   ~MiniBlock() = delete;
+  /**
+   * @param layout the layout of this block
+   * @return a pointer to the start of the column. (use as an array)
+   */
   byte *ColumnStart(const BlockLayout &layout) {
     return varlen_contents_ + BitmapSize(layout.num_slots_);
   }
 
+  /**
+   * @return The null-bitmap of this column
+   */
   RawConcurrentBitmap *NullBitmap() {
     return reinterpret_cast<RawConcurrentBitmap *>(varlen_contents_);
   }
@@ -89,50 +111,73 @@ struct MiniBlock {
   byte varlen_contents_[0]{};
 };
 
-// Block Header layout:
-// TODO(Tianyu): Maybe move the first 3 fields to RawBlock
-// ---------------------------------------------------------------------
-// | block_id | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
-// ---------------------------------------------------------------------
-// | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content  |
-// ---------------------------------------------------------------------
-//
-//
-// This is laid out in this order, because except for num_records,
-// the other fields are going to be immutable for a block's lifetime,
-// and except for block id, all the other fields are going to be baked in to
-// the code and never read. Laying out in this order allows us to only load the
-// first 64 bits we care about in the header in compiled code.
-//
-// Note that we will never need to span a tuple across multiple pages if we enforce
-// block size to be 1 MB and columns to be less than 65535 (max uint16_t)
+/**
+ * Block Header layout:
+ * TODO(Tianyu): Maybe move the first 3 fields to RawBlock
+ * ---------------------------------------------------------------------
+ * | block_id | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
+ * ---------------------------------------------------------------------
+ * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content  |
+ * ---------------------------------------------------------------------
+ *
+ * This is laid out in this order, because except for num_records,
+ * the other fields are going to be immutable for a block's lifetime,
+ * and except for block id, all the other fields are going to be baked in to
+ * the code and never read. Laying out in this order allows us to only load the
+ * first 64 bits we care about in the header in compiled code.
+ *
+ * Note that we will never need to span a tuple across multiple pages if we enforce
+ * block size to be 1 MB and columns to be less than 65535 (max uint16_t)
+ */
+// This is packed because these will only be constructed from compact
+// storage bytes, not on the fly. Layout optimization should be left
+// for LLVM later.
 struct PACKED Block {
-  // This is packed because these will only be constructed from compact
-  // storage bytes, not on the fly.
+  /**
+   * A block is always reinterpreted from a raw piece of memory
+   * and should never be initialized, copied, moved, or on the stack.
+   */
   Block() = delete;
   DISALLOW_COPY_AND_MOVE(Block);
   ~Block() = delete;
 
+  /**
+   * @param offset offset representing the column
+   * @return the miniblock for the column at the given offset.
+   */
   MiniBlock *Column(uint16_t offset) {
-    byte *head = reinterpret_cast<byte *>(this) + attr_offsets()[offset];
+    byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[offset];
     return reinterpret_cast<MiniBlock *>(head);
   }
 
-  uint32_t &num_slots() {
+  /**
+   * @return reference to num_slots. Use as a member.
+   */
+  uint32_t &NumSlots() {
     return *reinterpret_cast<uint32_t *>(varlen_contents_);
   }
 
-  /* Helper methods to navigate fields in the header */
-  uint32_t *attr_offsets() {
-    return &num_slots() + 1;
+  /**
+   * @return reference to attr_offsets. Use as an array.
+   */
+  uint32_t *AttrOffets() {
+    return &NumSlots() + 1;
   }
 
-  uint16_t &num_attrs(const BlockLayout &layout) {
-    return *reinterpret_cast<uint16_t *>(attr_offsets()[layout.num_attrs_]);
+  /**
+   * @param layout layout of the block
+   * @return reference to num_attrs. Use as a member.
+   */
+  uint16_t &NumAttrs(const BlockLayout &layout) {
+    return *reinterpret_cast<uint16_t *>(AttrOffets()[layout.num_attrs_]);
   }
 
-  uint8_t *attr_sizes(const BlockLayout &layout) {
-    return reinterpret_cast<uint8_t *>(num_attrs(layout) + 1);
+  /**
+   * @param layout layout of the block
+   * @return reference to attr_sizes. Use as an array.
+   */
+  uint8_t *AttrSizes(const BlockLayout &layout) {
+    return reinterpret_cast<uint8_t *>(NumAttrs(layout) + 1);
   }
 
   block_id_t block_id_;
@@ -143,8 +188,16 @@ struct PACKED Block {
 };
 }
 
+/**
+ * Code for accessing data within a block. This code is eventually compiled and
+ * should be stateless, so no fields other than const BlockLayout.
+ */
 class TupleAccessStrategy {
  public:
+  /**
+   * Initializes a TupleAccessStrategy
+   * @param layout block layout to use
+   */
   TupleAccessStrategy(BlockLayout layout) : layout_(std::move(layout)) {}
 
   // TODO(Tianyu): We are taking in a RawBlock * and an offset, instead of a
@@ -154,11 +207,21 @@ class TupleAccessStrategy {
   // It doesn't make sense to encapsulate the lookup in this class.
 
   /* Vectorized Access */
+  /**
+   * @param block block to access
+   * @param column_offset offset representing the column
+   * @return pointer to the bitmap of the specified column on the given blocl
+   */
   RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block,
                                         uint16_t column_offset) {
     return reinterpret_cast<Block *>(block)->Column(column_offset)->NullBitmap();
   }
 
+  /**
+   * @param block block to access
+   * @param column_offset offset representing the column
+   * @return pointer to the start of the column
+   */
   byte *ColumnStart(RawBlock *block, uint16_t column_offset) {
     return reinterpret_cast<Block *>(block)
         ->Column(column_offset)
@@ -166,36 +229,58 @@ class TupleAccessStrategy {
   }
 
   /* Tuple-level access */
-  // TODO(Tianyu): Roughly what the API should look like?
+  /**
+   * @param block block to access
+   * @param column_offset offset representing the column
+   * @param pos offset of the attribute in that column
+   * @return a pointer to the attribute, or nullptr if attribute is null.
+   */
   byte *AccessWithNullCheck(RawBlock *block,
                             uint16_t column_offset,
-                            uint32_t offset) {
-    if (!ColumnNullBitmap(block, column_offset)->Test(offset))
+                            uint32_t pos) {
+    if (!ColumnNullBitmap(block, column_offset)->Test(pos))
       return nullptr;
     return ColumnStart(block, column_offset)
-        + layout_.attr_sizes_[column_offset] * offset;
+        + layout_.attr_sizes_[column_offset] * pos;
   }
 
+  /**
+   * Returns a pointer to the attribute. If the attribute is null, set null to
+   * false.
+   * @param block block to access
+   * @param column_offset offset representing the column
+   * @param pos offset of the attribute in that column
+   * @return a pointer to the attribute.
+   */
   byte *AccessForceNotNull(RawBlock *block,
                            uint16_t column_offset,
-                           uint32_t offset) {
+                           uint32_t pos) {
     // Noop if not null
-    ColumnNullBitmap(block, column_offset)->Flip(offset, false);
+    ColumnNullBitmap(block, column_offset)->Flip(pos, false);
     return ColumnStart(block, column_offset)
-        + layout_.attr_sizes_[column_offset] * offset;
+        + layout_.attr_sizes_[column_offset] * pos;
   }
 
-  void SetNull(RawBlock *block, uint16_t column_offset, uint32_t offset) {
+  /**
+   * Set an attribute null. If called on the primary key column (0), this is
+   * considered freeing.
+   * @param block block to access
+   * @param column_offset offset representing the column
+   * @param pos offset of the attribute in that column
+   */
+  void SetNull(RawBlock *block, uint16_t column_offset, uint32_t pos) {
     // Noop if already null
-    ColumnNullBitmap(block, column_offset)->Flip(offset, true);
-  }
-
-  void MarkFree(RawBlock *block, uint16_t column_offset) {
-    // Marking the Primary Key as null is the same as freeing
-    SetNull(block, column_offset, PRIMARY_KEY_OFFSET);
+    ColumnNullBitmap(block, column_offset)->Flip(pos, true);
   }
 
   /* Allocation and Deallocation */
+  /**
+   * Allocates a slot for a new tuple, writing its offset to the given reference.
+   * Returns false if there is no space in this block.
+   * @param block block to allocate a tuple in
+   * @param offset result
+   * @return true if the allocation is successful, false if no space can be found.
+   */
   bool Allocate(RawBlock *block, uint32_t &offset) {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly vectorizable.
     // Optimize later.

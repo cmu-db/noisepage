@@ -18,20 +18,20 @@ void InitializeRawBlock(RawBlock *raw,
   auto *result = reinterpret_cast<Block *>(raw);
   result->block_id_ = block_id;
   result->num_records_ = 0;
-  result->num_slots() = layout.num_slots_;
+  result->NumSlots() = layout.num_slots_;
   // the first column starts immediately after the end of the header,
   // there is no need to write down its starting offset.
   uint32_t acc_offset = ColumnSize(layout, 0);
-  uint32_t *offsets = result->attr_offsets();
+  uint32_t *offsets = result->AttrOffets();
   for (uint16_t i = 1; i < layout.num_attrs_; i++) {
     offsets[i - 1] = acc_offset;
     acc_offset += ColumnSize(layout, i);
   }
 
-  result->num_attrs(layout) = layout.num_attrs_;
+  result->NumAttrs(layout) = layout.num_attrs_;
 
   for (uint16_t i = 0; i < layout.num_attrs_; i++)
-    result->attr_sizes(layout)[i] = layout.attr_sizes_[i];
+    result->AttrSizes(layout)[i] = layout.attr_sizes_[i];
 }
 }
 }

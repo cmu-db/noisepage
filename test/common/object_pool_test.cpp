@@ -7,11 +7,8 @@
 #include "common/object_pool.h"
 
 namespace terrier {
-// TODO(Tianyu): This should eventually extend harness we define.
-class ObjectPoolTests : public ::testing::Test {};
-
 // Rather minimalistic checks for whether we reuse memory
-TEST_F(ObjectPoolTests, SimpleReuseTest) {
+TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t reuse_limit = 1;
   ObjectPool<uint32_t> tested(reuse_limit);
@@ -47,7 +44,7 @@ class ObjectPoolTestType {
 
 // This test generates random workload and sees if the pool gives out
 // the same pointer to two threads at the same time.
-TEST_F(ObjectPoolTests, ConcurrentCorrectnessTest) {
+TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
   ObjectPool<ObjectPoolTestType> tested(reuse_limit);

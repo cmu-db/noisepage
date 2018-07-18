@@ -39,12 +39,21 @@ using byte = std::byte;
  * Now foo(b, a) would be a type mismatch.
  *
  * To get 42 out of a, simply do (!a) to get back an int.
+ *
+ * To call the constructor function-style, use VALUE_OF macro by giving
+ * it the name of your strong typedef and the value you want. THE
+ * VALUE MUST HAVE EXPLICIT TYPE OF THE UNDERLYING TYPE.
+ *
+ * e.g. STRONG_TYPEDEF(foo, uint32_t)
+ * ...
+ * return VALUE_OF(foo, 42u);
  */
 #define STRONG_TYPEDEF(name, underlying_type)      \
   struct name##_typedef_tag {};                    \
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
 
 #define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
+
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
  *
@@ -81,17 +90,18 @@ class StrongTypeAlias {
   T val_;
 };
 
+template<class Tag, typename T>
+StrongTypeAlias<Tag, T> ValueOf(T val) {
+  return StrongTypeAlias<Tag, T>(val);
+};
+
+
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
 //template <class Tag>
 //class StrongTypeAlias<Tag, uint32_t> {
 //  // Write your operator here!
 //};
-
-template<class Tag, typename T>
-StrongTypeAlias<Tag, T> ValueOf(T val) {
-  return StrongTypeAlias<Tag, T>(val);
-};
 
 /**
  * Declare all system-level constants that cannot change at runtime here.
