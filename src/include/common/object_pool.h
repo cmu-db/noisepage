@@ -22,13 +22,13 @@ class ObjectPool {
    */
   explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
 
-  virtual /**
+  /**
    * Destructs the memory pool. Frees any memory it holds.
    *
    * Beware that the object pool will not deallocate some piece of memory
    * not explicitly released via a Release call.
    */
-  ~ObjectPool() {
+  FAKED_IN_TEST ~ObjectPool() {
     T *result;
     while (reuse_queue_.Dequeue(result))
       delete result;
@@ -46,7 +46,7 @@ class ObjectPool {
    *
    * @return pointer to memory that can hold T
    */
-  virtual T *Get() {
+  FAKED_IN_TEST T *Get() {
     T *result;
     if (!reuse_queue_.Dequeue(result))
       result = reinterpret_cast<T *>(new byte[sizeof(T)]);
@@ -54,22 +54,18 @@ class ObjectPool {
     return result;
   }
 
-  virtual /**
+  /**
    * Releases the piece of memory given, allowing it to be freed or reused for
    * later. Although the memory is not necessarily immediately reclaimed, it will
    * be unsafe to access after entering this call.
    *
    * @param obj pointer to object to release
    */
-  void Release(T *obj) {
+  FAKED_IN_TEST void Release(T *obj) {
     if (reuse_queue_.UnsafeSize() > reuse_limit_)
       delete obj;
     else
       reuse_queue_.Enqueue(std::move(obj));
-  }
-
-  virtual size_t ObjectSize() {
-    return sizeof(T);
   }
 
  private:
