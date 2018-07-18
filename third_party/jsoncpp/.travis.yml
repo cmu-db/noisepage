@@ -1,0 +1,42 @@
+# Build matrix / environment variables are explained on:
+# http://about.travis-ci.org/docs/user/build-configuration/
+# This file can be validated on:
+# http://lint.travis-ci.org/
+# See also
+# http://stackoverflow.com/questions/22111549/travis-ci-with-clang-3-4-and-c11/30925448#30925448
+# to allow C++11, though we are not yet building with -std=c++11
+
+before_install:
+- source travis.before_install.${TRAVIS_OS_NAME}.sh
+install:
+- source travis.install.${TRAVIS_OS_NAME}.sh
+addons:
+  apt:
+    sources:
+    #- ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.5
+    packages:
+    #- gcc-4.9
+    #- g++-4.9
+    - clang-3.5
+    - valgrind
+language: cpp
+script: ./travis.sh
+matrix:
+  allow_failures:
+    - os: osx
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      #env: PYENV_ROOT=/usr/local/var/pyenv
+      env: LIB_TYPE=static BUILD_TYPE=release
+      #- LIB_TYPE=shared BUILD_TYPE=debug
+    - os: linux
+      dist: trusty
+      compiler: clang
+      env: LIB_TYPE=static BUILD_TYPE=release
+notifications:
+  email: false
+sudo: false
