@@ -54,10 +54,7 @@ if [ "$DISTRO" = "UBUNTU" ]; then
         fi
 
         if ! grep -q "deb $LLVM_PKG_URL $LLVM_PKG_TARGET" /etc/apt/sources.list; then
-            echo -e "\n# Added by Terrier 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET" | sudo tee -a /etc/apt/sources.list > /dev/null
-            if [ "$MAJOR_VER" == "14" ]; then
-            echo -e "\ndeb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list > /dev/null
-            fi
+            echo -e "\n# Added by Terrier 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET\ndeb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list > /dev/null
         fi
         sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
     fi
