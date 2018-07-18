@@ -27,7 +27,7 @@ class Statistics {
   virtual ~Statistics(){};
 
   /** @brief Set the Json value about the statistics. */
-  virtual void SetStats() const = 0;
+  virtual void SetStats() = 0;
 
   /** @brief Print the statistics in the Json value. */
   void PrintStats ();

@@ -3,10 +3,11 @@
 #include "common/object_pool.h"
 #include "common/concurrent_map.h"
 #include "storage/storage_defs.h"
+#include "common/statistics.h"
 
 namespace terrier {
 namespace storage {
-class BlockStore {
+class BlockStore : public Statistics {
  public:
   explicit BlockStore(ObjectPool<RawBlock> &block_pool)
       : block_pool_(block_pool) {}
@@ -27,12 +28,18 @@ class BlockStore {
   std::pair<block_id_t, RawBlock *> NewBlock() {
     auto new_block_pair = std::make_pair<block_id_t, RawBlock *>(next_block_id_++, block_pool_.Get());
     blocks_map_.Insert(new_block_pair.first, new_block_pair.second);
+    block_counter_ ++;
     return new_block_pair;
   }
 
   void UnsafeDeallocate(block_id_t block_id) {
     block_pool_.Release(RetrieveBlock(block_id));
     blocks_map_.UnsafeErase(block_id);
+    block_counter_ --;
+  }
+
+  void SetStats() {
+    json_value_["block_counter"] = Json::Value(block_counter_);
   }
 
  private:
@@ -40,6 +47,9 @@ class BlockStore {
   ConcurrentMap<block_id_t, RawBlock *> blocks_map_;
   // TODO(Tianyu): the representation of block_id is subject to change
   std::atomic<block_id_t> next_block_id_;
+
+  /** Block counter for statistics*/
+  std::atomic<int> block_counter_;
 };
 }
 }
