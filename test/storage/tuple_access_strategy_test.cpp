@@ -1,5 +1,5 @@
 #include "storage/tuple_access_strategy_test_util.h"
-#include <cstdio>
+
 namespace terrier {
 struct TupleAccessStrategyTests : public ::testing::Test {
   block_id_t id_;
@@ -56,28 +56,44 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
     // Flip non-null columns to null should result in returning of nullptr.
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
       if (!nulls[col]) tested.SetNull(raw_block_, col, offset);
-      EXPECT_TRUE(tested.AccessWithNullCheck(raw_block_, col, offset) == nullptr);
+      EXPECT_TRUE(
+          tested.AccessWithNullCheck(raw_block_, col, offset) == nullptr);
     }
   }
 }
 
+
+
 // Tests that we can allocate a tuple slot, write things into the slot and
 // get them out.
-TEST_F(TupleAccessStrategyTests, SimpleCorrectnessTest) {
-  const int32_t repeat = 100;
+TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
+  const uint32_t repeat = 100;
   std::default_random_engine generator;
-  for (int32_t i = 0; i < repeat; i++) {
+  for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
     PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
     storage::InitializeRawBlock(raw_block_, layout, id_);
     storage::TupleAccessStrategy tested(layout);
 
-    uint32_t offset;
-    EXPECT_TRUE(tested.Allocate(raw_block_, offset));
-    EXPECT_TRUE(tested.ColumnNullBitmap(raw_block_, PRIMARY_KEY_OFFSET)->Test(offset));
-    testutil::FakeRawTuple fake_tuple = testutil::RandomTuple(layout, generator);
-    testutil::InsertTuple(fake_tuple, tested, layout, raw_block_, offset);
-    testutil::CheckTupleEqual(fake_tuple, tested, layout, raw_block_, offset);
+    const uint32_t num_inserts =
+        std::uniform_int_distribution<uint32_t>(1,
+                                                layout.num_slots_)(generator);
+
+    std::unordered_map<uint32_t, testutil::FakeRawTuple> tuples;
+
+    testutil::TryInsertFakeTuple(num_inserts,
+                                 layout,
+                                 tested,
+                                 raw_block_,
+                                 tuples,
+                                 generator);
+    // Check that all inserted tuples are equal to their expected values
+    for (auto &entry : tuples)
+      testutil::CheckTupleEqual(entry.second,
+                                tested,
+                                layout,
+                                raw_block_,
+                                entry.first);
   }
 }
 
@@ -124,6 +140,43 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
                                                        last_column_size),
                             lower_bound,
                             upper_bound);
+  }
+}
+
+// TODO(Tianyu): Describe
+TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
+  const uint32_t repeat = 100;
+  std::default_random_engine generator;
+  for (uint32_t i = 0; i < repeat; i++) {
+    // We want to test relatively common cases with large numbers of slots
+    // in a block. This allows us to test out more inter-leavings.
+    const uint32_t num_threads = 8;
+    const uint16_t max_cols = 1000;
+    storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, id_);
+    storage::TupleAccessStrategy tested(layout);
+
+    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>> tuples(num_threads);
+
+    auto workload = [&](uint32_t id) {
+      std::default_random_engine thread_generator(id);
+      testutil::TryInsertFakeTuple(layout.num_slots_ / num_threads,
+                                   layout,
+                                   tested,
+                                   raw_block_,
+                                   tuples[id],
+                                   thread_generator);
+    };
+
+    testutil::RunThreadsUntilFinish(num_threads, workload);
+    for (auto &thread_tuples : tuples)
+      for (auto &entry : thread_tuples)
+        testutil::CheckTupleEqual(entry.second,
+                                  tested,
+                                  layout,
+                                  raw_block_,
+                                  entry.first);
   }
 }
 }

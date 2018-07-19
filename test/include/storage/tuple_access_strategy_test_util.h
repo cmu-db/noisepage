@@ -1,5 +1,6 @@
 #pragma once
 #include <random>
+#include <unordered_map>
 
 #include "gtest/gtest.h"
 #include "storage/block_store.h"
@@ -11,16 +12,19 @@ namespace terrier {
 namespace testutil {
 // Returns a random layout that is guaranteed to be valid.
 template<typename Random>
-storage::BlockLayout RandomLayout(Random &generator) {
+storage::BlockLayout RandomLayout(Random &generator,
+                                  uint16_t max_cols = UINT16_MAX) {
+  PELOTON_ASSERT(max_cols > 1);
   // We probably won't allow tables with 0 columns
   uint16_t num_attrs =
-      std::uniform_int_distribution<uint16_t>(1, UINT16_MAX)(generator);
+      std::uniform_int_distribution<uint16_t>(1, max_cols)(generator);
   std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
   for (uint16_t i = 0; i < num_attrs; i++)
     attr_sizes[i] =
         *testutil::UniformRandomElement(possible_attr_sizes, generator);
   return {num_attrs, attr_sizes};
 }
+
 // Read specified number of bytes from position and interpret the bytes as
 // an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
 uint64_t ReadByteValue(uint8_t attr_size, byte *pos) {
@@ -97,11 +101,11 @@ void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
 // This does NOT return a sensible tuple in general. This is just some filler
 // to write into the storage layer and is devoid of meaning outside of this class.
 template<typename Random>
-FakeRawTuple RandomTuple(const storage::BlockLayout &layout,
-                          Random &generator) {
+byte *RandomTupleContent(const storage::BlockLayout &layout,
+                         Random &generator) {
   byte *bytes = new byte[layout.tuple_size_];
   FillWithRandomBytes(layout.tuple_size_, bytes, generator);
-  return FakeRawTuple(layout, bytes);
+  return bytes;
 }
 
 // Write the given fake tuple into a block using the given access strategy,
@@ -121,6 +125,7 @@ void InsertTuple(FakeRawTuple &tuple,
   }
 }
 
+// Check that the written tuple is the same as the expected one
 void CheckTupleEqual(FakeRawTuple &expected,
                      storage::TupleAccessStrategy &tested,
                      const storage::BlockLayout &layout,
@@ -141,6 +146,35 @@ void CheckTupleEqual(FakeRawTuple &expected,
   }
 }
 
+// Using the given random generator, attempts to allocate a slot and write a
+// random tuple into it. The slot and the tuple are logged in the given map.
+// Checks are performed to make sure the insertion is sensible.
+template <typename Random>
+void TryInsertFakeTuple(uint32_t num_inserts,
+                        const storage::BlockLayout &layout,
+                        storage::TupleAccessStrategy &tested,
+                        RawBlock *block,
+                        std::unordered_map<uint32_t, testutil::FakeRawTuple> &tuples,
+                        Random &generator) {
+  for (uint32_t i = 0; i < num_inserts; i++) {
+    uint32_t offset;
+    // There should always be enough slots.
+    EXPECT_TRUE(tested.Allocate(block, offset));
+    EXPECT_TRUE(tested.ColumnNullBitmap(block, PRIMARY_KEY_OFFSET)->Test(offset));
+
+    // Construct a random tuple and associate it with the tuple slot
+    auto result = tuples.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(offset),
+        std::forward_as_tuple(layout,
+                              testutil::RandomTupleContent(layout, generator)));
+
+    // The tuple slot is not something that is already in use.
+    EXPECT_TRUE(result.second);
+    testutil::InsertTuple(result.first->second, tested, layout, block, offset);
+  }
+}
+
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
 // val address in [lower, upper) ?
 template<typename A, typename B, typename C>
@@ -153,5 +187,6 @@ template<typename A>
 A *IncrementByBytes(A *ptr, uint32_t bytes) {
   return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
 }
+
 }
 }
