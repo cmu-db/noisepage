@@ -12,7 +12,7 @@ namespace terrier {
  */
 class Printable {
  public:
-  virtual ~Printable() = default;;
+  virtual ~Printable() = default;
 
   /** @brief Return information about the object in human-readable way. */
   virtual const std::string GetInfo() const = 0;

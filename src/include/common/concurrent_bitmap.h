@@ -67,6 +67,7 @@ class RawConcurrentBitmap {
     PELOTON_MEMSET(result, 0, size);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
+
   /**
    * Deallocates a RawConcurrentBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
@@ -75,16 +76,32 @@ class RawConcurrentBitmap {
     delete (uint8_t *) map;
   }
 
+  /**
+   * Test the bit value at the given position
+   * @param pos position to test
+   * @return true if 1, false if 0
+   */
   bool Test(uint32_t pos) const {
     return static_cast<bool>(
         bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
+  /**
+   * Test the bit value at the given position
+   * @param pos position to test
+   * @return true if 1, false if 0
+   */
   bool operator[](uint32_t pos) const {
     return Test(pos);
   }
 
-  // Not thread-safe
+  /**
+   * Sets the bit value at position to be val. This is not safe to call
+   * concurrently.
+   * @param pos position to test
+   * @param val value to set to
+   * @return self-reference for chaining
+   */
   RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
     if (val)
       bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);

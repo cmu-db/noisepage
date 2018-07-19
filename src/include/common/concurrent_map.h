@@ -30,34 +30,65 @@ class ConcurrentMap {
 // Keep the interface minimalistic until we figure out what implementation to use.
  public:
 
+  /**
+   * Iterator type for the map
+   */
   class Iterator {
     using val = std::pair<const K, V>;
    public:
+    /**
+     * Wraps around a tbb iterator. Subject to change if we change implementation
+     * @param it iterator of the underlying map
+     */
     explicit Iterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it)
         : it_(it) {}
 
+    /**
+     * @return reference to the underlying value
+     */
     val &operator*() const {
       return it_.operator*();
     }
 
+    /**
+     * @return pointer to the underlying value
+     */
     val *operator->() const {
       return it_.operator->();
     }
 
+    /**
+     * prefix-increment
+     * @return self-reference
+     */
     Iterator &operator++() {
       ++it_;
       return *this;
     }
 
+    /**
+     * postfix-increment
+     * @return iterator equal to this iterator before increment
+     */
     const Iterator operator++(int) {
       Iterator result(it_++);
       return result;
     }
 
+    /**
+     * Equality test
+     * @param other iterator to compare to
+     * @return if this is equal to other
+     */
     bool operator==(const Iterator &other) const {
       return it_ == other.it_;
     }
 
+    /**
+     * Inequality test
+     * @param other iterator to compare to
+     * @return if this is not equal to other
+     */
     bool operator!=(const Iterator &other) const {
       return it_ != other.it_;
     }
@@ -101,10 +132,16 @@ class ConcurrentMap {
     map_.unsafe_erase(key);
   }
 
+  /**
+   * @return Iterator to the first element
+   */
   Iterator Begin() {
     return Iterator(map_.begin());
   }
 
+  /**
+   * @return Iterator to the element following the last element
+   */
   Iterator End() {
     return Iterator(map_.end());
   }
