@@ -18,15 +18,15 @@ namespace storage {
 // (Think of this as writing the class with a BlockLayout template arg, except
 // template instantiation is done by LLVM at runtime and not at compile time.
 struct BlockLayout {
-  BlockLayout(uint16_t num_attrs, std::vector<const uint8_t> attr_sizes)
-      : num_attrs_(num_attrs),
+  BlockLayout(uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
+      : num_cols_(num_attrs),
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
         num_slots_(NumSlots()) {}
 
-  const uint16_t num_attrs_;
-  const std::vector<const uint8_t> attr_sizes_;
+  const uint16_t num_cols_;
+  const std::vector<uint8_t> attr_sizes_;
   // Cached so we don't have to iterate through attr_sizes every time
   const uint32_t tuple_size_;
   const uint32_t header_size_;
@@ -34,7 +34,7 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_attrs_ == attr_sizes_.size());
+    PELOTON_ASSERT(num_cols_ == attr_sizes_.size());
     uint32_t result = 0;
     for (auto size : attr_sizes_)
       result += size;
@@ -43,9 +43,9 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return sizeof(uint32_t) * 3 // block_id, num_records, num_slots
-        + num_attrs_ * sizeof(uint32_t)
+        + num_cols_ * sizeof(uint32_t)
         + sizeof(uint16_t)
-        + num_attrs_ * sizeof(uint8_t);
+        + num_cols_ * sizeof(uint8_t);
   }
 
   uint32_t NumSlots() {
@@ -55,7 +55,7 @@ struct BlockLayout {
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
     return 8 * (Constants::BLOCK_SIZE - header_size_)
-        / (8 * tuple_size_ + num_attrs_) - 1;
+        / (8 * tuple_size_ + num_cols_) - 1;
   }
 
 };
@@ -169,7 +169,7 @@ struct PACKED Block {
    * @return reference to num_attrs. Use as a member.
    */
   uint16_t &NumAttrs(const BlockLayout &layout) {
-    return *reinterpret_cast<uint16_t *>(AttrOffets()[layout.num_attrs_]);
+    return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.num_cols_);
   }
 
   /**
@@ -177,7 +177,7 @@ struct PACKED Block {
    * @return reference to attr_sizes. Use as an array.
    */
   uint8_t *AttrSizes(const BlockLayout &layout) {
-    return reinterpret_cast<uint8_t *>(NumAttrs(layout) + 1);
+    return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1);
   }
 
   block_id_t block_id_;
@@ -198,7 +198,8 @@ class TupleAccessStrategy {
    * Initializes a TupleAccessStrategy
    * @param layout block layout to use
    */
-  TupleAccessStrategy(BlockLayout layout) : layout_(std::move(layout)) {}
+  explicit TupleAccessStrategy(BlockLayout layout)
+      : layout_(std::move(layout)) {}
 
   // TODO(Tianyu): We are taking in a RawBlock * and an offset, instead of a
   // TupleSlot because presumably someone would have already looked up a block_id,
@@ -209,68 +210,68 @@ class TupleAccessStrategy {
   /* Vectorized Access */
   /**
    * @param block block to access
-   * @param column_offset offset representing the column
-   * @return pointer to the bitmap of the specified column on the given blocl
+   * @param col offset representing the column
+   * @return pointer to the bitmap of the specified column on the given block
    */
   RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block,
-                                        uint16_t column_offset) {
-    return reinterpret_cast<Block *>(block)->Column(column_offset)->NullBitmap();
+                                        uint16_t col) {
+    return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
   }
 
   /**
    * @param block block to access
-   * @param column_offset offset representing the column
+   * @param col offset representing the column
    * @return pointer to the start of the column
    */
-  byte *ColumnStart(RawBlock *block, uint16_t column_offset) {
+  byte *ColumnStart(RawBlock *block, uint16_t col) {
     return reinterpret_cast<Block *>(block)
-        ->Column(column_offset)
+        ->Column(col)
         ->ColumnStart(layout_);
   }
 
   /* Tuple-level access */
   /**
    * @param block block to access
-   * @param column_offset offset representing the column
-   * @param pos offset of the attribute in that column
+   * @param col offset representing the column
+   * @param offset offset of the attribute in that column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
   byte *AccessWithNullCheck(RawBlock *block,
-                            uint16_t column_offset,
-                            uint32_t pos) {
-    if (!ColumnNullBitmap(block, column_offset)->Test(pos))
+                            uint16_t col,
+                            uint32_t offset) {
+    if (!ColumnNullBitmap(block, col)->Test(offset))
       return nullptr;
-    return ColumnStart(block, column_offset)
-        + layout_.attr_sizes_[column_offset] * pos;
+    return ColumnStart(block, col)
+        + layout_.attr_sizes_[col] * offset;
   }
 
   /**
    * Returns a pointer to the attribute. If the attribute is null, set null to
    * false.
    * @param block block to access
-   * @param column_offset offset representing the column
-   * @param pos offset of the attribute in that column
+   * @param col offset representing the column
+   * @param offset offset of the attribute in that column.
    * @return a pointer to the attribute.
    */
   byte *AccessForceNotNull(RawBlock *block,
-                           uint16_t column_offset,
-                           uint32_t pos) {
+                           uint16_t col,
+                           uint32_t offset) {
     // Noop if not null
-    ColumnNullBitmap(block, column_offset)->Flip(pos, false);
-    return ColumnStart(block, column_offset)
-        + layout_.attr_sizes_[column_offset] * pos;
+    ColumnNullBitmap(block, col)->Flip(offset, false);
+    return ColumnStart(block, col)
+        + layout_.attr_sizes_[col] * offset;
   }
 
   /**
    * Set an attribute null. If called on the primary key column (0), this is
    * considered freeing.
    * @param block block to access
-   * @param column_offset offset representing the column
-   * @param pos offset of the attribute in that column
+   * @param col offset representing the column
+   * @param offset offset of the attribute in that column
    */
-  void SetNull(RawBlock *block, uint16_t column_offset, uint32_t pos) {
+  void SetNull(RawBlock *block, uint16_t col, uint32_t offset) {
     // Noop if already null
-    ColumnNullBitmap(block, column_offset)->Flip(pos, true);
+    ColumnNullBitmap(block, col)->Flip(offset, true);
   }
 
   /* Allocation and Deallocation */
@@ -282,8 +283,8 @@ class TupleAccessStrategy {
    * @return true if the allocation is successful, false if no space can be found.
    */
   bool Allocate(RawBlock *block, uint32_t &offset) {
-    // TODO(Tianyu): Really inefficient for now. Again, embarrassingly vectorizable.
-    // Optimize later.
+    // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
+    // vectorizable. Optimize later.
     RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
     for (uint32_t i = 0; i < layout_.num_slots_; i++) {
       if (bitmap->Flip(i, false)) {

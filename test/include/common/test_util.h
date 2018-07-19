@@ -17,7 +17,7 @@ namespace testutil {
  */
 template<typename T, typename Random>
 typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems,
-                                                       Random generator) {
+                                                       Random &generator) {
   return elems.begin()
       + std::uniform_int_distribution(0, (int) elems.size() - 1)(generator);
 };
@@ -58,7 +58,7 @@ void RunThreadsUntilFinish(uint32_t num_threads,
 template<typename Random>
 void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
                                     std::vector<double> probabilities,
-                                    Random generator,
+                                    Random &generator,
                                     uint32_t repeat = 1) {
   PELOTON_ASSERT(probabilities.size() == workloads.size());
   std::discrete_distribution dist(probabilities.begin(), probabilities.end());

@@ -34,7 +34,7 @@ constexpr uint32_t BitmapSize(uint32_t n) {
  * For easy initialization in tests and such, @see ConcurrentBitmap which is
  * a thin wrapper around this class with a templatized size field.
  */
-class RawConcurrentBitmap {
+class PACKED RawConcurrentBitmap {
  public:
   DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap);
   virtual ~RawConcurrentBitmap() = default;

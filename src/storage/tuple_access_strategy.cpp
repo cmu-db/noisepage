@@ -19,18 +19,19 @@ void InitializeRawBlock(RawBlock *raw,
   result->block_id_ = block_id;
   result->num_records_ = 0;
   result->NumSlots() = layout.num_slots_;
-  // the first column starts immediately after the end of the header,
-  // there is no need to write down its starting offset.
-  uint32_t acc_offset = ColumnSize(layout, 0);
+  // TODO(Tianyu): For now, columns start right after the header without
+  // alignment considerations. This logic will need to change when switching
+  // to LLVM.
+  uint32_t acc_offset = layout.header_size_;
   uint32_t *offsets = result->AttrOffets();
-  for (uint16_t i = 1; i < layout.num_attrs_; i++) {
-    offsets[i - 1] = acc_offset;
+  for (uint16_t i = 0; i < layout.num_cols_; i++) {
+    offsets[i] = acc_offset;
     acc_offset += ColumnSize(layout, i);
   }
 
-  result->NumAttrs(layout) = layout.num_attrs_;
+  result->NumAttrs(layout) = layout.num_cols_;
 
-  for (uint16_t i = 0; i < layout.num_attrs_; i++)
+  for (uint16_t i = 0; i < layout.num_cols_; i++)
     result->AttrSizes(layout)[i] = layout.attr_sizes_[i];
 }
 }
