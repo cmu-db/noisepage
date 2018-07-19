@@ -45,17 +45,13 @@ uint64_t ReadByteValue(uint8_t attr_size, byte *pos) {
 // Truncated if neccessary
 void WriteByteValue(uint8_t attr_size, uint64_t val, byte *pos) {
   switch (attr_size) {
-    case 1:
-      *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
+    case 1:*reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
       return;
-    case 2:
-      *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
+    case 2:*reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
       return;
-    case 4:
-      *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
+    case 4:*reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
       return;
-    case 8:
-      *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
+    case 8:*reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
       return;
     default:
       // Invalid attr size
@@ -81,7 +77,8 @@ struct FakeRawTuple {
   // we can do equality checks on uint64_t always.
   // 0 return for non-primary key indexes should be treated as null.
   uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) {
-    return ReadByteValue(layout.attr_sizes_[col], contents_ + attr_offsets_[col]);
+    return ReadByteValue(layout.attr_sizes_[col],
+                         contents_ + attr_offsets_[col]);
   }
 
   const storage::BlockLayout &layout_;
@@ -121,6 +118,8 @@ void InsertTuple(FakeRawTuple &tuple,
       WriteByteValue(layout.attr_sizes_[col],
                      tuple.Attribute(layout, col),
                      tested.AccessForceNotNull(block, col, offset));
+    else
+      tested.SetNull(block, col, offset);
     // Otherwise leave the field as null.
   }
 }
@@ -149,30 +148,29 @@ void CheckTupleEqual(FakeRawTuple &expected,
 // Using the given random generator, attempts to allocate a slot and write a
 // random tuple into it. The slot and the tuple are logged in the given map.
 // Checks are performed to make sure the insertion is sensible.
-template <typename Random>
-void TryInsertFakeTuple(uint32_t num_inserts,
-                        const storage::BlockLayout &layout,
-                        storage::TupleAccessStrategy &tested,
-                        RawBlock *block,
-                        std::unordered_map<uint32_t, testutil::FakeRawTuple> &tuples,
-                        Random &generator) {
-  for (uint32_t i = 0; i < num_inserts; i++) {
-    uint32_t offset;
-    // There should always be enough slots.
-    EXPECT_TRUE(tested.Allocate(block, offset));
-    EXPECT_TRUE(tested.ColumnNullBitmap(block, PRIMARY_KEY_OFFSET)->Test(offset));
+template<typename Random>
+std::pair<const uint32_t, testutil::FakeRawTuple> &TryInsertFakeTuple(
+    const storage::BlockLayout &layout,
+    storage::TupleAccessStrategy &tested,
+    RawBlock *block,
+    std::unordered_map<uint32_t, testutil::FakeRawTuple> &tuples,
+    Random &generator) {
+  uint32_t offset;
+  // There should always be enough slots.
+  EXPECT_TRUE(tested.Allocate(block, offset));
+  EXPECT_TRUE(tested.ColumnNullBitmap(block,
+                                      PRIMARY_KEY_OFFSET)->Test(offset));
 
-    // Construct a random tuple and associate it with the tuple slot
-    auto result = tuples.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(offset),
-        std::forward_as_tuple(layout,
-                              testutil::RandomTupleContent(layout, generator)));
-
-    // The tuple slot is not something that is already in use.
-    EXPECT_TRUE(result.second);
-    testutil::InsertTuple(result.first->second, tested, layout, block, offset);
-  }
+  // Construct a random tuple and associate it with the tuple slot
+  auto result = tuples.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(offset),
+      std::forward_as_tuple(layout,
+                            testutil::RandomTupleContent(layout, generator)));
+  // The tuple slot is not something that is already in use.
+  EXPECT_TRUE(result.second);
+  testutil::InsertTuple(result.first->second, tested, layout, block, offset);
+  return *(result.first);
 }
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)

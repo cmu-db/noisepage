@@ -62,8 +62,6 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
   }
 }
 
-
-
 // Tests that we can allocate a tuple slot, write things into the slot and
 // get them out.
 TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
@@ -81,12 +79,12 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
 
     std::unordered_map<uint32_t, testutil::FakeRawTuple> tuples;
 
-    testutil::TryInsertFakeTuple(num_inserts,
-                                 layout,
-                                 tested,
-                                 raw_block_,
-                                 tuples,
-                                 generator);
+    for (uint32_t j = 0; j < num_inserts; j++)
+      testutil::TryInsertFakeTuple(layout,
+                                   tested,
+                                   raw_block_,
+                                   tuples,
+                                   generator);
     // Check that all inserted tuples are equal to their expected values
     for (auto &entry : tuples)
       testutil::CheckTupleEqual(entry.second,
@@ -143,7 +141,8 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
   }
 }
 
-// TODO(Tianyu): Describe
+// This test consists of a number of threads inserting into the block concurrently,
+// and verifies that all tuples are written into unique slots correctly.
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
@@ -157,18 +156,79 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
     storage::InitializeRawBlock(raw_block_, layout, id_);
     storage::TupleAccessStrategy tested(layout);
 
-    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>> tuples(num_threads);
+    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>>
+        tuples(num_threads);
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
-      testutil::TryInsertFakeTuple(layout.num_slots_ / num_threads,
-                                   layout,
-                                   tested,
-                                   raw_block_,
-                                   tuples[id],
-                                   thread_generator);
+      for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++)
+        testutil::TryInsertFakeTuple(layout,
+                                     tested,
+                                     raw_block_,
+                                     tuples[id],
+                                     thread_generator);
     };
 
+    testutil::RunThreadsUntilFinish(num_threads, workload);
+    for (auto &thread_tuples : tuples)
+      for (auto &entry : thread_tuples)
+        testutil::CheckTupleEqual(entry.second,
+                                  tested,
+                                  layout,
+                                  raw_block_,
+                                  entry.first);
+  }
+}
+
+// This test consists of a number of threads inserting and deleting
+// on a block concurrently, and verifies that all remaining tuples are written
+// into unique slots correctly.
+//
+// Each thread only deletes tuples it created. This is to get around synchronization
+// problems (thread B deleting a slot after thread A got it, but before A wrote
+// all the contents in). This kind of conflict avoidance is really the
+// responsibility of concurrency control and GC, not storage.
+TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
+  const uint32_t repeat = 100;
+  std::default_random_engine generator;
+  for (uint32_t i = 0; i < repeat; i++) {
+    // We want to test relatively common cases with large numbers of slots
+    // in a block. This allows us to test out more inter-leavings.
+    const uint32_t num_threads = 8;
+    const uint16_t max_cols = 1000;
+    storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, id_);
+    storage::TupleAccessStrategy tested(layout);
+    std::vector<std::vector<uint32_t>> slots(num_threads);
+    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>>
+        tuples(num_threads);
+
+    auto workload = [&](uint32_t id) {
+      std::default_random_engine thread_generator(id);
+      auto insert = [&] {
+        auto &res = testutil::TryInsertFakeTuple(layout,
+                                                tested,
+                                                raw_block_,
+                                                tuples[id],
+                                                thread_generator);
+        // log offset so we can pick random deletes
+        slots[id].push_back(res.first);
+      };
+
+      auto remove = [&] {
+        if (slots[id].empty()) return;
+        auto elem = testutil::UniformRandomElement(slots[id], generator);
+        tested.SetNull(raw_block_, PRIMARY_KEY_OFFSET, *elem);
+        tuples[id].erase(*elem);
+        slots[id].erase(elem);
+      };
+
+      testutil::InvokeWorkloadWithDistribution({insert, remove},
+                                               {0.7 , 0.3},
+                                               generator,
+                                               layout.num_slots_ / num_threads);
+    };
     testutil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples)

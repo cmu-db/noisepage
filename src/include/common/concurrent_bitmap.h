@@ -6,7 +6,22 @@
 #define BYTE_SIZE 8u
 #endif
 
+// Some platforms would have already defined the macro. But its presence is
+// not standard and thus not portable. Pretty sure this is always 8 bits.
+// If not, consider getting a new machine, and preferably not from another
+// dimension :)
 static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
+
+// Our way for dealing with concurrency assumes that the underlying
+// implementation uses compare and swap hardware instructions and that
+// std::atomic for literal types have the same underlying representation
+// as the plain type.
+//
+// This code should not compile if these assumptions are not true.
+static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t),
+              "unexpected std::atomic size for 8-bit ints");
+static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t),
+              "unexpected std::atomic size for 64-bit ints");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit
 #define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n) - 1u))
@@ -31,8 +46,8 @@ constexpr uint32_t BitmapSize(uint32_t n) {
  * there is ABSOLUTELY no bounds check and you have to rely on programming
  * discipline to ensure safe access.
  *
- * For easy initialization in tests and such, @see ConcurrentBitmap which is
- * a thin wrapper around this class with a templatized size field.
+ * For easy initialization in tests and such, use the static Allocate and
+ * Deallocate methods
  */
 class RawConcurrentBitmap {
  public:
@@ -105,4 +120,11 @@ class RawConcurrentBitmap {
  private:
   std::atomic<uint8_t> bits_[0];
 };
+
+// WARNING: DO NOT CHANGE THE CLASS LAYOUT OF RawConcurrentBitmap.
+// The correctness of our storage code depends in this class having this
+// exact layout. Changes include marking a function as virtual (or use the
+// FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
+static_assert(sizeof(RawConcurrentBitmap) == 0,
+              "Unexpected RawConcurrentBitmap layout!");
 }
