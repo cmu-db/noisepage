@@ -90,9 +90,9 @@ class RawConcurrentBitmap {
   bool Flip(uint32_t pos, bool expected_val) {
     uint32_t element = pos / BYTE_SIZE;
     auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
-    for (uint8_t old_val = bits_[element].load();
+    for (uint8_t old_val = bits_[element];
          static_cast<bool>(old_val & mask) == expected_val;
-         old_val = bits_[element].load()) {
+         old_val = bits_[element]) {
       uint8_t new_val = old_val ^ mask;
       if (bits_[element].compare_exchange_strong(old_val, new_val)) return true;
     }

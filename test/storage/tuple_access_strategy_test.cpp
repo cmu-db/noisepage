@@ -63,9 +63,8 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
 
 // Tests that we can allocate a tuple slot, write things into the slot and
 // get them out.
-// TODO(Tianyu): This test takes a while, for some reason. Investigate.
 TEST_F(TupleAccessStrategyTests, SimpleCorrectnessTest) {
-  const int32_t repeat = 1;
+  const int32_t repeat = 100;
   std::default_random_engine generator;
   for (int32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
@@ -76,10 +75,9 @@ TEST_F(TupleAccessStrategyTests, SimpleCorrectnessTest) {
     uint32_t offset;
     EXPECT_TRUE(tested.Allocate(raw_block_, offset));
     EXPECT_TRUE(tested.ColumnNullBitmap(raw_block_, PRIMARY_KEY_OFFSET)->Test(offset));
-    testutil::FakeRawTuple *fake_tuple = testutil::RandomTuple(layout, generator);
+    testutil::FakeRawTuple fake_tuple = testutil::RandomTuple(layout, generator);
     testutil::InsertTuple(fake_tuple, tested, layout, raw_block_, offset);
     testutil::CheckTupleEqual(fake_tuple, tested, layout, raw_block_, offset);
-    delete (byte *) fake_tuple;
   }
 }
 
@@ -87,7 +85,7 @@ TEST_F(TupleAccessStrategyTests, SimpleCorrectnessTest) {
 // that the header, the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
 TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
-  const uint32_t repeat = 1000;
+  const uint32_t repeat = 500;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
