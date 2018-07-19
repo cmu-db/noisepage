@@ -46,7 +46,7 @@ constexpr uint32_t BitmapSize(uint32_t n) {
  * there is ABSOLUTELY no bounds check and you have to rely on programming
  * discipline to ensure safe access.
  *
- * For easy initialization in tests and such, use the static Allcoate and
+ * For easy initialization in tests and such, use the static Allocate and
  * Deallocate methods
  */
 class RawConcurrentBitmap {

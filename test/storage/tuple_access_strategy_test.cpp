@@ -180,6 +180,14 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
   }
 }
 
+// This test consists of a number of threads inserting and deleting
+// on a block concurrently, and verifies that all remaining tuples are written
+// into unique slots correctly.
+//
+// Each thread only deletes tuples it created. This is to get around synchronization
+// problems (thread B deleting a slot after thread A got it, but before A wrote
+// all the contents in). This kind of conflict avoidance is really the
+// responsibility of concurrency control and GC, not storage.
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
