@@ -19,9 +19,9 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 //
 // This code should not compile if these assumptions are not true.
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t),
-              "unexpected std::atomic size for 8-bit ints ");
+              "unexpected std::atomic size for 8-bit ints");
 static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t),
-              "unexpected std::atomic size for 8-bit ints ");
+              "unexpected std::atomic size for 64-bit ints");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit
 #define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n) - 1u))
