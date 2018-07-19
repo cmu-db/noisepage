@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include "common/common_defs.h"
 
 #ifndef BYTE_SIZE
@@ -34,10 +34,31 @@ constexpr uint32_t BitmapSize(uint32_t n) {
  * For easy initialization in tests and such, @see ConcurrentBitmap which is
  * a thin wrapper around this class with a templatized size field.
  */
-class PACKED RawConcurrentBitmap {
+class RawConcurrentBitmap {
  public:
+  // Always reinterpret_cast from raw memory.
+  RawConcurrentBitmap() = delete;
   DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap);
-  virtual ~RawConcurrentBitmap() = default;
+  ~RawConcurrentBitmap() = delete;
+
+  /**
+   * Allocates a new RawConcurrentBitmap of size. Up to the caller to call
+   * Deallocate on its return value
+   * @param size number of bits in the bitmap
+   * @return ptr to new RawConcurrentBitmap
+   */
+  static RawConcurrentBitmap *Allocate(uint32_t size) {
+    auto *result = new uint8_t[size];
+    PELOTON_MEMSET(result, 0, size);
+    return reinterpret_cast<RawConcurrentBitmap *>(result);
+  }
+  /**
+   * Deallocates a RawConcurrentBitmap. Only call on pointers given out by Allocate
+   * @param map the map to deallocate
+   */
+  static void Deallocate(RawConcurrentBitmap *map) {
+    delete (uint8_t *) map;
+  }
 
   bool Test(uint32_t pos) const {
     return static_cast<bool>(
@@ -81,18 +102,7 @@ class PACKED RawConcurrentBitmap {
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
   // bulk flips. This thing is embarrassingly easy to vectorize.
 
- protected:
-  // Always reinterpret_cast from raw memory.
-  RawConcurrentBitmap() = default;
-
  private:
   std::atomic<uint8_t> bits_[0];
-};
-
-// TODO(Tianyu): Do we really need this?
-template<uint32_t N>
-class ConcurrentBitmap : public RawConcurrentBitmap {
- private:
-  std::atomic<uint8_t> bits_[BitmapSize(N)] {};
 };
 }
