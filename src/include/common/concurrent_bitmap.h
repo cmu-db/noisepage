@@ -46,8 +46,8 @@ constexpr uint32_t BitmapSize(uint32_t n) {
  * there is ABSOLUTELY no bounds check and you have to rely on programming
  * discipline to ensure safe access.
  *
- * For easy initialization in tests and such, @see ConcurrentBitmap which is
- * a thin wrapper around this class with a templatized size field.
+ * For easy initialization in tests and such, use the static Allcoate and
+ * Deallocate methods
  */
 class RawConcurrentBitmap {
  public:
@@ -120,4 +120,11 @@ class RawConcurrentBitmap {
  private:
   std::atomic<uint8_t> bits_[0];
 };
+
+// WARNING: DO NOT CHANGE THE CLASS LAYOUT OF RawConcurrentBitmap.
+// The correctness of our storage code depends in this class having this
+// exact layout. Changes include marking a function as virtual (or use the
+// FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
+static_assert(sizeof(RawConcurrentBitmap) == 0,
+              "Unexpected RawConcurrentBitmap layout!");
 }
