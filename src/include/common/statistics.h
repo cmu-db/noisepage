@@ -34,7 +34,7 @@ class Statistics {
 
  protected:
   /** The Json value about the statistics */
-//  Json::Value json_value_;
+  Json::Value json_value_;
 };
 
 }  // namespace peloton

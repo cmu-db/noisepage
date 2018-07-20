@@ -66,7 +66,7 @@ function(terrier_pickup_terrier_sources root)
 
   # add proto to make them editable in IDEs too
   file(GLOB_RECURSE proto_files ${root}/src/terrier/*.proto)
-  list(APPEND srcs ${proto_files} ${murmur_srcs} ${libcount_srcs} ${art_srcs} ${elpp_srcs} ${jsoncpp_srcs})
+  list(APPEND srcs ${proto_files} ${art_srcs} ${elpp_srcs})
 
   # propogate to parent scope
   set(srcs ${srcs} PARENT_SCOPE)

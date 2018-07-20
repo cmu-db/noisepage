@@ -18,7 +18,7 @@ list(APPEND TERRIER_LINKER_LIBS gtest_main)
 # ---[ JsonCpp
 set(jsoncpp_SOURCE_DIR third_party/jsoncpp)
 include_directories(${jsoncpp_SOURCE_DIR}/include ${jsoncpp_SOURCE_DIR})
-list(APPEND TERRIER_LINKER_LIBS ${jsoncpp_LIBRARIES})
+list(APPEND TERRIER_LINKER_LIBS jsoncpp_lib_static)
 
 # ---[ Intel TBB
 find_package(TBB REQUIRED)
