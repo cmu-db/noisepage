@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <string>
 #include <functional>
+#include <atomic>
 
 #include "common/macros.h"
 
