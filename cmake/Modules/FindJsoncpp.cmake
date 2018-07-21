@@ -32,7 +32,7 @@ find_path(JSONCPP_INCLUDE_DIR
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Jsoncpp DEFAULT_MSG
+find_package_handle_standard_args(Jsoncpp_lib DEFAULT_MSG
     JSONCPP_LIBRARIES
     JSONCPP_INCLUDE_DIR
 )

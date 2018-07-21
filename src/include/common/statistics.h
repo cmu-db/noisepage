@@ -14,7 +14,7 @@
 
 #include <iosfwd>
 #include <string>
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 
 namespace terrier {
 
