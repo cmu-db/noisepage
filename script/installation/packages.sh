@@ -85,6 +85,7 @@ if [ "$DISTRO" = "UBUNTU" ]; then
         libboost-thread-dev \
         libboost-filesystem-dev \
         libjemalloc-dev \
+        libjsoncpp-dev \
         libtbb-dev \
         python3-pip \
         curl \
@@ -107,6 +108,7 @@ elif [ "$DISTRO" = "DARWIN" ]; then
     brew install gflags
     brew install boost
     brew install jemalloc
+    brew install jsoncpp
     brew install lcov
     brew install llvm
     brew install curl
