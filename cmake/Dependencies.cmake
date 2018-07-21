@@ -15,10 +15,10 @@ set(gtest_SOURCE_DIR third_party/googletest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 list(APPEND TERRIER_LINKER_LIBS gtest_main)
 
-# ---[ JsonCpp
-set(jsoncpp_SOURCE_DIR third_party/jsoncpp)
-include_directories(${jsoncpp_SOURCE_DIR}/include ${jsoncpp_SOURCE_DIR})
-list(APPEND TERRIER_LINKER_LIBS ${jsoncpp_LIBRARIES})
+# ---[ Jsoncpp
+find_package(Jsoncpp REQUIRED)
+include_directories(SYSTEM $JSONCPP_INCLUDE_DIRS})
+list(APPEND TERRIER_LINKER_LIBS ${JSONCPP_LIBRARIES})
 
 # ---[ Intel TBB
 find_package(TBB REQUIRED)
