@@ -4,7 +4,6 @@
 #include "common/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
-#include "storage/block_store.h"
 
 // We will always layout the primary key column (or a column that is part of the
 // primary key if multi-column), so that its nullmap will effectively be the
@@ -42,7 +41,7 @@ struct BlockLayout {
   }
 
   uint32_t HeaderSize() {
-    return sizeof(uint32_t) * 3 // block_id, num_records, num_slots
+    return sizeof(uint32_t) * 3 // layout_version, num_records, num_slots
         + num_cols_ * sizeof(uint32_t)
         + sizeof(uint16_t)
         + num_cols_ * sizeof(uint8_t);
@@ -68,11 +67,11 @@ struct BlockLayout {
  *
  * @param raw pointer to the raw block to initialize
  * @param layout block layout to use (can be compiled)
- * @param id the block id to use
+ * @param layout_version the layout version of this block
  */
 void InitializeRawBlock(RawBlock *raw,
                         const BlockLayout &layout,
-                        block_id_t id);
+                        uint32_t layout_version);
 namespace {
 // TODO(Tianyu): These two classes should be aligned for LLVM
 /**
@@ -114,11 +113,11 @@ struct MiniBlock {
 /**
  * Block Header layout:
  * TODO(Tianyu): Maybe move the first 3 fields to RawBlock
- * ---------------------------------------------------------------------
- * | block_id | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
- * ---------------------------------------------------------------------
- * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content  |
- * ---------------------------------------------------------------------
+ * --------------------------------------------------------------------------
+ * | layout_version | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
+ * --------------------------------------------------------------------------
+ * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content        |
+ * --------------------------------------------------------------------------
  *
  * This is laid out in this order, because except for num_records,
  * the other fields are going to be immutable for a block's lifetime,
@@ -180,7 +179,7 @@ struct PACKED Block {
     return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1);
   }
 
-  block_id_t block_id_;
+  uint32_t layout_version_;
   uint32_t num_records_;
   // Because where the other fields start will depend on the specific layout,
   // reinterpreting the rest as bytes is the best we can do without LLVM.
@@ -201,12 +200,6 @@ class TupleAccessStrategy {
   explicit TupleAccessStrategy(BlockLayout layout)
       : layout_(std::move(layout)) {}
 
-  // TODO(Tianyu): We are taking in a RawBlock * and an offset, instead of a
-  // TupleSlot because presumably someone would have already looked up a block_id,
-  // checked the schema and found the right TupleAccessStrategy. Or, someone
-  // might call this accessor multiple times in sequence on the same tuple id.
-  // It doesn't make sense to encapsulate the lookup in this class.
-
   /* Vectorized Access */
   /**
    * @param block block to access
@@ -219,7 +212,7 @@ class TupleAccessStrategy {
   }
 
   /**
-   * @param block block to access
+   * @param block block  to access
    * @param col offset representing the column
    * @return pointer to the start of the column
    */
@@ -231,47 +224,42 @@ class TupleAccessStrategy {
 
   /* Tuple-level access */
   /**
-   * @param block block to access
+   * @param slot tuple slot to access
    * @param col offset representing the column
-   * @param offset offset of the attribute in that column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
-  byte *AccessWithNullCheck(RawBlock *block,
-                            uint16_t col,
-                            uint32_t offset) {
-    if (!ColumnNullBitmap(block, col)->Test(offset))
+  byte *AccessWithNullCheck(TupleSlot slot,
+                            uint16_t col) {
+    if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset()))
       return nullptr;
-    return ColumnStart(block, col)
-        + layout_.attr_sizes_[col] * offset;
+    return ColumnStart(slot.GetBlock(), col)
+        + layout_.attr_sizes_[col] * slot.GetOffset();
   }
 
   /**
    * Returns a pointer to the attribute. If the attribute is null, set null to
    * false.
-   * @param block block to access
+   * @param slot tuple slot to access
    * @param col offset representing the column
-   * @param offset offset of the attribute in that column.
    * @return a pointer to the attribute.
    */
-  byte *AccessForceNotNull(RawBlock *block,
-                           uint16_t col,
-                           uint32_t offset) {
+  byte *AccessForceNotNull(TupleSlot slot,
+                           uint16_t col) {
     // Noop if not null
-    ColumnNullBitmap(block, col)->Flip(offset, false);
-    return ColumnStart(block, col)
-        + layout_.attr_sizes_[col] * offset;
+    ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), false);
+    return ColumnStart(slot.GetBlock(), col)
+        + layout_.attr_sizes_[col] * slot.GetOffset();
   }
 
   /**
    * Set an attribute null. If called on the primary key column (0), this is
    * considered freeing.
-   * @param block block to access
+   * @param slot tuple slot to access
    * @param col offset representing the column
-   * @param offset offset of the attribute in that column
    */
-  void SetNull(RawBlock *block, uint16_t col, uint32_t offset) {
+  void SetNull(TupleSlot slot, uint16_t col) {
     // Noop if already null
-    ColumnNullBitmap(block, col)->Flip(offset, true);
+    ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true);
   }
 
   /* Allocation and Deallocation */
@@ -282,13 +270,13 @@ class TupleAccessStrategy {
    * @param offset result
    * @return true if the allocation is successful, false if no space can be found.
    */
-  bool Allocate(RawBlock *block, uint32_t &offset) {
+  bool Allocate(RawBlock *block, TupleSlot &slot) {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
     RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
     for (uint32_t i = 0; i < layout_.num_slots_; i++) {
       if (bitmap->Flip(i, false)) {
-        offset = i;
+        slot = TupleSlot(block, i);
         return true;
       }
     }

@@ -3,6 +3,19 @@
 #include "common/concurrent_queue.h"
 #include "common_defs.h"
 namespace terrier {
+template <typename T>
+struct ByteAllocator {
+  T *operator()() {
+    return reinterpret_cast<T *>(new byte[sizeof(T)]);
+  }
+};
+
+template <typename T>
+struct DefaultConstructorAllocator {
+  T *operator()() {
+    return new T();
+  }
+};
 
 // TODO(Tianyu): Should this be by size or by class type?
 /**
@@ -11,8 +24,14 @@ namespace terrier {
  * This prevents liberal calls to malloc and new in the code and makes tracking
  * our memory performance easier.
  * @tparam T the type of objects in the pool.
+ * @tparam The allocator to use when constructing a new object. In most cases it
+ *         can be left out and the default allocator will suffice (malloc).
+ *         If you want richer behavior, define your own functor to return a
+ *         pointer that the object pool will then take control over. The returned
+ *         pointer should be able to be deleted with the delete keyword, and its
+ *         memory location will potentially be handed out to other objects.
  */
-template <typename T>
+template <typename T, class Allocator = ByteAllocator<T>>
 class ObjectPool {
  public:
   /**
@@ -49,7 +68,7 @@ class ObjectPool {
   FAKED_IN_TEST T *Get() {
     T *result;
     if (!reuse_queue_.Dequeue(result))
-      result = reinterpret_cast<T *>(new byte[sizeof(T)]);
+      result = alloc_();
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -69,6 +88,7 @@ class ObjectPool {
   }
 
  private:
+  Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;

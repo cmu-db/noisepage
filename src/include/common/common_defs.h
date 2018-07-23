@@ -113,6 +113,7 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
  * in code.
  */
 struct Constants {
+  // Should only ever be a power of 2
   static const uint32_t BLOCK_SIZE = 1048576u;
 };
 }
