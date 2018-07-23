@@ -58,18 +58,31 @@ void WriteByteValue(uint8_t attr_size, uint64_t val, byte *pos) {
   }
 }
 
+// Fill the given location with the specified amount of random bytes, using the
+// given generator as a source of randomness.
+template<typename Random>
+void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
+  std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+  for (uint32_t i = 0; i < num_bytes; i++)
+    out[i] = static_cast<byte>(dist(generator));
+}
+
+// This does NOT return a sensible tuple in general. This is just some filler
+// to write into the storage layer and is devoid of meaning outside of this class.
 struct FakeRawTuple {
-  FakeRawTuple(const storage::BlockLayout &layout, byte *contents)
-      : layout_(layout), attr_offsets_(), contents_(contents) {
+  template <typename Random>
+  FakeRawTuple(const storage::BlockLayout &layout, Random &generator)
+      : layout_(layout), attr_offsets_(), contents_(new byte[layout.tuple_size_]) {
     uint32_t pos = 0;
     for (uint16_t col = 0; col < layout.num_cols_; col++) {
       attr_offsets_.push_back(pos);
       pos += layout.attr_sizes_[col];
     }
+    FillWithRandomBytes(layout.tuple_size_, contents_, generator);
   };
 
   ~FakeRawTuple() {
-    delete contents_;
+    delete[] contents_;
   }
 
   // Since all fields we store in pages are equal to or shorter than 8 bytes,
@@ -84,25 +97,6 @@ struct FakeRawTuple {
   std::vector<uint32_t> attr_offsets_;
   byte *contents_;
 };
-
-// Fill the given location with the specified amount of random bytes, using the
-// given generator as a source of randomness.
-template<typename Random>
-void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
-  std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
-  for (uint32_t i = 0; i < num_bytes; i++)
-    out[i] = static_cast<byte>(dist(generator));
-}
-
-// This does NOT return a sensible tuple in general. This is just some filler
-// to write into the storage layer and is devoid of meaning outside of this class.
-template<typename Random>
-byte *RandomTupleContent(const storage::BlockLayout &layout,
-                         Random &generator) {
-  byte *bytes = new byte[layout.tuple_size_];
-  FillWithRandomBytes(layout.tuple_size_, bytes, generator);
-  return bytes;
-}
 
 // Write the given fake tuple into a block using the given access strategy,
 // at the specified offset
@@ -162,8 +156,7 @@ std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
   auto result = tuples.emplace(
       std::piecewise_construct,
       std::forward_as_tuple(slot),
-      std::forward_as_tuple(layout,
-                            testutil::RandomTupleContent(layout, generator)));
+      std::forward_as_tuple(layout, generator));
   // The tuple slot is not something that is already in use.
   EXPECT_TRUE(result.second);
   testutil::InsertTuple(result.first->second, tested, layout, slot);
