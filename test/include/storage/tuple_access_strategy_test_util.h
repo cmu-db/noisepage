@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "gtest/gtest.h"
-#include "storage/block_store.h"
 #include "storage/tuple_access_strategy.h"
 #include "common/common_defs.h"
 #include "common/test_util.h"
@@ -110,16 +109,15 @@ byte *RandomTupleContent(const storage::BlockLayout &layout,
 void InsertTuple(FakeRawTuple &tuple,
                  storage::TupleAccessStrategy &tested,
                  const storage::BlockLayout &layout,
-                 RawBlock *block,
-                 uint32_t offset) {
+                 storage::TupleSlot slot) {
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t col_val = tuple.Attribute(layout, col);
     if (col_val != 0 || col == PRIMARY_KEY_OFFSET)
       WriteByteValue(layout.attr_sizes_[col],
                      tuple.Attribute(layout, col),
-                     tested.AccessForceNotNull(block, col, offset));
+                     tested.AccessForceNotNull(slot, col));
     else
-      tested.SetNull(block, col, offset);
+      tested.SetNull(slot, col);
     // Otherwise leave the field as null.
   }
 }
@@ -128,13 +126,12 @@ void InsertTuple(FakeRawTuple &tuple,
 void CheckTupleEqual(FakeRawTuple &expected,
                      storage::TupleAccessStrategy &tested,
                      const storage::BlockLayout &layout,
-                     RawBlock *block,
-                     uint32_t offset) {
+                     storage::TupleSlot slot) {
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t expected_col = expected.Attribute(layout, col);
     // 0 return for non-primary key indexes should be treated as null.
     bool null = (expected_col == 0) && (col != PRIMARY_KEY_OFFSET);
-    byte *col_slot = tested.AccessWithNullCheck(block, col, offset);
+    byte *col_slot = tested.AccessWithNullCheck(slot, col);
     if (!null) {
       EXPECT_TRUE(col_slot != nullptr);
       EXPECT_EQ(expected.Attribute(layout, col),
@@ -149,27 +146,27 @@ void CheckTupleEqual(FakeRawTuple &expected,
 // random tuple into it. The slot and the tuple are logged in the given map.
 // Checks are performed to make sure the insertion is sensible.
 template<typename Random>
-std::pair<const uint32_t, testutil::FakeRawTuple> &TryInsertFakeTuple(
+std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
     const storage::BlockLayout &layout,
     storage::TupleAccessStrategy &tested,
-    RawBlock *block,
-    std::unordered_map<uint32_t, testutil::FakeRawTuple> &tuples,
+    storage::RawBlock *block,
+    std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple> &tuples,
     Random &generator) {
-  uint32_t offset;
+  storage::TupleSlot slot;
   // There should always be enough slots.
-  EXPECT_TRUE(tested.Allocate(block, offset));
+  EXPECT_TRUE(tested.Allocate(block, slot));
   EXPECT_TRUE(tested.ColumnNullBitmap(block,
-                                      PRIMARY_KEY_OFFSET)->Test(offset));
+                                      PRIMARY_KEY_OFFSET)->Test(slot.GetOffset()));
 
   // Construct a random tuple and associate it with the tuple slot
   auto result = tuples.emplace(
       std::piecewise_construct,
-      std::forward_as_tuple(offset),
+      std::forward_as_tuple(slot),
       std::forward_as_tuple(layout,
                             testutil::RandomTupleContent(layout, generator)));
   // The tuple slot is not something that is already in use.
   EXPECT_TRUE(result.second);
-  testutil::InsertTuple(result.first->second, tested, layout, block, offset);
+  testutil::InsertTuple(result.first->second, tested, layout, slot);
   return *(result.first);
 }
 

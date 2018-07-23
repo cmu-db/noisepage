@@ -2,19 +2,15 @@
 
 namespace terrier {
 struct TupleAccessStrategyTests : public ::testing::Test {
-  block_id_t id_;
-  RawBlock *raw_block_ = nullptr;
-  ObjectPool<RawBlock> pool_{1};
-  storage::BlockStore block_store_{pool_};
+  storage::RawBlock *raw_block_ = nullptr;
+  storage::BlockStore block_store_{1};
  protected:
   void SetUp() override {
-    auto result = block_store_.NewBlock();
-    id_ = result.first;
-    raw_block_ = result.second;
+    raw_block_ = block_store_.Get();
   }
 
   void TearDown() override {
-    block_store_.UnsafeDeallocate(id_);
+    block_store_.Release(raw_block_);
   }
 };
 
@@ -25,12 +21,12 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
   std::default_random_engine generator;
   for (int32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, id_);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
 
-    uint32_t offset;
-    EXPECT_TRUE(tested.Allocate(raw_block_, offset));
+    storage::TupleSlot slot;
+    EXPECT_TRUE(tested.Allocate(raw_block_, slot));
     std::vector<bool> nulls(layout.num_cols_);
     std::bernoulli_distribution coin(0.5);
     // primary key always not null
@@ -41,7 +37,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
         nulls[col] = true;
       else {
         nulls[col] = false;
-        tested.AccessForceNotNull(raw_block_, col, offset);
+        tested.AccessForceNotNull(slot, col);
       }
     }
 
@@ -49,15 +45,13 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
       // Either the field is null and the access returns nullptr,
       // or the field is not null and the access ptr is not null
       EXPECT_TRUE(
-          (tested.AccessWithNullCheck(raw_block_, col, offset) != nullptr)
-              ^ nulls[col]);
+          (tested.AccessWithNullCheck(slot, col) != nullptr) ^ nulls[col]);
     }
 
     // Flip non-null columns to null should result in returning of nullptr.
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
-      if (!nulls[col]) tested.SetNull(raw_block_, col, offset);
-      EXPECT_TRUE(
-          tested.AccessWithNullCheck(raw_block_, col, offset) == nullptr);
+      if (!nulls[col]) tested.SetNull(slot, col);
+      EXPECT_TRUE(tested.AccessWithNullCheck(slot, col) == nullptr);
     }
   }
 }
@@ -69,15 +63,14 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, id_);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
 
     const uint32_t num_inserts =
-        std::uniform_int_distribution<uint32_t>(1,
-                                                layout.num_slots_)(generator);
+        std::uniform_int_distribution<uint32_t>(1, layout.num_slots_)(generator);
 
-    std::unordered_map<uint32_t, testutil::FakeRawTuple> tuples;
+    std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple> tuples;
 
     for (uint32_t j = 0; j < num_inserts; j++)
       testutil::TryInsertFakeTuple(layout,
@@ -90,7 +83,6 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
       testutil::CheckTupleEqual(entry.second,
                                 tested,
                                 layout,
-                                raw_block_,
                                 entry.first);
   }
 }
@@ -105,12 +97,12 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
-    storage::InitializeRawBlock(raw_block_, layout, id_);
+    storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
 
     // Skip header
     void *lower_bound = tested.ColumnNullBitmap(raw_block_, 0);
-    void *upper_bound = raw_block_ + sizeof(RawBlock);
+    void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
     for (uint16_t col = 0; col < layout.num_cols_; col++) {
       // This test should be robust against any future paddings, since
       // we are checking for non-overlapping ranges and not hard-coded
@@ -152,11 +144,11 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
     const uint32_t num_threads = 8;
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, id_);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
 
-    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>>
+    std::vector<std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple>>
         tuples(num_threads);
 
     auto workload = [&](uint32_t id) {
@@ -175,7 +167,6 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
         testutil::CheckTupleEqual(entry.second,
                                   tested,
                                   layout,
-                                  raw_block_,
                                   entry.first);
   }
 }
@@ -197,21 +188,21 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
     const uint32_t num_threads = 8;
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, id_);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
-    std::vector<std::vector<uint32_t>> slots(num_threads);
-    std::vector<std::unordered_map<uint32_t, testutil::FakeRawTuple>>
+    std::vector<std::vector<storage::TupleSlot>> slots(num_threads);
+    std::vector<std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple>>
         tuples(num_threads);
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       auto insert = [&] {
         auto &res = testutil::TryInsertFakeTuple(layout,
-                                                tested,
-                                                raw_block_,
-                                                tuples[id],
-                                                thread_generator);
+                                                 tested,
+                                                 raw_block_,
+                                                 tuples[id],
+                                                 thread_generator);
         // log offset so we can pick random deletes
         slots[id].push_back(res.first);
       };
@@ -219,13 +210,13 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
       auto remove = [&] {
         if (slots[id].empty()) return;
         auto elem = testutil::UniformRandomElement(slots[id], generator);
-        tested.SetNull(raw_block_, PRIMARY_KEY_OFFSET, *elem);
+        tested.SetNull(*elem, PRIMARY_KEY_OFFSET);
         tuples[id].erase(*elem);
         slots[id].erase(elem);
       };
 
       testutil::InvokeWorkloadWithDistribution({insert, remove},
-                                               {0.7 , 0.3},
+                                               {0.7, 0.3},
                                                generator,
                                                layout.num_slots_ / num_threads);
     };
@@ -235,7 +226,6 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
         testutil::CheckTupleEqual(entry.second,
                                   tested,
                                   layout,
-                                  raw_block_,
                                   entry.first);
   }
 }
