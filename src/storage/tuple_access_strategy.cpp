@@ -13,10 +13,10 @@ uint32_t ColumnSize(const BlockLayout &layout,
 
 void InitializeRawBlock(RawBlock *raw,
                         const BlockLayout &layout,
-                        block_id_t block_id) {
+                        uint32_t layout_version) {
   // Intentional unsafe cast
   auto *result = reinterpret_cast<Block *>(raw);
-  result->block_id_ = block_id;
+  result->layout_version_ = layout_version;
   result->num_records_ = 0;
   result->NumSlots() = layout.num_slots_;
   // TODO(Tianyu): For now, columns start right after the header without
