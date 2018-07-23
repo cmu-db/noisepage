@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Modified from the Apache Arrow project for the Terrier project.
+#
 # Tries to find the clang-tidy and clang-format modules
 #
 # Usage of this module as follows:
@@ -25,96 +27,133 @@
 #   to find clang-tidy and clang-format
 #
 # This module defines
-#  CLANG_TIDY_BIN, The path to the clang tidy binary
+#  CLANG_TIDY_BIN, The  path to the clang tidy binary
 #  CLANG_TIDY_FOUND, Whether clang tidy was found
 #  CLANG_FORMAT_BIN, The path to the clang format binary
-#  CLANG_FORMAT_FOUND, Whether clang format was found
+#  CLANG_TIDY_FOUND, Whether clang format was found
 
 if (DEFINED ENV{HOMEBREW_PREFIX})
-    set(HOMEBREW_PREFIX "${ENV{HOMEBREW_PREFIX}")
+  set(HOMEBREW_PREFIX "${ENV{HOMEBREW_PREFIX}")
 else()
-    set(HOMEBREW_PREFIX "/usr/local")
+  set(HOMEBREW_PREFIX "/usr/local")
 endif()
 
-find_program(CLANG_TIDY_BIN
-        NAMES clang-tidy
-        clang-tidy-6.0.1
-        clang-tidy-6.0
-        clang-tidy-4.0
-        clang-tidy-3.9
-        clang-tidy-3.8
-        clang-tidy-3.7
-        clang-tidy-3.6
-        clang-tidy
-        PATHS ${ClangTools_PATH} $ENV{CLANG_TOOLS_PATH} /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
-        NO_DEFAULT_PATH
-        )
+if (CLANG_TOOLS_VERSION)
+  find_program(CLANG_TIDY_BIN
+      NAMES clang-tidy-${CLANG_TOOLS_VERSION}
+      PATHS
+      ${ClangTools_PATH}
+      $ENV{CLANG_TOOLS_PATH}
+      /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
+      NO_DEFAULT_PATH
+      )
+
+  # If not found yet, search alternative locations
+  if (("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND") AND APPLE)
+    # Homebrew ships older LLVM versions in /usr/local/opt/llvm@version/
+    STRING(REGEX REPLACE "^([0-9]+)\\.[0-9]+" "\\1" CLANG_TOOLS_MAJOR_VERSION "${CLANG_TOOLS_VERSION}")
+    STRING(REGEX REPLACE "^[0-9]+\\.([0-9]+)" "\\1" CLANG_TOOLS_MINOR_VERSION "${CLANG_TOOLS_VERSION}")
+    if ("${CLANG_TOOLS_MINOR_VERSION}" STREQUAL "0")
+      find_program(CLANG_TIDY_BIN
+          NAMES clang-tidy
+          PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_TOOLS_MAJOR_VERSION}/bin"
+          NO_DEFAULT_PATH
+          )
+    else()
+      find_program(CLANG_TIDY_BIN
+          NAMES clang-tidy
+          PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_TOOLS_VERSION}/bin"
+          NO_DEFAULT_PATH
+          )
+    endif()
+
+    if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+      # binary was still not found, look into Cellar
+      file(GLOB CLANG_TIDY_PATH "${HOMEBREW_PREFIX}/Cellar/llvm/${CLANG_TOOLS_VERSION}.*")
+      find_program(CLANG_TIDY_BIN
+          NAMES clang-tidy
+          PATHS "${CLANG_TIDY_PATH}/bin"
+          NO_DEFAULT_PATH
+          )
+    endif()
+  endif()
+else()
+  find_program(CLANG_TIDY_BIN
+      NAMES clang-tidy-4.0
+      clang-tidy-3.9
+      clang-tidy-3.8
+      clang-tidy-3.7
+      clang-tidy-3.6
+      clang-tidy
+      PATHS ${ClangTools_PATH} $ENV{CLANG_TOOLS_PATH} /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
+      NO_DEFAULT_PATH
+      )
+endif()
 
 if ( "${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND" )
-    set(CLANG_TIDY_FOUND 0)
+  set(CLANG_TIDY_FOUND 0)
+  message("clang-tidy not found")
 else()
-    set(CLANG_TIDY_FOUND 1)
+  set(CLANG_TIDY_FOUND 1)
+  message("clang-tidy found at ${CLANG_TIDY_BIN}")
 endif()
 
-if (CLANG_FORMAT_VERSION)
-    find_program(CLANG_FORMAT_BIN
-            NAMES clang-format-${CLANG_FORMAT_VERSION}
-            PATHS
-            ${ClangTools_PATH}
-            $ENV{CLANG_TOOLS_PATH}
-            /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
-            NO_DEFAULT_PATH
-            )
+if (CLANG_TOOLS_VERSION)
+  find_program(CLANG_FORMAT_BIN
+      NAMES clang-format-${CLANG_TOOLS_VERSION}
+      PATHS
+      ${ClangTools_PATH}
+      $ENV{CLANG_TOOLS_PATH}
+      /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
+      NO_DEFAULT_PATH
+      )
 
-    # If not found yet, search alternative locations
-    if (("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND") AND APPLE)
-        # Homebrew ships older LLVM versions in /usr/local/opt/llvm@version/
-        STRING(REGEX REPLACE "^([0-9]+)\\.[0-9]+" "\\1" CLANG_FORMAT_MAJOR_VERSION "${CLANG_FORMAT_VERSION}")
-        STRING(REGEX REPLACE "^[0-9]+\\.([0-9]+)" "\\1" CLANG_FORMAT_MINOR_VERSION "${CLANG_FORMAT_VERSION}")
-        if ("${CLANG_FORMAT_MINOR_VERSION}" STREQUAL "0")
-            find_program(CLANG_FORMAT_BIN
-                    NAMES clang-format
-                    PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_FORMAT_MAJOR_VERSION}/bin"
-                    NO_DEFAULT_PATH
-                    )
-        else()
-            find_program(CLANG_FORMAT_BIN
-                    NAMES clang-format
-                    PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_FORMAT_VERSION}/bin"
-                    NO_DEFAULT_PATH
-                    )
-        endif()
-
-        if ("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND")
-            # binary was still not found, look into Cellar
-            # TODO: This currently only works for '.0' patch releases as
-            #       find_program does not support regular expressions
-            #       in the paths.
-            find_program(CLANG_FORMAT_BIN
-                    NAMES clang-format
-                    PATHS "${HOMEBREW_PREFIX}/Cellar/llvm/${CLANG_FORMAT_VERSION}.0/bin"
-                    NO_DEFAULT_PATH
-                    )
-        endif()
+  # If not found yet, search alternative locations
+  if (("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND") AND APPLE)
+    # Homebrew ships older LLVM versions in /usr/local/opt/llvm@version/
+    STRING(REGEX REPLACE "^([0-9]+)\\.[0-9]+" "\\1" CLANG_TOOLS_MAJOR_VERSION "${CLANG_TOOLS_VERSION}")
+    STRING(REGEX REPLACE "^[0-9]+\\.([0-9]+)" "\\1" CLANG_TOOLS_MINOR_VERSION "${CLANG_TOOLS_VERSION}")
+    if ("${CLANG_TOOLS_MINOR_VERSION}" STREQUAL "0")
+      find_program(CLANG_FORMAT_BIN
+          NAMES clang-format
+          PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_TOOLS_MAJOR_VERSION}/bin"
+          NO_DEFAULT_PATH
+          )
+    else()
+      find_program(CLANG_FORMAT_BIN
+          NAMES clang-format
+          PATHS "${HOMEBREW_PREFIX}/opt/llvm@${CLANG_TOOLS_VERSION}/bin"
+          NO_DEFAULT_PATH
+          )
     endif()
+
+    if ("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND")
+      # binary was still not found, look into Cellar
+      file(GLOB CLANG_FORMAT_PATH "${HOMEBREW_PREFIX}/Cellar/llvm/${CLANG_TOOLS_VERSION}.*")
+      find_program(CLANG_FORMAT_BIN
+          NAMES clang-format
+          PATHS "${CLANG_FORMAT_PATH}/bin"
+          NO_DEFAULT_PATH
+          )
+    endif()
+  endif()
 else()
-    find_program(CLANG_FORMAT_BIN
-            NAMES clang-format
-            clang-format-6.0.1
-            clang-format-6.0
-            clang-format-4.0
-            clang-format-3.9
-            clang-format-3.8
-            clang-format-3.7
-            clang-format-3.6
-            clang-format
-            PATHS ${ClangTools_PATH} $ENV{CLANG_TOOLS_PATH} /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
-            NO_DEFAULT_PATH
-            )
+  find_program(CLANG_FORMAT_BIN
+      NAMES clang-format-4.0
+      clang-format-3.9
+      clang-format-3.8
+      clang-format-3.7
+      clang-format-3.6
+      clang-format
+      PATHS ${ClangTools_PATH} $ENV{CLANG_TOOLS_PATH} /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
+      NO_DEFAULT_PATH
+      )
 endif()
 
 if ( "${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND" )
-    set(CLANG_FORMAT_FOUND 0)
+  set(CLANG_FORMAT_FOUND 0)
+  message("clang-format not found")
 else()
-    set(CLANG_FORMAT_FOUND 1)
+  set(CLANG_FORMAT_FOUND 1)
+  message("clang-format found at ${CLANG_FORMAT_BIN}")
 endif()
