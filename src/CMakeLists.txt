@@ -1,34 +1,32 @@
-##################################################################################
-#SRC CMAKELISTS
-##################################################################################
+###############################################
+# Terrier sources
+###############################################
 
-##################################################################################
+file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
+list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
-# --[ Terrier library
+# easylogging++
+file(GLOB_RECURSE EASYLOGGINGPP_SOURCES
+    ${PROJECT_SOURCE_DIR}/third_party/easylogging++/*.cc
+    ${PROJECT_SOURCE_DIR}/third_party/easylogging++/*.h
+    )
+list(APPEND TERRIER_SRCS ${EASYLOGGINGPP_SOURCES})
 
-# creates 'srcs' lists
-terrier_pickup_terrier_sources(${PROJECT_SOURCE_DIR})
+###############################################
+# Terrier library
+###############################################
+add_library(terrier_shared SHARED ${TERRIER_SRCS})
+target_link_libraries(terrier_shared ${TERRIER_LINK_LIBS})
 
-add_library(terrier SHARED ${srcs})
+###############################################
+# Terrier executable
+###############################################
+add_executable(terrier main/terrier.cpp)
+target_link_libraries(terrier terrier_shared ${JEMALLOC_LIBRARIES})
+#set_target_properties(terrier-bin PROPERTIES OUTPUT_NAME terrier)
 
-target_link_libraries(terrier PUBLIC ${TERRIER_LINKER_LIBS})
-
-terrier_default_properties(terrier)
-
-set(terrier_main ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
-add_executable(terrier-bin ${terrier_main})
-target_link_libraries(terrier-bin terrier)
-set_target_properties(terrier-bin PROPERTIES OUTPUT_NAME terrier)
-
-##################################################################################
-
-# --[ link to jemalloc
-set(EXE_LINK_LIBRARIES ${JEMALLOC_LIBRARIES})
-set(EXE_LINK_FLAGS "-Wl,--no-as-needed")
-set(EXE_LIST terrier-bin)
-foreach(exe_name ${EXE_LIST})
-    target_link_libraries(${exe_name} ${EXE_LINK_LIBRARIES})
-    if (LINUX)
-        set_target_properties(${exe_name} PROPERTIES LINK_FLAGS ${EXE_LINK_FLAGS})
-    endif ()
-endforeach()
+# link jemalloc to executable
+if (LINUX)
+  set(JEMALLOC_LINK_FLAGS "-Wl,--no-as-needed")
+  set_target_properties(${exe_name} PROPERTIES LINK_FLAGS ${JEMALLOC_LINK_FLAGS})
+endif ()
