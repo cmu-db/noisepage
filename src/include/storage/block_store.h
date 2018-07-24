@@ -3,7 +3,7 @@
 #include "common/object_pool.h"
 #include "common/concurrent_map.h"
 #include "storage/storage_defs.h"
-#include "common/statistics.h"
+#include "common/performance_counters.h"
 
 namespace terrier {
 namespace storage {
@@ -13,7 +13,7 @@ namespace storage {
  *
  * This class should be the only source of blocks in the system.
  */
-class BlockStore : public Statistics {
+class BlockStore : public PerformanceCounters {
  public:
   /**
    * Initializes the block store with the given object pool
@@ -62,8 +62,10 @@ class BlockStore : public Statistics {
     block_counter_ --;
   }
 
-  void SetStats() override {
-//    json_value_["block_counter"] = Json::Value(block_counter_);
+  Json::Value GetPerformanceCounters() override {
+      Json::Value performance_counters;
+      performance_counters["block_counter"] = Json::Value(block_counter_);
+      return performance_counters;
   }
 
  private:
