@@ -1,39 +1,36 @@
 sudo: required
 language: cpp
 matrix:
-    fast_finish: true
-
-    include:
-        - os: osx
-          osx_image: xcode9.4
-          compiler: clang
-          env:
-              - NAME="Mac clang"
-        - os: linux
-          dist: trusty
-          env:
-              - NAME="Docker gcc"
-              - DOCKER=1
-
-install:
-  # docker
-  - if [[ -n $DOCKER ]]; then docker build -t lmwnshn/docker .; fi
-  - if [[ -n $DOCKER ]]; then docker run -itd --name build lmwnshn/docker; fi
-  - if [[ -n $DOCKER ]]; then docker exec build git clone -b tmpdocker https://github.com/lmwnshn/terrier.git /repo; fi
-  # not docker
-  - if [[ -z $DOCKER ]]; then ./script/installation/packages.sh; fi
-  # post packages.sh
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then export PATH=/usr/local/opt/llvm/bin:$PATH; fi
-
-script:
-  # docker
-  - if [[ -n $DOCKER ]]; then docker exec build mkdir -p /repo/build; fi
-  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && cmake .."; fi
-  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && make"; fi
-  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && make test"; fi
-  # not docker
-  - if [[ -z $DOCKER ]]; then mkdir build; fi
-  - if [[ -z $DOCKER ]]; then cd build; fi
-  - if [[ -z $DOCKER ]]; then cmake ..; fi
-  - if [[ -z $DOCKER ]]; then make; fi
-  - if [[ -z $DOCKER ]]; then make test; fi
+  fast_finish: true
+  include:
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env:
+        - NAME="Mac clang"
+      install:
+        - ./script/installation/packages.sh
+        - export PATH=/usr/local/opt/llvm/bin:$PATH
+      script:
+        - mkdir build
+        - cd build
+        - cmake ..
+        - make check-clang-tidy
+        - make check-format
+        - make
+        - make test
+    - os: linux
+      dist: trusty
+      env:
+        - NAME="Docker gcc"
+      install:
+        - docker build -t cmu-db/terrier .
+        - docker run -itd --name build cmu-db/terrier
+        - docker cp . build:/repo
+      script:
+        - docker exec build mkdir -p /repo/build
+        - docker exec build /bin/sh -c "cd /repo/build && cmake .."
+        - docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy"
+        - docker exec build /bin/sh -c "cd /repo/build && make check-format"
+        - docker exec build /bin/sh -c "cd /repo/build && make"
+        - docker exec build /bin/sh -c "cd /repo/build && make test"
