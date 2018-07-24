@@ -56,11 +56,7 @@ def lint_file(path):
                                     .format(path, why, i + 1, line))
 
 
-EXCLUSIONS = [
-    'arrow/util/macros.h',
-    'arrow/util/parallel.h',
-    'arrow/io/hdfs-internal.h'
-]
+EXCLUSIONS = []
 
 
 for dirpath, _, filenames in os.walk(arguments.source_path):
