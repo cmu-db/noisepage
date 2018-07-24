@@ -2,6 +2,8 @@
 
 #include "common/concurrent_queue.h"
 #include "common_defs.h"
+#include "common/performance_counters.h"
+
 namespace terrier {
 template <typename T>
 struct ByteAllocator {
@@ -41,7 +43,7 @@ struct DefaultConstructorAllocator {
  *         handed out multiple times before that happens.
  */
 template <typename T, class Allocator = ByteAllocator<T>>
-class ObjectPool {
+class ObjectPool : public PerformanceCounters {
  public:
   /**
    * Initializes a new object pool with the supplied limit to the number of
@@ -76,8 +78,12 @@ class ObjectPool {
    */
   FAKED_IN_TEST T *Get() {
     T *result;
-    if (!reuse_queue_.Dequeue(result))
+    if (!reuse_queue_.Dequeue(result)) {
       result = alloc_.New();
+      #ifdef PERFORMANCE_COUNTERS
+      allocation_counter_ ++;
+      #endif
+    }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -96,10 +102,22 @@ class ObjectPool {
       reuse_queue_.Enqueue(std::move(obj));
   }
 
+  #ifdef PERFORMANCE_COUNTERS
+  Json::Value GetPerformanceCounters() {
+    Json::Value performance_counters;
+    performance_counters["allocation_counter_"] = Json::Value(allocation_counter_);
+    return performance_counters;
+  }
+  #endif
+
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
-};
+  // Performance Counters
+  #ifdef PERFORMANCE_COUNTERS
+  std::atomic<int> allocation_counter_;
+  #endif
+  };
 }
