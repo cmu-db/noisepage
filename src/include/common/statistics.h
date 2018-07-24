@@ -35,11 +35,11 @@ class Statistics {
   virtual void SetStats() = 0;
 
   /** @brief Print the statistics in the Json value. */
-  void PrintStats ();
+  void PrintStats();
 
  protected:
   /** The Json value about the statistics */
   Json::Value json_value_;
 };
 
-}  // namespace peloton
+}  // namespace terrier

@@ -1,9 +1,9 @@
 #pragma once
 #include <sstream>
-#include "common/object_pool.h"
-#include "common/printable.h"
 #include "common/common_defs.h"
 #include "common/macros.h"
+#include "common/object_pool.h"
+#include "common/printable.h"
 
 namespace terrier {
 namespace storage {
@@ -16,7 +16,7 @@ class RawBlock {
  public:
   RawBlock() {
     // Intentionally unused
-    (void) content_;
+    (void)content_;
   }
   byte content_[Constants::BLOCK_SIZE];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
@@ -38,10 +38,9 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset)
-      : bytes_((uintptr_t) block | offset) {
+  TupleSlot(RawBlock* block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)));
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
     // it in the 0 bits at the end of the address
     PELOTON_ASSERT(offset < Constants::BLOCK_SIZE);
@@ -50,29 +49,23 @@ class TupleSlot {
   /**
    * @return ptr to the head of the block
    */
-  RawBlock *GetBlock() const {
+  RawBlock* GetBlock() const {
     // Get the first 11 bytes as the ptr
-    return reinterpret_cast<RawBlock *>(bytes_
-        & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return reinterpret_cast<RawBlock*>(bytes_ & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
   }
 
   /**
    * @return offset of the tuple within a block.
    */
   uint32_t GetOffset() const {
-    return static_cast<uint32_t>(bytes_
-        & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
   }
 
-  bool operator==(const TupleSlot &other) const {
-    return bytes_ == other.bytes_;
-  }
+  bool operator==(const TupleSlot& other) const { return bytes_ == other.bytes_; }
 
-  bool operator!=(const TupleSlot &other) const {
-    return bytes_ != other.bytes_;
-  }
+  bool operator!=(const TupleSlot& other) const { return bytes_ != other.bytes_; }
 
-  friend std::ostream &operator<<(std::ostream &os, const TupleSlot &slot) {
+  friend std::ostream& operator<<(std::ostream& os, const TupleSlot& slot) {
     return os << "block: " << slot.GetBlock() << ", offset: " << slot.GetOffset();
   }
 
@@ -89,14 +82,12 @@ class TupleSlot {
  * malloc.
  */
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
-}
-}
+}  // namespace storage
+}  // namespace terrier
 
 namespace std {
 template <>
 struct hash<terrier::storage::TupleSlot> {
-  size_t operator()(const terrier::storage::TupleSlot &slot) const {
-    return hash<uintptr_t>()(slot.bytes_);
-  }
+  size_t operator()(const terrier::storage::TupleSlot& slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
-}
+}  // namespace std

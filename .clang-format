@@ -19,3 +19,4 @@
 #
 BasedOnStyle:  Google
 DerivePointerAlignment: false
+ColumnLimit: 120

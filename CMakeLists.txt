@@ -219,14 +219,7 @@ if (UNIX)
     )
 
   FOREACH(item ${LINT_FILES})
-    IF(NOT ((item MATCHES "_generated.h") OR
-            (item MATCHES "pyterrier_api.h") OR
-            (item MATCHES "xxhash.h") OR
-            (item MATCHES "xxhash.cc") OR
-            (item MATCHES "config.h") OR
-            (item MATCHES "util/variant") OR
-            (item MATCHES "zmalloc.h") OR
-            (item MATCHES "ae.h")))
+    IF(NOT ((item MATCHES "_generated.h")))
       LIST(APPEND FILTERED_LINT_FILES ${item})
     ENDIF()
   ENDFOREACH(item ${LINT_FILES})
@@ -240,7 +233,7 @@ if (UNIX)
   add_custom_target(lint echo ${FILTERED_LINT_FILES} | xargs -n12 -P8
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
-  --linelength=90
+  --linelength=120
   --filter=-whitespace/comments,-readability/todo,-build/header_guard,-build/c++11,-runtime/references,-build/include_order
   )
 endif (UNIX)

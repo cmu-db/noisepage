@@ -18,20 +18,16 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 // as the plain type.
 //
 // This code should not compile if these assumptions are not true.
-static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t),
-              "unexpected std::atomic size for 8-bit ints");
-static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t),
-              "unexpected std::atomic size for 64-bit ints");
+static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");
+static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t), "unexpected std::atomic size for 64-bit ints");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit
-#define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n) - 1u))
+#define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n)-1u))
 // n must be [0, 7], all 1 except for 0 on the nth bit
 #define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
 
 namespace terrier {
-constexpr uint32_t BitmapSize(uint32_t n) {
-  return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1;
-}
+constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
 /**
  * A RawConcurrentBitmap is a bitmap that does not have the compile-time
@@ -62,19 +58,17 @@ class RawConcurrentBitmap {
    * @param size number of bits in the bitmap
    * @return ptr to new RawConcurrentBitmap
    */
-  static RawConcurrentBitmap *Allocate(uint32_t size) {
-    auto *result = new uint8_t[size];
+  static RawConcurrentBitmap* Allocate(uint32_t size) {
+    auto* result = new uint8_t[size];
     PELOTON_MEMSET(result, 0, size);
-    return reinterpret_cast<RawConcurrentBitmap *>(result);
+    return reinterpret_cast<RawConcurrentBitmap*>(result);
   }
 
   /**
    * Deallocates a RawConcurrentBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
    */
-  static void Deallocate(RawConcurrentBitmap *map) {
-    delete (uint8_t *) map;
-  }
+  static void Deallocate(RawConcurrentBitmap* map) { delete (uint8_t*)map; }
 
   /**
    * Test the bit value at the given position
@@ -82,8 +76,7 @@ class RawConcurrentBitmap {
    * @return true if 1, false if 0
    */
   bool Test(uint32_t pos) const {
-    return static_cast<bool>(
-        bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
+    return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
   /**
@@ -91,9 +84,7 @@ class RawConcurrentBitmap {
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool operator[](uint32_t pos) const {
-    return Test(pos);
-  }
+  bool operator[](uint32_t pos) const { return Test(pos); }
 
   /**
    * Sets the bit value at position to be val. This is not safe to call
@@ -102,7 +93,7 @@ class RawConcurrentBitmap {
    * @param val value to set to
    * @return self-reference for chaining
    */
-  RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
+  RawConcurrentBitmap& UnsafeSet(uint32_t pos, bool val) {
     if (val)
       bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
     else
@@ -122,8 +113,7 @@ class RawConcurrentBitmap {
   bool Flip(uint32_t pos, bool expected_val) {
     uint32_t element = pos / BYTE_SIZE;
     auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
-    for (uint8_t old_val = bits_[element];
-         static_cast<bool>(old_val & mask) == expected_val;
+    for (uint8_t old_val = bits_[element]; static_cast<bool>(old_val & mask) == expected_val;
          old_val = bits_[element]) {
       uint8_t new_val = old_val ^ mask;
       if (bits_[element].compare_exchange_strong(old_val, new_val)) return true;
@@ -142,6 +132,5 @@ class RawConcurrentBitmap {
 // The correctness of our storage code depends in this class having this
 // exact layout. Changes include marking a function as virtual (or use the
 // FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
-static_assert(sizeof(RawConcurrentBitmap) == 0,
-              "Unexpected RawConcurrentBitmap layout!");
-}
+static_assert(sizeof(RawConcurrentBitmap) == 0, "Unexpected RawConcurrentBitmap layout!");
+}  // namespace terrier
