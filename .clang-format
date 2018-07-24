@@ -18,5 +18,4 @@
 # Modified from the Apache Arrow project for the Terrier project.
 #
 BasedOnStyle:  Google
-DerivePointerAlignment: false
-ColumnLimit: 80
+DerivePointerAlignment: false\
