@@ -29,8 +29,8 @@ string(REGEX MATCH
     "^[0-9]+\\.[0-9]+\\.[0-9]+" TERRIER_BASE_VERSION "${TERRIER_VERSION}")
 
 project(terrier
+    LANGUAGES CXX
     VERSION "${TERRIER_BASE_VERSION}"
-    HOMEPAGE_URL "https://db.cs.cmu.edu"
     )
 
 set(TERRIER_VERSION_MAJOR "${terrier_VERSION_MAJOR}")
