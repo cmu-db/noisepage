@@ -39,6 +39,7 @@ shift
 if [ "$APPLY_FIXES" == "1" ]; then
   $CLANG_TIDY -p $COMPILE_COMMANDS -fix  $@
 else
+  $CLANG_TIDY -p $COMPILE_COMMANDS  $@
   NUM_CORRECTIONS=`$CLANG_TIDY -p $COMPILE_COMMANDS $@ 2>&1 | grep -v Skipping | grep "warnings* generated" | wc -l`
   if [ "$NUM_CORRECTIONS" -gt "0" ]; then
     echo "clang-tidy had suggested fixes.  Please fix these!!!"
