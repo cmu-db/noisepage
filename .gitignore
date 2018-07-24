@@ -246,6 +246,7 @@ cmake-build-debug
 cmake-build-release
 
 # Generated documentation
+apidoc/doc
 docs/_site
 docs/gathered
 _site
