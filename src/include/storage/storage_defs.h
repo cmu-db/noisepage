@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
 #include "common/object_pool.h"
-#include "common/printable.h"
+#include "common/json_serializable.h"
 #include "common/common_defs.h"
 #include "common/macros.h"
 
