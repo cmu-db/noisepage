@@ -18,4 +18,4 @@
 # Modified from the Apache Arrow project for the Terrier project.
 #
 BasedOnStyle:  Google
-DerivePointerAlignment: false\
+DerivePointerAlignment: false
