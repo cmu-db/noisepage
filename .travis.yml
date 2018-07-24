@@ -1,13 +1,39 @@
 sudo: required
 language: cpp
-services:
-  - docker
-before_install:
-  - docker build -t cmu-db/docker .
-  - docker run -itd --name build cmu-db/docker
-  - docker exec build git clone https://github.com/cmu-db/terrier.git /repo
+matrix:
+    fast_finish: true
+
+    include:
+        - os: osx
+          osx_image: xcode9.4
+          compiler: clang
+          env:
+              - NAME="Mac clang"
+        - os: linux
+          dist: trusty
+          env:
+              - NAME="Docker gcc"
+              - DOCKER=1
+
+install:
+  # docker
+  - if [[ -n $DOCKER ]]; then docker build -t lmwnshn/docker .; fi
+  - if [[ -n $DOCKER ]]; then docker run -itd --name build lmwnshn/docker; fi
+  - if [[ -n $DOCKER ]]; then docker exec build git clone -b tmpdocker https://github.com/lmwnshn/terrier.git /repo; fi
+  # not docker
+  - if [[ -z $DOCKER ]]; then ./script/installation/packages.sh; fi
+  # post packages.sh
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then export PATH=/usr/local/opt/llvm/bin:$PATH; fi
+
 script:
-  - docker exec build mkdir -p /repo/build
-  - docker exec build /bin/sh -c "cd /repo/build && cmake .."
-  - docker exec build /bin/sh -c "cd /repo/build && make"
-  - docker exec build /bin/sh -c "cd /repo/build && make test"
+  # docker
+  - if [[ -n $DOCKER ]]; then docker exec build mkdir -p /repo/build; fi
+  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && cmake .."; fi
+  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && make"; fi
+  - if [[ -n $DOCKER ]]; then docker exec build /bin/sh -c "cd /repo/build && make test"; fi
+  # not docker
+  - if [[ -z $DOCKER ]]; then mkdir build; fi
+  - if [[ -z $DOCKER ]]; then cd build; fi
+  - if [[ -z $DOCKER ]]; then cmake ..; fi
+  - if [[ -z $DOCKER ]]; then make; fi
+  - if [[ -z $DOCKER ]]; then make test; fi
