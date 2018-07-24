@@ -19,7 +19,7 @@
  * when the logging is turned off. Use LOG_XXX_ENABLED macros defined here to
  * eliminate all instructions in the final binary.
  * @author Hideaki
-*/
+ */
 
 /**
  * To be more useful debugging, added command arguments for the server to control
@@ -37,8 +37,8 @@
 
 // Fix for PRId64 (See https://stackoverflow.com/a/18719205)
 #if defined(__cplusplus) && !defined(__STDC_FORMAT_MACROS)
-#define __STDC_FORMAT_MACROS 1 // Not sure where to put this
-#endif 
+#define __STDC_FORMAT_MACROS 1  // Not sure where to put this
+#endif
 #include <inttypes.h>
 
 // Note that __PELOTONFILE__ is a special pre-processor macro that we
@@ -124,7 +124,6 @@
 #else
 #define LOG_TRACE(...) ((void)0)
 #endif
-
 
 namespace terrier {
 

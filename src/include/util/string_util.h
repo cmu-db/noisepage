@@ -27,14 +27,11 @@ static const std::string GETINFO_DOUBLE_STAR = "**";
 
 static const std::string GETINFO_LONG_ARROW = "====>";
 
-static const std::string GETINFO_SINGLE_LINE =
-    "-------------------------------------------------------------";
+static const std::string GETINFO_SINGLE_LINE = "-------------------------------------------------------------";
 
-static const std::string GETINFO_THICK_LINE =
-    "=============================================================";
+static const std::string GETINFO_THICK_LINE = "=============================================================";
 
-static const std::string GETINFO_HALF_THICK_LINE =
-    "===========================";
+static const std::string GETINFO_HALF_THICK_LINE = "===========================";
 
 static const int ARROW_INDENT = 3;
 
@@ -80,8 +77,7 @@ class StringUtil {
    * Join multiple strings into one string. Components are concatenated by the
    * given separator
    */
-  static std::string Join(const std::vector<std::string> &input,
-                          const std::string &separator);
+  static std::string Join(const std::vector<std::string> &input, const std::string &separator);
 
   /**
    * Append the prefix to the beginning of each line in str
@@ -107,8 +103,8 @@ class StringUtil {
   static std::string Upper(const std::string &str);
 
   /**
- * Convert a string to its uppercase form
- */
+   * Convert a string to its uppercase form
+   */
   static std::string Lower(const std::string &str);
 
   /**
@@ -124,8 +120,7 @@ class StringUtil {
    * @param split
    * @return
    */
-  static std::vector<std::string> Split(const std::string &input,
-                                        const std::string &split);
+  static std::vector<std::string> Split(const std::string &input, const std::string &split);
 
   /**
    * Remove the whitespace char in the right end of the string

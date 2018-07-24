@@ -54,9 +54,7 @@ namespace terrier {
 
 #define __XCONCAT2(a, b) a##b
 #define __XCONCAT(a, b) __XCONCAT2(a, b)
-#define CACHE_PADOUT                       \
-  char __XCONCAT(__padout, __COUNTER__)[0] \
-      __attribute__((aligned(CACHELINE_SIZE)))
+#define CACHE_PADOUT char __XCONCAT(__padout, __COUNTER__)[0] __attribute__((aligned(CACHELINE_SIZE)))
 #define PACKED __attribute__((packed))
 
 //===--------------------------------------------------------------------===//
@@ -76,9 +74,9 @@ namespace terrier {
 // TODO(Tianyu): Rename peloton to whatever we call this later
 // throw exception after the assert(), so that GCC knows
 // we'll never return
-#define PELOTON_UNIMPLEMENTED(what)        \
+#define PELOTON_UNIMPLEMENTED(what)   \
   do {                                \
-    PELOTON_ASSERT(false);                 \
+    PELOTON_ASSERT(false);            \
     throw ::std::runtime_error(what); \
   } while (0)
 
@@ -158,11 +156,9 @@ namespace terrier {
 //===----------------------------------------------------------------------===//
 
 #define LLVM_VERSION_GE(major, minor) \
-  (LLVM_VERSION_MAJOR > (major) ||    \
-   (LLVM_VERSION_MAJOR == (major) && LLVM_VERSION_MINOR >= (minor)))
+  (LLVM_VERSION_MAJOR > (major) || (LLVM_VERSION_MAJOR == (major) && LLVM_VERSION_MINOR >= (minor)))
 
-#define LLVM_VERSION_EQ(major, minor) \
-  (LLVM_VERSION_MAJOR == (major) && LLVM_VERSION_MINOR == (minor))
+#define LLVM_VERSION_EQ(major, minor) (LLVM_VERSION_MAJOR == (major) && LLVM_VERSION_MINOR == (minor))
 
 //===----------------------------------------------------------------------===//
 // switch statements
@@ -184,4 +180,4 @@ namespace terrier {
 #else
 #define FAKED_IN_TEST virtual
 #endif /* NDEBUG */
-}
+}  // namespace terrier

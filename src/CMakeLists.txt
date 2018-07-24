@@ -23,7 +23,6 @@ target_link_libraries(terrier_shared ${TERRIER_LINK_LIBS})
 ###############################################
 add_executable(terrier main/terrier.cpp)
 target_link_libraries(terrier terrier_shared ${JEMALLOC_LIBRARIES})
-#set_target_properties(terrier-bin PROPERTIES OUTPUT_NAME terrier)
 
 # link jemalloc to executable
 if (LINUX)

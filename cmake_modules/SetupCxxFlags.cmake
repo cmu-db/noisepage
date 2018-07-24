@@ -127,13 +127,6 @@ if (BUILD_WARNING_FLAGS)
   set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} ${BUILD_WARNING_FLAGS}")
 endif(BUILD_WARNING_FLAGS)
 
-if (APPLE)
-  # Depending on the default OSX_DEPLOYMENT_TARGET (< 10.9), libstdc++ may be
-  # the default standard library which does not support C++11. libc++ is the
-  # default from 10.9 onward.
-  set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -stdlib=libc++")
-endif()
-
 # color diagnostics
 if("${COMPILER_FAMILY}" STREQUAL "clang")
   set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -fcolor-diagnostics")

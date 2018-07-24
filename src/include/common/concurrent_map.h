@@ -16,46 +16,38 @@ namespace terrier {
  * @tparam Equality equality check used for keys
  * @tparam Alloc Allocator type used
  */
-template<typename K,
-    typename V,
-    typename Hasher = tbb::tbb_hash<K>,
-    typename Equality = std::equal_to<K>,
-    typename Alloc = tbb::tbb_allocator<std::pair<const K, V>>>
+template <typename K, typename V, typename Hasher = tbb::tbb_hash<K>, typename Equality = std::equal_to<K>,
+          typename Alloc = tbb::tbb_allocator<std::pair<const K, V>>>
 class ConcurrentMap {
-// This wrapper is here so we are free to swap out underlying implementation
-// of the data structure or hand-craft it ourselves. Compiler should inline
-// most of it for us anyway and incur minimal overhead. (Currently using tbb
-// see https://software.intel.com/en-us/node/506171)
-//
-// Keep the interface minimalistic until we figure out what implementation to use.
+  // This wrapper is here so we are free to swap out underlying implementation
+  // of the data structure or hand-craft it ourselves. Compiler should inline
+  // most of it for us anyway and incur minimal overhead. (Currently using tbb
+  // see https://software.intel.com/en-us/node/506171)
+  //
+  // Keep the interface minimalistic until we figure out what implementation to use.
  public:
-
   /**
    * Iterator type for the map
    */
   class Iterator {
     using val = std::pair<const K, V>;
+
    public:
     /**
      * Wraps around a tbb iterator. Subject to change if we change implementation
      * @param it iterator of the underlying map
      */
-    explicit Iterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it)
-        : it_(it) {}
+    explicit Iterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it) : it_(it) {}
 
     /**
      * @return reference to the underlying value
      */
-    val &operator*() const {
-      return it_.operator*();
-    }
+    val &operator*() const { return it_.operator*(); }
 
     /**
      * @return pointer to the underlying value
      */
-    val *operator->() const {
-      return it_.operator->();
-    }
+    val *operator->() const { return it_.operator->(); }
 
     /**
      * prefix-increment
@@ -80,18 +72,14 @@ class ConcurrentMap {
      * @param other iterator to compare to
      * @return if this is equal to other
      */
-    bool operator==(const Iterator &other) const {
-      return it_ == other.it_;
-    }
+    bool operator==(const Iterator &other) const { return it_ == other.it_; }
 
     /**
      * Inequality test
      * @param other iterator to compare to
      * @return if this is not equal to other
      */
-    bool operator!=(const Iterator &other) const {
-      return it_ != other.it_;
-    }
+    bool operator!=(const Iterator &other) const { return it_ != other.it_; }
 
    private:
     typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it_;
@@ -104,9 +92,7 @@ class ConcurrentMap {
    * @param value value to insert
    * @return whether the insertion actually took place
    */
-  bool Insert(const K &key, V value) {
-    return map_.insert(std::make_pair(key, value)).second;
-  }
+  bool Insert(const K &key, V value) { return map_.insert(std::make_pair(key, value)).second; }
 
   /**
    * Finds the value mapped to by the supplied key, or return false if no such
@@ -117,8 +103,7 @@ class ConcurrentMap {
    */
   bool Find(const K &key, V &value) {
     auto it = map_.find(key);
-    if (it == map_.end())
-      return false;
+    if (it == map_.end()) return false;
     value = it->second;
     return true;
   }
@@ -128,39 +113,32 @@ class ConcurrentMap {
    * This operation is not safe to call concurrently.
    * @param key key to remove
    */
-  void UnsafeErase(const K &key) {
-    map_.unsafe_erase(key);
-  }
+  void UnsafeErase(const K &key) { map_.unsafe_erase(key); }
 
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() {
-    return Iterator(map_.begin());
-  }
+  Iterator Begin() { return Iterator(map_.begin()); }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() {
-    return Iterator(map_.end());
-  }
+  Iterator End() { return Iterator(map_.end()); }
 
  private:
   tbb::concurrent_unordered_map<TEMPLATE_ARGS> map_;
 };
-}
+}  // namespace terrier
 
 // TODO(Tianyu): Remove this if we don't end up using tbb
 namespace tbb {
-template<class Tag, typename T>
+template <class Tag, typename T>
 struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
   size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash
-    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag,
-                                                              T> &>(alias));
+    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
   }
 };
 #undef TEMPLATE_ARGS
-}
+}  // namespace tbb

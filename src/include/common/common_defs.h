@@ -1,12 +1,12 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
+#include <functional>
 #include <iosfwd>
 #include <string>
-#include <functional>
-#include <atomic>
+#include <type_traits>
 
 #include "common/macros.h"
 
@@ -51,8 +51,8 @@ using byte = std::byte;
  * ...
  * return VALUE_OF(foo, 42u);
  */
-#define STRONG_TYPEDEF(name, underlying_type)      \
-  struct name##_typedef_tag {};                    \
+#define STRONG_TYPEDEF(name, underlying_type) \
+  struct name##_typedef_tag {};               \
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
 
 #define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
@@ -65,44 +65,34 @@ using byte = std::byte;
  * @tparam Tag a dummy class type to annotate the underlying type
  * @tparam T the underlying type
  */
-template<class Tag, typename T>
+template <class Tag, typename T>
 class StrongTypeAlias {
  public:
   StrongTypeAlias() : val_() {}
   explicit StrongTypeAlias(const T &val) : val_(val) {}
   explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
 
-  T &operator!() {
-    return val_;
-  }
+  T &operator!() { return val_; }
 
-  bool operator==(const StrongTypeAlias &rhs) const {
-    return val_ == rhs.val_;
-  }
+  bool operator==(const StrongTypeAlias &rhs) const { return val_ == rhs.val_; }
 
-  bool operator!=(const StrongTypeAlias &rhs) const {
-    return val_ != rhs.val_;
-  }
+  bool operator!=(const StrongTypeAlias &rhs) const { return val_ != rhs.val_; }
 
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const StrongTypeAlias &alias) {
-    return os << alias.val_;
-  }
+  friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
 
  private:
   T val_;
 };
 
-template<class Tag, typename T>
+template <class Tag, typename T>
 StrongTypeAlias<Tag, T> ValueOf(T val) {
   return StrongTypeAlias<Tag, T>(val);
 };
 
-
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
-//template <class Tag>
-//class StrongTypeAlias<Tag, uint32_t> {
+// template <class Tag>
+// class StrongTypeAlias<Tag, uint32_t> {
 //  // Write your operator here!
 //};
 
@@ -118,7 +108,7 @@ struct Constants {
   // Should only ever be a power of 2
   static const uint32_t BLOCK_SIZE = 1048576u;
 };
-}
+}  // namespace terrier
 
 namespace std {
 // TODO(Tianyu): This might be what std::atomic will give you by default
@@ -127,40 +117,30 @@ namespace std {
 
 // TODO(Tianyu): Expand this specialization if need other things
 // from std::atomic<uint32_t>
-template<class Tag>
+template <class Tag>
 struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
   using t = terrier::StrongTypeAlias<Tag, uint32_t>;
   explicit atomic(uint32_t val = 0) : underlying_{val} {}
   explicit atomic(t val) : underlying_{!val} {}
   DISALLOW_COPY_AND_MOVE(atomic);
 
-  bool is_lock_free() const noexcept {
-    return underlying_.is_lock_free();
-  }
+  bool is_lock_free() const noexcept { return underlying_.is_lock_free(); }
 
-  void store(t desired,
-             memory_order order = memory_order_seq_cst) volatile noexcept {
+  void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     underlying_.store(!desired, order);
   }
 
-  t load(memory_order order = memory_order_seq_cst) const volatile noexcept {
-    return t(underlying_.load(order));
-  }
+  t load(memory_order order = memory_order_seq_cst) const volatile noexcept { return t(underlying_.load(order)); }
 
-  t exchange(t desired,
-             memory_order order = memory_order_seq_cst) volatile noexcept {
+  t exchange(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return t(underlying_.exchange(!desired, order));
   }
 
-  bool compare_exchange_weak(t &expected,
-                             t desired,
-                             memory_order order = memory_order_seq_cst) volatile noexcept {
+  bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_weak(!expected, !desired, order);
   }
 
-  bool compare_exchange_strong(t &expected,
-                               t desired,
-                               memory_order order = memory_order_seq_cst) volatile noexcept {
+  bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_strong(!expected, !desired, order);
   }
 
@@ -178,10 +158,10 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
   atomic<uint32_t> underlying_;
 };
 
-template<class Tag, typename T>
+template <class Tag, typename T>
 struct hash<terrier::StrongTypeAlias<Tag, T>> {
   size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
   }
 };
-}
+}  // namespace std
