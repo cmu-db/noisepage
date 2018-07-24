@@ -2,9 +2,9 @@
 //
 //                         Terrier
 //
-// statistics.h
+// performance_counters.h
 //
-// Identification: src/include/common/statistics.h
+// Identification: src/include/common/performance_counters.h
 //
 // Copyright (c) 2015-18, Carnegie Mellon University Database Group
 //
@@ -27,19 +27,12 @@ namespace terrier {
 // Statistics Object
 //===--------------------------------------------------------------------===//
 
-class Statistics {
+class PerformanceCounters {
  public:
-  virtual ~Statistics(){};
+  virtual ~PerformanceCounters(){};
 
-  /** @brief Set the Json value about the statistics. */
-  virtual void SetStats() = 0;
-
-  /** @brief Print the statistics in the Json value. */
-  void PrintStats ();
-
- protected:
-  /** The Json value about the statistics */
-  Json::Value json_value_;
+  /** @brief Set the Json value about the performance counters. */
+  virtual Json::Value GetPerformanceCounters() = 0;
 };
 
-}  // namespace peloton
+}  // namespace terrier
