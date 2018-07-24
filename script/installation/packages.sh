@@ -96,6 +96,7 @@ if [ "$DISTRO" = "UBUNTU" ]; then
         automake \
         libtool \
         make \
+        zlib1g-dev
 
 ## ------------------------------------------------
 ## DARWIN (macOS)
