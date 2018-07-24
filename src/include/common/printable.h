@@ -17,7 +17,7 @@ class Printable {
   /** @brief Return information about the object in human-readable way. */
   virtual const std::string GetInfo() const = 0;
 
-  friend std::ostream& operator<<(std::ostream& os, const Printable& printable) { return os << printable.GetInfo(); }
+  friend std::ostream &operator<<(std::ostream &os, const Printable &printable) { return os << printable.GetInfo(); }
 };
 
 }  // namespace terrier

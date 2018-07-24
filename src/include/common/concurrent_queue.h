@@ -28,14 +28,14 @@ class ConcurrentQueue {
    * Puts the element at the tail of the queue by using the move constructor
    * @param elem movable reference to element
    */
-  void Enqueue(T&& elem) { queue_.push(elem); }
+  void Enqueue(T &&elem) { queue_.push(elem); }
 
   /**
    * If value is available, remove the element at the head of the queue and assign
    * it to the destination.
    * @param dest if an element exists.
    */
-  bool Dequeue(T& dest) { return queue_.try_pop(dest); }
+  bool Dequeue(T &dest) { return queue_.try_pop(dest); }
 
   /**
    * Returns the number of items in the queue. The method is allowed to return

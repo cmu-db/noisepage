@@ -38,7 +38,7 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock* block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
+  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
     PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
@@ -49,9 +49,9 @@ class TupleSlot {
   /**
    * @return ptr to the head of the block
    */
-  RawBlock* GetBlock() const {
+  RawBlock *GetBlock() const {
     // Get the first 11 bytes as the ptr
-    return reinterpret_cast<RawBlock*>(bytes_ & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
   }
 
   /**
@@ -61,11 +61,11 @@ class TupleSlot {
     return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
   }
 
-  bool operator==(const TupleSlot& other) const { return bytes_ == other.bytes_; }
+  bool operator==(const TupleSlot &other) const { return bytes_ == other.bytes_; }
 
-  bool operator!=(const TupleSlot& other) const { return bytes_ != other.bytes_; }
+  bool operator!=(const TupleSlot &other) const { return bytes_ != other.bytes_; }
 
-  friend std::ostream& operator<<(std::ostream& os, const TupleSlot& slot) {
+  friend std::ostream &operator<<(std::ostream &os, const TupleSlot &slot) {
     return os << "block: " << slot.GetBlock() << ", offset: " << slot.GetOffset();
   }
 
@@ -88,6 +88,6 @@ using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
 namespace std {
 template <>
 struct hash<terrier::storage::TupleSlot> {
-  size_t operator()(const terrier::storage::TupleSlot& slot) const { return hash<uintptr_t>()(slot.bytes_); }
+  size_t operator()(const terrier::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
 }  // namespace std

@@ -69,16 +69,16 @@ template <class Tag, typename T>
 class StrongTypeAlias {
  public:
   StrongTypeAlias() : val_() {}
-  explicit StrongTypeAlias(const T& val) : val_(val) {}
-  explicit StrongTypeAlias(T&& val) : val_(std::move(val)) {}
+  explicit StrongTypeAlias(const T &val) : val_(val) {}
+  explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
 
-  T& operator!() { return val_; }
+  T &operator!() { return val_; }
 
-  bool operator==(const StrongTypeAlias& rhs) const { return val_ == rhs.val_; }
+  bool operator==(const StrongTypeAlias &rhs) const { return val_ == rhs.val_; }
 
-  bool operator!=(const StrongTypeAlias& rhs) const { return val_ != rhs.val_; }
+  bool operator!=(const StrongTypeAlias &rhs) const { return val_ != rhs.val_; }
 
-  friend std::ostream& operator<<(std::ostream& os, const StrongTypeAlias& alias) { return os << alias.val_; }
+  friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
 
  private:
   T val_;
@@ -136,11 +136,11 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
     return t(underlying_.exchange(!desired, order));
   }
 
-  bool compare_exchange_weak(t& expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_weak(!expected, !desired, order);
   }
 
-  bool compare_exchange_strong(t& expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_strong(!expected, !desired, order);
   }
 
@@ -160,8 +160,8 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
 
 template <class Tag, typename T>
 struct hash<terrier::StrongTypeAlias<Tag, T>> {
-  size_t operator()(const terrier::StrongTypeAlias<Tag, T>& alias) const {
-    return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T>&>(alias));
+  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
+    return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
   }
 };
 }  // namespace std

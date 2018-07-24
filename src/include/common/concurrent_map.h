@@ -42,18 +42,18 @@ class ConcurrentMap {
     /**
      * @return reference to the underlying value
      */
-    val& operator*() const { return it_.operator*(); }
+    val &operator*() const { return it_.operator*(); }
 
     /**
      * @return pointer to the underlying value
      */
-    val* operator->() const { return it_.operator->(); }
+    val *operator->() const { return it_.operator->(); }
 
     /**
      * prefix-increment
      * @return self-reference
      */
-    Iterator& operator++() {
+    Iterator &operator++() {
       ++it_;
       return *this;
     }
@@ -72,14 +72,14 @@ class ConcurrentMap {
      * @param other iterator to compare to
      * @return if this is equal to other
      */
-    bool operator==(const Iterator& other) const { return it_ == other.it_; }
+    bool operator==(const Iterator &other) const { return it_ == other.it_; }
 
     /**
      * Inequality test
      * @param other iterator to compare to
      * @return if this is not equal to other
      */
-    bool operator!=(const Iterator& other) const { return it_ != other.it_; }
+    bool operator!=(const Iterator &other) const { return it_ != other.it_; }
 
    private:
     typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::iterator it_;
@@ -92,7 +92,7 @@ class ConcurrentMap {
    * @param value value to insert
    * @return whether the insertion actually took place
    */
-  bool Insert(const K& key, V value) { return map_.insert(std::make_pair(key, value)).second; }
+  bool Insert(const K &key, V value) { return map_.insert(std::make_pair(key, value)).second; }
 
   /**
    * Finds the value mapped to by the supplied key, or return false if no such
@@ -101,7 +101,7 @@ class ConcurrentMap {
    * @param value location to write the mapped value to
    * @return whether the key exists in the map
    */
-  bool Find(const K& key, V& value) {
+  bool Find(const K &key, V &value) {
     auto it = map_.find(key);
     if (it == map_.end()) return false;
     value = it->second;
@@ -113,7 +113,7 @@ class ConcurrentMap {
    * This operation is not safe to call concurrently.
    * @param key key to remove
    */
-  void UnsafeErase(const K& key) { map_.unsafe_erase(key); }
+  void UnsafeErase(const K &key) { map_.unsafe_erase(key); }
 
   /**
    * @return Iterator to the first element
@@ -134,10 +134,10 @@ class ConcurrentMap {
 namespace tbb {
 template <class Tag, typename T>
 struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
-  size_t operator()(const terrier::StrongTypeAlias<Tag, T>& alias) const {
+  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash
-    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T>&>(alias));
+    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
   }
 };
 #undef TEMPLATE_ARGS

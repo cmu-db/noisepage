@@ -58,17 +58,17 @@ class RawConcurrentBitmap {
    * @param size number of bits in the bitmap
    * @return ptr to new RawConcurrentBitmap
    */
-  static RawConcurrentBitmap* Allocate(uint32_t size) {
-    auto* result = new uint8_t[size];
+  static RawConcurrentBitmap *Allocate(uint32_t size) {
+    auto *result = new uint8_t[size];
     PELOTON_MEMSET(result, 0, size);
-    return reinterpret_cast<RawConcurrentBitmap*>(result);
+    return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
   /**
    * Deallocates a RawConcurrentBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
    */
-  static void Deallocate(RawConcurrentBitmap* map) { delete (uint8_t*)map; }
+  static void Deallocate(RawConcurrentBitmap *map) { delete (uint8_t *)map; }
 
   /**
    * Test the bit value at the given position
@@ -93,7 +93,7 @@ class RawConcurrentBitmap {
    * @param val value to set to
    * @return self-reference for chaining
    */
-  RawConcurrentBitmap& UnsafeSet(uint32_t pos, bool val) {
+  RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
     if (val)
       bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
     else

@@ -5,16 +5,16 @@
 namespace terrier {
 template <typename T>
 struct ByteAllocator {
-  T* New() { return reinterpret_cast<T*>(new byte[sizeof(T)]); }
+  T *New() { return reinterpret_cast<T *>(new byte[sizeof(T)]); }
 
-  void Delete(T* ptr) { delete[] ptr; }
+  void Delete(T *ptr) { delete[] ptr; }
 };
 
 template <typename T>
 struct DefaultConstructorAllocator {
-  T* New() { return new T(); }
+  T *New() { return new T(); }
 
-  void Delete(T* ptr) { delete ptr; }
+  void Delete(T *ptr) { delete ptr; }
 };
 
 // TODO(Tianyu): Should this be by size or by class type?
@@ -49,7 +49,7 @@ class ObjectPool {
    * not explicitly released via a Release call.
    */
   FAKED_IN_TEST ~ObjectPool() {
-    T* result;
+    T *result;
     while (reuse_queue_.Dequeue(result)) alloc_.Delete(result);
   }
 
@@ -65,8 +65,8 @@ class ObjectPool {
    *
    * @return pointer to memory that can hold T
    */
-  FAKED_IN_TEST T* Get() {
-    T* result;
+  FAKED_IN_TEST T *Get() {
+    T *result;
     if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
@@ -79,7 +79,7 @@ class ObjectPool {
    *
    * @param obj pointer to object to release
    */
-  FAKED_IN_TEST void Release(T* obj) {
+  FAKED_IN_TEST void Release(T *obj) {
     if (reuse_queue_.UnsafeSize() > reuse_limit_)
       alloc_.Delete(obj);
     else
@@ -88,7 +88,7 @@ class ObjectPool {
 
  private:
   Allocator alloc_;
-  ConcurrentQueue<T*> reuse_queue_;
+  ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 };
