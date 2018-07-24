@@ -324,7 +324,6 @@ include_directories(${PROJECT_SOURCE_DIR}/src/include)
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
-
 set(TERRIER_LINK_LIBS
     ${TERRIER_LINK_LIBS}
     ${PTHREAD_LIBRARY})
@@ -335,21 +334,6 @@ set(TERRIER_TEST_LINK_LIBS
     gtest
     gtest_main
     ${CMAKE_DL_LIBS})
-
-#
-## ---------------------------------------------------------
-## Project
-## ---------------------------------------------------------
-#
-##include(cmake/Utils.cmake)
-#
-## ---[ Output directory
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#
-##include(cmake/Targets.cmake)
-#include(cmake/CodeInspection.cmake)
 
 # ---[ Subdirectories
 add_subdirectory(src)
