@@ -1,3 +1,4 @@
+#include "common/test_util.h"
 #include "storage/tuple_access_strategy_test_util.h"
 
 namespace terrier {

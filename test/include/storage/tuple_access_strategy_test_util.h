@@ -163,18 +163,5 @@ std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
   return *(result.first);
 }
 
-#define TO_INT(p) reinterpret_cast<uintptr_t>(p)
-// val address in [lower, upper) ?
-template<typename A, typename B, typename C>
-void CheckInBounds(A *val, B *lower, C *upper) {
-  EXPECT_GE(TO_INT(val), TO_INT(lower));
-  EXPECT_LT(TO_INT(val), TO_INT(upper));
-};
-
-template<typename A>
-A *IncrementByBytes(A *ptr, uint32_t bytes) {
-  return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
-}
-
 }
 }
