@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "storage/tuple_access_strategy.h"
-#include "common/common_defs.h"
+#include "common/typedefs.h"
 #include "common/test_util.h"
 
 namespace terrier {

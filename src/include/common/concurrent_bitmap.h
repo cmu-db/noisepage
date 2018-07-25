@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "common/common_defs.h"
+#include "common/typedefs.h"
 
 #ifndef BYTE_SIZE
 #define BYTE_SIZE 8u
