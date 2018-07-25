@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "common/common_defs.h"
+#include "common/concurrent_bitmap.h"
 
 #ifndef BYTE_SIZE
 #define BYTE_SIZE 8u
@@ -49,7 +50,8 @@ class RawBitmap {
    * @param size number of bits in the bitmap
    * @return ptr to new RawBitmap
    */
-  static RawBitmap *Allocate(uint32_t size) {
+  static RawBitmap *Allocate(uint32_t num_elements) {
+    auto size = BitmapSize(num_elements);
     auto *result = new uint8_t[size];
     PELOTON_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
@@ -97,9 +99,6 @@ class RawBitmap {
       Set(pos, true);
     return *this;
   }
-
-  // TODO(Tianyu): We will eventually need optimization for bulk checks and
-  // bulk flips. This thing is embarrassingly easy to vectorize.
 
  private:
   uint8_t bits_[0];
