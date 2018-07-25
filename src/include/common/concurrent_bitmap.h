@@ -87,21 +87,6 @@ class RawConcurrentBitmap {
   bool operator[](uint32_t pos) const { return Test(pos); }
 
   /**
-   * Sets the bit value at position to be val. This is not safe to call
-   * concurrently.
-   * @param pos position to test
-   * @param val value to set to
-   * @return self-reference for chaining
-   */
-  RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
-    if (val)
-      bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
-    else
-      bits_[pos / BYTE_SIZE] &= ONE_COLD_MASK(pos);
-    return *this;
-  }
-
-  /**
    * @brief Flip the bit only if current value is actually expected_val
    * The expected_val is needed to guard against the following situation:
    * Caller 1 flips from 0 to 1, Caller 2 flips from 0 to 1, without using
