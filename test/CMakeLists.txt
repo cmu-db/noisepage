@@ -9,4 +9,5 @@ add_library(test_shared SHARED ${TEST_UTIL_SRCS})
 target_link_libraries(test_shared ${TERRIER_LINK_LIBS})
 
 add_subdirectory(common)
+add_subdirectory(statistics)
 add_subdirectory(storage)
