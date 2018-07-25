@@ -87,12 +87,14 @@ struct MiniBlock {
    * @param layout the layout of this block
    * @return a pointer to the start of the column. (use as an array)
    */
-  byte *ColumnStart(const BlockLayout &layout) { return varlen_contents_ + BitmapSize(layout.num_slots_); }
+  byte *ColumnStart(const BlockLayout &layout) { return varlen_contents_ + common::BitmapSize(layout.num_slots_); }
 
   /**
    * @return The null-bitmap of this column
    */
-  RawConcurrentBitmap *NullBitmap() { return reinterpret_cast<RawConcurrentBitmap *>(varlen_contents_); }
+  common::RawConcurrentBitmap *NullBitmap() {
+    return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
+  }
 
   // Because where the other fields start will depend on the specific layout,
   // reinterpreting the rest as bytes is the best we can do without LLVM.
@@ -188,7 +190,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return pointer to the bitmap of the specified column on the given block
    */
-  RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) {
+  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) {
     return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
   }
 
@@ -247,7 +249,7 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot &slot) {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
-    RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
+    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
     for (uint32_t i = 0; i < layout_.num_slots_; i++) {
       if (bitmap->Flip(i, false)) {
         slot = TupleSlot(block, i);
