@@ -59,8 +59,9 @@ class RawConcurrentBitmap {
    * @return ptr to new RawConcurrentBitmap
    */
   static RawConcurrentBitmap *Allocate(uint32_t size) {
-    auto *result = new uint8_t[size];
-    PELOTON_MEMSET(result, 0, size);
+    uint32_t num_bytes = BitmapSize(size);
+    auto *result = new uint8_t[num_bytes];
+    PELOTON_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
