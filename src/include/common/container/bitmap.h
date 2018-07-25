@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include "common/common_defs.h"
-#include "common/concurrent_bitmap.h"
 
 #ifndef BYTE_SIZE
 #define BYTE_SIZE 8u
@@ -20,6 +19,7 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 
 namespace terrier {
 namespace common {
+constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
 /**
  * A RawBitmap is a bitmap that does not have the compile-time
