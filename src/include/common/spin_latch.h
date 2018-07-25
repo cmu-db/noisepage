@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atomic>
 #include <wmmintrin.h>
+#include <atomic>
 
 #include "common/macros.h"
 
@@ -10,10 +10,7 @@ namespace terrier {
 /**
  * Latch states composing of UNLOCKED and LOCKED
  */
-enum class LatchState : bool {
-  UNLOCKED,
-  LOCKED
-};
+enum class LatchState : bool { UNLOCKED, LOCKED };
 
 /**
  * A cheap and easy spin latch.
@@ -52,16 +49,13 @@ class SpinLatch {
   bool TryLock() {
     // exchange returns the value before locking, thus we need
     // to make sure the lock wasn't already in LOCKED state before
-    return state_.exchange(LatchState::LOCKED, std::memory_order_acquire) !=
-           LatchState::LOCKED;
+    return state_.exchange(LatchState::LOCKED, std::memory_order_acquire) != LatchState::LOCKED;
   }
 
   /**
    * @brief Unlocks the spin latch.
    */
-  void Unlock() {
-    state_.store(LatchState::UNLOCKED, std::memory_order_release);
-  }
+  void Unlock() { state_.store(LatchState::UNLOCKED, std::memory_order_release); }
 
  private:
   /** The exchange method on this atomic is compiled to a lockfree xchgl

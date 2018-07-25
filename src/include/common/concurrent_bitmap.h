@@ -1,33 +1,14 @@
 #pragma once
 #include <memory>
 #include "common/common_defs.h"
+#include "common/container/bitmap.h"
 
-#ifndef BYTE_SIZE
-#define BYTE_SIZE 8u
-#endif
-
-// Some platforms would have already defined the macro. But its presence is
-// not standard and thus not portable. Pretty sure this is always 8 bits.
-// If not, consider getting a new machine, and preferably not from another
-// dimension :)
-static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
-
-// Our way for dealing with concurrency assumes that the underlying
-// implementation uses compare and swap hardware instructions and that
-// std::atomic for literal types have the same underlying representation
-// as the plain type.
-//
 // This code should not compile if these assumptions are not true.
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");
 static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t), "unexpected std::atomic size for 64-bit ints");
 
-// n must be [0, 7], all 0 except for 1 on the nth bit
-#define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n)-1u))
-// n must be [0, 7], all 1 except for 0 on the nth bit
-#define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
-
 namespace terrier {
-constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
+namespace common {
 
 /**
  * A RawConcurrentBitmap is a bitmap that does not have the compile-time
@@ -88,21 +69,6 @@ class RawConcurrentBitmap {
   bool operator[](uint32_t pos) const { return Test(pos); }
 
   /**
-   * Sets the bit value at position to be val. This is not safe to call
-   * concurrently.
-   * @param pos position to test
-   * @param val value to set to
-   * @return self-reference for chaining
-   */
-  RawConcurrentBitmap &UnsafeSet(uint32_t pos, bool val) {
-    if (val)
-      bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos);
-    else
-      bits_[pos / BYTE_SIZE] &= ONE_COLD_MASK(pos);
-    return *this;
-  }
-
-  /**
    * @brief Flip the bit only if current value is actually expected_val
    * The expected_val is needed to guard against the following situation:
    * Caller 1 flips from 0 to 1, Caller 2 flips from 0 to 1, without using
@@ -134,4 +100,5 @@ class RawConcurrentBitmap {
 // exact layout. Changes include marking a function as virtual (or use the
 // FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
 static_assert(sizeof(RawConcurrentBitmap) == 0, "Unexpected RawConcurrentBitmap layout!");
+}  // namespace common
 }  // namespace terrier

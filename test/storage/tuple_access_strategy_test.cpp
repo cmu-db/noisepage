@@ -112,7 +112,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
                               upper_bound);
       lower_bound =
           testutil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col),
-                                     BitmapSize(layout.num_slots_));
+                                     common::BitmapSize(layout.num_slots_));
 
       testutil::CheckInBounds(tested.ColumnStart(raw_block_, col),
                               lower_bound,
