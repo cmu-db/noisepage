@@ -78,8 +78,7 @@ class RawBitmap {
   bool operator[](uint32_t pos) const { return Test(pos); }
 
   /**
-   * Sets the bit value at position to be val. This is not safe to call
-   * concurrently.
+   * Sets the bit value at position to be true.
    * @param pos position to test
    * @param val value to set to
    * @return self-reference for chaining
@@ -92,6 +91,11 @@ class RawBitmap {
     return *this;
   }
 
+  /**
+   * @brief Flip the bit
+   * @param pos the position of the bit to flip
+   * @return self-reference for chaining
+   */
   RawBitmap &Flip(uint32_t pos) {
     bits_[pos / BYTE_SIZE] ^= ONE_HOT_MASK(pos % BYTE_SIZE);
     return *this;
