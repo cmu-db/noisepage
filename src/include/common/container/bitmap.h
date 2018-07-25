@@ -93,10 +93,7 @@ class RawBitmap {
   }
 
   RawBitmap &Flip(uint32_t pos) {
-    if (Test(pos))
-      Set(pos, false);
-    else
-      Set(pos, true);
+    bits_[pos / BYTE_SIZE] ^= ONE_HOT_MASK(pos % BYTE_SIZE);
     return *this;
   }
 
