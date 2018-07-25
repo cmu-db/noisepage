@@ -1,78 +1,63 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// varlen_pool.h
-//
-// Identification: src/include/storage/varlen_pool.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_set>
+#include <common/common_defs.h>
 
 #include "common/spin_latch.h"
 
 namespace terrier {
 
 /**
- * @brief A varlen pool that can quickly allocate chunks of memory.
- * */
+ * A varlen pool that can quickly allocate chunks of memory.
+ */
 class VarlenPool {
  public:
-  VarlenPool() = default;
+  /**
+   * Destructs the varlen pool. Frees any memory it holds.
+   */
+  ~VarlenPool() {
+    pool_lock_.Lock();
+    for (auto location : locations_) {
+      delete[] location;
+    }
+    pool_lock_.Unlock();
+  }
+  /**
+   * Allocate bytes of memory from the varlen pool
+   * @param size The size of bytes to be allocated
+   */
+  void *Allocate(uint64_t size) {
+    auto location = new byte[size];
 
-  ~VarlenPool();
+    pool_lock_.Lock();
+    locations_.insert(location);
+    pool_lock_.Unlock();
 
-  void *Allocate(size_t size);
+    return location;
+  }
 
-  void Free(void *ptr);
+  /**
+   * Free some certain memory from the varlen pool
+   * @param ptr The address of memory to be freed
+   */
+  void Free(void *ptr) {
+    auto *cptr = (byte *)ptr;
+    pool_lock_.Lock();
+    auto result = locations_.erase(cptr);
+    pool_lock_.Unlock();
+    if (result) {
+      delete[] cptr;
+    }
+  }
 
  public:
   /** Location list */
-  std::unordered_set<char *> locations_;
+  std::unordered_set<byte *> locations_;
 
   /** Spin lock protecting location list */
   SpinLatch pool_lock_;
 };
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Implementation below
-///
-////////////////////////////////////////////////////////////////////////////////
-
-VarlenPool::~VarlenPool() {
-  pool_lock_.Lock();
-  for (auto location : locations_) {
-    delete[] location;
-  }
-  pool_lock_.Unlock();
-}
-
-void *VarlenPool::Allocate(size_t size) {
-  auto location = new char[size];
-
-  pool_lock_.Lock();
-  locations_.insert(location);
-  pool_lock_.Unlock();
-
-  return location;
-}
-
-void VarlenPool::Free(void *ptr) {
-  auto *cptr = (char *)ptr;
-  pool_lock_.Lock();
-  auto result = locations_.erase(cptr);
-  pool_lock_.Unlock();
-  if (result) {
-    delete[] cptr;
-  }
-}
 
 }  // namespace terrier
