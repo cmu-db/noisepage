@@ -17,12 +17,12 @@ void CheckReferenceBitmap(const common::RawBitmap &tested,
   }
 }
 
-TEST(BitmapTests, AlignedCorrectnessTest) {
+TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of times to randomly permute bitmap
   uint32_t num_iterations = 1000;
 
-  // Test a bitmap that is byte aligned for correctness
+  // Test a bitmap that whose size is byte multiple
   const uint32_t num_elements_aligned = 16;
   common::RawBitmap *aligned_bitmap = common::RawBitmap::Allocate(num_elements_aligned);
 
@@ -45,11 +45,12 @@ TEST(BitmapTests, AlignedCorrectnessTest) {
   common::RawBitmap::Deallocate(aligned_bitmap);
 }
 
-TEST(BitmapTests, UnalignedCorrectnessTest) {
+TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of times to randomly permute bitmap
   uint32_t num_iterations = 1000;
 
+  // Test a bitmap that whose size is not byte multiple
   const uint32_t num_elements_unaligned = 19;
   common::RawBitmap *unaligned_bitmap = common::RawBitmap::Allocate(num_elements_unaligned);
 
