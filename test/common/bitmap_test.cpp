@@ -1,5 +1,3 @@
-#include <algorithm>
-#include <atomic>
 #include <bitset>
 #include <thread>
 #include <unordered_set>
@@ -80,7 +78,6 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
 
   // Test a bitmap that whose size is byte multiple
   const uint32_t num_elements = 16;
-//  common::RawBitmap *aligned_bitmap = common::RawBitmap::Allocate(num_elements);
 
   // provision enough space for the bitmap elements, plus 3 extra because we're going to make it unaligned to wordsize
   auto size = BitmapSize(num_elements) + 3;
