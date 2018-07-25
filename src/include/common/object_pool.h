@@ -2,6 +2,8 @@
 
 #include "common/concurrent_queue.h"
 #include "common_defs.h"
+#include "statistics/block_store_pc.h"
+
 namespace terrier {
 template <typename T>
 struct ByteAllocator {
@@ -33,7 +35,7 @@ struct DefaultConstructorAllocator {
  *         handed out multiple times before that happens.
  */
 template <typename T, class Allocator = ByteAllocator<T>>
-class ObjectPool {
+class ObjectPool : public statistics::PerformanceCounters<ObjectPool<T, Allocator>> {
  public:
   /**
    * Initializes a new object pool with the supplied limit to the number of
@@ -67,7 +69,15 @@ class ObjectPool {
    */
   FAKED_IN_TEST T *Get() {
     T *result;
-    if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
+    if (!reuse_queue_.Dequeue(result)) {
+      result = alloc_.New();
+
+      // for statistics
+      this->IncrementCounter("block_counter");
+    } else {
+      // for statistics
+      this->DecrementCounter("reuse_queue_counter");
+    }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -80,10 +90,17 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   FAKED_IN_TEST void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > reuse_limit_)
+    if (reuse_queue_.UnsafeSize() > reuse_limit_) {
       alloc_.Delete(obj);
-    else
+
+      // for statistics
+      this->DecrementCounter("block_counter");
+    } else {
       reuse_queue_.Enqueue(std::move(obj));
+
+      // for statistics
+      this->IncrementCounter("reuse_queue_counter");
+    }
   }
 
  private:
