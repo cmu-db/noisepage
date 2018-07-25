@@ -1,9 +1,9 @@
 #pragma once
 
+#include <common/common_defs.h>
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_set>
-#include <common/common_defs.h>
 
 #include "common/spin_latch.h"
 
