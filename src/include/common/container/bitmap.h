@@ -41,8 +41,8 @@ class RawBitmap {
  public:
   // Always reinterpret_cast from raw memory.
   RawBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawBitmap);
   ~RawBitmap() = delete;
+  DISALLOW_COPY_AND_MOVE(RawBitmap)
 
   /**
    * Allocates a new RawBitmap of size. Up to the caller to call

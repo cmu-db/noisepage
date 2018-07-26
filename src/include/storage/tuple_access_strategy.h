@@ -12,48 +12,6 @@
 namespace terrier {
 namespace storage {
 
-// TODO(Tianyu): This code eventually should be compiled, which would eliminate
-// BlockLayout as a runtime object, instead baking them in as compiled code
-// (Think of this as writing the class with a BlockLayout template arg, except
-// template instantiation is done by LLVM at runtime and not at compile time.
-struct BlockLayout {
-  BlockLayout(uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
-      : num_cols_(num_attrs),
-        attr_sizes_(std::move(attr_sizes)),
-        tuple_size_(ComputeTupleSize()),
-        header_size_(HeaderSize()),
-        num_slots_(NumSlots()) {}
-
-  const uint16_t num_cols_;
-  const std::vector<uint8_t> attr_sizes_;
-  // Cached so we don't have to iterate through attr_sizes every time
-  const uint32_t tuple_size_;
-  const uint32_t header_size_;
-  const uint32_t num_slots_;
-
- private:
-  uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_cols_ == attr_sizes_.size());
-    uint32_t result = 0;
-    for (auto size : attr_sizes_) result += size;
-    return result;
-  }
-
-  uint32_t HeaderSize() {
-    return sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-           + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t);
-  }
-
-  uint32_t NumSlots() {
-    // Need to account for extra bitmap structures needed for each attribute.
-    // TODO(Tianyu): I am subtracting 1 from this number so we will always have
-    // space to pad each individual bitmap to full bytes (every attribute is
-    // at least a byte). Somebody can come and fix this later, because I don't
-    // feel like thinking about this now.
-    return 8 * (Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
-  }
-};
-
 /**
  * Initializes a new block to conform to the layout given. This will write the
  * headers and divide up the blocks into mini blocks(each mini block contains
@@ -163,9 +121,6 @@ struct PACKED Block {
    * @return reference to attr_sizes. Use as an array.
    */
   uint8_t *AttrSizes(const BlockLayout &layout) { return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1); }
-
-  uint32_t layout_version_;
-  uint32_t num_records_;
   // Because where the other fields start will depend on the specific layout,
   // reinterpreting the rest as bytes is the best we can do without LLVM.
   byte varlen_contents_[0];
@@ -191,7 +146,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) {
-    return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
+    return reinterpret_cast<Block *>(block->content_)->Column(col)->NullBitmap();
   }
 
   /**
@@ -200,7 +155,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, uint16_t col) {
-    return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_);
+    return reinterpret_cast<Block *>(block->content_)->Column(col)->ColumnStart(layout_);
   }
 
   /* Tuple-level access */

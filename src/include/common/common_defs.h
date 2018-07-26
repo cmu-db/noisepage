@@ -11,9 +11,6 @@
 #include "common/macros.h"
 
 namespace terrier {
-// TODO(Tianyu): Maybe?
-using byte = std::byte;
-
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -88,6 +85,11 @@ template <class Tag, typename T>
 StrongTypeAlias<Tag, T> ValueOf(T val) {
   return StrongTypeAlias<Tag, T>(val);
 };
+
+// TODO(Tianyu): Maybe?
+using byte = std::byte;
+
+STRONG_TYPEDEF(timestamp_t, uint64_t);
 
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.

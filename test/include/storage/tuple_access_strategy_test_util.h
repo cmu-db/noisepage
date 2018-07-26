@@ -79,7 +79,7 @@ struct FakeRawTuple {
       pos += layout.attr_sizes_[col];
     }
     FillWithRandomBytes(layout.tuple_size_, contents_, generator);
-  };
+  }
 
   ~FakeRawTuple() {
     delete[] contents_;

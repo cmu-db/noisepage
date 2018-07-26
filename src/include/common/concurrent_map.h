@@ -98,14 +98,12 @@ class ConcurrentMap {
    * Finds the value mapped to by the supplied key, or return false if no such
    * value exists.
    * @param key key to lookup
-   * @param value location to write the mapped value to
-   * @return whether the key exists in the map
+   * @return iterator to the element, or end
    */
-  bool Find(const K &key, V &value) {
+  Iterator Find(const K &key) {
     auto it = map_.find(key);
-    if (it == map_.end()) return false;
-    value = it->second;
-    return true;
+    if (it == map_.end()) return End();
+    return Iterator(it);
   }
 
   /**

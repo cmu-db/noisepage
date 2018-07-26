@@ -7,18 +7,57 @@
 
 namespace terrier {
 namespace storage {
-// TODO(Tianyu): We probably want to align this to some level
+// TODO(Tianyu): This code eventually should be compiled, which would eliminate
+// BlockLayout as a runtime object, instead baking them in as compiled code
+// (Think of this as writing the class with a BlockLayout template arg, except
+// template instantiation is done by LLVM at runtime and not at compile time.
+struct BlockLayout {
+  BlockLayout(uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
+      : num_cols_(num_attrs),
+        attr_sizes_(std::move(attr_sizes)),
+        tuple_size_(ComputeTupleSize()),
+        header_size_(HeaderSize()),
+        num_slots_(NumSlots()) {}
+
+  const uint16_t num_cols_;
+  const std::vector<uint8_t> attr_sizes_;
+  // Cached so we don't have to iterate through attr_sizes every time
+  const uint32_t tuple_size_;
+  const uint32_t header_size_;
+  const uint32_t num_slots_;
+
+ private:
+  uint32_t ComputeTupleSize() {
+    PELOTON_ASSERT(num_cols_ == attr_sizes_.size());
+    uint32_t result = 0;
+    for (auto size : attr_sizes_) result += size;
+    return result;
+  }
+
+  uint32_t HeaderSize() {
+    return sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
+           + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t);
+  }
+
+  uint32_t NumSlots() {
+    // Need to account for extra bitmap structures needed for each attribute.
+    // TODO(Tianyu): I am subtracting 1 from this number so we will always have
+    // space to pad each individual bitmap to full bytes (every attribute is
+    // at least a byte). Somebody can come and fix this later, because I don't
+    // feel like thinking about this now.
+    return 8 * (Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
+  }
+};
+
+STRONG_TYPEDEF(layout_version_t, uint32_t);
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
  */
-class RawBlock {
- public:
-  RawBlock() {
-    // Intentionally unused
-    (void)content_;
-  }
-  byte content_[Constants::BLOCK_SIZE];
+struct RawBlock {
+  layout_version_t layout_version_;
+  uint32_t num_records_;
+  byte content_[Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 } __attribute__((aligned(Constants::BLOCK_SIZE)));
@@ -82,6 +121,23 @@ class TupleSlot {
  * malloc.
  */
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
+
+class ProjectedRow {
+ public:
+  ProjectedRow() = delete;
+  DISALLOW_COPY_AND_MOVE(ProjectedRow)
+  ~ProjectedRow() = delete;
+
+ private:
+  const uint16_t num_cols_;
+  byte varlen_contents_[0];
+
+  //  const std::vector<uint16_t> cols_;
+  //  const std::vector<uint32_t> attr_offsets_;
+  // bitmap
+  // attrs
+};
+
 }  // namespace storage
 }  // namespace terrier
 
