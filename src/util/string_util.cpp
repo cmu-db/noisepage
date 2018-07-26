@@ -156,9 +156,9 @@ std::string StringUtil::Format(const std::string fmt_str, ...) {
   while (true) {
     // Wrap the plain char array into the unique_ptr
     formatted = std::make_unique<char[]>(static_cast<size_t>(n));
-    strcpy(&formatted[0], fmt_str.c_str());
+    strncpy(&formatted[0], fmt_str.c_str(), fmt_str.length());
     va_start(ap, fmt_str);
-    final_n = vsnprintf(&formatted[0],
+    final_n = vsnprintf(&formatted[0], // NOLINT TODO: Travis complains about clang-analyzer-valist.Uninitialized
                         static_cast<size_t>(n), fmt_str.c_str(), ap);
     va_end(ap);
     if (final_n < 0 || final_n >= n)

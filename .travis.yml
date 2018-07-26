@@ -1,67 +1,36 @@
-language: c++
-python: 3.6
+sudo: required
+language: cpp
 matrix:
-    fast_finish: true
-
-    include:
-        # Mac build
-        - os: osx
-          osx_image: xcode9.4
-          compiler: clang
-          env:
-              # NAME has no actual use, just to make the travis jobs overview more clear
-              - NAME="clang Debug/Tests/AddressSanitizer"
-              - PELOTON_BUILD_TYPE=Debug
-              - SANITIZER=Address
-              - COVERALLS=Off
-
-        # Linux builds for gcc 7
-        - os: linux
-          addons:
-            apt:
-              sources:
-                - ubuntu-toolchain-r-test
-              packages:
-                - g++-7
-          sudo: required
-          dist: trusty
-          compiler: gcc
-          addons:
-              apt:
-                  sources:
-                      - llvm-toolchain-precise-3.7
-                      - ubuntu-toolchain-r-test
-                  packages:
-                    - g++-5
-          env:
-              # NAME has no actual use, just to make the travis jobs overview more clear
-              - NAME="gcc5 Debug/Tests/AddressSanitizer/Coveralls"
-              - CXX=g++-5
-              - CC=gcc-5
-              - PELOTON_BUILD_TYPE=Debug
-              - SANITIZER=Address
-              - COVERALLS=On
-              - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
-
-before_install:
-    - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then eval "${MATRIX_EVAL}"; fi
-
-install:
-    # setup environment
-    - ./script/installation/packages.sh
-    - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then pip install --user cpp-coveralls; fi
-
-# build peloton (override this value to execute tests)
-script:
-    # create build directory
-    - mkdir build
-    - cd build
-    # run cmake. NOTE: the PATH is made explicit to avoid automatic selection of the preinstalled llvm version in the Travis trusty image
-    - PATH=/usr/lib/llvm-3.7/bin:/usr/bin:$PATH cmake -DCOVERALLS=$COVERALLS -DCMAKE_PREFIX_PATH=`llvm-config-3.7 --prefix` -DCMAKE_BUILD_TYPE=$PELOTON_BUILD_TYPE -DUSE_SANITIZER=$SANITIZER ..
-    # build
-    - make -j4
-    # run tests
-    - if [[ $TRAVIS_OS_NAME != 'osx' ]]; then make check -j4; fi
-    - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ASAN_OPTIONS=detect_container_overflow=0 make check -j4; fi
-    # upload coverage info
-    - if [[ $COVERALLS == 'On' ]]; then make coveralls; fi
+  fast_finish: true
+  include:
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env:
+        - NAME="Mac clang"
+      install:
+        - ./script/installation/packages.sh
+        - export PATH=/usr/local/opt/llvm/bin:$PATH
+      script:
+        - mkdir build
+        - cd build
+        - cmake ..
+        - make check-clang-tidy
+        - make check-format
+        - make
+        - make test
+    - os: linux
+      dist: trusty
+      env:
+        - NAME="Docker gcc"
+      install:
+        - docker build -t cmu-db/terrier .
+        - docker run -itd --name build cmu-db/terrier
+        - docker cp . build:/repo
+      script:
+        - docker exec build mkdir -p /repo/build
+        - docker exec build /bin/sh -c "cd /repo/build && cmake .."
+        - docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy"
+        - docker exec build /bin/sh -c "cd /repo/build && make check-format"
+        - docker exec build /bin/sh -c "cd /repo/build && make"
+        - docker exec build /bin/sh -c "cd /repo/build && make test"
