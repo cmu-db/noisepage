@@ -44,33 +44,31 @@ class PerformanceCounters {
   /** @brief increment counter by counter name
    *  @param name  Counter name to be incremented
    */
-  void IncrementCounter(UNUSED_ATTRIBUTE std::string name) {};
+  void IncrementCounter(UNUSED_ATTRIBUTE std::string name){};
 
   /** @brief decrement counter by counter name
    *  @param name  Counter name to be decremented
    */
-  void DecrementCounter(UNUSED_ATTRIBUTE std::string name) {};
+  void DecrementCounter(UNUSED_ATTRIBUTE std::string name){};
 
   /** @brief Add value to a counter
    *  @param name  Counter name to be added
    *  @param value  value to add to the counter
    */
-  void AddCounter(UNUSED_ATTRIBUTE std::string name,
-                  UNUSED_ATTRIBUTE int value) {};
+  void AddCounter(UNUSED_ATTRIBUTE std::string name, UNUSED_ATTRIBUTE int value){};
 
   /** @brief Subtract value from a counter
    *  @param name  Counter name to be subtracted
    *  @param value  value to subtract from the counter
    */
-  void SubCounter(UNUSED_ATTRIBUTE std::string name,
-                  UNUSED_ATTRIBUTE int value) {};
+  void SubCounter(UNUSED_ATTRIBUTE std::string name, UNUSED_ATTRIBUTE int value){};
 
   // Add functions below in case to collect more various statistics
   // in a specialized template class.
 
 
   /** @brief Print the statistics in the Json value. */
-  void PrintPerformanceCounters() {};
+  void PrintPerformanceCounters(){};
 };
 
 }  // namespace statistics

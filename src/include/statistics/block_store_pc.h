@@ -18,13 +18,15 @@
 
 namespace terrier {
 
-template <typename T> struct DefaultConstructorAllocator;
-template <typename T, class Allocator> class ObjectPool;
+template <typename T>
+struct DefaultConstructorAllocator;
+template <typename T, class Allocator>
+class ObjectPool;
 
 namespace storage {
 class RawBlock;
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
-}
+} // namespace storage
 
 namespace statistics {
 
@@ -39,17 +41,17 @@ namespace statistics {
 template <>
 class PerformanceCounters<storage::BlockStore> {
  public:
-  PerformanceCounters() {};
+  PerformanceCounters(){};
 
   /** @brief increment counter by counter name
    *  @param name  Counter name to be incremented
    */
-  void IncrementCounter(std::string name) { counters_[name]++;};
+  void IncrementCounter(std::string name) { counters_[name]++; };
 
   /** @brief decrement counter by counter name
    *  @param name  Counter name to be decremented
    */
-  void DecrementCounter(std::string name) { counters_[name]--;};
+  void DecrementCounter(std::string name) { counters_[name]--; };
 
   /** @brief Print the statistics in the Json value. */
   void PrintPerformanceCounters();
