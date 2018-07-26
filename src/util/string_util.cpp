@@ -103,7 +103,7 @@ std::string StringUtil::Prefix(const std::string &str,
   return (os.str());
 }
 
-std::string StringUtil::FormatSize(long bytes) {
+std::string StringUtil::FormatSize(size_t bytes) {
   size_t BASE = 1024;
   size_t KB = BASE;
   size_t MB = KB * BASE;
