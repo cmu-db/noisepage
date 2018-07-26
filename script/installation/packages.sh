@@ -107,18 +107,19 @@ elif [ "$DISTRO" = "DARWIN" ]; then
       echo "Installing homebrew..."
       ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
-    brew install git
-    brew install cmake
-    brew install gflags
     brew install boost
+    brew install cmake
+    brew install curl
+    brew install git
+    brew install gflags
     brew install jemalloc
     brew install jsoncpp
     brew install lcov
     brew install llvm
-    brew install curl
-    brew install wget
     brew install python
     brew upgrade python
+    brew install tbb
+    brew install wget
 
 ## ------------------------------------------------
 ## UNKNOWN
