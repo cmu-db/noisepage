@@ -104,10 +104,10 @@ std::string StringUtil::Prefix(const std::string &str,
 }
 
 std::string StringUtil::FormatSize(long bytes) {
-  double BASE = 1024;
-  double KB = BASE;
-  double MB = KB * BASE;
-  double GB = MB * BASE;
+  size_t BASE = 1024;
+  size_t KB = BASE;
+  size_t MB = KB * BASE;
+  size_t GB = MB * BASE;
 
   std::ostringstream os;
 
