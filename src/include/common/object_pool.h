@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/concurrent_queue.h"
-#include "typedefs.h"
 #include "statistics/block_store_pc.h"
+#include "typedefs.h"
 
 namespace terrier {
 template <typename T>
