@@ -26,12 +26,12 @@ include(CheckCXXCompilerFlag)
 # Common flags set below with warning level
 set(CXX_COMMON_FLAGS "")
 
-# Build warning level (CHECKIN, EVERYTHING, etc.)
-
-# if no build warning level is specified, default to development warning level
+# if no build warning level is specified, default to checkin warning level
 if (NOT BUILD_WARNING_LEVEL)
-  set(BUILD_WARNING_LEVEL Production)
+  set(BUILD_WARNING_LEVEL checkin)
 endif(NOT BUILD_WARNING_LEVEL)
+
+message("Configured for ${BUILD_WARNING_LEVEL} warning level (set with cmake -DBUILD_WARNING_LEVEL={checkin,production,everything})")
 
 string(TOUPPER ${BUILD_WARNING_LEVEL} UPPERCASE_BUILD_WARNING_LEVEL)
 
@@ -40,7 +40,7 @@ set(CXX_ONLY_FLAGS "${CXX_ONLY_FLAGS} -std=c++17 -fPIC -mcx16 -march=native")
 if ("${UPPERCASE_BUILD_WARNING_LEVEL}" STREQUAL "CHECKIN")
   # Pre-checkin builds
   if ("${COMPILER_FAMILY}" STREQUAL "clang")
-    set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Weverything -Wno-c++98-compat \
+    set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wall -Wno-c++98-compat \
 -Wno-c++98-compat-pedantic -Wno-deprecated -Wno-weak-vtables -Wno-padded \
 -Wno-comma -Wno-unused-parameter -Wno-unused-template -Wno-undef \
 -Wno-shadow -Wno-switch-enum -Wno-exit-time-destructors \
