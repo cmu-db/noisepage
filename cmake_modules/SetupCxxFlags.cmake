@@ -41,39 +41,10 @@ if ("${UPPERCASE_BUILD_WARNING_LEVEL}" STREQUAL "CHECKIN")
   # Pre-checkin builds
   if ("${COMPILER_FAMILY}" STREQUAL "clang")
     set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wall -Wno-c++98-compat \
--Wno-c++98-compat-pedantic -Wno-deprecated -Wno-weak-vtables -Wno-padded \
--Wno-comma -Wno-unused-parameter -Wno-unused-template -Wno-undef \
--Wno-shadow -Wno-switch-enum -Wno-exit-time-destructors \
--Wno-global-constructors -Wno-weak-template-vtables -Wno-undefined-reinterpret-cast \
--Wno-implicit-fallthrough -Wno-unreachable-code-return \
--Wno-float-equal -Wno-missing-prototypes \
--Wno-old-style-cast -Wno-covered-switch-default \
--Wno-cast-align -Wno-vla-extension -Wno-shift-sign-overflow \
--Wno-used-but-marked-unused -Wno-missing-variable-declarations \
--Wno-gnu-zero-variadic-macro-arguments -Wconversion -Wno-sign-conversion \
--Wno-disabled-macro-expansion")
-
-    # Version numbers where warnings are introduced
-    if ("${COMPILER_VERSION}" VERSION_GREATER "3.3")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-gnu-folding-constant")
-    endif()
-    if ("${COMPILER_VERSION}" VERSION_GREATER "3.6")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-reserved-id-macro")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-range-loop-analysis")
-    endif()
-    if ("${COMPILER_VERSION}" VERSION_GREATER "3.7")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-double-promotion")
-    endif()
-    if ("${COMPILER_VERSION}" VERSION_GREATER "3.8")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-undefined-func-template")
-    endif()
-
-    if ("${COMPILER_VERSION}" VERSION_GREATER "4.0")
-      set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-zero-as-null-pointer-constant")
-    endif()
+-Wno-c++98-compat-pedantic")
 
     # Treat all compiler warnings as errors
-    set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-unknown-warning-option -Werror")
+    set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Werror")
   elseif ("${COMPILER_FAMILY}" STREQUAL "gcc")
     set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wall \
 -Wconversion -Wno-sign-conversion")

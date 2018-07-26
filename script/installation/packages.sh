@@ -84,9 +84,6 @@ if [ "$DISTRO" = "UBUNTU" ]; then
         valgrind \
         lcov \
         libgflags-dev \
-        libboost-dev \
-        libboost-thread-dev \
-        libboost-filesystem-dev \
         libjemalloc-dev \
         libjsoncpp-dev \
         libtbb-dev \
@@ -107,7 +104,6 @@ elif [ "$DISTRO" = "DARWIN" ]; then
       echo "Installing homebrew..."
       ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
-    brew install boost
     brew install cmake
     brew install curl
     brew install git
