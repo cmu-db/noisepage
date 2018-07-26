@@ -39,7 +39,7 @@ namespace statistics {
 template <typename T>
 class PerformanceCounters {
  public:
-  PerformanceCounters() {};
+  PerformanceCounters(){};
 
   /** @brief increment counter by counter name
    *  @param name  Counter name to be incremented
@@ -65,7 +65,6 @@ class PerformanceCounters {
 
   // Add functions below in case to collect more various statistics
   // in a specialized template class.
-
 
   /** @brief Print the statistics in the Json value. */
   void PrintPerformanceCounters(){};

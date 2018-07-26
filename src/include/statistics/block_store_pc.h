@@ -26,7 +26,7 @@ class ObjectPool;
 namespace storage {
 class RawBlock;
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
-} // namespace storage
+}  // namespace storage
 
 namespace statistics {
 
@@ -63,7 +63,6 @@ class PerformanceCounters<storage::BlockStore> {
   /** Counter map as statistics */
   tbb::concurrent_unordered_map<std::string, int> counters_;
 };
-
 
 }  // namespace statistics
 }  // namespace terrier
