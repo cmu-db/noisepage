@@ -68,4 +68,3 @@ class PerformanceCounters<storage::BlockStore> {
 }  // namespace terrier
 
 #endif
-
