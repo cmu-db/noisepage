@@ -105,7 +105,7 @@ void CheckNotInBounds(A *val, B *lower, C *upper) {
  * @return  pointer that is the specified amount of bytes ahead of the given
  */
 template<typename A>
-A *IncrementByBytes(A *ptr, uint32_t bytes) {
+A *IncrementByBytes(A *ptr, uint64_t bytes) {
   return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
 }
 }

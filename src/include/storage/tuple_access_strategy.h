@@ -39,9 +39,10 @@ struct BlockLayout {
     return result;
   }
 
+  // header size is smaller than block size which is 1MB, so this cast is safe
   uint32_t HeaderSize() {
-    return sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-           + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t);
+    return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
+                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
