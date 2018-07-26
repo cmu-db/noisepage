@@ -85,9 +85,9 @@ class RawBitmap {
    */
   RawBitmap &Set(uint32_t pos, bool val) {
     if (val)
-      bits_[pos / BYTE_SIZE] |= ONE_HOT_MASK(pos % BYTE_SIZE);
+      bits_[pos / BYTE_SIZE] |= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     else
-      bits_[pos / BYTE_SIZE] &= ONE_COLD_MASK(pos % BYTE_SIZE);
+      bits_[pos / BYTE_SIZE] &= static_cast<uint8_t>(ONE_COLD_MASK(pos % BYTE_SIZE));
     return *this;
   }
 
@@ -97,7 +97,7 @@ class RawBitmap {
    * @return self-reference for chaining
    */
   RawBitmap &Flip(uint32_t pos) {
-    bits_[pos / BYTE_SIZE] ^= ONE_HOT_MASK(pos % BYTE_SIZE);
+    bits_[pos / BYTE_SIZE] ^= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     return *this;
   }
 
