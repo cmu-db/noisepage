@@ -70,7 +70,7 @@ void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
 /**
- * Check if val in [lower, upper)
+ * Check if memory address represented by val in [lower, upper)
  * @tparam A type of ptr
  * @tparam B type of ptr
  * @tparam C type of ptr
@@ -85,7 +85,7 @@ void CheckInBounds(A *val, B *lower, C *upper) {
 };
 
 /**
- * Check if val not in [lower, upper)
+ * Check if memory address represented by val not in [lower, upper)
  * @tparam A type of ptr
  * @tparam B type of ptr
  * @tparam C type of ptr
