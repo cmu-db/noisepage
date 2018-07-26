@@ -1200,10 +1200,10 @@ base::type::string_t DateTime::formatTime(unsigned long long time, base::Timesta
   base::type::EnumType start = static_cast<base::type::EnumType>(timestampUnit);
   const base::type::char_t* unit = base::consts::kTimeFormats[start].unit;
   for (base::type::EnumType i = start; i < base::consts::kTimeFormatsCount - 1; ++i) {
-    if (time <= base::consts::kTimeFormats[i].value) {
+    if (static_cast<double>(time) <= base::consts::kTimeFormats[i].value) {
       break;
     }
-    if (base::consts::kTimeFormats[i].value == 1000.0f && time / 1000.0f < 1.9f) {
+    if (base::consts::kTimeFormats[i].value == 1000.0f && static_cast<double>(time) / 1000.0f < 1.9f) {
       break;
     }
     time /= static_cast<decltype(time)>(base::consts::kTimeFormats[i].value);
