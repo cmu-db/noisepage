@@ -12,121 +12,73 @@
 ## g++ manually.
 ##
 ## Supported environments:
-##  * Ubuntu (14.04, 18.04)
-##  * macOS
+##  * Ubuntu 18.04
+##  * MacOS
 ## =================================================================
 
-set -o errexit
+main() {
+  set -o errexit
 
-# Determine OS platform
-UNAME=$(uname | tr "[:upper:]" "[:lower:]")
-# If Linux, try to determine specific distribution
-if [ "$UNAME" == "linux" ]; then
-    # If available, use LSB to identify distribution
-    if [ -f /etc/lsb-release -o -d /etc/lsb-release.d ]; then
-        export DISTRO=$(lsb_release -is)
-        DISTRO_VER=$(lsb_release -rs)
-    # Otherwise, use release info file
-    else
-        export DISTRO=$(ls -d /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -v "lsb" | cut -d'/' -f3 | cut -d'-' -f1 | cut -d'_' -f1)
-        DISTRO_VER=$(cat /etc/*-release | grep "VERSION_ID" | cut -d'=' -f2 | tr -d '"')
-    fi
-fi
-# For everything else (or if above failed), just use generic identifier
-[ "$DISTRO" == "" ] && export DISTRO=$UNAME
-unset UNAME
-DISTRO=$(echo $DISTRO | tr "[:lower:]" "[:upper:]")
+  UNAME=$(uname | tr "[:lower:]" "[:upper:]" )
 
-## ------------------------------------------------
-## UBUNTU
-## ------------------------------------------------
-if [ "$DISTRO" = "UBUNTU" ]; then
-    MAJOR_VER=$(echo "$DISTRO_VER" | cut -d '.' -f 1)
-    # Fix for LLVM-3.7 on Ubuntu 14 + 17
-    if [ "$MAJOR_VER" == "14" -o "$MAJOR_VER" == "18" ]; then
-        if [ "$MAJOR_VER" == "14" ]; then
-            LLVM_PKG_URL="http://llvm.org/apt/trusty/"
-            LLVM_PKG_TARGET="llvm-toolchain-trusty-6.0 main"
-            if ! grep -q "deb $LLVM_PKG_URL $LLVM_PKG_TARGET" /etc/apt/sources.list; then
-                echo -e "\n# Added by Terrier 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET\ndeb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main" | sudo tee -a /etc/apt/sources.list > /dev/null
-            fi
-        fi
-        if [ "$MAJOR_VER" == "18" ]; then
-            LLVM_PKG_URL="http://apt.llvm.org/bionic/"
-            LLVM_PKG_TARGET="llvm-toolchain-bionic-6.0 main"
-            if ! grep -q "deb $LLVM_PKG_URL $LLVM_PKG_TARGET" /etc/apt/sources.list; then
-                echo -e "\n# Added by Terrier 'packages.sh' script on $(date)\ndeb $LLVM_PKG_URL $LLVM_PKG_TARGET" | sudo tee -a /etc/apt/sources.list > /dev/null
-            fi
-        fi
+  case $UNAME in
+    DARWIN) install_mac ;;
 
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
-    fi
+    LINUX)
+      version=$(cat /etc/os-release | grep VERSION_ID | cut -d '"' -f 2)
+      case $version in
+        18.04) install_linux ;;
+        *) give_up ;;
+      esac
+      ;;
 
-    sudo apt-get update
-    FORCE_Y=""
-    PKG_CMAKE="cmake"
-    PKG_LLVM="llvm"
-    PKG_CLANG="clang"
+    *) give_up ;;
+  esac
+}
 
-    # Fix for cmake name change on Ubuntu 14.x --force-yes deprecation
-    if [ "$MAJOR_VER" == "14" ]; then
-        FORCE_Y="--force-yes"
-        PKG_CMAKE="cmake3"
-        PKG_LLVM="llvm-6.0"
-        PKG_CLANG="clang-6.0"
-    fi
-    sudo apt-get -q $FORCE_Y --ignore-missing -y install \
-        $PKG_CMAKE \
-        $PKG_LLVM \
-        $PKG_CLANG \
-        git \
-        g++ \
-        valgrind \
-        lcov \
-        libgflags-dev \
-        libjemalloc-dev \
-        libjsoncpp-dev \
-        libtbb-dev \
-        python3-pip \
-        curl \
-        autoconf \
-        automake \
-        libtool \
-        make \
-        zlib1g-dev
+give_up() {
+  echo "Unsupported distribution '$UNAME'"
+  echo "Please contact our support team for additional help."
+  echo "Be sure to include the contents of this message."
+  echo "Platform: $(uname -a)"
+  echo
+  echo "https://github.com/cmu-db/terrier/issues"
+  echo
+  exit 1
+}
 
-## ------------------------------------------------
-## DARWIN (macOS)
-## ------------------------------------------------
-elif [ "$DISTRO" = "DARWIN" ]; then
-    set +o errexit
-    if test ! $(which brew); then
-      echo "Installing homebrew..."
-      ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    fi
-    brew install cmake
-    brew install curl
-    brew install git
-    brew install gflags
-    brew install jemalloc
-    brew install jsoncpp
-    brew install lcov
-    brew install llvm
-    brew install python
-    brew upgrade python
-    brew install tbb
-    brew install wget
+install_mac() {
+  # Install Homebrew.
+  if test ! $(which brew); then
+    echo "Installing Homebrew (https://brew.sh/)"
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  fi
+  # Update Homebrew.
+  brew update
+  # Install packages.
+  brew ls --versions cmake || brew install cmake
+  brew ls --versions git || brew install git
+  brew ls --versions jemalloc || brew install jemalloc
+  brew ls --versions jsoncpp || brew install jsoncpp
+  (brew ls --versions llvm | grep 6) || brew install llvm@6
+  brew ls --versions tbb || brew install tbb
+}
 
-## ------------------------------------------------
-## UNKNOWN
-## ------------------------------------------------
-else
-    echo "Unsupported distribution '$DISTRO'"
-    echo "Please contact our support team for additional help." \
-         "Be sure to include the contents of this message"
-    echo "Platform: $(uname -a)"
-    echo
-    echo "https://github.com/cmu-db/peloton/issues"
-    echo
-    exit 1
-fi
+install_linux() {
+  # Update apt-get.
+  apt-get -y update
+  # Install packages.
+  apt-get -y install \
+      clang-format-6.0 \
+      clang-tidy-6.0 \
+      cmake \
+      git \
+      g++-7 \
+      libjemalloc-dev \
+      libjsoncpp-dev \
+      libtbb-dev \
+      libz-dev \
+      llvm-6.0
+}
+
+main "$@"
