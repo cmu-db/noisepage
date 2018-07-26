@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_set>
-#include <common/common_defs.h>
-
+#include "common/typedefs.h"
 #include "common/spin_latch.h"
 
 namespace terrier {

@@ -18,10 +18,11 @@ struct TupleAccessStrategyTests : public ::testing::Test {
 // Tests that we can set things to null and the access strategy returns
 // nullptr for null fields.
 TEST_F(TupleAccessStrategyTests, NullTest) {
-  const int32_t repeat = 100;
+  const uint32_t repeat = 100;
+  const uint32_t max_cols = 1000;
   std::default_random_engine generator;
   for (int32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = testutil::RandomLayout(generator);
+    storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
@@ -61,6 +62,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
 // get them out.
 TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
   const uint32_t repeat = 100;
+  const uint32_t max_inserts = 1000;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
@@ -68,8 +70,9 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
     storage::InitializeRawBlock(raw_block_, layout, 0);
     storage::TupleAccessStrategy tested(layout);
 
-    const uint32_t num_inserts =
+    uint32_t num_inserts =
         std::uniform_int_distribution<uint32_t>(1, layout.num_slots_)(generator);
+    num_inserts = std::min(num_inserts, max_inserts);
 
     std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple> tuples;
 
@@ -93,9 +96,10 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
 // go out of page boundary. (In other words, memory safe.)
 TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
   const uint32_t repeat = 500;
+  const uint32_t max_cols = 1000;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = testutil::RandomLayout(generator);
+    storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
     storage::InitializeRawBlock(raw_block_, layout, 0);
@@ -113,7 +117,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
                               upper_bound);
       lower_bound =
           testutil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col),
-                                     BitmapSize(layout.num_slots_));
+                                     common::BitmapSize(layout.num_slots_));
 
       testutil::CheckInBounds(tested.ColumnStart(raw_block_, col),
                               lower_bound,
@@ -138,6 +142,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
 // and verifies that all tuples are written into unique slots correctly.
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
   const uint32_t repeat = 100;
+  const uint32_t max_work = 8000;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
@@ -154,7 +159,8 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
-      for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++)
+      uint32_t work = std::min(layout.num_slots_, max_work);
+      for (uint32_t j = 0; j < work / num_threads; j++)
         testutil::TryInsertFakeTuple(layout,
                                      tested,
                                      raw_block_,
@@ -182,6 +188,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
 // responsibility of concurrency control and GC, not storage.
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
   const uint32_t repeat = 100;
+  const uint32_t max_work = 8000;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
@@ -216,10 +223,11 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
         slots[id].erase(elem);
       };
 
+      uint32_t work = std::min(max_work, layout.num_slots_);
       testutil::InvokeWorkloadWithDistribution({insert, remove},
                                                {0.7, 0.3},
                                                generator,
-                                               layout.num_slots_ / num_threads);
+                                               work / num_threads);
     };
     testutil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)

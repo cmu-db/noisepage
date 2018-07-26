@@ -2,7 +2,7 @@
 
 #include <tbb/concurrent_unordered_map.h>
 #include <functional>
-#include "common/common_defs.h"
+#include "common/typedefs.h"
 #include "common/macros.h"
 
 namespace terrier {

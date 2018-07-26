@@ -1,6 +1,7 @@
 #pragma once
 #include <sstream>
-#include "common/common_defs.h"
+#include "common/constants.h"
+#include "common/typedefs.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/printable.h"

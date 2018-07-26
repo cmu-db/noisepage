@@ -7,7 +7,7 @@ namespace {
 uint32_t ColumnSize(const BlockLayout &layout,
                     uint16_t col_offset) {
   return layout.attr_sizes_[col_offset] * layout.num_slots_
-      + BitmapSize(layout.num_slots_);
+      + common::BitmapSize(layout.num_slots_);
 }
 }
 
