@@ -1,10 +1,10 @@
 #pragma once
 #include <sstream>
 #include "common/constants.h"
-#include "common/typedefs.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/printable.h"
+#include "common/typedefs.h"
 
 namespace terrier {
 namespace storage {
