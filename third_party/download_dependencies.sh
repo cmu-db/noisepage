@@ -38,9 +38,6 @@ source $SOURCE_DIR/versions.txt
 
 mkdir -p $_DST
 
-BOOST_UNDERSCORE_VERSION=`echo $BOOST_VERSION | sed 's/\./_/g'`
-wget -c -O $_DST/boost.tar.gz https://dl.bintray.com/boostorg/release/$BOOST_VERSION/source/boost_$BOOST_UNDERSCORE_VERSION.tar.gz
-
 wget -c -O $_DST/gtest.tar.gz https://github.com/google/googletest/archive/release-$GTEST_VERSION.tar.gz
 
 wget -c -O $_DST/gflags.tar.gz https://github.com/gflags/gflags/archive/v$GFLAGS_VERSION.tar.gz
@@ -49,7 +46,6 @@ wget -c -O $_DST/gbenchmark.tar.gz https://github.com/google/benchmark/archive/v
 
 echo "
 # Environment variables for offline Terrier build
-export TERRIER_BOOST_URL=$_DST/boost.tar.gz
 export TERRIER_GTEST_URL=$_DST/gtest.tar.gz
 export TERRIER_GFLAGS_URL=$_DST/gflags.tar.gz
 export TERRIER_GBENCHMARK_URL=$_DST/gbenchmark.tar.gz

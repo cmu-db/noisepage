@@ -89,7 +89,7 @@ class StringUtil {
    * kilobyte, megabyte, gigabyte representation.
    * http://ubuntuforums.org/showpost.php?p=10215516&postcount=5
    */
-  static std::string FormatSize(long bytes);
+  static std::string FormatSize(size_t bytes);
 
   /**
    * Wrap the given string with the control characters

@@ -26,12 +26,6 @@ set(THIRDPARTY_DIR "${CMAKE_SOURCE_DIR}/third_party")
 if (NOT "$ENV{TERRIER_BUILD_TOOLCHAIN}" STREQUAL "")
   set(JEMALLOC_HOME "$ENV{TERRIER_BUILD_TOOLCHAIN}")
   set(GFLAGS_HOME "$ENV{TERRIER_BUILD_TOOLCHAIN}")
-
-  if (NOT DEFINED ENV{BOOST_ROOT})
-    # Since we have to set this in the environment, we check whether
-    # $BOOST_ROOT is defined inside here
-    set(ENV{BOOST_ROOT} "$ENV{TERRIER_BUILD_TOOLCHAIN}")
-  endif()
 endif()
 
 if (DEFINED ENV{GFLAGS_HOME})
@@ -96,10 +90,8 @@ if (NOT TERRIER_VERBOSE_THIRDPARTY_BUILD)
     LOG_BUILD 1
     LOG_INSTALL 1
     LOG_DOWNLOAD 1)
-  set(Boost_DEBUG FALSE)
 else()
   set(EP_LOG_OPTIONS)
-  set(Boost_DEBUG TRUE)
 endif()
 
 # Set -fPIC on all external projects
@@ -116,30 +108,6 @@ endif()
 
 find_library(PTHREAD_LIBRARY pthread)
 message(STATUS "Found pthread: ${PTHREAD_LIBRARY}")
-
-# ----------------------------------------------------------------------
-# Add Boost dependencies (code adapted from Apache Kudu (incubating))
-
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_ADDITIONAL_VERSIONS
-  "1.68.0" "1.68"
-  "1.67.0" "1.67"
-  "1.66.0" "1.66"
-  "1.65.0" "1.65"
-  "1.64.0" "1.64"
-  "1.63.0" "1.63"
-  "1.62.0" "1.61"
-  "1.61.0" "1.62"
-  "1.60.0" "1.60")
-
-# Find shared Boost libraries.
-set(Boost_USE_STATIC_LIBS OFF)
-find_package(Boost REQUIRED)
-
-message(STATUS "Boost include dir: " ${Boost_INCLUDE_DIRS})
-message(STATUS "Boost libraries: " ${Boost_LIBRARIES})
-
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 if(TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
   add_custom_target(unittest ctest -L unittest)

@@ -2,9 +2,9 @@
 //
 //                         Terrier
 //
-// block_store_stats.cpp
+// block_store_pc.cpp
 //
-// Identification: src/statistics/block_store_stats.cpp
+// Identification: src/statistics/block_store_pc.cpp
 //
 // Copyright (c) 2015-18, Carnegie Mellon University Database Group
 //

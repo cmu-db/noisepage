@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
-#include "common/common_defs.h"
 #include "common/container/bitmap.h"
+#include "common/typedefs.h"
 
 // This code should not compile if these assumptions are not true.
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");
