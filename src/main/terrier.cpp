@@ -1,5 +1,5 @@
 #include <iostream>
-#include "common/common_defs.h"
+#include "common/typedefs.h"
 #include "common/logger.h"
 int main() {
   terrier::Logger::InitializeLogger();
