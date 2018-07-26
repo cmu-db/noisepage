@@ -145,7 +145,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return pointer to the bitmap of the specified column on the given block
    */
-  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) {
+  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) const {
     return reinterpret_cast<Block *>(block->content_)->Column(col)->NullBitmap();
   }
 
@@ -154,7 +154,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return pointer to the start of the column
    */
-  byte *ColumnStart(RawBlock *block, uint16_t col) {
+  byte *ColumnStart(RawBlock *block, uint16_t col) const {
     return reinterpret_cast<Block *>(block->content_)->Column(col)->ColumnStart(layout_);
   }
 
@@ -164,7 +164,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
-  byte *AccessWithNullCheck(TupleSlot slot, uint16_t col) {
+  byte *AccessWithNullCheck(TupleSlot slot, uint16_t col) const {
     if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset())) return nullptr;
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
   }
@@ -176,7 +176,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute.
    */
-  byte *AccessForceNotNull(TupleSlot slot, uint16_t col) {
+  byte *AccessForceNotNull(TupleSlot slot, uint16_t col) const {
     // Noop if not null
     ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
@@ -188,7 +188,7 @@ class TupleAccessStrategy {
    * @param slot tuple slot to access
    * @param col offset representing the column
    */
-  void SetNull(TupleSlot slot, uint16_t col) {
+  void SetNull(TupleSlot slot, uint16_t col) const {
     // Noop if already null
     ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true);
   }
@@ -201,7 +201,7 @@ class TupleAccessStrategy {
    * @param offset result
    * @return true if the allocation is successful, false if no space can be found.
    */
-  bool Allocate(RawBlock *block, TupleSlot &slot) {
+  bool Allocate(RawBlock *block, TupleSlot &slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
@@ -212,6 +212,10 @@ class TupleAccessStrategy {
       }
     }
     return false;
+  }
+
+  const BlockLayout &GetBlockLayout() const {
+    return layout_;
   }
 
  private:

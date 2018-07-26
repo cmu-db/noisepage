@@ -128,6 +128,26 @@ class ProjectedRow {
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
 
+  uint16_t NumColumns() {
+    return num_cols_;
+  }
+
+  uint16_t *ColumnOffsets() {
+    return nullptr;
+  }
+
+  common::RawBitmap &NullBitmap() {
+    return *reinterpret_cast<common::RawBitmap *>(varlen_contents_);
+  }
+
+  byte *AttrForceNotNull(uint16_t offset) {
+    return nullptr;
+  }
+
+  byte *AttrWithNullCheck(uint16_t offset) {
+
+  }
+
  private:
   const uint16_t num_cols_;
   byte varlen_contents_[0];

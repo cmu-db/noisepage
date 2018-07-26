@@ -24,39 +24,9 @@ storage::BlockLayout RandomLayout(Random &generator,
   return {num_attrs, attr_sizes};
 }
 
-// Read specified number of bytes from position and interpret the bytes as
-// an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-uint64_t ReadByteValue(uint8_t attr_size, byte *pos) {
-  switch (attr_size) {
-    case 1: return *reinterpret_cast<uint8_t *>(pos);
-    case 2: return *reinterpret_cast<uint16_t *>(pos);
-    case 4: return *reinterpret_cast<uint32_t *>(pos);
-    case 8: return *reinterpret_cast<uint64_t *>( pos);
-    default:
-      // Invalid attr size
-      PELOTON_ASSERT(false);
-      return 0;
-  }
-}
 
-// Write specified number of bytes to position and interpret the bytes as
-// an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-// Truncated if neccessary
-void WriteByteValue(uint8_t attr_size, uint64_t val, byte *pos) {
-  switch (attr_size) {
-    case 1:*reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
-      return;
-    case 2:*reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
-      return;
-    case 4:*reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
-      return;
-    case 8:*reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
-      return;
-    default:
-      // Invalid attr size
-      PELOTON_ASSERT(false);
-  }
-}
+
+
 
 // Fill the given location with the specified amount of random bytes, using the
 // given generator as a source of randomness.
