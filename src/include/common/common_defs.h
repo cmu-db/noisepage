@@ -91,6 +91,11 @@ using byte = std::byte;
 
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
+// TODO(tianyu): Implement
+bool Uncommitted(timestamp_t timestamp) {
+  return false;
+}
+
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
 // template <class Tag>

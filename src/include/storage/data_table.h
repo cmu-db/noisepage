@@ -64,12 +64,13 @@ class DataTable {
     // These operations don't need to atomic, because so long as we set the version ptr before
     // updating in place, the reader will know if a conflict can potentially happen, and chase the
     // version chain before returning anyway,
-    for (uint16_t i = 0; i < buffer.NumColumns(); i++) CopyAttr(accessor, slot, buffer, i);
+    for (uint16_t i = 0; i < buffer.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, buffer, i);
     // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
     // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
     // enough to reorder this operation in or in front of the for loop.
     DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
     if (version_ptr == nullptr) return;
+
 
     // Creates a mapping from col offset to project list index. This allows us to efficiently
     // access columns since deltas can concern a different set of columns when chasing the
@@ -88,7 +89,19 @@ class DataTable {
 
   TupleSlot Insert(TransactionContext *txn, const ProjectedRow &redo) { return TupleSlot(); }
 
-  void Update(TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo, const DeltaRecord &undo) {}
+  bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
+    auto it = layouts_.Find(slot.GetBlock()->layout_version_);
+    PELOTON_ASSERT(it != layouts_.End());
+    const TupleAccessStrategy &accessor = it->second;
+    DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
+    if (HasConflict(version_ptr, undo)) return false;
+    // Either ownable, or the current transaction already owns this slot. We disallow
+    // write-write conflcts.
+    if (!CompareAnsSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
+    // We have owner ship and before-image of old version; update in place.
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor,slot, redo, i);
+    return true;
+  }
 
  private:
   // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
@@ -104,12 +117,20 @@ class DataTable {
     else WriteBytes(size, ReadBytes(size, from), buffer.AttrForceNotNull(offset));
   }
 
-  void CopyAttr(const TupleAccessStrategy &accessor, TupleSlot slot, ProjectedRow &buffer, uint16_t offset) {
+  void CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
+                              TupleSlot slot,
+                              ProjectedRow &buffer,
+                              uint16_t offset) {
     uint16_t col_offset = buffer.ColumnOffsets()[offset];
     uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_offset];
     byte *stored_attr = accessor.AccessWithNullCheck(slot, col_offset);
     CopyWithNullCheck(stored_attr, buffer, attr_size, offset);
   }
+
+  void CopyAttrFromProjection(const TupleAccessStrategy &accessor,
+                              TupleSlot slot,
+                              const ProjectedRow &delta,
+                              uint16_t offset) {}
 
   // TODO(Tianyu): This code looks confusing as hell. We should refactor over the weekend.
   void ApplyDelta(const BlockLayout &layout,
@@ -122,10 +143,14 @@ class DataTable {
       if (it != col_to_index.end()) {
         uint16_t buffer_offset = it->first;
         uint16_t col_id = it->second;
-        uint8_t  attr_size = layout.attr_sizes_[col_id];
+        uint8_t attr_size = layout.attr_sizes_[col_id];
         CopyWithNullCheck(delta.AttrWithNullCheck(i), buffer, attr_size, buffer_offset);
       }
     }
+  }
+
+  void ApplyDelta(const TupleAccessStrategy &accessor, const ProjectedRow &delta, TupleSlot slot) {
+
   }
 
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) {
@@ -137,5 +162,20 @@ class DataTable {
     byte *ptr_location = accessor.AccessForceNotNull(slot, VersionPtrColumnOffset(accessor));
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
   }
+
+  bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
+    return version_ptr != nullptr // Nobody owns this tuple's write lock, no older version visible
+        && version_ptr->timestamp_ != undo->timestamp_ // This tuple's write lock is already owned by the txn
+        && Uncommitted(version_ptr->timestamp_); // Nobody owns this tuple's write lock, older version still visible
+  }
+
+  bool CompareAnsSwapVersionPtr(TupleSlot slot,
+                                const TupleAccessStrategy &accessor,
+                                DeltaRecord *version_ptr,
+                                DeltaRecord *undo) {
+    byte *ptr_location = accessor.AccessForceNotNull(slot, VersionPtrColumnOffset(accessor));
+    return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(version_ptr, undo);
+  }
+
 };
 }  // namespace terrier::storage
