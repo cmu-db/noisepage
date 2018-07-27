@@ -178,6 +178,7 @@ class TupleAccessStrategy {
    */
   byte *AccessForceNotNull(TupleSlot slot, uint16_t col) const {
     // Noop if not null
+    // TODO(Tianyu): Don't compare and swap this shit
     ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
   }
