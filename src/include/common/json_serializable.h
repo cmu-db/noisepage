@@ -1,5 +1,6 @@
 #pragma once
 
+// Linux and MacOS require different header files for the JsonCpp library
 #ifdef __APPLE__
 #include <json/json.h>
 #else
