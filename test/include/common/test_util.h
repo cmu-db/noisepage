@@ -1,9 +1,9 @@
 #pragma once
-#include <random>
 #include <functional>
+#include <random>
 #include <thread>
-#include "gtest/gtest.h"
 #include "common/object_pool.h"
+#include "gtest/gtest.h"
 namespace terrier {
 namespace testutil {
 
@@ -17,11 +17,9 @@ namespace testutil {
  * @param generator source of randomness to use
  * @return iterator to a randomly selected element
  */
-template<typename T, typename Random>
-typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems,
-                                                       Random &generator) {
-  return elems.begin()
-      + std::uniform_int_distribution(0, (int) elems.size() - 1)(generator);
+template <typename T, typename Random>
+typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems, Random &generator) {
+  return elems.begin() + std::uniform_int_distribution(0, (int)elems.size() - 1)(generator);
 };
 
 /**
@@ -32,15 +30,11 @@ typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems,
  * @param workload the task the thread should run
  * @param repeat the number of times this should be done.
  */
-void RunThreadsUntilFinish(uint32_t num_threads,
-                           const std::function<void(uint32_t)> &workload,
-                           uint32_t repeat = 1) {
+void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
   for (uint32_t i = 0; i < repeat; i++) {
     std::vector<std::thread> threads;
-    for (uint32_t j = 0; j < num_threads; j++)
-      threads.emplace_back([j, &workload] { workload(j); });
-    for (auto &thread : threads)
-      thread.join();
+    for (uint32_t j = 0; j < num_threads; j++) threads.emplace_back([j, &workload] { workload(j); });
+    for (auto &thread : threads) thread.join();
   }
 }
 
@@ -57,15 +51,12 @@ void RunThreadsUntilFinish(uint32_t num_threads,
  * @param generator source of randomness to use
  * @param repeat the number of times this should be done.
  */
-template<typename Random>
-void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
-                                    std::vector<double> probabilities,
-                                    Random &generator,
-                                    uint32_t repeat = 1) {
+template <typename Random>
+void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads, std::vector<double> probabilities,
+                                    Random &generator, uint32_t repeat = 1) {
   PELOTON_ASSERT(probabilities.size() == workloads.size());
   std::discrete_distribution dist(probabilities.begin(), probabilities.end());
-  for (uint32_t i = 0; i < repeat; i++)
-    workloads[dist(generator)]();
+  for (uint32_t i = 0; i < repeat; i++) workloads[dist(generator)]();
 }
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
@@ -78,7 +69,7 @@ void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads
  * @param lower lower bound
  * @param upper upper bound
  */
-template<typename A, typename B, typename C>
+template <typename A, typename B, typename C>
 void CheckInBounds(A *val, B *lower, C *upper) {
   EXPECT_GE(TO_INT(val), TO_INT(lower));
   EXPECT_LT(TO_INT(val), TO_INT(upper));
@@ -93,7 +84,7 @@ void CheckInBounds(A *val, B *lower, C *upper) {
  * @param lower lower bound
  * @param upper upper bound
  */
-template<typename A, typename B, typename C>
+template <typename A, typename B, typename C>
 void CheckNotInBounds(A *val, B *lower, C *upper) {
   EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
 };
@@ -104,9 +95,9 @@ void CheckNotInBounds(A *val, B *lower, C *upper) {
  * @param bytes bytes to advance
  * @return  pointer that is the specified amount of bytes ahead of the given
  */
-template<typename A>
+template <typename A>
 A *IncrementByBytes(A *ptr, uint64_t bytes) {
   return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
 }
-}
-}
+}  // namespace testutil
+}  // namespace terrier
