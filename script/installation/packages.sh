@@ -69,6 +69,7 @@ install_linux() {
   apt-get -y update
   # Install packages.
   apt-get -y install \
+      clang-6.0 \
       clang-format-6.0 \
       clang-tidy-6.0 \
       cmake \

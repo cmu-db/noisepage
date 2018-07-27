@@ -6,6 +6,7 @@ CMD bash
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get -y update && \
     apt-get -y install \
+      clang-6.0 \
       clang-format-6.0 \
       clang-tidy-6.0 \
       cmake \
