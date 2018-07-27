@@ -44,7 +44,7 @@ script:
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
       docker exec build /bin/sh -c "cd /repo/build && make" &&
-      docker exec build /bin/sh -c "cd /repo/build && make test" ;
+      docker exec build /bin/sh -c "cd /repo/build && make unittest" ;
     else
       mkdir build &&
       cd build &&
@@ -52,5 +52,5 @@ script:
       make check-clang-tidy &&
       make check-format &&
       make &&
-      make test ;
+      make unittest ;
     fi
