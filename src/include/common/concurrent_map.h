@@ -2,8 +2,8 @@
 
 #include <tbb/concurrent_unordered_map.h>
 #include <functional>
-#include "common/common_defs.h"
 #include "common/macros.h"
+#include "common/typedefs.h"
 
 namespace terrier {
 #define TEMPLATE_ARGS K, V, Hasher, Equality, Alloc

@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "storage/tuple_access_strategy.h"
-#include "common/common_defs.h"
+#include "common/typedefs.h"
 #include "common/test_util.h"
 
 namespace terrier {
@@ -131,19 +131,6 @@ std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
   EXPECT_TRUE(result.second);
   testutil::InsertTuple(result.first->second, tested, layout, slot);
   return *(result.first);
-}
-
-#define TO_INT(p) reinterpret_cast<uintptr_t>(p)
-// val address in [lower, upper) ?
-template<typename A, typename B, typename C>
-void CheckInBounds(A *val, B *lower, C *upper) {
-  EXPECT_GE(TO_INT(val), TO_INT(lower));
-  EXPECT_LT(TO_INT(val), TO_INT(upper));
-};
-
-template<typename A>
-A *IncrementByBytes(A *ptr, uint32_t bytes) {
-  return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
 }
 
 }

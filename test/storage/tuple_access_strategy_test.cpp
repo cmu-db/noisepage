@@ -1,3 +1,4 @@
+#include "common/test_util.h"
 #include "storage/tuple_access_strategy_test_util.h"
 
 namespace terrier {
@@ -20,7 +21,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
   const uint32_t repeat = 100;
   const uint32_t max_cols = 1000;
   std::default_random_engine generator;
-  for (int32_t i = 0; i < repeat; i++) {
+  for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     storage::InitializeRawBlock(raw_block_, layout, 0);

@@ -3274,7 +3274,7 @@ void Logger::log_(Level level, int vlevel, const char* s, const T& value, const 
 template <typename T>
 void Logger::log_(Level level, int vlevel, const T& log) {
   if (level == Level::Verbose) {
-    if (ELPP->vRegistry()->allowed(vlevel, __FILE__)) {
+    if (ELPP->vRegistry()->allowed(static_cast<unsigned short>(vlevel), __FILE__)) {
       base::Writer(Level::Verbose, "FILE", 0, "FUNCTION",
                    base::DispatchAction::NormalLog, vlevel).construct(this, false) << log;
     } else {
