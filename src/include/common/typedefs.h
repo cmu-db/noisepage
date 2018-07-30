@@ -90,6 +90,7 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 using byte = std::byte;
 
 STRONG_TYPEDEF(timestamp_t, uint64_t);
+STRONG_TYPEDEF(layout_version_t, uint32_t);
 
 // TODO(tianyu): Implement
 bool Uncommitted(timestamp_t timestamp) { return false; }

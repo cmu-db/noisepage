@@ -6,8 +6,7 @@
 #include "common/object_pool.h"
 #include "common/typedefs.h"
 
-namespace terrier {
-namespace storage {
+namespace terrier::storage {
 // TODO(Tianyu): This code eventually should be compiled, which would eliminate
 // BlockLayout as a runtime object, instead baking them in as compiled code
 // (Think of this as writing the class with a BlockLayout template arg, except
@@ -50,7 +49,6 @@ struct BlockLayout {
   }
 };
 
-STRONG_TYPEDEF(layout_version_t, uint32_t);
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
@@ -135,26 +133,25 @@ class ProjectedRow {
 
   const uint16_t *ColumnIds() const { return nullptr; }
 
-  byte *AttrForceNotNull(uint16_t offset) { return nullptr; }
+  byte *AccessForceNotNull(uint16_t offset) { return nullptr; }
 
-  void SetNull(uint16_t offset) {}
+  void SetNull(uint16_t offset) { (void) varlen_contents_; }
 
   byte *AttrWithNullCheck(uint16_t offset) { return nullptr; }
 
-  const byte *AttrWithNullCheck(uint16_t offset) const { return nullptr; }
+  const byte *AccessWithNullCheck(uint16_t offset) const { return nullptr; }
 
  private:
   const uint16_t num_cols_;
   byte varlen_contents_[0];
-
-  //  const std::vector<uint16_t> cols_;
-  //  const std::vector<uint32_t> attr_offsets_;
-  // bitmap
-  // attrs
 };
 
-}  // namespace storage
-}  // namespace terrier
+struct DeltaRecord {
+  DeltaRecord *next_;
+  timestamp_t timestamp_;
+  ProjectedRow delta_;
+};
+}  // namespace terrier::storage
 
 namespace std {
 template <>

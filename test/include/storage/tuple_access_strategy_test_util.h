@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "gtest/gtest.h"
+#include "storage/storage_utils.h"
 #include "storage/tuple_access_strategy.h"
 #include "common/typedefs.h"
 #include "common/test_util.h"
@@ -23,10 +24,6 @@ storage::BlockLayout RandomLayout(Random &generator,
         *testutil::UniformRandomElement(possible_attr_sizes, generator);
   return {num_attrs, attr_sizes};
 }
-
-
-
-
 
 // Fill the given location with the specified amount of random bytes, using the
 // given generator as a source of randomness.
@@ -59,7 +56,7 @@ struct FakeRawTuple {
   // we can do equality checks on uint64_t always.
   // 0 return for non-primary key indexes should be treated as null.
   uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) {
-    return ReadByteValue(layout.attr_sizes_[col],
+    return storage::ReadBytes(layout.attr_sizes_[col],
                          contents_ + attr_offsets_[col]);
   }
 
@@ -77,7 +74,7 @@ void InsertTuple(FakeRawTuple &tuple,
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t col_val = tuple.Attribute(layout, col);
     if (col_val != 0 || col == PRESENCE_COLUMN_ID)
-      WriteByteValue(layout.attr_sizes_[col],
+      storage::WriteBytes(layout.attr_sizes_[col],
                      tuple.Attribute(layout, col),
                      tested.AccessForceNotNull(slot, col));
     else
@@ -99,7 +96,7 @@ void CheckTupleEqual(FakeRawTuple &expected,
     if (!null) {
       EXPECT_TRUE(col_slot != nullptr);
       EXPECT_EQ(expected.Attribute(layout, col),
-                ReadByteValue(layout.attr_sizes_[col], col_slot));
+                storage::ReadBytes(layout.attr_sizes_[col], col_slot));
     } else {
       EXPECT_TRUE(col_slot == nullptr);
     }
