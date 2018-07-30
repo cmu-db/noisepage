@@ -1,6 +1,8 @@
 #pragma once
 #include <sstream>
+#include <vector>
 #include "common/constants.h"
+#include "common/container/bitmap.h"
 #include "common/json_serializable.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
@@ -121,29 +123,87 @@ class TupleSlot {
  */
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
 
+// TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the easiest.
+/**
+ * A projected row is a partial row image of a tuple. It also encodes
+ * a projection list that allows for reordering of the columns. Its in-memory
+ * layout:
+ * -------------------------------------------------------------------------
+ * | num_cols | col_id1 | col_id2 | ... | val1_offset | val2_offset_ | ... |
+ * -------------------------------------------------------------------------
+ * | null-bitmap (pad up to byte) | val1 | val2 | ...                      |
+ * -------------------------------------------------------------------------
+ * Warning, 0 means null.
+ *
+ * The projection list is encoded as position of col_id -> col_id. For example:
+ *
+ * ---------------------------------------------------
+ * | 3 | 1 | 0 | 2 | 0 | 4 | 8 | 0xC0 | 721 | 15 | x |
+ * ---------------------------------------------------
+ * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
+ */
 class ProjectedRow {
  public:
   ProjectedRow() = delete;
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
 
-  uint16_t NumColumns() const { return num_cols_; }
+  static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
+    uint32_t result = sizeof(uint16_t); // num_col size
+    for (uint16_t col_id : col_ids)
+      result += sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id];
+    return result + common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
+  }
 
-  uint16_t *ColumnIds() { return nullptr; }
+  static uint32_t InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids, byte *head) {
+    return 42;
+  }
 
-  const uint16_t *ColumnIds() const { return nullptr; }
+  uint16_t &NumColumns() { return num_cols_; }
 
-  byte *AccessForceNotNull(uint16_t offset) { return nullptr; }
+  const uint16_t &NumColumns() const { return num_cols_; }
 
-  void SetNull(uint16_t offset) { (void)varlen_contents_; }
+  uint16_t *ColumnIds() { return reinterpret_cast<uint16_t *>(varlen_contents_); }
 
-  byte *AttrWithNullCheck(uint16_t offset) { return nullptr; }
+  const uint16_t *ColumnIds() const { return reinterpret_cast<const uint16_t *>(varlen_contents_); }
 
-  const byte *AccessWithNullCheck(uint16_t offset) const { return nullptr; }
+  byte *AccessWithNullCheck(uint16_t offset) {
+    if (!Bitmap().Test(offset)) return nullptr;
+    return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
+  }
+
+  const byte *AccessWithNullCheck(uint16_t offset) const {
+    if (!Bitmap().Test(offset)) return nullptr;
+    return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
+  }
+
+  byte *AccessForceNotNull(uint16_t offset) {
+    if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
+    return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
+  }
+
+  void SetNull(uint16_t offset) { Bitmap().Set(offset, false); }
 
  private:
-  const uint16_t num_cols_;
+  uint16_t num_cols_;
   byte varlen_contents_[0];
+
+  uint32_t *AttrValueOffsets() {
+    return reinterpret_cast<uint32_t *>(ColumnIds() + num_cols_);
+  }
+
+  const uint32_t *AttrValueOffsets() const {
+    return reinterpret_cast<const uint32_t *>(ColumnIds() + num_cols_);
+  }
+
+  common::RawBitmap &Bitmap() {
+    return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_);
+  }
+
+  const common::RawBitmap &Bitmap() const {
+    return *reinterpret_cast<const common::RawBitmap *>(AttrValueOffsets() + num_cols_);
+  }
+
 };
 
 struct DeltaRecord {
