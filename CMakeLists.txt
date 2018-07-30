@@ -308,8 +308,9 @@ set(LIBRARY_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
 set(EXECUTABLE_OUTPUT_PATH "${BUILD_OUTPUT_ROOT_DIRECTORY}")
 
 include_directories(${PROJECT_SOURCE_DIR}/src/include)
-include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
+include_directories(${PROJECT_SOURCE_DIR}/test/include)
+include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 set(TERRIER_LINK_LIBS
     ${TERRIER_LINK_LIBS}
@@ -322,6 +323,13 @@ set(TERRIER_TEST_LINK_LIBS
     gtest_main
     ${CMAKE_DL_LIBS})
 
+set(TERRIER_BENCHMARK_LINK_LIBS
+    terrier_shared
+    benchmark_shared
+    test_shared
+    gtest)
+
 # ---[ Subdirectories
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(benchmark)

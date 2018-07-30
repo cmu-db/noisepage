@@ -6,13 +6,10 @@
 
 class TerrierTest : public ::testing::Test {
  protected:
-
   virtual void SetUp() {
-  	// turn on logger
-  	terrier::Logger::InitializeLogger();
+    // turn on logger
+    terrier::Logger::InitializeLogger();
   }
 
-  virtual void TearDown() {
-
-  }
+  virtual void TearDown() {}
 };
