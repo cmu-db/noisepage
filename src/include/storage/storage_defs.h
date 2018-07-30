@@ -133,11 +133,11 @@ class ProjectedRow {
     return num_cols_;
   }
 
-  uint16_t *ColumnOffsets() {
+  uint16_t *ColumnIds() {
     return nullptr;
   }
 
-  const uint16_t *ColumnOffsets() const {
+  const uint16_t *ColumnIds() const {
     return nullptr;
   }
 

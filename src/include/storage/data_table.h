@@ -76,7 +76,7 @@ class DataTable {
     // access columns since deltas can concern a different set of columns when chasing the
     // version chain
     std::unordered_map<uint16_t, uint16_t> col_to_index;
-    for (uint16_t i = 0; i < buffer.NumColumns(); i++) col_to_index.emplace(buffer.ColumnOffsets()[i], i);
+    for (uint16_t i = 0; i < buffer.NumColumns(); i++) col_to_index.emplace(buffer.ColumnIds()[i], i);
     // Apply deltas until we reconstruct a version safe for us to read
     // If the version chain becomes null, this tuple does not exist for this version, and the last delta
     // record would be an undo for insert that sets the primary key to null, which is intended behavior.
@@ -97,7 +97,7 @@ class DataTable {
     if (HasConflict(version_ptr, undo)) return false;
     // Either ownable, or the current transaction already owns this slot. We disallow
     // write-write conflcts.
-    if (!CompareAnsSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
+    if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
     // We have owner ship and before-image of old version; update in place.
     for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor,slot, redo, i);
     return true;
@@ -121,9 +121,9 @@ class DataTable {
                               TupleSlot slot,
                               ProjectedRow &buffer,
                               uint16_t offset) {
-    uint16_t col_offset = buffer.ColumnOffsets()[offset];
-    uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_offset];
-    byte *stored_attr = accessor.AccessWithNullCheck(slot, col_offset);
+    uint16_t col_id = buffer.ColumnIds()[offset];
+    uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
+    byte *stored_attr = accessor.AccessWithNullCheck(slot, col_id);
     CopyWithNullCheck(stored_attr, buffer, attr_size, offset);
   }
 
@@ -138,8 +138,8 @@ class DataTable {
                   ProjectedRow &buffer,
                   const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
     for (uint16_t i = 0; i < delta.NumColumns(); i++) {
-      uint16_t delta_col_offset = delta.ColumnOffsets()[i];
-      auto it = col_to_index.find(delta_col_offset);
+      uint16_t delta_col_id = delta.ColumnIds()[i];
+      auto it = col_to_index.find(delta_col_id);
       if (it != col_to_index.end()) {
         uint16_t buffer_offset = it->first;
         uint16_t col_id = it->second;
@@ -147,10 +147,6 @@ class DataTable {
         CopyWithNullCheck(delta.AttrWithNullCheck(i), buffer, attr_size, buffer_offset);
       }
     }
-  }
-
-  void ApplyDelta(const TupleAccessStrategy &accessor, const ProjectedRow &delta, TupleSlot slot) {
-
   }
 
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) {
@@ -169,7 +165,7 @@ class DataTable {
         && Uncommitted(version_ptr->timestamp_); // Nobody owns this tuple's write lock, older version still visible
   }
 
-  bool CompareAnsSwapVersionPtr(TupleSlot slot,
+  bool CompareAndSwapVersionPtr(TupleSlot slot,
                                 const TupleAccessStrategy &accessor,
                                 DeltaRecord *version_ptr,
                                 DeltaRecord *undo) {
