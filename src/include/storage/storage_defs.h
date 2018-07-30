@@ -123,7 +123,8 @@ class TupleSlot {
  */
 using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
 
-// TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the easiest.
+// TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
+// easiest.
 /**
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
@@ -149,14 +150,24 @@ class ProjectedRow {
   ~ProjectedRow() = delete;
 
   static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-    uint32_t result = sizeof(uint16_t); // num_col size
-    for (uint16_t col_id : col_ids)
-      result += sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id];
+    uint32_t result = sizeof(uint16_t);  // num_col size
+    for (uint16_t col_id : col_ids) result += sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id];
     return result + common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
   }
 
-  static uint32_t InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids, byte *head) {
-    return 42;
+  static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
+                                              byte *head) {
+    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(head);
+    result->num_cols_ = static_cast<uint16_t>(col_ids.size());
+    uint32_t val_offset = sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
+                          common::BitmapSize(result->num_cols_);
+    for (uint16_t i = 0; i < col_ids.size(); i++) {
+      result->ColumnIds()[i] = col_ids[i];
+      result->AttrValueOffsets()[i] = val_offset;
+      val_offset += layout.attr_sizes_[col_ids[i]];
+    }
+    result->Bitmap().Clear(common::BitmapSize(result->num_cols_));
+    return result;
   }
 
   uint16_t &NumColumns() { return num_cols_; }
@@ -188,22 +199,15 @@ class ProjectedRow {
   uint16_t num_cols_;
   byte varlen_contents_[0];
 
-  uint32_t *AttrValueOffsets() {
-    return reinterpret_cast<uint32_t *>(ColumnIds() + num_cols_);
-  }
+  uint32_t *AttrValueOffsets() { return reinterpret_cast<uint32_t *>(ColumnIds() + num_cols_); }
 
-  const uint32_t *AttrValueOffsets() const {
-    return reinterpret_cast<const uint32_t *>(ColumnIds() + num_cols_);
-  }
+  const uint32_t *AttrValueOffsets() const { return reinterpret_cast<const uint32_t *>(ColumnIds() + num_cols_); }
 
-  common::RawBitmap &Bitmap() {
-    return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_);
-  }
+  common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_); }
 
   const common::RawBitmap &Bitmap() const {
     return *reinterpret_cast<const common::RawBitmap *>(AttrValueOffsets() + num_cols_);
   }
-
 };
 
 struct DeltaRecord {

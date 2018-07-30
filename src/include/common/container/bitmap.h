@@ -101,6 +101,8 @@ class RawBitmap {
     return *this;
   }
 
+  void Clear(uint32_t size) { PELOTON_MEMSET(bits_, 0, size); }
+
  private:
   uint8_t bits_[0];
 };
