@@ -77,4 +77,4 @@ void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, c
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
 }
 
-}
+}  // namespace terrier::storage

@@ -1,100 +1,166 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_vector.h"
 #include "common/concurrent_map.h"
+#include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
-#include "storage/tuple_access_strategy.h"
 #include "storage/storage_utils.h"
+#include "storage/tuple_access_strategy.h"
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_VECTOR_COLUMN_ID PRESENCE_COLUMN_ID
+
 namespace terrier::storage {
+/**
+ * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
+ * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
+ * as SQL types, varlens and nullabilities are still not meaningful at this level.
+ */
 class DataTable {
  public:
   // TODO(Tianyu): Consider taking in some other info to avoid copying layout
+  /**
+   * Constructs a new DataTable with the given layout, using the given BlockStore as the source
+   * of its storage blocks.
+   *
+   * @param store the Block store to use.
+   * @param layout the initial layout of this DataTable.
+   */
   DataTable(BlockStore &store, const BlockLayout &layout) : block_store_(store) {
     layouts_.Emplace(store, layout);
     NewBlock(nullptr);
     PELOTON_ASSERT(insertion_head_ != nullptr);
   }
 
+  /**
+   * Destructs a DataTable, frees all its blocks.
+   */
   ~DataTable() {
-    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it)
-      block_store_.Release(*it);
+    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_.Release(*it);
   }
 
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer,
-              const std::vector<uint16_t> &projection_list) {
+  /**
+   * Materializes a single tuple from the given slot, as visible at the timestamp.
+   *
+   * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
+   *                       will just be the start time of the caller transaction.
+   * @param slot the tuple slot to read
+   * @param buffer output buffer. The object should already contain projection list information. @seee ProjectedRow.
+   */
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer) {
     // Retrieve the access strategy for the block's layout version. It is expected that
     // a valid block is given, thus the access strategy must have already been created.
     auto it = layouts_.Find(slot.GetBlock()->layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
-
     const TupleAccessStrategy &accessor = it->second;
+
     // ProjectedRow should always have fewer attributes than the block layout.
-    // The version ptr should not be in there.
+    // Also, the version ptr should not be in there: it is a concept hidden from callers.
     PELOTON_ASSERT(buffer.NumColumns() < accessor.GetBlockLayout().num_cols_);
 
-    // These operations don't need to atomic, because so long as we set the version ptr before
-    // updating in place, the reader will know if a conflict can potentially happen, and chase the
-    // version chain before returning anyway,
+    // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+    // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < buffer.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, buffer, i);
+
     // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
     // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
     // enough to reorder this operation in or in front of the for loop.
     DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
+
+    // Nullptr in version chain means no version visible to any transaction alive at this point.
     if (version_ptr == nullptr) return;
 
     // Creates a mapping from col offset to project list index. This allows us to efficiently
     // access columns since deltas can concern a different set of columns when chasing the
     // version chain
-    std::unordered_map<uint16_t, uint16_t> col_to_index;
-    for (uint16_t i = 0; i < buffer.NumColumns(); i++) col_to_index.emplace(buffer.ColumnIds()[i], i);
+    std::unordered_map<uint16_t, uint16_t> projection_list_col_to_index;
+    for (uint16_t i = 0; i < buffer.NumColumns(); i++) projection_list_col_to_index.emplace(buffer.ColumnIds()[i], i);
+
     // Apply deltas until we reconstruct a version safe for us to read
     // If the version chain becomes null, this tuple does not exist for this version, and the last delta
     // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-    // TODO(Tianyu): write overloaded comparison operator in StringTypeAlias
-    while (version_ptr != nullptr && !version_ptr->timestamp_ >= !txn_start_time) {
-      ApplyDelta(accessor.GetBlockLayout(), version_ptr->delta_, buffer, col_to_index);
+    while (version_ptr != nullptr && version_ptr->timestamp_ >= txn_start_time) {
+      ApplyDelta(accessor.GetBlockLayout(), version_ptr->delta_, buffer, projection_list_col_to_index);
       version_ptr = version_ptr->next_;
     }
   }
 
-  TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo) {
-    auto it = layouts_.Find(curr_layout_version_);
-    PELOTON_ASSERT(it != layouts_.End());
-    const TupleAccessStrategy &accessor = it->second;
-    TupleSlot result;
-    while (true) {
-      RawBlock *block = insertion_head_.load();
-      if (accessor.Allocate(block, result)) break;
-      NewBlock(block);
-    }
-    // Version_vector would have already been flipped to not null, but won't be in the redo row. We will
-    // need to make sure that the new slot always have nullptr for version vector.
-    WriteBytes(sizeof(DeltaRecord *), 0, accessor.AccessForceNotNull(result, VERSION_VECTOR_COLUMN_ID));
-    bool no_conflict = Update(result, redo, undo);
-    PELOTON_ASSERT(no_conflict);
-    return result;
-  }
-
+  /**
+   * Update the tuple according to the redo slot given, and update the version chain to link to the given
+   * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only
+   * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
+   *
+   * @param slot the slot of the tuple to update.
+   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param undo the undo record to maintain and populate. It is expected that the projected row has the same structure
+   *             as the redo, but the contents need not be filled beforehand, and will be populated with the
+   * before-image after this method returns.
+   * @return whether the update is successful.
+   */
   bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
     auto it = layouts_.Find(slot.GetBlock()->layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
     const TupleAccessStrategy &accessor = it->second;
 
     DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
+    // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
+    // write lock on the tuple.
     if (HasConflict(version_ptr, undo)) return false;
-    // Either ownable, or the current transaction already owns this slot. We disallow
-    // write-write conflcts.
+    // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
     if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
-    // We have owner ship and before-image of old version; update in place.
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor, slot, redo, i);
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
+      // Populate undo record with the before image of attribute
+      CopyAttrIntoProjection(accessor, slot, undo->delta_, i);
+      // Update in place with the new value.
+      CopyAttrFromProjection(accessor, slot, redo, i);
+    }
     return true;
   }
 
+  /**
+   * Inserts a tuple, as given in the redo, and update the version chain the link to the given
+   * delta record. The slot allocated for the tuple and returned.
+   *
+   * @param redo after-image of the inserted tuple
+   * @param undo the undo record to maintain and populate. It is expected that this simply contains one column of
+   *             the table's primary key, set to null (logically deleted) to denote that the tuple did not exist
+   *             before.
+   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
+   * such.
+   */
+  TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo) {
+    auto it = layouts_.Find(curr_layout_version_);
+    PELOTON_ASSERT(it != layouts_.End());
+    const TupleAccessStrategy &accessor = it->second;
+
+    // Since this is an insert, all the column values should be given in the redo.
+    PELOTON_ASSERT(redo.NumColumns() == (accessor.GetBlockLayout().num_cols_ - 1));
+
+    // Attempt to allocate a new tuple from the block we are working on right now.
+    // If that block is full, try to request a new block. Because other concurrent
+    // inserts could have already created a new block, we need to use compare and swap
+    // to change the insertion head. We do not expect this loop to be executed more than
+    // twice, but there is technically a possibility for blocks with only a few slots.
+    TupleSlot result;
+    while (true) {
+      RawBlock *block = insertion_head_.load();
+      if (accessor.Allocate(block, result)) break;
+      NewBlock(block);
+    }
+
+    // Version_vector column would have already been flipped to not null, but won't be in the redo given to us. We will
+    // need to make sure that the new slot always have nullptr for version vector.
+    WriteBytes(sizeof(DeltaRecord *), 0, accessor.AccessForceNotNull(result, VERSION_VECTOR_COLUMN_ID));
+
+    // Once the version vector is installed, the insert is the same as an update where columns from the
+    // redo is copied into the block.
+    bool no_conflict = Update(result, redo, undo);
+    // Expect no conflict because this version should only be visible to this transaction.
+    PELOTON_ASSERT(no_conflict);
+    return result;
+  }
 
  private:
   BlockStore &block_store_;
@@ -107,6 +173,8 @@ class DataTable {
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
+  // Applys a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
+  // the materialized tuple if present in the materialized projection.
   void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
                   const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
     for (uint16_t i = 0; i < delta.NumColumns(); i++) {
@@ -121,6 +189,7 @@ class DataTable {
     }
   }
 
+  // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) {
     // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
     // an issue (probably not, we are just reading one extra byte.)
@@ -131,24 +200,27 @@ class DataTable {
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
   }
 
+  // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
            && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
            && Uncommitted(version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 
-  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *version_ptr,
+  // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
+  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *expected,
                                 DeltaRecord *undo) {
     // The check should never fail. (every tuple's version ptr attribute is meaningful).
     byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
     PELOTON_ASSERT(ptr_location != nullptr);
-    return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(version_ptr, undo);
+    return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, undo);
   }
 
-  // TODO(Tianyu): This shouldn't be performance-critical. So maybe use a latch instead of a cmpxchg?
-  // This will eliminate retries, which could potentially be an expensive allocate (this is somewhat mitigated
-  // by the object pool reuse)
+  // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val) {
+    // TODO(Tianyu): This shouldn't be performance-critical. So maybe use a latch instead of a cmpxchg?
+    // This will eliminate retries, which could potentially be an expensive allocate (this is somewhat mitigated
+    // by the object pool reuse)
     auto it = layouts_.Find(curr_layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
     const BlockLayout &layout = it->second.GetBlockLayout();

@@ -135,7 +135,7 @@ class ProjectedRow {
 
   byte *AccessForceNotNull(uint16_t offset) { return nullptr; }
 
-  void SetNull(uint16_t offset) { (void) varlen_contents_; }
+  void SetNull(uint16_t offset) { (void)varlen_contents_; }
 
   byte *AttrWithNullCheck(uint16_t offset) { return nullptr; }
 

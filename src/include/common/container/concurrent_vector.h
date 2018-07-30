@@ -3,7 +3,7 @@
 #include <tbb/concurrent_vector.h>
 
 namespace terrier::common {
-template <typename T, class Alloc=tbb::cache_aligned_allocator<T>>
+template <typename T, class Alloc = tbb::cache_aligned_allocator<T>>
 class ConcurrentVector {
  public:
   class Iterator {
@@ -58,37 +58,23 @@ class ConcurrentVector {
 
   ConcurrentVector() = default;
 
-  explicit ConcurrentVector(uint64_t size, const T & t = T()) : vector_(size, t) {}
+  explicit ConcurrentVector(uint64_t size, const T &t = T()) : vector_(size, t) {}
 
-  Iterator PushBack(const T &item) {
-    return Iterator(vector_.push_back(item));
-  }
+  Iterator PushBack(const T &item) { return Iterator(vector_.push_back(item)); }
 
-  T &At(uint64_t index) {
-    return vector_.at(index);
-  }
+  T &At(uint64_t index) { return vector_.at(index); }
 
-  const T &At(uint64_t index) const {
-    return vector_.at(index);
-  }
+  const T &At(uint64_t index) const { return vector_.at(index); }
 
-  T &operator[](uint64_t index) {
-    return At(index);
-  }
+  T &operator[](uint64_t index) { return At(index); }
 
-  const T &operator[](uint64_t index) const {
-    return At(index);
-  }
+  const T &operator[](uint64_t index) const { return At(index); }
 
-  Iterator Begin() {
-    return Iterator(vector_.begin());
-  }
+  Iterator Begin() { return Iterator(vector_.begin()); }
 
-  Iterator End() {
-    return Iterator(vector_.end());
-  }
+  Iterator End() { return Iterator(vector_.end()); }
 
  private:
   tbb::concurrent_vector<T, Alloc> vector_;
 };
-}
+}  // namespace terrier::common

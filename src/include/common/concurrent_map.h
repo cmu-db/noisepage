@@ -16,8 +16,8 @@ namespace terrier {
  * @tparam Equality equality check used for keys
  * @tparam Alloc Allocator type used
  */
-template<typename K, typename V, typename Hasher = tbb::tbb_hash<K>, typename Equality = std::equal_to<K>,
-    typename Alloc = tbb::tbb_allocator<std::pair<const K, V>>>
+template <typename K, typename V, typename Hasher = tbb::tbb_hash<K>, typename Equality = std::equal_to<K>,
+          typename Alloc = tbb::tbb_allocator<std::pair<const K, V>>>
 class ConcurrentMap {
   // This wrapper is here so we are free to swap out underlying implementation
   // of the data structure or hand-craft it ourselves. Compiler should inline
@@ -89,7 +89,7 @@ class ConcurrentMap {
    *
    * @return
    */
-  template<typename... Args>
+  template <typename... Args>
   std::pair<Iterator, bool> Emplace(Args &&... args) {
     auto result = map_.emplace(std::move(args)...);
     return {Iterator(result.first), result.second};
@@ -143,12 +143,12 @@ class ConcurrentMap {
 
 // TODO(Tianyu): Remove this if we don't end up using tbb
 namespace tbb {
-template<class Tag, typename T>
+template <class Tag, typename T>
 struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
   size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash
-    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
+    return tbb_hash<T>()(!alias);
   }
 };
 #undef TEMPLATE_ARGS
