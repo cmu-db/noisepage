@@ -266,6 +266,14 @@ function(ADD_TERRIER_TESTS)
   endforeach()
 endfunction()
 
+function(ADD_TERRIER_BENCHMARKS)
+  file(GLOB_RECURSE TERRIER_BENCHMARK_SOURCES "*.cpp")
+  foreach(FILE_FULL_PATH ${TERRIER_BENCHMARK_SOURCES})
+    get_filename_component(BENCHMARK_NAME ${FILE_FULL_PATH} NAME_WE)
+    ADD_TERRIER_BENCHMARK(${BENCHMARK_NAME})
+  endforeach()
+endfunction()
+
 
 ############################################################
 # Fuzzing
