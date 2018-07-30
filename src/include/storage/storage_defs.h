@@ -1,9 +1,9 @@
 #pragma once
 #include <sstream>
 #include "common/constants.h"
+#include "common/json_serializable.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
-#include "common/printable.h"
 #include "common/typedefs.h"
 
 namespace terrier {
