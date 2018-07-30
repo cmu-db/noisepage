@@ -35,14 +35,15 @@ struct DefaultConstructorAllocator {
  *         handed out multiple times before that happens.
  */
 template <typename T, class Allocator = ByteAllocator<T>>
-class ObjectPool : public statistics::PerformanceCounters<ObjectPool<T, Allocator>> {
+class ObjectPool {
  public:
   /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
    * @param reuse_limit
    */
-  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+  explicit ObjectPool(uint64_t reuse_limit, statistics::PerformanceCounters<ObjectPool<T, Allocator>> &pc)
+      : reuse_limit_(reuse_limit), pc_(pc) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -73,10 +74,10 @@ class ObjectPool : public statistics::PerformanceCounters<ObjectPool<T, Allocato
       result = alloc_.New();
 
       // for statistics
-      this->IncrementCounter("block_counter");
+      pc_.IncrementCounter("block_counter");
     } else {
       // for statistics
-      this->DecrementCounter("reuse_queue_counter");
+      pc_.DecrementCounter("reuse_queue_counter");
     }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
@@ -94,19 +95,26 @@ class ObjectPool : public statistics::PerformanceCounters<ObjectPool<T, Allocato
       alloc_.Delete(obj);
 
       // for statistics
-      this->DecrementCounter("block_counter");
+      pc_.DecrementCounter("block_counter");
     } else {
       reuse_queue_.Enqueue(std::move(obj));
 
       // for statistics
-      this->IncrementCounter("reuse_queue_counter");
+      pc_.IncrementCounter("reuse_queue_counter");
     }
   }
+
+  /**
+   * Print performance counters.
+   */
+  void PrintPerformanceCounters() { pc_.PrintPerformanceCounters(); }
 
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
+
+  statistics::PerformanceCounters<ObjectPool<T, Allocator>> &pc_;
 };
 }  // namespace terrier

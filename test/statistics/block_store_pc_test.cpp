@@ -9,7 +9,8 @@ namespace terrier {
 
 TEST(BlockStorePCTests, BlockCountTest) {
   const uint64_t reuse_limit = 1;
-  storage::BlockStore tested(reuse_limit);
+  statistics::PerformanceCounters<storage::BlockStore> pc;
+  storage::BlockStore tested(reuse_limit, pc);
 
   // Create RawBlock
   storage::RawBlock *reused_ptr1 = tested.Get();
