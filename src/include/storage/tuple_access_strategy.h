@@ -5,10 +5,11 @@
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 
-// We will always layout the primary key column (or a column that is part of the
-// primary key if multi-column), so that its nullmap will effectively be the
-// presence bit for tuples in this block.
-#define PRIMARY_KEY_OFFSET 0
+// We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
+// be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
+// and thus blocks are free to handout the slot.) Generally this will just be the version vector.
+#define PRESENCE_COLUMN_ID 0
+
 namespace terrier {
 namespace storage {
 
@@ -22,7 +23,8 @@ namespace storage {
  * @param layout block layout to use (can be compiled)
  * @param layout_version the layout version of this block
  */
-void InitializeRawBlock(RawBlock *raw, const BlockLayout &layout, uint32_t layout_version);
+void InitializeRawBlock(RawBlock *raw, const BlockLayout &layout, layout_version_t layout_version);
+
 namespace {
 // TODO(Tianyu): These two classes should be aligned for LLVM
 /**
@@ -205,7 +207,7 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot &slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
-    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRIMARY_KEY_OFFSET);
+    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
     for (uint32_t i = 0; i < layout_.num_slots_; i++) {
       if (bitmap->Flip(i, false)) {
         slot = TupleSlot(block, i);
@@ -215,9 +217,7 @@ class TupleAccessStrategy {
     return false;
   }
 
-  const BlockLayout &GetBlockLayout() const {
-    return layout_;
-  }
+  const BlockLayout &GetBlockLayout() const { return layout_; }
 
  private:
   // TODO(Tianyu): This will be baked in for codegen, not a field.

@@ -129,33 +129,19 @@ class ProjectedRow {
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
 
-  uint16_t NumColumns() const {
-    return num_cols_;
-  }
+  uint16_t NumColumns() const { return num_cols_; }
 
-  uint16_t *ColumnIds() {
-    return nullptr;
-  }
+  uint16_t *ColumnIds() { return nullptr; }
 
-  const uint16_t *ColumnIds() const {
-    return nullptr;
-  }
+  const uint16_t *ColumnIds() const { return nullptr; }
 
-  byte *AttrForceNotNull(uint16_t offset) {
-    return nullptr;
-  }
+  byte *AttrForceNotNull(uint16_t offset) { return nullptr; }
 
-  void SetNull(uint16_t offset) {
+  void SetNull(uint16_t offset) {}
 
-  }
+  byte *AttrWithNullCheck(uint16_t offset) { return nullptr; }
 
-  byte *AttrWithNullCheck(uint16_t offset) {
-    return nullptr;
-  }
-
-  const byte *AttrWithNullCheck(uint16_t offset) const {
-    return nullptr;
-  }
+  const byte *AttrWithNullCheck(uint16_t offset) const { return nullptr; }
 
  private:
   const uint16_t num_cols_;

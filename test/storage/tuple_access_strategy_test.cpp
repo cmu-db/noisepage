@@ -218,7 +218,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
       auto remove = [&] {
         if (slots[id].empty()) return;
         auto elem = testutil::UniformRandomElement(slots[id], generator);
-        tested.SetNull(*elem, PRIMARY_KEY_OFFSET);
+        tested.SetNull(*elem, PRESENCE_COLUMN_ID);
         tuples[id].erase(*elem);
         slots[id].erase(elem);
       };

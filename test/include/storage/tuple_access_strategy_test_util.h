@@ -76,7 +76,7 @@ void InsertTuple(FakeRawTuple &tuple,
                  storage::TupleSlot slot) {
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t col_val = tuple.Attribute(layout, col);
-    if (col_val != 0 || col == PRIMARY_KEY_OFFSET)
+    if (col_val != 0 || col == PRESENCE_COLUMN_ID)
       WriteByteValue(layout.attr_sizes_[col],
                      tuple.Attribute(layout, col),
                      tested.AccessForceNotNull(slot, col));
@@ -94,7 +94,7 @@ void CheckTupleEqual(FakeRawTuple &expected,
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t expected_col = expected.Attribute(layout, col);
     // 0 return for non-primary key indexes should be treated as null.
-    bool null = (expected_col == 0) && (col != PRIMARY_KEY_OFFSET);
+    bool null = (expected_col == 0) && (col != PRESENCE_COLUMN_ID);
     byte *col_slot = tested.AccessWithNullCheck(slot, col);
     if (!null) {
       EXPECT_TRUE(col_slot != nullptr);
@@ -120,7 +120,7 @@ std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
   // There should always be enough slots.
   EXPECT_TRUE(tested.Allocate(block, slot));
   EXPECT_TRUE(tested.ColumnNullBitmap(block,
-                                      PRIMARY_KEY_OFFSET)->Test(slot.GetOffset()));
+                                      PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
   // Construct a random tuple and associate it with the tuple slot
   auto result = tuples.emplace(

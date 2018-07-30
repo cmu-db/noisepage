@@ -1,10 +1,13 @@
 #pragma once
-#include <vector>
 #include <unordered_map>
+#include <vector>
 #include "common/concurrent_map.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+#define VERSION_VECTOR_COLUMN_ID PRESENCE_COLUMN_ID
 namespace terrier::storage {
 // TODO(Tianyu): Move this
 class TransactionContext;
@@ -20,13 +23,17 @@ struct DeltaRecord {
 // Truncated if neccessary
 void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
   switch (attr_size) {
-    case 1: *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
+    case 1:
+      *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
       break;
-    case 2: *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
+    case 2:
+      *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
       break;
-    case 4: *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
+    case 4:
+      *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
       break;
-    case 8: *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
+    case 8:
+      *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
       break;
     default:
       // Invalid attr size
@@ -38,10 +45,14 @@ void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
 // an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
 uint64_t ReadBytes(uint8_t attr_size, const byte *pos) {
   switch (attr_size) {
-    case 1: return *reinterpret_cast<const uint8_t *>(pos);
-    case 2: return *reinterpret_cast<const uint16_t *>(pos);
-    case 4: return *reinterpret_cast<const uint32_t *>(pos);
-    case 8: return *reinterpret_cast<const uint64_t *>(pos);
+    case 1:
+      return *reinterpret_cast<const uint8_t *>(pos);
+    case 2:
+      return *reinterpret_cast<const uint16_t *>(pos);
+    case 4:
+      return *reinterpret_cast<const uint32_t *>(pos);
+    case 8:
+      return *reinterpret_cast<const uint64_t *>(pos);
     default:
       // Invalid attr size
       PELOTON_ASSERT(false);
@@ -53,6 +64,8 @@ class DataTable {
  public:
   void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer,
               const std::vector<uint16_t> &projection_list) {
+    // Retrieve the access strategy for the block's layout version. It is expected that
+    // a valid block is given, thus the access strategy must have already been created.
     auto it = layouts_.Find(slot.GetBlock()->layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
 
@@ -70,7 +83,6 @@ class DataTable {
     // enough to reorder this operation in or in front of the for loop.
     DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
     if (version_ptr == nullptr) return;
-
 
     // Creates a mapping from col offset to project list index. This allows us to efficiently
     // access columns since deltas can concern a different set of columns when chasing the
@@ -99,7 +111,7 @@ class DataTable {
     // write-write conflcts.
     if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
     // We have owner ship and before-image of old version; update in place.
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor,slot, redo, i);
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor, slot, redo, i);
     return true;
   }
 
@@ -107,19 +119,14 @@ class DataTable {
   // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
   ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
 
-  // Get the version chain column. for now always the last column
-  uint16_t VersionPtrColumnOffset(const TupleAccessStrategy &accessor) {
-    return static_cast<uint16_t>(accessor.GetBlockLayout().num_cols_ - 1);
-  }
-
   void CopyWithNullCheck(const byte *from, ProjectedRow &buffer, uint8_t size, uint16_t offset) {
-    if (from == nullptr) buffer.SetNull(offset);
-    else WriteBytes(size, ReadBytes(size, from), buffer.AttrForceNotNull(offset));
+    if (from == nullptr)
+      buffer.SetNull(offset);
+    else
+      WriteBytes(size, ReadBytes(size, from), buffer.AttrForceNotNull(offset));
   }
 
-  void CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
-                              TupleSlot slot,
-                              ProjectedRow &buffer,
+  void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot slot, ProjectedRow &buffer,
                               uint16_t offset) {
     uint16_t col_id = buffer.ColumnIds()[offset];
     uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
@@ -127,15 +134,11 @@ class DataTable {
     CopyWithNullCheck(stored_attr, buffer, attr_size, offset);
   }
 
-  void CopyAttrFromProjection(const TupleAccessStrategy &accessor,
-                              TupleSlot slot,
-                              const ProjectedRow &delta,
+  void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot slot, const ProjectedRow &delta,
                               uint16_t offset) {}
 
   // TODO(Tianyu): This code looks confusing as hell. We should refactor over the weekend.
-  void ApplyDelta(const BlockLayout &layout,
-                  const ProjectedRow &delta,
-                  ProjectedRow &buffer,
+  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
                   const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
     for (uint16_t i = 0; i < delta.NumColumns(); i++) {
       uint16_t delta_col_id = delta.ColumnIds()[i];
@@ -153,25 +156,27 @@ class DataTable {
     // TODO(Tianyu): Checking for null really is extra work here.
     // Potentially we can write a specialized method with no null check
 
-    // Here we always access force null because the value of the null bit is irrelevant. (every tuple's
-    // version ptr attribute is meaningful).
-    byte *ptr_location = accessor.AccessForceNotNull(slot, VersionPtrColumnOffset(accessor));
+    // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
+    // an issue (probably not, we are just reading one extra byte.)
+
+    // The check should never fail. (every tuple's version ptr attribute is meaningful).
+    byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+    PELOTON_ASSERT(ptr_location != nullptr);
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
   }
 
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
-    return version_ptr != nullptr // Nobody owns this tuple's write lock, no older version visible
-        && version_ptr->timestamp_ != undo->timestamp_ // This tuple's write lock is already owned by the txn
-        && Uncommitted(version_ptr->timestamp_); // Nobody owns this tuple's write lock, older version still visible
+    return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
+           && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
+           && Uncommitted(version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 
-  bool CompareAndSwapVersionPtr(TupleSlot slot,
-                                const TupleAccessStrategy &accessor,
-                                DeltaRecord *version_ptr,
+  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *version_ptr,
                                 DeltaRecord *undo) {
-    byte *ptr_location = accessor.AccessForceNotNull(slot, VersionPtrColumnOffset(accessor));
+    // The check should never fail. (every tuple's version ptr attribute is meaningful).
+    byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+    PELOTON_ASSERT(ptr_location != nullptr);
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(version_ptr, undo);
   }
-
 };
 }  // namespace terrier::storage
