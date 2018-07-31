@@ -104,18 +104,23 @@ class DataTable {
     PELOTON_ASSERT(it != layouts_.End());
     const TupleAccessStrategy &accessor = it->second;
 
+    // They should have the same layout.
+    PELOTON_ASSERT(redo.NumColumns() == undo->delta_.NumColumns());
+    // TODO(Tianyu): Do we want to also check the column ids and order?
+
     DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
     // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
     // write lock on the tuple.
     if (HasConflict(version_ptr, undo)) return false;
+    // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
+    // Populate undo record with the before image of attribute
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, undo->delta_, i);
+
     // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
     if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-      // Populate undo record with the before image of attribute
-      CopyAttrIntoProjection(accessor, slot, undo->delta_, i);
-      // Update in place with the new value.
-      CopyAttrFromProjection(accessor, slot, redo, i);
-    }
+    // Update in place with the new value.
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrFromProjection(accessor, slot, redo, i);
+
     return true;
   }
 

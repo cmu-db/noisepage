@@ -38,7 +38,7 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-        + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
@@ -78,9 +78,9 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t) block | offset) {
+  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)));
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
     // it in the 0 bits at the end of the address
     PELOTON_ASSERT(offset < Constants::BLOCK_SIZE);
@@ -161,7 +161,7 @@ class ProjectedRow {
     ProjectedRow *result = reinterpret_cast<ProjectedRow *>(head);
     result->num_cols_ = static_cast<uint16_t>(col_ids.size());
     uint32_t val_offset = sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
-        common::BitmapSize(result->num_cols_);
+                          common::BitmapSize(result->num_cols_);
     for (uint16_t i = 0; i < col_ids.size(); i++) {
       result->ColumnIds()[i] = col_ids[i];
       result->AttrValueOffsets()[i] = val_offset;
@@ -219,7 +219,7 @@ struct DeltaRecord {
 }  // namespace terrier::storage
 
 namespace std {
-template<>
+template <>
 struct hash<terrier::storage::TupleSlot> {
   size_t operator()(const terrier::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
