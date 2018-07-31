@@ -30,7 +30,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
       // Get the Block, zero it, and initialize
       raw_block_ = block_store_.Get();
       PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-      storage::InitializeRawBlock(raw_block_, layout, 0);
+      storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
 
       // Insert the maximum number of tuples into this Block
       for (uint32_t j = 0; j < layout.num_slots_; j++)

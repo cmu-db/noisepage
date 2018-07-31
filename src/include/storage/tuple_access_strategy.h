@@ -82,7 +82,7 @@ struct MiniBlock {
 // This is packed because these will only be constructed from compact
 // storage bytes, not on the fly. Layout optimization should be left
 // for LLVM later.
-struct PACKED Block {
+struct Block {
   /**
    * A block is always reinterpreted from a raw piece of memory
    * and should never be initialized, copied, moved, or on the stack.
@@ -103,7 +103,7 @@ struct PACKED Block {
   /**
    * @return reference to num_slots. Use as a member.
    */
-  uint32_t &NumSlots() { return reinterpret_cast<uint32_t *>(varlen_contents_)[2]; }
+  uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
 
   /**
    * @return reference to attr_offsets. Use as an array.
@@ -123,9 +123,8 @@ struct PACKED Block {
    * @return reference to attr_sizes. Use as an array.
    */
   uint8_t *AttrSizes(const BlockLayout &layout) { return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1); }
-  // Because where the other fields start will depend on the specific layout,
-  // reinterpreting the rest as bytes is the best we can do without LLVM.
-  byte varlen_contents_[0];
+
+  RawBlock block_;
 };
 }  // namespace
 
@@ -148,7 +147,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) const {
-    return reinterpret_cast<Block *>(block->content_)->Column(col)->NullBitmap();
+    return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
   }
 
   /**
@@ -157,7 +156,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, uint16_t col) const {
-    return reinterpret_cast<Block *>(block->content_)->Column(col)->ColumnStart(layout_);
+    return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_);
   }
 
   /* Tuple-level access */
@@ -192,8 +191,9 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    */
   void SetNull(TupleSlot slot, uint16_t col) const {
-    // Noop if already null
-    ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true);
+    if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true) // Noop if already null
+        && col == PRESENCE_COLUMN_ID)
+      slot.GetBlock()->num_records_--;
   }
 
   /* Allocation and Deallocation */
@@ -211,6 +211,7 @@ class TupleAccessStrategy {
     for (uint32_t i = 0; i < layout_.num_slots_; i++) {
       if (bitmap->Flip(i, false)) {
         slot = TupleSlot(block, i);
+        block->num_records_++;
         return true;
       }
     }
