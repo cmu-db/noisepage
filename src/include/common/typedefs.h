@@ -91,7 +91,7 @@ using byte = std::byte;
 
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
-bool operator>=(const timestamp_t &a, const timestamp_t &b) { return !a >= !b; }
+bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
 
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 
