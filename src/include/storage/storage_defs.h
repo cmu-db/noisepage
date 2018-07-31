@@ -150,6 +150,12 @@ class ProjectedRow {
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
 
+  /**
+   * Calculates the size of this ProjectedRow, including all members, values, and bitmap
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @return number of bytes for this ProjectedRow
+   */
   static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
     uint32_t result = sizeof(uint16_t);  // num_col size
     for (uint16_t col_id : col_ids)
@@ -157,6 +163,13 @@ class ProjectedRow {
     return result + common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
   }
 
+  /**
+   * Populates the ProjectedRow's members based on projection list and BlockLayout
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @return pointer to the initialized ProjectedRow
+   */
   static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
                                               byte *head) {
     auto *result = reinterpret_cast<ProjectedRow *>(head);
@@ -173,30 +186,63 @@ class ProjectedRow {
     return result;
   }
 
+  /**
+   * @return number of columns stored in the ProjectedRow
+   */
   uint16_t &NumColumns() { return num_cols_; }
 
+  /**
+   * @return number of columns stored in the ProjectedRow
+   */
   const uint16_t &NumColumns() const { return num_cols_; }
 
+  /**
+   * @return pointer to the start of the uint16_t array of column ids
+   */
   uint16_t *ColumnIds() { return reinterpret_cast<uint16_t *>(varlen_contents_); }
 
+  /**
+   * @return pointer to the start of the uint16_t array of column ids
+   */
   const uint16_t *ColumnIds() const { return reinterpret_cast<const uint16_t *>(varlen_contents_); }
 
-  byte *AccessWithNullCheck(uint16_t offset) {
+  /**
+   * Access a single attribute within the ProjectedRow with a check of the null bitmap first for nullable types
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
+   * nullable and set to null, then return value is nullptr
+   */
+  byte *AccessWithNullCheck(const uint16_t offset) {
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
 
-  const byte *AccessWithNullCheck(uint16_t offset) const {
+  /**
+   * Access a single attribute within the ProjectedRow with a check of the null bitmap first for nullable types
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
+   * nullable and set to null, then return value is nullptr
+   */
+  const byte *AccessWithNullCheck(const uint16_t offset) const {
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
 
-  byte *AccessForceNotNull(uint16_t offset) {
+  /**
+   * Access a single attribute within the ProjectedRow without a check of the null bitmap first
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
+   */
+  byte *AccessForceNotNull(const uint16_t offset) {
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
 
-  void SetNull(uint16_t offset) { Bitmap().Set(offset, false); }
+  /**
+   * Set the attribute in the ProjectedRow to be null using the internal bitmap
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   */
+  void SetNull(const uint16_t offset) { Bitmap().Set(offset, false); }
 
  private:
   uint16_t num_cols_;
