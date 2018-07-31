@@ -191,7 +191,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    */
   void SetNull(TupleSlot slot, uint16_t col) const {
-    if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true) // Noop if already null
+    if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true)  // Noop if already null
         && col == PRESENCE_COLUMN_ID)
       slot.GetBlock()->num_records_--;
   }
