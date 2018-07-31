@@ -290,11 +290,7 @@ function(ADD_TERRIER_FUZZING REL_FUZZING_NAME)
     return()
   endif()
 
-  if (TERRIER_BUILD_STATIC)
-    set(FUZZ_LINK_LIBS terrier_static)
-  else()
-    set(FUZZ_LINK_LIBS terrier_shared)
-  endif()
+  set(FUZZ_LINK_LIBS terrier_shared)
 
   add_executable(${REL_FUZZING_NAME} "${REL_FUZZING_NAME}.cc")
   target_link_libraries(${REL_FUZZING_NAME} ${FUZZ_LINK_LIBS})

@@ -39,9 +39,9 @@ elif [ "$APPLY_STEP" == "2" ]; then
   echo "Run 'make infer-report' next."
   echo "See: http://fbinfer.com/docs/steps-for-ci.html"
 elif [ "$APPLY_STEP" == "3" ]; then
-  $INFER report --issues-csv ./infer-out/report.csv 1> /dev/null
+#  $INFER report --issues-csv ./infer-out/report.csv 1> /dev/null
   $INFER report --issues-txt ./infer-out/report.txt 1> /dev/null
-  $INFER report --issues-json ./infer-out/report.json 1> /dev/null
+#  $INFER report --issues-json ./infer-out/report.json 1> /dev/null
   echo ""
   echo "Reports (report.txt, report.csv, report.json) can be found in the infer-out subdirectory."
 else
