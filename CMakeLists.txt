@@ -227,7 +227,7 @@ if (UNIX)
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
   --linelength=120
-  --filter=-legal/copyright,-build/header_guard
+  --filter=-legal/copyright,-build/header_guard,-runtime/references
   )
 endif (UNIX)
 
@@ -273,7 +273,6 @@ if (${INFER_FOUND})
   # runs infer report
   add_custom_target(infer-report ${BUILD_SUPPORT_DIR}/run-infer.sh ${INFER_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 3)
 endif()
-
 
 # set compile output directory
 string (TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
