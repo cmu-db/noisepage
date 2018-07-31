@@ -15,7 +15,7 @@ namespace terrier::storage {
 // (Think of this as writing the class with a BlockLayout template arg, except
 // template instantiation is done by LLVM at runtime and not at compile time.
 struct BlockLayout {
-  BlockLayout(uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
+  BlockLayout(const uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
       : num_cols_(num_attrs),
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
@@ -130,12 +130,12 @@ using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
  * layout:
- * -------------------------------------------------------------------------
- * | num_cols | col_id1 | col_id2 | ... | val1_offset | val2_offset_ | ... |
- * -------------------------------------------------------------------------
- * | null-bitmap (pad up to byte) | val1 | val2 | ...                      |
- * -------------------------------------------------------------------------
- * Warning, 0 means null.
+ * ------------------------------------------------------------------------
+ * | num_cols | col_id1 | col_id2 | ... | val1_offset | val2_offset | ... |
+ * ------------------------------------------------------------------------
+ * | null-bitmap (pad up to byte) | val1 | val2 | ...                     |
+ * ------------------------------------------------------------------------
+ * Warning, 0 means null in the null-bitmap
  *
  * The projection list is encoded as position of col_id -> col_id. For example:
  *
@@ -159,9 +159,9 @@ class ProjectedRow {
 
   static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
                                               byte *head) {
-    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(head);
+    auto *result = reinterpret_cast<ProjectedRow *>(head);
     result->num_cols_ = static_cast<uint16_t>(col_ids.size());
-    uint32_t val_offset =
+    auto val_offset =
         static_cast<uint32_t>(sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
                               common::BitmapSize(result->num_cols_));
     for (uint16_t i = 0; i < col_ids.size(); i++) {

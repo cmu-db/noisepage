@@ -5,7 +5,7 @@ namespace terrier {
 namespace storage {
 namespace {
 uint32_t ColumnSize(const BlockLayout &layout,
-                    uint16_t col_id) {
+                    const uint16_t col_id) {
   return layout.attr_sizes_[col_id] * layout.num_slots_
       + common::BitmapSize(layout.num_slots_);
 }
@@ -13,7 +13,7 @@ uint32_t ColumnSize(const BlockLayout &layout,
 
 void InitializeRawBlock(RawBlock *raw,
                         const BlockLayout &layout,
-                        layout_version_t layout_version) {
+                        const layout_version_t layout_version) {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->num_records_ = 0;

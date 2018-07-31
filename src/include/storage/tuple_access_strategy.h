@@ -166,7 +166,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
-  byte *AccessWithNullCheck(TupleSlot slot, uint16_t col) const {
+  byte *AccessWithNullCheck(const TupleSlot slot, uint16_t col) const {
     if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset())) return nullptr;
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
   }

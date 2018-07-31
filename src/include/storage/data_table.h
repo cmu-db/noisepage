@@ -46,18 +46,20 @@ class DataTable {
    * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
    *                       will just be the start time of the caller transaction.
    * @param slot the tuple slot to read
-   * @param buffer output buffer. The object should already contain projection list information. @seee ProjectedRow.
+   * @param buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer) {
+  void Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow &buffer) {
     // Retrieve the access strategy for the block's layout version. It is expected that
     // a valid block is given, thus the access strategy must have already been created.
     auto it = layouts_.Find(slot.GetBlock()->layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
     const TupleAccessStrategy &accessor = it->second;
 
-    // ProjectedRow should always have fewer attributes than the block layout.
+    // ProjectedRow should always have fewer attributes than the block layout because we will never return the
+    // version ptr above the DataTable layer
     // Also, the version ptr should not be in there: it is a concept hidden from callers.
     PELOTON_ASSERT(buffer.NumColumns() < accessor.GetBlockLayout().num_cols_);
+    PELOTON_ASSERT(buffer.NumColumns() > 0);
 
     // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
@@ -99,7 +101,7 @@ class DataTable {
    * before-image after this method returns.
    * @return whether the update is successful.
    */
-  bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
+  bool Update(const TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
     auto it = layouts_.Find(slot.GetBlock()->layout_version_);
     PELOTON_ASSERT(it != layouts_.End());
     const TupleAccessStrategy &accessor = it->second;
@@ -170,6 +172,7 @@ class DataTable {
  private:
   BlockStore &block_store_;
   // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
+  // TODO(Matt): consider a vector instead if lookups are faster
   ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // TODO(Tianyu): Again, change when supporting concurrent schema.
   const layout_version_t curr_layout_version_{0};
@@ -178,7 +181,7 @@ class DataTable {
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
-  // Applys a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
+  // Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
   // the materialized tuple if present in the materialized projection.
   void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
                   const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
@@ -195,11 +198,10 @@ class DataTable {
   }
 
   // Atomically read out the version pointer value.
-  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) {
+  DeltaRecord *AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) {
     // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
     // an issue (probably not, we are just reading one extra byte.)
 
-    // The check should never fail. (every tuple's version ptr attribute is meaningful).
     byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
     PELOTON_ASSERT(ptr_location != nullptr);
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
@@ -215,8 +217,8 @@ class DataTable {
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *expected,
                                 DeltaRecord *undo) {
-    // The check should never fail. (every tuple's version ptr attribute is meaningful).
     byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+    // The check should never fail. We should only update the version vector for a tuple that is present
     PELOTON_ASSERT(ptr_location != nullptr);
     return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, undo);
   }
