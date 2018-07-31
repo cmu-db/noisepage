@@ -9,7 +9,7 @@ matrix:
       env:
         - NAME="Mac clang"
       install:
-        - ./script/installation/packages.sh
+        - echo 'y' | ./script/installation/packages.sh
         - export PATH=/usr/local/opt/llvm/bin:$PATH
     - os: linux
       dist: trusty
@@ -20,7 +20,7 @@ matrix:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
         - docker cp . build:/repo
-        - docker exec build /repo/script/installation/packages.sh
+        - docker exec build /bin/sh -c "echo 'y' | /repo/script/installation/packages.sh"
     - os: linux
       dist: trusty
       env:
@@ -30,27 +30,41 @@ matrix:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
         - docker cp . build:/repo
+    - os: linux
+      dist: trusty
+      env:
+        - NAME="Docker[Coverage/Dockerfile]"
+        - DOCKER=true
+      install:
+        - docker build -t cmu-db/terrier .
+        - docker run -itd --name build cmu-db/terrier
+        - docker cp . build:/repo
+      before_script:
+        - docker exec build /bin/sh -c "apt-get -y install curl"
+        - docker exec build /bin/sh -c "mkdir -p /repo/build"
+        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DTERRIER_GENERATE_COVERAGE=On .."
+        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
+        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
 
-script:
+before_script:
   - if [[ "$DOCKER" = true ]]; then
-      docker exec build update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 99 &&
-      docker exec build update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 99 &&
-      docker exec build update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 99 &&
-      docker exec build update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 99 &&
-      docker exec build update-alternatives --set cc /usr/bin/gcc &&
-      docker exec build update-alternatives --set c++ /usr/bin/g++ &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec build /bin/sh -c "cd /repo/build && cmake .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
-      docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
-      docker exec build /bin/sh -c "cd /repo/build && make" &&
-      docker exec build /bin/sh -c "cd /repo/build && make unittest" ;
+      docker exec build /bin/sh -c "cd /repo/build && make check-format" ;
     else
       mkdir build &&
       cd build &&
       cmake .. &&
       make check-clang-tidy &&
-      make check-format &&
+      make check-format ;
+    fi
+
+script:
+  - if [[ "$DOCKER" = true ]]; then
+      docker exec build /bin/sh -c "cd /repo/build && make" &&
+      docker exec build /bin/sh -c "cd /repo/build && make unittest" ;
+    else
       make &&
       make unittest ;
     fi

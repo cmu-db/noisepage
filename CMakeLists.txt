@@ -89,10 +89,6 @@ option(TERRIER_BUILD_BENCHMARKS
     "Build the Terrier micro benchmarks"
     ON)
 
-option(TERRIER_FUZZING
-    "Build Terrier Fuzzing executables"
-    OFF)
-
 option(TERRIER_RPATH_ORIGIN
     "Build Terrier libraries with RATH set to \$ORIGIN"
     OFF)
@@ -119,10 +115,6 @@ endif()
 
 if(NOT TERRIER_BUILD_BENCHMARKS)
   set(NO_BENCHMARKS 1)
-endif()
-
-if (NOT TERRIER_FUZZING)
-  set(NO_FUZZING 1)
 endif()
 
 ###################################################
@@ -190,14 +182,34 @@ string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
 
 # ASAN / TSAN / UBSAN
-if(TERRIER_FUZZING)
-  set(TERRIER_USE_COVERAGE ON)
-endif()
 include(san-config)
 
-# Code coverage
-if ("${TERRIER_GENERATE_COVERAGE}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -DCOVERAGE_BUILD")
+###########################################################
+# code coverage
+###########################################################
+
+if (TERRIER_GENERATE_COVERAGE)
+
+  if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+    message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
+  endif()
+
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+
+  include(Coveralls)
+
+  file(GLOB_RECURSE COVERAGE_SRCS
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+      )
+
+  set(COVERAGE_UPLOAD ON)
+
+  coveralls_setup(
+      "${COVERAGE_SRCS}"
+      "${COVERAGE_UPLOAD}"
+      "${CMAKE_MODULE_PATH}"
+  )
 endif()
 
 # CMAKE_CXX_FLAGS now fully assembled
