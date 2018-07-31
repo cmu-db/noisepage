@@ -203,7 +203,6 @@ if (TERRIER_GENERATE_COVERAGE)
       "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
       )
 
-  set(COVERAGE_SRCS ${cov_src})
   set(COVERAGE_UPLOAD ON)
 
   coveralls_setup(
