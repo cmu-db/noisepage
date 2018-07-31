@@ -161,8 +161,9 @@ class ProjectedRow {
                                               byte *head) {
     ProjectedRow *result = reinterpret_cast<ProjectedRow *>(head);
     result->num_cols_ = static_cast<uint16_t>(col_ids.size());
-    uint32_t val_offset = sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
-                          common::BitmapSize(result->num_cols_);
+    uint32_t val_offset =
+        static_cast<uint32_t>(sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
+                              common::BitmapSize(result->num_cols_));
     for (uint16_t i = 0; i < col_ids.size(); i++) {
       result->ColumnIds()[i] = col_ids[i];
       result->AttrValueOffsets()[i] = val_offset;
