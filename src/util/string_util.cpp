@@ -19,6 +19,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace terrier {
 
@@ -148,7 +149,7 @@ std::string StringUtil::Lower(const std::string &str) {
 
 std::string StringUtil::Format(const std::string fmt_str, ...) {
   // Reserve two times as much as the length of the fmt_str
-  int final_n, n = ((int)fmt_str.size()) * 2;
+  int final_n, n = static_cast<int>(fmt_str.size()) * 2;
   std::string str;
   std::unique_ptr<char[]> formatted;
   va_list ap;
@@ -200,4 +201,4 @@ std::string StringUtil::Strip(const std::string &str, char c) {
   return tmp;
 }
 
-}  // namespace peloton
+}  // namespace terrier

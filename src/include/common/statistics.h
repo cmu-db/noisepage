@@ -29,7 +29,7 @@ namespace terrier {
 
 class Statistics {
  public:
-  virtual ~Statistics(){};
+  virtual ~Statistics() {}
 
   /** @brief Set the Json value about the statistics. */
   virtual void SetStats() = 0;

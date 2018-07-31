@@ -34,5 +34,5 @@ void InitializeRawBlock(RawBlock *raw,
   for (uint16_t i = 0; i < layout.num_cols_; i++)
     result->AttrSizes(layout)[i] = layout.attr_sizes_[i];
 }
-}
-}
+}  // namespace storage
+}  // namespace terrier

@@ -100,6 +100,4 @@ void Logger::InitializeLogger() {
   el::Loggers::reconfigureLogger(LOGGER_NAME, logger_conf);
 }
 
-}
-
-
+}  // namespace terrier

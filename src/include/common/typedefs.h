@@ -7,6 +7,7 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "common/macros.h"
 
@@ -84,7 +85,7 @@ class StrongTypeAlias {
 template <class Tag, typename T>
 StrongTypeAlias<Tag, T> ValueOf(T val) {
   return StrongTypeAlias<Tag, T>(val);
-};
+}
 
 // TODO(Tianyu): Maybe?
 using byte = std::byte;

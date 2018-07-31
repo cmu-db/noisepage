@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include "common/concurrent_bitmap.h"
 #include "common/macros.h"

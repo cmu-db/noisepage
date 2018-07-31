@@ -1,7 +1,8 @@
 #pragma once
 
+#include <utility>
 #include "common/concurrent_queue.h"
-#include "typedefs.h"
+#include "common/typedefs.h"
 namespace terrier {
 template <typename T>
 struct ByteAllocator {

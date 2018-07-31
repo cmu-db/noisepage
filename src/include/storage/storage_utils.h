@@ -54,9 +54,9 @@ void CopyWithNullCheck(const byte *from, ProjectedRow &to, uint8_t size, uint16_
 }
 
 void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, TupleSlot to, uint16_t col_id) {
-  if (from == nullptr)
+  if (from == nullptr) {
     accessor.SetNull(to, col_id);
-  else {
+  } else {
     uint8_t size = accessor.GetBlockLayout().attr_sizes_[col_id];
     WriteBytes(size, ReadBytes(size, from), accessor.AccessForceNotNull(to, col_id));
   }

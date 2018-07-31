@@ -28,7 +28,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable.
    */
   DataTable(BlockStore &store, const BlockLayout &layout) : block_store_(store) {
-    layouts_.Emplace(store, layout);
+    layouts_.Emplace(curr_layout_version_, layout);
     NewBlock(nullptr);
     PELOTON_ASSERT(insertion_head_ != nullptr);
   }

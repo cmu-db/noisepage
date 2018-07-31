@@ -2,6 +2,7 @@
 
 #include <tbb/concurrent_unordered_map.h>
 #include <functional>
+#include <utility>
 #include "common/macros.h"
 #include "common/typedefs.h"
 
@@ -93,7 +94,7 @@ class ConcurrentMap {
   std::pair<Iterator, bool> Emplace(Args &&... args) {
     auto result = map_.emplace(std::move(args)...);
     return {Iterator(result.first), result.second};
-  };
+  }
 
   /**
    * Insert the specified key and value into the map. Overwrites mapping if a
