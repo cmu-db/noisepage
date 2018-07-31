@@ -195,6 +195,11 @@ if(TERRIER_FUZZING)
 endif()
 include(san-config)
 
+# Code coverage
+if ("${TERRIER_GENERATE_COVERAGE}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -DCOVERAGE_BUILD")
+endif()
+
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
@@ -209,14 +214,8 @@ if (UNIX)
 
   file(GLOB_RECURSE LINT_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     )
-
-  FOREACH(item ${LINT_FILES})
-    IF(NOT ((item MATCHES "_generated.h")))
-      LIST(APPEND FILTERED_LINT_FILES ${item})
-    ENDIF()
-  ENDFOREACH(item ${LINT_FILES})
 
   find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
   message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
@@ -224,11 +223,11 @@ if (UNIX)
   # Full lint
   # Balancing act: cpplint.py takes a non-trivial time to launch,
   # so process 12 files per invocation, while still ensuring parallelism
-  add_custom_target(lint echo ${FILTERED_LINT_FILES} | xargs -n12 -P8
+  add_custom_target(lint echo ${LINT_FILES} | xargs -n12 -P8
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
   --linelength=120
-  --filter=-whitespace/comments,-readability/todo,-build/header_guard,-build/c++11,-runtime/references,-build/include_order
+  --filter=-legal/copyright,-build/header_guard,-runtime/references
   )
 endif (UNIX)
 
@@ -274,7 +273,6 @@ if (${INFER_FOUND})
   # runs infer report
   add_custom_target(infer-report ${BUILD_SUPPORT_DIR}/run-infer.sh ${INFER_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 3)
 endif()
-
 
 # set compile output directory
 string (TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
