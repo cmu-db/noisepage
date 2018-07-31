@@ -266,33 +266,10 @@ function(ADD_TERRIER_TESTS)
   endforeach()
 endfunction()
 
-
-############################################################
-# Fuzzing
-############################################################
-# Add new fuzzing test executable.
-#
-# The single source file must define a function:
-#   extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
-#
-# No main function must be present within the source file!
-#
-function(ADD_TERRIER_FUZZING REL_FUZZING_NAME)
-  if(NO_FUZZING)
-    return()
-  endif()
-
-  if (TERRIER_BUILD_STATIC)
-    set(FUZZ_LINK_LIBS terrier_static)
-  else()
-    set(FUZZ_LINK_LIBS terrier_shared)
-  endif()
-
-  add_executable(${REL_FUZZING_NAME} "${REL_FUZZING_NAME}.cc")
-  target_link_libraries(${REL_FUZZING_NAME} ${FUZZ_LINK_LIBS})
-  target_compile_options(${REL_FUZZING_NAME}
-      PRIVATE "-fsanitize=fuzzer")
-  set_target_properties(${REL_FUZZING_NAME}
-      PROPERTIES
-      LINK_FLAGS "-fsanitize=fuzzer")
+function(ADD_TERRIER_BENCHMARKS)
+  file(GLOB_RECURSE TERRIER_BENCHMARK_SOURCES "*.cpp")
+  foreach(FILE_FULL_PATH ${TERRIER_BENCHMARK_SOURCES})
+    get_filename_component(BENCHMARK_NAME ${FILE_FULL_PATH} NAME_WE)
+    ADD_TERRIER_BENCHMARK(${BENCHMARK_NAME})
+  endforeach()
 endfunction()
