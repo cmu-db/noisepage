@@ -331,3 +331,22 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
+
+###########################################################
+# Coverage
+###########################################################
+
+if (TERRIER_GENERATE_COVERAGE)
+  include(Coveralls)
+
+  file(GLOB_RECURSE cov_src ${PROJECT_SOURCE_DIR}/src/*.h ${PROJECT_SOURCE_DIR}/src/*.cpp)
+
+  set(COVERAGE_SRCS ${cov_src})
+  set(COVERAGE_UPLOAD ON)
+
+  coveralls_setup(
+    "${COVERAGE_SRCS}"
+    "${COVERAGE_UPLOAD}"
+    "${CMAKE_MODULE_PATH}"
+  )
+endif()

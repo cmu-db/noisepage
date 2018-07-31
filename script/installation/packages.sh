@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 ## =================================================================
 ## TERRIER PACKAGE INSTALLATION
@@ -19,6 +19,19 @@
 main() {
   set -o errexit
 
+    echo "PACKAGES WILL BE INSTALLED. THIS MAY BREAK YOUR EXISTING TOOLCHAIN."
+    echo "YOU ACCEPT ALL RESPONSIBILITY BY PROCEEDING."
+    read -p "Proceed? [Y/n] : " yn
+    case $yn in
+        Y|y) install;;
+        *) ;;
+    esac
+
+    echo "Script complete."
+}
+
+install() {
+  set -x
   UNAME=$(uname | tr "[:lower:]" "[:upper:]" )
 
   case $UNAME in
@@ -37,6 +50,7 @@ main() {
 }
 
 give_up() {
+  set +x
   echo "Unsupported distribution '$UNAME'"
   echo "Please contact our support team for additional help."
   echo "Be sure to include the contents of this message."
@@ -69,6 +83,7 @@ install_linux() {
   apt-get -y update
   # Install packages.
   apt-get -y install \
+      build-essential \
       clang-6.0 \
       clang-format-6.0 \
       clang-tidy-6.0 \
