@@ -17,7 +17,7 @@ void InitializeRawBlock(RawBlock *raw,
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->num_records_ = 0;
-  auto *result = reinterpret_cast<Block *>(raw);
+  auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout.num_slots_;
   // TODO(Tianyu): For now, columns start right after the header without
   // alignment considerations. This logic will need to change when switching

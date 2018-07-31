@@ -87,18 +87,6 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
   return StrongTypeAlias<Tag, T>(val);
 }
 
-// TODO(Tianyu): Maybe?
-using byte = std::byte;
-
-STRONG_TYPEDEF(timestamp_t, uint64_t);
-
-bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
-
-STRONG_TYPEDEF(layout_version_t, uint32_t);
-
-// TODO(tianyu): Implement
-bool Uncommitted(timestamp_t timestamp) { return false; }
-
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
 // template <class Tag>
@@ -106,6 +94,11 @@ bool Uncommitted(timestamp_t timestamp) { return false; }
 //  // Write your operator here!
 //};
 
+/* Define all typedefs here! */
+// TODO(Tianyu): Maybe?
+using byte = std::byte;
+STRONG_TYPEDEF(timestamp_t, uint64_t);
+STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
 namespace std {

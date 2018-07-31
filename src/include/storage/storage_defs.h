@@ -1,4 +1,5 @@
 #pragma once
+
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -156,12 +157,7 @@ class ProjectedRow {
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this ProjectedRow
    */
-  static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-    uint32_t result = sizeof(uint16_t);  // num_col size
-    for (uint16_t col_id : col_ids)
-      result += static_cast<uint32_t>(sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id]);
-    return result + common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
-  }
+  static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout
@@ -171,20 +167,7 @@ class ProjectedRow {
    * @return pointer to the initialized ProjectedRow
    */
   static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
-                                              byte *head) {
-    auto *result = reinterpret_cast<ProjectedRow *>(head);
-    result->num_cols_ = static_cast<uint16_t>(col_ids.size());
-    auto val_offset =
-        static_cast<uint32_t>(sizeof(uint16_t) + result->num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)) +
-                              common::BitmapSize(result->num_cols_));
-    for (uint16_t i = 0; i < col_ids.size(); i++) {
-      result->ColumnIds()[i] = col_ids[i];
-      result->AttrValueOffsets()[i] = val_offset;
-      val_offset += layout.attr_sizes_[col_ids[i]];
-    }
-    result->Bitmap().Clear(common::BitmapSize(result->num_cols_));
-    return result;
-  }
+                                              byte *head);
 
   /**
    * @return number of columns stored in the ProjectedRow
