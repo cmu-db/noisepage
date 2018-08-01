@@ -4,7 +4,8 @@
 namespace terrier {
 struct TupleAccessStrategyTests : public ::testing::Test {
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  statistics::PerformanceCounters<storage::BlockStore> pc;
+  storage::BlockStore block_store_{1, pc};
  protected:
   void SetUp() override {
     raw_block_ = block_store_.Get();

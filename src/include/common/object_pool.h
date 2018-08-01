@@ -1,7 +1,9 @@
 #pragma once
 
 #include "common/concurrent_queue.h"
+#include "statistics/block_store_pc.h"
 #include "typedefs.h"
+
 namespace terrier {
 template <typename T>
 struct ByteAllocator {
@@ -40,7 +42,8 @@ class ObjectPool {
    * objects reused.
    * @param reuse_limit
    */
-  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+  explicit ObjectPool(uint64_t reuse_limit, statistics::PerformanceCounters<ObjectPool<T, Allocator>> &pc)
+      : reuse_limit_(reuse_limit), pc_(pc) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -67,7 +70,15 @@ class ObjectPool {
    */
   FAKED_IN_TEST T *Get() {
     T *result;
-    if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
+    if (!reuse_queue_.Dequeue(result)) {
+      result = alloc_.New();
+
+      // for statistics
+      pc_.IncrementCounter("block_counter");
+    } else {
+      // for statistics
+      pc_.DecrementCounter("reuse_queue_counter");
+    }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -80,16 +91,30 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   FAKED_IN_TEST void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > reuse_limit_)
+    if (reuse_queue_.UnsafeSize() > reuse_limit_) {
       alloc_.Delete(obj);
-    else
+
+      // for statistics
+      pc_.DecrementCounter("block_counter");
+    } else {
       reuse_queue_.Enqueue(std::move(obj));
+
+      // for statistics
+      pc_.IncrementCounter("reuse_queue_counter");
+    }
   }
+
+  /**
+   * Print performance counters.
+   */
+  void PrintPerformanceCounters() { pc_.PrintPerformanceCounters(); }
 
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
+
+  statistics::PerformanceCounters<ObjectPool<T, Allocator>> &pc_;
 };
 }  // namespace terrier
