@@ -29,32 +29,32 @@ void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
 ///////////////////////////////////////////////////////////
 
 template<typename Random>
-storage::ProjectedRow *GenerateDelta(const storage::BlockLayout &layout,
-                                     const std::vector<uint16_t> &col_ids,
-                                     Random &generator,
-                                     double null_bias = 0.1) {
-
-  uint32_t contents_size = storage::ProjectedRow::RowSize(layout, col_ids);
-  byte *contents = new byte[contents_size];
-
-  storage::ProjectedRow *delta = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, contents);
+void GenerateRandomRow(storage::ProjectedRow *row, const storage::BlockLayout &layout, Random &generator,
+                       const double null_bias = 0.1) {
 
   // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
-  for (uint16_t projection_list_idx = 0; projection_list_idx < delta->NumColumns(); projection_list_idx++) {
-    uint16_t col = delta->ColumnIds()[projection_list_idx];
+  for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
+    uint16_t col = row->ColumnIds()[projection_list_idx];
     std::bernoulli_distribution coin(1 - null_bias);
 
     if (coin(generator)) {
-      FillWithRandomBytes(layout.attr_sizes_[col], delta->AccessForceNotNull(projection_list_idx), generator);
+      FillWithRandomBytes(layout.attr_sizes_[col], row->AccessForceNotNull(projection_list_idx), generator);
     }
   }
+}
 
-  return delta;
+std::vector<uint16_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
+  std::vector<uint16_t> col_ids(layout.num_cols_ - 1u);
+  // Add all of the column ids from the layout to the projection list
+  // 0 is version vector so we skip it
+  for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    col_ids.push_back(col);
+  }
+  return col_ids;
 }
 
 template<typename Random>
-storage::ProjectedRow *RandomDelta(const storage::BlockLayout &layout, Random &generator, double null_bias = 0.1) {
-
+std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random &generator) {
   // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols since
   // we exclude the version vector column
   uint16_t num_cols = std::uniform_int_distribution(1, layout.num_cols_ - 1)(generator);
@@ -72,19 +72,6 @@ storage::ProjectedRow *RandomDelta(const storage::BlockLayout &layout, Random &g
   // truncate the projection list
   col_ids.resize(num_cols);
 
-  return GenerateDelta<Random>(layout, col_ids, generator, null_bias);
+  return col_ids;
 }
-
-template<typename Random>
-storage::ProjectedRow *RandomTuple(const storage::BlockLayout &layout, Random &generator, double null_bias = 0.1) {
-
-  std::vector<uint16_t> col_ids(layout.num_cols_ - 1);
-  // Add all of the column ids from the layout to the projection list
-  // 0 is version vector so we skip it
-  for (uint16_t col = 1; col < layout.num_cols_; col++) {
-    col_ids.push_back(col);
-  }
-
-  return GenerateDelta<Random>(layout, col_ids, generator, null_bias);
-}
-}
+}  // namespace terrier::testutil

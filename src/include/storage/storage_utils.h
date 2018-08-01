@@ -65,11 +65,11 @@ uint64_t ReadBytes(uint8_t attr_size, const byte *pos) {
  * @param size size of the attribute
  * @param col_id column id to copy into
  */
-void CopyWithNullCheck(const byte *from, ProjectedRow &to, uint8_t size, uint16_t col_id) {
+void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id) {
   if (from == nullptr)
-    to.SetNull(col_id);
+    to->SetNull(col_id);
   else
-    WriteBytes(size, ReadBytes(size, from), to.AccessForceNotNull(col_id));
+    WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(col_id));
 }
 
 /**
@@ -97,9 +97,9 @@ void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, Tu
  * @param to projected row to copy into
  * @param projection_list_offset The projection_list index to copy to on the projected row.
  */
-void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow &to,
+void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
                             uint16_t projection_list_offset) {
-  uint16_t col_id = to.ColumnIds()[projection_list_offset];
+  uint16_t col_id = to->ColumnIds()[projection_list_offset];
   uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
   byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
   CopyWithNullCheck(stored_attr, to, attr_size, projection_list_offset);

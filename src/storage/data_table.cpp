@@ -13,7 +13,7 @@ DataTable::DataTable(BlockStore &store, const BlockLayout &layout) : block_store
   PELOTON_ASSERT(insertion_head_ != nullptr);
 }
 
-void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow &buffer) {
+void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow *buffer) {
   // Retrieve the access strategy for the block's layout version. It is expected that
   // a valid block is given, thus the access strategy must have already been created.
   auto it = layouts_.Find(slot.GetBlock()->layout_version_);
@@ -23,13 +23,13 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // ProjectedRow should always have fewer attributes than the block layout because we will never return the
   // version ptr above the DataTable layer
   // Also, the version ptr should not be in there: it is a concept hidden from callers.
-  PELOTON_ASSERT(buffer.NumColumns() < accessor.GetBlockLayout().num_cols_);
-  PELOTON_ASSERT(buffer.NumColumns() > 0);
+  PELOTON_ASSERT(buffer->NumColumns() < accessor.GetBlockLayout().num_cols_);
+  PELOTON_ASSERT(buffer->NumColumns() > 0);
 
   // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
   // because so long as we set the version ptr before updating in place, the reader will know if a conflict
   // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < buffer.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, buffer, i);
+  for (uint16_t i = 0; i < buffer->NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, buffer, i);
 
   // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
   // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
@@ -43,13 +43,13 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // access columns since deltas can concern a different set of columns when chasing the
   // version chain
   std::unordered_map<uint16_t, uint16_t> projection_list_col_to_index;
-  for (uint16_t i = 0; i < buffer.NumColumns(); i++) projection_list_col_to_index.emplace(buffer.ColumnIds()[i], i);
+  for (uint16_t i = 0; i < buffer->NumColumns(); i++) projection_list_col_to_index.emplace(buffer->ColumnIds()[i], i);
 
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr && version_ptr->timestamp_ >= txn_start_time) {
-    ApplyDelta(accessor.GetBlockLayout(), version_ptr->delta_, buffer, projection_list_col_to_index);
+    ApplyDelta(accessor.GetBlockLayout(), *(version_ptr->Delta()), buffer, projection_list_col_to_index);
     version_ptr = version_ptr->next_;
   }
 }
@@ -60,16 +60,20 @@ bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaReco
   const TupleAccessStrategy &accessor = it->second;
 
   // They should have the same layout.
-  PELOTON_ASSERT(redo.NumColumns() == undo->delta_.NumColumns());
+  PELOTON_ASSERT(redo.NumColumns() == undo->Delta()->NumColumns());
   // TODO(Tianyu): Do we want to also check the column ids and order?
 
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
   if (HasConflict(version_ptr, undo)) return false;
+
+  // Update the next pointer of the new head of the version chain
+  undo->next_ = version_ptr;
+
   // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
   // Populate undo record with the before image of attribute
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, undo->delta_, i);
+  for (uint16_t i = 0; i < redo.NumColumns(); i++) CopyAttrIntoProjection(accessor, slot, undo->Delta(), i);
 
   // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
   if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
@@ -117,7 +121,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
 
 void DataTable::ApplyDelta(const BlockLayout &layout,
                            const ProjectedRow &delta,
-                           ProjectedRow &buffer,
+                           ProjectedRow *buffer,
                            const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
   for (uint16_t i = 0; i < delta.NumColumns(); i++) {
     uint16_t delta_col_id = delta.ColumnIds()[i];

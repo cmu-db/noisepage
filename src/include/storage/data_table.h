@@ -44,7 +44,7 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer);
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *buffer);
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -87,7 +87,7 @@ class DataTable {
 
   // Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
   // the materialized tuple if present in the materialized projection.
-  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
+  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
                   const std::unordered_map<uint16_t, uint16_t> &col_to_index);
 
   // Atomically read out the version pointer value.
