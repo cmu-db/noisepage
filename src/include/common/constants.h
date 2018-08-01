@@ -14,6 +14,6 @@ struct Constants {
   /**
    * Block size.
    */
-  static const uint32_t BLOCK_SIZE = 1048576u; // Should only ever be a power of 2.
+  static const uint32_t BLOCK_SIZE = 1048576u;  // Should only ever be a power of 2.
 };
 }  // namespace terrier
