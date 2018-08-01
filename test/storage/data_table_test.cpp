@@ -17,7 +17,6 @@ TEST_F(DataTableTests, SimpleInsertTest) {
   for (uint16_t iteration = 0; iteration < num_repetitions; ++iteration) {
 
     storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
-    std::cout << layout.num_cols_ << std::endl;
     storage::DataTable table(block_store_, layout);
 
     std::vector<byte *> insert_redos(num_inserts);
