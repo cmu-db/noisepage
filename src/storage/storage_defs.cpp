@@ -28,7 +28,8 @@ ProjectedRow *ProjectedRow::InitializeProjectedRow(const BlockLayout &layout,
 }
 
 uint32_t DeltaRecord::Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-  return sizeof(DeltaRecord *) + sizeof(timestamp_t) + ProjectedRow::Size(layout, col_ids);
+  return static_cast<uint32_t>(sizeof(DeltaRecord *)) + static_cast<uint32_t>(sizeof(timestamp_t))
+      + static_cast<uint32_t>(ProjectedRow::Size(layout, col_ids));
 }
 
 DeltaRecord *DeltaRecord::InitializeDeltaRecord(DeltaRecord *next,
