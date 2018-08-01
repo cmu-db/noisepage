@@ -17,7 +17,7 @@ struct DataTableTests : public ::testing::Test {
 };
 
 TEST_F(DataTableTests, SimpleInsertTest) {
-  uint32_t num_inserts = 10;
+  uint32_t num_inserts = 1000000;
   uint16_t max_columns = 100;
 
   storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
@@ -53,8 +53,20 @@ TEST_F(DataTableTests, SimpleInsertTest) {
 
   EXPECT_EQ(num_inserts, inserted_tuples.size());
 
-  for (const auto &i : inserted_tuples) {
-    table.Select(VALUE_OF(timestamp_t, 1ull), i.first, i.second);
+
+  std::vector<byte *> select_buffers(num_inserts);
+
+  for (uint32_t i = 0; i < num_inserts; ++i) {
+    // generate a redo ProjectedRow for Select
+    byte *select_buffer = new byte[redo_size];
+    select_buffers[i] = select_buffer;
+    storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, select_buffer);
+
+    table.Select(VALUE_OF(timestamp_t, 1ull), inserted_tuples[i].first, select_row);
+
+    storage::ProjectedRow *inserted_row = inserted_tuples[i].second;
+
+    EXPECT_EQ(0, std::memcmp(inserted_row, select_row, redo_size));
   }
 
   for (auto i : insert_redos) {
