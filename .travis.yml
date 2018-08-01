@@ -7,15 +7,14 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env:
-        - NAME="Mac clang"
+        - NAME="Mac [dbg/clang]" CMAKE_BUILD_TYPE=debug
       install:
         - echo 'y' | ./script/installation/packages.sh
         - export PATH=/usr/local/opt/llvm/bin:$PATH
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[packages.sh]"
-        - DOCKER=true
+        - NAME="Docker[dbg/packages.sh]" CMAKE_BUILD_TYPE=debug DOCKER=true
       install:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
@@ -24,17 +23,42 @@ matrix:
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[Dockerfile]"
-        - DOCKER=true
+        - NAME="Docker[dbg/Dockerfile]" CMAKE_BUILD_TYPE=debug DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
         - docker cp . build:/repo
+# Release builds. Will be replaced by Jenkins.
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env:
+        - NAME="Mac [rel/clang]" CMAKE_BUILD_TYPE=release
+      install:
+        - echo 'y' | ./script/installation/packages.sh
+        - export PATH=/usr/local/opt/llvm/bin:$PATH
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[Coverage/Dockerfile]"
-        - DOCKER=true
+       - NAME="Docker[rel/packages.sh]" CMAKE_BUILD_TYPE=release DOCKER=true
+      install:
+        - docker pull ubuntu:18.04
+        - docker run -itd --name build ubuntu:18.04
+        - docker cp . build:/repo
+        - docker exec build /bin/sh -c "echo 'y' | /repo/script/installation/packages.sh"
+    - os: linux
+      dist: trusty
+      env:
+        - NAME="Docker[rel/Dockerfile]" CMAKE_BUILD_TYPE=release DOCKER=true
+      install:
+        - docker build -t cmu-db/terrier .
+        - docker run -itd --name build cmu-db/terrier
+        - docker cp . build:/repo
+# Coverage. Will be replaced by Jenkins.
+    - os: linux
+      dist: trusty
+      env:
+        - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -42,7 +66,7 @@ matrix:
       before_script:
         - docker exec build /bin/sh -c "apt-get -y install curl"
         - docker exec build /bin/sh -c "mkdir -p /repo/build"
-        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DTERRIER_GENERATE_COVERAGE=On .."
+        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
         - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
         - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
 
@@ -50,7 +74,7 @@ before_script:
   - if [[ "$DOCKER" = true ]]; then
       docker exec build /bin/sh -c "cd /repo/apidoc && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt) && if [ -f warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
-      docker exec build /bin/sh -c "cd /repo/build && cmake .." &&
+      docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
       docker exec build /bin/sh -c "cd /repo/build && make lint" ;
@@ -62,7 +86,7 @@ before_script:
       cd .. &&
       mkdir build &&
       cd build &&
-      cmake .. &&
+      cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .. &&
       make check-clang-tidy &&
       make check-format &&
       make lint;
