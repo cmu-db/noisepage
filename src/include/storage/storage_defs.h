@@ -64,7 +64,7 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-        + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
@@ -113,9 +113,9 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t) block | offset) {
+  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)));
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
     // it in the 0 bits at the end of the address
     PELOTON_ASSERT(offset < Constants::BLOCK_SIZE);
@@ -308,11 +308,11 @@ class DeltaRecord {
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); };
 
   /**
- * Calculates the size of this DeltaRecord, including all members, values, and bitmap
- * @param layout BlockLayout of the RawBlock to be accessed
- * @param col_ids projection list of column ids to map
- * @return number of bytes for this DeltaRecord
- */
+   * Calculates the size of this DeltaRecord, including all members, values, and bitmap
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @return number of bytes for this DeltaRecord
+   */
   static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
   /**
@@ -324,11 +324,8 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(DeltaRecord *next,
-                                            const timestamp_t timestamp,
-                                            const BlockLayout &layout,
-                                            const std::vector<uint16_t> &col_ids,
-                                            byte *head);
+  static DeltaRecord *InitializeDeltaRecord(DeltaRecord *next, const timestamp_t timestamp, const BlockLayout &layout,
+                                            const std::vector<uint16_t> &col_ids, byte *head);
 
  private:
   byte varlen_contents_[0];
@@ -339,7 +336,7 @@ namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template<>
+template <>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.
