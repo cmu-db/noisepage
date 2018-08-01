@@ -42,9 +42,6 @@ class RawBitmap {
   // Always reinterpret_cast from raw memory.
   RawBitmap() = delete;
   ~RawBitmap() = delete;
-  /**
-   * Disallow copy and move.
-   */
   DISALLOW_COPY_AND_MOVE(RawBitmap)
 
   /**

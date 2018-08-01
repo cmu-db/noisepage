@@ -40,8 +40,9 @@ struct BlockLayout {
    * Vector of attribute sizes.
    */
   const std::vector<uint8_t> attr_sizes_;
+  // Cached tuple size so that we don't have to iterate through attr_sizes_ every time.
   /**
-   * Cached tuple size so that we don't have to iterate through attr_sizes_ every time.
+   * Tuple size.
    */
   const uint32_t tuple_size_;
   /**
@@ -299,11 +300,11 @@ struct DeltaRecord {
    */
   DeltaRecord *next_;
   /**
-   * Timestamp at which the old projected row was visible.
+   * Timestamp up to which the old projected row was visible.
    */
   timestamp_t timestamp_;
   /**
-   * The old projected row.
+   * Before-image of the modified attributes on the row.
    */
   ProjectedRow delta_;
 };
