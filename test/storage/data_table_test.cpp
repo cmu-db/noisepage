@@ -17,7 +17,7 @@ struct DataTableTests : public ::testing::Test {
 };
 
 TEST_F(DataTableTests, SimpleInsertTest) {
-  uint16_t num_inserts = 1000;
+  uint32_t num_inserts = 1000;
   uint16_t max_columns = 100;
 
   storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
@@ -29,14 +29,23 @@ TEST_F(DataTableTests, SimpleInsertTest) {
   std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
 
   uint32_t redo_size = storage::ProjectedRow::Size(layout, col_ids);
+  uint32_t undo_size = storage::DeltaRecord::Size(layout, col_ids);
 
-  for (uint16_t i = 0; i < num_inserts; ++i) {
+  for (uint32_t i = 0; i < num_inserts; ++i) {
+
+    // generate a random redo ProjectedRow to Insert
     byte *redo_buffer = new byte[redo_size];
-    insert_redos.push_back(redo_buffer);
-
+    insert_redos[i] = redo_buffer;
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, redo_buffer);
-
     testutil::GenerateRandomRow(redo, layout, generator_, 0);
+
+    // generate an undo DeltaRecord to populate on Insert
+    byte *undo_buffer = new byte[undo_size];
+    insert_undos[i] = undo_buffer;
+    storage::DeltaRecord *undo =
+        storage::DeltaRecord::InitializeDeltaRecord(nullptr, VALUE_OF(timestamp_t, 0ull), layout, col_ids, undo_buffer);
+
+    table.Insert(*redo, undo);
   }
 
   for (auto i : insert_redos) {

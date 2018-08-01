@@ -26,8 +26,6 @@ void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
   for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(generator));
 }
 
-///////////////////////////////////////////////////////////
-
 template<typename Random>
 void GenerateRandomRow(storage::ProjectedRow *row, const storage::BlockLayout &layout, Random &generator,
                        const double null_bias = 0.1) {
@@ -48,7 +46,7 @@ std::vector<uint16_t> ProjectionListAllColumns(const storage::BlockLayout &layou
   // Add all of the column ids from the layout to the projection list
   // 0 is version vector so we skip it
   for (uint16_t col = 1; col < layout.num_cols_; col++) {
-    col_ids.push_back(col);
+    col_ids[col-1] = col;
   }
   return col_ids;
 }

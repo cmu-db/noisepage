@@ -88,6 +88,9 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   PELOTON_ASSERT(it != layouts_.End());
   const TupleAccessStrategy &accessor = it->second;
 
+  // The undo buffer for an insert should come in with a nullptr undo buffer
+  PELOTON_ASSERT(undo->next_ == nullptr);
+
   // Since this is an insert, all the column values should be given in the redo.
   PELOTON_ASSERT(redo.NumColumns() == (accessor.GetBlockLayout().num_cols_ - 1));
 
@@ -112,8 +115,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   // TODO(Tianyu): This is lazy. Realistically, we need one primary key column in the before-image as null
   // to denote an insert. Calling update means we are stupidly copying the entire tuple. That said, this won't
   // be a correctness issue. So we can fix later.
-  UNUSED_ATTRIBUTE
-  bool no_conflict = Update(result, redo, undo);
+  UNUSED_ATTRIBUTE bool no_conflict = Update(result, redo, undo);
   // Expect no conflict because this version should only be visible to this transaction.
   PELOTON_ASSERT(no_conflict);
   return result;
