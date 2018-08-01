@@ -7,13 +7,6 @@ namespace terrier {
 struct DataTableTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
   std::default_random_engine generator_;
-
- protected:
-  void SetUp() override {
-  }
-
-  void TearDown() override {
-  }
 };
 
 TEST_F(DataTableTests, SimpleInsertTest) {
