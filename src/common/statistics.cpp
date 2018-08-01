@@ -16,7 +16,7 @@
 
 namespace terrier {
 
-void Statistics::PrintStats (){
+void Statistics::PrintStats() {
   SetStats();
   std::cout << "The Json value about the statistics is shown below: " << std::endl;
   std::cout << json_value_ << std::endl << std::endl;

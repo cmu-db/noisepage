@@ -165,9 +165,9 @@ namespace terrier {
 //===----------------------------------------------------------------------===//
 // TODO(Tianyu): Rename peloton to whatever we call this later
 #if defined __clang__
-#define PELOTON_FALLTHROUGH [[clang::fallthrough]]
+#define PELOTON_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
 #elif defined __GNUC__ && __GNUC__ >= 7
-#define PELOTON_FALLTHROUGH [[fallthrough]]
+#define PELOTON_FALLTHROUGH [[fallthrough]]  // NOLINT
 #else
 #define PELOTON_FALLTHROUGH
 #endif

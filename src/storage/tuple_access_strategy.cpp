@@ -5,19 +5,19 @@ namespace terrier {
 namespace storage {
 namespace {
 uint32_t ColumnSize(const BlockLayout &layout,
-                    uint16_t col_offset) {
-  return layout.attr_sizes_[col_offset] * layout.num_slots_
+                    const uint16_t col_id) {
+  return layout.attr_sizes_[col_id] * layout.num_slots_
       + common::BitmapSize(layout.num_slots_);
 }
 }
 
 void InitializeRawBlock(RawBlock *raw,
                         const BlockLayout &layout,
-                        uint32_t layout_version) {
+                        const layout_version_t layout_version) {
   // Intentional unsafe cast
-  auto *result = reinterpret_cast<Block *>(raw);
-  result->layout_version_ = layout_version;
-  result->num_records_ = 0;
+  raw->layout_version_ = layout_version;
+  raw->num_records_ = 0;
+  auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout.num_slots_;
   // TODO(Tianyu): For now, columns start right after the header without
   // alignment considerations. This logic will need to change when switching
@@ -34,5 +34,5 @@ void InitializeRawBlock(RawBlock *raw,
   for (uint16_t i = 0; i < layout.num_cols_; i++)
     result->AttrSizes(layout)[i] = layout.attr_sizes_[i];
 }
-}
-}
+}  // namespace storage
+}  // namespace terrier

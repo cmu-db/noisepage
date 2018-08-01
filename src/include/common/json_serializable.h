@@ -21,7 +21,7 @@ namespace terrier {
  */
 class JsonSerializable {
  public:
-  virtual ~JsonSerializable(){};
+  virtual ~JsonSerializable() {}
 
   /** @brief Get the Json value about the state information. */
   virtual Json::Value GetJson() = 0;

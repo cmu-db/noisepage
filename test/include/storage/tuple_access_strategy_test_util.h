@@ -5,6 +5,7 @@
 #include "common/test_util.h"
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
+#include "storage/storage_utils.h"
 #include "storage/tuple_access_strategy.h"
 
 namespace terrier {
@@ -19,48 +20,6 @@ storage::BlockLayout RandomLayout(Random &generator, uint16_t max_cols = UINT16_
   for (uint16_t i = 0; i < num_attrs; i++)
     attr_sizes[i] = *testutil::UniformRandomElement(possible_attr_sizes, generator);
   return {num_attrs, attr_sizes};
-}
-
-// Read specified number of bytes from position and interpret the bytes as
-// an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-uint64_t ReadByteValue(uint8_t attr_size, byte *pos) {
-  switch (attr_size) {
-    case 1:
-      return *reinterpret_cast<uint8_t *>(pos);
-    case 2:
-      return *reinterpret_cast<uint16_t *>(pos);
-    case 4:
-      return *reinterpret_cast<uint32_t *>(pos);
-    case 8:
-      return *reinterpret_cast<uint64_t *>(pos);
-    default:
-      // Invalid attr size
-      PELOTON_ASSERT(false);
-      return 0;
-  }
-}
-
-// Write specified number of bytes to position and interpret the bytes as
-// an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-// Truncated if neccessary
-void WriteByteValue(uint8_t attr_size, uint64_t val, byte *pos) {
-  switch (attr_size) {
-    case 1:
-      *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
-      return;
-    case 2:
-      *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
-      return;
-    case 4:
-      *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
-      return;
-    case 8:
-      *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
-      return;
-    default:
-      // Invalid attr size
-      PELOTON_ASSERT(false);
-  }
 }
 
 // Fill the given location with the specified amount of random bytes, using the
@@ -83,7 +42,7 @@ struct FakeRawTuple {
       pos += layout.attr_sizes_[col];
     }
     FillWithRandomBytes(layout.tuple_size_, contents_, generator);
-  };
+  }
 
   ~FakeRawTuple() { delete[] contents_; }
 
@@ -91,7 +50,8 @@ struct FakeRawTuple {
   // we can do equality checks on uint64_t always.
   // 0 return for non-primary key indexes should be treated as null.
   uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) {
-    return ReadByteValue(layout.attr_sizes_[col], contents_ + attr_offsets_[col]);
+    return storage::ReadBytes(layout.attr_sizes_[col],
+                         contents_ + attr_offsets_[col]);
   }
 
   const storage::BlockLayout &layout_;
@@ -105,8 +65,10 @@ void InsertTuple(FakeRawTuple &tuple, storage::TupleAccessStrategy &tested, cons
                  storage::TupleSlot slot) {
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t col_val = tuple.Attribute(layout, col);
-    if (col_val != 0 || col == PRIMARY_KEY_OFFSET)
-      WriteByteValue(layout.attr_sizes_[col], tuple.Attribute(layout, col), tested.AccessForceNotNull(slot, col));
+    if (col_val != 0 || col == PRESENCE_COLUMN_ID)
+      storage::WriteBytes(layout.attr_sizes_[col],
+                     tuple.Attribute(layout, col),
+                     tested.AccessForceNotNull(slot, col));
     else
       tested.SetNull(slot, col);
     // Otherwise leave the field as null.
@@ -119,11 +81,12 @@ void CheckTupleEqual(FakeRawTuple &expected, storage::TupleAccessStrategy &teste
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t expected_col = expected.Attribute(layout, col);
     // 0 return for non-primary key indexes should be treated as null.
-    bool null = (expected_col == 0) && (col != PRIMARY_KEY_OFFSET);
+    bool null = (expected_col == 0) && (col != PRESENCE_COLUMN_ID);
     byte *col_slot = tested.AccessWithNullCheck(slot, col);
     if (!null) {
       EXPECT_TRUE(col_slot != nullptr);
-      EXPECT_EQ(expected.Attribute(layout, col), ReadByteValue(layout.attr_sizes_[col], col_slot));
+      EXPECT_EQ(expected.Attribute(layout, col),
+                storage::ReadBytes(layout.attr_sizes_[col], col_slot));
     } else {
       EXPECT_TRUE(col_slot == nullptr);
     }
@@ -140,7 +103,8 @@ std::pair<const storage::TupleSlot, testutil::FakeRawTuple> &TryInsertFakeTuple(
   storage::TupleSlot slot;
   // There should always be enough slots.
   EXPECT_TRUE(tested.Allocate(block, slot));
-  EXPECT_TRUE(tested.ColumnNullBitmap(block, PRIMARY_KEY_OFFSET)->Test(slot.GetOffset()));
+  EXPECT_TRUE(tested.ColumnNullBitmap(block,
+                                      PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
   // Construct a random tuple and associate it with the tuple slot
   auto result =

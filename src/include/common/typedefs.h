@@ -7,13 +7,11 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "common/macros.h"
 
 namespace terrier {
-// TODO(Tianyu): Maybe?
-using byte = std::byte;
-
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -72,7 +70,7 @@ class StrongTypeAlias {
   explicit StrongTypeAlias(const T &val) : val_(val) {}
   explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
 
-  T &operator!() { return val_; }
+  const T &operator!() const { return val_; }
 
   bool operator==(const StrongTypeAlias &rhs) const { return val_ == rhs.val_; }
 
@@ -87,7 +85,7 @@ class StrongTypeAlias {
 template <class Tag, typename T>
 StrongTypeAlias<Tag, T> ValueOf(T val) {
   return StrongTypeAlias<Tag, T>(val);
-};
+}
 
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
@@ -96,6 +94,11 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 //  // Write your operator here!
 //};
 
+/* Define all typedefs here! */
+// TODO(Tianyu): Maybe?
+using byte = std::byte;
+STRONG_TYPEDEF(timestamp_t, uint64_t);
+STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
 namespace std {
@@ -148,8 +151,6 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
 
 template <class Tag, typename T>
 struct hash<terrier::StrongTypeAlias<Tag, T>> {
-  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
-    return hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
-  }
+  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
 };
 }  // namespace std

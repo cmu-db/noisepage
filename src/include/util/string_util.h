@@ -21,17 +21,17 @@ namespace terrier {
  * This is the string that we should always use whenever we need
  * to do nice formatting in GetInfo()
  */
-static const std::string GETINFO_SPACER = "  ";
+static const char GETINFO_SPACER[] = "  ";
 
-static const std::string GETINFO_DOUBLE_STAR = "**";
+static const char GETINFO_DOUBLE_STAR[] = "**";
 
-static const std::string GETINFO_LONG_ARROW = "====>";
+static const char GETINFO_LONG_ARROW[] = "====>";
 
-static const std::string GETINFO_SINGLE_LINE = "-------------------------------------------------------------";
+static const char GETINFO_SINGLE_LINE[] = "-------------------------------------------------------------";
 
-static const std::string GETINFO_THICK_LINE = "=============================================================";
+static const char GETINFO_THICK_LINE[] = "=============================================================";
 
-static const std::string GETINFO_HALF_THICK_LINE = "===========================";
+static const char GETINFO_HALF_THICK_LINE[] = "===========================";
 
 static const int ARROW_INDENT = 3;
 

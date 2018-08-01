@@ -29,11 +29,11 @@
  *          => ./terrier -log_level=TRACE  =>  LOG_TRACE() is never called
  */
 
-#include "easylogging++/easylogging++.h"
-#include "util/string_util.h"
-
 #include <ctime>
 #include <string>
+
+#include "easylogging++/easylogging++.h"
+#include "util/string_util.h"
 
 // Fix for PRId64 (See https://stackoverflow.com/a/18719205)
 #if defined(__cplusplus) && !defined(__STDC_FORMAT_MACROS)
@@ -55,8 +55,8 @@
 
 // Compile Option
 #ifndef LOG_LEVEL
-// TODO : any way to use pragma message in GCC?
-//#pragma message("Warning: LOG_LEVEL compile option was not explicitly
+// TODO(Kazuhiro): any way to use pragma message in GCC?
+// #pragma message("Warning: LOG_LEVEL compile option was not explicitly
 // given.")
 #ifndef NDEBUG
 // In debug mode, all log macros are usable.

@@ -41,8 +41,8 @@ class RawBitmap {
  public:
   // Always reinterpret_cast from raw memory.
   RawBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawBitmap);
   ~RawBitmap() = delete;
+  DISALLOW_COPY_AND_MOVE(RawBitmap)
 
   /**
    * Allocates a new RawBitmap of size. Up to the caller to call
@@ -100,6 +100,8 @@ class RawBitmap {
     bits_[pos / BYTE_SIZE] ^= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     return *this;
   }
+
+  void Clear(uint32_t size) { PELOTON_MEMSET(bits_, 0, size); }
 
  private:
   uint8_t bits_[0];

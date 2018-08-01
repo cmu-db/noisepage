@@ -2,6 +2,7 @@
 
 #include <tbb/concurrent_unordered_map.h>
 #include <functional>
+#include <utility>
 #include "common/macros.h"
 #include "common/typedefs.h"
 
@@ -86,26 +87,37 @@ class ConcurrentMap {
   };
 
   /**
+   *
+   * @return
+   */
+  template <typename... Args>
+  std::pair<Iterator, bool> Emplace(Args &&... args) {
+    auto result = map_.emplace(std::move(args)...);
+    return {Iterator(result.first), result.second};
+  }
+
+  /**
    * Insert the specified key and value into the map. Overwrites mapping if a
    * mapping already exists.
    * @param key key to insert
    * @param value value to insert
    * @return whether the insertion actually took place
    */
-  bool Insert(const K &key, V value) { return map_.insert(std::make_pair(key, value)).second; }
+  std::pair<Iterator, bool> Insert(const K &key, V value) {
+    auto result = map_.insert(std::make_pair(key, value));
+    return {Iterator(result.first), result.second};
+  }
 
   /**
    * Finds the value mapped to by the supplied key, or return false if no such
    * value exists.
    * @param key key to lookup
-   * @param value location to write the mapped value to
-   * @return whether the key exists in the map
+   * @return iterator to the element, or end
    */
-  bool Find(const K &key, V &value) {
+  Iterator Find(const K &key) {
     auto it = map_.find(key);
-    if (it == map_.end()) return false;
-    value = it->second;
-    return true;
+    if (it == map_.end()) return End();
+    return Iterator(it);
   }
 
   /**
@@ -137,7 +149,7 @@ struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
   size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash
-    return tbb_hash<T>()(!const_cast<terrier::StrongTypeAlias<Tag, T> &>(alias));
+    return tbb_hash<T>()(!alias);
   }
 };
 #undef TEMPLATE_ARGS
