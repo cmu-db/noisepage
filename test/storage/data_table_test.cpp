@@ -9,12 +9,16 @@ struct DataTableTests : public ::testing::Test {
   std::default_random_engine generator_;
 };
 
-TEST_F(DataTableTests, SimpleInsertTest) {
-  uint32_t num_inserts = 1000;
-  uint16_t max_columns = 100;
-  uint16_t num_repetitions = 10;
+TEST_F(DataTableTests, SimpleInsertSelectTest) {
+  const uint16_t num_iterations = 100;
+  const uint32_t num_inserts = 1000;
+  const uint16_t max_columns = 100;
 
-  for (uint16_t iteration = 0; iteration < num_repetitions; ++iteration) {
+  std::uniform_real_distribution<> distribution(0.0, 1.0);
+
+  for (uint16_t iteration = 0; iteration < num_iterations; ++iteration) {
+
+    double null_bias = distribution(generator_);
 
     storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
     storage::DataTable table(block_store_, layout);
@@ -34,7 +38,7 @@ TEST_F(DataTableTests, SimpleInsertTest) {
       byte *redo_buffer = new byte[redo_size];
       insert_redos[i] = redo_buffer;
       storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, redo_buffer);
-      testutil::GenerateRandomRow(redo, layout, generator_, 0);
+      testutil::GenerateRandomRow(redo, layout, generator_, null_bias);
 
       // generate an undo DeltaRecord to populate on Insert
       byte *undo_buffer = new byte[undo_size];
@@ -72,4 +76,4 @@ TEST_F(DataTableTests, SimpleInsertTest) {
   }
 }
 
-}
+}  // namespace terrier
