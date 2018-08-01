@@ -13,7 +13,8 @@ storage::BlockLayout RandomLayout(Random &generator, uint16_t max_cols = UINT16_
   // We probably won't allow tables with 0 columns
   uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(generator);
   std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
-  for (uint16_t i = 0; i < num_attrs; i++)
+  attr_sizes[0] = 8;
+  for (uint16_t i = 1; i < num_attrs; i++)
     attr_sizes[i] = *testutil::UniformRandomElement(possible_attr_sizes, generator);
   return {num_attrs, attr_sizes};
 }

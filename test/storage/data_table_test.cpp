@@ -17,7 +17,7 @@ struct DataTableTests : public ::testing::Test {
 };
 
 TEST_F(DataTableTests, SimpleInsertTest) {
-  uint32_t num_inserts = 1000;
+  uint32_t num_inserts = 10;
   uint16_t max_columns = 100;
 
   storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
@@ -25,6 +25,7 @@ TEST_F(DataTableTests, SimpleInsertTest) {
 
   std::vector<byte *> insert_redos(num_inserts);
   std::vector<byte *> insert_undos(num_inserts);
+  std::vector<std::pair<storage::TupleSlot, storage::ProjectedRow *>> inserted_tuples;
 
   std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
 
@@ -45,7 +46,15 @@ TEST_F(DataTableTests, SimpleInsertTest) {
     storage::DeltaRecord *undo =
         storage::DeltaRecord::InitializeDeltaRecord(nullptr, VALUE_OF(timestamp_t, 0ull), layout, col_ids, undo_buffer);
 
-    table.Insert(*redo, undo);
+    storage::TupleSlot tuple = table.Insert(*redo, undo);
+
+    inserted_tuples.emplace_back(tuple, redo);
+  }
+
+  EXPECT_EQ(num_inserts, inserted_tuples.size());
+
+  for (const auto &i : inserted_tuples) {
+    table.Select(VALUE_OF(timestamp_t, 1ull), i.first, i.second);
   }
 
   for (auto i : insert_redos) {

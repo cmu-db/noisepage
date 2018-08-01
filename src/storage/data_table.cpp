@@ -8,6 +8,8 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore &store, const BlockLayout &layout) : block_store_(store) {
+  // DataTable's first column must be a size of 8 for the version chain
+  PELOTON_ASSERT(layout.attr_sizes_[0] == 8);
   layouts_.Emplace(curr_layout_version_, layout);
   NewBlock(nullptr);
   PELOTON_ASSERT(insertion_head_ != nullptr);
