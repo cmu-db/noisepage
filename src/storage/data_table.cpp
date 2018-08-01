@@ -108,6 +108,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   // TODO(Tianyu): This is lazy. Realistically, we need one primary key column in the before-image as null
   // to denote an insert. Calling update means we are stupidly copying the entire tuple. That said, this won't
   // be a correctness issue. So we can fix later.
+  UNUSED_ATTRIBUTE
   bool no_conflict = Update(result, redo, undo);
   // Expect no conflict because this version should only be visible to this transaction.
   PELOTON_ASSERT(no_conflict);
