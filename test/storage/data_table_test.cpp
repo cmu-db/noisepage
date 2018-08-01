@@ -17,7 +17,7 @@ struct DataTableTests : public ::testing::Test {
 };
 
 TEST_F(DataTableTests, SimpleInsertTest) {
-  uint32_t num_inserts = 1000000;
+  uint32_t num_inserts = 1000;
   uint16_t max_columns = 100;
 
   storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);

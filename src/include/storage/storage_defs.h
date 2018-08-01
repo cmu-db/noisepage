@@ -303,9 +303,9 @@ class DeltaRecord {
    */
   timestamp_t timestamp_;
 
-  ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); };
+  ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
 
-  const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); };
+  const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
   /**
    * Calculates the size of this DeltaRecord, including all members, values, and bitmap
