@@ -72,7 +72,7 @@ matrix:
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
-      docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -f warnings.txt ]; then cat warnings.txt; false; fi" &&
+      docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
@@ -83,7 +83,7 @@ before_script:
       touch warnings.txt &&
       doxygen Doxyfile.in 2>warnings.txt &&
       (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) &&
-      if [ -f warnings.txt ]; then cat warnings.txt; false; fi &&
+      if [ -s warnings.txt ]; then cat warnings.txt; false; fi &&
       cd .. &&
       mkdir build &&
       cd build &&
