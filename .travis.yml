@@ -48,7 +48,7 @@ matrix:
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
-      docker exec build /bin/sh -c "cd /repo/apidoc && doxygen Doxyfile.in 2>warnings.txt && if [ -f warnings.txt]; then false; fi" &&
+      docker exec build /bin/sh -c "cd /repo/apidoc && doxygen Doxyfile.in 2>warnings.txt && if [ -f warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec build /bin/sh -c "cd /repo/build && cmake .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
@@ -57,7 +57,7 @@ before_script:
     else
       cd apidoc &&
       doxygen Doxyfile.in 2>warnings.txt &&
-      if [ -f warnings.txt ]; then false; fi &&
+      if [ -f warnings.txt ]; then cat warnings.txt; false; fi &&
       cd .. &&
       mkdir build &&
       cd build &&
