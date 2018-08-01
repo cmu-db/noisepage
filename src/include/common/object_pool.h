@@ -4,17 +4,41 @@
 #include "common/concurrent_queue.h"
 #include "common/typedefs.h"
 namespace terrier {
+/**
+ * Allocator that allocates and destroys a byte array.
+ * @tparam T object whose size determines the byte array size.
+ */
 template <typename T>
 struct ByteAllocator {
+  /**
+   * Allocates a new byte array sized to hold a T.
+   * @return a pointer to the byte array allocated.
+   */
   T *New() { return reinterpret_cast<T *>(new byte[sizeof(T)]); }
 
+  /**
+   * Deletes the byte array.
+   * @param ptr pointer to the byte array to be deleted.
+   */
   void Delete(T *ptr) { delete[] ptr; }
 };
 
+/**
+ * Allocator that calls the default constructor and destructor.
+ * @tparam T object whose default constructor and destructor will be used.
+ */
 template <typename T>
 struct DefaultConstructorAllocator {
+  /**
+   * Allocates a new object by calling its constructor.
+   * @return a pointer to the allocated object.
+   */
   T *New() { return new T(); }
 
+  /**
+   * Deletes the object by calling its destructor.
+   * @param ptr a pointer to the object to be deleted.
+   */
   void Delete(T *ptr) { delete ptr; }
 };
 

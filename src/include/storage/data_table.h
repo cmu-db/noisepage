@@ -7,16 +7,16 @@
 #include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {
-/**
- * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
- * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
- * as SQL types, varlens and nullabilities are still not meaningful at this level.
- */
 
 // TODO(tianyu): Implement, and move elsewhere.
 bool Uncommitted(timestamp_t) { return false; }
 bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
 
+/**
+ * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
+ * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
+ * as SQL types, varlens and nullabilities are still not meaningful at this level.
+ */
 class DataTable {
  public:
   // TODO(Tianyu): Consider taking in some other info to avoid copying layout

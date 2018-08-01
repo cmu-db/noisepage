@@ -27,6 +27,9 @@ namespace terrier {
 // Statistics Object
 //===--------------------------------------------------------------------===//
 
+/**
+ * Contains statistics about database operations.
+ */
 class Statistics {
  public:
   virtual ~Statistics() {}

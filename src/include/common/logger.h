@@ -132,8 +132,14 @@ namespace terrier {
 #define LOG_FORMAT "%datetime [%file:%line] %level - %msg"
 #define LOG_FLUSH_THERESHOLD "1"
 
+/**
+ * Handles logging information for the database.
+ */
 class Logger {
  public:
+  /**
+   * Initializes and configures the logger.
+   */
   static void InitializeLogger();
 };
 

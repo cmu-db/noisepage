@@ -127,7 +127,12 @@ class StringUtil {
    */
   static void RTrim(std::string &str);
 
-  static std::string Indent(const int num_indent);
+  /**
+   * Returns a string representing an indentation num_indent long.
+   * @param num_indent the length of the indented string.
+   * @return the indented string.
+   */
+  static std::string Indent(size_t num_indent);
 
   /**
    * Return a new string that has stripped all occurrences of the provided

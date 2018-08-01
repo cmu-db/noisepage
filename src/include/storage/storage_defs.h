@@ -15,7 +15,16 @@ namespace terrier::storage {
 // BlockLayout as a runtime object, instead baking them in as compiled code
 // (Think of this as writing the class with a BlockLayout template arg, except
 // template instantiation is done by LLVM at runtime and not at compile time.
+/**
+ * Stores metadata about the layout of a block.
+ * This will eventually be baked in as compiled code by LLVM.
+ */
 struct BlockLayout {
+  /**
+   * Constructs a new block layout.
+   * @param num_attrs number of attributes.
+   * @param attr_sizes vector of attribute sizes.
+   */
   BlockLayout(const uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
       : num_cols_(num_attrs),
         attr_sizes_(std::move(attr_sizes)),
@@ -23,11 +32,25 @@ struct BlockLayout {
         header_size_(HeaderSize()),
         num_slots_(NumSlots()) {}
 
+  /**
+   * Number of columns.
+   */
   const uint16_t num_cols_;
+  /**
+   * Vector of attribute sizes.
+   */
   const std::vector<uint8_t> attr_sizes_;
-  // Cached so we don't have to iterate through attr_sizes every time
+  /**
+   * Cached tuple size so that we don't have to iterate through attr_sizes_ every time.
+   */
   const uint32_t tuple_size_;
+  /**
+   * Header size.
+   */
   const uint32_t header_size_;
+  /**
+   * Number of slots in the tuple.
+   */
   const uint32_t num_slots_;
 
  private:
@@ -58,8 +81,17 @@ struct BlockLayout {
  * unless interpreted by a @see TupleAccessStrategy
  */
 struct RawBlock {
+  /**
+   * Layout version.
+   */
   layout_version_t layout_version_;
+  /**
+   * Number of records.
+   */
   uint32_t num_records_;
+  /**
+   * Contents of the raw block.
+   */
   byte content_[Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
@@ -103,10 +135,26 @@ class TupleSlot {
     return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
   }
 
+  /**
+   * Checks if this TupleSlot is equal to the other.
+   * @param other the other TupleSlot to be compared.
+   * @return true if the TupleSlots are equal, false otherwise.
+   */
   bool operator==(const TupleSlot &other) const { return bytes_ == other.bytes_; }
 
+  /**
+   * Checks if this TupleSlot is not equal to the other.
+   * @param other the other TupleSlot to be compared.
+   * @return true if the TupleSlots are not equal, false otherwise.
+   */
   bool operator!=(const TupleSlot &other) const { return bytes_ != other.bytes_; }
 
+  /**
+   * Outputs the TupleSlot to the output stream.
+   * @param os output stream to be written to.
+   * @param slot TupleSlot to be output.
+   * @return the modified output stream.
+   */
   friend std::ostream &operator<<(std::ostream &os, const TupleSlot &slot) {
     return os << "block: " << slot.GetBlock() << ", offset: " << slot.GetOffset();
   }
@@ -242,16 +290,36 @@ class ProjectedRow {
   }
 };
 
+/**
+ * A DeltaRecord points to the old projected row and the timestamp at which it was visible.
+ */
 struct DeltaRecord {
+  /**
+   * Pointer to the next delta record.
+   */
   DeltaRecord *next_;
+  /**
+   * Timestamp at which the old projected row was visible.
+   */
   timestamp_t timestamp_;
+  /**
+   * The old projected row.
+   */
   ProjectedRow delta_;
 };
 }  // namespace terrier::storage
 
 namespace std {
+/**
+ * Implements std::hash for TupleSlot.
+ */
 template <>
 struct hash<terrier::storage::TupleSlot> {
+  /**
+   * Returns the hash of the slot's contents.
+   * @param slot the slot to be hashed.
+   * @return the hash of the slot.
+   */
   size_t operator()(const terrier::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
 }  // namespace std
