@@ -52,7 +52,8 @@ before_script:
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec build /bin/sh -c "cd /repo/build && cmake .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
-      docker exec build /bin/sh -c "cd /repo/build && make check-format" ;
+      docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
+      docker exec build /bin/sh -c "cd /repo/build && make lint" ;
     else
       cd apidoc &&
       doxygen Doxyfile.in 2>warnings.txt &&
@@ -62,7 +63,8 @@ before_script:
       cd build &&
       cmake .. &&
       make check-clang-tidy &&
-      make check-format ;
+      make check-format &&
+      make lint;
     fi
 
 script:
