@@ -133,8 +133,8 @@ void DataTable::ApplyDelta(const BlockLayout &layout,
     uint16_t delta_col_id = delta.ColumnIds()[i];
     auto it = col_to_index.find(delta_col_id);
     if (it != col_to_index.end()) {
-      uint16_t buffer_offset = it->first;
-      uint16_t col_id = it->second;
+      uint16_t buffer_offset = it->second;
+      uint16_t col_id = it->first;
       uint8_t attr_size = layout.attr_sizes_[col_id];
       CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
     }
