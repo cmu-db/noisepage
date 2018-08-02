@@ -124,7 +124,7 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 /* Define all typedefs here! */
 // TODO(Tianyu): Maybe?
 using byte = std::byte;
-STRONG_TYPEDEF(timestamp_t, uint64_t);
+STRONG_TYPEDEF(timestamp_t, unsigned long long);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
