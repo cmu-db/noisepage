@@ -147,7 +147,7 @@ endif ()
 # jemalloc flags
 if (LINUX)
   set(JEMALLOC_LINK_FLAGS "-Wl,--no-as-needed")
-  set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS}" ${JEMALLOC_LINK_FLAGS})
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}" ${JEMALLOC_LINK_FLAGS})
 endif ()
 
 if ("${CMAKE_CXX_FLAGS}" MATCHES "-DNDEBUG")
