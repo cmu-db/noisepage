@@ -34,13 +34,13 @@ class RawConcurrentBitmap {
   DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap)
 
   /**
-   * Allocates a new RawConcurrentBitmap of size. Up to the caller to call
+   * Allocates a new RawConcurrentBitmap of size num_bits. Up to the caller to call
    * Deallocate on its return value
-   * @param size number of bits in the bitmap
+   * @param num_bits number of bits in the bitmap
    * @return ptr to new RawConcurrentBitmap
    */
-  static RawConcurrentBitmap *Allocate(uint32_t size) {
-    uint32_t num_bytes = BitmapSize(size);
+  static RawConcurrentBitmap *Allocate(uint32_t num_bits) {
+    uint32_t num_bytes = BitmapSize(num_bits);
     auto *result = new uint8_t[num_bytes];
     PELOTON_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
@@ -85,6 +85,78 @@ class RawConcurrentBitmap {
       uint8_t new_val = old_val ^ mask;
       if (bits_[element].compare_exchange_strong(old_val, new_val)) return true;
     }
+    return false;
+  }
+
+  /**
+   * Returns the position of the first unset bit, if it exists.
+   * Note that this result is immediately stale.
+   * @param num_bits number of bits in the bitmap.
+   * @param start_pos start searching from this bit location.
+   * @param[out] out_pos the position of the first unset bit will be written here, if it exists.
+   * @return true if an unset bit was found, and false otherwise.
+   */
+  bool FirstUnsetPos(uint32_t num_bits, uint32_t start_pos, uint32_t *out_pos) {
+    uint32_t num_bytes = BitmapSize(num_bits);  // maximum number of bytes in the bitmap
+    uint32_t byte_pos = start_pos / BYTE_SIZE;  // current byte position
+    uint32_t search_width;                      // number of bits searched at a time
+
+    // optimization: don't search wider than the number of bits we have
+    if (num_bits <= 8) {
+      search_width = 8;
+    } else if (num_bits <= 16) {
+      search_width = 16;
+    } else if (num_bits <= 32) {
+      search_width = 32;
+    } else {
+      search_width = 64;
+    }
+
+    while (byte_pos < num_bytes) {
+      // each case loads a word of search_width bits and casts it as a signed type.
+      // if all bits are set (equals -1), then we can refine our search.
+      switch (search_width) {
+        default:
+        case 64:
+          if (static_cast<std::atomic<int64_t>>(bits_[byte_pos]).load() != -1) {
+            search_width = 32;
+          } else {
+            byte_pos += 8;
+          }
+          break;
+        case 32:
+          if (static_cast<std::atomic<int32_t>>(bits_[byte_pos]).load() != -1) {
+            search_width = 16;
+          } else {
+            byte_pos += 4;
+          }
+          break;
+        case 16:
+          if (static_cast<std::atomic<int16_t>>(bits_[byte_pos]).load() != -1) {
+            search_width = 8;
+          } else {
+            byte_pos += 2;
+          }
+          break;
+        case 8:
+          uint8_t bits = bits_[byte_pos].load();
+          if (static_cast<std::atomic<int8_t>>(bits) != -1) {
+            // we have a byte with an unset bit inside. we return that location, which may be stale.
+            // we don't bother ensuring freshness since our function's result is immediately stale.
+            for (uint32_t pos = 0; pos < BYTE_SIZE && pos + byte_pos * BYTE_SIZE < num_bits; pos++) {
+              bool is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
+              if (!is_set) {
+                *out_pos = pos + byte_pos * BYTE_SIZE;
+                return true;
+              }
+            }
+          } else {
+            byte_pos += 1;
+          }
+          break;
+      }
+    }
+
     return false;
   }
 
