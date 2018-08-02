@@ -22,10 +22,4 @@ target_link_libraries(terrier_shared ${TERRIER_LINK_LIBS})
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-target_link_libraries(terrier terrier_shared ${JEMALLOC_LIBRARIES})
-
-# link jemalloc to executable
-if (LINUX)
-  set(JEMALLOC_LINK_FLAGS "-Wl,--no-as-needed")
-  set_target_properties(${exe_name} PROPERTIES LINK_FLAGS ${JEMALLOC_LINK_FLAGS})
-endif ()
+target_link_libraries(terrier terrier_shared)
