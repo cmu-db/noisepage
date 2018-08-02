@@ -54,6 +54,8 @@ namespace terrier {
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
 
 #define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
+// Use when dumb compilers disagree on what an int should be.
+#define VALUE_OF_EXPLICIT_TYPE(name, underlying_type, val) StrongTypeAlias<name##_typedef_tag, underlying_type>(val)
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -124,7 +126,7 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 /* Define all typedefs here! */
 // TODO(Tianyu): Maybe?
 using byte = std::byte;
-STRONG_TYPEDEF(timestamp_t, unsigned long long);
+STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
