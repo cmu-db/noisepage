@@ -147,6 +147,9 @@ namespace terrier {
   cname(cname &&) = delete;  \
   cname &operator=(cname &&) = delete;
 
+/**
+ * Disable copy and move.
+ */
 #define DISALLOW_COPY_AND_MOVE(cname) \
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);

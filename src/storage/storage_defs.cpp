@@ -23,7 +23,7 @@ ProjectedRow* ProjectedRow::InitializeProjectedRow(const BlockLayout &layout,
     result->AttrValueOffsets()[i] = val_offset;
     val_offset += layout.attr_sizes_[col_ids[i]];
   }
-  result->Bitmap().Clear(common::BitmapSize(result->num_cols_));
+  result->Bitmap().Clear(result->num_cols_);
   return result;
 }
 }  // namespace terrier::storage

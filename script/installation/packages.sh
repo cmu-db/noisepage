@@ -71,6 +71,7 @@ install_mac() {
   brew update
   # Install packages.
   brew ls --versions cmake || brew install cmake
+  brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
   brew ls --versions jsoncpp || brew install jsoncpp
@@ -88,6 +89,7 @@ install_linux() {
       clang-format-6.0 \
       clang-tidy-6.0 \
       cmake \
+      doxygen \
       git \
       g++-7 \
       libjemalloc-dev \

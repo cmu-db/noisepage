@@ -45,13 +45,13 @@ class RawBitmap {
   DISALLOW_COPY_AND_MOVE(RawBitmap)
 
   /**
-   * Allocates a new RawBitmap of size. Up to the caller to call
-   * Deallocate on its return value
-   * @param size number of bits in the bitmap
-   * @return ptr to new RawBitmap
+   * Allocates a new RawBitmap of size num_bits.
+   * Up to the caller to call Deallocate on its return value.
+   * @param num_bits number of bits in the bitmap.
+   * @return ptr to new RawBitmap.
    */
-  static RawBitmap *Allocate(uint32_t num_elements) {
-    auto size = BitmapSize(num_elements);
+  static RawBitmap *Allocate(uint32_t num_bits) {
+    auto size = BitmapSize(num_bits);
     auto *result = new uint8_t[size];
     PELOTON_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
@@ -101,7 +101,14 @@ class RawBitmap {
     return *this;
   }
 
-  void Clear(uint32_t size) { PELOTON_MEMSET(bits_, 0, size); }
+  /**
+   * Clears the bitmap by setting bits to 0.
+   * @param num_bits number of bits to clear.
+   */
+  void Clear(uint32_t num_bits) {
+    auto size = BitmapSize(num_bits);
+    PELOTON_MEMSET(bits_, 0, size);
+  }
 
  private:
   uint8_t bits_[0];

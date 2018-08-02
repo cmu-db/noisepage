@@ -13,7 +13,13 @@ namespace terrier {
  * with exactly size many bytes (no extra nul in the end)
  */
 struct PACKED VarlenEntry {
+  /**
+   * Size of the varlen entry.
+   */
   uint32_t size_;
+  /**
+   * Contents of the varlen entry.
+   */
   byte content_[0];
 };
 

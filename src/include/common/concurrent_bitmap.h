@@ -30,8 +30,8 @@ class RawConcurrentBitmap {
  public:
   // Always reinterpret_cast from raw memory.
   RawConcurrentBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap);
   ~RawConcurrentBitmap() = delete;
+  DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap)
 
   /**
    * Allocates a new RawConcurrentBitmap of size. Up to the caller to call
