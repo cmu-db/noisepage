@@ -303,6 +303,9 @@ class DeltaRecord {
   DISALLOW_COPY_AND_MOVE(DeltaRecord)
   ~DeltaRecord() = delete;
 
+  /**
+   * Pointer to the next element in the version chain
+   */
   DeltaRecord *next_;
   /**
    * Timestamp up to which the old projected row was visible.
