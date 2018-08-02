@@ -196,11 +196,10 @@ class TupleAccessStrategy {
 
   /* Allocation and Deallocation */
   /**
-   * Allocates a slot for a new tuple, writing its offset to the given reference.
-   * Returns false if there is no space in this block.
-   * @param block block to allocate a tuple in
-   * @param offset result
-   * @return true if the allocation is successful, false if no space can be found.
+   * Allocates a slot for a new tuple, writing to the given reference.
+   * @param block block to allocate a slot in.
+   * @param[out] slot tuple to write to.
+   * @return true if the allocation succeeded, false if no space could be found.
    */
   bool Allocate(RawBlock *block, TupleSlot &slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
@@ -216,6 +215,10 @@ class TupleAccessStrategy {
     return false;
   }
 
+  /**
+   * Returns the block layout.
+   * @return the block layout.
+   */
   const BlockLayout &GetBlockLayout() const { return layout_; }
 
  private:

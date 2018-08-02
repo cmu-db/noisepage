@@ -144,8 +144,18 @@ class ConcurrentMap {
 
 // TODO(Tianyu): Remove this if we don't end up using tbb
 namespace tbb {
+/**
+ * Implements tbb_hash for StrongTypeAlias.
+ * @tparam Tag a dummy class type to annotate the underlying type.
+ * @tparam T the underlying type.
+ */
 template <class Tag, typename T>
 struct tbb_hash<terrier::StrongTypeAlias<Tag, T>> {
+  /**
+   * Returns the TBB hash of the underlying type's contents.
+   * @param alias the aliased type to be hashed.
+   * @return the hash of the aliased type.
+   */
   size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash

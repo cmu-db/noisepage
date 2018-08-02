@@ -37,7 +37,7 @@ void StringUtil::RTrim(std::string &str) {
   }).base(), str.end());
 }
 
-std::string StringUtil::Indent(int num_indent) {
+std::string StringUtil::Indent(size_t num_indent) {
   return std::string(num_indent, ' ');
 }
 

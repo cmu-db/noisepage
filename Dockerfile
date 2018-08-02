@@ -11,6 +11,7 @@ RUN apt-get -y update && \
       clang-format-6.0 \
       clang-tidy-6.0 \
       cmake \
+      doxygen \
       git \
       g++-7 \
       libjemalloc-dev \
