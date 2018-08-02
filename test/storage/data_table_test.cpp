@@ -47,7 +47,7 @@ TEST_F(DataTableTests, SimpleInsertSelectTest) {
       byte *undo_buffer = new byte[undo_size];
       undo_buffers[i] = undo_buffer;
       storage::DeltaRecord *undo =
-          storage::DeltaRecord::InitializeDeltaRecord(nullptr, VALUE_OF_EXPLICIT_TYPE(timestamp_t, uint64_t, 0), layout, col_ids, undo_buffer);
+          storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(0), layout, col_ids, undo_buffer);
 
       storage::TupleSlot tuple = table.Insert(*redo, undo);
 
@@ -64,7 +64,7 @@ TEST_F(DataTableTests, SimpleInsertSelectTest) {
       select_buffers[i] = select_buffer;
       storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, select_buffer);
 
-      table.Select(VALUE_OF_EXPLICIT_TYPE(timestamp_t, uint64_t, 1), inserted_tuples[i].first, select_row);
+      table.Select(timestamp_t(1), inserted_tuples[i].first, select_row);
 
       EXPECT_EQ(0, std::memcmp(inserted_tuples[i].second, select_row, redo_size));
     }
@@ -115,7 +115,7 @@ TEST_F(DataTableTests, SimpleVersionChainTest) {
       byte *undo_buffer = new byte[undo_size];
       undo_buffers[i] = undo_buffer;
       storage::DeltaRecord *undo =
-          storage::DeltaRecord::InitializeDeltaRecord(nullptr, VALUE_OF_EXPLICIT_TYPE(timestamp_t, uint64_t, 1), layout, col_ids, undo_buffer);
+          storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(1), layout, col_ids, undo_buffer);
 
       storage::TupleSlot tuple = table.Insert(*redo, undo);
 
@@ -132,7 +132,7 @@ TEST_F(DataTableTests, SimpleVersionChainTest) {
       select_buffers[i] = select_buffer;
       storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, select_buffer);
 
-      table.Select(VALUE_OF_EXPLICIT_TYPE(timestamp_t, uint64_t, 0), inserted_tuples[i].first, select_row);
+      table.Select(timestamp_t(0), inserted_tuples[i].first, select_row);
 
       for (uint16_t j = 0; j < select_row->NumColumns(); j++) {
         EXPECT_EQ(nullptr, select_row->AccessWithNullCheck(j));

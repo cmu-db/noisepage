@@ -53,10 +53,6 @@ namespace terrier {
   struct name##_typedef_tag {};               \
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
 
-#define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
-// Use when dumb compilers disagree on what an int should be.
-#define VALUE_OF_EXPLICIT_TYPE(name, underlying_type, val) StrongTypeAlias<name##_typedef_tag, underlying_type>(val)
-
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
  *
@@ -110,11 +106,6 @@ class StrongTypeAlias {
  private:
   T val_;
 };
-
-template <class Tag, typename T>
-StrongTypeAlias<Tag, T> ValueOf(T val) {
-  return StrongTypeAlias<Tag, T>(val);
-}
 
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.

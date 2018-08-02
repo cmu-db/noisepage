@@ -118,7 +118,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
 
     storage::TupleSlot slot;
@@ -161,7 +161,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
 
     uint32_t num_inserts =
@@ -196,7 +196,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
 
     // Skip header
@@ -245,7 +245,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
 
     std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
@@ -291,7 +291,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);
     std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
