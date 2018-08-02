@@ -116,8 +116,8 @@ class RawBitmap {
 
 // WARNING: DO NOT CHANGE THE CLASS LAYOUT OF RawBitmap.
 // The correctness of our storage code depends in this class having this
-// exact layout. Changes include marking a function as virtual (or use the
-// FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
+// exact layout. Changes include marking a function as virtual, as that adds a
+// Vtable to the class layout,
 static_assert(sizeof(RawBitmap) == 0, "Unexpected RawBitmap layout!");
 }  // namespace common
 }  // namespace terrier

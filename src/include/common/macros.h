@@ -175,12 +175,4 @@ namespace terrier {
 #define PELOTON_FALLTHROUGH
 #endif
 
-// It might be desirable to make certain methods virtual so we can fake them
-// out in test, but not necessarily when not running tests. In that case,
-// use this macro.
-#ifdef NDEBUG
-#define FAKED_IN_TEST
-#else
-#define FAKED_IN_TEST virtual
-#endif /* NDEBUG */
 }  // namespace terrier
