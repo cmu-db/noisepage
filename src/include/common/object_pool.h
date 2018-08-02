@@ -73,7 +73,7 @@ class ObjectPool {
    * Beware that the object pool will not deallocate some piece of memory
    * not explicitly released via a Release call.
    */
-  FAKED_IN_TEST ~ObjectPool() {
+  ~ObjectPool() {
     T *result;
     while (reuse_queue_.Dequeue(result)) alloc_.Delete(result);
   }
@@ -90,7 +90,7 @@ class ObjectPool {
    *
    * @return pointer to memory that can hold T
    */
-  FAKED_IN_TEST T *Get() {
+  T *Get() {
     T *result;
     if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
     PELOTON_MEMSET(result, 0, sizeof(T));
@@ -104,7 +104,7 @@ class ObjectPool {
    *
    * @param obj pointer to object to release
    */
-  FAKED_IN_TEST void Release(T *obj) {
+  void Release(T *obj) {
     if (reuse_queue_.UnsafeSize() > reuse_limit_)
       alloc_.Delete(obj);
     else
