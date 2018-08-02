@@ -194,7 +194,7 @@ if (TERRIER_GENERATE_COVERAGE)
     message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
   endif()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fno-inline")
 
   include(Coveralls)
 
