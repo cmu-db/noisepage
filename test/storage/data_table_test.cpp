@@ -8,7 +8,10 @@ struct DataTableTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
   std::default_random_engine generator_;
 
-  static void ApplyDelta(storage::DataTable *table, const storage::BlockLayout &layout, const storage::ProjectedRow &delta, storage::ProjectedRow *buffer) {
+  static void ApplyDelta(storage::DataTable *table,
+                         const storage::BlockLayout &layout,
+                         const storage::ProjectedRow &delta,
+                         storage::ProjectedRow *buffer) {
 
     // Creates a mapping from col offset to project list index. This allows us to efficiently
     // access columns since deltas can concern a different set of columns when chasing the
@@ -93,7 +96,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
 // delta chain produces the correct tuple. Repeats for num_iterations.
 TEST_F(DataTableTests, SimpleVersionChain) {
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
   const uint32_t num_updates = 10;
   const uint16_t max_columns = 100;
 
@@ -138,7 +141,8 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 
       // generate a random update ProjectedRow to Update
       byte *update_buffer = new byte[redo_size]; // safe to overprovision this
-      storage::ProjectedRow *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
+      storage::ProjectedRow
+          *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
       testutil::GenerateRandomRow(update, layout, generator_, null_bias);
 
       // generate a version of this tuple for this timestamp
@@ -186,6 +190,105 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 
     for (auto i : tuple_versions) {
       delete[] reinterpret_cast<byte *>(i.second);
+    }
+  }
+}
+
+TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
+  const uint32_t num_iterations = 100;
+  const uint16_t max_columns = 100;
+
+  std::uniform_real_distribution<double> distribution(0.0, 1.0);
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+
+    double null_bias = distribution(generator_);
+
+    storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
+    storage::DataTable table(block_store_, layout);
+
+    std::vector<byte *> redo_buffers(2);
+    std::vector<byte *> undo_buffers(3);
+
+    std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
+
+    uint32_t redo_size = storage::ProjectedRow::Size(layout, col_ids);
+    uint32_t undo_size = storage::DeltaRecord::Size(layout, col_ids);
+
+    // generate a random redo ProjectedRow to Insert
+    byte *insert_buffer = new byte[redo_size];
+    redo_buffers[0] = insert_buffer;
+    storage::ProjectedRow *insert = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, insert_buffer);
+    testutil::GenerateRandomRow(insert, layout, generator_, null_bias);
+
+    // generate an undo DeltaRecord to populate on Insert
+    byte *undo_buffer = new byte[undo_size];
+    undo_buffers[0] = undo_buffer;
+    storage::DeltaRecord *undo =
+        storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(0), layout, col_ids, undo_buffer);
+
+    storage::TupleSlot tuple = table.Insert(*insert, undo);
+
+    std::vector<uint16_t> update_col_ids = testutil::ProjectionListRandomColumns(layout, generator_);
+
+    // take the write lock
+
+    // generate a random update ProjectedRow to Update
+    byte *update_buffer = new byte[redo_size]; // safe to overprovision this
+    storage::ProjectedRow
+        *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
+    testutil::GenerateRandomRow(update, layout, generator_, null_bias);
+
+    // generate an undo DeltaRecord to populate on Insert
+    undo_buffer = new byte[undo_size]; // safe to overprovision this
+    undo_buffers[1] = undo_buffer;
+    undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(-1), layout, update_col_ids, undo_buffer);
+
+    EXPECT_TRUE(table.Update(tuple, *update, undo));
+
+    delete[] update_buffer;
+
+    // another transaction attempts to write, should fail
+
+    // generate a random update ProjectedRow to Update
+    update_buffer = new byte[redo_size]; // safe to overprovision this
+    update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
+    testutil::GenerateRandomRow(update, layout, generator_, null_bias);
+
+    // generate an undo DeltaRecord to populate on Insert
+    undo_buffer = new byte[undo_size]; // safe to overprovision this
+    undo_buffers[2] = undo_buffer;
+    undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(2), layout, update_col_ids, undo_buffer);
+
+    EXPECT_FALSE(table.Update(tuple, *update, undo));
+
+    delete[] update_buffer;
+
+    // commit the transaction by changing the timestamp
+
+    reinterpret_cast<storage::DeltaRecord *>(undo_buffers[1])->timestamp_ = 1;
+
+    // another transaction attempts to write, should succeed
+
+    // generate a random update ProjectedRow to Update
+    EXPECT_TRUE(table.Update(tuple, *update, undo));
+
+    // generate a redo ProjectedRow for Select
+    byte *select_buffer = new byte[redo_size];
+    storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, select_buffer);
+
+    table.Select(0, tuple, select_row);
+
+    EXPECT_TRUE(testutil::ProjectionListEqual(layout, select_row, insert));
+
+    delete[] select_buffer;
+
+    for (auto i : redo_buffers) {
+      delete[] i;
+    }
+
+    for (auto i : undo_buffers) {
+      delete[] i;
     }
   }
 }
