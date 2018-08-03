@@ -1,6 +1,8 @@
 #pragma once
 #include <random>
 #include <vector>
+#include <cinttypes>
+#include <cstdio>
 #include "common/test_util.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_utils.h"
@@ -56,7 +58,7 @@ template<typename Random>
 std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random &generator) {
   // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols since
   // we exclude the version vector column
-  uint16_t num_cols = std::uniform_int_distribution(1, layout.num_cols_ - 1)(generator);
+  uint16_t num_cols = std::uniform_int_distribution<uint16_t>(1, layout.num_cols_ - 1)(generator);
 
   std::vector<uint16_t> col_ids;
   // Add all of the column ids from the layout to the projection list
@@ -110,7 +112,7 @@ void PrintRow(const storage::ProjectedRow *row, const storage::BlockLayout &layo
     uint16_t col_id = row->ColumnIds()[i];
     const byte *attr = row->AccessWithNullCheck(i);
     if (attr) {
-      printf("col_id: %u is %llx\n", col_id, storage::ReadBytes(layout.attr_sizes_[col_id], attr));
+      printf("col_id: %u is %" PRIx64 "\n", col_id, storage::ReadBytes(layout.attr_sizes_[col_id], attr));
     }
     else {
       printf("col_id: %u is NULL\n", col_id);
