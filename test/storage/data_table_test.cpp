@@ -194,6 +194,12 @@ TEST_F(DataTableTests, SimpleVersionChain) {
   }
 }
 
+// Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
+// DataTable. Then, randomly updates the tuple with a negative timestamp, representing an uncommitted transaction. Then
+// a second update attempts to change the tuple and should fail. Then, the first transaction's timestamp is updated to a
+// positive number representing a commit. Then, the second transaction updates again and should succeed, and its
+// timestamp is changed to positive. Lastly, Selects at first timestamp to verify that the delta chain produces the
+// correct tuple. Repeats for num_iterations.
 TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint32_t num_iterations = 100;
   const uint16_t max_columns = 100;
@@ -229,11 +235,10 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     storage::TupleSlot tuple = table.Insert(*insert, undo);
 
-    std::vector<uint16_t> update_col_ids = testutil::ProjectionListRandomColumns(layout, generator_);
-
-    // take the write lock
+    // take the write lock by updating with negative timestamp
 
     // generate a random update ProjectedRow to Update
+    std::vector<uint16_t> update_col_ids = testutil::ProjectionListRandomColumns(layout, generator_);
     byte *update_buffer = new byte[redo_size]; // safe to overprovision this
     storage::ProjectedRow
         *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
@@ -262,7 +267,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     EXPECT_FALSE(table.Update(tuple, *update, undo));
 
-    // commit the transaction by changing the timestamp
+    // commit the first transaction by changing the timestamp
 
     reinterpret_cast<storage::DeltaRecord *>(undo_buffers[1])->timestamp_ = 1;
 
