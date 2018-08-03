@@ -39,6 +39,49 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   EXPECT_FALSE(bitmap->Flip(element, !bitmap->Test(element)));
   common::RawConcurrentBitmap::Deallocate(bitmap);
 }
+// The test exercises FirstUnsetPos in a single-threaded context
+TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
+  const uint32_t num_elements = 18;
+  common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
+  uint32_t pos;
+
+  // should return false if we start searching out of range
+  EXPECT_FALSE(bitmap->FirstUnsetPos(num_elements, num_elements, &pos));
+  EXPECT_FALSE(bitmap->FirstUnsetPos(num_elements, num_elements + 1, &pos));
+
+  // as we flip bits from start to end, verify that the position of the next unset pos is correct
+  for (uint32_t i = 0; i < num_elements; ++i) {
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+    EXPECT_EQ(pos, i);
+    EXPECT_TRUE(bitmap->Flip(i, false));
+  }
+  // once the bitmap is full, we should not be able to find an unset bit
+  EXPECT_FALSE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+
+  // try to find specific unset bits, x = set, _ = unset
+  uint32_t flip_idx[3] = {5, 12, 13};
+  // x _ x should return middle
+  EXPECT_TRUE(bitmap->Flip(flip_idx[1], true));
+  EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+  EXPECT_EQ(pos, flip_idx[1]);
+  // _ _ x should return first
+  EXPECT_TRUE(bitmap->Flip(flip_idx[0], true));
+  EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+  EXPECT_EQ(pos, flip_idx[0]);
+  // _ _ x should return middle if searching from middle
+  EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 11, &pos));
+  EXPECT_EQ(pos, flip_idx[1]);
+  EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 12, &pos));
+  EXPECT_EQ(pos, flip_idx[1]);
+  // x x _ should return last
+  EXPECT_TRUE(bitmap->Flip(flip_idx[0], false));
+  EXPECT_TRUE(bitmap->Flip(flip_idx[1], false));
+  EXPECT_TRUE(bitmap->Flip(flip_idx[2], true));
+  EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+  EXPECT_EQ(pos, flip_idx[2]);
+
+  common::RawConcurrentBitmap::Deallocate(bitmap);
+}
 // The test attempts to concurrently flip every bit from 0 to 1, and
 // record successful flips into thread-local storage
 // This is equivalent to grabbing a free slot if used in an
