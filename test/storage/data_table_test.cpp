@@ -151,7 +151,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
       PELOTON_MEMCPY(version, tuple_versions.back().second, redo_size);
       ApplyDelta(&table, layout, *update, version);
 
-      // generate an undo DeltaRecord to populate on Insert
+      // generate an undo DeltaRecord to populate on Update
       undo_buffer = new byte[undo_size]; // safe to overprovision this
       undo_buffers[i] = undo_buffer;
       undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp, layout, update_col_ids, undo_buffer);
@@ -248,30 +248,29 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     delete[] update_buffer;
 
-    // another transaction attempts to write, should fail
+    // second transaction attempts to write, should fail
 
     // generate a random update ProjectedRow to Update
     update_buffer = new byte[redo_size]; // safe to overprovision this
     update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
     testutil::GenerateRandomRow(update, layout, generator_, null_bias);
 
-    // generate an undo DeltaRecord to populate on Insert
+    // generate an undo DeltaRecord to populate on Update
     undo_buffer = new byte[undo_size]; // safe to overprovision this
     undo_buffers[2] = undo_buffer;
     undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(2), layout, update_col_ids, undo_buffer);
 
     EXPECT_FALSE(table.Update(tuple, *update, undo));
 
-    delete[] update_buffer;
-
     // commit the transaction by changing the timestamp
 
     reinterpret_cast<storage::DeltaRecord *>(undo_buffers[1])->timestamp_ = 1;
 
-    // another transaction attempts to write, should succeed
+    // second transaction attempts to write again, should succeed
 
-    // generate a random update ProjectedRow to Update
     EXPECT_TRUE(table.Update(tuple, *update, undo));
+
+    delete[] update_buffer;
 
     // generate a redo ProjectedRow for Select
     byte *select_buffer = new byte[redo_size];
