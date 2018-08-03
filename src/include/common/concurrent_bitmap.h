@@ -97,8 +97,8 @@ class RawConcurrentBitmap {
 
 // WARNING: DO NOT CHANGE THE CLASS LAYOUT OF RawConcurrentBitmap.
 // The correctness of our storage code depends in this class having this
-// exact layout. Changes include marking a function as virtual (or use the
-// FAKED_IN_TESTS macro), as that adds a Vtable to the class layout,
+// exact layout. Changes include marking a function as virtual, as that adds
+// a Vtable to the class layout,
 static_assert(sizeof(RawConcurrentBitmap) == 0, "Unexpected RawConcurrentBitmap layout!");
 }  // namespace common
 }  // namespace terrier
