@@ -5,12 +5,9 @@
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transactions/transaction_util.h"
 
 namespace terrier::storage {
-
-// TODO(tianyu): Implement, and move elsewhere.
-bool Uncommitted(timestamp_t) { return false; }
-bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
@@ -97,7 +94,8 @@ class DataTable {
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
            && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && Uncommitted(version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
+           && !transactions::TransactionUtil::Committed(
+                  version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

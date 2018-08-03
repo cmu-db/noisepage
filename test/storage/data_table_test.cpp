@@ -14,8 +14,8 @@ struct DataTableTests : public ::testing::Test {
 // into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
 // random tuple. Repeats for num_iterations.
 TEST_F(DataTableTests, SimpleInsertSelectTest) {
-  const uint32_t num_iterations = 10;
-  const uint32_t num_inserts = 100000;
+  const uint32_t num_iterations = 100;
+  const uint32_t num_inserts = 1000;
   const uint16_t max_columns = 100;
 
   std::uniform_real_distribution<double> distribution(0.0, 1.0);
@@ -77,18 +77,4 @@ TEST_F(DataTableTests, SimpleInsertSelectTest) {
     }
   }
 }
-
-
-//TEST_F(DataTableTests, VersionChainTest) {
-//  const uint32_t num_iterations = 100;
-//  const uint32_t num_tuples = 100;
-//  const uint32_t num_versions = 5;
-//  const uint32_t max_col = 100;
-//  std::uniform_real_distribution<double> distribution(0.0, 1.0);
-//  for (uint32_t iter = 0; iter < num_iterations; iter++) {
-//     storage::BlockLayout layout = testutil::RandomLayout(generator_, max_col);
-//
-//  }
-//}
-
 }  // namespace terrier

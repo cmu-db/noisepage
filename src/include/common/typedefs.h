@@ -117,8 +117,9 @@ class StrongTypeAlias {
 /* Define all typedefs here! */
 // TODO(Tianyu): Maybe?
 using byte = std::byte;
-STRONG_TYPEDEF(timestamp_t, uint64_t);
+using timestamp_t = uint64_t;
 STRONG_TYPEDEF(layout_version_t, uint32_t);
+
 }  // namespace terrier
 
 namespace std {
