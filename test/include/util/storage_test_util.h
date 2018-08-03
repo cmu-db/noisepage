@@ -58,7 +58,7 @@ template<typename Random>
 std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random &generator) {
   // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols since
   // we exclude the version vector column
-  uint16_t num_cols = std::uniform_int_distribution<uint16_t>(1, layout.num_cols_ - 1)(generator);
+  uint16_t num_cols = std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(generator);
 
   std::vector<uint16_t> col_ids;
   // Add all of the column ids from the layout to the projection list
