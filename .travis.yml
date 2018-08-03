@@ -7,14 +7,14 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env:
-        - NAME="Mac [dbg/clang]" CMAKE_BUILD_TYPE=debug
+        - NAME="Mac [dbg/clang]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On
       install:
         - echo 'y' | ./script/installation/packages.sh
         - export PATH=/usr/local/opt/llvm/bin:$PATH
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[dbg/packages.sh]" CMAKE_BUILD_TYPE=debug DOCKER=true
+        - NAME="Docker[dbg/packages.sh]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On DOCKER=true
       install:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
@@ -23,7 +23,7 @@ matrix:
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[dbg/Dockerfile]" CMAKE_BUILD_TYPE=debug DOCKER=true
+        - NAME="Docker[dbg/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -33,14 +33,14 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env:
-        - NAME="Mac [rel/clang]" CMAKE_BUILD_TYPE=release
+        - NAME="Mac [rel/clang]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off
       install:
         - echo 'y' | ./script/installation/packages.sh
         - export PATH=/usr/local/opt/llvm/bin:$PATH
     - os: linux
       dist: trusty
       env:
-       - NAME="Docker[rel/packages.sh]" CMAKE_BUILD_TYPE=release DOCKER=true
+       - NAME="Docker[rel/packages.sh]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
       install:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
@@ -49,7 +49,7 @@ matrix:
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[rel/Dockerfile]" CMAKE_BUILD_TYPE=release DOCKER=true
+        - NAME="Docker[rel/Dockerfile]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -58,7 +58,7 @@ matrix:
     - os: linux
       dist: trusty
       env:
-        - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug DOCKER=true
+        - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -74,7 +74,7 @@ before_script:
   - if [[ "$DOCKER" = true ]]; then
       docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
-      docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .." &&
+      docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
       docker exec build /bin/sh -c "cd /repo/build && make lint" ;
@@ -87,10 +87,10 @@ before_script:
       cd .. &&
       mkdir build &&
       cd build &&
-      cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .. &&
-      make check-clang-tidy &&
-      make check-format &&
-      make lint;
+      cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .. &&
+      ASAN_OPTIONS=detect_container_overflow=0 make check-clang-tidy &&
+      ASAN_OPTIONS=detect_container_overflow=0 make check-format &&
+      ASAN_OPTIONS=detect_container_overflow=0 make lint;
     fi
 
 script:
@@ -98,6 +98,6 @@ script:
       docker exec build /bin/sh -c "cd /repo/build && make" &&
       docker exec build /bin/sh -c "cd /repo/build && make unittest" ;
     else
-      make &&
-      make unittest ;
+      ASAN_OPTIONS=detect_container_overflow=0 make &&
+      ASAN_OPTIONS=detect_container_overflow=0 make unittest ;
     fi
