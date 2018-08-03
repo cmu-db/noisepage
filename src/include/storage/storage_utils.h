@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_map>
 #include "common/macros.h"
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
@@ -117,6 +118,22 @@ void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, c
   uint16_t col_id = from.ColumnIds()[projection_list_offset];
   const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
+}
+
+// Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
+// the materialized tuple if present in the materialized projection.
+void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
+                const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
+  for (uint16_t i = 0; i < delta.NumColumns(); i++) {
+    uint16_t delta_col_id = delta.ColumnIds()[i];
+    auto it = col_to_index.find(delta_col_id);
+    if (it != col_to_index.end()) {
+      uint16_t buffer_offset = it->second;
+      uint16_t col_id = it->first;
+      uint8_t attr_size = layout.attr_sizes_[col_id];
+      CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
+    }
+  }
 }
 
 }  // namespace terrier::storage

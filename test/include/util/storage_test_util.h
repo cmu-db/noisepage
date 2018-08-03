@@ -58,7 +58,7 @@ std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &la
   // we exclude the version vector column
   uint16_t num_cols = std::uniform_int_distribution(1, layout.num_cols_ - 1)(generator);
 
-  std::vector<uint16_t> col_ids(num_cols);
+  std::vector<uint16_t> col_ids;
   // Add all of the column ids from the layout to the projection list
   // 0 is version vector so we skip it
   for (uint16_t col = 1; col < layout.num_cols_; col++) {
@@ -87,11 +87,34 @@ bool ProjectionListEqual(const storage::BlockLayout &layout,
     const byte *one_content = one->AccessWithNullCheck(projection_list_index);
     const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
-    if (!((one_content == nullptr && other_content == nullptr)
-        || storage::ReadBytes(attr_size, one_content) == storage::ReadBytes(attr_size, other_content)))
+    if (one_content == nullptr || other_content == nullptr){
+      if (one_content == other_content) {
+        continue;
+      }
+      else {
+        return false;
+      }
+    }
+
+    if (storage::ReadBytes(attr_size, one_content) != storage::ReadBytes(attr_size, other_content))
       return false;
   }
 
   return true;
+}
+
+
+void PrintRow(const storage::ProjectedRow *row, const storage::BlockLayout &layout) {
+  printf("num_cols: %u\n", row->NumColumns());
+  for (uint16_t i = 0; i < row->NumColumns(); i++) {
+    uint16_t col_id = row->ColumnIds()[i];
+    const byte *attr = row->AccessWithNullCheck(i);
+    if (attr) {
+      printf("col_id: %u is %llx\n", col_id, storage::ReadBytes(layout.attr_sizes_[col_id], attr));
+    }
+    else {
+      printf("col_id: %u is NULL\n", col_id);
+    }
+  }
 }
 }  // namespace terrier::testutil

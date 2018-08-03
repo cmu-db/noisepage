@@ -52,7 +52,7 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr && version_ptr->timestamp_ >= txn_start_time) {
+  while (version_ptr != nullptr && version_ptr->timestamp_ > txn_start_time) {
     ApplyDelta(accessor.GetBlockLayout(), *(version_ptr->Delta()), buffer, projection_list_col_to_index);
     version_ptr = version_ptr->next_;
   }
@@ -123,22 +123,6 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   // Expect no conflict because this version should only be visible to this transaction.
   PELOTON_ASSERT(no_conflict);
   return result;
-}
-
-void DataTable::ApplyDelta(const BlockLayout &layout,
-                           const ProjectedRow &delta,
-                           ProjectedRow *buffer,
-                           const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
-  for (uint16_t i = 0; i < delta.NumColumns(); i++) {
-    uint16_t delta_col_id = delta.ColumnIds()[i];
-    auto it = col_to_index.find(delta_col_id);
-    if (it != col_to_index.end()) {
-      uint16_t buffer_offset = it->second;
-      uint16_t col_id = it->first;
-      uint8_t attr_size = layout.attr_sizes_[col_id];
-      CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
-    }
-  }
 }
 
 DeltaRecord* DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor)  {

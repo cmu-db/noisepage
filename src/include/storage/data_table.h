@@ -82,11 +82,6 @@ class DataTable {
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
-  // Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
-  // the materialized tuple if present in the materialized projection.
-  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
-                  const std::unordered_map<uint16_t, uint16_t> &col_to_index);
-
   // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor);
 

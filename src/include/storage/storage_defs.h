@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -297,6 +298,10 @@ class ProjectedRow {
   }
 };
 
+/**
+ * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
+ * version chain
+ */
 class DeltaRecord {
  public:
   DeltaRecord() = delete;
@@ -312,8 +317,16 @@ class DeltaRecord {
    */
   timestamp_t timestamp_;
 
+  /**
+   * Access the next version in the delta chain
+   * @return pointer to the next version
+   */
   ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
 
+  /**
+   * Access the next version in the delta chain
+   * @return pointer to the next version
+   */
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
   /**
