@@ -61,7 +61,7 @@ class RawBitmap {
    * Deallocates a RawBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
    */
-  static void Deallocate(RawBitmap *map) { delete reinterpret_cast<uint8_t *>(map); }
+  static void Deallocate(RawBitmap *map) { delete[] reinterpret_cast<uint8_t *>(map); }
 
   /**
    * Test the bit value at the given position
