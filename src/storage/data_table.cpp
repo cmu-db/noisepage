@@ -33,7 +33,8 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
   // because so long as we set the version ptr before updating in place, the reader will know if a conflict
   // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) StorageUtil::CopyAttrIntoProjection(accessor, slot, out_buffer, i);
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+    StorageUtil::CopyAttrIntoProjection(accessor, slot, out_buffer, i);
 
   // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
   // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
@@ -47,14 +48,18 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // access columns since deltas can concern a different set of columns when chasing the
   // version chain
   std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+    col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
 
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
       && transaction::TransactionUtil::NewerThan(version_ptr->timestamp_, txn_start_time)) {
-    StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(version_ptr->Delta()), out_buffer, col_to_projection_list_index);
+    StorageUtil::ApplyDelta(accessor.GetBlockLayout(),
+                            *(version_ptr->Delta()),
+                            out_buffer,
+                            col_to_projection_list_index);
     version_ptr = version_ptr->next_;
   }
 }
@@ -78,7 +83,8 @@ bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaReco
 
   // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
   // Populate undo record with the before image of attribute
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrIntoProjection(accessor, slot, undo->Delta(), i);
+  for (uint16_t i = 0; i < redo.NumColumns(); i++)
+    StorageUtil::CopyAttrIntoProjection(accessor, slot, undo->Delta(), i);
 
   // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
   if (!CompareAndSwapVersionPtr(slot, accessor, version_ptr, undo)) return false;
