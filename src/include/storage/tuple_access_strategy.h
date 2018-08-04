@@ -128,7 +128,6 @@ class TupleAccessStrategy {
    * from a block store), otherwise it will cause undefined behavior.
    *
    * @param raw pointer to the raw block to initialize
-   * @param layout block layout to use (can be compiled)
    * @param layout_version the layout version of this block
    */
   void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version);
@@ -144,7 +143,7 @@ class TupleAccessStrategy {
   }
 
   /**
-   * @param block block  to access
+   * @param block block to access
    * @param col offset representing the column
    * @return pointer to the start of the column
    */
