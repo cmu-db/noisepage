@@ -124,7 +124,6 @@ namespace std {
  */
 template <class Tag, class IntType>
 struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
-
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for atomics of strong typedefs");
 
   /**
