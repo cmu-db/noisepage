@@ -10,6 +10,12 @@ class TransactionUtil {
  public:
   TransactionUtil() = delete;
 
+  /**
+   * Determine if the first timestamp is considered newer than the second.
+   * @param a one timestamp
+   * @param b other timestamp
+   * @return true if a is newer than b, false otherwise
+   */
   static bool NewerThan(const timestamp_t a, const timestamp_t b) { return (!a) > (!b); }
 
   /**
