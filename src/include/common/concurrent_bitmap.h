@@ -93,13 +93,21 @@ class RawConcurrentBitmap {
    * If an unset bit is found, returns true.
    * Otherwise updates byte_pos to be the next place we should search.
    * @tparam T signed fixed width integer type.
-   * @param[in,out] byte_pos invariant: next byte position we should search
+   * @param[in,out] byte_pos invariant: next byte position we should search.
+   * @param[in,out] bits_left the number of valid bits remaining.
    * @return true if an unset bit was found, false otherwise.
    */
   template <class T>
-  bool find_unset_bit(uint32_t *byte_pos) {
-    if (static_cast<std::atomic<T>>(bits_[*byte_pos]).load() == -1) {
+  bool FindUnsetBit(uint32_t *byte_pos, uint32_t *bits_left) {
+    // for a signed integer, -1 represents that all the bits are set
+    if (reinterpret_cast<std::atomic<T> *>(&bits_[*byte_pos])[0].load() == -1) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
+      // saturate bits_left at 0
+      if (*bits_left < sizeof(T) * BYTE_SIZE) {
+        *bits_left = 0;
+      } else {
+        *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
+      }
       return false;
     }
     return true;
@@ -108,44 +116,47 @@ class RawConcurrentBitmap {
   /**
    * Returns the position of the first unset bit, if it exists.
    * Note that this result is immediately stale.
-   * @param num_bits number of bits in the bitmap.
+   * @param bitmap_num_bits number of bits in the bitmap.
    * @param start_pos start searching from this bit location.
    * @param[out] out_pos the position of the first unset bit will be written here, if it exists.
    * @return true if an unset bit was found, and false otherwise.
    */
-  bool FirstUnsetPos(uint32_t num_bits, uint32_t start_pos, uint32_t *out_pos) {
-    // invalid starting position
-    if (start_pos >= num_bits) {
+  bool FirstUnsetPos(uint32_t bitmap_num_bits, uint32_t start_pos, uint32_t *out_pos) {
+    // invalid starting position.
+    if (start_pos >= bitmap_num_bits) {
       return false;
     }
 
-    uint32_t num_bytes = BitmapSize(num_bits);  // maximum number of bytes in the bitmap
-    uint32_t byte_pos = start_pos / BYTE_SIZE;  // current byte position
-    uint32_t search_width;                      // number of bits searched at a time
+    uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
+    uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
+    uint32_t search_width;                             // number of bits searched at a time
+    uint32_t bits_left = bitmap_num_bits;              // number of bits remaining
+    bool found_unset_bit = false;                      // whether we found an unset bit previously
 
-    // optimization: don't search wider than the number of bits we have
-    if (num_bits <= sizeof(uint8_t)) {
-      search_width = sizeof(uint8_t);
-    } else if (num_bits <= sizeof(uint16_t)) {
-      search_width = sizeof(uint16_t);
-    } else if (num_bits <= sizeof(uint32_t)) {
-      search_width = sizeof(uint32_t);
-    } else {
-      search_width = sizeof(uint64_t);
-    }
+    while (byte_pos < num_bytes && bits_left > 0) {
+      // as soon as we find an unset bit, we go back to looking at single bytes
+      if (found_unset_bit) {
+        search_width = sizeof(uint8_t);
+      } else if (bits_left >= sizeof(uint64_t) * BYTE_SIZE) {
+        search_width = sizeof(uint64_t);
+      } else if (bits_left >= sizeof(uint32_t) * BYTE_SIZE) {
+        search_width = sizeof(uint32_t);
+      } else if (bits_left >= sizeof(uint16_t) * BYTE_SIZE) {
+        search_width = sizeof(uint16_t);
+      } else {
+        search_width = sizeof(uint8_t);
+      }
 
-    while (byte_pos < num_bytes) {
-      bool found_unset_bit = false;
-      // try to look for an unset bit in the majority of cases
+      // try to look for an unset bit.
       switch (search_width) {
         case sizeof(uint64_t):
-          found_unset_bit = find_unset_bit<int64_t>(&byte_pos);
+          found_unset_bit = FindUnsetBit<int64_t>(&byte_pos, &bits_left);
           break;
         case sizeof(uint32_t):
-          found_unset_bit = find_unset_bit<int32_t>(&byte_pos);
+          found_unset_bit = FindUnsetBit<int32_t>(&byte_pos, &bits_left);
           break;
         case sizeof(uint16_t):
-          found_unset_bit = find_unset_bit<int16_t>(&byte_pos);
+          found_unset_bit = FindUnsetBit<int16_t>(&byte_pos, &bits_left);
           break;
         case sizeof(uint8_t): {
           uint8_t bits = bits_[byte_pos].load();
@@ -154,7 +165,7 @@ class RawConcurrentBitmap {
             // we don't bother ensuring freshness since our function's result is immediately stale.
             for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
               // we are always padded to a byte, but we don't want to use the padding.
-              if (pos + byte_pos * BYTE_SIZE >= num_bits) {
+              if (pos + byte_pos * BYTE_SIZE >= bitmap_num_bits) {
                 return false;
               }
               // if we find a free bit, we return that.
@@ -171,10 +182,6 @@ class RawConcurrentBitmap {
         }
         default:
           PELOTON_ASSERT(false);
-      }
-      // if we found an unset bit, we halve our search width
-      if (found_unset_bit) {
-        search_width = search_width / 2;
       }
     }
 

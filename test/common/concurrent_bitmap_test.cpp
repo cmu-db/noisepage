@@ -82,6 +82,78 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
 
   common::RawConcurrentBitmap::Deallocate(bitmap);
 }
+// The test exercises FirstUnsetPos with edge-case sizes
+TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
+  // fill an entire block of 16, then try to find an unset bit
+  {
+    const uint32_t num_elements = 16;
+    common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
+    uint32_t pos;
+
+    for (uint32_t i = 0; i < num_elements; ++i) {
+      EXPECT_TRUE(bitmap->Flip(i, false));
+    }
+    EXPECT_FALSE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+
+    common::RawConcurrentBitmap::Deallocate(bitmap);
+  }
+  // fill the first 128, then try to find unset bit 129
+  {
+    const uint32_t num_elements = 129;
+    common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
+    uint32_t pos;
+
+    // flip everything but the last bit
+    for (uint32_t i = 0; i < num_elements - 1; ++i) {
+      EXPECT_TRUE(bitmap->Flip(i, false));
+    }
+    EXPECT_TRUE(bitmap->Test(0));
+    // expect the last bit to be ok
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+    EXPECT_EQ(pos, 128);
+
+    common::RawConcurrentBitmap::Deallocate(bitmap);
+  }
+}
+// The test attempts to concurrently flip every bit from 0 to 1 using FirstUnsetPos
+TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
+  const uint32_t num_elements = 10000;
+  const uint32_t num_threads = 8;
+  common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
+  std::vector<std::vector<uint32_t>> elements(num_threads);
+
+  auto workload = [&](uint32_t thread_id) {
+    uint32_t pos = 0;
+    for (uint32_t i = 0; i < num_elements; ++i) {
+      if (bitmap->FirstUnsetPos(num_elements, 0, &pos)) {
+        if (bitmap->Flip(pos, false)) {
+          elements[thread_id].push_back(pos);
+        }
+      }
+    }
+  };
+
+  testutil::RunThreadsUntilFinish(num_threads, workload);
+
+  // Coalesce the thread-local result vectors into one vector, and
+  // then sort the results
+  std::vector<uint32_t> all_elements;
+  for (uint32_t i = 0; i < num_threads; ++i)
+    all_elements.insert(all_elements.end(),
+                        elements[i].begin(),
+                        elements[i].end());
+
+  // Verify coalesced result size
+  EXPECT_EQ(num_elements, all_elements.size());
+  std::sort(all_elements.begin(), all_elements.end());
+  // Verify 1:1 mapping of indices to element value
+  // This represents that every slot was grabbed by only one thread
+  for (uint32_t i = 0; i < num_elements; ++i) {
+    EXPECT_EQ(i, all_elements[i]);
+  }
+  common::RawConcurrentBitmap::Deallocate(bitmap);
+}
+
 // The test attempts to concurrently flip every bit from 0 to 1, and
 // record successful flips into thread-local storage
 // This is equivalent to grabbing a free slot if used in an
