@@ -117,14 +117,14 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
 namespace std {
-
-// TODO(Tianyu): Expand this specialization if need things other than ints.
+// TODO(Tianyu): Expand this specialization if needed.
 /**
  * Specialization of StrongTypeAlias for std::atomic<uint32_t>.
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
 template <class Tag, class IntType>
 struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
+
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for atomics of strong typedefs");
 
   /**
