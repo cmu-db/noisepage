@@ -89,31 +89,6 @@ class RawConcurrentBitmap {
   }
 
   /**
-   * Looks for an unset bit in a T-sized word from the bitmap, starting at byte_pos.
-   * If an unset bit is found, returns true.
-   * Otherwise updates byte_pos to be the next place we should search.
-   * @tparam T signed fixed width integer type.
-   * @param[in,out] byte_pos invariant: next byte position we should search.
-   * @param[in,out] bits_left the number of valid bits remaining.
-   * @return true if an unset bit was found, false otherwise.
-   */
-  template <class T>
-  bool FindUnsetBit(uint32_t *byte_pos, uint32_t *bits_left) {
-    // for a signed integer, -1 represents that all the bits are set
-    if (reinterpret_cast<std::atomic<T> *>(&bits_[*byte_pos])[0].load() == -1) {
-      *byte_pos += static_cast<uint32_t>(sizeof(T));
-      // saturate bits_left at 0
-      if (*bits_left < sizeof(T) * BYTE_SIZE) {
-        *bits_left = 0;
-      } else {
-        *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
-      }
-      return false;
-    }
-    return true;
-  }
-
-  /**
    * Returns the position of the first unset bit, if it exists.
    * Note that this result is immediately stale.
    * @param bitmap_num_bits number of bits in the bitmap.
@@ -129,13 +104,13 @@ class RawConcurrentBitmap {
 
     uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
-    uint32_t search_width;                             // number of bits searched at a time
+    uint32_t search_width = sizeof(uint64_t);          // number of bits searched at a time
     uint32_t bits_left = bitmap_num_bits;              // number of bits remaining
     bool found_unset_bit = false;                      // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
       // as soon as we find an unset bit, we go back to looking at single bytes
-      if (found_unset_bit) {
+      if (found_unset_bit || search_width < sizeof(uint16_t)) {
         search_width = sizeof(uint8_t);
       } else if (bits_left >= sizeof(uint64_t) * BYTE_SIZE) {
         search_width = sizeof(uint64_t);
@@ -193,6 +168,32 @@ class RawConcurrentBitmap {
 
  private:
   std::atomic<uint8_t> bits_[0];
+
+  /**
+   * Looks for an unset bit in a T-sized word from the bitmap, starting at byte_pos.
+   * If an unset bit is found, returns true.
+   * Otherwise updates byte_pos to be the next place we should search.
+   * @tparam T signed fixed width integer type.
+   * @param[in,out] byte_pos invariant: next byte position we should search.
+   * @param[in,out] bits_left the number of valid bits remaining.
+   * @return true if an unset bit was found, false otherwise.
+   */
+  template <class T>
+  bool FindUnsetBit(uint32_t *byte_pos, uint32_t *bits_left) {
+    // for a signed integer, -1 represents that all the bits are set
+    T bits = reinterpret_cast<std::atomic<T> *>(&bits_[*byte_pos])->load();
+    if (bits == static_cast<T>(-1)) {
+      *byte_pos += static_cast<uint32_t>(sizeof(T));
+      // prevent underflow
+      if (*bits_left < sizeof(T) * BYTE_SIZE) {
+        *bits_left = 0;
+      } else {
+        *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
+      }
+      return false;
+    }
+    return true;
+  }
 };
 
 // WARNING: DO NOT CHANGE THE CLASS LAYOUT OF RawConcurrentBitmap.
