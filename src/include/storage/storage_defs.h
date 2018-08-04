@@ -82,6 +82,18 @@ struct BlockLayout {
  * unless interpreted by a @see TupleAccessStrategy
  */
 struct RawBlock {
+
+  /**
+   * Initializes a new block to conform to the layout given. This will write the
+   * headers and divide up the blocks into mini blocks(each mini block contains
+   * a column). The raw block needs to be 0-initialized (by default when given out
+   * from a block store), otherwise it will cause undefined behavior.
+   *
+   * @param layout block layout to use (can be compiled)
+   * @param layout_version the layout version of this block
+   */
+  void Initialize(const BlockLayout &layout, layout_version_t layout_version);
+
   /**
    * Layout version.
    */

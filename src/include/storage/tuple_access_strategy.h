@@ -11,21 +11,7 @@
 // and thus blocks are free to handout the slot.) Generally this will just be the version vector.
 #define PRESENCE_COLUMN_ID 0
 
-namespace terrier {
-namespace storage {
-
-/**
- * Initializes a new block to conform to the layout given. This will write the
- * headers and divide up the blocks into mini blocks(each mini block contains
- * a column). The raw block needs to be 0-initialized (by default when given out
- * from a block store), otherwise it will cause undefined behavior.
- *
- * @param raw pointer to the raw block to initialize
- * @param layout block layout to use (can be compiled)
- * @param layout_version the layout version of this block
- */
-void InitializeRawBlock(RawBlock *raw, const BlockLayout &layout, layout_version_t layout_version);
-
+namespace terrier::storage {
 /**
  * Code for accessing data within a block. This code is eventually compiled and
  * should be stateless, so no fields other than const BlockLayout.
@@ -135,8 +121,17 @@ class TupleAccessStrategy {
    */
   explicit TupleAccessStrategy(BlockLayout layout) : layout_(std::move(layout)) {}
 
-  // InitializeRawBlock requires knowledge about an interpreted Block.
-  friend void InitializeRawBlock(RawBlock *raw, const BlockLayout &layout, layout_version_t layout_version);
+  /**
+   * Initializes a new block to conform to the layout given. This will write the
+   * headers and divide up the blocks into mini blocks(each mini block contains
+   * a column). The raw block needs to be 0-initialized (by default when given out
+   * from a block store), otherwise it will cause undefined behavior.
+   *
+   * @param raw pointer to the raw block to initialize
+   * @param layout block layout to use (can be compiled)
+   * @param layout_version the layout version of this block
+   */
+  void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version);
 
   /* Vectorized Access */
   /**
@@ -225,5 +220,4 @@ class TupleAccessStrategy {
   // TODO(Tianyu): This will be baked in for codegen, not a field.
   const BlockLayout layout_;
 };
-}  // namespace storage
-}  // namespace terrier
+}  // namespace terrier::storage
