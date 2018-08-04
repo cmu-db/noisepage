@@ -5,7 +5,7 @@
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "transactions/transaction_util.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 
@@ -39,9 +39,9 @@ class DataTable {
    * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
    *                       will just be the start time of the caller transaction.
    * @param slot the tuple slot to read
-   * @param buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *buffer);
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer);
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -89,7 +89,7 @@ class DataTable {
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
            && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && !transactions::TransactionUtil::Committed(
+           && !transaction::TransactionUtil::Committed(
                   version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 

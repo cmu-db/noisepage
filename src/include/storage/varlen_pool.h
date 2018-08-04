@@ -12,7 +12,7 @@ namespace terrier {
  * A varlen entry is always a 32-bit size field and the varlen content,
  * with exactly size many bytes (no extra nul in the end)
  */
-struct PACKED VarlenEntry {
+struct VarlenEntry {
   /**
    * Size of the varlen entry.
    */

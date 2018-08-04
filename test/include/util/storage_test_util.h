@@ -5,7 +5,7 @@
 #include <cstdio>
 #include "common/test_util.h"
 #include "storage/storage_defs.h"
-#include "storage/storage_utils.h"
+#include "storage/storage_util.h"
 
 namespace terrier::testutil {
 
@@ -98,7 +98,7 @@ bool ProjectionListEqual(const storage::BlockLayout &layout,
       }
     }
 
-    if (storage::ReadBytes(attr_size, one_content) != storage::ReadBytes(attr_size, other_content))
+    if (storage::StorageUtil::ReadBytes(attr_size, one_content) != storage::StorageUtil::ReadBytes(attr_size, other_content))
       return false;
   }
 
@@ -112,7 +112,7 @@ void PrintRow(const storage::ProjectedRow *row, const storage::BlockLayout &layo
     uint16_t col_id = row->ColumnIds()[i];
     const byte *attr = row->AccessWithNullCheck(i);
     if (attr) {
-      printf("col_id: %u is %" PRIx64 "\n", col_id, storage::ReadBytes(layout.attr_sizes_[col_id], attr));
+      printf("col_id: %u is %" PRIx64 "\n", col_id, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
     }
     else {
       printf("col_id: %u is NULL\n", col_id);

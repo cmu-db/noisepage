@@ -1,6 +1,6 @@
 #include "common/test_util.h"
 #include "storage/data_table.h"
-#include "storage/storage_utils.h"
+#include "storage/storage_util.h"
 #include "util/storage_test_util.h"
 
 namespace terrier {
@@ -16,10 +16,11 @@ struct DataTableTests : public ::testing::Test {
     // Creates a mapping from col offset to project list index. This allows us to efficiently
     // access columns since deltas can concern a different set of columns when chasing the
     // version chain
-    std::unordered_map<uint16_t, uint16_t> projection_list_col_to_index;
-    for (uint16_t i = 0; i < buffer->NumColumns(); i++) projection_list_col_to_index.emplace(buffer->ColumnIds()[i], i);
+    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+    for (uint16_t i = 0; i < buffer->NumColumns(); i++)
+      col_to_projection_list_index.emplace(buffer->ColumnIds()[i], i);
 
-    storage::ApplyDelta(layout, delta, buffer, projection_list_col_to_index);
+    storage::StorageUtil::ApplyDelta(layout, delta, buffer, col_to_projection_list_index);
   }
 
 };
@@ -112,7 +113,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<byte *> update_buffers(num_updates);
     std::vector<byte *> undo_buffers(num_updates + 1);
     std::vector<std::pair<timestamp_t, storage::ProjectedRow *>> tuple_versions;
-    timestamp_t timestamp = 0;
+    timestamp_t timestamp(0);
 
     std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
 
@@ -148,7 +149,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
       // generate a version of this tuple for this timestamp
       byte *version_buffer = new byte[redo_size];
       storage::ProjectedRow *version = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, version_buffer);
-      PELOTON_MEMCPY(version, tuple_versions.back().second, redo_size);
+      PELOTON_MEMCPY(version_buffer, tuple_versions.back().second, redo_size);
       ApplyDelta(&table, layout, *update, version);
 
       // generate an undo DeltaRecord to populate on Update
@@ -247,7 +248,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     // generate an undo DeltaRecord to populate on Insert
     undo_buffer = new byte[undo_size]; // safe to overprovision this
     undo_buffers[1] = undo_buffer;
-    undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(-1), layout, update_col_ids, undo_buffer);
+    undo = storage::DeltaRecord::InitializeDeltaRecord(nullptr, timestamp_t(static_cast<uint64_t>(-1)), layout, update_col_ids, undo_buffer);
 
     EXPECT_TRUE(table.Update(tuple, *update, undo));
 
@@ -269,7 +270,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     // commit the first transaction by changing the timestamp
 
-    reinterpret_cast<storage::DeltaRecord *>(undo_buffers[1])->timestamp_ = 1;
+    reinterpret_cast<storage::DeltaRecord *>(undo_buffers[1])->timestamp_ = timestamp_t(1);
 
     // second transaction attempts to write again, should succeed
 
@@ -281,7 +282,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     byte *select_buffer = new byte[redo_size];
     storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, select_buffer);
 
-    table.Select(0, tuple, select_row);
+    table.Select(timestamp_t(0), tuple, select_row);
 
     EXPECT_TRUE(testutil::ProjectionListEqual(layout, select_row, insert));
 

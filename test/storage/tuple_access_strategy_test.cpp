@@ -2,7 +2,7 @@
 
 #include "common/test_util.h"
 #include "common/typedefs.h"
-#include "storage/storage_utils.h"
+#include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
 
@@ -34,7 +34,7 @@ struct TupleAccessStrategyTests : public ::testing::Test {
     // we can do equality checks on uint64_t always.
     // 0 return for non-primary key indexes should be treated as null.
     uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) {
-      return storage::ReadBytes(layout.attr_sizes_[col],
+      return storage::StorageUtil::ReadBytes(layout.attr_sizes_[col],
                                 contents_ + attr_offsets_[col]);
     }
 
@@ -50,7 +50,7 @@ struct TupleAccessStrategyTests : public ::testing::Test {
     for (uint16_t col = 0; col < layout.num_cols_; col++) {
       uint64_t col_val = tuple.Attribute(layout, col);
       if (col_val != 0 || col == PRESENCE_COLUMN_ID)
-        storage::WriteBytes(layout.attr_sizes_[col],
+        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col],
                             tuple.Attribute(layout, col),
                             tested.AccessForceNotNull(slot, col));
       else
@@ -70,7 +70,7 @@ struct TupleAccessStrategyTests : public ::testing::Test {
       if (!null) {
         EXPECT_TRUE(col_slot != nullptr);
         EXPECT_EQ(expected.Attribute(layout, col),
-                  storage::ReadBytes(layout.attr_sizes_[col], col_slot));
+                  storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
       } else {
         EXPECT_TRUE(col_slot == nullptr);
       }
@@ -117,9 +117,9 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     storage::TupleSlot slot;
     EXPECT_TRUE(tested.Allocate(raw_block_, slot));
@@ -160,9 +160,9 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     uint32_t num_inserts =
         std::uniform_int_distribution<uint32_t>(1, layout.num_slots_)(generator);
@@ -194,10 +194,10 @@ TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
+    storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
-    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
-    storage::TupleAccessStrategy tested(layout);
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // Skip header
     void *lower_bound = tested.ColumnNullBitmap(raw_block_, 0);
@@ -244,9 +244,9 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
     const uint32_t num_threads = 8;
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
         tuples(num_threads);
@@ -289,10 +289,12 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
     // in a block. This allows us to test out more inter-leavings.
     const uint32_t num_threads = 8;
     const uint16_t max_cols = 1000;
+
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, layout_version_t(0));
     storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
+
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);
     std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
         tuples(num_threads);
