@@ -60,7 +60,6 @@ namespace terrier {
  */
 template <class Tag, typename IntType>
 class StrongTypeAlias {
-
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
  public:
@@ -113,18 +112,14 @@ class StrongTypeAlias {
    * postfix-increment.
    * @return the value of the variable before the modification.
    */
-  StrongTypeAlias operator++(int) {
-    return StrongTypeAlias(val_++);
-  }
+  StrongTypeAlias operator++(int) { return StrongTypeAlias(val_++); }
 
   /**
    * addition.
    * @param operand another int type
    * @return sum of the underlying value and given operand
    */
-  StrongTypeAlias operator+(const IntType &operand) {
-    return StrongTypeAlias(val_ + operand);
-  }
+  StrongTypeAlias operator+(const IntType &operand) { return StrongTypeAlias(val_ + operand); }
 
   /**
    * addition and assignment
@@ -149,18 +144,14 @@ class StrongTypeAlias {
    * postfix-decrement.
    * @return the value of the variable before the modification.
    */
-  StrongTypeAlias operator--(int) {
-    return StrongTypeAlias(val_--);
-  }
+  StrongTypeAlias operator--(int) { return StrongTypeAlias(val_--); }
 
   /**
    * subtraction
    * @param operand another int type
    * @return difference between the underlying value and given operand
    */
-  StrongTypeAlias operator-(const IntType &operand) {
-    return StrongTypeAlias(val_ - operand);
-  }
+  StrongTypeAlias operator-(const IntType &operand) { return StrongTypeAlias(val_ - operand); }
 
   /**
    * subtraction and assignment

@@ -23,13 +23,17 @@ class StorageUtil {
    */
   static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
     switch (attr_size) {
-      case sizeof(uint8_t):*reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
+      case sizeof(uint8_t):
+        *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
         break;
-      case sizeof(uint16_t):*reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
+      case sizeof(uint16_t):
+        *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
         break;
-      case sizeof(uint32_t):*reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
+      case sizeof(uint32_t):
+        *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
         break;
-      case sizeof(uint64_t):*reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
+      case sizeof(uint64_t):
+        *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
         break;
       default:
         // Invalid attr size
@@ -47,10 +51,14 @@ class StorageUtil {
    */
   static uint64_t ReadBytes(uint8_t attr_size, const byte *pos) {
     switch (attr_size) {
-      case sizeof(uint8_t):return *reinterpret_cast<const uint8_t *>(pos);
-      case sizeof(uint16_t):return *reinterpret_cast<const uint16_t *>(pos);
-      case sizeof(uint32_t):return *reinterpret_cast<const uint32_t *>(pos);
-      case sizeof(uint64_t):return *reinterpret_cast<const uint64_t *>(pos);
+      case sizeof(uint8_t):
+        return *reinterpret_cast<const uint8_t *>(pos);
+      case sizeof(uint16_t):
+        return *reinterpret_cast<const uint16_t *>(pos);
+      case sizeof(uint32_t):
+        return *reinterpret_cast<const uint32_t *>(pos);
+      case sizeof(uint64_t):
+        return *reinterpret_cast<const uint64_t *>(pos);
       default:
         // Invalid attr size
         throw std::runtime_error("Invalid byte write value");
@@ -126,9 +134,7 @@ class StorageUtil {
    * @param buffer
    * @param col_to_index
    */
-  static void ApplyDelta(const BlockLayout &layout,
-                         const ProjectedRow &delta,
-                         ProjectedRow *buffer,
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
                          const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
     for (uint16_t i = 0; i < delta.NumColumns(); i++) {
       uint16_t delta_col_id = delta.ColumnIds()[i];
@@ -140,6 +146,5 @@ class StorageUtil {
       }
     }
   }
-
 };
 }  // namespace terrier::storage

@@ -10,9 +10,7 @@ class TransactionUtil {
  public:
   TransactionUtil() = delete;
 
-  static bool NewerThan(const timestamp_t a, const timestamp_t b) {
-    return !a > !b;
-  }
+  static bool NewerThan(const timestamp_t a, const timestamp_t b) { return !a > !b; }
 
   /**
    * Determine if a timestamp represents a committed transaction
