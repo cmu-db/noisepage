@@ -21,8 +21,8 @@ namespace terrier {
  * This is not exactly ideal because then it becomes easy for you to do something
  * like this:
  *
- * // some defintion
- * void foo(A a, B b);
+ * // some definition
+ * A foo(A a, B b);
  *
  * // invocation
  * (a = 42, b = 10)
@@ -41,19 +41,12 @@ namespace terrier {
  *
  * To get 42 out of a, simply do (!a) to get back an int.
  *
- * To call the constructor function-style, use VALUE_OF macro by giving
- * it the name of your strong typedef and the value you want. THE
- * VALUE MUST HAVE EXPLICIT TYPE OF THE UNDERLYING TYPE.
- *
  * e.g. STRONG_TYPEDEF(foo, uint32_t)
- * ...
- * return VALUE_OF(foo, 42u);
+ * int result = !foo(a(42), b(10));
  */
 #define STRONG_TYPEDEF(name, underlying_type) \
   struct name##_typedef_tag {};               \
   using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
-
-#define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -109,11 +102,6 @@ class StrongTypeAlias {
   T val_;
 };
 
-template <class Tag, typename T>
-StrongTypeAlias<Tag, T> ValueOf(T val) {
-  return StrongTypeAlias<Tag, T>(val);
-}
-
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
 // template <class Tag>
@@ -121,7 +109,7 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 //  // Write your operator here!
 //};
 
-/* Define all typedefs here! */
+/* Define all typedefs here */
 // TODO(Tianyu): Maybe?
 using byte = std::byte;
 STRONG_TYPEDEF(timestamp_t, uint64_t);
@@ -129,27 +117,25 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 }  // namespace terrier
 
 namespace std {
-// TODO(Tianyu): This might be what std::atomic will give you by default
-// for 32-bit structs. But you will probably need to explicitly specialize
-// if you want operators.
 
-// TODO(Tianyu): Expand this specialization if need other things
-// from std::atomic<uint32_t>
+// TODO(Tianyu): Expand this specialization if need things other than ints.
 /**
  * Specialization of StrongTypeAlias for std::atomic<uint32_t>.
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
-template <class Tag>
-struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
+template <class Tag, class IntType>
+struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
+  static_assert(std::is_integral<IntType>::value, "Only int types are defined for atomics of strong typedefs");
+
   /**
    * Type alias shorthand.
    */
-  using t = terrier::StrongTypeAlias<Tag, uint32_t>;
+  using t = terrier::StrongTypeAlias<Tag, IntType>;
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
    */
-  explicit atomic(uint32_t val = 0) : underlying_{val} {}
+  explicit atomic(IntType val = 0) : underlying_{val} {}
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
@@ -227,7 +213,7 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @return the value of the atomic variable after the modification.
    */
   t operator++() volatile noexcept {
-    uint32_t result = ++underlying_;
+    IntType result = ++underlying_;
     return t(result);
   }
 
@@ -236,12 +222,12 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @return the value of the atomic variable before the modification.
    */
   t operator++(int) volatile noexcept {
-    const uint32_t result = underlying_++;
+    const IntType result = underlying_++;
     return t(result);
   }
 
  private:
-  atomic<uint32_t> underlying_;
+  atomic<IntType> underlying_;
 };
 
 /**
