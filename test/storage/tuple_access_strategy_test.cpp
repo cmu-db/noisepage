@@ -151,9 +151,9 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
     const uint32_t num_threads = 8;
     const uint16_t max_cols = 1000;
     storage::BlockLayout layout = testutil::RandomLayout(generator, max_cols);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
     storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     std::vector<std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple>>
         tuples(num_threads);

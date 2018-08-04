@@ -50,7 +50,7 @@ struct FakeRawTuple {
   // we can do equality checks on uint64_t always.
   // 0 return for non-primary key indexes should be treated as null.
   uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) {
-    return storage::ReadBytes(layout.attr_sizes_[col],
+    return storage::StorageUtil::ReadBytes(layout.attr_sizes_[col],
                          contents_ + attr_offsets_[col]);
   }
 
@@ -66,7 +66,7 @@ void InsertTuple(FakeRawTuple &tuple, storage::TupleAccessStrategy &tested, cons
   for (uint16_t col = 0; col < layout.num_cols_; col++) {
     uint64_t col_val = tuple.Attribute(layout, col);
     if (col_val != 0 || col == PRESENCE_COLUMN_ID)
-      storage::WriteBytes(layout.attr_sizes_[col],
+      storage::StorageUtil::WriteBytes(layout.attr_sizes_[col],
                      tuple.Attribute(layout, col),
                      tested.AccessForceNotNull(slot, col));
     else
@@ -86,7 +86,7 @@ void CheckTupleEqual(FakeRawTuple &expected, storage::TupleAccessStrategy &teste
     if (!null) {
       EXPECT_TRUE(col_slot != nullptr);
       EXPECT_EQ(expected.Attribute(layout, col),
-                storage::ReadBytes(layout.attr_sizes_[col], col_slot));
+                storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
     } else {
       EXPECT_TRUE(col_slot == nullptr);
     }
