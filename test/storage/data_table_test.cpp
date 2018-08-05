@@ -1,7 +1,7 @@
-#include "common/test_util.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
+#include "util/multi_threaded_test_util.h"
 
 namespace terrier {
 struct DataTableTests : public ::testing::Test {
@@ -39,14 +39,14 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
     double null_bias = distribution(generator_);
 
-    storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(generator_, max_columns);
     storage::DataTable table(block_store_, layout);
 
     std::vector<byte *> redo_buffers(num_inserts);
     std::vector<byte *> undo_buffers(num_inserts);
     std::vector<std::pair<storage::TupleSlot, storage::ProjectedRow *>> inserted_tuples;
 
-    std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
+    std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
 
     uint32_t redo_size = storage::ProjectedRow::Size(layout, col_ids);
     uint32_t undo_size = storage::DeltaRecord::Size(layout, col_ids);
@@ -57,7 +57,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
       byte *redo_buffer = new byte[redo_size];
       redo_buffers[i] = redo_buffer;
       storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, redo_buffer);
-      testutil::GenerateRandomRow(redo, layout, generator_, null_bias);
+      StorageTestUtil::GenerateRandomRow(redo, layout, generator_, null_bias);
 
       // generate an undo DeltaRecord to populate on Insert
       byte *undo_buffer = new byte[undo_size];
@@ -82,7 +82,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
       table.Select(timestamp_t(1), inserted_tuples[i].first, select_row);
 
-      EXPECT_TRUE(testutil::ProjectionListEqual(layout, select_row, inserted_tuples[i].second));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, select_row, inserted_tuples[i].second));
     }
 
     for (uint32_t i = 0; i < num_inserts; i++) {
@@ -107,7 +107,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 
     double null_bias = distribution(generator_);
 
-    storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(generator_, max_columns);
     storage::DataTable table(block_store_, layout);
 
     std::vector<byte *> update_buffers(num_updates);
@@ -115,7 +115,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<std::pair<timestamp_t, storage::ProjectedRow *>> tuple_versions;
     timestamp_t timestamp(0);
 
-    std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
+    std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
 
     uint32_t redo_size = storage::ProjectedRow::Size(layout, col_ids);
     uint32_t undo_size = storage::DeltaRecord::Size(layout, col_ids);
@@ -123,7 +123,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     // generate a random redo ProjectedRow to Insert
     byte *insert_buffer = new byte[redo_size];
     storage::ProjectedRow *insert = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, insert_buffer);
-    testutil::GenerateRandomRow(insert, layout, generator_, null_bias);
+    StorageTestUtil::GenerateRandomRow(insert, layout, generator_, null_bias);
 
     // generate an undo DeltaRecord to populate on Insert
     byte *undo_buffer = new byte[undo_size];
@@ -138,13 +138,13 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     EXPECT_EQ(1, tuple_versions.size());
 
     for (uint32_t i = 1; i < num_updates + 1; ++i) {
-      std::vector<uint16_t> update_col_ids = testutil::ProjectionListRandomColumns(layout, generator_);
+      std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator_);
 
       // generate a random update ProjectedRow to Update
       byte *update_buffer = new byte[redo_size]; // safe to overprovision this
       storage::ProjectedRow
           *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
-      testutil::GenerateRandomRow(update, layout, generator_, null_bias);
+      StorageTestUtil::GenerateRandomRow(update, layout, generator_, null_bias);
 
       // generate a version of this tuple for this timestamp
       byte *version_buffer = new byte[redo_size];
@@ -178,7 +178,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 
       table.Select(timestamp, tuple, select_row);
 
-      EXPECT_TRUE(testutil::ProjectionListEqual(layout, select_row, version));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, select_row, version));
     }
 
     for (auto i : select_buffers) {
@@ -211,13 +211,13 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     double null_bias = distribution(generator_);
 
-    storage::BlockLayout layout = testutil::RandomLayout(generator_, max_columns);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(generator_, max_columns);
     storage::DataTable table(block_store_, layout);
 
     std::vector<byte *> redo_buffers(2);
     std::vector<byte *> undo_buffers(3);
 
-    std::vector<uint16_t> col_ids = testutil::ProjectionListAllColumns(layout);
+    std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
 
     uint32_t redo_size = storage::ProjectedRow::Size(layout, col_ids);
     uint32_t undo_size = storage::DeltaRecord::Size(layout, col_ids);
@@ -226,7 +226,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     byte *insert_buffer = new byte[redo_size];
     redo_buffers[0] = insert_buffer;
     storage::ProjectedRow *insert = storage::ProjectedRow::InitializeProjectedRow(layout, col_ids, insert_buffer);
-    testutil::GenerateRandomRow(insert, layout, generator_, null_bias);
+    StorageTestUtil::GenerateRandomRow(insert, layout, generator_, null_bias);
 
     // generate an undo DeltaRecord to populate on Insert
     byte *undo_buffer = new byte[undo_size];
@@ -239,11 +239,11 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     // take the write lock by updating with negative timestamp
 
     // generate a random update ProjectedRow to Update
-    std::vector<uint16_t> update_col_ids = testutil::ProjectionListRandomColumns(layout, generator_);
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator_);
     byte *update_buffer = new byte[redo_size]; // safe to overprovision this
     storage::ProjectedRow
         *update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
-    testutil::GenerateRandomRow(update, layout, generator_, null_bias);
+    StorageTestUtil::GenerateRandomRow(update, layout, generator_, null_bias);
 
     // generate an undo DeltaRecord to populate on Insert
     undo_buffer = new byte[undo_size]; // safe to overprovision this
@@ -259,7 +259,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     // generate a random update ProjectedRow to Update
     update_buffer = new byte[redo_size]; // safe to overprovision this
     update = storage::ProjectedRow::InitializeProjectedRow(layout, update_col_ids, update_buffer);
-    testutil::GenerateRandomRow(update, layout, generator_, null_bias);
+    StorageTestUtil::GenerateRandomRow(update, layout, generator_, null_bias);
 
     // generate an undo DeltaRecord to populate on Update
     undo_buffer = new byte[undo_size]; // safe to overprovision this
@@ -284,7 +284,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
     table.Select(timestamp_t(0), tuple, select_row);
 
-    EXPECT_TRUE(testutil::ProjectionListEqual(layout, select_row, insert));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, select_row, insert));
 
     delete[] select_buffer;
 
