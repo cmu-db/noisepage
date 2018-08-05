@@ -10,9 +10,9 @@ uint32_t ProjectedRow::Size(const BlockLayout &layout, const std::vector<uint16_
   return result + common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
 }
 
-ProjectedRow *ProjectedRow::InitializeProjectedRow(const BlockLayout &layout,
-                                                   const std::vector<uint16_t> &col_ids,
-                                                   byte *head) {
+ProjectedRow *ProjectedRow::InitializeProjectedRow(byte *head,
+                                                  const std::vector<uint16_t> &col_ids,
+                                                  const BlockLayout &layout) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   result->num_cols_ = static_cast<uint16_t>(col_ids.size());
   auto val_offset =
@@ -32,17 +32,16 @@ uint32_t DeltaRecord::Size(const BlockLayout &layout, const std::vector<uint16_t
       + static_cast<uint32_t>(ProjectedRow::Size(layout, col_ids));
 }
 
-DeltaRecord *DeltaRecord::InitializeDeltaRecord(DeltaRecord *next,
+DeltaRecord *DeltaRecord::InitializeDeltaRecord(byte *head,
                                                 const timestamp_t timestamp,
                                                 const BlockLayout &layout,
-                                                const std::vector<uint16_t> &col_ids,
-                                                byte *head) {
+                                                const std::vector<uint16_t> &col_ids) {
   auto *result = reinterpret_cast<DeltaRecord *>(head);
 
-  result->next_ = next;
+  result->next_ = nullptr;
   result->timestamp_ = timestamp;
 
-  ProjectedRow::InitializeProjectedRow(layout, col_ids, result->varlen_contents_);
+  ProjectedRow::InitializeProjectedRow(result->varlen_contents_, col_ids, layout);
 
   return result;
 }

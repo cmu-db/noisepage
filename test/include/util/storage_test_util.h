@@ -25,7 +25,7 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template <typename A, typename B, typename C>
+  template<typename A, typename B, typename C>
   static void CheckInBounds(A *val, B *lower, C *upper) {
     EXPECT_GE(TO_INT(val), TO_INT(lower));
     EXPECT_LT(TO_INT(val), TO_INT(upper));
@@ -40,7 +40,7 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template <typename A, typename B, typename C>
+  template<typename A, typename B, typename C>
   static void CheckNotInBounds(A *val, B *lower, C *upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
   };
@@ -51,7 +51,7 @@ struct StorageTestUtil {
    * @param bytes bytes to advance
    * @return  pointer that is the specified amount of bytes ahead of the given
    */
-  template <typename A>
+  template<typename A>
   static A *IncrementByBytes(A *ptr, uint64_t bytes) {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
@@ -78,8 +78,10 @@ struct StorageTestUtil {
   }
 
   template<typename Random>
-  static void GenerateRandomRow(storage::ProjectedRow *row, const storage::BlockLayout &layout, Random &generator,
-                         const double null_bias = 0.1) {
+  static void PopulateRandomRow(storage::ProjectedRow *row,
+                                const storage::BlockLayout &layout,
+                                const double null_bias,
+                                Random &generator) {
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       uint16_t col = row->ColumnIds()[projection_list_idx];
@@ -105,7 +107,8 @@ struct StorageTestUtil {
   static std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random &generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols since
     // we exclude the version vector column
-    uint16_t num_cols = std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(generator);
+    uint16_t
+        num_cols = std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(generator);
 
     std::vector<uint16_t> col_ids;
     // Add all of the column ids from the layout to the projection list
@@ -124,8 +127,8 @@ struct StorageTestUtil {
   }
 
   static bool ProjectionListEqual(const storage::BlockLayout &layout,
-                           const storage::ProjectedRow *one,
-                           const storage::ProjectedRow *other) {
+                                  const storage::ProjectedRow *one,
+                                  const storage::ProjectedRow *other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       if (one->ColumnIds()[projection_list_index] != other->ColumnIds()[projection_list_index]) return false;
@@ -136,18 +139,18 @@ struct StorageTestUtil {
       const byte *one_content = one->AccessWithNullCheck(projection_list_index);
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
-      if (one_content == nullptr || other_content == nullptr){
+      if (one_content == nullptr || other_content == nullptr) {
         if (one_content == other_content) continue;
         else return false;
       }
 
-      if (storage::StorageUtil::ReadBytes(attr_size, one_content) != storage::StorageUtil::ReadBytes(attr_size, other_content))
+      if (storage::StorageUtil::ReadBytes(attr_size, one_content)
+          != storage::StorageUtil::ReadBytes(attr_size, other_content))
         return false;
     }
 
     return true;
   }
-
 
   static void PrintRow(const storage::ProjectedRow *row, const storage::BlockLayout &layout) {
     printf("num_cols: %u\n", row->NumColumns());
@@ -155,9 +158,10 @@ struct StorageTestUtil {
       uint16_t col_id = row->ColumnIds()[i];
       const byte *attr = row->AccessWithNullCheck(i);
       if (attr) {
-        printf("col_id: %u is %" PRIx64 "\n", col_id, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
-      }
-      else {
+        printf("col_id: %u is %" PRIx64 "\n",
+               col_id,
+               storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
+      } else {
         printf("col_id: %u is NULL\n", col_id);
       }
     }

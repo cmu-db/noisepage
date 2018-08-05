@@ -216,8 +216,8 @@ class ProjectedRow {
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
    * @return pointer to the initialized ProjectedRow
    */
-  static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
-                                              byte *head);
+  static ProjectedRow *InitializeProjectedRow(byte *head, const std::vector<uint16_t> &col_ids,
+                                              const BlockLayout &layout);
 
   /**
    * @return number of columns stored in the ProjectedRow
@@ -346,8 +346,8 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(DeltaRecord *next, const timestamp_t timestamp, const BlockLayout &layout,
-                                            const std::vector<uint16_t> &col_ids, byte *head);
+  static DeltaRecord *InitializeDeltaRecord(byte *head, const timestamp_t timestamp, const BlockLayout &layout,
+                                            const std::vector<uint16_t> &col_ids);
 
  private:
   byte varlen_contents_[0];
