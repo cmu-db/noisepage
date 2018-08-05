@@ -205,9 +205,10 @@ class TupleAccessStrategy {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
-    for (uint32_t i = 0; i < layout_.num_slots_; i++) {
-      if (bitmap->Flip(i, false)) {
-        slot = TupleSlot(block, i);
+    uint32_t pos = 0;
+    while (bitmap->FirstUnsetPos(layout_.num_slots_, pos, &pos)) {
+      if (bitmap->Flip(pos, false)) {
+        slot = TupleSlot(block, pos);
         block->num_records_++;
         return true;
       }
