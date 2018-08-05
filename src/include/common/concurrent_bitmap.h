@@ -104,59 +104,37 @@ class RawConcurrentBitmap {
 
     uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
-    uint32_t search_width = sizeof(uint64_t);          // number of bits searched at a time
     uint32_t bits_left = bitmap_num_bits;              // number of bits remaining
     bool found_unset_bit = false;                      // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
-      // as soon as we find an unset bit, we go back to looking at single bytes
-      if (found_unset_bit || search_width < sizeof(uint16_t)) {
-        search_width = sizeof(uint8_t);
-      } else if (bits_left >= sizeof(uint64_t) * BYTE_SIZE) {
-        search_width = sizeof(uint64_t);
-      } else if (bits_left >= sizeof(uint32_t) * BYTE_SIZE) {
-        search_width = sizeof(uint32_t);
-      } else if (bits_left >= sizeof(uint16_t) * BYTE_SIZE) {
-        search_width = sizeof(uint16_t);
-      } else {
-        search_width = sizeof(uint8_t);
-      }
-
-      // try to look for an unset bit.
-      switch (search_width) {
-        case sizeof(uint64_t):
-          found_unset_bit = FindUnsetBit<int64_t>(&byte_pos, &bits_left);
-          break;
-        case sizeof(uint32_t):
-          found_unset_bit = FindUnsetBit<int32_t>(&byte_pos, &bits_left);
-          break;
-        case sizeof(uint16_t):
-          found_unset_bit = FindUnsetBit<int16_t>(&byte_pos, &bits_left);
-          break;
-        case sizeof(uint8_t): {
-          uint8_t bits = bits_[byte_pos].load();
-          if (static_cast<std::atomic<int8_t>>(bits) != -1) {
-            // we have a byte with an unset bit inside. we return that location, which may be stale.
-            // we don't bother ensuring freshness since our function's result is immediately stale.
-            for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
-              // we are always padded to a byte, but we don't want to use the padding.
-              if (pos + byte_pos * BYTE_SIZE >= bitmap_num_bits) {
-                return false;
-              }
-              // if we find a free bit, we return that.
-              bool is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
-              if (!is_set) {
-                *out_pos = pos + byte_pos * BYTE_SIZE;
-                return true;
-              }
+      // as soon as we find an unset bit, we go back to looking at single bytes.
+      if (found_unset_bit || bits_left < sizeof(uint16_t) * BYTE_SIZE) {
+        uint8_t bits = bits_[byte_pos].load();
+        if (static_cast<std::atomic<int8_t>>(bits) != -1) {
+          // we have a byte with an unset bit inside. we return that location, which may be stale.
+          // we don't bother ensuring freshness since our function's result is immediately stale.
+          for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
+            // we are always padded to a byte, but we don't want to use the padding.
+            if (pos + byte_pos * BYTE_SIZE >= bitmap_num_bits) {
+              return false;
             }
-          } else {
-            byte_pos += 1;
+            // if we find a free bit, we return that.
+            bool is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
+            if (!is_set) {
+              *out_pos = pos + byte_pos * BYTE_SIZE;
+              return true;
+            }
           }
-          break;
+        } else {
+          byte_pos += 1;
         }
-        default:
-          PELOTON_ASSERT(false);
+      } else if (bits_left >= sizeof(uint64_t) * BYTE_SIZE) {
+        found_unset_bit = FindUnsetBit<int64_t>(&byte_pos, &bits_left);
+      } else if (bits_left >= sizeof(uint32_t) * BYTE_SIZE) {
+        found_unset_bit = FindUnsetBit<int32_t>(&byte_pos, &bits_left);
+      } else if (bits_left >= sizeof(uint16_t) * BYTE_SIZE) {
+        found_unset_bit = FindUnsetBit<int16_t>(&byte_pos, &bits_left);
       }
     }
 
