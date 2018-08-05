@@ -3,7 +3,7 @@
 #include <thread>
 
 #include "gtest/gtest.h"
-#include "common/test_util.h"
+#include "util/multi_threaded_test_util.h"
 #include "common/object_pool.h"
 
 namespace terrier {
@@ -58,12 +58,12 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     };
     auto free = [&] {
       if (!ptrs.empty()) {
-        auto pos = testutil::UniformRandomElement(ptrs, generator);
+        auto pos = MultiThreadedTestUtil::UniformRandomElement(ptrs, generator);
         tested.Release((*pos)->Release());
         ptrs.erase(pos);
       }
     };
-    testutil::InvokeWorkloadWithDistribution({free, allocate},
+    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                              {0.5, 0.5},
                                              generator,
                                              100);
@@ -71,7 +71,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.Release(ptr->Release());
   };
 
-  testutil::RunThreadsUntilFinish(8, workload, 100);
+  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
 }
 }
 

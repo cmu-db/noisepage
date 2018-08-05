@@ -1,5 +1,6 @@
 #include "storage/varlen_pool.h"
-#include "common/test_util.h"
+#include "util/multi_threaded_test_util.h"
+#include "util/storage_test_util.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -16,14 +17,14 @@ TEST(VarlenPoolTests, AllocateOnceTest) {
 }
 
 VarlenEntry *TailOf(VarlenEntry *a) {
-  return testutil::IncrementByBytes(a, sizeof(uint32_t) + a->size_ - 1);
+  return StorageTestUtil::IncrementByBytes(a, sizeof(uint32_t) + a->size_ - 1);
 }
 
 void CheckNotOverlapping(VarlenEntry *a, VarlenEntry *b) {
-  testutil::CheckNotInBounds(a, b, testutil::IncrementByBytes(TailOf(b), 1));
-  testutil::CheckNotInBounds(TailOf(a), b, testutil::IncrementByBytes(TailOf(b), 1));
-  testutil::CheckNotInBounds(b, a, testutil::IncrementByBytes(TailOf(a), 1));
-  testutil::CheckNotInBounds(TailOf(b), a, testutil::IncrementByBytes(TailOf(a), 1));
+  StorageTestUtil::CheckNotInBounds(a, b, StorageTestUtil::IncrementByBytes(TailOf(b), 1));
+  StorageTestUtil::CheckNotInBounds(TailOf(a), b, StorageTestUtil::IncrementByBytes(TailOf(b), 1));
+  StorageTestUtil::CheckNotInBounds(b, a, StorageTestUtil::IncrementByBytes(TailOf(a), 1));
+  StorageTestUtil::CheckNotInBounds(TailOf(b), a, StorageTestUtil::IncrementByBytes(TailOf(a), 1));
 }
 
 // This test generates random workload of both new and delete.
@@ -48,7 +49,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       auto free = [&] {
         if (!entries[thread_id].empty()) {
-          auto pos = testutil::UniformRandomElement(entries[thread_id], generator);
+          auto pos = MultiThreadedTestUtil::UniformRandomElement(entries[thread_id], generator);
           // Check size field as expected
           EXPECT_EQ(sizes[thread_id][pos - entries[thread_id].begin()], (*pos)->size_);
           // clean up
@@ -58,13 +59,13 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
         }
       };
 
-      testutil::InvokeWorkloadWithDistribution({free, allocate},
+      MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                                {0.2, 0.8},
                                                generator,
                                                100);
     };
 
-    testutil::RunThreadsUntilFinish(num_threads, workload);
+     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
 
     // Concat all the entries we have
     std::vector<VarlenEntry *> all_entries;
