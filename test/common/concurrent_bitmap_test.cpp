@@ -133,7 +133,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
     }
   };
 
-  testutil::RunThreadsUntilFinish(num_threads, workload);
+  MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
 
   // Coalesce the thread-local result vectors into one vector, and
   // then sort the results
