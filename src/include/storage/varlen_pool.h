@@ -6,7 +6,7 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 
-namespace terrier {
+namespace terrier::storage {
 
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
@@ -68,4 +68,4 @@ class VarlenPool {
   common::SpinLatch pool_lock_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::storage
