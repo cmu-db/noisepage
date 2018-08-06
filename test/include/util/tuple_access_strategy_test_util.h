@@ -54,8 +54,8 @@ struct TupleAccessStrategyTestUtil {
 
   // Write the given fake tuple into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(FakeRawTuple &tuple, storage::TupleAccessStrategy &tested, const storage::BlockLayout &layout,
-                          storage::TupleSlot slot) {
+  static void InsertTuple(FakeRawTuple &tuple, const storage::TupleAccessStrategy &tested,
+                          const storage::BlockLayout &layout, storage::TupleSlot slot) {
     for (uint16_t col = 0; col < layout.num_cols_; col++) {
       uint64_t col_val = tuple.Attribute(layout, col);
       if (col_val != 0 || col == PRESENCE_COLUMN_ID)
@@ -89,7 +89,7 @@ struct TupleAccessStrategyTestUtil {
   // Checks are performed to make sure the insertion is sensible.
   template <typename Random>
   static std::pair<const storage::TupleSlot, FakeRawTuple> &TryInsertFakeTuple(
-      const storage::BlockLayout &layout, storage::TupleAccessStrategy &tested, storage::RawBlock *block,
+      const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
       std::unordered_map<storage::TupleSlot, FakeRawTuple> &tuples, Random &generator) {
     storage::TupleSlot slot;
     // There should always be enough slots.

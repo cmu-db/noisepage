@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sstream>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
@@ -206,7 +205,7 @@ class ProjectedRow {
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this ProjectedRow
    */
-  static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout
@@ -215,8 +214,8 @@ class ProjectedRow {
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
    * @return pointer to the initialized ProjectedRow
    */
-  static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
-                                              byte *head);
+  static ProjectedRow *InitializeProjectedRow(byte *head, const std::vector<uint16_t> &col_ids,
+                                              const BlockLayout &layout);
 
   /**
    * @return number of columns stored in the ProjectedRow
@@ -245,6 +244,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   byte *AccessWithNullCheck(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_);
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -256,6 +256,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   const byte *AccessWithNullCheck(const uint16_t offset) const {
+    PELOTON_ASSERT(offset < num_cols_);
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -266,6 +267,7 @@ class ProjectedRow {
    * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
    */
   byte *AccessForceNotNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_);
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -274,7 +276,10 @@ class ProjectedRow {
    * Set the attribute in the ProjectedRow to be null using the internal bitmap
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
-  void SetNull(const uint16_t offset) { Bitmap().Set(offset, false); }
+  void SetNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_);
+    Bitmap().Set(offset, false);
+  }
 
  private:
   uint16_t num_cols_;
@@ -292,21 +297,57 @@ class ProjectedRow {
 };
 
 /**
- * A DeltaRecord points to the old projected row and the timestamp at which it was visible.
+ * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
+ * version chain
  */
-struct DeltaRecord {
+class DeltaRecord {
+ public:
+  DeltaRecord() = delete;
+  DISALLOW_COPY_AND_MOVE(DeltaRecord)
+  ~DeltaRecord() = delete;
+
   /**
-   * Pointer to the next delta record.
+   * Pointer to the next element in the version chain
    */
   DeltaRecord *next_;
   /**
    * Timestamp up to which the old projected row was visible.
    */
   timestamp_t timestamp_;
+
   /**
-   * Before-image of the modified attributes on the row.
+   * Access the next version in the delta chain
+   * @return pointer to the next version
    */
-  ProjectedRow delta_;
+  ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
+
+  /**
+   * Access the next version in the delta chain
+   * @return pointer to the next version
+   */
+  const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
+
+  /**
+   * Calculates the size of this DeltaRecord, including all members, values, and bitmap
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @return number of bytes for this DeltaRecord
+   */
+  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+
+  /**
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
+   * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @return pointer to the initialized DeltaRecord
+   */
+  static DeltaRecord *InitializeDeltaRecord(byte *head, timestamp_t timestamp, const BlockLayout &layout,
+                                            const std::vector<uint16_t> &col_ids);
+
+ private:
+  byte varlen_contents_[0];
 };
 }  // namespace terrier::storage
 

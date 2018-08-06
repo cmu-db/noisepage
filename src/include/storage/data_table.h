@@ -5,12 +5,9 @@
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-
-// TODO(tianyu): Implement, and move elsewhere.
-bool Uncommitted(timestamp_t) { return false; }
-bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
@@ -42,9 +39,9 @@ class DataTable {
    * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
    *                       will just be the start time of the caller transaction.
    * @param slot the tuple slot to read
-   * @param buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer);
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer);
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -85,11 +82,6 @@ class DataTable {
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
-  // Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
-  // the materialized tuple if present in the materialized projection.
-  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
-                  const std::unordered_map<uint16_t, uint16_t> &col_to_index);
-
   // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor);
 
@@ -97,7 +89,8 @@ class DataTable {
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
            && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && Uncommitted(version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
+           && !transaction::TransactionUtil::Committed(
+                  version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

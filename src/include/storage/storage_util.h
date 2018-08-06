@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_map>
 #include "common/macros.h"
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
@@ -72,11 +73,11 @@ class StorageUtil {
    * @param size size of the attribute
    * @param col_id column id to copy into
    */
-  static void CopyWithNullCheck(const byte *from, ProjectedRow &to, uint8_t size, uint16_t col_id) {
+  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id) {
     if (from == nullptr)
-      to.SetNull(col_id);
+      to->SetNull(col_id);
     else
-      WriteBytes(size, ReadBytes(size, from), to.AccessForceNotNull(col_id));
+      WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(col_id));
   }
 
   /**
@@ -104,9 +105,9 @@ class StorageUtil {
    * @param to projected row to copy into
    * @param projection_list_offset The projection_list index to copy to on the projected row.
    */
-  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow &to,
+  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
                                      uint16_t projection_list_offset) {
-    uint16_t col_id = to.ColumnIds()[projection_list_offset];
+    uint16_t col_id = to->ColumnIds()[projection_list_offset];
     uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
     byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
     CopyWithNullCheck(stored_attr, to, attr_size, projection_list_offset);
@@ -124,6 +125,25 @@ class StorageUtil {
     uint16_t col_id = from.ColumnIds()[projection_list_offset];
     const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
     CopyWithNullCheck(stored_attr, accessor, to, col_id);
+  }
+  /**
+   * TODO(Tianyu): Write
+   * @param layout
+   * @param delta
+   * @param buffer
+   * @param col_to_index
+   */
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
+                         const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
+    for (uint16_t i = 0; i < delta.NumColumns(); i++) {
+      uint16_t delta_col_id = delta.ColumnIds()[i];
+      auto it = col_to_index.find(delta_col_id);
+      if (it != col_to_index.end()) {
+        uint16_t col_id = it->first, buffer_offset = it->second;
+        uint8_t attr_size = layout.attr_sizes_[col_id];
+        StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
+      }
+    }
   }
 };
 }  // namespace terrier::storage

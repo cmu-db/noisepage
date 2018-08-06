@@ -43,10 +43,12 @@ namespace terrier {
  *
  * e.g. STRONG_TYPEDEF(foo, uint32_t)
  * int result = !foo(a(42), b(10));
+ *
+ * This works with all types of ints.
  */
 #define STRONG_TYPEDEF(name, underlying_type) \
   struct name##_typedef_tag {};               \
-  using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
+  using name = StrongTypeAlias<name##_typedef_tag, underlying_type>
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -54,27 +56,34 @@ namespace terrier {
  * Unless you know what you are doing, you shouldn't touch this class. Just use
  * the MACRO defined above
  * @tparam Tag a dummy class type to annotate the underlying type
- * @tparam T the underlying type
+ * @tparam IntType the underlying type
  */
-template <class Tag, typename T>
+template <class Tag, typename IntType>
 class StrongTypeAlias {
+  static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
+
  public:
   StrongTypeAlias() : val_() {}
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
    */
-  explicit StrongTypeAlias(const T &val) : val_(val) {}
+  explicit StrongTypeAlias(const IntType &val) : val_(val) {}
   /**
    * Move constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
    */
-  explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
+  explicit StrongTypeAlias(IntType &&val) : val_(std::move(val)) {}
 
   /**
-   * Returns the underlying type.
+   * @return the underlying value.
    */
-  const T &operator!() const { return val_; }
+  const IntType &operator!() const { return val_; }
+
+  /**
+   * @return the underlying value
+   */
+  explicit operator IntType() const { return val_; }
 
   /**
    * Checks if this is equal to the other StrongTypeAlias.
@@ -91,6 +100,70 @@ class StrongTypeAlias {
   bool operator!=(const StrongTypeAlias &rhs) const { return val_ != rhs.val_; }
 
   /**
+   * prefix-increment.
+   * @return the value of the variable after the modification.
+   */
+  StrongTypeAlias &operator++() {
+    ++val_;
+    return *this;
+  }
+
+  /**
+   * postfix-increment.
+   * @return the value of the variable before the modification.
+   */
+  StrongTypeAlias operator++(int) { return StrongTypeAlias(val_++); }
+
+  /**
+   * addition.
+   * @param operand another int type
+   * @return sum of the underlying value and given operand
+   */
+  StrongTypeAlias operator+(const IntType &operand) { return StrongTypeAlias(val_ + operand); }
+
+  /**
+   * addition and assignment
+   * @param rhs another int type
+   * @return self-reference after the rhs is added to the underlying value
+   */
+  StrongTypeAlias &operator+=(const IntType &rhs) {
+    val_ += rhs;
+    return *this;
+  }
+
+  /**
+   * prefix-decrement.
+   * @return the value of the variable after the modification.
+   */
+  StrongTypeAlias &operator--() {
+    --val_;
+    return *this;
+  }
+
+  /**
+   * postfix-decrement.
+   * @return the value of the variable before the modification.
+   */
+  StrongTypeAlias operator--(int) { return StrongTypeAlias(val_--); }
+
+  /**
+   * subtraction
+   * @param operand another int type
+   * @return difference between the underlying value and given operand
+   */
+  StrongTypeAlias operator-(const IntType &operand) { return StrongTypeAlias(val_ - operand); }
+
+  /**
+   * subtraction and assignment
+   * @param rhs another int type
+   * @return self-reference after the rhs is subtracted from the underlying value
+   */
+  StrongTypeAlias &operator-=(const IntType &rhs) {
+    val_ -= rhs;
+    return *this;
+  }
+
+  /**
    * Outputs the StrongTypeAlias to the output stream.
    * @param os output stream to be written to.
    * @param alias StrongTypeAlias to be output.
@@ -99,7 +172,7 @@ class StrongTypeAlias {
   friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
 
  private:
-  T val_;
+  IntType val_;
 };
 
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
@@ -114,6 +187,7 @@ class StrongTypeAlias {
 using byte = std::byte;
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
+
 }  // namespace terrier
 
 namespace std {
@@ -124,7 +198,7 @@ namespace std {
  */
 template <class Tag, class IntType>
 struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
-  static_assert(std::is_integral<IntType>::value, "Only int types are defined for atomics of strong typedefs");
+  static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
   /**
    * Type alias shorthand.

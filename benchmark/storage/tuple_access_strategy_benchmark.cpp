@@ -1,9 +1,23 @@
+#include <unordered_map>
+
+#include <benchmark/benchmark.h>
+#include "common/typedefs.h"
+#include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
+#include "util/storage_test_util.h"
+
+//TODO(Matt): nuke this once we have a valid benchmark to refer to
 #include "benchmark/benchmark.h"
 #include "util/multi_threaded_test_util.h"
 #include "util/tuple_access_strategy_test_util.h"
 
 namespace terrier {
 
+// This does NOT return a sensible tuple in general. This is just some filler
+// to write into the storage layer and is devoid of meaning outside of this class.
+// This is distinct from a ProjectedRow and should only be used to exercise TupleAccessStrategy's ability to access
+// RawBlocks.
+// ProjectedRow has additional checks and invariants only meaningful at the DataTable level
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsertTest)
 static void BM_SimpleInsert(benchmark::State &state) {
 
@@ -39,7 +53,6 @@ static void BM_SimpleInsert(benchmark::State &state) {
                                                         raw_block_,
                                                         tuples,
                                                         generator);
-
       tuples.clear();
       block_store_.Release(raw_block_);
 

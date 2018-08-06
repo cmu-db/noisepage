@@ -1,12 +1,16 @@
+#include <unordered_map>
 #include "util/multi_threaded_test_util.h"
 #include "util/tuple_access_strategy_test_util.h"
 #include "util/storage_test_util.h"
 #include "common/typedefs.h"
+#include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
 
 namespace terrier {
 struct TupleAccessStrategyTests : public ::testing::Test {
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
+
  protected:
   void SetUp() override {
     raw_block_ = block_store_.Get();
