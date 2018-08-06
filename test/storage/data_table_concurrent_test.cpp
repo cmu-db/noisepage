@@ -110,6 +110,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsertTest) {
         EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn.GetReferenceTuple(slot), select_row));
       }
     }
+    delete[] select_buffer;
   }
 }
 
