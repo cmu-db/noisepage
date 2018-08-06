@@ -7,7 +7,7 @@ namespace terrier {
 class RandomDataTableTestObject {
  public:
   template<class Random>
-  RandomDataTableTestObject(storage::BlockStore &block_store, uint16_t max_col, double null_bias, Random &generator)
+  RandomDataTableTestObject(storage::BlockStore &block_store, const uint16_t max_col, const double null_bias, Random &generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_),
         null_bias_(null_bias) {}
@@ -19,7 +19,7 @@ class RandomDataTableTestObject {
   }
 
   template<class Random>
-  storage::TupleSlot InsertRandomTuple(timestamp_t timestamp, Random &generator) {
+  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random &generator) {
     // generate a random redo ProjectedRow to Insert
     byte *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
@@ -41,7 +41,7 @@ class RandomDataTableTestObject {
 
   // be sure to only update tuple incrementally (cannot go back in time)
   template<class Random>
-  bool RandomlyUpdateTuple(timestamp_t timestamp, storage::TupleSlot slot, Random &generator) {
+  bool RandomlyUpdateTuple(const timestamp_t timestamp, storage::TupleSlot slot, Random &generator) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
 
@@ -79,9 +79,9 @@ class RandomDataTableTestObject {
     return result;
   }
 
-  const storage::BlockLayout &Layout() { return layout_; }
+  const storage::BlockLayout &Layout() const { return layout_; }
 
-  const std::vector<storage::TupleSlot> &InsertedTuples() { return inserted_slots_; }
+  const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(storage::TupleSlot slot, timestamp_t timestamp) {
@@ -94,8 +94,8 @@ class RandomDataTableTestObject {
     return nullptr;
   }
 
-  storage::ProjectedRow *SelectIntoBuffer(storage::TupleSlot slot,
-                                          timestamp_t timestamp,
+  storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot,
+                                          const timestamp_t timestamp,
                                           const std::vector<uint16_t> &col_ids) {
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer_, col_ids, layout_);

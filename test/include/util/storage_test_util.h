@@ -1,18 +1,17 @@
 #pragma once
-#include <random>
-#include <vector>
 #include <cinttypes>
 #include <cstdio>
+#include <random>
+#include <vector>
+#include "common/typedefs.h"
+#include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "util/multi_threaded_test_util.h"
-#include "common/typedefs.h"
-#include "gtest/gtest.h"
 
 namespace terrier {
 
 struct StorageTestUtil {
-
   StorageTestUtil() = delete;
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
@@ -25,7 +24,7 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template<typename A, typename B, typename C>
+  template <typename A, typename B, typename C>
   static void CheckInBounds(A *val, B *lower, C *upper) {
     EXPECT_GE(TO_INT(val), TO_INT(lower));
     EXPECT_LT(TO_INT(val), TO_INT(upper));
@@ -40,7 +39,7 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template<typename A, typename B, typename C>
+  template <typename A, typename B, typename C>
   static void CheckNotInBounds(A *val, B *lower, C *upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
   };
@@ -51,13 +50,13 @@ struct StorageTestUtil {
    * @param bytes bytes to advance
    * @return  pointer that is the specified amount of bytes ahead of the given
    */
-  template<typename A>
+  template <typename A>
   static A *IncrementByBytes(A *ptr, uint64_t bytes) {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 
   // Returns a random layout that is guaranteed to be valid.
-  template<typename Random>
+  template <typename Random>
   static storage::BlockLayout RandomLayout(uint16_t max_cols, Random &generator) {
     PELOTON_ASSERT(max_cols > 1);
     // We probably won't allow tables with fewer than 2 columns
@@ -71,16 +70,14 @@ struct StorageTestUtil {
 
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
-  template<typename Random>
+  template <typename Random>
   static void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random &generator) {
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
     for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(generator));
   }
 
-  template<typename Random>
-  static void PopulateRandomRow(storage::ProjectedRow *row,
-                                const storage::BlockLayout &layout,
-                                const double null_bias,
+  template <typename Random>
+  static void PopulateRandomRow(storage::ProjectedRow *row, const storage::BlockLayout &layout, const double null_bias,
                                 Random &generator) {
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
@@ -103,12 +100,12 @@ struct StorageTestUtil {
     return col_ids;
   }
 
-  template<typename Random>
+  template <typename Random>
   static std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random &generator) {
-    // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols since
-    // we exclude the version vector column
-    uint16_t
-        num_cols = std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(generator);
+    // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
+    // since we exclude the version vector column
+    uint16_t num_cols =
+        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(generator);
 
     std::vector<uint16_t> col_ids;
     // Add all of the column ids from the layout to the projection list
@@ -126,8 +123,7 @@ struct StorageTestUtil {
     return col_ids;
   }
 
-  static bool ProjectionListEqual(const storage::BlockLayout &layout,
-                                  const storage::ProjectedRow *one,
+  static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *one,
                                   const storage::ProjectedRow *other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
@@ -140,12 +136,14 @@ struct StorageTestUtil {
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
       if (one_content == nullptr || other_content == nullptr) {
-        if (one_content == other_content) continue;
-        else return false;
+        if (one_content == other_content)
+          continue;
+        else
+          return false;
       }
 
-      if (storage::StorageUtil::ReadBytes(attr_size, one_content)
-          != storage::StorageUtil::ReadBytes(attr_size, other_content))
+      if (storage::StorageUtil::ReadBytes(attr_size, one_content) !=
+          storage::StorageUtil::ReadBytes(attr_size, other_content))
         return false;
     }
 
@@ -158,8 +156,7 @@ struct StorageTestUtil {
       uint16_t col_id = row->ColumnIds()[i];
       const byte *attr = row->AccessWithNullCheck(i);
       if (attr) {
-        printf("col_id: %u is %" PRIx64 "\n",
-               col_id,
+        printf("col_id: %u is %" PRIx64 "\n", col_id,
                storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
       } else {
         printf("col_id: %u is NULL\n", col_id);
@@ -167,4 +164,4 @@ struct StorageTestUtil {
     }
   }
 };
-}
+}  // namespace terrier
