@@ -35,7 +35,7 @@ class ConcurrentQueue {
    * it to the destination.
    * @param dest if an element exists.
    */
-  bool Dequeue(T &dest) { return queue_.try_pop(dest); }
+  bool Dequeue(T *dest) { return queue_.try_pop(*dest); }
 
   /**
    * Returns the number of items in the queue. The method is allowed to return

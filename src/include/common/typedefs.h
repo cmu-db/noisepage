@@ -268,6 +268,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order the memory synchronization ordering for both operations.
    * @return true if the underlying atomic value was successfully changed, false otherwise.
    */
+  // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_weak(!expected, !desired, order);
   }
@@ -282,6 +283,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order the memory synchronization ordering for both operations.
    * @return true if the underlying atomic value was successfully changed, false otherwise.
    */
+  // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_strong(!expected, !desired, order);
   }
