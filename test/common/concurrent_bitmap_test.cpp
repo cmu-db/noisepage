@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 #include "gtest/gtest.h"
-#include "common/test_util.h"
+#include "util/multi_threaded_test_util.h"
 #include "common/concurrent_bitmap.h"
 #include "util/container_test_util.h"
 
@@ -22,7 +22,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
 
   // Randomly permute bitmap and STL bitmap and compare equality
   std::bitset<num_elements> stl_bitmap;
-  CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
+  ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
   uint32_t num_iterations = 32;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < num_iterations; ++i) {
@@ -30,7 +30,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
         std::uniform_int_distribution(0, (int) num_elements - 1)(generator);
     EXPECT_TRUE(bitmap->Flip(element, bitmap->Test(element)));
     stl_bitmap.flip(element);
-    CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
+    ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
   }
 
   // Verify that Flip fails if expected_val doesn't match current value
@@ -133,7 +133,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
     }
   };
 
-  testutil::RunThreadsUntilFinish(num_threads, workload);
+  MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
 
   // Coalesce the thread-local result vectors into one vector, and
   // then sort the results
@@ -169,7 +169,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
       if (bitmap->Flip(i, false)) elements[thread_id].push_back(i);
   };
 
-  testutil::RunThreadsUntilFinish(num_threads, workload);
+  MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
 
   // Coalesce the thread-local result vectors into one vector, and
   // then sort the results

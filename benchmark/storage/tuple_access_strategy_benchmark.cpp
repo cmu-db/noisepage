@@ -1,6 +1,6 @@
 #include "benchmark/benchmark.h"
-#include "common/test_util.h"
-#include "storage/tuple_access_strategy_test_util.h"
+#include "util/multi_threaded_test_util.h"
+#include "util/tuple_access_strategy_test_util.h"
 
 namespace terrier {
 
@@ -22,7 +22,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
                               {column_size, column_size, column_size, column_size, column_size, column_size,
                                column_size, column_size});
   storage::TupleAccessStrategy tested(layout);
-  std::unordered_map<storage::TupleSlot, testutil::FakeRawTuple> tuples;
+  std::unordered_map<storage::TupleSlot, FakeRawTuple> tuples;
 
   while (state.KeepRunning()) {
 
@@ -30,15 +30,15 @@ static void BM_SimpleInsert(benchmark::State &state) {
       // Get the Block, zero it, and initialize
       raw_block_ = block_store_.Get();
       PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-      storage::InitializeRawBlock(raw_block_, layout, VALUE_OF(layout_version_t, 0u));
+      tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
       // Insert the maximum number of tuples into this Block
       for (uint32_t j = 0; j < layout.num_slots_; j++)
-        testutil::TryInsertFakeTuple(layout,
-                                     tested,
-                                     raw_block_,
-                                     tuples,
-                                     generator);
+        TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
+                                                        tested,
+                                                        raw_block_,
+                                                        tuples,
+                                                        generator);
 
       tuples.clear();
       block_store_.Release(raw_block_);
