@@ -1,6 +1,7 @@
 #include "storage/data_table.h"
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
+
 namespace terrier {
 class FakeTransaction {
  public:
@@ -82,7 +83,7 @@ struct DataTableConcurrentTests : public ::testing::Test {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
 
-TEST_F(DataTableConcurrentTests, ConcurrentInsertTest) {
+TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
@@ -115,7 +116,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsertTest) {
 }
 
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
-  const uint32_t num_iterations = 1;
+  const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 20;
   const uint32_t num_threads = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
