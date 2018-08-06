@@ -10,7 +10,7 @@ namespace terrier {
 class RandomDataTableTestObject {
  public:
   template<class Random>
-  RandomDataTableTestObject(storage::BlockStore &block_store,
+  RandomDataTableTestObject(storage::BlockStore *block_store,
                             const uint16_t max_col,
                             const double null_bias,
                             Random &generator)
@@ -140,7 +140,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), generator_);
 
     // Populate the table with random tuples
     for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), generator_);
@@ -165,7 +165,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), generator_);
     timestamp_t timestamp(0);
 
     storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, generator_);
@@ -196,7 +196,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), generator_);
     storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), generator_);
     // take the write lock by updating with "negative" timestamp
     EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, generator_));

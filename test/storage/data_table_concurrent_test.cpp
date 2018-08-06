@@ -91,7 +91,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_threads = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, generator_);
-    storage::DataTable tested(block_store_, layout);
+    storage::DataTable tested(&block_store_, layout);
     std::vector<FakeTransaction> fake_txns;
     for (uint32_t thread = 0; thread < num_threads; thread++)
       // timestamps are irrelevant for inserts
@@ -123,7 +123,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint32_t num_threads = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, generator_);
-    storage::DataTable tested(block_store_, layout);
+    storage::DataTable tested(&block_store_, layout);
     FakeTransaction insert_txn(layout, tested, null_ratio_(generator_), timestamp_t(0), timestamp_t(1));
     // Insert one tuple, the timestamp needs to show committed
     storage::TupleSlot slot = insert_txn.InsertRandomTuple(generator_);
