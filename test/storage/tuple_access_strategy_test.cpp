@@ -88,7 +88,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
       TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
                                                       tested,
                                                       raw_block_,
-                                                      tuples,
+                                                      &tuples,
                                                       &generator);
     // Check that all inserted tuples are equal to their expected values
     for (auto &entry : tuples)
@@ -172,7 +172,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
         TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
                                                         tested,
                                                         raw_block_,
-                                                        tuples[id],
+                                                        &(tuples[id]),
                                                         &thread_generator);
     };
 
@@ -219,7 +219,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
         auto &res = TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
                                                                     tested,
                                                                     raw_block_,
-                                                                    tuples[id],
+                                                                    &(tuples[id]),
                                                                     &thread_generator);
         // log offset so we can pick random deletes
         slots[id].push_back(res.first);
@@ -227,7 +227,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
 
       auto remove = [&] {
         if (slots[id].empty()) return;
-        auto elem = MultiThreadedTestUtil::UniformRandomElement(slots[id], &generator);
+        auto elem = MultiThreadedTestUtil::UniformRandomElement(&(slots[id]), &generator);
         tested.SetNull(*elem, PRESENCE_COLUMN_ID);
         tuples[id].erase(*elem);
         slots[id].erase(elem);

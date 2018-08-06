@@ -64,7 +64,7 @@ struct StorageTestUtil {
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
     for (uint16_t i = 1; i < num_attrs; i++)
-      attr_sizes[i] = *MultiThreadedTestUtil::UniformRandomElement(possible_attr_sizes, generator);
+      attr_sizes[i] = *MultiThreadedTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return {num_attrs, attr_sizes};
   }
 

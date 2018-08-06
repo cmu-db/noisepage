@@ -49,7 +49,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
         TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
                                                         tested,
                                                         raw_block_,
-                                                        tuples,
+                                                        &tuples,
                                                         generator);
       tuples.clear();
       block_store_.Release(raw_block_);

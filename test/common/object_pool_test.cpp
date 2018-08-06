@@ -59,7 +59,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     };
     auto free = [&] {
       if (!ptrs.empty()) {
-        auto pos = MultiThreadedTestUtil::UniformRandomElement(ptrs, &generator);
+        auto pos = MultiThreadedTestUtil::UniformRandomElement(&ptrs, &generator);
         tested.Release((*pos)->Release());
         ptrs.erase(pos);
       }

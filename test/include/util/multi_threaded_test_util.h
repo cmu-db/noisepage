@@ -23,8 +23,8 @@ struct MultiThreadedTestUtil {
    * @return iterator to a randomly selected element
    */
   template <typename T, typename Random>
-  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems, Random *generator) {
-    return elems.begin() + std::uniform_int_distribution(0, static_cast<int>(elems.size() - 1))(*generator);
+  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
+    return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
   }
 
   /**
