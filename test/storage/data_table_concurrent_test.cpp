@@ -6,7 +6,7 @@ class FakeTransaction {
  public:
   FakeTransaction(const storage::BlockLayout &layout,
                   storage::DataTable &table,
-                  double null_bias, timestamp_t start_time, timestamp_t txn_id)
+                  const double null_bias, const timestamp_t start_time, const timestamp_t txn_id)
       : layout_(layout), table_(table), null_bias_(null_bias), start_time_(start_time), txn_id_(txn_id) {}
 
   ~FakeTransaction() {
@@ -35,7 +35,7 @@ class FakeTransaction {
   }
 
   template <class Random>
-  bool RandomlyUpdateTuple(storage::TupleSlot slot, Random &generator) {
+  bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random &generator) {
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     byte *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
@@ -53,9 +53,9 @@ class FakeTransaction {
     return result;
   }
 
-  const std::vector<storage::TupleSlot> &InsertedTuples() { return inserted_slots_; }
+  const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
-  const storage::ProjectedRow *GetReferenceTuple(storage::TupleSlot slot) {
+  const storage::ProjectedRow *GetReferenceTuple(const storage::TupleSlot slot) {
     PELOTON_ASSERT(reference_tuples_.find(slot) != reference_tuples_.end());
     return reference_tuples_[slot];
   }

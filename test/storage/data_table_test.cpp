@@ -41,7 +41,7 @@ class RandomDataTableTestObject {
 
   // be sure to only update tuple incrementally (cannot go back in time)
   template<class Random>
-  bool RandomlyUpdateTuple(const timestamp_t timestamp, storage::TupleSlot slot, Random &generator) {
+  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random &generator) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
 
@@ -84,7 +84,7 @@ class RandomDataTableTestObject {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
   // or nullptr of no version of this tuple is visible to the timestamp
-  const storage::ProjectedRow *GetReferenceVersionedTuple(storage::TupleSlot slot, timestamp_t timestamp) {
+  const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot, const timestamp_t timestamp) {
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
