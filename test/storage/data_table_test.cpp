@@ -1,15 +1,14 @@
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
-#include "util/multi_threaded_test_util.h"
 
 namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
   template<class Random>
-  RandomDataTableTestObject(storage::BlockStore &block_store, uint16_t max_col, Random &generator, double null_bias)
-      : layout_(StorageTestUtil::RandomLayout(generator, max_col)),
+  RandomDataTableTestObject(storage::BlockStore &block_store, uint16_t max_col, double null_bias, Random &generator)
+      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_),
         null_bias_(null_bias) {}
 
@@ -41,7 +40,7 @@ class RandomDataTableTestObject {
   }
 
   // be sure to only update tuple incrementally (cannot go back in time)
-  template <class Random>
+  template<class Random>
   bool RandomlyUpdateTuple(timestamp_t timestamp, storage::TupleSlot slot, Random &generator) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
@@ -96,8 +95,8 @@ class RandomDataTableTestObject {
   }
 
   storage::ProjectedRow *SelectIntoBuffer(storage::TupleSlot slot,
-                                            timestamp_t timestamp,
-                                            const std::vector<uint16_t> &col_ids) {
+                                          timestamp_t timestamp,
+                                          const std::vector<uint16_t> &col_ids) {
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer_, col_ids, layout_);
     table_.Select(timestamp, slot, select_row);
@@ -124,21 +123,6 @@ struct DataTableTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
-
-  static void ApplyDelta(storage::DataTable *table,
-                         const storage::BlockLayout &layout,
-                         const storage::ProjectedRow &delta,
-                         storage::ProjectedRow *buffer) {
-
-    // Creates a mapping from col offset to project list index. This allows us to efficiently
-    // access columns since deltas can concern a different set of columns when chasing the
-    // version chain
-    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-    for (uint16_t i = 0; i < buffer->NumColumns(); i++)
-      col_to_projection_list_index.emplace(buffer->ColumnIds()[i], i);
-
-    storage::StorageUtil::ApplyDelta(layout, delta, buffer, col_to_projection_list_index);
-  }
 };
 
 // Generates a random table layout and coin flip bias for an attribute being null, inserts num_inserts random tuples
@@ -150,7 +134,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, generator_, null_ratio_(generator_));
+    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
 
     // Populate the table with random tuples
     for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), generator_);
@@ -159,9 +143,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
     std::vector<uint16_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (const auto &inserted_tuple : tested.InsertedTuples()) {
-      storage::ProjectedRow *stored = tested.SelectIntoBuffer(
-          inserted_tuple, timestamp_t(1),
-          all_cols);
+      storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), all_cols);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, timestamp_t(1));
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, ref));
     }
@@ -177,7 +159,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, generator_, null_ratio_(generator_));
+    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
     timestamp_t timestamp(0);
 
     storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, generator_);
@@ -208,7 +190,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, generator_, null_ratio_(generator_));
+    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
     storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), generator_);
     // take the write lock by updating with "negative" timestamp
     EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, generator_));
