@@ -43,7 +43,7 @@ class TupleAccessStrategy {
     /**
      * @return The null-bitmap of this column
      */
-    common::RawConcurrentBitmap *NullBitmap() {
+    common::RawConcurrentBitmap *PresenceBitmap() {
       return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
     }
 
@@ -139,7 +139,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) const {
-    return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
+    return reinterpret_cast<Block *>(block)->Column(col)->PresenceBitmap();
   }
 
   /**
