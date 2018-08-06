@@ -337,7 +337,7 @@ class DeltaRecord {
 
   /**
    * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
-   * @param next pointer to the next element in the version chain
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @param timestamp timestamp of the transaction that generated this DeltaRecord
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
