@@ -50,7 +50,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
                                                         tested,
                                                         raw_block_,
                                                         &tuples,
-                                                        generator);
+                                                        &generator);
       tuples.clear();
       block_store_.Release(raw_block_);
     }
