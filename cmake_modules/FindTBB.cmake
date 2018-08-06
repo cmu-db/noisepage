@@ -99,7 +99,7 @@ if(NOT TBB_FOUND)
     # https://www.threadingbuildingblocks.org/docs/help/reference/environment/feature_macros.html
     # https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
     #############################################
-    if (NOT TBB_USE_GLIBCXX_VERSION AND UNIX AND NOT APPLE)
+    if (NOT TBB_USE_GLIBCXX_VERSION AND LINUX)
         string(REPLACE "." "0" TBB_USE_GLIBCXX_VERSION ${CMAKE_CXX_COMPILER_VERSION})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTBB_USE_GLIBCXX_VERSION=${TBB_USE_GLIBCXX_VERSION}")
     endif()
