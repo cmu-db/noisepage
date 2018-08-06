@@ -18,5 +18,18 @@
 # Modified from the Apache Arrow project for the Terrier project.
 #
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-clang-analyzer-alpha*,google-.*,modernize-.*,performance-.*,readablity-.*'
+Checks:     '
+            bugprone-*,
+            clang-analyzer-*,
+            google-*,
+            modernize-*,
+            performance-*,
+            portability-*,
+            readability-*,
+            -google-readability-braces-around-statements,
+            -google-readability-namespace-comments,
+            -readability-braces-around-statements,
+            '
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
 AnalyzeTemporaryDtors: true
