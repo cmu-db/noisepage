@@ -50,7 +50,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       auto free = [&] {
         if (!entries[thread_id].empty()) {
-          auto pos = MultiThreadedTestUtil::UniformRandomElement(entries[thread_id], generator);
+          auto pos = MultiThreadedTestUtil::UniformRandomElement(entries[thread_id], &generator);
           // Check size field as expected
           EXPECT_EQ(sizes[thread_id][pos - entries[thread_id].begin()], (*pos)->size_);
           // clean up
@@ -62,7 +62,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                                {0.2, 0.8},
-                                               generator,
+                                               &generator,
                                                100);
     };
 

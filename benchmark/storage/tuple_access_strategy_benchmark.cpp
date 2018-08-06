@@ -18,6 +18,7 @@ namespace terrier {
 // RawBlocks.
 // ProjectedRow has additional checks and invariants only meaningful at the DataTable level
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsertTest)
+// NOLINTNEXTLINE
 static void BM_SimpleInsert(benchmark::State &state) {
   // Get a BlockStore and then RawBlock to use for inserting into
   storage::RawBlock *raw_block_ = nullptr;
