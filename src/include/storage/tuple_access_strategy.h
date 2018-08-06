@@ -195,14 +195,14 @@ class TupleAccessStrategy {
    * @param[out] slot tuple to write to.
    * @return true if the allocation succeeded, false if no space could be found.
    */
-  bool Allocate(RawBlock *block, TupleSlot &slot) const {
+  bool Allocate(RawBlock *block, TupleSlot *slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
     uint32_t pos = 0;
     while (bitmap->FirstUnsetPos(layout_.num_slots_, pos, &pos)) {
       if (bitmap->Flip(pos, false)) {
-        slot = TupleSlot(block, pos);
+        *slot = TupleSlot(block, pos);
         block->num_records_++;
         return true;
       }

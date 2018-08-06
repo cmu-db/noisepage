@@ -36,7 +36,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     storage::TupleSlot slot;
-    EXPECT_TRUE(tested.Allocate(raw_block_, slot));
+    EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
     std::vector<bool> nulls(layout.num_cols_);
     std::bernoulli_distribution coin(0.5);
     // primary key always not null

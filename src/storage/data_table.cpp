@@ -113,7 +113,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   TupleSlot result;
   while (true) {
     RawBlock *block = insertion_head_.load();
-    if (accessor.Allocate(block, result)) break;
+    if (accessor.Allocate(block, &result)) break;
     NewBlock(block);
   }
 

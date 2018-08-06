@@ -96,7 +96,7 @@ struct TupleAccessStrategyTestUtil {
       std::unordered_map<storage::TupleSlot, FakeRawTuple> &tuples, Random &generator) {
     storage::TupleSlot slot;
     // There should always be enough slots.
-    EXPECT_TRUE(tested.Allocate(block, slot));
+    EXPECT_TRUE(tested.Allocate(block, &slot));
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
     // Construct a random tuple and associate it with the tuple slot
