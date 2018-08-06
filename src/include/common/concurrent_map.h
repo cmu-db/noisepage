@@ -28,6 +28,66 @@ class ConcurrentMap {
   // Keep the interface minimalistic until we figure out what implementation to use.
  public:
   /**
+   * const Iterator type for the map
+   */
+  class ConstIterator {
+    using val = std::pair<const K, V>;
+
+   public:
+    /**
+     * Wraps around a tbb const_iterator. Subject to change if we change implementation
+     * @param it const_iterator of the underlying map
+     */
+    explicit ConstIterator(typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::const_iterator it) : it_(it) {}
+
+    /**
+     * @return const reference to the underlying value
+     */
+    const val &operator*() const { return it_.operator*(); }
+
+    /**
+     * @return const pointer to the underlying value
+     */
+    const val *operator->() const { return &(*it_); }
+
+    /**
+     * prefix-increment
+     * @return self-reference
+     */
+    ConstIterator &operator++() {
+      ++it_;
+      return *this;
+    }
+
+    /**
+     * postfix-increment
+     * @return iterator equal to this iterator before increment
+     */
+    const ConstIterator operator++(int) {
+      Iterator result(it_++);
+      return result;
+    }
+
+    /**
+     * Equality test
+     * @param other iterator to compare to
+     * @return if this is equal to other
+     */
+    bool operator==(const ConstIterator &other) const { return it_ == other.it_; }
+
+    /**
+     * Inequality test
+     * @param other iterator to compare to
+     * @return if this is not equal to other
+     */
+    bool operator!=(const ConstIterator &other) const { return it_ != other.it_; }
+
+   private:
+    typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::const_iterator it_;
+  };
+
+
+  /**
    * Iterator type for the map
    */
   class Iterator {
@@ -114,6 +174,18 @@ class ConcurrentMap {
    * @param key key to lookup
    * @return iterator to the element, or end
    */
+  ConstIterator Find(const K &key) const {
+    auto it = map_.find(key);
+    if (it == map_.cend()) return CEnd();
+    return ConstIterator(it);
+  }
+
+  /**
+   * Finds the value mapped to by the supplied key, or return false if no such
+   * value exists.
+   * @param key key to lookup
+   * @return iterator to the element, or end
+   */
   Iterator Find(const K &key) {
     auto it = map_.find(key);
     if (it == map_.end()) return End();
@@ -128,9 +200,23 @@ class ConcurrentMap {
   void UnsafeErase(const K &key) { map_.unsafe_erase(key); }
 
   /**
+   * @return const iterator to the first element
+   */
+  ConstIterator CBegin() const {
+    return ConstIterator(map_.cbegin());
+  }
+
+  /**
    * @return Iterator to the first element
    */
   Iterator Begin() { return Iterator(map_.begin()); }
+
+  /**
+   * @return const iterator to the element following the last element
+   */
+  ConstIterator CEnd() const {
+    return ConstIterator(map_.cend());
+  }
 
   /**
    * @return Iterator to the element following the last element

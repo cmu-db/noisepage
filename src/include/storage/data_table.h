@@ -41,7 +41,7 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer);
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -83,7 +83,7 @@ class DataTable {
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
   // Atomically read out the version pointer value.
-  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor);
+  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
