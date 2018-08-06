@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utility>
-#include "common/concurrent_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/typedefs.h"
 namespace terrier {
 /**

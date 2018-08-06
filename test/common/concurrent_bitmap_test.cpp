@@ -6,7 +6,7 @@
 
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "util/container_test_util.h"
 
 namespace terrier {

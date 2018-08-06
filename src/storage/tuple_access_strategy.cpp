@@ -1,4 +1,4 @@
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "storage/tuple_access_strategy.h"
 
 namespace terrier {

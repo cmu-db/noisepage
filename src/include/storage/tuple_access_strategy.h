@@ -2,7 +2,7 @@
 
 #include <utility>
 #include <vector>
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 
