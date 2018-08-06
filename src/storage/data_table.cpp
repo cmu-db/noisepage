@@ -17,11 +17,11 @@ DataTable::DataTable(BlockStore &store, const BlockLayout &layout) : block_store
   PELOTON_ASSERT(insertion_head_ != nullptr);
 }
 
-void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow *out_buffer) {
+void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow *out_buffer) const {
   // Retrieve the access strategy for the block's layout version. It is expected that
   // a valid block is given, thus the access strategy must have already been created.
   auto it = layouts_.Find(slot.GetBlock()->layout_version_);
-  PELOTON_ASSERT(it != layouts_.End());
+  PELOTON_ASSERT(it != layouts_.CEnd());
   const TupleAccessStrategy &accessor = it->second;
 
   // ProjectedRow should always have fewer attributes than the block layout because we will never return the
@@ -132,7 +132,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   return result;
 }
 
-DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) {
+DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
   // an issue (probably not, we are just reading one extra byte.)
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
