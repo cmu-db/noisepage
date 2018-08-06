@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <unordered_map>
+#include <vector>
 #include "util/multi_threaded_test_util.h"
 #include "util/tuple_access_strategy_test_util.h"
 #include "util/storage_test_util.h"
@@ -41,9 +43,9 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
     nulls[0] = false;
     // Randomly set some columns to be not null
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
-      if (coin(generator))
+      if (coin(generator)) {
         nulls[col] = true;
-      else {
+      } else {
         nulls[col] = false;
         tested.AccessForceNotNull(slot, col);
       }
@@ -246,4 +248,4 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
                                                      entry.first);
   }
 }
-}
+}  // namespace terrier

@@ -1,3 +1,5 @@
+#include <unordered_map>
+#include <vector>
 #include "storage/data_table.h"
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
@@ -35,7 +37,7 @@ class FakeTransaction {
     return slot;
   }
 
-  template <class Random>
+  template<class Random>
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random &generator) {
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -75,7 +77,6 @@ class FakeTransaction {
   std::vector<storage::TupleSlot> inserted_slots_;
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> reference_tuples_;
   std::vector<byte *> loose_pointers_;
-
 };
 struct DataTableConcurrentTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
@@ -106,7 +107,8 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
     byte *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn.InsertedTuples()) {
-        storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids, layout);
+        storage::ProjectedRow
+            *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids, layout);
         tested.Select(timestamp_t(1), slot, select_row);
         EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn.GetReferenceTuple(slot), select_row));
       }
@@ -129,7 +131,11 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
     std::vector<FakeTransaction> fake_txns;
     for (uint64_t thread = 0; thread < num_threads; thread++)
       // need negative timestamp to denote uncommitted
-      fake_txns.emplace_back(layout, tested, null_ratio_(generator_), timestamp_t(0), timestamp_t(static_cast<uint64_t>(-thread - 1)));
+      fake_txns.emplace_back(layout,
+                             tested,
+                             null_ratio_(generator_),
+                             timestamp_t(0),
+                             timestamp_t(static_cast<uint64_t>(-thread - 1)));
     std::atomic<uint32_t> success = 0, fail = 0;
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
@@ -146,4 +152,4 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   }
 }
 
-} // namespace terrier
+}  // namespace terrier

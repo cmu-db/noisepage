@@ -1,3 +1,6 @@
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
@@ -7,7 +10,10 @@ namespace terrier {
 class RandomDataTableTestObject {
  public:
   template<class Random>
-  RandomDataTableTestObject(storage::BlockStore &block_store, const uint16_t max_col, const double null_bias, Random &generator)
+  RandomDataTableTestObject(storage::BlockStore &block_store,
+                            const uint16_t max_col,
+                            const double null_bias,
+                            Random &generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_),
         null_bias_(null_bias) {}

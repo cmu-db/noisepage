@@ -1,6 +1,7 @@
 #include <unordered_set>
 #include <atomic>
-#include <thread>
+#include <thread>  // NOLINT
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
@@ -73,5 +74,4 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
 
   MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
 }
-}
-
+}  // namespace terrier

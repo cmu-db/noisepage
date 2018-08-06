@@ -1,3 +1,4 @@
+#include <vector>
 #include "storage/varlen_pool.h"
 #include "util/multi_threaded_test_util.h"
 #include "util/storage_test_util.h"
@@ -89,7 +90,6 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
     for (auto *entry : all_entries)
       pool.Free(entry);
   }
-
 }
 
 }  // namespace terrier

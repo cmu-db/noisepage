@@ -28,7 +28,7 @@ struct StorageTestUtil {
   static void CheckInBounds(A *val, B *lower, C *upper) {
     EXPECT_GE(TO_INT(val), TO_INT(lower));
     EXPECT_LT(TO_INT(val), TO_INT(upper));
-  };
+  }
 
   /**
    * Check if memory address represented by val not in [lower, upper)
@@ -42,7 +42,7 @@ struct StorageTestUtil {
   template <typename A, typename B, typename C>
   static void CheckNotInBounds(A *val, B *lower, C *upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
-  };
+  }
 #undef TO_INT
   /**
    * @tparam A type of ptr

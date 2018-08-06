@@ -1,10 +1,13 @@
 #pragma once
+
 #include <random>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
-#include "multi_threaded_test_util.h"
+#include "util/multi_threaded_test_util.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 

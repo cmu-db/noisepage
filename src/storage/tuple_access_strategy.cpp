@@ -26,4 +26,4 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *raw,
   for (uint16_t i = 0; i < layout_.num_cols_; i++)
     result->AttrSizes(layout_)[i] = layout_.attr_sizes_[i];
 }
-}  // namespace storage
+}  // namespace terrier::storage
