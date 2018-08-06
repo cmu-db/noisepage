@@ -21,7 +21,7 @@ namespace terrier::common {
  */
 class JsonSerializable {
  public:
-  virtual ~JsonSerializable() {}
+  virtual ~JsonSerializable() = default;
 
   /** @brief Get the Json value about the state information. */
   virtual Json::Value GetJson() = 0;

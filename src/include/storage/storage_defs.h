@@ -112,7 +112,7 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
+  TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
     PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
@@ -163,7 +163,7 @@ class TupleSlot {
   friend struct std::hash<TupleSlot>;
   // Block pointers are always aligned to 1 mb, thus we get 5 free bytes to
   // store the offset.
-  uintptr_t bytes_;
+  uintptr_t bytes_{0};
 };
 
 /**

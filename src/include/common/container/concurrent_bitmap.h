@@ -120,7 +120,7 @@ class RawConcurrentBitmap {
               return false;
             }
             // if we find a free bit, we return that.
-            bool is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
+            auto is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
             if (!is_set) {
               *out_pos = pos + byte_pos * BYTE_SIZE;
               return true;
