@@ -126,7 +126,6 @@ class StorageUtil {
     const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
     CopyWithNullCheck(stored_attr, accessor, to, col_id);
   }
-
   /**
    * TODO(Tianyu): Write
    * @param layout

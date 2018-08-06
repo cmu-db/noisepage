@@ -9,6 +9,7 @@
 #include "storage/storage_util.h"
 #include "util/multi_threaded_test_util.h"
 
+
 namespace terrier {
 
 struct StorageTestUtil {
