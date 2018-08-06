@@ -7,7 +7,7 @@
 #define VERSION_VECTOR_COLUMN_ID PRESENCE_COLUMN_ID
 
 namespace terrier::storage {
-DataTable::DataTable(BlockStore &store, const BlockLayout &layout) : block_store_(store) {
+DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store_(store) {
   // DataTable's first column must be a size of 8 for the version chain
   PELOTON_ASSERT(layout.attr_sizes_[0] == 8);
   // DataTable's number of columns must be greater than 1 (first column is version info)
@@ -113,7 +113,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   TupleSlot result;
   while (true) {
     RawBlock *block = insertion_head_.load();
-    if (accessor.Allocate(block, result)) break;
+    if (accessor.Allocate(block, &result)) break;
     NewBlock(block);
   }
 
@@ -156,7 +156,7 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   // by the object pool reuse)
   auto it = layouts_.Find(curr_layout_version_);
   PELOTON_ASSERT(it != layouts_.End());
-  RawBlock *new_block = block_store_.Get();
+  RawBlock *new_block = block_store_->Get();
   it->second.InitializeRawBlock(new_block, curr_layout_version_);
   if (insertion_head_.compare_exchange_strong(expected_val, new_block))
     blocks_.PushBack(new_block);
@@ -164,6 +164,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
     // If the compare and exchange failed, another thread might have already allocated a new block
     // We should release this new block and return. The caller would presumably try again on the new
     // block.
-    block_store_.Release(new_block);
+    block_store_->Release(new_block);
 }
 }  // namespace terrier::storage

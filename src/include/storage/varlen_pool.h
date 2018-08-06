@@ -6,7 +6,7 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 
-namespace terrier {
+namespace terrier::storage {
 
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
@@ -65,7 +65,7 @@ class VarlenPool {
   std::unordered_set<VarlenEntry *> locations_;
 
   /** Spin lock protecting location list */
-  SpinLatch pool_lock_;
+  common::SpinLatch pool_lock_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::storage

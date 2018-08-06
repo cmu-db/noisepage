@@ -1,15 +1,14 @@
 #include <unordered_map>
 
-#include <benchmark/benchmark.h>
+#include "benchmark/benchmark.h"
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
-
-//TODO(Matt): nuke this once we have a valid benchmark to refer to
-#include "benchmark/benchmark.h"
 #include "util/multi_threaded_test_util.h"
 #include "util/tuple_access_strategy_test_util.h"
+
+// TODO(Matt): nuke this once we have a valid benchmark to refer to
 
 namespace terrier {
 
@@ -19,8 +18,8 @@ namespace terrier {
 // RawBlocks.
 // ProjectedRow has additional checks and invariants only meaningful at the DataTable level
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsertTest)
+// NOLINTNEXTLINE
 static void BM_SimpleInsert(benchmark::State &state) {
-
   // Get a BlockStore and then RawBlock to use for inserting into
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
@@ -39,7 +38,6 @@ static void BM_SimpleInsert(benchmark::State &state) {
   std::unordered_map<storage::TupleSlot, FakeRawTuple> tuples;
 
   while (state.KeepRunning()) {
-
     for (uint32_t i = 0; i < repeat; i++) {
       // Get the Block, zero it, and initialize
       raw_block_ = block_store_.Get();
@@ -51,15 +49,12 @@ static void BM_SimpleInsert(benchmark::State &state) {
         TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
                                                         tested,
                                                         raw_block_,
-                                                        tuples,
-                                                        generator);
+                                                        &tuples,
+                                                        &generator);
       tuples.clear();
       block_store_.Release(raw_block_);
-
     }
-
   }
-
   // We want to approximate the amount of data processed so Google Benchmark can print stats for us
   // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
   size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
@@ -70,4 +65,4 @@ BENCHMARK(BM_SimpleInsert)
 ->Repetitions(3)->
     Unit(benchmark::kMillisecond);
 
-}
+}  // namespace terrier

@@ -3,7 +3,7 @@
 #include <tbb/concurrent_queue.h>
 #include "common/macros.h"
 
-namespace terrier {
+namespace terrier::common {
 /**
  * A thread-safe queue implementation
  * @tparam T element type
@@ -35,7 +35,7 @@ class ConcurrentQueue {
    * it to the destination.
    * @param dest if an element exists.
    */
-  bool Dequeue(T &dest) { return queue_.try_pop(dest); }
+  bool Dequeue(T *dest) { return queue_.try_pop(*dest); }
 
   /**
    * Returns the number of items in the queue. The method is allowed to return
@@ -47,4 +47,4 @@ class ConcurrentQueue {
  private:
   tbb::concurrent_queue<T, Alloc> queue_;
 };
-}  // namespace terrier
+}  // namespace terrier::common

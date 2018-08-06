@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/concurrent_map.h"
+#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -24,13 +24,13 @@ class DataTable {
    * @param store the Block store to use.
    * @param layout the initial layout of this DataTable.
    */
-  DataTable(BlockStore &store, const BlockLayout &layout);
+  DataTable(BlockStore *store, const BlockLayout &layout);
 
   /**
    * Destructs a DataTable, frees all its blocks.
    */
   ~DataTable() {
-    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_.Release(*it);
+    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
   }
 
   /**
@@ -71,10 +71,10 @@ class DataTable {
   TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo);
 
  private:
-  BlockStore &block_store_;
+  BlockStore *block_store_;
   // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
   // TODO(Matt): consider a vector instead if lookups are faster
-  ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
+  common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // TODO(Tianyu): Again, change when supporting concurrent schema.
   const layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a

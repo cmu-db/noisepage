@@ -1,4 +1,5 @@
 #pragma once
+
 #include <memory>
 #include "common/typedefs.h"
 
@@ -17,8 +18,7 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 // n must be [0, 7], all 1 except for 0 on the nth bit
 #define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
 
-namespace terrier {
-namespace common {
+namespace terrier::common {
 constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
 /**
@@ -119,5 +119,4 @@ class RawBitmap {
 // exact layout. Changes include marking a function as virtual, as that adds a
 // Vtable to the class layout,
 static_assert(sizeof(RawBitmap) == 0, "Unexpected RawBitmap layout!");
-}  // namespace common
-}  // namespace terrier
+}  // namespace terrier::common

@@ -1,3 +1,4 @@
+#include <vector>
 #include "storage/varlen_pool.h"
 #include "util/multi_threaded_test_util.h"
 #include "util/storage_test_util.h"
@@ -7,7 +8,7 @@ namespace terrier {
 
 // Allocate and free once
 TEST(VarlenPoolTests, AllocateOnceTest) {
-  VarlenPool pool;
+  storage::VarlenPool pool;
   const uint32_t size = 40;
 
   auto *p = pool.Allocate(size);
@@ -16,11 +17,11 @@ TEST(VarlenPoolTests, AllocateOnceTest) {
   pool.Free(p);
 }
 
-VarlenEntry *TailOf(VarlenEntry *a) {
+storage::VarlenEntry *TailOf(storage::VarlenEntry *a) {
   return StorageTestUtil::IncrementByBytes(a, sizeof(uint32_t) + a->size_ - 1);
 }
 
-void CheckNotOverlapping(VarlenEntry *a, VarlenEntry *b) {
+void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
   StorageTestUtil::CheckNotInBounds(a, b, StorageTestUtil::IncrementByBytes(TailOf(b), 1));
   StorageTestUtil::CheckNotInBounds(TailOf(a), b, StorageTestUtil::IncrementByBytes(TailOf(b), 1));
   StorageTestUtil::CheckNotInBounds(b, a, StorageTestUtil::IncrementByBytes(TailOf(a), 1));
@@ -33,8 +34,8 @@ void CheckNotOverlapping(VarlenEntry *a, VarlenEntry *b) {
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
   const uint32_t repeat = 100, num_threads = 8;
   for (uint32_t i = 0; i < repeat; i++) {
-    VarlenPool pool;
-    std::vector<std::vector<VarlenEntry *>> entries(num_threads);
+    storage::VarlenPool pool;
+    std::vector<std::vector<storage::VarlenEntry *>> entries(num_threads);
     std::vector<std::vector<uint32_t>> sizes(num_threads);
 
     auto workload = [&](uint32_t thread_id) {
@@ -49,7 +50,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       auto free = [&] {
         if (!entries[thread_id].empty()) {
-          auto pos = MultiThreadedTestUtil::UniformRandomElement(entries[thread_id], generator);
+          auto pos = MultiThreadedTestUtil::UniformRandomElement(&(entries[thread_id]), &generator);
           // Check size field as expected
           EXPECT_EQ(sizes[thread_id][pos - entries[thread_id].begin()], (*pos)->size_);
           // clean up
@@ -61,14 +62,14 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                                {0.2, 0.8},
-                                               generator,
+                                               &generator,
                                                100);
     };
 
      MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
 
     // Concat all the entries we have
-    std::vector<VarlenEntry *> all_entries;
+    std::vector<storage::VarlenEntry *> all_entries;
     for (auto &thread_entries : entries)
       for (auto *entry : thread_entries)
         all_entries.push_back(entry);
@@ -89,7 +90,6 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
     for (auto *entry : all_entries)
       pool.Free(entry);
   }
-
 }
 
 }  // namespace terrier

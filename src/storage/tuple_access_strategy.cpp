@@ -1,8 +1,7 @@
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "storage/tuple_access_strategy.h"
 
-namespace terrier {
-namespace storage {
+namespace terrier::storage {
 void TupleAccessStrategy::InitializeRawBlock(RawBlock *raw,
                         const layout_version_t layout_version) {
   // Intentional unsafe cast
@@ -27,5 +26,4 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *raw,
   for (uint16_t i = 0; i < layout_.num_cols_; i++)
     result->AttrSizes(layout_)[i] = layout_.attr_sizes_[i];
 }
-}  // namespace storage
-}  // namespace terrier
+}  // namespace terrier::storage

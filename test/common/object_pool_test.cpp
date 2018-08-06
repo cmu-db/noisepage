@@ -1,6 +1,7 @@
 #include <unordered_set>
 #include <atomic>
-#include <thread>
+#include <thread>  // NOLINT
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
@@ -11,7 +12,7 @@ namespace terrier {
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t reuse_limit = 1;
-  ObjectPool<uint32_t> tested(reuse_limit);
+  common::ObjectPool<uint32_t> tested(reuse_limit);
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
@@ -47,7 +48,7 @@ class ObjectPoolTestType {
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
-  ObjectPool<ObjectPoolTestType> tested(reuse_limit);
+  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
   auto workload = [&](uint32_t) {
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
@@ -58,14 +59,14 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     };
     auto free = [&] {
       if (!ptrs.empty()) {
-        auto pos = MultiThreadedTestUtil::UniformRandomElement(ptrs, generator);
+        auto pos = MultiThreadedTestUtil::UniformRandomElement(&ptrs, &generator);
         tested.Release((*pos)->Release());
         ptrs.erase(pos);
       }
     };
     MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                              {0.5, 0.5},
-                                             generator,
+                                             &generator,
                                              100);
     for (auto *ptr : ptrs)
       tested.Release(ptr->Release());
@@ -73,5 +74,4 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
 
   MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
 }
-}
-
+}  // namespace terrier

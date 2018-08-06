@@ -1,9 +1,10 @@
 #pragma once
 
 #include <utility>
-#include "common/concurrent_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/typedefs.h"
-namespace terrier {
+
+namespace terrier::common {
 /**
  * Allocator that allocates and destroys a byte array.
  * @tparam T object whose size determines the byte array size.
@@ -74,8 +75,8 @@ class ObjectPool {
    * not explicitly released via a Release call.
    */
   ~ObjectPool() {
-    T *result;
-    while (reuse_queue_.Dequeue(result)) alloc_.Delete(result);
+    T *result = nullptr;
+    while (reuse_queue_.Dequeue(&result)) alloc_.Delete(result);
   }
 
   // TODO(Tianyu): The object pool can have much richer semantics in the future.
@@ -91,8 +92,8 @@ class ObjectPool {
    * @return pointer to memory that can hold T
    */
   T *Get() {
-    T *result;
-    if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
+    T *result = nullptr;
+    if (!reuse_queue_.Dequeue(&result)) result = alloc_.New();
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -117,4 +118,4 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 };
-}  // namespace terrier
+}  // namespace terrier::common

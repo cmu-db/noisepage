@@ -3,7 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 
-namespace terrier {
+namespace terrier::common {
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints
@@ -175,4 +175,4 @@ namespace terrier {
 #define PELOTON_FALLTHROUGH
 #endif
 
-}  // namespace terrier
+}  // namespace terrier::common

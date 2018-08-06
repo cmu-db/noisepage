@@ -2,7 +2,7 @@
 
 #include <utility>
 #include <vector>
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 
@@ -43,7 +43,7 @@ class TupleAccessStrategy {
     /**
      * @return The null-bitmap of this column
      */
-    common::RawConcurrentBitmap *NullBitmap() {
+    common::RawConcurrentBitmap *PresenceBitmap() {
       return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
     }
 
@@ -139,7 +139,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) const {
-    return reinterpret_cast<Block *>(block)->Column(col)->NullBitmap();
+    return reinterpret_cast<Block *>(block)->Column(col)->PresenceBitmap();
   }
 
   /**
@@ -195,14 +195,14 @@ class TupleAccessStrategy {
    * @param[out] slot tuple to write to.
    * @return true if the allocation succeeded, false if no space could be found.
    */
-  bool Allocate(RawBlock *block, TupleSlot &slot) const {
+  bool Allocate(RawBlock *block, TupleSlot *slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
     uint32_t pos = 0;
     while (bitmap->FirstUnsetPos(layout_.num_slots_, pos, &pos)) {
       if (bitmap->Flip(pos, false)) {
-        slot = TupleSlot(block, pos);
+        *slot = TupleSlot(block, pos);
         block->num_records_++;
         return true;
       }

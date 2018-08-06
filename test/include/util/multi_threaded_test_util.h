@@ -1,7 +1,8 @@
 #pragma once
 #include <functional>
 #include <random>
-#include <thread>
+#include <thread>  // NOLINT
+#include <vector>
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
 
@@ -22,9 +23,9 @@ struct MultiThreadedTestUtil {
    * @return iterator to a randomly selected element
    */
   template <typename T, typename Random>
-  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> &elems, Random &generator) {
-    return elems.begin() + std::uniform_int_distribution(0, (int)elems.size() - 1)(generator);
-  };
+  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
+    return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
+  }
 
   /**
    * Spawn up the specified number of threads with the workload and join them before
@@ -58,11 +59,11 @@ struct MultiThreadedTestUtil {
    */
   template <typename Random>
   static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
-                                             std::vector<double> probabilities, Random &generator,
+                                             std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {
     PELOTON_ASSERT(probabilities.size() == workloads.size());
     std::discrete_distribution dist(probabilities.begin(), probabilities.end());
-    for (uint32_t i = 0; i < repeat; i++) workloads[dist(generator)]();
+    for (uint32_t i = 0; i < repeat; i++) workloads[dist(*generator)]();
   }
 };
 

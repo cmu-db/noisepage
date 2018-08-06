@@ -1,3 +1,6 @@
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
@@ -7,7 +10,10 @@ namespace terrier {
 class RandomDataTableTestObject {
  public:
   template<class Random>
-  RandomDataTableTestObject(storage::BlockStore &block_store, const uint16_t max_col, const double null_bias, Random &generator)
+  RandomDataTableTestObject(storage::BlockStore *block_store,
+                            const uint16_t max_col,
+                            const double null_bias,
+                            Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_),
         null_bias_(null_bias) {}
@@ -19,7 +25,7 @@ class RandomDataTableTestObject {
   }
 
   template<class Random>
-  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random &generator) {
+  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator) {
     // generate a random redo ProjectedRow to Insert
     byte *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
@@ -41,7 +47,7 @@ class RandomDataTableTestObject {
 
   // be sure to only update tuple incrementally (cannot go back in time)
   template<class Random>
-  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random &generator) {
+  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
 
@@ -134,10 +140,10 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
 
     // Populate the table with random tuples
-    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), generator_);
+    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_);
 
     EXPECT_EQ(num_inserts, tested.InsertedTuples().size());
 
@@ -159,13 +165,13 @@ TEST_F(DataTableTests, SimpleVersionChain) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     timestamp_t timestamp(0);
 
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, generator_);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_);
     EXPECT_EQ(1, tested.InsertedTuples().size());
 
-    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, generator_);
+    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_);
 
     std::vector<byte *> select_buffers(num_updates + 1);
 
@@ -190,12 +196,12 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    RandomDataTableTestObject tested(block_store_, max_columns, null_ratio_(generator_), generator_);
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), generator_);
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), &generator_);
     // take the write lock by updating with "negative" timestamp
-    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, generator_));
+    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, &generator_));
     // second transaction attempts to write, should fail
-    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, generator_));
+    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_));
 
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), all_col_ids);

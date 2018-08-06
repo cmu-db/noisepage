@@ -1,12 +1,13 @@
 #include <algorithm>
 #include <atomic>
 #include <bitset>
-#include <thread>
+#include <thread>  // NOLINT
 #include <unordered_set>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
-#include "common/concurrent_bitmap.h"
+#include "common/container/concurrent_bitmap.h"
 #include "util/container_test_util.h"
 
 namespace terrier {
@@ -27,7 +28,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   std::default_random_engine generator;
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
-        std::uniform_int_distribution(0, (int) num_elements - 1)(generator);
+        std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     EXPECT_TRUE(bitmap->Flip(element, bitmap->Test(element)));
     stl_bitmap.flip(element);
     ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
@@ -35,7 +36,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
 
   // Verify that Flip fails if expected_val doesn't match current value
   auto element =
-      std::uniform_int_distribution(0, (int) num_elements - 1)(generator);
+      std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
   EXPECT_FALSE(bitmap->Flip(element, !bitmap->Test(element)));
   common::RawConcurrentBitmap::Deallocate(bitmap);
 }
@@ -189,4 +190,4 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   }
   common::RawConcurrentBitmap::Deallocate(bitmap);
 }
-}
+}  // namespace terrier

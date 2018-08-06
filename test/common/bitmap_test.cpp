@@ -1,6 +1,6 @@
 #include <bitset>
 #include <random>
-#include <thread>
+#include <thread>  // NOLINT
 #include <unordered_set>
 #include "gtest/gtest.h"
 #include "common/container/bitmap.h"
@@ -28,7 +28,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_aligned>(*aligned_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
-        std::uniform_int_distribution(0, (int) num_elements_aligned - 1)(generator);
+        std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
     aligned_bitmap->Flip(element);
     stl_bitmap.flip(element);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_aligned>(*aligned_bitmap, stl_bitmap);
@@ -57,10 +57,11 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_unaligned>(*non_multiple_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
-        std::uniform_int_distribution(0, (int) num_elements_unaligned - 1)(generator);
+        std::uniform_int_distribution(0, static_cast<int>(num_elements_unaligned - 1))(generator);
     non_multiple_bitmap->Flip(element);
     stl_bitmap.flip(element);
-    ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_unaligned>(*non_multiple_bitmap, stl_bitmap);
+    ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_unaligned>(*non_multiple_bitmap,
+                                                                                       stl_bitmap);
   }
 
   common::RawBitmap::Deallocate(non_multiple_bitmap);
@@ -98,7 +99,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements>(*unaligned_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
-        std::uniform_int_distribution(0, (int) num_elements - 1)(generator);
+        std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     unaligned_bitmap->Flip(element);
     stl_bitmap.flip(element);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements>(*unaligned_bitmap, stl_bitmap);
@@ -106,4 +107,4 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
 
   delete[] allocated_buffer;
 }
-}
+}  // namespace terrier
