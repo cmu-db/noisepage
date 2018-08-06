@@ -34,7 +34,8 @@ struct MultiThreadedTestUtil {
    * @param workload the task the thread should run
    * @param repeat the number of times this should be done.
    */
-  static void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
+  static void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload,
+                                    uint32_t repeat = 1) {
     for (uint32_t i = 0; i < repeat; i++) {
       std::vector<std::thread> threads;
       for (uint32_t j = 0; j < num_threads; j++) threads.emplace_back([j, &workload] { workload(j); });
@@ -56,13 +57,13 @@ struct MultiThreadedTestUtil {
    * @param repeat the number of times this should be done.
    */
   template <typename Random>
-  static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads, std::vector<double> probabilities,
-                                      Random &generator, uint32_t repeat = 1) {
+  static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
+                                             std::vector<double> probabilities, Random &generator,
+                                             uint32_t repeat = 1) {
     PELOTON_ASSERT(probabilities.size() == workloads.size());
     std::discrete_distribution dist(probabilities.begin(), probabilities.end());
     for (uint32_t i = 0; i < repeat; i++) workloads[dist(generator)]();
   }
 };
-
 
 }  // namespace terrier

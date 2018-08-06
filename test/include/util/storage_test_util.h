@@ -47,4 +47,4 @@ struct StorageTestUtil {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 };
-}
+}  // namespace terrier
