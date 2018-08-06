@@ -72,7 +72,7 @@ struct BlockLayout {
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
-    return 8 * (Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
   }
 };
 
@@ -92,10 +92,10 @@ struct RawBlock {
   /**
    * Contents of the raw block.
    */
-  byte content_[Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
-} __attribute__((aligned(Constants::BLOCK_SIZE)));
+} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
 
 /**
  * A TupleSlot represents a physical location of a tuple in memory.
@@ -114,10 +114,10 @@ class TupleSlot {
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
     // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
     // Assert that the offset is smaller than the block size, so we can fit
     // it in the 0 bits at the end of the address
-    PELOTON_ASSERT(offset < Constants::BLOCK_SIZE);
+    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE);
   }
 
   /**
@@ -125,14 +125,14 @@ class TupleSlot {
    */
   RawBlock *GetBlock() const {
     // Get the first 11 bytes as the ptr
-    return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1));
   }
 
   /**
    * @return offset of the tuple within a block.
    */
   uint32_t GetOffset() const {
-    return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1));
   }
 
   /**
@@ -171,7 +171,7 @@ class TupleSlot {
  * aligned, so we will need to use the default constructor instead of raw
  * malloc.
  */
-using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
+using BlockStore = common::ObjectPool<RawBlock, common::DefaultConstructorAllocator<RawBlock>>;
 
 // TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
 // easiest.
@@ -344,7 +344,7 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(byte *head, const timestamp_t timestamp, const BlockLayout &layout,
+  static DeltaRecord *InitializeDeltaRecord(byte *head, timestamp_t timestamp, const BlockLayout &layout,
                                             const std::vector<uint16_t> &col_ids);
 
  private:

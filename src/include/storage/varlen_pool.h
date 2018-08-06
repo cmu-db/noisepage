@@ -65,7 +65,7 @@ class VarlenPool {
   std::unordered_set<VarlenEntry *> locations_;
 
   /** Spin lock protecting location list */
-  SpinLatch pool_lock_;
+  common::SpinLatch pool_lock_;
 };
 
 }  // namespace terrier

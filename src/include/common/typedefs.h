@@ -11,7 +11,7 @@
 
 #include "common/macros.h"
 
-namespace terrier {
+namespace terrier::common {
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -46,9 +46,13 @@ namespace terrier {
  *
  * This works with all types of ints.
  */
-#define STRONG_TYPEDEF(name, underlying_type) \
-  struct name##_typedef_tag {};               \
-  using name = StrongTypeAlias<name##_typedef_tag, underlying_type>
+#define STRONG_TYPEDEF(name, underlying_type)                                      \
+  namespace terrier {                                                              \
+  namespace tags {                                                                 \
+  struct name##_typedef_tag {};                                                    \
+  }                                                                                \
+  using name = common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
+  }
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -181,14 +185,15 @@ class StrongTypeAlias {
 // class StrongTypeAlias<Tag, uint32_t> {
 //  // Write your operator here!
 //};
+}  // namespace terrier::common
 
 /* Define all typedefs here */
-// TODO(Tianyu): Maybe?
+namespace terrier {
 using byte = std::byte;
+}
+
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
-
-}  // namespace terrier
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
@@ -197,13 +202,13 @@ namespace std {
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
 template <class Tag, class IntType>
-struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
+struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
   /**
    * Type alias shorthand.
    */
-  using t = terrier::StrongTypeAlias<Tag, IntType>;
+  using t = terrier::common::StrongTypeAlias<Tag, IntType>;
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
@@ -309,12 +314,12 @@ struct atomic<terrier::StrongTypeAlias<Tag, IntType>> {
  * @tparam T the underlying type.
  */
 template <class Tag, typename T>
-struct hash<terrier::StrongTypeAlias<Tag, T>> {
+struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the hash of the underlying type's contents.
    * @param alias the aliased type to be hashed.
    * @return the hash of the aliased type.
    */
-  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
+  size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
 };
 }  // namespace std

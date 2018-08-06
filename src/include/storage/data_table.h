@@ -74,7 +74,7 @@ class DataTable {
   BlockStore &block_store_;
   // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
   // TODO(Matt): consider a vector instead if lookups are faster
-  ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
+  common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // TODO(Tianyu): Again, change when supporting concurrent schema.
   const layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a

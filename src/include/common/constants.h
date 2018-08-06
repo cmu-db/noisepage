@@ -1,7 +1,8 @@
 #pragma once
 
 #include <cstdint>
-namespace terrier {
+
+namespace terrier::common {
 /**
  * Declare all system-level constants that cannot change at runtime here.
  *
@@ -16,4 +17,4 @@ struct Constants {
    */
   static const uint32_t BLOCK_SIZE = 1048576u;  // Should only ever be a power of 2.
 };
-}  // namespace terrier
+}  // namespace terrier::common

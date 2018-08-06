@@ -3,7 +3,8 @@
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/typedefs.h"
-namespace terrier {
+
+namespace terrier::common {
 /**
  * Allocator that allocates and destroys a byte array.
  * @tparam T object whose size determines the byte array size.
@@ -117,4 +118,4 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 };
-}  // namespace terrier
+}  // namespace terrier::common
