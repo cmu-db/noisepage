@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <cstdio>
 #include <sstream>
 #include <utility>
@@ -339,14 +340,13 @@ class DeltaRecord {
 
   /**
    * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
-   * @param next pointer to the next element in the version chain
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @param timestamp timestamp of the transaction that generated this DeltaRecord
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
-   * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(byte *head, const timestamp_t timestamp, const BlockLayout &layout,
+  static DeltaRecord *InitializeDeltaRecord(byte *head, timestamp_t timestamp, const BlockLayout &layout,
                                             const std::vector<uint16_t> &col_ids);
 
  private:

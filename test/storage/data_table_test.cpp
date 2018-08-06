@@ -41,7 +41,7 @@ class RandomDataTableTestObject {
 
   // be sure to only update tuple incrementally (cannot go back in time)
   template<class Random>
-  bool RandomlyUpdateTuple(const timestamp_t timestamp, storage::TupleSlot slot, Random &generator) {
+  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random &generator) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
 
@@ -84,7 +84,7 @@ class RandomDataTableTestObject {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
   // or nullptr of no version of this tuple is visible to the timestamp
-  const storage::ProjectedRow *GetReferenceVersionedTuple(storage::TupleSlot slot, timestamp_t timestamp) {
+  const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot, const timestamp_t timestamp) {
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
@@ -129,7 +129,7 @@ struct DataTableTests : public ::testing::Test {
 // into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
 // random tuple. Repeats for num_iterations.
 TEST_F(DataTableTests, SimpleInsertSelect) {
-  const uint32_t num_iterations = 50;
+  const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 1000;
   const uint16_t max_columns = 100;
 
@@ -186,7 +186,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 // timestamp is changed to positive. Lastly, Selects at first timestamp to verify that the delta chain produces the
 // correct tuple. Repeats for num_iterations.
 TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
