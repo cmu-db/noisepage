@@ -86,7 +86,6 @@ class ConcurrentMap {
     typename tbb::concurrent_unordered_map<TEMPLATE_ARGS>::const_iterator it_;
   };
 
-
   /**
    * Iterator type for the map
    */
@@ -202,9 +201,7 @@ class ConcurrentMap {
   /**
    * @return const iterator to the first element
    */
-  ConstIterator CBegin() const {
-    return ConstIterator(map_.cbegin());
-  }
+  ConstIterator CBegin() const { return ConstIterator(map_.cbegin()); }
 
   /**
    * @return Iterator to the first element
@@ -214,9 +211,7 @@ class ConcurrentMap {
   /**
    * @return const iterator to the element following the last element
    */
-  ConstIterator CEnd() const {
-    return ConstIterator(map_.cend());
-  }
+  ConstIterator CEnd() const { return ConstIterator(map_.cend()); }
 
   /**
    * @return Iterator to the element following the last element
