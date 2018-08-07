@@ -49,7 +49,7 @@ class RandomDataTableTestObject {
   template<class Random>
   bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator) {
     // tuple must already exist
-    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
+    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -91,7 +91,7 @@ class RandomDataTableTestObject {
 
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot, const timestamp_t timestamp) {
-    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end());
+    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)

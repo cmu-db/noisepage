@@ -55,7 +55,7 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_cols_ == attr_sizes_.size());
+    PELOTON_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
@@ -113,11 +113,10 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
-    // Assert that the offset is smaller than the block size, so we can fit
-    // it in the 0 bits at the end of the address
-    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE);
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+                   "Address must be aligned to block size (last bits zero).");
+    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
+                   "Offset must be smaller than block size (to fit in the last bits).");
   }
 
   /**
@@ -244,7 +243,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   byte *AccessWithNullCheck(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_);
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -256,7 +255,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   const byte *AccessWithNullCheck(const uint16_t offset) const {
-    PELOTON_ASSERT(offset < num_cols_);
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -267,7 +266,7 @@ class ProjectedRow {
    * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
    */
   byte *AccessForceNotNull(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_);
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -277,7 +276,7 @@ class ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNull(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_);
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, false);
   }
 

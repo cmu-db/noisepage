@@ -86,9 +86,9 @@ namespace terrier::common {
 
 // TODO(Tianyu): Rename peloton to whatever we call this later
 #ifdef NDEBUG
-#define PELOTON_ASSERT(expr) ((void)0)
+#define PELOTON_ASSERT(expr, message) ((void)0)
 #else
-#define PELOTON_ASSERT(expr) assert((expr))
+#define PELOTON_ASSERT(expr, message) assert((expr) && (message))
 #endif /* NDEBUG */
 
 #ifdef CHECK_INVARIANTS

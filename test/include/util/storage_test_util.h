@@ -60,7 +60,7 @@ struct StorageTestUtil {
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
   static storage::BlockLayout RandomLayout(uint16_t max_cols, Random *generator) {
-    PELOTON_ASSERT(max_cols > 1);
+    PELOTON_ASSERT(max_cols > 1, "There should be at least 2 cols (first is version).");
     // We probably won't allow tables with fewer than 2 columns
     uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(2, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
@@ -191,7 +191,7 @@ struct TupleAccessStrategyTestUtil {
   // Returns a random layout that is guaranteed to be valid.
   template<typename Random>
   static storage::BlockLayout RandomLayout(Random *generator, uint16_t max_cols = UINT16_MAX) {
-    PELOTON_ASSERT(max_cols > 1);
+    PELOTON_ASSERT(max_cols > 1, "There should be at least two cols (first is version).");
     // We probably won't allow tables with 0 columns
     uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
