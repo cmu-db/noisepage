@@ -8,8 +8,6 @@
 #include "util/multi_threaded_test_util.h"
 #include "util/storage_benchmark_util.h"
 
-// TODO(Matt): nuke this once we have a valid benchmark to refer to
-
 namespace terrier {
 
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsert)
