@@ -72,7 +72,7 @@ struct BlockLayout {
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
   }
 };
 
@@ -88,7 +88,7 @@ struct RawBlock {
   /**
    * Number of records.
    */
-  uint32_t num_records_;
+  std::atomic<uint32_t> num_records_;
   /**
    * Contents of the raw block.
    */

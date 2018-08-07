@@ -18,11 +18,19 @@ namespace terrier::storage {
  */
 class TupleAccessStrategy {
  private:
+
+  static uint32_t PadAddressToSize(const uint8_t word_size, const uint32_t address) {
+    uint32_t remainder = address % word_size;
+    return (remainder == 0
+            ? address
+            : address + word_size - remainder);
+  }
+
   // TODO(Tianyu): These two classes should be aligned for LLVM
   /**
    * A mini block stores individual columns. Mini block layout:
    * ----------------------------------------------------
-   * | null-bitmap (pad up to byte) | val1 | val2 | ... |
+   * | null-bitmap (pad up to size of attr) | val1 | val2 | ... |
    * ----------------------------------------------------
    * Warning, 0 means null
    */
@@ -38,7 +46,7 @@ class TupleAccessStrategy {
      * @param layout the layout of this block
      * @return a pointer to the start of the column. (use as an array)
      */
-    byte *ColumnStart(const BlockLayout &layout) { return varlen_contents_ + common::BitmapSize(layout.num_slots_); }
+    byte *ColumnStart(const BlockLayout &layout, const uint16_t col) { return varlen_contents_ + PadAddressToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_)); }
 
     /**
      * @return The null-bitmap of this column
@@ -54,11 +62,11 @@ class TupleAccessStrategy {
 
   /**
    * Block Header layout:
-   * --------------------------------------------------------------------------
-   * | layout_version | num_records | num_slots | attr_offsets[num_attributes] | // 32-bit fields
-   * --------------------------------------------------------------------------
-   * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   ...content        |
-   * --------------------------------------------------------------------------
+   * ------------------------------------------------------------------------------------
+   * | layout_version | num_records | num_slots | attr_offsets[num_attributes]          | // 32-bit fields
+   * ------------------------------------------------------------------------------------
+   * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   content (64-bit aligned)   |
+   * ------------------------------------------------------------------------------------
    *
    * This is laid out in this order, because except for num_records,
    * the other fields are going to be immutable for a block's lifetime,
@@ -138,7 +146,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return pointer to the bitmap of the specified column on the given block
    */
-  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, uint16_t col) const {
+  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const uint16_t col) const {
     return reinterpret_cast<Block *>(block)->Column(col)->PresenceBitmap();
   }
 
@@ -147,8 +155,8 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return pointer to the start of the column
    */
-  byte *ColumnStart(RawBlock *block, uint16_t col) const {
-    return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_);
+  byte *ColumnStart(RawBlock *block, const uint16_t col) const {
+    return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_, col);
   }
 
   /* Tuple-level access */
@@ -157,7 +165,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
-  byte *AccessWithNullCheck(const TupleSlot slot, uint16_t col) const {
+  byte *AccessWithNullCheck(const TupleSlot slot, const uint16_t col) const {
     if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset())) return nullptr;
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
   }
@@ -169,7 +177,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute.
    */
-  byte *AccessForceNotNull(TupleSlot slot, uint16_t col) const {
+  byte *AccessForceNotNull(TupleSlot slot, const uint16_t col) const {
     // Noop if not null
     // TODO(Tianyu): Don't compare and swap this shit
     ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), false);
@@ -182,7 +190,7 @@ class TupleAccessStrategy {
    * @param slot tuple slot to access
    * @param col offset representing the column
    */
-  void SetNull(TupleSlot slot, uint16_t col) const {
+  void SetNull(TupleSlot slot, const uint16_t col) const {
     if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true)  // Noop if already null
         && col == PRESENCE_COLUMN_ID)
       slot.GetBlock()->num_records_--;
@@ -198,8 +206,14 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot *slot) const {
     // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
     // vectorizable. Optimize later.
+
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
-    uint32_t pos = 0;
+    const uint32_t start = block->num_records_;
+
+    if (start == layout_.num_slots_) return false;
+
+    uint32_t pos = start;
+
     while (bitmap->FirstUnsetPos(layout_.num_slots_, pos, &pos)) {
       if (bitmap->Flip(pos, false)) {
         *slot = TupleSlot(block, pos);
@@ -207,6 +221,17 @@ class TupleAccessStrategy {
         return true;
       }
     }
+
+    pos = 0;
+
+    while (bitmap->FirstUnsetPos(layout_.num_slots_ - start, pos, &pos)) {
+      if (bitmap->Flip(pos, false)) {
+        *slot = TupleSlot(block, pos);
+        block->num_records_++;
+        return true;
+      }
+    }
+
     return false;
   }
 

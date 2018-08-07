@@ -86,15 +86,13 @@ class ObjectPool {
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
   /**
-   * Returns a piece of memory to hold an object of T. The memory is always
-   * 0-initialized.
+   * Returns a piece of memory to hold an object of T.
    *
    * @return pointer to memory that can hold T
    */
   T *Get() {
     T *result = nullptr;
     if (!reuse_queue_.Dequeue(&result)) result = alloc_.New();
-    PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
 

@@ -72,13 +72,15 @@ class DataTable {
 
  private:
   BlockStore *block_store_;
-  // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
-  // TODO(Matt): consider a vector instead if lookups are faster
-  common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
+  // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
+  // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // TODO(Tianyu): Again, change when supporting concurrent schema.
-  const layout_version_t curr_layout_version_{0};
+  // const layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
+
+  // TODO(Matt): remove this TAS when using concurrent schema
+  TupleAccessStrategy accessor_;
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
