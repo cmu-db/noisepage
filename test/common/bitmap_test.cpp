@@ -1,7 +1,7 @@
-#include <bitset>
 #include <random>
 #include <thread>  // NOLINT
 #include <unordered_set>
+#include <vector>
 #include "gtest/gtest.h"
 #include "common/container/bitmap.h"
 #include "util/container_test_util.h"
@@ -24,13 +24,13 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   }
 
   // Randomly permute bitmap and STL bitmap and compare equality
-  std::bitset<num_elements_aligned> stl_bitmap;
+  std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_aligned);
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_aligned>(*aligned_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
         std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
     aligned_bitmap->Flip(element);
-    stl_bitmap.flip(element);
+    stl_bitmap[element] = !stl_bitmap[element];
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_aligned>(*aligned_bitmap, stl_bitmap);
   }
 
@@ -53,13 +53,13 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   }
 
   // Randomly permute bitmap and STL bitmap and compare equality
-  std::bitset<num_elements_unaligned> stl_bitmap;
+  std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_unaligned);
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_unaligned>(*non_multiple_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
         std::uniform_int_distribution(0, static_cast<int>(num_elements_unaligned - 1))(generator);
     non_multiple_bitmap->Flip(element);
-    stl_bitmap.flip(element);
+    stl_bitmap[element] = !stl_bitmap[element];
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements_unaligned>(*non_multiple_bitmap,
                                                                                        stl_bitmap);
   }
@@ -95,13 +95,13 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
   }
 
   // Randomly permute bitmap and STL bitmap and compare equality
-  std::bitset<num_elements> stl_bitmap;
+  std::vector<bool> stl_bitmap = std::vector<bool>(num_elements);
   ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements>(*unaligned_bitmap, stl_bitmap);
   for (uint32_t i = 0; i < num_iterations; ++i) {
     auto element =
         std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     unaligned_bitmap->Flip(element);
-    stl_bitmap.flip(element);
+    stl_bitmap[element] = !stl_bitmap[element];
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap, num_elements>(*unaligned_bitmap, stl_bitmap);
   }
 

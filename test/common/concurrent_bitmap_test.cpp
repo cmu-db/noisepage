@@ -22,7 +22,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   }
 
   // Randomly permute bitmap and STL bitmap and compare equality
-  std::bitset<num_elements> stl_bitmap;
+  std::vector<bool> stl_bitmap = std::vector<bool>(num_elements);
   ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
   uint32_t num_iterations = 32;
   std::default_random_engine generator;
@@ -30,7 +30,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
     auto element =
         std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     EXPECT_TRUE(bitmap->Flip(element, bitmap->Test(element)));
-    stl_bitmap.flip(element);
+    stl_bitmap[element] = !stl_bitmap[element];
     ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap, num_elements>(*bitmap, stl_bitmap);
   }
 
