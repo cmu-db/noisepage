@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include <vector>
 #include "util/multi_threaded_test_util.h"
-#include "util/tuple_access_strategy_test_util.h"
 #include "util/storage_test_util.h"
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
@@ -68,7 +67,7 @@ TEST_F(TupleAccessStrategyTests, NullTest) {
 
 // Tests that we can allocate a tuple slot, write things into the slot and
 // get them out.
-TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
+TEST_F(TupleAccessStrategyTests, SimpleInsert) {
   const uint32_t repeat = 100;
   const uint32_t max_inserts = 1000;
   std::default_random_engine generator;
@@ -102,7 +101,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsertTest) {
 // This test generates randomized block layouts, and checks its layout to ensure
 // that the header, the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
-TEST_F(TupleAccessStrategyTests, MemorySafetyTest) {
+TEST_F(TupleAccessStrategyTests, MemorySafety) {
   const uint32_t repeat = 500;
   const uint32_t max_cols = 1000;
   std::default_random_engine generator;
@@ -194,7 +193,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertTest) {
 // problems (thread B deleting a slot after thread A got it, but before A wrote
 // all the contents in). This kind of conflict avoidance is really the
 // responsibility of concurrency control and GC, not storage.
-TEST_F(TupleAccessStrategyTests, ConcurrentInsertDeleteTest) {
+TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   const uint32_t repeat = 100;
   const uint32_t max_work = 8000;
   std::default_random_engine generator;
