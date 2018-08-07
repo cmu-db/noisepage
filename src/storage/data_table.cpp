@@ -8,27 +8,21 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store_(store) {
-  // DataTable's first column must be a size of 8 for the version chain
-  PELOTON_ASSERT(layout.attr_sizes_[0] == 8);
-  // DataTable's number of columns must be greater than 1 (first column is version info)
-  PELOTON_ASSERT(layout.num_cols_ > 1);
+  PELOTON_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
+  PELOTON_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
   layouts_.Emplace(curr_layout_version_, layout);
   NewBlock(nullptr);
-  PELOTON_ASSERT(insertion_head_ != nullptr);
+  PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
 void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow *out_buffer) const {
-  // Retrieve the access strategy for the block's layout version. It is expected that
-  // a valid block is given, thus the access strategy must have already been created.
   auto it = layouts_.Find(slot.GetBlock()->layout_version_);
-  PELOTON_ASSERT(it != layouts_.CEnd());
+  PELOTON_ASSERT(it != layouts_.CEnd(), "No valid block found (valid blocks contain access strategies).");
   const TupleAccessStrategy &accessor = it->second;
 
-  // ProjectedRow should always have fewer attributes than the block layout because we will never return the
-  // version ptr above the DataTable layer
-  // Also, the version ptr should not be in there: it is a concept hidden from callers.
-  PELOTON_ASSERT(out_buffer->NumColumns() < accessor.GetBlockLayout().num_cols_);
-  PELOTON_ASSERT(out_buffer->NumColumns() > 0);
+  PELOTON_ASSERT(out_buffer->NumColumns() < accessor.GetBlockLayout().num_cols_,
+      "The projection never returns the version pointer, so it should have fewer attributes.");
+  PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
 
   // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
   // because so long as we set the version ptr before updating in place, the reader will know if a conflict
@@ -66,11 +60,10 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
 
 bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
   auto it = layouts_.Find(slot.GetBlock()->layout_version_);
-  PELOTON_ASSERT(it != layouts_.End());
+  PELOTON_ASSERT(it != layouts_.End(), "No valid block found (valid blocks contain access strategies).");
   const TupleAccessStrategy &accessor = it->second;
 
-  // They should have the same layout.
-  PELOTON_ASSERT(redo.NumColumns() == undo->Delta()->NumColumns());
+  PELOTON_ASSERT(redo.NumColumns() == undo->Delta()->NumColumns(), "Undo and redo should have the same layout.");
   // TODO(Tianyu): Do we want to also check the column ids and order?
 
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor);
@@ -96,14 +89,13 @@ bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaReco
 
 TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   auto it = layouts_.Find(curr_layout_version_);
-  PELOTON_ASSERT(it != layouts_.End());
+  PELOTON_ASSERT(it != layouts_.End(), "No valid block found (valid blocks contain access strategies).");
   const TupleAccessStrategy &accessor = it->second;
 
-  // The undo buffer for an insert should come in with a nullptr undo buffer
-  PELOTON_ASSERT(undo->next_ == nullptr);
-
-  // Since this is an insert, all the column values should be given in the redo.
-  PELOTON_ASSERT(redo.NumColumns() == (accessor.GetBlockLayout().num_cols_ - 1));
+  PELOTON_ASSERT(undo->next_ == nullptr,
+      "For insert, undo should come with a nullptr undo buffer.");
+  PELOTON_ASSERT(redo.NumColumns() == (accessor.GetBlockLayout().num_cols_ - 1),
+      "For insert, redo should contain all columns.");
 
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
@@ -127,8 +119,7 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
   // to denote an insert. Calling update means we are stupidly copying the entire tuple. That said, this won't
   // be a correctness issue. So we can fix later.
   UNUSED_ATTRIBUTE bool no_conflict = Update(result, redo, undo);
-  // Expect no conflict because this version should only be visible to this transaction.
-  PELOTON_ASSERT(no_conflict);
+  PELOTON_ASSERT(no_conflict, "This version should only be visible to this transaction.");
   return result;
 }
 
@@ -136,7 +127,7 @@ DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const Tup
   // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
   // an issue (probably not, we are just reading one extra byte.)
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr);
+  PELOTON_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
   return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
 }
 
@@ -145,8 +136,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          DeltaRecord *expected,
                                          DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
-  // The check should never fail. We should only update the version vector for a tuple that is present
-  PELOTON_ASSERT(ptr_location != nullptr);
+  PELOTON_ASSERT(ptr_location != nullptr, "Only update version vectors for tuples that are present.");
   return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
@@ -155,7 +145,7 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   // This will eliminate retries, which could potentially be an expensive allocate (this is somewhat mitigated
   // by the object pool reuse)
   auto it = layouts_.Find(curr_layout_version_);
-  PELOTON_ASSERT(it != layouts_.End());
+  PELOTON_ASSERT(it != layouts_.End(), "No valid block found.");
   RawBlock *new_block = block_store_->Get();
   it->second.InitializeRawBlock(new_block, curr_layout_version_);
   if (insertion_head_.compare_exchange_strong(expected_val, new_block))

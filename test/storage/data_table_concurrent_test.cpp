@@ -59,7 +59,7 @@ class FakeTransaction {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
   const storage::ProjectedRow *GetReferenceTuple(const storage::TupleSlot slot) {
-    PELOTON_ASSERT(reference_tuples_.find(slot) != reference_tuples_.end());
+    PELOTON_ASSERT(reference_tuples_.find(slot) != reference_tuples_.end(), "Slot not found.");
     return reference_tuples_[slot];
   }
 
