@@ -63,7 +63,7 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+        + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
@@ -113,7 +113,7 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)),
                    "Address must be aligned to block size (last bits zero).");
     PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
@@ -166,11 +166,35 @@ class TupleSlot {
 };
 
 /**
+ * Allocator that allocates a block
+ */
+struct BlockAllocator {
+  /**
+   * Allocates a new object by calling its constructor.
+   * @return a pointer to the allocated object.
+   */
+  RawBlock *New() { return new RawBlock(); }
+
+  /**
+   * Reuse a reused chunk of memory to be handed out again
+   * @param reused memory location, possibly filled with junk bytes
+   */
+  void Reuse(RawBlock *reused) { /* no operation required */ }
+
+  /**
+   * Deletes the object by calling its destructor.
+   * @param ptr a pointer to the object to be deleted.
+   */
+  void Delete(RawBlock *ptr) { delete ptr; }
+};
+
+
+/**
  * A block store is essentially an object pool. However, all blocks should be
  * aligned, so we will need to use the default constructor instead of raw
  * malloc.
  */
-using BlockStore = common::ObjectPool<RawBlock, common::DefaultConstructorAllocator<RawBlock>>;
+using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
 // TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
 // easiest.
@@ -355,7 +379,7 @@ namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template <>
+template<>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.
