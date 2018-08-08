@@ -19,11 +19,12 @@ namespace terrier::storage {
 class TupleAccessStrategy {
  private:
 
-  static uint32_t PadAddressToSize(const uint8_t word_size, const uint32_t address) {
+  // TODO(Tianyu): document
+  static uint32_t PadOffsetToSize(const uint8_t word_size, const uint32_t address) {
     uint32_t remainder = address % word_size;
-    return (remainder == 0
-            ? address
-            : address + word_size - remainder);
+    return remainder == 0
+           ? address
+           : address + word_size - remainder;
   }
 
   // TODO(Tianyu): These two classes should be aligned for LLVM
@@ -46,7 +47,9 @@ class TupleAccessStrategy {
      * @param layout the layout of this block
      * @return a pointer to the start of the column. (use as an array)
      */
-    byte *ColumnStart(const BlockLayout &layout, const uint16_t col) { return varlen_contents_ + PadAddressToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_)); }
+    byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
+      return varlen_contents_ + PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+    }
 
     /**
      * @return The null-bitmap of this column
@@ -127,7 +130,7 @@ class TupleAccessStrategy {
    * Initializes a TupleAccessStrategy
    * @param layout block layout to use
    */
-  explicit TupleAccessStrategy(BlockLayout layout) : layout_(std::move(layout)) {}
+  explicit TupleAccessStrategy(BlockLayout layout);
 
   /**
    * Initializes a new block to conform to the layout given. This will write the
@@ -204,9 +207,6 @@ class TupleAccessStrategy {
    * @return true if the allocation succeeded, false if no space could be found.
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const {
-    // TODO(Tianyu): Really inefficient for now. Again, embarrassingly
-    // vectorizable. Optimize later.
-
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
     const uint32_t start = block->num_records_;
 
@@ -244,5 +244,7 @@ class TupleAccessStrategy {
  private:
   // TODO(Tianyu): This will be baked in for codegen, not a field.
   const BlockLayout layout_;
+  // Start of each mini block, in offset to the start of the block
+  std::vector<uint32_t> column_offsets_;
 };
 }  // namespace terrier::storage

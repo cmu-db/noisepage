@@ -10,6 +10,28 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+/**
+ * A block is a chunk of memory used for storage. It does not have any meaning
+ * unless interpreted by a @see TupleAccessStrategy
+ */
+struct RawBlock {
+  /**
+   * Layout version.
+   */
+  layout_version_t layout_version_;
+  /**
+   * Number of records.
+   */
+  std::atomic<uint32_t> num_records_;
+  /**
+   * Contents of the raw block.
+   */
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
+  // store offsets within a block in ine 8-byte word.
+} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
+
+#define MAX_COL INT16_MAX
 // TODO(Tianyu): This code eventually should be compiled, which would eliminate
 // BlockLayout as a runtime object, instead baking them in as compiled code
 // (Think of this as writing the class with a BlockLayout template arg, except
@@ -29,7 +51,10 @@ struct BlockLayout {
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
-        num_slots_(NumSlots()) {}
+        num_slots_(NumSlots()) {
+    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= MAX_COL, "number of columns must be between 1 and 32767");
+    PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+  }
 
   /**
    * Number of columns.
@@ -75,27 +100,6 @@ struct BlockLayout {
     return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
   }
 };
-
-/**
- * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
- */
-struct RawBlock {
-  /**
-   * Layout version.
-   */
-  layout_version_t layout_version_;
-  /**
-   * Number of records.
-   */
-  std::atomic<uint32_t> num_records_;
-  /**
-   * Contents of the raw block.
-   */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
-  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word.
-} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
 
 /**
  * A TupleSlot represents a physical location of a tuple in memory.
