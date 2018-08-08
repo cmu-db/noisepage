@@ -150,9 +150,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
 TEST_F(TupleAccessStrategyTests, Alignment) {
   const uint32_t repeat = 500;
   std::default_random_engine generator;
-  
   StorageTestUtil::CheckAlignment(raw_block_, common::Constants::BLOCK_SIZE);
-  
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
