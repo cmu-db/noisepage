@@ -309,7 +309,7 @@ class ProjectedRow {
   }
 
   /**
-   * Set the attribute in the ProjectedRow to be null using the internal bitmap
+   * Set the attribute in the ProjectedRow to be not null using the internal bitmap
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNotNull(const uint16_t offset) {
