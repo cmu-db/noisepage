@@ -74,13 +74,13 @@ class DataTable {
   BlockStore *block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
-  // TODO(Tianyu): Again, change when supporting concurrent schema.
-  // const layout_version_t curr_layout_version_{0};
+  // layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
 
-  // TODO(Matt): remove this TAS when using concurrent schema
+  // TODO(Matt): remove this single TAS when using concurrent schema
   TupleAccessStrategy accessor_;
+
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 

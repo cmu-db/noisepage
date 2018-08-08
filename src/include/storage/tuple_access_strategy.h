@@ -18,13 +18,15 @@ namespace terrier::storage {
  */
 class TupleAccessStrategy {
  private:
-
-  // TODO(Tianyu): document
-  static uint32_t PadOffsetToSize(const uint8_t word_size, const uint32_t address) {
-    uint32_t remainder = address % word_size;
-    return remainder == 0
-           ? address
-           : address + word_size - remainder;
+  /**
+   * Given an address offset, aligns it to the word_size
+   * @param word_size size in bytes to align offset to
+   * @param offset address to be aligned
+   * @return modified version of address padded to align to word_size
+   */
+  static uint32_t PadOffsetToSize(const uint8_t word_size, const uint32_t offset) {
+    uint32_t remainder = offset % word_size;
+    return remainder == 0 ? offset : offset + word_size - remainder;
   }
 
   // TODO(Tianyu): These two classes should be aligned for LLVM

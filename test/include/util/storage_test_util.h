@@ -45,6 +45,11 @@ struct StorageTestUtil {
   static void CheckNotInBounds(A *val, B *lower, C *upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
   }
+
+  template <typename A>
+  static void CheckAlignment(A *val, uint32_t word_size) {
+    EXPECT_EQ(0, TO_INT(val) % word_size);
+  }
 #undef TO_INT
   /**
    * @tparam A type of ptr
@@ -170,7 +175,7 @@ struct StorageTestUtil {
 // This does NOT return a sensible tuple in general. This is just some filler
 // to write into the storage layer and is devoid of meaning outside of this class.
 struct FakeRawTuple {
-  template<typename Random>
+  template <typename Random>
   FakeRawTuple(const storage::BlockLayout &layout, Random *generator);
   ~FakeRawTuple() { delete[] contents_; }
 
@@ -190,7 +195,7 @@ struct TupleAccessStrategyTestUtil {
   TupleAccessStrategyTestUtil() = delete;
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
-  template<typename Random>
+  template <typename Random>
   static void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random *generator) {
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
     for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(*generator));
@@ -231,7 +236,7 @@ struct TupleAccessStrategyTestUtil {
   // Using the given random generator, attempts to allocate a slot and write a
   // random tuple into it. The slot and the tuple are logged in the given map.
   // Checks are performed to make sure the insertion is sensible.
-  template<typename Random>
+  template <typename Random>
   static std::pair<const storage::TupleSlot, FakeRawTuple> &TryInsertFakeTuple(
       const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
       std::unordered_map<storage::TupleSlot, FakeRawTuple> *tuples, Random *generator) {
@@ -241,10 +246,8 @@ struct TupleAccessStrategyTestUtil {
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
     // Construct a random tuple and associate it with the tuple slot
-    auto result =
-        tuples->emplace(std::piecewise_construct,
-                        std::forward_as_tuple(slot),
-                        std::forward_as_tuple(layout, generator));
+    auto result = tuples->emplace(std::piecewise_construct, std::forward_as_tuple(slot),
+                                  std::forward_as_tuple(layout, generator));
     // The tuple slot is not something that is already in use.
     EXPECT_TRUE(result.second);
     InsertTuple(result.first->second, &tested, layout, slot);
@@ -252,7 +255,7 @@ struct TupleAccessStrategyTestUtil {
   }
 };
 
-template<class Random>
+template <class Random>
 FakeRawTuple::FakeRawTuple(const terrier::storage::BlockLayout &layout, Random *generator)
     : layout_(layout), attr_offsets_(), contents_(new byte[layout.tuple_size_]) {
   uint32_t pos = 0;

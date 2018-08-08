@@ -1,3 +1,4 @@
+#include <utility>
 #include "common/container/concurrent_bitmap.h"
 #include "storage/tuple_access_strategy.h"
 
@@ -10,8 +11,8 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   uint32_t acc_offset = PadOffsetToSize(sizeof(uint64_t), layout_.header_size_);
   for (uint16_t i = 0; i < layout_.num_cols_; i++) {
     column_offsets_[i] = acc_offset;
-    uint32_t column_size = layout_.attr_sizes_[i] * layout_.num_slots_ // content
-        + PadOffsetToSize(layout_.attr_sizes_[i], common::BitmapSize(layout_.num_slots_)); // padded-bitmap size
+    uint32_t column_size = layout_.attr_sizes_[i] * layout_.num_slots_  // content
+        + PadOffsetToSize(layout_.attr_sizes_[i], common::BitmapSize(layout_.num_slots_));  // padded-bitmap size
     acc_offset += PadOffsetToSize(sizeof(uint64_t), column_size);
   }
 }
