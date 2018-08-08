@@ -87,6 +87,10 @@ class DataTable {
   // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
+  // Atomically write the version pointer value. Should only be used by Insert where there is guaranteed to be no
+  // contention
+  void AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
+
   // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible

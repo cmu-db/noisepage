@@ -96,17 +96,22 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
     NewBlock(block);
   }
 
-  // Version_vector column would have already been flipped to not null, but won't be in the redo given to us. We will
-  // need to make sure that the new slot always have nullptr for version vector.
-  StorageUtil::WriteBytes(sizeof(DeltaRecord *), 0, accessor_.AccessForceNotNull(result, VERSION_VECTOR_COLUMN_ID));
+  // A sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
+  // the primary key column
 
-  // Once the version vector is installed, the insert is the same as an update where columns from the
-  // redo is copied into the block.
-  // TODO(Tianyu): This is lazy. Realistically, we need one primary key column in the before-image as null
-  // to denote an insert. Calling update means we are stupidly copying the entire tuple. That said, this won't
-  // be a correctness issue. So we can fix later.
-  UNUSED_ATTRIBUTE bool no_conflict = Update(result, redo, undo);
-  PELOTON_ASSERT(no_conflict, "This version should only be visible to this transaction.");
+  // Populate undo record with the before image of presence column
+  undo->Delta()->SetNull(VERSION_VECTOR_COLUMN_ID);
+
+  // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
+  // may result in a segfault
+  AtomicallyWriteVersionPtr(result, accessor_, undo);
+
+  // At this point, a sequential scan can see this tuple, but will follow the version chain to see a logically deleted
+  // version
+
+  // Update in place with the new value.
+  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
+
   return result;
 }
 
@@ -118,12 +123,20 @@ DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const Tup
   return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
 }
 
+void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
+                                          const TupleAccessStrategy &accessor,
+                                          DeltaRecord *desired) {
+  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired);
+}
+
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          const TupleAccessStrategy &accessor,
                                          DeltaRecord *expected,
                                          DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Only update version vectors for tuples that are present.");
+  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
   return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
