@@ -10,7 +10,8 @@
 namespace terrier {
 struct TupleAccessStrategyTests : public ::testing::Test {
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  common::PerformanceCounters pc;
+  storage::BlockStore block_store_{1, pc};
 
  protected:
   void SetUp() override {

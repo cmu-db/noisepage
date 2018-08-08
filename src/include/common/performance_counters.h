@@ -21,8 +21,7 @@
 #include <jsoncpp/json/json.h>
 #endif
 
-namespace terrier {
-namespace common {
+namespace terrier::common {
 
 /**
  *  Basic performance counter as statistics
@@ -63,5 +62,4 @@ class PerformanceCounters {
   tbb::concurrent_unordered_map<std::string, int> counters_;
 };
 
-}  // namespace statistics
-}  // namespace terrier
+}  // namespace terrier::common

@@ -5,8 +5,7 @@
 #include "common/performance_counters.h"
 #include "common/typedefs.h"
 
-namespace terrier {
-namespace common {
+namespace terrier::common {
 /**
  * Allocator that allocates and destroys a byte array.
  * @tparam T object whose size determines the byte array size.
@@ -68,8 +67,7 @@ class ObjectPool {
    * objects reused.
    * @param reuse_limit
    */
-  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters &pc)
-      : reuse_limit_(reuse_limit), pc_(pc) {}
+  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters &pc) : reuse_limit_(reuse_limit), pc_(pc) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -130,11 +128,6 @@ class ObjectPool {
     }
   }
 
-  /**
-   * Print performance counters.
-   */
-  void PrintPerformanceCounters() { pc_.PrintPerformanceCounters(); }
-
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
@@ -144,4 +137,3 @@ class ObjectPool {
   PerformanceCounters &pc_;
 };
 }  // namespace terrier::common
-}

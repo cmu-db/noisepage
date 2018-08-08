@@ -17,22 +17,22 @@ TEST(BlockStorePCTests, BlockCountTest) {
   // Create RawBlock
   storage::RawBlock *reused_ptr1 = tested.Get();
   storage::RawBlock *reused_ptr2 = tested.Get();
-  tested.PrintPerformanceCounters();
+  pc.PrintPerformanceCounters();
 
   // Release RawBlock
   tested.Release(reused_ptr1);
   tested.Release(reused_ptr2);
 
-  tested.PrintPerformanceCounters();
+  pc.PrintPerformanceCounters();
 
   // Create again
   reused_ptr1 = tested.Get();
-  tested.PrintPerformanceCounters();
+  pc.PrintPerformanceCounters();
 
   // Release RawBlock
   tested.Release(reused_ptr1);
 
-  tested.PrintPerformanceCounters();
+  pc.PrintPerformanceCounters();
 
 }
 

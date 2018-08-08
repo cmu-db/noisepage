@@ -126,7 +126,8 @@ class RandomDataTableTestObject {
 };
 
 struct DataTableTests : public ::testing::Test {
-  storage::BlockStore block_store_{100};
+  common::PerformanceCounters pc;
+  storage::BlockStore block_store_{100, pc};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
