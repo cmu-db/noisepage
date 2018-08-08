@@ -2,9 +2,11 @@
 
 #include <utility>
 #include "common/container/concurrent_queue.h"
+#include "common/performance_counters.h"
 #include "common/typedefs.h"
 
-namespace terrier::common {
+namespace terrier {
+namespace common {
 /**
  * Allocator that allocates and destroys a byte array.
  * @tparam T object whose size determines the byte array size.
@@ -66,7 +68,8 @@ class ObjectPool {
    * objects reused.
    * @param reuse_limit
    */
-  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters &pc)
+      : reuse_limit_(reuse_limit), pc_(pc) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -93,7 +96,15 @@ class ObjectPool {
    */
   T *Get() {
     T *result = nullptr;
-    if (!reuse_queue_.Dequeue(&result)) result = alloc_.New();
+    if (!reuse_queue_.Dequeue(&result)) {
+      result = alloc_.New();
+
+      // for statistics
+      pc_.IncrementCounter("block_counter");
+    } else {
+      // for statistics
+      pc_.DecrementCounter("reuse_queue_counter");
+    }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
   }
@@ -106,16 +117,31 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > reuse_limit_)
+    if (reuse_queue_.UnsafeSize() > reuse_limit_) {
       alloc_.Delete(obj);
-    else
+
+      // for statistics
+      pc_.DecrementCounter("block_counter");
+    } else {
       reuse_queue_.Enqueue(std::move(obj));
+
+      // for statistics
+      pc_.IncrementCounter("reuse_queue_counter");
+    }
   }
+
+  /**
+   * Print performance counters.
+   */
+  void PrintPerformanceCounters() { pc_.PrintPerformanceCounters(); }
 
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
+
+  PerformanceCounters &pc_;
 };
 }  // namespace terrier::common
+}

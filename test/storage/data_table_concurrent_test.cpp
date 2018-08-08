@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <vector>
+#include "common/macros.h"
 #include "storage/data_table.h"
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
@@ -59,7 +60,7 @@ class FakeTransaction {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
 
   const storage::ProjectedRow *GetReferenceTuple(const storage::TupleSlot slot) {
-    PELOTON_ASSERT(reference_tuples_.find(slot) != reference_tuples_.end(), "Slot not found.");
+    PELOTON_ASSERT(reference_tuples_.find(slot) != reference_tuples_.end());
     return reference_tuples_[slot];
   }
 
@@ -79,7 +80,8 @@ class FakeTransaction {
   std::vector<byte *> loose_pointers_;
 };
 struct DataTableConcurrentTests : public ::testing::Test {
-  storage::BlockStore block_store_{100};
+  common::PerformanceCounters pc;
+  storage::BlockStore block_store_{100, pc};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
