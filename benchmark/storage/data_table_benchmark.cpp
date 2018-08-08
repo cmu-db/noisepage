@@ -105,7 +105,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
 }
 
 BENCHMARK(BM_SimpleInsert)
-    ->Repetitions(1)
+    ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
