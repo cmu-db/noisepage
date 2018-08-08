@@ -314,6 +314,8 @@ class DeltaRecord {
    */
   timestamp_t timestamp_;
 
+  uint32_t size_;
+
   /**
    * Access the next version in the delta chain
    * @return pointer to the next version
