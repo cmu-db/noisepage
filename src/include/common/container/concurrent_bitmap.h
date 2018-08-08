@@ -141,6 +141,16 @@ class RawConcurrentBitmap {
     return false;
   }
 
+  /**
+   * Clears the bitmap by setting bits to 0.
+   * @param num_bits number of bits to clear.
+   * @warning this is not thread safe!
+   */
+  void UnsafeClear(uint32_t num_bits) {
+    auto size = BitmapSize(num_bits);
+    PELOTON_MEMSET(bits_, 0, size);
+  }
+
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
   // bulk flips. This thing is embarrassingly easy to vectorize.
 
