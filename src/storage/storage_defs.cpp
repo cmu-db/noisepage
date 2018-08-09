@@ -39,7 +39,7 @@ DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
 
   result->next_ = nullptr;
   result->timestamp_.store(timestamp);
-  result->accesor_ = &accessor;
+  result->table_ = &accessor;
   result->slot_ = slot;
   // TODO(Tianyu): This is redundant calculation
   result->size_ = Size(accessor.GetBlockLayout(), col_ids);
