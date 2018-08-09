@@ -138,7 +138,7 @@ class RandomDataTableTestObject {
 
 struct DataTableTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{100000};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -155,13 +155,13 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
 
     // Populate the table with random tuples
-    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool);
+    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool_);
 
     EXPECT_EQ(num_inserts, tested.InsertedTuples().size());
 
     std::vector<uint16_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (const auto &inserted_tuple : tested.InsertedTuples()) {
-      storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), all_cols);
+      storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), all_cols, &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, timestamp_t(1));
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, ref));
     }
@@ -180,10 +180,10 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     timestamp_t timestamp(0);
 
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_, &buffer_pool);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_, &buffer_pool_);
     EXPECT_EQ(1, tested.InsertedTuples().size());
 
-    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_, &buffer_pool);
+    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_, &buffer_pool_);
 
     std::vector<byte *> select_buffers(num_updates + 1);
 
@@ -191,7 +191,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (uint32_t i = 0; i < num_versions; i++) {
       const storage::ProjectedRow *reference_version = tested.GetReferenceVersionedTuple(tuple, timestamp_t(i));
-      storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids);
+      storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids, &buffer_pool_);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
     }
   }
@@ -209,14 +209,14 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool_);
     // take the write lock by updating with "negative" timestamp
-    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, &generator_, &buffer_pool));
+    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, &generator_, &buffer_pool_));
     // second transaction attempts to write, should fail
-    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_, &buffer_pool));
+    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_, &buffer_pool_));
 
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
-    storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), all_col_ids);
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), all_col_ids, &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, timestamp_t(UINT64_MAX));
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));
   }

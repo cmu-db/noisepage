@@ -3,6 +3,7 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "transaction/transaction_context.h"
+#include "storage/data_table.h"
 
 namespace terrier::transaction {
 class TransactionManager {
@@ -19,11 +20,14 @@ class TransactionManager {
     // Flip all timestamps to be committed
     UndoBuffer undos = txn->GetUndoBuffer();
     for (auto it = undos.Begin(); it != undos.End(); ++it)
-      it->timestamp_.store(commit_time);
+      it->Timestamp().store(commit_time);
   }
 
   void Abort(TransactionContext *txn) {
-    // TODO(Tianyu): How do we get to a DataTable here?
+    // no latch required on undo since all operations are transaction-local
+    UndoBuffer undos = txn->GetUndoBuffer();
+    for (auto it = undos.Begin(); it != undos.End(); ++it)
+      it->Table()->Rollback(txn->TxnId(), it->Slot());
   }
 
 

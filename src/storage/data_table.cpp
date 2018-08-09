@@ -61,7 +61,7 @@ bool DataTable::Update(transaction::TransactionContext *txn,
                        const ProjectedRow &redo) {
   // TODO(Tianyu): We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
-  DeltaRecord *undo = txn->UndoRecordForUpdate(accessor_, slot, redo);
+  DeltaRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
@@ -98,7 +98,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  DeltaRecord *undo = txn->UndoRecordForInsert(accessor_, result);
+  DeltaRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
 
   // Populate undo record with the before image of presence column
   // TODO(Tianyu): This is projection list id, not col id, fix eventually
@@ -115,6 +115,19 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
 
   return result;
+}
+
+void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
+  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  // We do not hold the lock. Should just return
+  if (version_ptr->Timestamp().load() != txn_id) return;
+  // Re-apply the before image
+  for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
+    StorageUtil::CopyAttrFromProjection(accessor_, slot, *(version_ptr->Delta()), i);
+  // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
+  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atoic
+  // write.
+  AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
 }
 
 DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
