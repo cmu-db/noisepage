@@ -14,45 +14,6 @@ DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store
   PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
-void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, ProjectedRow *out_buffer) const {
-  PELOTON_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
-                 "The projection never returns the version pointer, so it should have fewer attributes.");
-  PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
-
-  // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
-  // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-  // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-
-  // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
-  // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
-  // enough to reorder this operation in or in front of the for loop.
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-
-  // Nullptr in version chain means no version visible to any transaction alive at this point.
-  if (version_ptr == nullptr) return;
-
-  // Creates a mapping from col offset to project list index. This allows us to efficiently
-  // access columns since deltas can concern a different set of columns when chasing the
-  // version chain
-  std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-    col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
-
-  // Apply deltas until we reconstruct a version safe for us to read
-  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
-  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn_start_time)) {
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
-                            *(version_ptr->Delta()),
-                            out_buffer,
-                            col_to_projection_list_index);
-    version_ptr = version_ptr->Next();
-  }
-}
-
 void DataTable::Select(transaction::TransactionContext *txn,
                        const TupleSlot slot,
                        ProjectedRow *out_buffer) const {
@@ -95,31 +56,6 @@ void DataTable::Select(transaction::TransactionContext *txn,
   }
 }
 
-bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo) {
-  PELOTON_ASSERT(redo.NumColumns() == undo->Delta()->NumColumns(), "Undo and redo should have the same layout.");
-  // TODO(Tianyu): Do we want to also check the column ids and order?
-
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
-  // write lock on the tuple.
-  if (HasConflict(version_ptr, undo->Timestamp().load())) return false;
-
-  // Update the next pointer of the new head of the version chain
-  undo->Next() = version_ptr;
-
-  // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
-  // Populate undo record with the before image of attribute
-  for (uint16_t i = 0; i < redo.NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
-
-  // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) return false;
-  // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
-
-  return true;
-}
-
 bool DataTable::Update(transaction::TransactionContext *txn,
                        const TupleSlot slot,
                        const ProjectedRow &redo) {
@@ -145,43 +81,6 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
 
   return true;
-}
-
-TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
-  PELOTON_ASSERT(undo->Next() == nullptr,
-                 "For insert, undo should come with a nullptr undo buffer.");
-  PELOTON_ASSERT(redo.NumColumns() == (accessor_.GetBlockLayout().num_cols_ - 1),
-                 "For insert, redo should contain all columns.");
-
-  // Attempt to allocate a new tuple from the block we are working on right now.
-  // If that block is full, try to request a new block. Because other concurrent
-  // inserts could have already created a new block, we need to use compare and swap
-  // to change the insertion head. We do not expect this loop to be executed more than
-  // twice, but there is technically a possibility for blocks with only a few slots.
-  TupleSlot result;
-  while (true) {
-    RawBlock *block = insertion_head_.load();
-    if (accessor_.Allocate(block, &result)) break;
-    NewBlock(block);
-  }
-
-  // A sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
-  // the primary key column
-
-  // Populate undo record with the before image of presence column
-  undo->Delta()->SetNull(VERSION_VECTOR_COLUMN_ID);
-
-  // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
-  // may result in a segfault
-  AtomicallyWriteVersionPtr(result, accessor_, undo);
-
-  // At this point, a sequential scan can see this tuple, but will follow the version chain to see a logically deleted
-  // version
-
-  // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
-
-  return result;
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
