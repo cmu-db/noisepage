@@ -90,6 +90,8 @@ class RawConcurrentBitmap {
 
   /**
    * Returns the position of the first unset bit, if it exists.
+   * We search beginning from start_pos, but will wrap around to the beginning
+   * if we can't find an unset bit, so every bit in the bitmap will be tried once.
    * Note that this result is immediately stale.
    * @param bitmap_num_bits number of bits in the bitmap.
    * @param start_pos start searching from this bit location.
@@ -108,34 +110,59 @@ class RawConcurrentBitmap {
     bool found_unset_bit = false;                      // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
-      // as soon as we find an unset bit, we go back to looking at single bytes.
-      if (found_unset_bit || bits_left < sizeof(uint16_t) * BYTE_SIZE) {
+      // if we haven't found an unset bit yet, we make a wide search.
+      // we also ensure that we are aligned to the word boundaries,
+      // under the assumption that byte 0 is aligned to 64 bits.
+      if (!found_unset_bit && IsAlignedAndFits<uint64_t>(bits_left, byte_pos)) {
+        found_unset_bit = FindUnsetBit<int64_t>(&byte_pos, &bits_left);
+      } else if (!found_unset_bit && IsAlignedAndFits<uint32_t>(bits_left, byte_pos)) {
+        found_unset_bit = FindUnsetBit<int32_t>(&byte_pos, &bits_left);
+      } else if (!found_unset_bit && IsAlignedAndFits<uint16_t>(bits_left, byte_pos)) {
+        found_unset_bit = FindUnsetBit<int16_t>(&byte_pos, &bits_left);
+      } else {
+        // otherwise, we will search a byte at a time
         uint8_t bits = bits_[byte_pos].load();
         if (static_cast<std::atomic<int8_t>>(bits) != -1) {
-          // we have a byte with an unset bit inside. we return that location, which may be stale.
-          // we don't bother ensuring freshness since our function's result is immediately stale.
+          // we have a byte with at least one unset bit inside.
+          // if the bit is valid, we return the bit. however, the bit could be invalid:
+          // 1. it could be part of our end padding, 2. it could be before start_pos
+          // in which case we must continue to search the next byte, if it exists.
+          // we don't bother ensuring result freshness since our returned position is immediately stale.
           for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
+            uint32_t current_pos = pos + byte_pos * BYTE_SIZE;
             // we are always padded to a byte, but we don't want to use the padding.
-            if (pos + byte_pos * BYTE_SIZE >= bitmap_num_bits) {
+            if (current_pos >= bitmap_num_bits) {
+              // wrap-around if possible.
+              if (start_pos != 0) {
+                return FirstUnsetPos(start_pos, 0, out_pos);
+              }
+              // otherwise, we have reached the padding. time to give up.
               return false;
             }
-            // if we find a free bit, we return that.
+            // we want to make sure it is after the start pos.
+            if (current_pos < start_pos) {
+              continue;
+            }
+            // if we're here, we have a valid position.
+            // if it locates an unset bit, return it.
             auto is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
             if (!is_set) {
-              *out_pos = pos + byte_pos * BYTE_SIZE;
+              *out_pos = current_pos;
               return true;
             }
           }
-        } else {
-          byte_pos += 1;
         }
-      } else if (bits_left >= sizeof(uint64_t) * BYTE_SIZE) {
-        found_unset_bit = FindUnsetBit<int64_t>(&byte_pos, &bits_left);
-      } else if (bits_left >= sizeof(uint32_t) * BYTE_SIZE) {
-        found_unset_bit = FindUnsetBit<int32_t>(&byte_pos, &bits_left);
-      } else if (bits_left >= sizeof(uint16_t) * BYTE_SIZE) {
-        found_unset_bit = FindUnsetBit<int16_t>(&byte_pos, &bits_left);
+        // if we didn't return, we somehow didn't get a valid bit
+        // e.g. the only free bit available was before start_pos
+        // so we always want to increment our byte_pos to ensure progress
+        byte_pos += 1;
       }
+    }
+
+    // if we didn't start searching from 0, we want to wrap around
+    // there are exactly start_pos bits before our current start_pos
+    if (start_pos != 0) {
+      return FirstUnsetPos(start_pos, 0, out_pos);
     }
 
     return false;
@@ -181,6 +208,19 @@ class RawConcurrentBitmap {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Returns true if a word of size T would both fit and be aligned for the given parameters.
+   * This assumes that byte_pos is aligned for 64 bits at 0.
+   * @tparam T signed fixed width integer type.
+   * @param bits_left the number of valid bits remaining.
+   * @param byte_pos the current byte position.
+   * @return true if a word of size T would both fit and be aligned.
+   */
+  template <class T>
+  bool IsAlignedAndFits(uint32_t bits_left, uint32_t byte_pos) {
+    return bits_left >= sizeof(T) * BYTE_SIZE && byte_pos % sizeof(T) == 0;
   }
 };
 
