@@ -5,9 +5,12 @@
 #include "common/object_pool.h"
 #include "storage/tuple_access_strategy.h"
 
+namespace terrier::storage {
+class DataTable;
+}
 namespace terrier::transaction {
 // TODO(Tianyu): Change to be significant larger than a single record could be
-#define UNDO_BUFFER_SEGMENT_SIZE 1024
+#define UNDO_BUFFER_SEGMENT_SIZE (1 << 15)
 
 class UndoBufferSegment {
  public:
@@ -80,7 +83,7 @@ class UndoBuffer {
 
   explicit UndoBuffer(common::ObjectPool<UndoBufferSegment> *buffer_pool) : buffer_pool_(buffer_pool) {}
 
-  UndoBuffer() {
+  ~UndoBuffer() {
     for (auto *segment : buffers_)
       buffer_pool_->Release(segment);
   }
@@ -126,22 +129,24 @@ class TransactionContext {
     return undo_buffer_;
   }
 
-  storage::DeltaRecord *UndoRecordForUpdate(const storage::TupleAccessStrategy &accessor,
+  storage::DeltaRecord *UndoRecordForUpdate(storage::DataTable *table,
                                             storage::TupleSlot slot,
                                             const storage::ProjectedRow &redo) {
     uint32_t size = storage::DeltaRecord::Size(redo);
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    return storage::DeltaRecord::InitializeDeltaRecord(result, size, txn_id_, slot, accessor, redo);
+    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, redo);
   }
 
   // TODO(Tianyu): Whether this flips a slot back to being unallocated,
   // or logically deleted (and GC deallocate it) is up for debate
-  storage::DeltaRecord *UndoRecordForInsert(const storage::TupleAccessStrategy &accessor, storage::TupleSlot slot) {
+  storage::DeltaRecord *UndoRecordForInsert(storage::DataTable *table,
+                                            const storage::BlockLayout &layout,
+                                            storage::TupleSlot slot) {
     // TODO(Tianyu): Remove magic constant
     // Pretty sure we want 1, the primary key column?
-    uint32_t size = storage::DeltaRecord::Size(accessor.GetBlockLayout(), {1});
+    uint32_t size = storage::DeltaRecord::Size(layout, {1});
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, accessor, {1});
+    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, layout, {1});
   }
 
  private:

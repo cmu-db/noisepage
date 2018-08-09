@@ -66,6 +66,8 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  void Rollback(timestamp_t txn_id, TupleSlot slot);
+
  private:
   BlockStore *block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable

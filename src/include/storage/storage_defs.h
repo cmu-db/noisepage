@@ -247,7 +247,7 @@ class ProjectedRow {
   static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other) {
     auto *result = reinterpret_cast<ProjectedRow *>(head);
     auto header_size = static_cast<uint32_t>(sizeof(uint32_t) + sizeof(uint16_t)
-                                             + other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
+        + other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
     // TODO(Tianyu): Pretty sure I can just mem-cpy the header?
     PELOTON_MEMCPY(result, &other, header_size);
     result->Bitmap().Clear(result->num_cols_);
@@ -351,7 +351,6 @@ class DeltaRecord {
   DISALLOW_COPY_AND_MOVE(DeltaRecord)
   ~DeltaRecord() = delete;
 
-  // TODO(Tianyu): probably eliminate these public members
   /**
    * @return Pointer to the next element in the version chain
    */
@@ -366,9 +365,7 @@ class DeltaRecord {
     return timestamp_;
   }
 
-  // TODO(Tianyu): This is retarded, two pointers for undo information.
-  // Is there any other solution for this?
-  const DataTable *Table() {
+  DataTable *Table() {
     return table_;
   }
 
@@ -388,12 +385,12 @@ class DeltaRecord {
    */
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
+  uint32_t Size() {
+    return static_cast<uint32_t>(sizeof(DeltaRecord) + Delta()->Size());
+  }
+
   static uint32_t Size(const ProjectedRow &redo) {
-    return static_cast<uint32_t>(sizeof(DeltaRecord * ))
-        + static_cast<uint32_t>(sizeof(timestamp_t))
-        + static_cast<uint32_t>(sizeof(TupleSlot))
-        + static_cast<uint32_t>(sizeof(uint32_t))
-        + redo.Size();
+    return static_cast<uint32_t>(sizeof(DeltaRecord)) + redo.Size();
   }
   /**
    * Calculates the size of this DeltaRecord, including all members, values, and bitmap
@@ -402,11 +399,7 @@ class DeltaRecord {
    * @return number of bytes for this DeltaRecord
    */
   static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-    return static_cast<uint32_t>(sizeof(DeltaRecord * ))
-        + static_cast<uint32_t>(sizeof(timestamp_t))
-        + static_cast<uint32_t>(sizeof(TupleSlot))
-        + static_cast<uint32_t>(sizeof(uint32_t))
-        + ProjectedRow::Size(layout, col_ids);
+    return static_cast<uint32_t>(sizeof(DeltaRecord)) + ProjectedRow::Size(layout, col_ids);
   }
 
   /**
@@ -418,11 +411,14 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
+  static DeltaRecord *InitializeDeltaRecord(void *head,
+                                            timestamp_t timestamp,
+                                            TupleSlot slot,
+                                            DataTable *table,
+                                            const BlockLayout &layout,
                                             const std::vector<uint16_t> &col_ids);
 
   static DeltaRecord *InitializeDeltaRecord(void *head,
-                                            uint32_t size,
                                             timestamp_t timestamp,
                                             TupleSlot slot,
                                             DataTable *table,
@@ -431,26 +427,16 @@ class DeltaRecord {
 
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
-    result->table_ = &accessor;
+    result->table_ = table;
     result->slot_ = slot;
-    result->size_ = size;
 
     ProjectedRow::InitializeProjectedRow(result->varlen_contents_, redo);
 
     return result;
   }
  private:
-  /**
- * Pointer to the next element in the version chain
- */
   DeltaRecord *next_;
-  /**
-   * Timestamp up to which the old projected row was visible.
-   */
   std::atomic<timestamp_t> timestamp_;
-
-  // TODO(Tianyu): This is retarded, two pointers for undo information.
-  // Is there any other solution for this?
   DataTable *table_;
   TupleSlot slot_;
 
