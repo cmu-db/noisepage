@@ -6,7 +6,8 @@
 
 namespace terrier::common {
 /**
- * Allocator that allocates and destroys a byte array.
+ * Allocator that allocates and destroys a byte array. Memory location returned by this default allocator is
+ * not zeroed-out.
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
