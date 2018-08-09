@@ -45,8 +45,7 @@ class PerformanceCounters {
   /** @brief Print the statistics in the Json value. */
   void PrintPerformanceCounters() {
     Json::Value json_value = GetStatsAsJson();
-    std::cout << "The Json value about the statistics is shown below: " << std::endl;
-    std::cout << json_value.toStyledString();
+    printf("The Json value about the statistics is shown below: \n%s", json_value.toStyledString().c_str());
   }
 
  private:

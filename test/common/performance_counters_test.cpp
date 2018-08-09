@@ -35,4 +35,4 @@ TEST(BlockStorePCTests, BlockCountTest) {
   pc.PrintPerformanceCounters();
 }
 
-}
+}  // namespace terrier
