@@ -66,7 +66,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   const uint32_t num_inserts = 10000000;
 
   common::PerformanceCounters pc;
-  storage::BlockStore block_store{1000, pc};
+  storage::BlockStore block_store{1000, &pc};
 
   // Tuple layout
   uint16_t num_columns = 2;
