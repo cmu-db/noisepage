@@ -246,7 +246,7 @@ class ProjectedRow {
 
   static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other) {
     auto *result = reinterpret_cast<ProjectedRow *>(head);
-    auto header_size = static_cast<uint32_t>(sizeof(uint32_t) + sizeof(uint16_t)
+    auto header_size = static_cast<uint32_t>(sizeof(ProjectedRow) +
         + other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
     // TODO(Tianyu): Pretty sure I can just mem-cpy the header?
     PELOTON_MEMCPY(result, &other, header_size);

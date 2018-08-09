@@ -19,7 +19,6 @@ class FakeTransaction {
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_)
       delete[] ptr;
-    delete[] reinterpret_cast<byte *>(select_row_);
   }
 
   template<class Random>
@@ -74,7 +73,6 @@ class FakeTransaction {
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> reference_tuples_;
   std::vector<byte *> loose_pointers_;
   transaction::TransactionContext txn_;
-  storage::ProjectedRow *select_row_;
 };
 
 struct DataTableConcurrentTests : public ::testing::Test {

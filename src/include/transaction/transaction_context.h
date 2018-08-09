@@ -19,8 +19,9 @@ class UndoBufferSegment {
   }
 
   storage::DeltaRecord *Reserve(uint32_t size) {
+    auto *result = reinterpret_cast<storage::DeltaRecord *>(bytes_ + end_);
     end_ += size;
-    return reinterpret_cast<storage::DeltaRecord *>(bytes_ + end_);
+    return result;
   }
 
   void Reset() {
@@ -55,6 +56,7 @@ class UndoBuffer {
         ++curr_segment_;
         segment_offset_ = 0;
       }
+
       return *this;
     }
 
@@ -99,7 +101,7 @@ class UndoBuffer {
  private:
   friend class TransactionContext;
   storage::DeltaRecord *NewEntry(const uint32_t size) {
-    if (!buffers_.back()->HasBytesLeft(size)) {
+    if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
       // we are out of space in the buffer. Get a new buffer segment.
       UndoBufferSegment *new_segment = buffer_pool_->Get();
       new_segment->Reset();
