@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/performance_counters.h"
