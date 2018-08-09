@@ -227,6 +227,10 @@ if (UNIX)
   file(GLOB_RECURSE LINT_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
     )
 
   find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
@@ -239,7 +243,7 @@ if (UNIX)
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
   --linelength=120
-  --filter=-legal/copyright,-build/header_guard,-runtime/references
+  --filter=-legal/copyright,-build/header_guard
   )
 endif (UNIX)
 

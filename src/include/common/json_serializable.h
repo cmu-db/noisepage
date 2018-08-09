@@ -7,7 +7,7 @@
 #include <jsoncpp/json/json.h>
 #endif
 
-namespace terrier {
+namespace terrier::common {
 
 //===--------------------------------------------------------------------===//
 // Json Serializable Object
@@ -21,10 +21,10 @@ namespace terrier {
  */
 class JsonSerializable {
  public:
-  virtual ~JsonSerializable() {}
+  virtual ~JsonSerializable() = default;
 
   /** @brief Get the Json value about the state information. */
   virtual Json::Value GetJson() = 0;
 };
 
-}  // namespace terrier
+}  // namespace terrier::common

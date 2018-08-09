@@ -1,9 +1,10 @@
 #pragma once
 
 #include <utility>
-#include "common/concurrent_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/typedefs.h"
-namespace terrier {
+
+namespace terrier::common {
 /**
  * Allocator that allocates and destroys a byte array.
  * @tparam T object whose size determines the byte array size.
@@ -14,32 +15,23 @@ struct ByteAllocator {
    * Allocates a new byte array sized to hold a T.
    * @return a pointer to the byte array allocated.
    */
-  T *New() { return reinterpret_cast<T *>(new byte[sizeof(T)]); }
+  T *New() {
+    auto *result = reinterpret_cast<T *>(new byte[sizeof(T)]);
+    Reuse(result);
+    return result;
+  }
+
+  /**
+   * Reuse a reused chunk of memory to be handed out again
+   * @param reused memory location, possibly filled with junk bytes
+   */
+  void Reuse(T *reused) { PELOTON_MEMSET(reused, 0, sizeof(T)); }
 
   /**
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
   void Delete(T *ptr) { delete[] ptr; }
-};
-
-/**
- * Allocator that calls the default constructor and destructor.
- * @tparam T object whose default constructor and destructor will be used.
- */
-template <typename T>
-struct DefaultConstructorAllocator {
-  /**
-   * Allocates a new object by calling its constructor.
-   * @return a pointer to the allocated object.
-   */
-  T *New() { return new T(); }
-
-  /**
-   * Deletes the object by calling its destructor.
-   * @param ptr a pointer to the object to be deleted.
-   */
-  void Delete(T *ptr) { delete ptr; }
 };
 
 // TODO(Tianyu): Should this be by size or by class type?
@@ -74,8 +66,8 @@ class ObjectPool {
    * not explicitly released via a Release call.
    */
   ~ObjectPool() {
-    T *result;
-    while (reuse_queue_.Dequeue(result)) alloc_.Delete(result);
+    T *result = nullptr;
+    while (reuse_queue_.Dequeue(&result)) alloc_.Delete(result);
   }
 
   // TODO(Tianyu): The object pool can have much richer semantics in the future.
@@ -85,15 +77,16 @@ class ObjectPool {
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
   /**
-   * Returns a piece of memory to hold an object of T. The memory is always
-   * 0-initialized.
+   * Returns a piece of memory to hold an object of T.
    *
    * @return pointer to memory that can hold T
    */
   T *Get() {
-    T *result;
-    if (!reuse_queue_.Dequeue(result)) result = alloc_.New();
-    PELOTON_MEMSET(result, 0, sizeof(T));
+    T *result = nullptr;
+    if (!reuse_queue_.Dequeue(&result))
+      result = alloc_.New();
+    else
+      alloc_.Reuse(result);
     return result;
   }
 
@@ -117,4 +110,4 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 };
-}  // namespace terrier
+}  // namespace terrier::common
