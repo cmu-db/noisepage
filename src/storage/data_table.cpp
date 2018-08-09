@@ -44,12 +44,12 @@ void DataTable::Select(const timestamp_t txn_start_time, const TupleSlot slot, P
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->timestamp_.load(), txn_start_time)) {
+      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn_start_time)) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
                             col_to_projection_list_index);
-    version_ptr = version_ptr->next_;
+    version_ptr = version_ptr->Next();
   }
 }
 
@@ -73,7 +73,7 @@ void DataTable::Select(transaction::TransactionContext *txn,
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->timestamp_.load() == txn->TxnId()) return;
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId()) return;
 
   // Creates a mapping from col offset to project list index. This allows us to efficiently
   // access columns since deltas can concern a different set of columns when chasing the
@@ -86,12 +86,12 @@ void DataTable::Select(transaction::TransactionContext *txn,
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->timestamp_.load(), txn->StartTime())) {
+      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
                             col_to_projection_list_index);
-    version_ptr = version_ptr->next_;
+    version_ptr = version_ptr->Next();
   }
 }
 
@@ -102,10 +102,10 @@ bool DataTable::Update(const TupleSlot slot, const ProjectedRow &redo, DeltaReco
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
-  if (HasConflict(version_ptr, undo->timestamp_.load())) return false;
+  if (HasConflict(version_ptr, undo->Timestamp().load())) return false;
 
   // Update the next pointer of the new head of the version chain
-  undo->next_ = version_ptr;
+  undo->Next() = version_ptr;
 
   // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
   // Populate undo record with the before image of attribute
@@ -125,14 +125,14 @@ bool DataTable::Update(transaction::TransactionContext *txn,
                        const ProjectedRow &redo) {
   // TODO(Tianyu): We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
-  DeltaRecord *undo = txn->UndoRecordForUpdate(redo);
+  DeltaRecord *undo = txn->UndoRecordForUpdate(accessor_, slot, redo);
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
   if (HasConflict(version_ptr, txn->TxnId())) return false;
 
   // Update the next pointer of the new head of the version chain
-  undo->next_ = version_ptr;
+  undo->Next() = version_ptr;
 
   // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
   // Populate undo record with the before image of attribute
@@ -148,7 +148,7 @@ bool DataTable::Update(transaction::TransactionContext *txn,
 }
 
 TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
-  PELOTON_ASSERT(undo->next_ == nullptr,
+  PELOTON_ASSERT(undo->Next() == nullptr,
                  "For insert, undo should come with a nullptr undo buffer.");
   PELOTON_ASSERT(redo.NumColumns() == (accessor_.GetBlockLayout().num_cols_ - 1),
                  "For insert, redo should contain all columns.");
@@ -186,8 +186,6 @@ TupleSlot DataTable::Insert(const ProjectedRow &redo, DeltaRecord *undo) {
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
                             const ProjectedRow &redo) {
-
-  DeltaRecord *undo = txn->UndoRecordForInsert(accessor_.GetBlockLayout());
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
   // inserts could have already created a new block, we need to use compare and swap
@@ -199,9 +197,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
     if (accessor_.Allocate(block, &result)) break;
     NewBlock(block);
   }
-
-  // A sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
+  // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
+  DeltaRecord *undo = txn->UndoRecordForInsert(accessor_, result);
 
   // Populate undo record with the before image of presence column
   // TODO(Tianyu): This is projection list id, not col id, fix eventually

@@ -3,6 +3,7 @@
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
 #include "common/object_pool.h"
+#include "storage/tuple_access_strategy.h"
 
 namespace terrier::transaction {
 // TODO(Tianyu): Change to be significant larger than a single record could be
@@ -45,7 +46,7 @@ class UndoBuffer {
 
     Iterator &operator++() {
       storage::DeltaRecord &me = this->operator*();
-      segment_offset_ += me.size_;
+      segment_offset_ += me.Size();
       if (segment_offset_ == (*curr_segment_)->end_) {
         // need to advance into the next segment
         ++curr_segment_;
@@ -125,20 +126,22 @@ class TransactionContext {
     return undo_buffer_;
   }
 
-  storage::DeltaRecord *UndoRecordForUpdate(const storage::ProjectedRow &redo) {
+  storage::DeltaRecord *UndoRecordForUpdate(const storage::TupleAccessStrategy &accessor,
+                                            storage::TupleSlot slot,
+                                            const storage::ProjectedRow &redo) {
     uint32_t size = storage::DeltaRecord::Size(redo);
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    return storage::DeltaRecord::InitializeDeltaRecord(result, size, txn_id_, redo);
+    return storage::DeltaRecord::InitializeDeltaRecord(result, size, txn_id_, slot, accessor, redo);
   }
 
   // TODO(Tianyu): Whether this flips a slot back to being unallocated,
   // or logically deleted (and GC deallocate it) is up for debate
-  storage::DeltaRecord *UndoRecordForInsert(const storage::BlockLayout &layout) {
+  storage::DeltaRecord *UndoRecordForInsert(const storage::TupleAccessStrategy &accessor, storage::TupleSlot slot) {
     // TODO(Tianyu): Remove magic constant
-    // Eventually should probably want 1?
-    uint32_t size = storage::DeltaRecord::Size(layout, {0});
+    // Pretty sure we want 1, the primary key column?
+    uint32_t size = storage::DeltaRecord::Size(accessor.GetBlockLayout(), {1});
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, layout, {0});
+    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, accessor, {1});
   }
 
  private:
@@ -146,4 +149,4 @@ class TransactionContext {
   const timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
-}
+} // namespace terrier::transaction

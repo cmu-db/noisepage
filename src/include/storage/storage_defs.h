@@ -340,6 +340,7 @@ class ProjectedRow {
   }
 };
 
+class TupleAccessStrategy;
 /**
  * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
  * version chain
@@ -352,17 +353,32 @@ class DeltaRecord {
 
   // TODO(Tianyu): probably eliminate these public members
   /**
-   * Pointer to the next element in the version chain
+   * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *next_;
+  DeltaRecord *&Next() {
+    return next_;
+  }
+
   /**
-   * Timestamp up to which the old projected row was visible.
+   * @return Timestamp up to which the old projected row was visible.
    */
-  std::atomic<timestamp_t> timestamp_;
+  std::atomic<timestamp_t> &Timestamp() {
+    return timestamp_;
+  }
 
-  TupleSlot slot_;
+  // TODO(Tianyu): This is retarded, two pointers for undo information.
+  // Is there any other solution for this?
+  const TupleAccessStrategy *Accessor() {
+    return accesor_;
+  }
 
-  uint32_t size_;
+  TupleSlot Slot() {
+    return slot_;
+  }
+
+  uint32_t Size() {
+    return size_;
+  }
 
   /**
    * Access the next version in the delta chain
@@ -406,18 +422,21 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, const BlockLayout &layout,
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, const TupleAccessStrategy &accessor,
                                             const std::vector<uint16_t> &col_ids);
 
   static DeltaRecord *InitializeDeltaRecord(void *head,
                                             uint32_t size,
                                             timestamp_t timestamp,
+                                            TupleSlot slot,
+                                            const TupleAccessStrategy &accessor,
                                             const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<DeltaRecord *>(head);
 
     result->next_ = nullptr;
-    result->timestamp_ = timestamp;
-    // TODO(Tianyu): This is redundant calculation
+    result->timestamp_.store(timestamp);
+    result->accesor_ = &accessor;
+    result->slot_ = slot;
     result->size_ = size;
 
     ProjectedRow::InitializeProjectedRow(result->varlen_contents_, redo);
@@ -425,6 +444,21 @@ class DeltaRecord {
     return result;
   }
  private:
+  /**
+ * Pointer to the next element in the version chain
+ */
+  DeltaRecord *next_;
+  /**
+   * Timestamp up to which the old projected row was visible.
+   */
+  std::atomic<timestamp_t> timestamp_;
+
+  // TODO(Tianyu): This is retarded, two pointers for undo information.
+  // Is there any other solution for this?
+  const TupleAccessStrategy *accesor_;
+  TupleSlot slot_;
+
+  uint32_t size_;
   byte varlen_contents_[0];
 };
 }  // namespace terrier::storage

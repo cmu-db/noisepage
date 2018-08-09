@@ -32,16 +32,19 @@ ProjectedRow *ProjectedRow::InitializeProjectedRow(void *head,
 
 DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
                                                 timestamp_t timestamp,
-                                                const BlockLayout &layout,
+                                                TupleSlot slot,
+                                                const TupleAccessStrategy &accessor,
                                                 const std::vector<uint16_t> &col_ids) {
   auto *result = reinterpret_cast<DeltaRecord *>(head);
 
   result->next_ = nullptr;
-  result->timestamp_ = timestamp;
+  result->timestamp_.store(timestamp);
+  result->accesor_ = &accessor;
+  result->slot_ = slot;
   // TODO(Tianyu): This is redundant calculation
-  result->size_ = Size(layout, col_ids);
+  result->size_ = Size(accessor.GetBlockLayout(), col_ids);
 
-  ProjectedRow::InitializeProjectedRow(result->varlen_contents_, col_ids, layout);
+  ProjectedRow::InitializeProjectedRow(result->varlen_contents_, col_ids, accessor.GetBlockLayout());
 
   return result;
 }

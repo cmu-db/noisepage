@@ -37,14 +37,10 @@ class DataTable {
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.
    *
-   * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
-   *                       will just be the start time of the caller transaction.
+   * @param txn the calling transaction
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer) const;
-
   void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
@@ -52,32 +48,22 @@ class DataTable {
    * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only
    * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
    *
+   * @param txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
-   * @param undo the undo record to maintain and populate. It is expected that the projected row has the same structure
-   *             as the redo, but the contents need not be filled beforehand, and will be populated with the
-   * before-image after this method returns.
    * @return whether the update is successful.
    */
-  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
-  bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo);
-
   bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
 
   /**
    * Inserts a tuple, as given in the redo, and update the version chain the link to the given
    * delta record. The slot allocated for the tuple and returned.
    *
+   * @param txn the calling transaction
    * @param redo after-image of the inserted tuple
-   * @param undo the undo record to maintain and populate. It is expected that this simply contains one column of
-   *             the table's primary key, set to null (logically deleted) to denote that the tuple did not exist
-   *             before.
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
    * such.
    */
-  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
-  TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo);
-
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
  private:
@@ -104,7 +90,7 @@ class DataTable {
   // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, timestamp_t txn_id) {
     if (version_ptr == nullptr) return false; // Nobody owns this tuple's write lock, no older version visible
-    timestamp_t version_timestamp = version_ptr->timestamp_.load();
+    timestamp_t version_timestamp = version_ptr->Timestamp().load();
     return version_timestamp != txn_id  // This tuple's write lock is already owned by the txn
         // Nobody owns this tuple's write lock, older version still visible
         && !transaction::TransactionUtil::Committed(version_timestamp);
