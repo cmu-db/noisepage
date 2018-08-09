@@ -13,6 +13,7 @@
 #pragma once
 
 #include <tbb/concurrent_unordered_map.h>
+#include <string>
 #include "common/macros.h"
 
 #ifdef __APPLE__
