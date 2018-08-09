@@ -82,6 +82,9 @@ struct DataTableConcurrentTests : public ::testing::Test {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
 
+// Spawns multiple transactions. The timestamps of the transactions don't matter,
+// because every transaction is just inserting a new random tuple.
+// Therefore all transactions should successfully insert their tuples, which is what we test for.
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 10000;
@@ -115,6 +118,9 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   }
 }
 
+// Spawns multiple transactions that all begin at the same time.
+// Each transaction attempts to update the same tuple.
+// Therefore only one transaction should win, which is what we test for.
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 20;
