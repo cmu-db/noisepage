@@ -82,7 +82,6 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   {
     const uint32_t num_elements = 16;
     common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
-    uint32_t flip_idx[3] = {5, 12, 13};
 
     // x = set, _ = unset
     // fill everything, resulting in x x x
@@ -90,24 +89,37 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
       EXPECT_TRUE(bitmap->Flip(i, false));
     }
 
+    // once the bitmap is full, we should not be able to find an unset bit
+    EXPECT_FALSE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+
+    // try to find specific unset bits, x = set, _ = unset
+    uint32_t flip_idx[3] = {5, 12, 13};
+    // note: there are more than 3 bits
     // x _ x should return middle
     EXPECT_TRUE(bitmap->Flip(flip_idx[1], true));
     EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+    EXPECT_EQ(pos, flip_idx[1]);
+    // x _ x wraparound behavior
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, flip_idx[1] + 1, &pos));
     EXPECT_EQ(pos, flip_idx[1]);
     // _ _ x should return first
     EXPECT_TRUE(bitmap->Flip(flip_idx[0], true));
     EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
     EXPECT_EQ(pos, flip_idx[0]);
     // _ _ x should return middle if searching from middle
-    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 11, &pos));
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, flip_idx[1] - 1, &pos));
     EXPECT_EQ(pos, flip_idx[1]);
-    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 12, &pos));
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, flip_idx[1], &pos));
     EXPECT_EQ(pos, flip_idx[1]);
     // x x _ should return last
     EXPECT_TRUE(bitmap->Flip(flip_idx[0], false));
     EXPECT_TRUE(bitmap->Flip(flip_idx[1], false));
     EXPECT_TRUE(bitmap->Flip(flip_idx[2], true));
     EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
+    EXPECT_EQ(pos, flip_idx[2]);
+    // x _ _, note we expect idx [1] and [2] to be part of the same word
+    EXPECT_TRUE(bitmap->Flip(flip_idx[1], true));
+    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, flip_idx[2], &pos));
     EXPECT_EQ(pos, flip_idx[2]);
 
     common::RawConcurrentBitmap::Deallocate(bitmap);
@@ -150,7 +162,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
 // The test attempts to concurrently flip every bit from 0 to 1 using FirstUnsetPos
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   std::default_random_engine generator;
-  const uint32_t num_iters = 500;
+  const uint32_t num_iters = 200;
   const uint32_t max_elements = 10000;
   const uint32_t num_threads = 8;
 
@@ -196,8 +208,8 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 // allocator
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   std::default_random_engine generator;
-  const uint32_t num_iters = 250;
-  const uint32_t max_elements = 1000000;
+  const uint32_t num_iters = 200;
+  const uint32_t max_elements = 450000;
   const uint32_t num_threads = 8;
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {

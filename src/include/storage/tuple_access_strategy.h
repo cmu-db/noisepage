@@ -224,16 +224,6 @@ class TupleAccessStrategy {
       }
     }
 
-    pos = 0;
-
-    while (bitmap->FirstUnsetPos(layout_.num_slots_ - start, pos, &pos)) {
-      if (bitmap->Flip(pos, false)) {
-        *slot = TupleSlot(block, pos);
-        block->num_records_++;
-        return true;
-      }
-    }
-
     return false;
   }
 
