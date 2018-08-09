@@ -18,7 +18,8 @@ static void BM_SimpleInsert(benchmark::State &state) {
   std::default_random_engine generator;
   const uint32_t num_inserts = 10000000;
 
-  storage::BlockStore block_store{1000};
+  common::PerformanceCounters pc;
+  storage::BlockStore block_store{1000, &pc};
 
   // Tuple layout
   uint16_t num_columns = 2;
@@ -64,7 +65,8 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
 
   const uint32_t num_inserts = 10000000;
 
-  storage::BlockStore block_store{1000};
+  common::PerformanceCounters pc;
+  storage::BlockStore block_store{1000, pc};
 
   // Tuple layout
   uint16_t num_columns = 2;
