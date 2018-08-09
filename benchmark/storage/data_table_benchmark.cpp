@@ -18,7 +18,7 @@ namespace terrier {
 // NOLINTNEXTLINE
 static void BM_SimpleInsert(benchmark::State &state) {
   std::default_random_engine generator;
-  const uint32_t num_inserts = 1000;
+  const uint32_t num_inserts = 100000;
 
   storage::BlockStore block_store{1000};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts};

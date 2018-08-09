@@ -25,7 +25,7 @@ struct ByteAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(T *reused) { PELOTON_MEMSET(reused, 0, sizeof(T)); }
+  void Reuse(T *reused) {}
 
   /**
    * Deletes the byte array.
