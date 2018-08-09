@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier {
+namespace terrier::common {
 
 /**
  * Latch states composing of UNLOCKED and LOCKED
@@ -63,4 +63,4 @@ class SpinLatch {
   std::atomic<LatchState> state_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::common

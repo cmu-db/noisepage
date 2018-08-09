@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sstream>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
@@ -11,6 +10,28 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+/**
+ * A block is a chunk of memory used for storage. It does not have any meaning
+ * unless interpreted by a @see TupleAccessStrategy
+ */
+struct RawBlock {
+  /**
+   * Layout version.
+   */
+  layout_version_t layout_version_;
+  /**
+   * Number of records.
+   */
+  std::atomic<uint32_t> num_records_;
+  /**
+   * Contents of the raw block.
+   */
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
+  // store offsets within a block in ine 8-byte word.
+} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
+
+#define MAX_COL INT16_MAX
 // TODO(Tianyu): This code eventually should be compiled, which would eliminate
 // BlockLayout as a runtime object, instead baking them in as compiled code
 // (Think of this as writing the class with a BlockLayout template arg, except
@@ -30,7 +51,10 @@ struct BlockLayout {
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
-        num_slots_(NumSlots()) {}
+        num_slots_(NumSlots()) {
+    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= MAX_COL, "number of columns must be between 1 and 32767");
+    PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+  }
 
   /**
    * Number of columns.
@@ -56,7 +80,7 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_cols_ == attr_sizes_.size());
+    PELOTON_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
@@ -73,30 +97,9 @@ struct BlockLayout {
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
-    return 8 * (Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
   }
 };
-
-/**
- * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
- */
-struct RawBlock {
-  /**
-   * Layout version.
-   */
-  layout_version_t layout_version_;
-  /**
-   * Number of records.
-   */
-  uint32_t num_records_;
-  /**
-   * Contents of the raw block.
-   */
-  byte content_[Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
-  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word.
-} __attribute__((aligned(Constants::BLOCK_SIZE)));
 
 /**
  * A TupleSlot represents a physical location of a tuple in memory.
@@ -113,12 +116,11 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_((uintptr_t)block | offset) {
-    // Assert that the address is aligned up to block size (i.e. last bits zero)
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)));
-    // Assert that the offset is smaller than the block size, so we can fit
-    // it in the 0 bits at the end of the address
-    PELOTON_ASSERT(offset < Constants::BLOCK_SIZE);
+  TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+                   "Address must be aligned to block size (last bits zero).");
+    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
+                   "Offset must be smaller than block size (to fit in the last bits).");
   }
 
   /**
@@ -126,14 +128,14 @@ class TupleSlot {
    */
   RawBlock *GetBlock() const {
     // Get the first 11 bytes as the ptr
-    return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1));
   }
 
   /**
    * @return offset of the tuple within a block.
    */
   uint32_t GetOffset() const {
-    return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(Constants::BLOCK_SIZE) - 1));
+    return static_cast<uint32_t>(bytes_ & (static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1));
   }
 
   /**
@@ -164,7 +166,31 @@ class TupleSlot {
   friend struct std::hash<TupleSlot>;
   // Block pointers are always aligned to 1 mb, thus we get 5 free bytes to
   // store the offset.
-  uintptr_t bytes_;
+  uintptr_t bytes_{0};
+};
+
+/**
+ * Allocator that allocates a block
+ */
+struct BlockAllocator {
+  /**
+   * Allocates a new object by calling its constructor.
+   * @return a pointer to the allocated object.
+   */
+  RawBlock *New() { return new RawBlock(); }
+
+  /**
+   * Reuse a reused chunk of memory to be handed out again
+   * @param reused memory location, possibly filled with junk bytes
+   */
+  void Reuse(RawBlock *reused) { /* no operation required */
+  }
+
+  /**
+   * Deletes the object by calling its destructor.
+   * @param ptr a pointer to the object to be deleted.
+   */
+  void Delete(RawBlock *ptr) { delete ptr; }
 };
 
 /**
@@ -172,7 +198,7 @@ class TupleSlot {
  * aligned, so we will need to use the default constructor instead of raw
  * malloc.
  */
-using BlockStore = ObjectPool<RawBlock, DefaultConstructorAllocator<RawBlock>>;
+using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
 // TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
 // easiest.
@@ -206,7 +232,7 @@ class ProjectedRow {
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this ProjectedRow
    */
-  static uint32_t RowSize(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout
@@ -215,8 +241,8 @@ class ProjectedRow {
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
    * @return pointer to the initialized ProjectedRow
    */
-  static ProjectedRow *InitializeProjectedRow(const BlockLayout &layout, const std::vector<uint16_t> &col_ids,
-                                              byte *head);
+  static ProjectedRow *InitializeProjectedRow(byte *head, const std::vector<uint16_t> &col_ids,
+                                              const BlockLayout &layout);
 
   /**
    * @return number of columns stored in the ProjectedRow
@@ -245,6 +271,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   byte *AccessWithNullCheck(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -256,6 +283,7 @@ class ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   const byte *AccessWithNullCheck(const uint16_t offset) const {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -266,6 +294,7 @@ class ProjectedRow {
    * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
    */
   byte *AccessForceNotNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -274,7 +303,19 @@ class ProjectedRow {
    * Set the attribute in the ProjectedRow to be null using the internal bitmap
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
-  void SetNull(const uint16_t offset) { Bitmap().Set(offset, false); }
+  void SetNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    Bitmap().Set(offset, false);
+  }
+
+  /**
+   * Set the attribute in the ProjectedRow to be not null using the internal bitmap
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   */
+  void SetNotNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    Bitmap().Set(offset, true);
+  }
 
  private:
   uint16_t num_cols_;
@@ -292,21 +333,58 @@ class ProjectedRow {
 };
 
 /**
- * A DeltaRecord points to the old projected row and the timestamp at which it was visible.
+ * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
+ * version chain
  */
-struct DeltaRecord {
+class DeltaRecord {
+ public:
+  DeltaRecord() = delete;
+  DISALLOW_COPY_AND_MOVE(DeltaRecord)
+  ~DeltaRecord() = delete;
+
   /**
-   * Pointer to the next delta record.
+   * Pointer to the next element in the version chain
    */
   DeltaRecord *next_;
   /**
    * Timestamp up to which the old projected row was visible.
    */
   timestamp_t timestamp_;
+
   /**
-   * Before-image of the modified attributes on the row.
+   * Access the next version in the delta chain
+   * @return pointer to the next version
    */
-  ProjectedRow delta_;
+  ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
+
+  /**
+   * Access the next version in the delta chain
+   * @return pointer to the next version
+   */
+  const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
+
+  /**
+   * Calculates the size of this DeltaRecord, including all members, values, and bitmap
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @return number of bytes for this DeltaRecord
+   */
+  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+
+  /**
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
+   * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
+   * @return pointer to the initialized DeltaRecord
+   */
+  static DeltaRecord *InitializeDeltaRecord(byte *head, timestamp_t timestamp, const BlockLayout &layout,
+                                            const std::vector<uint16_t> &col_ids);
+
+ private:
+  byte varlen_contents_[0];
 };
 }  // namespace terrier::storage
 

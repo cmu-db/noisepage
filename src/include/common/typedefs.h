@@ -11,7 +11,7 @@
 
 #include "common/macros.h"
 
-namespace terrier {
+namespace terrier::common {
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -21,8 +21,8 @@ namespace terrier {
  * This is not exactly ideal because then it becomes easy for you to do something
  * like this:
  *
- * // some defintion
- * void foo(A a, B b);
+ * // some definition
+ * A foo(A a, B b);
  *
  * // invocation
  * (a = 42, b = 10)
@@ -41,19 +41,18 @@ namespace terrier {
  *
  * To get 42 out of a, simply do (!a) to get back an int.
  *
- * To call the constructor function-style, use VALUE_OF macro by giving
- * it the name of your strong typedef and the value you want. THE
- * VALUE MUST HAVE EXPLICIT TYPE OF THE UNDERLYING TYPE.
- *
  * e.g. STRONG_TYPEDEF(foo, uint32_t)
- * ...
- * return VALUE_OF(foo, 42u);
+ * int result = !foo(a(42), b(10));
+ *
+ * This works with all types of ints.
  */
-#define STRONG_TYPEDEF(name, underlying_type) \
-  struct name##_typedef_tag {};               \
-  using name = StrongTypeAlias<name##_typedef_tag, underlying_type>;
-
-#define VALUE_OF(name, val) ValueOf<name##_typedef_tag>(val)
+#define STRONG_TYPEDEF(name, underlying_type)                                      \
+  namespace terrier {                                                              \
+  namespace tags {                                                                 \
+  struct name##_typedef_tag {};                                                    \
+  }                                                                                \
+  using name = common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
+  }
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -61,27 +60,34 @@ namespace terrier {
  * Unless you know what you are doing, you shouldn't touch this class. Just use
  * the MACRO defined above
  * @tparam Tag a dummy class type to annotate the underlying type
- * @tparam T the underlying type
+ * @tparam IntType the underlying type
  */
-template <class Tag, typename T>
+template <class Tag, typename IntType>
 class StrongTypeAlias {
+  static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
+
  public:
   StrongTypeAlias() : val_() {}
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
    */
-  explicit StrongTypeAlias(const T &val) : val_(val) {}
+  explicit StrongTypeAlias(const IntType &val) : val_(val) {}
   /**
    * Move constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
    */
-  explicit StrongTypeAlias(T &&val) : val_(std::move(val)) {}
+  explicit StrongTypeAlias(IntType &&val) : val_(std::move(val)) {}
 
   /**
-   * Returns the underlying type.
+   * @return the underlying value.
    */
-  const T &operator!() const { return val_; }
+  const IntType &operator!() const { return val_; }
+
+  /**
+   * @return the underlying value
+   */
+  explicit operator IntType() const { return val_; }
 
   /**
    * Checks if this is equal to the other StrongTypeAlias.
@@ -98,6 +104,70 @@ class StrongTypeAlias {
   bool operator!=(const StrongTypeAlias &rhs) const { return val_ != rhs.val_; }
 
   /**
+   * prefix-increment.
+   * @return the value of the variable after the modification.
+   */
+  StrongTypeAlias &operator++() {
+    ++val_;
+    return *this;
+  }
+
+  /**
+   * postfix-increment.
+   * @return the value of the variable before the modification.
+   */
+  StrongTypeAlias operator++(int) { return StrongTypeAlias(val_++); }
+
+  /**
+   * addition.
+   * @param operand another int type
+   * @return sum of the underlying value and given operand
+   */
+  StrongTypeAlias operator+(const IntType &operand) { return StrongTypeAlias(val_ + operand); }
+
+  /**
+   * addition and assignment
+   * @param rhs another int type
+   * @return self-reference after the rhs is added to the underlying value
+   */
+  StrongTypeAlias &operator+=(const IntType &rhs) {
+    val_ += rhs;
+    return *this;
+  }
+
+  /**
+   * prefix-decrement.
+   * @return the value of the variable after the modification.
+   */
+  StrongTypeAlias &operator--() {
+    --val_;
+    return *this;
+  }
+
+  /**
+   * postfix-decrement.
+   * @return the value of the variable before the modification.
+   */
+  StrongTypeAlias operator--(int) { return StrongTypeAlias(val_--); }
+
+  /**
+   * subtraction
+   * @param operand another int type
+   * @return difference between the underlying value and given operand
+   */
+  StrongTypeAlias operator-(const IntType &operand) { return StrongTypeAlias(val_ - operand); }
+
+  /**
+   * subtraction and assignment
+   * @param rhs another int type
+   * @return self-reference after the rhs is subtracted from the underlying value
+   */
+  StrongTypeAlias &operator-=(const IntType &rhs) {
+    val_ -= rhs;
+    return *this;
+  }
+
+  /**
    * Outputs the StrongTypeAlias to the output stream.
    * @param os output stream to be written to.
    * @param alias StrongTypeAlias to be output.
@@ -106,13 +176,8 @@ class StrongTypeAlias {
   friend std::ostream &operator<<(std::ostream &os, const StrongTypeAlias &alias) { return os << alias.val_; }
 
  private:
-  T val_;
+  IntType val_;
 };
-
-template <class Tag, typename T>
-StrongTypeAlias<Tag, T> ValueOf(T val) {
-  return StrongTypeAlias<Tag, T>(val);
-}
 
 // TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
 // have the operators and other std utils you normally expect from certain types.
@@ -120,36 +185,35 @@ StrongTypeAlias<Tag, T> ValueOf(T val) {
 // class StrongTypeAlias<Tag, uint32_t> {
 //  // Write your operator here!
 //};
+}  // namespace terrier::common
 
-/* Define all typedefs here! */
-// TODO(Tianyu): Maybe?
+/* Define all typedefs here */
+namespace terrier {
 using byte = std::byte;
+}
+
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
-}  // namespace terrier
 
 namespace std {
-// TODO(Tianyu): This might be what std::atomic will give you by default
-// for 32-bit structs. But you will probably need to explicitly specialize
-// if you want operators.
-
-// TODO(Tianyu): Expand this specialization if need other things
-// from std::atomic<uint32_t>
+// TODO(Tianyu): Expand this specialization if needed.
 /**
  * Specialization of StrongTypeAlias for std::atomic<uint32_t>.
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
-template <class Tag>
-struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
+template <class Tag, class IntType>
+struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
+  static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
+
   /**
    * Type alias shorthand.
    */
-  using t = terrier::StrongTypeAlias<Tag, uint32_t>;
+  using t = terrier::common::StrongTypeAlias<Tag, IntType>;
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
    */
-  explicit atomic(uint32_t val = 0) : underlying_{val} {}
+  explicit atomic(IntType val = 0) : underlying_{val} {}
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
@@ -204,6 +268,7 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @param order the memory synchronization ordering for both operations.
    * @return true if the underlying atomic value was successfully changed, false otherwise.
    */
+  // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_weak(!expected, !desired, order);
   }
@@ -218,6 +283,7 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @param order the memory synchronization ordering for both operations.
    * @return true if the underlying atomic value was successfully changed, false otherwise.
    */
+  // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
     return underlying_.compare_exchange_strong(!expected, !desired, order);
   }
@@ -227,7 +293,7 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @return the value of the atomic variable after the modification.
    */
   t operator++() volatile noexcept {
-    uint32_t result = ++underlying_;
+    IntType result = ++underlying_;
     return t(result);
   }
 
@@ -236,12 +302,12 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
    * @return the value of the atomic variable before the modification.
    */
   t operator++(int) volatile noexcept {
-    const uint32_t result = underlying_++;
+    const IntType result = underlying_++;
     return t(result);
   }
 
  private:
-  atomic<uint32_t> underlying_;
+  atomic<IntType> underlying_;
 };
 
 /**
@@ -250,12 +316,12 @@ struct atomic<terrier::StrongTypeAlias<Tag, uint32_t>> {
  * @tparam T the underlying type.
  */
 template <class Tag, typename T>
-struct hash<terrier::StrongTypeAlias<Tag, T>> {
+struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the hash of the underlying type's contents.
    * @param alias the aliased type to be hashed.
    * @return the hash of the aliased type.
    */
-  size_t operator()(const terrier::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
+  size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
 };
 }  // namespace std

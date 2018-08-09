@@ -1,16 +1,13 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/concurrent_map.h"
+#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-
-// TODO(tianyu): Implement, and move elsewhere.
-bool Uncommitted(timestamp_t) { return false; }
-bool operator>=(const timestamp_t &a, const timestamp_t &b) { return (!a) >= (!b); }
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
@@ -27,13 +24,13 @@ class DataTable {
    * @param store the Block store to use.
    * @param layout the initial layout of this DataTable.
    */
-  DataTable(BlockStore &store, const BlockLayout &layout);
+  DataTable(BlockStore *store, const BlockLayout &layout);
 
   /**
    * Destructs a DataTable, frees all its blocks.
    */
   ~DataTable() {
-    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_.Release(*it);
+    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
   }
 
   /**
@@ -42,9 +39,9 @@ class DataTable {
    * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
    *                       will just be the start time of the caller transaction.
    * @param slot the tuple slot to read
-   * @param buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow &buffer);
+  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -74,30 +71,32 @@ class DataTable {
   TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo);
 
  private:
-  BlockStore &block_store_;
-  // TODO(Tianyu): For now this will only have one element in it until we support concurrent schema.
-  // TODO(Matt): consider a vector instead if lookups are faster
-  ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
-  // TODO(Tianyu): Again, change when supporting concurrent schema.
-  const layout_version_t curr_layout_version_{0};
+  BlockStore *block_store_;
+  // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
+  // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
+  // layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
+
+  // TODO(Matt): remove this single TAS when using concurrent schema
+  TupleAccessStrategy accessor_;
+
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
-  // Applies a delta to a materialized tuple. This is a matter of copying value in the undo (before-image) into
-  // the materialized tuple if present in the materialized projection.
-  void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow &buffer,
-                  const std::unordered_map<uint16_t, uint16_t> &col_to_index);
-
   // Atomically read out the version pointer value.
-  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor);
+  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
+
+  // Atomically write the version pointer value. Should only be used by Insert where there is guaranteed to be no
+  // contention
+  void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
 
   // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
     return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
            && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && Uncommitted(version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
+           && !transaction::TransactionUtil::Committed(
+                  version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

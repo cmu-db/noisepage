@@ -3,7 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 
-namespace terrier {
+namespace terrier::common {
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints
@@ -86,9 +86,14 @@ namespace terrier {
 
 // TODO(Tianyu): Rename peloton to whatever we call this later
 #ifdef NDEBUG
-#define PELOTON_ASSERT(expr) ((void)0)
+#define PELOTON_ASSERT(expr, message) ((void)0)
 #else
-#define PELOTON_ASSERT(expr) assert((expr))
+/*
+ * On assert failure, most existing implementations of C++ will print out the condition.
+ * By ANDing the truthy not-null message and our initial expression together, we get
+ * asserts-with-messages without needing to bring in iostream or logging.
+ */
+#define PELOTON_ASSERT(expr, message) assert((expr) && (message))
 #endif /* NDEBUG */
 
 #ifdef CHECK_INVARIANTS
@@ -175,4 +180,4 @@ namespace terrier {
 #define PELOTON_FALLTHROUGH
 #endif
 
-}  // namespace terrier
+}  // namespace terrier::common
