@@ -183,7 +183,8 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_, &buffer_pool_);
     EXPECT_EQ(1, tested.InsertedTuples().size());
 
-    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_, &buffer_pool_);
+    for (uint32_t i = 0; i < num_updates; ++i)
+      tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_, &buffer_pool_);
 
     std::vector<byte *> select_buffers(num_updates + 1);
 
@@ -191,7 +192,8 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (uint32_t i = 0; i < num_versions; i++) {
       const storage::ProjectedRow *reference_version = tested.GetReferenceVersionedTuple(tuple, timestamp_t(i));
-      storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids, &buffer_pool_);
+      storage::ProjectedRow *stored_version =
+          tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids, &buffer_pool_);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
     }
   }

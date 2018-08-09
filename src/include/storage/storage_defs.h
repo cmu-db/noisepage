@@ -89,7 +89,7 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-        + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
@@ -118,7 +118,7 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)),
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
                    "Address must be aligned to block size (last bits zero).");
     PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
@@ -246,8 +246,8 @@ class ProjectedRow {
 
   static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other) {
     auto *result = reinterpret_cast<ProjectedRow *>(head);
-    auto header_size = static_cast<uint32_t>(sizeof(ProjectedRow) +
-        + other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
+    auto header_size =
+        static_cast<uint32_t>(sizeof(ProjectedRow) + +other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
     // TODO(Tianyu): Pretty sure I can just mem-cpy the header?
     PELOTON_MEMCPY(result, &other, header_size);
     result->Bitmap().Clear(result->num_cols_);
@@ -354,24 +354,16 @@ class DeltaRecord {
   /**
    * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *&Next() {
-    return next_;
-  }
+  DeltaRecord *&Next() { return next_; }
 
   /**
    * @return Timestamp up to which the old projected row was visible.
    */
-  std::atomic<timestamp_t> &Timestamp() {
-    return timestamp_;
-  }
+  std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
-  DataTable *Table() {
-    return table_;
-  }
+  DataTable *Table() { return table_; }
 
-  TupleSlot Slot() {
-    return slot_;
-  }
+  TupleSlot Slot() { return slot_; }
 
   /**
    * Access the next version in the delta chain
@@ -385,13 +377,9 @@ class DeltaRecord {
    */
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
-  uint32_t Size() {
-    return static_cast<uint32_t>(sizeof(DeltaRecord) + Delta()->Size());
-  }
+  uint32_t Size() { return static_cast<uint32_t>(sizeof(DeltaRecord) + Delta()->Size()); }
 
-  static uint32_t Size(const ProjectedRow &redo) {
-    return static_cast<uint32_t>(sizeof(DeltaRecord)) + redo.Size();
-  }
+  static uint32_t Size(const ProjectedRow &redo) { return static_cast<uint32_t>(sizeof(DeltaRecord)) + redo.Size(); }
   /**
    * Calculates the size of this DeltaRecord, including all members, values, and bitmap
    * @param layout BlockLayout of the RawBlock to be accessed
@@ -411,17 +399,10 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(void *head,
-                                            timestamp_t timestamp,
-                                            TupleSlot slot,
-                                            DataTable *table,
-                                            const BlockLayout &layout,
-                                            const std::vector<uint16_t> &col_ids);
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
+                                            const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
-  static DeltaRecord *InitializeDeltaRecord(void *head,
-                                            timestamp_t timestamp,
-                                            TupleSlot slot,
-                                            DataTable *table,
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<DeltaRecord *>(head);
 
@@ -434,6 +415,7 @@ class DeltaRecord {
 
     return result;
   }
+
  private:
   DeltaRecord *next_;
   std::atomic<timestamp_t> timestamp_;
@@ -448,7 +430,7 @@ namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template<>
+template <>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.

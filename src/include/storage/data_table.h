@@ -5,8 +5,8 @@
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "transaction/transaction_util.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 
@@ -91,11 +91,11 @@ class DataTable {
 
   // If there will be a write-write conflict.
   bool HasConflict(DeltaRecord *version_ptr, timestamp_t txn_id) {
-    if (version_ptr == nullptr) return false; // Nobody owns this tuple's write lock, no older version visible
+    if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
     timestamp_t version_timestamp = version_ptr->Timestamp().load();
     return version_timestamp != txn_id  // This tuple's write lock is already owned by the txn
-        // Nobody owns this tuple's write lock, older version still visible
-        && !transaction::TransactionUtil::Committed(version_timestamp);
+                                        // Nobody owns this tuple's write lock, older version still visible
+           && !transaction::TransactionUtil::Committed(version_timestamp);
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

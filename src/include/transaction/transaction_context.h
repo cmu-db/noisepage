@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
+#include "common/object_pool.h"
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
-#include "common/object_pool.h"
 #include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {
@@ -14,9 +14,7 @@ namespace terrier::transaction {
 
 class UndoBufferSegment {
  public:
-  bool HasBytesLeft(uint32_t size) {
-    return end_ + size <= UNDO_BUFFER_SEGMENT_SIZE;
-  }
+  bool HasBytesLeft(uint32_t size) { return end_ + size <= UNDO_BUFFER_SEGMENT_SIZE; }
 
   storage::DeltaRecord *Reserve(uint32_t size) {
     auto *result = reinterpret_cast<storage::DeltaRecord *>(bytes_ + end_);
@@ -24,9 +22,7 @@ class UndoBufferSegment {
     return result;
   }
 
-  void Reset() {
-    end_ = 0;
-  }
+  void Reset() { end_ = 0; }
 
  private:
   friend class UndoBuffer;
@@ -67,13 +63,10 @@ class UndoBuffer {
     }
 
     bool operator==(const Iterator &other) const {
-      return segment_offset_ == other.segment_offset_
-          && curr_segment_ == other.curr_segment_;
+      return segment_offset_ == other.segment_offset_ && curr_segment_ == other.curr_segment_;
     }
 
-    bool operator!=(const Iterator &other) const {
-      return !(*this == other);
-    }
+    bool operator!=(const Iterator &other) const { return !(*this == other); }
 
    private:
     friend class UndoBuffer;
@@ -86,17 +79,12 @@ class UndoBuffer {
   explicit UndoBuffer(common::ObjectPool<UndoBufferSegment> *buffer_pool) : buffer_pool_(buffer_pool) {}
 
   ~UndoBuffer() {
-    for (auto *segment : buffers_)
-      buffer_pool_->Release(segment);
+    for (auto *segment : buffers_) buffer_pool_->Release(segment);
   }
 
-  Iterator Begin() {
-    return {buffers_.begin(), 0};
-  }
+  Iterator Begin() { return {buffers_.begin(), 0}; }
 
-  Iterator End() {
-    return {buffers_.end(), 0};
-  }
+  Iterator End() { return {buffers_.end(), 0}; }
 
  private:
   friend class TransactionContext;
@@ -119,20 +107,13 @@ class TransactionContext {
   TransactionContext(timestamp_t start, timestamp_t txn_id, common::ObjectPool<UndoBufferSegment> *buffer_pool)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool) {}
 
-  timestamp_t StartTime() const {
-    return start_time_;
-  }
+  timestamp_t StartTime() const { return start_time_; }
 
-  timestamp_t TxnId() const {
-    return txn_id_;
-  }
+  timestamp_t TxnId() const { return txn_id_; }
 
-  UndoBuffer &GetUndoBuffer() {
-    return undo_buffer_;
-  }
+  UndoBuffer &GetUndoBuffer() { return undo_buffer_; }
 
-  storage::DeltaRecord *UndoRecordForUpdate(storage::DataTable *table,
-                                            storage::TupleSlot slot,
+  storage::DeltaRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
                                             const storage::ProjectedRow &redo) {
     uint32_t size = storage::DeltaRecord::Size(redo);
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
@@ -141,8 +122,7 @@ class TransactionContext {
 
   // TODO(Tianyu): Whether this flips a slot back to being unallocated,
   // or logically deleted (and GC deallocate it) is up for debate
-  storage::DeltaRecord *UndoRecordForInsert(storage::DataTable *table,
-                                            const storage::BlockLayout &layout,
+  storage::DeltaRecord *UndoRecordForInsert(storage::DataTable *table, const storage::BlockLayout &layout,
                                             storage::TupleSlot slot) {
     // TODO(Tianyu): Remove magic constant
     // Pretty sure we want 1, the primary key column?
@@ -156,4 +136,4 @@ class TransactionContext {
   const timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
-} // namespace terrier::transaction
+}  // namespace terrier::transaction
