@@ -340,7 +340,7 @@ class ProjectedRow {
   }
 };
 
-class TupleAccessStrategy;
+class DataTable;
 /**
  * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
  * version chain
@@ -368,16 +368,12 @@ class DeltaRecord {
 
   // TODO(Tianyu): This is retarded, two pointers for undo information.
   // Is there any other solution for this?
-  const TupleAccessStrategy *Accessor() {
-    return accesor_;
+  const DataTable *Table() {
+    return table_;
   }
 
   TupleSlot Slot() {
     return slot_;
-  }
-
-  uint32_t Size() {
-    return size_;
   }
 
   /**
@@ -422,20 +418,20 @@ class DeltaRecord {
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, const TupleAccessStrategy &accessor,
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const std::vector<uint16_t> &col_ids);
 
   static DeltaRecord *InitializeDeltaRecord(void *head,
                                             uint32_t size,
                                             timestamp_t timestamp,
                                             TupleSlot slot,
-                                            const TupleAccessStrategy &accessor,
+                                            DataTable *table,
                                             const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<DeltaRecord *>(head);
 
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
-    result->accesor_ = &accessor;
+    result->table_ = &accessor;
     result->slot_ = slot;
     result->size_ = size;
 
@@ -455,10 +451,9 @@ class DeltaRecord {
 
   // TODO(Tianyu): This is retarded, two pointers for undo information.
   // Is there any other solution for this?
-  const TupleAccessStrategy *accesor_;
+  DataTable *table_;
   TupleSlot slot_;
 
-  uint32_t size_;
   byte varlen_contents_[0];
 };
 }  // namespace terrier::storage
