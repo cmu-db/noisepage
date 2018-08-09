@@ -66,8 +66,9 @@ class ObjectPool {
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
    * @param reuse_limit
+   * @param pc  Performance counters to count the block creation and its queue use.
    */
-  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters &pc) : reuse_limit_(reuse_limit), pc_(pc) {}
+  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters *pc) : reuse_limit_(reuse_limit), pc_(pc) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -98,10 +99,10 @@ class ObjectPool {
       result = alloc_.New();
 
       // for statistics
-      pc_.IncrementCounter("block_counter");
+      pc_->IncrementCounter(block_counter);
     } else {
       // for statistics
-      pc_.DecrementCounter("reuse_queue_counter");
+      pc_->DecrementCounter(reuse_queue_couneter);
     }
     PELOTON_MEMSET(result, 0, sizeof(T));
     return result;
@@ -119,12 +120,12 @@ class ObjectPool {
       alloc_.Delete(obj);
 
       // for statistics
-      pc_.DecrementCounter("block_counter");
+      pc_->DecrementCounter(block_counter);
     } else {
       reuse_queue_.Enqueue(std::move(obj));
 
       // for statistics
-      pc_.IncrementCounter("reuse_queue_counter");
+      pc_->IncrementCounter(reuse_queue_couneter);
     }
   }
 
@@ -134,6 +135,9 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 
-  PerformanceCounters &pc_;
+  // Performance counter
+  PerformanceCounters *pc_;
+  const std::string block_counter = "block_counter";
+  const std::string reuse_queue_couneter = "reuse_queue_counter";
 };
 }  // namespace terrier::common

@@ -16,7 +16,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
   // Get a BlockStore and then RawBlock to use for inserting into
   storage::RawBlock *raw_block_ = nullptr;
   common::PerformanceCounters pc;
-  storage::BlockStore block_store_{1, pc};
+  storage::BlockStore block_store_{1, &pc};
 
   std::default_random_engine generator;
 
@@ -52,7 +52,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   // Get a BlockStore and then RawBlock to use for inserting into
   storage::RawBlock *raw_block_ = nullptr;
   common::PerformanceCounters pc;
-  storage::BlockStore block_store_{1, pc};
+  storage::BlockStore block_store_{1, &pc};
 
   std::default_random_engine generator;
 

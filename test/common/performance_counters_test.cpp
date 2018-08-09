@@ -12,7 +12,7 @@ namespace terrier {
 TEST(BlockStorePCTests, BlockCountTest) {
   const uint64_t reuse_limit = 1;
   common::PerformanceCounters pc;
-  storage::BlockStore tested(reuse_limit, pc);
+  storage::BlockStore tested(reuse_limit, &pc);
 
   // Create RawBlock
   storage::RawBlock *reused_ptr1 = tested.Get();
@@ -33,7 +33,6 @@ TEST(BlockStorePCTests, BlockCountTest) {
   tested.Release(reused_ptr1);
 
   pc.PrintPerformanceCounters();
-
 }
 
 }

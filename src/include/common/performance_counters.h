@@ -29,17 +29,17 @@ namespace terrier::common {
 
 class PerformanceCounters {
  public:
-  PerformanceCounters(){};
+  PerformanceCounters() = default;
 
   /** @brief increment counter by counter name
    *  @param name  Counter name to be incremented
    */
-  void IncrementCounter(std::string name) { counters_[name]++; }
+  void IncrementCounter(const std::string &name) { counters_[name]++; }
 
   /** @brief decrement counter by counter name
    *  @param name  Counter name to be decremented
    */
-  void DecrementCounter(std::string name) { counters_[name]--; }
+  void DecrementCounter(const std::string &name) { counters_[name]--; }
 
   /** @brief Print the statistics in the Json value. */
   void PrintPerformanceCounters() {
