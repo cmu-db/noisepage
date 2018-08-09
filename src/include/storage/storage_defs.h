@@ -10,6 +10,28 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+/**
+ * A block is a chunk of memory used for storage. It does not have any meaning
+ * unless interpreted by a @see TupleAccessStrategy
+ */
+struct RawBlock {
+  /**
+   * Layout version.
+   */
+  layout_version_t layout_version_;
+  /**
+   * Number of records.
+   */
+  std::atomic<uint32_t> num_records_;
+  /**
+   * Contents of the raw block.
+   */
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
+  // store offsets within a block in ine 8-byte word.
+} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
+
+#define MAX_COL INT16_MAX
 // TODO(Tianyu): This code eventually should be compiled, which would eliminate
 // BlockLayout as a runtime object, instead baking them in as compiled code
 // (Think of this as writing the class with a BlockLayout template arg, except
@@ -29,7 +51,10 @@ struct BlockLayout {
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
-        num_slots_(NumSlots()) {}
+        num_slots_(NumSlots()) {
+    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= MAX_COL, "number of columns must be between 1 and 32767");
+    PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+  }
 
   /**
    * Number of columns.
@@ -72,30 +97,9 @@ struct BlockLayout {
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 1;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
   }
 };
-
-/**
- * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
- */
-struct RawBlock {
-  /**
-   * Layout version.
-   */
-  layout_version_t layout_version_;
-  /**
-   * Number of records.
-   */
-  uint32_t num_records_;
-  /**
-   * Contents of the raw block.
-   */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
-  // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word.
-} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
 
 /**
  * A TupleSlot represents a physical location of a tuple in memory.
@@ -166,11 +170,35 @@ class TupleSlot {
 };
 
 /**
+ * Allocator that allocates a block
+ */
+struct BlockAllocator {
+  /**
+   * Allocates a new object by calling its constructor.
+   * @return a pointer to the allocated object.
+   */
+  RawBlock *New() { return new RawBlock(); }
+
+  /**
+   * Reuse a reused chunk of memory to be handed out again
+   * @param reused memory location, possibly filled with junk bytes
+   */
+  void Reuse(RawBlock *reused) { /* no operation required */
+  }
+
+  /**
+   * Deletes the object by calling its destructor.
+   * @param ptr a pointer to the object to be deleted.
+   */
+  void Delete(RawBlock *ptr) { delete ptr; }
+};
+
+/**
  * A block store is essentially an object pool. However, all blocks should be
  * aligned, so we will need to use the default constructor instead of raw
  * malloc.
  */
-using BlockStore = common::ObjectPool<RawBlock, common::DefaultConstructorAllocator<RawBlock>>;
+using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
 // TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
 // easiest.
@@ -278,6 +306,15 @@ class ProjectedRow {
   void SetNull(const uint16_t offset) {
     PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, false);
+  }
+
+  /**
+   * Set the attribute in the ProjectedRow to be not null using the internal bitmap
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   */
+  void SetNotNull(const uint16_t offset) {
+    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    Bitmap().Set(offset, true);
   }
 
  private:

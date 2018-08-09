@@ -104,7 +104,7 @@ class RawConcurrentBitmap {
 
     uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
-    uint32_t bits_left = bitmap_num_bits;              // number of bits remaining
+    uint32_t bits_left = bitmap_num_bits - start_pos;  // number of bits remaining
     bool found_unset_bit = false;                      // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
@@ -139,6 +139,16 @@ class RawConcurrentBitmap {
     }
 
     return false;
+  }
+
+  /**
+   * Clears the bitmap by setting bits to 0.
+   * @param num_bits number of bits to clear.
+   * @warning this is not thread safe!
+   */
+  void UnsafeClear(uint32_t num_bits) {
+    auto size = BitmapSize(num_bits);
+    PELOTON_MEMSET(bits_, 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and

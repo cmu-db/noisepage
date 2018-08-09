@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "storage/storage_defs.h"
+#include "storage/storage_util.h"
 
 namespace terrier::storage {
 uint32_t ProjectedRow::Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
@@ -11,8 +12,8 @@ uint32_t ProjectedRow::Size(const BlockLayout &layout, const std::vector<uint16_
 }
 
 ProjectedRow *ProjectedRow::InitializeProjectedRow(byte *head,
-                                                  const std::vector<uint16_t> &col_ids,
-                                                  const BlockLayout &layout) {
+                                                   const std::vector<uint16_t> &col_ids,
+                                                   const BlockLayout &layout) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   result->num_cols_ = static_cast<uint16_t>(col_ids.size());
   auto val_offset =
