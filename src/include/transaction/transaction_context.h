@@ -78,21 +78,10 @@ class UndoBuffer {
   };
 
   explicit UndoBuffer(common::ObjectPool<UndoBufferSegment> *buffer_pool) : buffer_pool_(buffer_pool) {}
-  
+
   UndoBuffer() {
     for (auto *segment : buffers_)
       buffer_pool_->Release(segment);
-  }
-
-  storage::DeltaRecord *NewDeltaRecord(const storage::BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-    uint32_t required_size = storage::DeltaRecord::Size(layout, col_ids);
-    if (!buffers_.back()->HasBytesLeft(required_size)) {
-      // we are out of space in the buffer. Get a new buffer segment.
-      UndoBufferSegment *new_segment = buffer_pool_->Get();
-      new_segment->Reset();
-      buffers_.push_back(new_segment);
-    }
-    return buffers_.back()->Reserve(required_size);
   }
 
   Iterator Begin() {
@@ -104,12 +93,26 @@ class UndoBuffer {
   }
 
  private:
+  friend class TransactionContext;
+  storage::DeltaRecord *NewEntry(const uint32_t size) {
+    if (!buffers_.back()->HasBytesLeft(size)) {
+      // we are out of space in the buffer. Get a new buffer segment.
+      UndoBufferSegment *new_segment = buffer_pool_->Get();
+      new_segment->Reset();
+      buffers_.push_back(new_segment);
+    }
+    return buffers_.back()->Reserve(size);
+  }
+
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   std::vector<UndoBufferSegment *> buffers_;
 };
 
-class TransationContext {
+class TransactionContext {
  public:
+  TransactionContext(timestamp_t start, timestamp_t txn_id, common::ObjectPool<UndoBufferSegment> *buffer_pool)
+      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool) {}
+
   timestamp_t StartTime() const {
     return start_time_;
   }
@@ -121,9 +124,26 @@ class TransationContext {
   UndoBuffer &GetUndoBuffer() {
     return undo_buffer_;
   }
+
+  storage::DeltaRecord *UndoRecordForUpdate(const storage::ProjectedRow &redo) {
+    uint32_t size = storage::DeltaRecord::Size(redo);
+    storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
+    return storage::DeltaRecord::InitializeDeltaRecord(result, size, txn_id_, redo);
+  }
+
+  // TODO(Tianyu): Whether this flips a slot back to being unallocated,
+  // or logically deleted (and GC deallocate it) is up for debate
+  storage::DeltaRecord *UndoRecordForInsert(const storage::BlockLayout &layout) {
+    // TODO(Tianyu): Remove magic constant
+    // Eventually should probably want 1?
+    uint32_t size = storage::DeltaRecord::Size(layout, {0});
+    storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
+    return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, layout, {0});
+  }
+
  private:
-  const timestamp_t start_time_{0};
-  const timestamp_t txn_id_{0};
+  const timestamp_t start_time_;
+  const timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
 }

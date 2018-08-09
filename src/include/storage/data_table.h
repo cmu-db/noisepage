@@ -6,6 +6,7 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "transaction/transaction_util.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
@@ -41,7 +42,10 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
+  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
   void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer) const;
+
+  void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
@@ -55,7 +59,10 @@ class DataTable {
    * before-image after this method returns.
    * @return whether the update is successful.
    */
+  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
   bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo);
+
+  bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
 
   /**
    * Inserts a tuple, as given in the redo, and update the version chain the link to the given
@@ -68,7 +75,10 @@ class DataTable {
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
    * such.
    */
+  // TODO(Tianyu): Remove these when we have time, tests currently depend on this interface
   TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo);
+
+  TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
  private:
   BlockStore *block_store_;
@@ -92,11 +102,12 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
 
   // If there will be a write-write conflict.
-  bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
-    return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
-           && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && !transaction::TransactionUtil::Committed(
-                  version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
+  bool HasConflict(DeltaRecord *version_ptr, timestamp_t txn_id) {
+    if (version_ptr == nullptr) return false; // Nobody owns this tuple's write lock, no older version visible
+    timestamp_t version_timestamp = version_ptr->timestamp_.load();
+    return version_timestamp != txn_id  // This tuple's write lock is already owned by the txn
+        // Nobody owns this tuple's write lock, older version still visible
+        && !transaction::TransactionUtil::Committed(version_timestamp);
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
