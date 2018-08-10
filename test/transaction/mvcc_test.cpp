@@ -14,8 +14,8 @@ class MVCCDataTableTestObject {
  public:
   template<class Random>
   MVCCDataTableTestObject(storage::BlockStore *block_store,
-                                 const uint16_t max_col,
-                                 Random *generator)
+                          const uint16_t max_col,
+                          Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_) {}
 
@@ -298,6 +298,311 @@ TEST_F(MVCCTests, AbortInsert2) {
 
     stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
     EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    txn_manager.Commit(txn2);
+  }
+}
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//    W(X)   |        |        |
+//    R(X)   |        |        |
+//           | BEGIN  |        |
+//           | R(X)   |        |
+//    COMMIT |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read Txn #0's version of X
+// Txn #1 should only read the previous version of X because its start time is before #0's commit
+// Txn #2 should only read Txn #0's version of X
+TEST_F(MVCCTests, CommitUpdate1) {
+  const uint32_t num_iterations = 1000;
+  const uint16_t max_columns = 100;
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_};
+    MVCCDataTableTestObject tested(&block_store_, max_columns, &generator_);
+
+    // generate a random redo ProjectedRow to Insert
+    byte *redo_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow
+        *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, tested.all_col_ids_, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(redo, tested.layout_, 0, &generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *redo);
+    txn_manager.Commit(txn);
+
+    // generate a random redo ProjectedRow to Update
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(tested.layout_, &generator_);
+    byte *update_buffer = new byte[storage::ProjectedRow::Size(tested.layout_, update_col_ids)];
+    storage::ProjectedRow *update =
+        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(update, tested.layout_, 0, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    delete[] update_buffer;
+
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn0);
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn1);
+
+    auto *txn2 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn2);
+
+    stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    txn_manager.Commit(txn2);
+  }
+}
+
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//           | BEGIN  |        |
+//           | W(X)   |        |
+//    R(X)   |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//    R(X)   |        |        |
+//    COMMIT |        |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read the previous version of X because its start time is before #1's commit
+// Txn #1 should only read Txn #1's version of X
+// Txn #2 should only read Txn #1's version of X
+TEST_F(MVCCTests, CommitUpdate2) {
+  const uint32_t num_iterations = 1000;
+  const uint16_t max_columns = 100;
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_};
+    MVCCDataTableTestObject tested(&block_store_, max_columns, &generator_);
+
+    // generate a random redo ProjectedRow to Insert
+    byte *redo_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow
+        *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, tested.all_col_ids_, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(redo, tested.layout_, 0, &generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *redo);
+    txn_manager.Commit(txn);
+
+    // generate a random redo ProjectedRow to Update
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(tested.layout_, &generator_);
+    byte *update_buffer = new byte[storage::ProjectedRow::Size(tested.layout_, update_col_ids)];
+    storage::ProjectedRow *update =
+        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(update, tested.layout_, 0, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    delete[] update_buffer;
+
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn1);
+
+    stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn0);
+
+    auto *txn2 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn2);
+
+    stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    txn_manager.Commit(txn2);
+  }
+}
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//    W(X)   |        |        |
+//    R(X)   |        |        |
+//           | BEGIN  |        |
+//           | R(X)   |        |
+//    ABORT  |        |        |
+//           | R(X)   |        |
+//           | COMMIT |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read Txn #0's version of X
+// Txn #1 should only read the previous version of X because Txn #0's is uncommitted
+// Txn #2 should only read the previous version of X because Txn #0 aborted
+TEST_F(MVCCTests, AbortUpdate1) {
+  const uint32_t num_iterations = 1000;
+  const uint16_t max_columns = 100;
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_};
+    MVCCDataTableTestObject tested(&block_store_, max_columns, &generator_);
+
+    // generate a random redo ProjectedRow to Insert
+    byte *redo_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow
+        *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, tested.all_col_ids_, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(redo, tested.layout_, 0, &generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *redo);
+    txn_manager.Commit(txn);
+
+    // generate a random redo ProjectedRow to Update
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(tested.layout_, &generator_);
+    byte *update_buffer = new byte[storage::ProjectedRow::Size(tested.layout_, update_col_ids)];
+    storage::ProjectedRow *update =
+        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(update, tested.layout_, 0, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    delete[] update_buffer;
+
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Abort(txn0);
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn1);
+
+    auto *txn2 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn2);
+
+    stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    txn_manager.Commit(txn2);
+  }
+}
+
+//    Txn #0 | Txn #1 | Txn #2 |
+//    --------------------------
+//    BEGIN  |        |        |
+//           | BEGIN  |        |
+//           | W(X)   |        |
+//    R(X)   |        |        |
+//           | R(X)   |        |
+//           | ABORT  |        |
+//    R(X)   |        |        |
+//    COMMIT |        |        |
+//           |        | BEGIN  |
+//           |        | R(X)   |
+//           |        | COMMIT |
+//
+// Txn #0 should only read the previous version of X because Txn #1's is uncommitted
+// Txn #1 should only read Txn #1's version of X
+// Txn #2 should only read the previous version of X because Txn #1 aborted
+TEST_F(MVCCTests, AbortUpdate2) {
+  const uint32_t num_iterations = 1000;
+  const uint16_t max_columns = 100;
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_};
+    MVCCDataTableTestObject tested(&block_store_, max_columns, &generator_);
+
+    // generate a random redo ProjectedRow to Insert
+    byte *redo_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow
+        *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, tested.all_col_ids_, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(redo, tested.layout_, 0, &generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *redo);
+    txn_manager.Commit(txn);
+
+    // generate a random redo ProjectedRow to Update
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(tested.layout_, &generator_);
+    byte *update_buffer = new byte[storage::ProjectedRow::Size(tested.layout_, update_col_ids)];
+    storage::ProjectedRow *update =
+        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, tested.layout_);
+    StorageTestUtil::PopulateRandomRow(update, tested.layout_, 0, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    delete[] update_buffer;
+
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Abort(txn1);
+
+    stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+
+    txn_manager.Commit(txn0);
+
+    auto *txn2 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn2);
+
+    stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
     txn_manager.Commit(txn2);
   }
 }
