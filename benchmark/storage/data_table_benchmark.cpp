@@ -41,11 +41,9 @@ static void BM_SimpleInsert(benchmark::State &state) {
   // Populate the table with tuples
   while (state.KeepRunning()) {
     storage::DataTable table(&block_store, layout);
+    transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool);
     for (uint32_t i = 0; i < num_inserts; ++i) {
-      // TODO(Tianyu): Figure out if we need this
-      auto *txn = txn_manager.BeginTransaction();
-      table.Insert(txn, *redo);
-      txn_manager.Commit(txn);
+      table.Insert(&txn, *redo);
     }
   }
 
@@ -62,7 +60,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
 // NOLINTNEXTLINE
 static void BM_ConcurrentInsert(benchmark::State &state) {
   std::default_random_engine generator;
-  const uint32_t num_inserts = 10000;
+  const uint32_t num_inserts = 100000;
 
   storage::BlockStore block_store{1000};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts};
