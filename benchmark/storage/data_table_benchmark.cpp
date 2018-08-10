@@ -42,6 +42,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
   while (state.KeepRunning()) {
     storage::DataTable table(&block_store, layout);
     for (uint32_t i = 0; i < num_inserts; ++i) {
+      // TODO(Tianyu): Figure out if we need this
       auto *txn = txn_manager.BeginTransaction();
       table.Insert(txn, *redo);
       txn_manager.Commit(txn);
