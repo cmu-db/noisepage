@@ -198,13 +198,12 @@ struct StorageTestUtil {
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
     for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
-      const byte *val_ptr = tuple->AccessWithNullCheck(uint16_t(col - 1));
+      const byte *val_ptr = tuple->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
       } else {
-        // Read the value and convert it to uint64_t
-        uint64_t val = 0;
-        memcpy(&val, val_ptr, layout.attr_sizes_[col]);
+        // Read the value
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
         storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val,
                                          tested->AccessForceNotNull(slot, col));
       }
@@ -215,51 +214,18 @@ struct StorageTestUtil {
   static void CheckTupleEqual(const storage::ProjectedRow *expected, storage::TupleAccessStrategy *tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
-      const byte *val_ptr = expected->AccessWithNullCheck(uint16_t(col - 1));
+      const byte *val_ptr = expected->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       // 0 return for non-primary key indexes should be treated as null.
       byte *col_slot = tested->AccessWithNullCheck(slot, col);
       if (val_ptr != nullptr) {
-        // Read the value and convert it to uint64_t
-        uint64_t val = 0;
-        memcpy(&val, val_ptr, layout.attr_sizes_[col]);
+        // Read the value
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
         EXPECT_TRUE(col_slot != nullptr);
         EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
       } else {
         EXPECT_TRUE(col_slot == nullptr);
       }
     }
-  }
-
-  // Using the given random generator, attempts to allocate a slot and write a
-  // random tuple into it. The slot and the tuple are logged in the given map.
-  // Checks are performed to make sure the insertion is sensible.
-
-  // Warning: the projected rows in the unordered_map should be casted to byte pointer and
-  // freed by the caller before the unordered_map is destroyed to avoid memory leak
-  template <typename Random>
-  static std::pair<const storage::TupleSlot, storage::ProjectedRow *> &TryInsertFakeTuple(
-      const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
-      std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *tuples, Random *generator) {
-    storage::TupleSlot slot;
-    // There should always be enough slots.
-    EXPECT_TRUE(tested.Allocate(block, &slot));
-    EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
-
-    // Generate a random ProjectedRow to Insert
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
-    byte *buffer = new byte[row_size];
-    storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids, layout);
-    std::default_random_engine real_generator;
-    std::uniform_real_distribution<double> distribution{0.0, 1.0};
-    StorageTestUtil::PopulateRandomRow(row, layout, distribution(real_generator), generator);
-
-    auto result = tuples->emplace(std::make_pair(slot, row));
-
-    // The tuple slot is not something that is already in use.
-    EXPECT_TRUE(result.second);
-    InsertTuple(result.first->second, &tested, layout, slot);
-    return *(result.first);
   }
 };
 
