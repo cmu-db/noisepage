@@ -204,7 +204,7 @@ class TransactionContext {
   timestamp_t StartTime() const { return start_time_; }
 
   /**
-   * @return id of this tranaction
+   * @return id of this transaction
    */
   timestamp_t TxnId() const { return txn_id_; }
 
