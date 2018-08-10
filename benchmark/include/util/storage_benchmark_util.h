@@ -24,11 +24,11 @@ struct TupleAccessStrategyBenchmarkUtil {
 
   // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(const storage::ProjectedRow *tuple, const storage::TupleAccessStrategy *tested,
+  static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
     for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
-      const byte *val_ptr = tuple->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
       } else {

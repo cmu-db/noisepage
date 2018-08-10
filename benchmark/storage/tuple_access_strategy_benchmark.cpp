@@ -44,7 +44,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
     for (uint32_t j = 0; j < layout.num_slots_; j++) {
       storage::TupleSlot slot;
       tested.Allocate(raw_block_, &slot);
-      TupleAccessStrategyBenchmarkUtil::InsertTuple(row,
+      TupleAccessStrategyBenchmarkUtil::InsertTuple(*row,
                                                     &tested,
                                                     layout,
                                                     slot);
@@ -91,7 +91,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
       for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++){
         storage::TupleSlot slot;
         tested.Allocate(raw_block_, &slot);
-        TupleAccessStrategyBenchmarkUtil::InsertTuple(row,
+        TupleAccessStrategyBenchmarkUtil::InsertTuple(*row,
                                                       &tested,
                                                       layout,
                                                       slot);

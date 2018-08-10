@@ -156,11 +156,11 @@ struct StorageTestUtil {
     return true;
   }
 
-  static void PrintRow(const storage::ProjectedRow *row, const storage::BlockLayout &layout) {
-    printf("num_cols: %u\n", row->NumColumns());
-    for (uint16_t i = 0; i < row->NumColumns(); i++) {
-      uint16_t col_id = row->ColumnIds()[i];
-      const byte *attr = row->AccessWithNullCheck(i);
+  static void PrintRow(const storage::ProjectedRow &row, const storage::BlockLayout &layout) {
+    printf("num_cols: %u\n", row.NumColumns());
+    for (uint16_t i = 0; i < row.NumColumns(); i++) {
+      uint16_t col_id = row.ColumnIds()[i];
+      const byte *attr = row.AccessWithNullCheck(i);
       if (attr) {
         printf("col_id: %u is %" PRIx64 "\n", col_id,
                storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
@@ -173,11 +173,11 @@ struct StorageTestUtil {
 
   // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(const storage::ProjectedRow *tuple, const storage::TupleAccessStrategy *tested,
+  static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
     for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
-      const byte *val_ptr = tuple->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
       } else {
@@ -190,10 +190,10 @@ struct StorageTestUtil {
   }
 
   // Check that the written tuple is the same as the expected one
-  static void CheckTupleEqual(const storage::ProjectedRow *expected, storage::TupleAccessStrategy *tested,
+  static void CheckTupleEqual(const storage::ProjectedRow &expected, storage::TupleAccessStrategy *tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
-      const byte *val_ptr = expected->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       // 0 return for non-primary key indexes should be treated as null.
       byte *col_slot = tested->AccessWithNullCheck(slot, col);
       if (val_ptr != nullptr) {

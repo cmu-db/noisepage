@@ -18,6 +18,9 @@ class TupleAccessStrategyTestObject {
     }
   }
 
+  // Using the given random generator, attempts to allocate a slot and write a
+  // random tuple into it. The slot and the tuple are logged in the given map.
+  // Checks are performed to make sure the insertion is sensible.
   template<typename Random>
   std::pair<const storage::TupleSlot, storage::ProjectedRow *> &TryInsertFakeTuple(
       const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
@@ -41,7 +44,7 @@ class TupleAccessStrategyTestObject {
 
     // The tuple slot is not something that is already in use.
     EXPECT_TRUE(result.second);
-    StorageTestUtil::InsertTuple(result.first->second, &tested, layout, slot);
+    StorageTestUtil::InsertTuple(*(result.first->second), &tested, layout, slot);
     return *(result.first);
   }
 
@@ -62,11 +65,6 @@ struct TupleAccessStrategyTests : public ::testing::Test {
     block_store_.Release(raw_block_);
   }
 };
-
-// Using the given random generator, attempts to allocate a slot and write a
-// random tuple into it. The slot and the tuple are logged in the given map.
-// Checks are performed to make sure the insertion is sensible.
-
 
 // Tests that we can set things to null and the access strategy returns
 // nullptr for null fields.
@@ -137,7 +135,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     }
     // Check that all inserted tuples are equal to their expected values
     for (auto &entry : tuples) {
-      StorageTestUtil::CheckTupleEqual(entry.second,
+      StorageTestUtil::CheckTupleEqual(*(entry.second),
                                        &tested,
                                        layout,
                                        entry.first);
@@ -244,7 +242,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
-        StorageTestUtil::CheckTupleEqual(entry.second,
+        StorageTestUtil::CheckTupleEqual(*(entry.second),
                                          &tested,
                                          layout,
                                          entry.first);
@@ -306,7 +304,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
-        StorageTestUtil::CheckTupleEqual(entry.second,
+        StorageTestUtil::CheckTupleEqual(*(entry.second),
                                          &tested,
                                          layout,
                                          entry.first);
