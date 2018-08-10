@@ -79,20 +79,22 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     uint32_t num_inserts =
         std::uniform_int_distribution<uint32_t>(1, layout.num_slots_)(generator);
 
-    std::unordered_map<storage::TupleSlot, FakeRawTuple> tuples;
-
-    for (uint32_t j = 0; j < num_inserts; j++)
-      TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
-                                                      tested,
-                                                      raw_block_,
-                                                      &tuples,
-                                                      &generator);
+    std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> tuples;
+    for (uint32_t j = 0; j < num_inserts; j++) {
+      StorageTestUtil::TryInsertFakeTuple(layout,
+                                          tested,
+                                          raw_block_,
+                                          &tuples,
+                                          &generator);
+    }
     // Check that all inserted tuples are equal to their expected values
-    for (auto &entry : tuples)
-      TupleAccessStrategyTestUtil::CheckTupleEqual(entry.second,
-                                                   &tested,
-                                                   layout,
-                                                   entry.first);
+    for (auto &entry : tuples) {
+      StorageTestUtil::CheckTupleEqual(entry.second,
+                                       &tested,
+                                       layout,
+                                       entry.first);
+      delete [] reinterpret_cast<byte *>(entry.second);
+    }
   }
 }
 
@@ -177,13 +179,13 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
-    std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
+    std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>>
         tuples(num_threads);
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++)
-        TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
+        StorageTestUtil::TryInsertFakeTuple(layout,
                                                         tested,
                                                         raw_block_,
                                                         &(tuples[id]),
@@ -192,11 +194,13 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
-      for (auto &entry : thread_tuples)
-        TupleAccessStrategyTestUtil::CheckTupleEqual(entry.second,
-                                                     &tested,
-                                                     layout,
-                                                     entry.first);
+      for (auto &entry : thread_tuples) {
+        StorageTestUtil::CheckTupleEqual(entry.second,
+                                         &tested,
+                                         layout,
+                                         entry.first);
+        delete [] reinterpret_cast<byte *>(entry.second);
+      }
   }
 }
 
@@ -221,13 +225,13 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);
-    std::vector<std::unordered_map<storage::TupleSlot, FakeRawTuple>>
+    std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>>
         tuples(num_threads);
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       auto insert = [&] {
-        auto &res = TupleAccessStrategyTestUtil::TryInsertFakeTuple(layout,
+        auto &res = StorageTestUtil::TryInsertFakeTuple(layout,
                                                                     tested,
                                                                     raw_block_,
                                                                     &(tuples[id]),
@@ -240,6 +244,9 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
         if (slots[id].empty()) return;
         auto elem = MultiThreadedTestUtil::UniformRandomElement(&(slots[id]), &generator);
         tested.SetNull(*elem, PRESENCE_COLUMN_ID);
+        auto got = tuples[id].find(*elem);
+        EXPECT_TRUE(got != tuples[id].end());
+        delete [] reinterpret_cast<byte *>(got->second);
         tuples[id].erase(*elem);
         slots[id].erase(elem);
       };
@@ -251,11 +258,13 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     };
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
-      for (auto &entry : thread_tuples)
-        TupleAccessStrategyTestUtil::CheckTupleEqual(entry.second,
-                                                     &tested,
-                                                     layout,
-                                                     entry.first);
+      for (auto &entry : thread_tuples) {
+        StorageTestUtil::CheckTupleEqual(entry.second,
+                                         &tested,
+                                         layout,
+                                         entry.first);
+        delete [] reinterpret_cast<byte *>(entry.second);
+      }
   }
 }
 }  // namespace terrier

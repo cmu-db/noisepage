@@ -13,6 +13,26 @@
 
 namespace terrier {
 
+// This does NOT return a sensible tuple in general. This is just some filler
+// to write into the storage layer and is devoid of meaning outside of this class.
+struct FakeRawTuple {
+  template <typename Random>
+  FakeRawTuple(const storage::BlockLayout &layout, Random *generator);
+  ~FakeRawTuple() { delete[] contents_; }
+
+  // Since all fields we store in pages are equal to or shorter than 8 bytes,
+  // we can do equality checks on uint64_t always.
+  // 0 return for non-primary key indexes should be treated as null.
+  uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) const {
+    return storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], contents_ + attr_offsets_[col]);
+  }
+
+  const storage::BlockLayout &layout_;
+  std::vector<uint32_t> attr_offsets_;
+  byte *contents_;
+};
+
+
 struct StorageTestUtil {
   StorageTestUtil() = delete;
 
@@ -170,63 +190,40 @@ struct StorageTestUtil {
       }
     }
   }
-};
 
-// This does NOT return a sensible tuple in general. This is just some filler
-// to write into the storage layer and is devoid of meaning outside of this class.
-struct FakeRawTuple {
-  template <typename Random>
-  FakeRawTuple(const storage::BlockLayout &layout, Random *generator);
-  ~FakeRawTuple() { delete[] contents_; }
 
-  // Since all fields we store in pages are equal to or shorter than 8 bytes,
-  // we can do equality checks on uint64_t always.
-  // 0 return for non-primary key indexes should be treated as null.
-  uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) const {
-    return storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], contents_ + attr_offsets_[col]);
-  }
-
-  const storage::BlockLayout &layout_;
-  std::vector<uint32_t> attr_offsets_;
-  byte *contents_;
-};
-
-struct TupleAccessStrategyTestUtil {
-  TupleAccessStrategyTestUtil() = delete;
-  // Fill the given location with the specified amount of random bytes, using the
-  // given generator as a source of randomness.
-  template <typename Random>
-  static void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random *generator) {
-    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
-    for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(*generator));
-  }
-
-  // Write the given fake tuple into a block using the given access strategy,
+  // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(const FakeRawTuple &tuple, const storage::TupleAccessStrategy *tested,
+  static void InsertTuple(const storage::ProjectedRow *tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
-      uint64_t col_val = tuple.Attribute(layout, col);
-      if (col_val != 0 || col == PRESENCE_COLUMN_ID)
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], tuple.Attribute(layout, col),
-                                         tested->AccessForceNotNull(slot, col));
-      else
+    // Skip the version vector for tuples
+    for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
+      const byte *val_ptr = tuple->AccessWithNullCheck(uint16_t(col - 1));
+      if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
-      // Otherwise leave the field as null.
+      } else {
+        // Read the value and convert it to uint64_t
+        uint64_t val = 0;
+        memcpy(&val, val_ptr, layout.attr_sizes_[col]);
+        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val,
+                                         tested->AccessForceNotNull(slot, col));
+      }
     }
   }
 
   // Check that the written tuple is the same as the expected one
-  static void CheckTupleEqual(const FakeRawTuple &expected, storage::TupleAccessStrategy *tested,
+  static void CheckTupleEqual(const storage::ProjectedRow *expected, storage::TupleAccessStrategy *tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
-      uint64_t expected_col = expected.Attribute(layout, col);
+    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+      const byte *val_ptr = expected->AccessWithNullCheck(uint16_t(col - 1));
       // 0 return for non-primary key indexes should be treated as null.
-      bool null = (expected_col == 0) && (col != PRESENCE_COLUMN_ID);
       byte *col_slot = tested->AccessWithNullCheck(slot, col);
-      if (!null) {
+      if (val_ptr != nullptr) {
+        // Read the value and convert it to uint64_t
+        uint64_t val = 0;
+        memcpy(&val, val_ptr, layout.attr_sizes_[col]);
         EXPECT_TRUE(col_slot != nullptr);
-        EXPECT_EQ(expected.Attribute(layout, col), storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
+        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
       } else {
         EXPECT_TRUE(col_slot == nullptr);
       }
@@ -236,18 +233,29 @@ struct TupleAccessStrategyTestUtil {
   // Using the given random generator, attempts to allocate a slot and write a
   // random tuple into it. The slot and the tuple are logged in the given map.
   // Checks are performed to make sure the insertion is sensible.
+
+  // Warning: the projected rows in the unordered_map should be casted to byte pointer and
+  // freed by the caller before the unordered_map is destroyed to avoid memory leak
   template <typename Random>
-  static std::pair<const storage::TupleSlot, FakeRawTuple> &TryInsertFakeTuple(
+  static std::pair<const storage::TupleSlot, storage::ProjectedRow *> &TryInsertFakeTuple(
       const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
-      std::unordered_map<storage::TupleSlot, FakeRawTuple> *tuples, Random *generator) {
+      std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *tuples, Random *generator) {
     storage::TupleSlot slot;
     // There should always be enough slots.
     EXPECT_TRUE(tested.Allocate(block, &slot));
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
-    // Construct a random tuple and associate it with the tuple slot
-    auto result = tuples->emplace(std::piecewise_construct, std::forward_as_tuple(slot),
-                                  std::forward_as_tuple(layout, generator));
+    // Generate a random ProjectedRow to Insert
+    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
+    byte *buffer = new byte[row_size];
+    storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids, layout);
+    std::default_random_engine real_generator;
+    std::uniform_real_distribution<double> distribution{0.0, 1.0};
+    StorageTestUtil::PopulateRandomRow(row, layout, distribution(real_generator), generator);
+
+    auto result = tuples->emplace(std::make_pair(slot, row));
+
     // The tuple slot is not something that is already in use.
     EXPECT_TRUE(result.second);
     InsertTuple(result.first->second, &tested, layout, slot);
@@ -263,7 +271,7 @@ FakeRawTuple::FakeRawTuple(const terrier::storage::BlockLayout &layout, Random *
     attr_offsets_.push_back(pos);
     pos += layout.attr_sizes_[col];
   }
-  TupleAccessStrategyTestUtil::FillWithRandomBytes(layout.tuple_size_, contents_, generator);
+  StorageTestUtil::FillWithRandomBytes(layout.tuple_size_, contents_, generator);
 }
 
 }  // namespace terrier
