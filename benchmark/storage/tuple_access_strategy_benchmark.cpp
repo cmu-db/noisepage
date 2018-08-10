@@ -43,6 +43,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
   // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
   size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
   state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
+  state.SetItemsProcessed(state.iterations() * layout.num_slots_);
 }
 
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, ConcurrentInsert)
@@ -84,6 +85,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
   size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
   state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
+  state.SetItemsProcessed(state.iterations() * layout.num_slots_);
 }
 
 BENCHMARK(BM_SimpleInsert)
