@@ -24,9 +24,9 @@ class TransactionManager {
    * Begins a transaction.
    * @return transaction context for the newly begun transaction
    */
-  TransactionContext BeginTransaction() {
+  TransactionContext *BeginTransaction() {
     tbb::reader_writer_lock::scoped_lock_read guard(commit_latch_);
-    return {time_++, txn_id_++, buffer_pool_};
+    return new TransactionContext{time_++, txn_id_++, buffer_pool_};
   }
 
   /**
