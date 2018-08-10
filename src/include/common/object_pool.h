@@ -6,7 +6,8 @@
 
 namespace terrier::common {
 /**
- * Allocator that allocates and destroys a byte array.
+ * Allocator that allocates and destroys a byte array. Memory location returned by this default allocator is
+ * not zeroed-out.
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
@@ -25,7 +26,7 @@ struct ByteAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(T *reused) { PELOTON_MEMSET(reused, 0, sizeof(T)); }
+  void Reuse(T *reused) {}
 
   /**
    * Deletes the byte array.
