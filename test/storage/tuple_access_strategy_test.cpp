@@ -235,10 +235,10 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
       std::default_random_engine thread_generator(id);
       for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++)
         test_objs[id].TryInsertFakeTuple(layout,
-                                    tested,
-                                    raw_block_,
-                                    &(tuples[id]),
-                                    &thread_generator);
+                                         tested,
+                                         raw_block_,
+                                         &(tuples[id]),
+                                         &thread_generator);
     };
 
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
@@ -282,10 +282,10 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
       std::default_random_engine thread_generator(id);
       auto insert = [&] {
         auto &res = test_objs[id].TryInsertFakeTuple(layout,
-                                                tested,
-                                                raw_block_,
-                                                &(tuples[id]),
-                                                &thread_generator);
+                                                     tested,
+                                                     raw_block_,
+                                                     &(tuples[id]),
+                                                     &thread_generator);
         // log offset so we can pick random deletes
         slots[id].push_back(res.first);
       };
