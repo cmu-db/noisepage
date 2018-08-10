@@ -13,6 +13,9 @@ namespace terrier::transaction {
 // TODO(Tianyu): Put this into common::Constants?
 #define UNDO_BUFFER_SEGMENT_SIZE (1 << 15)
 
+// TODO(Tianyu): This code structure is probably generalizable to WAL, network, and a bunch
+// of other places where we need resizable buffers that are reusable. So maybe at some point
+// this can go live in common.
 /**
  * An UndoBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
  * of its memory usage.

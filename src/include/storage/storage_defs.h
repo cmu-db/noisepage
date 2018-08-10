@@ -236,14 +236,22 @@ class ProjectedRow {
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @param col_ids projection list of column ids to map
+   * @param layout BlockLayout of the RawBlock to be accessed
    * @return pointer to the initialized ProjectedRow
    */
   static ProjectedRow *InitializeProjectedRow(void *head, const std::vector<uint16_t> &col_ids,
                                               const BlockLayout &layout);
 
+  /**
+   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
+   * same layout as the given one.
+   *
+   * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @param other ProjectedRow to use as template for setup
+   * @return pointer to the initialized ProjectedRow
+   */
   static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other) {
     auto *result = reinterpret_cast<ProjectedRow *>(head);
     auto header_size =
@@ -254,6 +262,9 @@ class ProjectedRow {
     return result;
   }
 
+  /**
+   * @return the size of this ProjectedRow in memory, in bytes
+   */
   const uint32_t &Size() const { return size_; }
 
   /**
@@ -361,8 +372,14 @@ class DeltaRecord {
    */
   std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
+  /**
+   * @return the DatTable this DeltaRecord points to
+   */
   DataTable *Table() { return table_; }
 
+  /**
+   * @return the TupleSlot this DeltaRecord points to
+   */
   TupleSlot Slot() { return slot_; }
 
   /**
@@ -377,11 +394,20 @@ class DeltaRecord {
    */
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
+  /**
+   * @return size of this DeltaRecord in memory, in bytes.
+   */
   uint32_t Size() { return static_cast<uint32_t>(sizeof(DeltaRecord) + Delta()->Size()); }
 
+  /**
+   * @param redo the redo changes to be applied
+   * @return size of the DeltaRecord which can store the delta resulting from applying redo in memory, in bytes
+   */
   static uint32_t Size(const ProjectedRow &redo) { return static_cast<uint32_t>(sizeof(DeltaRecord)) + redo.Size(); }
+
   /**
    * Calculates the size of this DeltaRecord, including all members, values, and bitmap
+   *
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this DeltaRecord
@@ -391,17 +417,30 @@ class DeltaRecord {
   }
 
   /**
-   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout.
+   *
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param slot the TupleSlot this DeltaRecord points to
+   * @param table the DataTable this DeltaRecord points to
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
-   * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
   static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
+   /**
+    * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and the redo changes that
+    * this DeltaRecord is supposed to log.
+    *
+    * @param head pointer to the byte buffer to initialize as a DeltaRecord
+    * @param timestamp timestamp of the transaction that generated this DeltaRecord
+    * @param slot the TupleSlot this DeltaRecord points to
+    * @param table the DataTable this DeltaRecord points to
+    * @param redo the redo changes to be applied
+    * @return pointer to the initialized DeltaRecord
+    */
   static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<DeltaRecord *>(head);
