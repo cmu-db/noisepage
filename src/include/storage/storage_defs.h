@@ -373,7 +373,7 @@ class DeltaRecord {
   std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
   /**
-   * @return the DatTable this DeltaRecord points to
+   * @return the DataTable this DeltaRecord points to
    */
   DataTable *Table() { return table_; }
 
