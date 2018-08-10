@@ -37,7 +37,6 @@ static void BM_SimpleInsert(benchmark::State &state) {
   byte *redo_buffer = new byte[redo_size_];
   storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(redo, layout, 0, &generator);
-//  transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool);
 
   // Populate the table with tuples
   while (state.KeepRunning()) {
