@@ -194,7 +194,6 @@ struct StorageTestUtil {
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
       const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
-      // 0 return for non-primary key indexes should be treated as null.
       byte *col_slot = tested->AccessWithNullCheck(slot, col);
       if (val_ptr != nullptr) {
         // Read the value
