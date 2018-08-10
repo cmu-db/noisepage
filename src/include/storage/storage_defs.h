@@ -430,17 +430,17 @@ class DeltaRecord {
   static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
-   /**
-    * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and the redo changes that
-    * this DeltaRecord is supposed to log.
-    *
-    * @param head pointer to the byte buffer to initialize as a DeltaRecord
-    * @param timestamp timestamp of the transaction that generated this DeltaRecord
-    * @param slot the TupleSlot this DeltaRecord points to
-    * @param table the DataTable this DeltaRecord points to
-    * @param redo the redo changes to be applied
-    * @return pointer to the initialized DeltaRecord
-    */
+  /**
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and the redo changes that
+   * this DeltaRecord is supposed to log.
+   *
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
+   * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param slot the TupleSlot this DeltaRecord points to
+   * @param table the DataTable this DeltaRecord points to
+   * @param redo the redo changes to be applied
+   * @return pointer to the initialized DeltaRecord
+   */
   static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                             const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<DeltaRecord *>(head);

@@ -66,6 +66,12 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  /**
+   * Rolls back changes on the given tuple slot, written by the given transaction. Should only be called when
+   * aborting a transaction
+   * @param txn_id the transaction that updated the tuple
+   * @param slot the tuple to roll back
+   */
   void Rollback(timestamp_t txn_id, TupleSlot slot);
 
  private:
