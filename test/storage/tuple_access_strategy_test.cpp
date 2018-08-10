@@ -27,7 +27,7 @@ class TupleAccessStrategyTestObject {
     EXPECT_TRUE(tested.Allocate(block, &slot));
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
-    // Generate a random ProjectedRow to Insert
+    // Generate a random ProjectedRow to insert
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
     byte *buffer = new byte[row_size];
