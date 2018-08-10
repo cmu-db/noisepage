@@ -22,30 +22,22 @@ struct TupleAccessStrategyBenchmarkUtil {
     for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(*generator));
   }
 
-  // Write the given fake tuple into a block using the given access strategy,
+  // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(const FakeRawTuple &tuple, const storage::TupleAccessStrategy *tested,
+  static void InsertTuple(const storage::ProjectedRow *tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
-      uint64_t col_val = tuple.Attribute(layout, col);
-      if (col_val != 0 || col == PRESENCE_COLUMN_ID)
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], tuple.Attribute(layout, col),
-                                         tested->AccessForceNotNull(slot, col));
-      else
+    // Skip the version vector for tuples
+    for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
+      const byte *val_ptr = tuple->AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+      if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
-      // Otherwise leave the field as null.
+      } else {
+        // Read the value
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
+        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val,
+                                         tested->AccessForceNotNull(slot, col));
+      }
     }
-  }
-
-  // Using the given random generator, attempts to allocate a slot and write a
-  // random tuple into it.
-  template <typename Random>
-  static void TryInsertFakeTuple(const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested,
-                                 storage::RawBlock *block, Random *generator) {
-    storage::TupleSlot slot;
-    // There should always be enough slots.
-    tested.Allocate(block, &slot);
-    InsertTuple(FakeRawTuple(layout, generator), &tested, layout, slot);
   }
 };
 }  // namespace terrier

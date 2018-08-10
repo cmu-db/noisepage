@@ -12,27 +12,6 @@
 #include "util/multi_threaded_test_util.h"
 
 namespace terrier {
-
-// This does NOT return a sensible tuple in general. This is just some filler
-// to write into the storage layer and is devoid of meaning outside of this class.
-struct FakeRawTuple {
-  template <typename Random>
-  FakeRawTuple(const storage::BlockLayout &layout, Random *generator);
-  ~FakeRawTuple() { delete[] contents_; }
-
-  // Since all fields we store in pages are equal to or shorter than 8 bytes,
-  // we can do equality checks on uint64_t always.
-  // 0 return for non-primary key indexes should be treated as null.
-  uint64_t Attribute(const storage::BlockLayout &layout, uint16_t col) const {
-    return storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], contents_ + attr_offsets_[col]);
-  }
-
-  const storage::BlockLayout &layout_;
-  std::vector<uint32_t> attr_offsets_;
-  byte *contents_;
-};
-
-
 struct StorageTestUtil {
   StorageTestUtil() = delete;
 
@@ -228,16 +207,4 @@ struct StorageTestUtil {
     }
   }
 };
-
-template <class Random>
-FakeRawTuple::FakeRawTuple(const terrier::storage::BlockLayout &layout, Random *generator)
-    : layout_(layout), attr_offsets_(), contents_(new byte[layout.tuple_size_]) {
-  uint32_t pos = 0;
-  for (uint16_t col = 0; col < layout.num_cols_; col++) {
-    attr_offsets_.push_back(pos);
-    pos += layout.attr_sizes_[col];
-  }
-  StorageTestUtil::FillWithRandomBytes(layout.tuple_size_, contents_, generator);
-}
-
 }  // namespace terrier
