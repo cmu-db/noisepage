@@ -1,20 +1,19 @@
 /***************************************************************************
-*   Copyright (C) 2008 by H-Store Project                                 *
-*   Brown University                                                      *
-*   Massachusetts Institute of Technology                                 *
-*   Yale University                                                       *
-*                                                                         *
-* This software may be modified and distributed under the terms           *
-* of the MIT license.  See the LICENSE file for details.                  *
-*                                                                         *
-***************************************************************************/
+ *   Copyright (C) 2008 by H-Store Project                                 *
+ *   Brown University                                                      *
+ *   Massachusetts Institute of Technology                                 *
+ *   Yale University                                                       *
+ *                                                                         *
+ * This software may be modified and distributed under the terms           *
+ * of the MIT license.  See the LICENSE file for details.                  *
+ *                                                                         *
+ ***************************************************************************/
 #pragma once
 
+#include <assert.h>
 #include <cstring>
 #include <memory>
-#include <assert.h>
-
-#include "macros.h"
+#include "common/macros.h"
 
 namespace terrier {
 /**
@@ -55,7 +54,7 @@ class GenericArray {
    *
    * Corresponds to "byte[] bar = null;" in Java
    */
-  GenericArray() { Reset(); };
+  GenericArray() { Reset(); }
 
   /**
    * @brief Constructs a GenericArray with the given length.
@@ -65,7 +64,7 @@ class GenericArray {
    *
    * @param length the length of the GenericArray to be constructed
    */
-  explicit GenericArray(int length) { ResetAndExpand(length); };
+  explicit GenericArray(int length) { ResetAndExpand(length); }
 
   /**
    * @brief Constructs a GenericArray with the given data and length.
@@ -76,10 +75,10 @@ class GenericArray {
    * @param data the data of the GenericArray to be constructed
    * @param length the length of the GenericArray to be constructed
    */
-  GenericArray(const T* data, int length) {
+  GenericArray(const T *data, int length) {
     ResetAndExpand(length);
     Assign(data, 0, length);
-  };
+  }
 
   /**
    * @brief A copy constructor to construct a GenericArray with the given
@@ -96,7 +95,7 @@ class GenericArray {
   GenericArray(const GenericArray<T> &rhs) {
     data_ = rhs.data_;
     length_ = rhs.length_;
-  };
+  }
 
   /**
    * @brief Overloads = (assignment) operator to construct a GenericArray with
@@ -110,7 +109,7 @@ class GenericArray {
    * just copies internal smart pointers. You can pass around instances of this class just
    * like smart pointers/iterators.
    */
-  GenericArray<T>& operator=(const GenericArray<T> &rhs) {
+  GenericArray<T> &operator=(const GenericArray<T> &rhs) {
     data_ = rhs.data_;
     length_ = rhs.length_;
     return *this;
@@ -123,7 +122,7 @@ class GenericArray {
    *
    * @return true if the data of the GenericArray is null, false otherwise
    */
-  bool IsNull() const { return data_ == NULL; };
+  bool IsNull() const { return data_ == NULL; }
 
   /**
    * @brief Resets the data and length of the GenericArray.
@@ -133,7 +132,7 @@ class GenericArray {
   void Reset() {
     data_.reset();
     length_ = -1;
-  };
+  }
 
   /**
    * @brief Resets the data and length of the GenericArray, and expandss the length
@@ -148,7 +147,7 @@ class GenericArray {
     data_ = std::shared_ptr<T>(new T[new_length], std::default_delete<T[]>{});
     PELOTON_MEMSET(data_.get(), 0, new_length * sizeof(T));
     length_ = new_length;
-  };
+  }
 
   /**
    * @brief Copies the data and length of the GenericArray, and expands the length
@@ -162,11 +161,11 @@ class GenericArray {
     PELOTON_ASSERT(new_length >= 0);
     PELOTON_ASSERT(new_length > length_);
     std::shared_ptr<T> new_data(new T[new_length], std::default_delete<T[]>{});
-    PELOTON_MEMSET(new_data.get(), 0, new_length * sizeof(T)); // makes valgrind happy.
+    PELOTON_MEMSET(new_data.get(), 0, new_length * sizeof(T));  // makes valgrind happy.
     PELOTON_MEMCPY(new_data.get(), data_.get(), length_ * sizeof(T));
     data_ = new_data;
     length_ = new_length;
-  };
+  }
 
   /**
    * @brief Returns the length of the GenericArray.
@@ -175,27 +174,21 @@ class GenericArray {
    *
    * @return the length of the GenericArray
    */
-  int Length() const {
-    return length_;
-  };
+  int Length() const { return length_; }
 
   /**
    * @brief Returns the data of the GenericArray.
    *
    * @return the data of the GenericArray
    */
-  const T* Data() const {
-    return data_.get();
-  };
+  const T *Data() const { return data_.get(); }
 
   /**
-    * @brief Returns the data of the GenericArray.
-    *
-    * @return the data of the GenericArray
-    */
-  T* Data() {
-    return data_.get();
-  };
+   * @brief Returns the data of the GenericArray.
+   *
+   * @return the data of the GenericArray
+   */
+  T *Data() { return data_.get(); }
 
   /**
    * @brief A helper function for copying content of the assigned length from
@@ -210,7 +203,7 @@ class GenericArray {
     PELOTON_ASSERT(length_ >= offset + assigned_length);
     PELOTON_ASSERT(offset >= 0);
     PELOTON_MEMCPY(data_.get() + offset, assigned_data, assigned_length * sizeof(T));
-  };
+  }
 
   /**
    * @brief Overloads + (plus) operator to concatenate two GenericArrays.
@@ -226,7 +219,7 @@ class GenericArray {
     concated.Assign(this->data_.get(), 0, this->length_);
     concated.Assign(tail.data_.get(), this->length_, tail.length_);
     return concated;
-  };
+  }
 
   /**
    * @brief Overloads [] operator to return a reference to the element at
@@ -236,11 +229,11 @@ class GenericArray {
    *
    * @return the reference to the element at position index
    */
-  const T& operator[](int index) const {
+  const T &operator[](int index) const {
     PELOTON_ASSERT(!IsNull());
     PELOTON_ASSERT(length_ > index);
     return data_.get()[index];
-  };
+  }
 
   /**
    * @brief Overloads [] operator to return a reference to the element at
@@ -250,16 +243,16 @@ class GenericArray {
    *
    * @return the reference to the element at position index
    */
-  T& operator[](int index) {
+  T &operator[](int index) {
     PELOTON_ASSERT(!IsNull());
     PELOTON_ASSERT(length_ > index);
     return data_.get()[index];
-  };
+  }
 
  private:
   std::shared_ptr<T> data_;
   int length_;
 };
 
-typedef GenericArray<byte> ByteArray;
+typedef GenericArray<std::byte> ByteArray;
 }  // namespace terrier

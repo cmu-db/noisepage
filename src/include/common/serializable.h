@@ -13,8 +13,8 @@
 #include <limits>
 #include <string>
 #include <vector>
-#include "byte_array.h"
-#include "macros.h"
+#include "common/byte_array.h"
+#include "common/macros.h"
 
 namespace terrier {
 
@@ -51,7 +51,7 @@ class SerializeInput {
    * @brief Pure virtual destructor to permit subclasses to customize
    * destruction.
    */
-  virtual ~SerializeInput(){};
+  virtual ~SerializeInput() {}
 
   /**
    * @brief Gets a pointer to the current read position of the internal data
@@ -163,7 +163,7 @@ class SerializeInput {
     int16_t stringLength = ReadShort();
     PELOTON_ASSERT(stringLength >= 0);
     return std::string(reinterpret_cast<const char *>(getRawPointer(stringLength)), stringLength);
-  };
+  }
 
   /**
    * @brief Copies a ByteArray from the buffer.
@@ -174,7 +174,7 @@ class SerializeInput {
     int16_t stringLength = ReadShort();
     PELOTON_ASSERT(stringLength >= 0);
     return ByteArray(reinterpret_cast<const std::byte *>(getRawPointer(stringLength)), stringLength);
-  };
+  }
 
   /**
    * @brief Copies the next length bytes from the buffer to destination.
@@ -182,7 +182,7 @@ class SerializeInput {
    * @param destination the memory address to which the bytes are copied
    * @param length the length of bytes copied
    */
-  void ReadBytes(void *destination, uint32_t length) { PELOTON_MEMCPY(destination, getRawPointer(length), length); };
+  void ReadBytes(void *destination, uint32_t length) { PELOTON_MEMCPY(destination, getRawPointer(length), length); }
 
   /**
    * @brief Copies a vector from the buffer.
@@ -266,7 +266,7 @@ class SerializeOutput {
    * @brief Pure virtual destructor to permit subclasses to customize
    * destruction.
    */
-  virtual ~SerializeOutput(){};
+  virtual ~SerializeOutput() {}
 
   /**
    * @brief Gets a pointer to the beginning of the buffer, for reading the
@@ -362,7 +362,7 @@ class SerializeOutput {
    *
    * @param value the bool value to be written
    */
-  void WriteBool(bool value) { WriteByte(value ? std::byte(1) : std::byte(0)); };
+  void WriteBool(bool value) { WriteByte(value ? std::byte(1) : std::byte(0)); }
 
   /**
    * @brief Writes a long value to the buffer, advancing the write position by
