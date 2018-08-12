@@ -50,7 +50,8 @@ class RandomWorkloadTransaction {
 
     writes_.emplace_back(updated, update);
 
-    aborted_ = !table_->Update(txn_, updated, *update);
+    auto result = table_->Update(txn_, updated, *update);
+    aborted_ = !result;
   }
 
   template<class Random>

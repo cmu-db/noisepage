@@ -120,7 +120,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
 void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // We do not hold the lock. Should just return
-  if (version_ptr->Timestamp().load() != txn_id) return;
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image
   for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrFromProjection(accessor_, slot, *(version_ptr->Delta()), i);
