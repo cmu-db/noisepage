@@ -33,7 +33,7 @@ class RandomWorkloadTransaction {
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_->Insert(txn_, *redo);
-    all_slots_->PushBack(inserted);
+    inserts_.push_back(inserted);
     writes_.emplace_back(inserted, redo);
   }
 
@@ -67,8 +67,11 @@ class RandomWorkloadTransaction {
   void Finish() {
     if (aborted_)
       txn_manager_->Abort(txn_);
-    else
+    else {
       txn_manager_->Commit(txn_);
+      for (auto slot : inserts_)
+        all_slots_->PushBack(slot);
+    }
   }
 
  private:
@@ -83,6 +86,7 @@ class RandomWorkloadTransaction {
   using entry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
   std::vector<entry> writes_;
   std::vector<entry> reads_;
+  std::vector<storage::TupleSlot> inserts_;
   bool aborted_ = false;
 
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
@@ -109,17 +113,16 @@ class LargeTransactionTestObject {
     MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, update, select},
                                                           {0.1, 0.2, 0.7},
                                                           &thread_generator,
-                                                          50);
+                                                          100);
     txn->Finish();
   }
 
   std::vector<RandomWorkloadTransaction *> SimulateOltp(uint32_t num_transactions,
                                                         uint32_t num_concurrent_txns) {
     std::vector<RandomWorkloadTransaction *> result(num_transactions);
-    std::atomic<uint32_t> txns_run = 0;
+    volatile std::atomic<uint32_t> txns_run = 0;
     auto workload = [&](uint32_t) {
-      auto txn_id = txns_run++;
-      while (txn_id < num_transactions) {
+      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         result[txn_id] = new RandomWorkloadTransaction(layout_, &table_, &txn_manager_, &all_slots);
         SimulateOneTransaction(result[txn_id], txn_id);
       }
@@ -155,10 +158,10 @@ class LargeTransactionTests : public ::testing::Test {
 };
 
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 1000;
-  const uint16_t max_columns = 20;
-  const uint32_t num_txns = 100;
-  const uint32_t num_concurrent_txns = 8;
+  const uint32_t num_iterations = 500;
+  const uint16_t max_columns = 10;
+  const uint32_t num_txns = 200;
+  const uint32_t num_concurrent_txns = 4;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
     tested.SimulateOltp(num_txns, num_concurrent_txns);
