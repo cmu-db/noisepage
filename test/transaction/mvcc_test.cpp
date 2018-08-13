@@ -71,6 +71,8 @@ struct MVCCTests : public ::testing::Test {
 // Txn #0 should only read Txn #0's version of X
 // Txn #1 should only read the previous version of X because its start time is before #0's commit
 // Txn #2 should only read Txn #0's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, CommitInsert1) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -133,6 +135,8 @@ TEST_F(MVCCTests, CommitInsert1) {
 // Txn #0 should only read the previous version of X because its start time is before #1's commit
 // Txn #1 should only read Txn #1's version of X
 // Txn #2 should only read Txn #1's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, CommitInsert2) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -195,6 +199,8 @@ TEST_F(MVCCTests, CommitInsert2) {
 // Txn #0 should only read Txn #0's version of X
 // Txn #1 should only read the previous version of X because Txn #0's is uncommitted
 // Txn #2 should only read the previous version of X because Txn #0 aborted
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, AbortInsert1) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -257,6 +263,8 @@ TEST_F(MVCCTests, AbortInsert1) {
 // Txn #0 should only read the previous version of X because Txn #1's is uncommitted
 // Txn #1 should only read Txn #1's version of X
 // Txn #2 should only read the previous version of X because Txn #1 aborted
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, AbortInsert2) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -319,6 +327,8 @@ TEST_F(MVCCTests, AbortInsert2) {
 // Txn #0 should only read Txn #0's version of X
 // Txn #1 should only read the previous version of X because its start time is before #0's commit
 // Txn #2 should only read Txn #0's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, CommitUpdate1) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -351,10 +361,23 @@ TEST_F(MVCCTests, CommitUpdate1) {
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    // manually apply the delta in an append-only fashion
+    byte *version_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(version_buffer);
+    // Copy previous version
+    PELOTON_MEMCPY(version_buffer, redo_buffer, tested.redo_size_);
+    auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
+    // apply delta
+    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+    for (uint16_t i = 0; i < version->NumColumns(); i++)
+      col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
+    storage::StorageUtil::ApplyDelta(tested.layout_, *update, version, col_to_projection_list_index);
+
     delete[] update_buffer;
 
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
@@ -373,11 +396,10 @@ TEST_F(MVCCTests, CommitUpdate1) {
     tested.loose_txns_.push_back(txn2);
 
     stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
     txn_manager.Commit(txn2);
   }
 }
-
 
 //    Txn #0 | Txn #1 | Txn #2 |
 //    --------------------------
@@ -396,6 +418,8 @@ TEST_F(MVCCTests, CommitUpdate1) {
 // Txn #0 should only read the previous version of X because its start time is before #1's commit
 // Txn #1 should only read Txn #1's version of X
 // Txn #2 should only read Txn #1's version of X
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, CommitUpdate2) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -431,13 +455,26 @@ TEST_F(MVCCTests, CommitUpdate2) {
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+
+    // manually apply the delta in an append-only fashion
+    byte *version_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(version_buffer);
+    // Copy previous version
+    PELOTON_MEMCPY(version_buffer, redo_buffer, tested.redo_size_);
+    auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
+    // apply delta
+    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+    for (uint16_t i = 0; i < version->NumColumns(); i++)
+      col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
+    storage::StorageUtil::ApplyDelta(tested.layout_, *update, version, col_to_projection_list_index);
+
     delete[] update_buffer;
 
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
 
     stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
 
     txn_manager.Commit(txn1);
 
@@ -450,7 +487,7 @@ TEST_F(MVCCTests, CommitUpdate2) {
     tested.loose_txns_.push_back(txn2);
 
     stored = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
     txn_manager.Commit(txn2);
   }
 }
@@ -472,6 +509,8 @@ TEST_F(MVCCTests, CommitUpdate2) {
 // Txn #0 should only read Txn #0's version of X
 // Txn #1 should only read the previous version of X because Txn #0's is uncommitted
 // Txn #2 should only read the previous version of X because Txn #0 aborted
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, AbortUpdate1) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -504,10 +543,23 @@ TEST_F(MVCCTests, AbortUpdate1) {
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    // manually apply the delta in an append-only fashion
+    byte *version_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(version_buffer);
+    // Copy previous version
+    PELOTON_MEMCPY(version_buffer, redo_buffer, tested.redo_size_);
+    auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
+    // apply delta
+    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+    for (uint16_t i = 0; i < version->NumColumns(); i++)
+      col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
+    storage::StorageUtil::ApplyDelta(tested.layout_, *update, version, col_to_projection_list_index);
+
     delete[] update_buffer;
 
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
 
     auto *txn1 = txn_manager.BeginTransaction();
     tested.loose_txns_.push_back(txn1);
@@ -548,6 +600,8 @@ TEST_F(MVCCTests, AbortUpdate1) {
 // Txn #0 should only read the previous version of X because Txn #1's is uncommitted
 // Txn #1 should only read Txn #1's version of X
 // Txn #2 should only read the previous version of X because Txn #1 aborted
+//
+// This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 TEST_F(MVCCTests, AbortUpdate2) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
@@ -583,13 +637,26 @@ TEST_F(MVCCTests, AbortUpdate2) {
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+
+    // manually apply the delta in an append-only fashion
+    byte *version_buffer = new byte[tested.redo_size_];
+    tested.loose_pointers_.push_back(version_buffer);
+    // Copy previous version
+    PELOTON_MEMCPY(version_buffer, redo_buffer, tested.redo_size_);
+    auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
+    // apply delta
+    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+    for (uint16_t i = 0; i < version->NumColumns(); i++)
+      col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
+    storage::StorageUtil::ApplyDelta(tested.layout_, *update, version, col_to_projection_list_index);
+
     delete[] update_buffer;
 
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
 
     stored = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
-    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, redo));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, version));
 
     txn_manager.Abort(txn1);
 
