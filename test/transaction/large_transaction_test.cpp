@@ -12,23 +12,20 @@ template<class T>
 class ConcurrentVectorWithSize {
  public:
   void PushBack(T val) {
-    latch_.Lock();
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     vector_.push_back(val);
-    latch_.Unlock();
   }
 
   template<class Random>
   T RandomElement(Random *generator) {
-    latch_.Lock();
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     T result = vector_[std::uniform_int_distribution(0, static_cast<int>(vector_.size() - 1))(*generator)];
-    latch_.Unlock();
     return result;
   }
 
   bool Empty() {
-    latch_.Lock();
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     bool result = vector_.empty();
-    latch_.Unlock();
     return result;
   }
 
@@ -160,11 +157,11 @@ class LargeTransactionTestObject {
     return result;
   }
 
-  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
-  std::unordered_map<timestamp_t,
-                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {
-
-  }
+//  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
+//  std::unordered_map<timestamp_t,
+//                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {
+//
+//  }
 
   void CheckTransactionConsistent(std::vector<RandomWorkloadTransaction> *txns) {
   }
