@@ -50,7 +50,8 @@ class MVCCDataTableTestObject {
     return update;
   }
 
-  storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta, const storage::ProjectedRow &previous) {
+  storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
+                                                   const storage::ProjectedRow &previous) {
     byte *buffer = new byte[redo_size_];
     loose_pointers_.push_back(buffer);
     // Copy previous version
