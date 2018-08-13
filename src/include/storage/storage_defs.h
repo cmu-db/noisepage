@@ -220,7 +220,7 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
  * --------------------------------------------------------
  * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
  */
-class ProjectedRow {
+class PACKED ProjectedRow {
  public:
   ProjectedRow() = delete;
   DISALLOW_COPY_AND_MOVE(ProjectedRow)

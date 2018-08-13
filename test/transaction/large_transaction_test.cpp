@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <emmintrin.h>
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -7,12 +8,32 @@
 #include "gtest/gtest.h"
 
 namespace terrier {
+template<class T>
+class ConcurrentVectorWithSize {
+ public:
+  void PushBack(T val) {
+    vector_.PushBack(val);
+//    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+    count_++;
+  }
+
+  template <class Random>
+  T RandomElement(Random *generator) {
+    return vector_[std::uniform_int_distribution(0, static_cast<int>(count_ - 1))(*generator)];
+  }
+
+  uint64_t Size() { return count_; }
+ private:
+  common::ConcurrentVector<T, tbb::zero_allocator<T>> vector_;
+  std::atomic<uint64_t> count_ = 0;
+};
+
 class RandomWorkloadTransaction {
  public:
   RandomWorkloadTransaction(const storage::BlockLayout &layout,
                             storage::DataTable *table,
                             transaction::TransactionManager *txn_manager,
-                            common::ConcurrentVector<storage::TupleSlot> *all_slots)
+                            ConcurrentVectorWithSize<storage::TupleSlot> *all_slots)
       : layout_(layout),
         table_(table),
         txn_manager_(txn_manager),
@@ -20,9 +41,9 @@ class RandomWorkloadTransaction {
         all_slots_(all_slots) {}
 
   ~RandomWorkloadTransaction() {
-    for (auto &entry : writes_)
+    for (auto &entry : updates_)
       delete[] reinterpret_cast<byte *>(entry.second);
-    for (auto &entry : reads_)
+    for (auto &entry : selects_)
       delete[] reinterpret_cast<byte *>(entry.second);
   }
 
@@ -33,14 +54,13 @@ class RandomWorkloadTransaction {
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_->Insert(txn_, *redo);
-    inserts_.push_back(inserted);
-    writes_.emplace_back(inserted, redo);
+    inserts_.emplace_back(inserted, redo);
   }
 
   template<class Random>
   void RandomUpdate(Random *generator) {
     if (all_slots_->Size() == 0 || aborted_) return;
-    storage::TupleSlot updated = *MultiThreadedTestUtil::UniformRandomElement(all_slots_, generator);
+    storage::TupleSlot updated = all_slots_->RandomElement(generator);
 
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     byte *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
@@ -48,7 +68,7 @@ class RandomWorkloadTransaction {
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, 0.0, generator);
 
-    writes_.emplace_back(updated, update);
+    updates_.emplace_back(updated, update);
 
     auto result = table_->Update(txn_, updated, *update);
     aborted_ = !result;
@@ -57,11 +77,11 @@ class RandomWorkloadTransaction {
   template<class Random>
   void RandomSelect(Random *generator) {
     if (all_slots_->Size() == 0 || aborted_) return;
-    storage::TupleSlot selected = *MultiThreadedTestUtil::UniformRandomElement(all_slots_, generator);
+    storage::TupleSlot selected = all_slots_->RandomElement(generator);
     byte *select_buffer = new byte[redo_size_];
     storage::ProjectedRow *select = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids_, layout_);
     table_->Select(txn_, selected, select);
-    reads_.emplace_back(selected, select);
+    selects_.emplace_back(selected, select);
   }
 
   void Finish() {
@@ -69,8 +89,8 @@ class RandomWorkloadTransaction {
       txn_manager_->Abort(txn_);
     else {
       txn_manager_->Commit(txn_);
-      for (auto slot : inserts_)
-        all_slots_->PushBack(slot);
+      for (auto &entry : inserts_)
+        all_slots_->PushBack(entry.first);
     }
   }
 
@@ -82,11 +102,9 @@ class RandomWorkloadTransaction {
   transaction::TransactionManager *txn_manager_;
   transaction::TransactionContext *txn_;
   // This will not work if GC is turned on
-  common::ConcurrentVector<storage::TupleSlot> *all_slots_;
+  ConcurrentVectorWithSize<storage::TupleSlot> *all_slots_;
   using entry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
-  std::vector<entry> writes_;
-  std::vector<entry> reads_;
-  std::vector<storage::TupleSlot> inserts_;
+  std::vector<entry> updates_, selects_, inserts_;
   bool aborted_ = false;
 
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
@@ -100,7 +118,8 @@ class LargeTransactionTestObject {
                              common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool,
                              std::default_random_engine *generator)
       : generator_(generator),
-        layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
+//        layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
+        layout_(2, {8, 8}),
         table_(block_store, layout_),
         txn_manager_(buffer_pool) {}
 
@@ -134,19 +153,18 @@ class LargeTransactionTestObject {
 
 //  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
 //  std::unordered_map<timestamp_t,
-//                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {
-//
+//                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {///
 //  }
 //
 //  void CheckTransactionConsistent(std::vector<RandomWorkloadTransaction> *txns) {
 //  }
 
  private:
-  std::default_random_engine *generator_;
+  std::default_random_engine *generator_ UNUSED_ATTRIBUTE;
   storage::BlockLayout layout_;
   storage::DataTable table_;
   transaction::TransactionManager txn_manager_;
-  common::ConcurrentVector<storage::TupleSlot> all_slots;
+  ConcurrentVectorWithSize<storage::TupleSlot> all_slots;
 };
 
 class LargeTransactionTests : public ::testing::Test {
@@ -154,17 +172,31 @@ class LargeTransactionTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
-
 };
 
-TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 500;
-  const uint16_t max_columns = 10;
-  const uint32_t num_txns = 200;
-  const uint32_t num_concurrent_txns = 4;
-  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
-    tested.SimulateOltp(num_txns, num_concurrent_txns);
-  }
+//TEST_F(LargeTransactionTests, MixedReadWrite) {
+//  const uint32_t num_iterations = 100;
+//  const uint16_t max_columns = 20;
+//  const uint32_t num_txns = 500;
+//  const uint32_t num_concurrent_txns = 8;
+//  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+//    LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
+//    tested.SimulateOltp(num_txns, num_concurrent_txns);
+//  }
+//}
+
+TEST(WTF, ConcurrentVector) {
+  ConcurrentVectorWithSize<int> tested;
+  auto workload = [&](uint32_t id) {
+    std::default_random_engine r(id);
+    auto insert = [&] {
+      tested.PushBack(42);
+    };
+    auto read = [&] {
+      EXPECT_EQ(42, tested.RandomElement(&r));
+    };
+    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, read}, {0.8, 0.2}, &r, 1000);
+  };
+  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 1000);
 }
 }  // namespace terrier

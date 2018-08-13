@@ -101,8 +101,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   DeltaRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
 
   // Populate undo record with the before image of presence column
-  // TODO(Tianyu): This is projection list id, not col id, fix eventually
-  undo->Delta()->SetNull(VERSION_VECTOR_COLUMN_ID);
+  undo->Delta()->SetNull(0);
 
   // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
   // may result in a segfault
