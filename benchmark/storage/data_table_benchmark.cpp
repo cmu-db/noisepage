@@ -8,6 +8,8 @@
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
 #include "util/storage_benchmark_util.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier {
 
@@ -16,10 +18,12 @@ namespace terrier {
 // NOLINTNEXTLINE
 static void BM_SimpleInsert(benchmark::State &state) {
   std::default_random_engine generator;
-  const uint32_t num_inserts = 10000000;
+  const uint32_t num_inserts = 100000;
 
   common::PerformanceCounters pc;
   storage::BlockStore block_store{1000, &pc};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts, &pc};
+  transaction::TransactionManager txn_manager(&buffer_pool);
 
   // Tuple layout
   uint16_t num_columns = 2;
@@ -35,21 +39,16 @@ static void BM_SimpleInsert(benchmark::State &state) {
   storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(redo, layout, 0, &generator);
 
-  // generate an undo DeltaRecord to populate on Insert
-  byte *undo_buffer = new byte[undo_size_];
-  storage::DeltaRecord *undo =
-      storage::DeltaRecord::InitializeDeltaRecord(undo_buffer, timestamp_t(0), layout, all_col_ids_);
-
   // Populate the table with tuples
   while (state.KeepRunning()) {
     storage::DataTable table(&block_store, layout);
+    transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool);
     for (uint32_t i = 0; i < num_inserts; ++i) {
-      table.Insert(*redo, undo);
+      table.Insert(&txn, *redo);
     }
   }
 
   delete[] redo_buffer;
-  delete[] undo_buffer;
 
   state.SetBytesProcessed(state.iterations() * num_inserts * (redo_size_ + undo_size_));
   state.SetItemsProcessed(state.iterations() * num_inserts);
@@ -62,11 +61,11 @@ static void BM_SimpleInsert(benchmark::State &state) {
 // NOLINTNEXTLINE
 static void BM_ConcurrentInsert(benchmark::State &state) {
   std::default_random_engine generator;
-
-  const uint32_t num_inserts = 10000000;
+  const uint32_t num_inserts = 100000;
 
   common::PerformanceCounters pc;
-  storage::BlockStore block_store{1000, pc};
+  storage::BlockStore block_store{1000, &pc};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts, &pc};
 
   // Tuple layout
   uint16_t num_columns = 2;
@@ -87,15 +86,9 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   while (state.KeepRunning()) {
     storage::DataTable table(&block_store, layout);
     auto workload = [&](uint32_t id) {
-      // generate an undo DeltaRecord to populate on Insert
-      byte *undo_buffer = new byte[undo_size_];
-      storage::DeltaRecord *undo =
-          storage::DeltaRecord::InitializeDeltaRecord(undo_buffer, timestamp_t(0), layout, all_col_ids_);
-
+      transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++)
-        table.Insert(*redo, undo);
-
-      delete[] undo_buffer;
+        table.Insert(&txn, *redo);
     };
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
   }

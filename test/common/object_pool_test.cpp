@@ -27,21 +27,18 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
 class ObjectPoolTestType {
  public:
-  ObjectPoolTestType *Use() {
-    // We would expect that the memory we get back is not in-use;
-    bool expected = false;
-    // If this comes back false we are being given a reference that others hold,
-    // which indicates a bug.
-    EXPECT_TRUE(in_use_.compare_exchange_strong(expected, true));
+  ObjectPoolTestType *Use(uint32_t thread_id) {
+    user_ = thread_id;
     return this;
   }
 
-  ObjectPoolTestType *Release() {
-    in_use_.store(false);
+  ObjectPoolTestType *Release(uint32_t thread_id) {
+    // Nobody used this
+    EXPECT_EQ(thread_id, user_);
     return this;
   }
  private:
-  std::atomic<bool> in_use_;
+  std::atomic<uint32_t> user_;
 };
 
 // This test generates random workload and sees if the pool gives out
@@ -51,18 +48,18 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   const uint64_t reuse_limit = 100;
   common::PerformanceCounters pc;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit, &pc);
-  auto workload = [&](uint32_t) {
+  auto workload = [&](uint32_t tid) {
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
     // Store the pointers we use.
     std::vector<ObjectPoolTestType *> ptrs;
     auto allocate = [&] {
-      ptrs.push_back(tested.Get()->Use());
+      ptrs.push_back(tested.Get()->Use(tid));
     };
     auto free = [&] {
       if (!ptrs.empty()) {
         auto pos = MultiThreadedTestUtil::UniformRandomElement(&ptrs, &generator);
-        tested.Release((*pos)->Release());
+        tested.Release((*pos)->Release(tid));
         ptrs.erase(pos);
       }
     };
@@ -71,7 +68,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
                                              &generator,
                                              100);
     for (auto *ptr : ptrs)
-      tested.Release(ptr->Release());
+      tested.Release(ptr->Release(tid));
   };
 
   MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
