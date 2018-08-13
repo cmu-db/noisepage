@@ -17,10 +17,10 @@ class ConcurrentVectorWithSize {
     latch_.Unlock();
   }
 
-  template <class Random>
+  template<class Random>
   T RandomElement(Random *generator) {
     latch_.Lock();
-    T result =  vector_[std::uniform_int_distribution(0, static_cast<int>(vector_.size() - 1))(*generator)];
+    T result = vector_[std::uniform_int_distribution(0, static_cast<int>(vector_.size() - 1))(*generator)];
     latch_.Unlock();
     return result;
   }
@@ -86,7 +86,7 @@ class RandomWorkloadTransaction {
 
   template<class Random>
   void RandomSelect(Random *generator) {
-    if (all_slots_->Empty()|| aborted_) return;
+    if (all_slots_->Empty() || aborted_) return;
     storage::TupleSlot selected = all_slots_->RandomElement(generator);
     byte *select_buffer = new byte[redo_size_];
     storage::ProjectedRow *select = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids_, layout_);
@@ -128,8 +128,7 @@ class LargeTransactionTestObject {
                              common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool,
                              std::default_random_engine *generator)
       : generator_(generator),
-//        layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
-        layout_(2, {8, 8}),
+        layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
         table_(block_store, layout_),
         txn_manager_(buffer_pool) {}
 
@@ -161,13 +160,14 @@ class LargeTransactionTestObject {
     return result;
   }
 
-//  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
-//  std::unordered_map<timestamp_t,
-//                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {///
-//  }
-//
-//  void CheckTransactionConsistent(std::vector<RandomWorkloadTransaction> *txns) {
-//  }
+  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
+  std::unordered_map<timestamp_t,
+                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {
+
+  }
+
+  void CheckTransactionConsistent(std::vector<RandomWorkloadTransaction> *txns) {
+  }
 
  private:
   std::default_random_engine *generator_ UNUSED_ATTRIBUTE;
