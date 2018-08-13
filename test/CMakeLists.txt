@@ -10,3 +10,4 @@ target_link_libraries(test_shared ${TERRIER_LINK_LIBS})
 
 add_subdirectory(common)
 add_subdirectory(storage)
+add_subdirectory(transaction)
