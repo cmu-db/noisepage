@@ -27,12 +27,6 @@ struct MultiThreadedTestUtil {
   static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
     return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
   }
-
-  template<typename T, typename Random>
-  static typename common::ConcurrentVector<T>::Iterator UniformRandomElement(common::ConcurrentVector<T> *elems,
-                                                                             Random *generator) {
-    return elems->Begin() + std::uniform_int_distribution(0, static_cast<int>(elems->Size() - 1))(*generator);
-  }
   /**
    * Spawn up the specified number of threads with the workload and join them before
    * returning. This can be done repeatedly if desired.
