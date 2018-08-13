@@ -12,20 +12,29 @@ template<class T>
 class ConcurrentVectorWithSize {
  public:
   void PushBack(T val) {
-    vector_.PushBack(val);
-//    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-    count_++;
+    latch_.Lock();
+    vector_.push_back(val);
+    latch_.Unlock();
   }
 
   template <class Random>
   T RandomElement(Random *generator) {
-    return vector_[std::uniform_int_distribution(0, static_cast<int>(count_ - 1))(*generator)];
+    latch_.Lock();
+    T result =  vector_[std::uniform_int_distribution(0, static_cast<int>(vector_.size() - 1))(*generator)];
+    latch_.Unlock();
+    return result;
   }
 
-  uint64_t Size() { return count_; }
+  bool Empty() {
+    latch_.Lock();
+    bool result = vector_.empty();
+    latch_.Unlock();
+    return result;
+  }
+
  private:
-  common::ConcurrentVector<T, tbb::zero_allocator<T>> vector_;
-  std::atomic<uint64_t> count_ = 0;
+  common::SpinLatch latch_;
+  std::vector<T> vector_;
 };
 
 class RandomWorkloadTransaction {
@@ -41,6 +50,7 @@ class RandomWorkloadTransaction {
         all_slots_(all_slots) {}
 
   ~RandomWorkloadTransaction() {
+    delete txn_;
     for (auto &entry : updates_)
       delete[] reinterpret_cast<byte *>(entry.second);
     for (auto &entry : selects_)
@@ -59,7 +69,7 @@ class RandomWorkloadTransaction {
 
   template<class Random>
   void RandomUpdate(Random *generator) {
-    if (all_slots_->Size() == 0 || aborted_) return;
+    if (all_slots_->Empty() || aborted_) return;
     storage::TupleSlot updated = all_slots_->RandomElement(generator);
 
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -76,7 +86,7 @@ class RandomWorkloadTransaction {
 
   template<class Random>
   void RandomSelect(Random *generator) {
-    if (all_slots_->Size() == 0 || aborted_) return;
+    if (all_slots_->Empty()|| aborted_) return;
     storage::TupleSlot selected = all_slots_->RandomElement(generator);
     byte *select_buffer = new byte[redo_size_];
     storage::ProjectedRow *select = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids_, layout_);
@@ -169,34 +179,35 @@ class LargeTransactionTestObject {
 
 class LargeTransactionTests : public ::testing::Test {
  public:
-  storage::BlockStore block_store_{100};
+  storage::BlockStore block_store_{1000};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
 };
 
-//TEST_F(LargeTransactionTests, MixedReadWrite) {
-//  const uint32_t num_iterations = 100;
-//  const uint16_t max_columns = 20;
-//  const uint32_t num_txns = 500;
-//  const uint32_t num_concurrent_txns = 8;
-//  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-//    LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
-//    tested.SimulateOltp(num_txns, num_concurrent_txns);
-//  }
-//}
-
-TEST(WTF, ConcurrentVector) {
-  ConcurrentVectorWithSize<int> tested;
-  auto workload = [&](uint32_t id) {
-    std::default_random_engine r(id);
-    auto insert = [&] {
-      tested.PushBack(42);
-    };
-    auto read = [&] {
-      EXPECT_EQ(42, tested.RandomElement(&r));
-    };
-    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, read}, {0.8, 0.2}, &r, 1000);
-  };
-  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 1000);
+TEST_F(LargeTransactionTests, MixedReadWrite) {
+  const uint32_t num_iterations = 10000;
+  const uint16_t max_columns = 20;
+  const uint32_t num_txns = 1000;
+  const uint32_t num_concurrent_txns = 8;
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
+    auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
+    for (auto w : result) delete w;
+  }
 }
+
+//TEST(WTF, ConcurrentVector) {
+//  ConcurrentVectorWithSize<int> tested;
+//  auto workload = [&](uint32_t id) {
+//    std::default_random_engine r(id);
+//    auto insert = [&] {
+//      tested.PushBack(42);
+//    };
+//    auto read = [&] {
+//      EXPECT_EQ(42, tested.RandomElement(&r));
+//    };
+//    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, read}, {0.8, 0.2}, &r, 1000);
+//  };
+//  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 1000);
+//}
 }  // namespace terrier
