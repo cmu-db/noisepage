@@ -70,9 +70,6 @@ endif()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 
-include(ProcessorCount)
-ProcessorCount(NumProcessors)
-
 ###################################################
 # CMAKE OPTIONS
 ###################################################
@@ -234,7 +231,7 @@ if (UNIX)
   # Full lint
   # Balancing act: cpplint.py takes a non-trivial time to launch,
   # so process 12 files per invocation, while still ensuring parallelism
-  add_custom_target(check-lint echo ${LINT_FILES} | xargs -n12 -P${NumProcessors}
+  add_custom_target(check-lint echo ${LINT_FILES} | xargs -n12 -P8
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
   --linelength=120
