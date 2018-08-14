@@ -97,6 +97,7 @@ matrix:
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
+      docker --version &&
       docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
