@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 #include "common/container/concurrent_queue.h"
-#include "common/performance_counters.h"
+#include "common/stats/object_pool_stats.h"
 #include "common/typedefs.h"
 
 namespace terrier::common {
@@ -59,9 +59,16 @@ class ObjectPool {
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
    * @param reuse_limit
+   */
+  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+
+  /**
+   * Initializes a new object pool with the supplied limit to the number of
+   * objects reused with performance counters.
+   * @param reuse_limit
    * @param pc  Performance counters to count the block creation and its queue use.
    */
-  explicit ObjectPool(uint64_t reuse_limit, PerformanceCounters *pc) : reuse_limit_(reuse_limit), pc_(pc) {}
+  explicit ObjectPool(uint64_t reuse_limit, StatsCollector *stats_collector) : reuse_limit_(reuse_limit), enable_stats_(true), stats_(std::make_unique<ObjectPoolStats>(stats_collector)) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -91,12 +98,12 @@ class ObjectPool {
       result = alloc_.New();
 
       // for statistics
-      pc_->IncrementCounter(block_counter);
+      if (enable_stats_) stats_->IncrementCreateBlockCounter();
     } else {
       alloc_.Reuse(result);
 
       // for statistics
-      pc_->DecrementCounter(reuse_queue_couneter);
+      if (enable_stats_) stats_->IncrementReuseBlockCounter();
     }
     return result;
   }
@@ -111,16 +118,11 @@ class ObjectPool {
   void Release(T *obj) {
     if (reuse_queue_.UnsafeSize() > reuse_limit_) {
       alloc_.Delete(obj);
-
-      // for statistics
-      pc_->DecrementCounter(block_counter);
     } else {
       reuse_queue_.Enqueue(std::move(obj));
-
-      // for statistics
-      pc_->IncrementCounter(reuse_queue_couneter);
     }
   }
+
 
  private:
   Allocator alloc_;
@@ -128,9 +130,9 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 
-  // Performance counter
-  PerformanceCounters *pc_;
-  const std::string block_counter = "block_counter";
-  const std::string reuse_queue_couneter = "reuse_queue_counter";
+  // Performance counters
+  bool enable_stats_ = false;
+  std::unique_ptr<ObjectPoolStats> stats_;
+
 };
 }  // namespace terrier::common

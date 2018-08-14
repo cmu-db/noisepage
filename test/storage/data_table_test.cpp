@@ -137,9 +137,8 @@ class RandomDataTableTestObject {
 };
 
 struct DataTableTests : public ::testing::Test {
-  common::PerformanceCounters pc;
-  storage::BlockStore block_store_{100, &pc};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000, &pc};
+  storage::BlockStore block_store_{100};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };

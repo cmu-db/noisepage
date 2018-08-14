@@ -54,8 +54,7 @@ class TupleAccessStrategyTestObject {
 
 struct TupleAccessStrategyTests : public ::testing::Test {
   storage::RawBlock *raw_block_ = nullptr;
-  common::PerformanceCounters pc;
-  storage::BlockStore block_store_{1, &pc};
+  storage::BlockStore block_store_{1};
 
  protected:
   void SetUp() override {

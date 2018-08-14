@@ -49,9 +49,8 @@ class MVCCDataTableTestObject {
 };
 
 struct MVCCTests : public ::testing::Test {
-  common::PerformanceCounters pc;
-  storage::BlockStore block_store_{100, &pc};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000, &pc};
+  storage::BlockStore block_store_{100};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
 };
 

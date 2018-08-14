@@ -20,9 +20,8 @@ static void BM_SimpleInsert(benchmark::State &state) {
   std::default_random_engine generator;
   const uint32_t num_inserts = 100000;
 
-  common::PerformanceCounters pc;
-  storage::BlockStore block_store{1000, &pc};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts, &pc};
+  storage::BlockStore block_store{1000};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts};
   transaction::TransactionManager txn_manager(&buffer_pool);
 
   // Tuple layout
@@ -63,9 +62,8 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   std::default_random_engine generator;
   const uint32_t num_inserts = 100000;
 
-  common::PerformanceCounters pc;
-  storage::BlockStore block_store{1000, &pc};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts, &pc};
+  storage::BlockStore block_store{1000};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool{num_inserts};
 
   // Tuple layout
   uint16_t num_columns = 2;

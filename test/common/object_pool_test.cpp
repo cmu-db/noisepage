@@ -12,8 +12,7 @@ namespace terrier {
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t reuse_limit = 1;
-  common::PerformanceCounters pc;
-  common::ObjectPool<uint32_t> tested(reuse_limit, &pc);
+  common::ObjectPool<uint32_t> tested(reuse_limit);
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
@@ -46,8 +45,7 @@ class ObjectPoolTestType {
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
-  common::PerformanceCounters pc;
-  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit, &pc);
+  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
   auto workload = [&](uint32_t tid) {
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;

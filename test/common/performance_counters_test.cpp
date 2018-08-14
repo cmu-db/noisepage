@@ -11,28 +11,38 @@ namespace terrier {
 
 TEST(BlockStorePCTests, BlockCountTest) {
   const uint64_t reuse_limit = 1;
-  common::PerformanceCounters pc;
-  storage::BlockStore tested(reuse_limit, &pc);
+  common::StatsCollector stats_collector;
+  storage::BlockStore tested(reuse_limit, &stats_collector);
 
   // Create RawBlock
-  storage::RawBlock *reused_ptr1 = tested.Get();
-  storage::RawBlock *reused_ptr2 = tested.Get();
-  pc.PrintPerformanceCounters();
+  storage::RawBlock *block_ptr1 = tested.Get();
+  storage::RawBlock *block_ptr2 = tested.Get();
+  EXPECT_EQ(0, stats_collector.GetCounter("create block"));
+  EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
+  stats_collector.ColloectCounters();
+  stats_collector.PrintStats();
+  EXPECT_EQ(2, stats_collector.GetCounter("create block"));
+  EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
 
   // Release RawBlock
-  tested.Release(reused_ptr1);
-  tested.Release(reused_ptr2);
-
-  pc.PrintPerformanceCounters();
+  tested.Release(block_ptr1);
+  tested.Release(block_ptr2);
 
   // Create again
-  reused_ptr1 = tested.Get();
-  pc.PrintPerformanceCounters();
+  storage::RawBlock *block_ptr3 = tested.Get();
+  storage::RawBlock *block_ptr4 = tested.Get();
+  storage::RawBlock *block_ptr5 = tested.Get();
+  EXPECT_EQ(2, stats_collector.GetCounter("create block"));
+  EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
+  stats_collector.ColloectCounters();
+  stats_collector.PrintStats();
+  EXPECT_EQ(3, stats_collector.GetCounter("create block"));
+  EXPECT_EQ(2, stats_collector.GetCounter("reuse block"));
 
   // Release RawBlock
-  tested.Release(reused_ptr1);
-
-  pc.PrintPerformanceCounters();
+  tested.Release(block_ptr3);
+  tested.Release(block_ptr4);
+  tested.Release(block_ptr5);
 }
 
 }  // namespace terrier
