@@ -161,36 +161,36 @@ class LargeTransactionTestObject {
   using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
   using VersionedSnapshots = std::unordered_map<timestamp_t, TableSnapshot>;
   // This returned value will contain memory that has to be freed manually
-  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns) {
-    // filter out aborted transactions
-    std::vector<RandomWorkloadTransaction *> filtered;
-    filtered.resize(txns->size());
-    for (RandomWorkloadTransaction *txn : *txns)
-      if (!txn->aborted_) filtered.push_back(txn);
-
-    // Sort according to commit timestamp
-    std::sort(filtered.begin(), filtered.end(),
-              [](const RandomWorkloadTransaction *&a, const RandomWorkloadTransaction *&b) {
-                return transaction::TransactionUtil::NewerThan(a->commit_time_, b->commit_time_);
-              });
-
-  }
+//  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns) {
+//    // filter out aborted transactions
+//    std::vector<RandomWorkloadTransaction *> filtered;
+//    filtered.resize(txns->size());
+//    for (RandomWorkloadTransaction *txn : *txns)
+//      if (!txn->aborted_) filtered.push_back(txn);
+//
+//    // Sort according to commit timestamp
+//    std::sort(filtered.begin(), filtered.end(),
+//              [](const RandomWorkloadTransaction *&a, const RandomWorkloadTransaction *&b) {
+//                return transaction::TransactionUtil::NewerThan(a->commit_time_, b->commit_time_);
+//              });
+//
+//  }
 
  private:
-
   storage::ProjectedRow *CopyTuple(storage::ProjectedRow *other) {
     byte *copy = new byte[other->Size()];
     PELOTON_MEMCPY(copy, other, other->Size());
     return reinterpret_cast<storage::ProjectedRow *>(copy);
   }
 
-  TableSnapshot UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot before = {}) {
-    for (auto &insert : txn->inserts_)
-      before.emplace(insert.first, CopyTuple(insert.second));
-    for (auto &update : txn->updates_) {
-      storage::ProjectedRow *new_version = CopyTuple(before[update.first]);
-    }
-  }
+//  TableSnapshot UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot before = {}) {
+//    for (auto &insert : txn->inserts_)
+//      before.emplace(insert.first, CopyTuple(insert.second));
+//    for (auto &update : txn->updates_) {
+//      storage::ProjectedRow *new_version = CopyTuple(before[update.first]);
+//      storage::
+//    }
+//  }
 
   std::default_random_engine *generator_;
   storage::BlockLayout layout_;
