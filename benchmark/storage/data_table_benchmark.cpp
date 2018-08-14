@@ -34,7 +34,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
   uint32_t undo_size_ = storage::DeltaRecord::Size(layout, all_col_ids_);
 
   // generate a random redo ProjectedRow to Insert
-  byte *redo_buffer = new byte[redo_size_];
+  auto *redo_buffer = new byte[redo_size_];
   storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(redo, layout, 0, &generator);
 
@@ -77,7 +77,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   const uint32_t num_threads = 8;
 
   // generate a random redo ProjectedRow to Insert
-  byte *redo_buffer = new byte[redo_size_];
+  auto *redo_buffer = new byte[redo_size_];
   storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(redo, layout, 0, &generator);
 
