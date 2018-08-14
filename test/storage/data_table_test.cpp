@@ -33,7 +33,7 @@ class RandomDataTableTestObject {
                                        Random *generator,
                                        common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
-    byte *redo_buffer = new byte[redo_size_];
+    auto *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
@@ -60,7 +60,7 @@ class RandomDataTableTestObject {
 
     // generate a random redo ProjectedRow to Update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    byte *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
+    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
     storage::ProjectedRow *update =
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
@@ -73,7 +73,7 @@ class RandomDataTableTestObject {
 
     if (result) {
       // manually apply the delta in an append-only fashion
-      byte *version_buffer = new byte[redo_size_];
+      auto *version_buffer = new byte[redo_size_];
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
       PELOTON_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_size_);
@@ -146,6 +146,7 @@ struct DataTableTests : public ::testing::Test {
 // Generates a random table layout and coin flip bias for an attribute being null, inserts num_inserts random tuples
 // into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
 // random tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 1000;
@@ -171,6 +172,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
 // delta chain produces the correct tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleVersionChain) {
   const uint32_t num_iterations = 100;
   const uint32_t num_updates = 10;
@@ -205,6 +207,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 // positive number representing a commit. Then, the second transaction updates again and should succeed, and its
 // timestamp is changed to positive. Lastly, Selects at first timestamp to verify that the delta chain produces the
 // correct tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;

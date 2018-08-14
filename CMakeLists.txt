@@ -252,28 +252,43 @@ endif (UNIX)
 # "make format" and "make check-format" targets
 ###########################################################
 
+# we modified the format script to take multiple args
+
+string(CONCAT FORMAT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        )
+
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-  ${CLANG_FORMAT_BIN}
-  ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-  ${CMAKE_CURRENT_SOURCE_DIR}/src --fix ${TERRIER_LINT_QUIET})
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        --fix
+        ${TERRIER_LINT_QUIET})
 
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-   ${CLANG_FORMAT_BIN}
-   ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-   ${CMAKE_CURRENT_SOURCE_DIR}/src ${TERRIER_LINT_QUIET})
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        ${TERRIER_LINT_QUIET})
 
 ###########################################################
-# "make clang-tidy" and "make check-clang-tidy" targets
+# "make check-clang-tidy" target
 ###########################################################
 if (${CLANG_TIDY_FOUND})
-  # runs clang-tidy and attempts to fix any warning automatically
-  add_custom_target(clang-tidy ${BUILD_SUPPORT_DIR}/run-clang-tidy.sh ${CLANG_TIDY_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 1
-  `find ${CMAKE_CURRENT_SOURCE_DIR}/src -name \\*.cpp | sed -e '/_generated/g'`)
   # runs clang-tidy and exits with a non-zero exit code if any errors are found.
-  add_custom_target(check-clang-tidy ${BUILD_SUPPORT_DIR}/run-clang-tidy.sh ${CLANG_TIDY_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json
-  0 `find ${CMAKE_CURRENT_SOURCE_DIR}/src -name \\*.cpp |grep -v -F -f ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy-ignore | sed -e '/_generated/g'`)
+  # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
+  add_custom_target(check-clang-tidy
+          ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
+          -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+          -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+          )
+  add_dependencies(check-clang-tidy benchmark gtest)                        # clang-tidy needs their headers to exist
 
 endif()
 

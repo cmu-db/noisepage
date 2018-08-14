@@ -142,10 +142,8 @@ struct StorageTestUtil {
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
       if (one_content == nullptr || other_content == nullptr) {
-        if (one_content == other_content)
-          continue;
-        else
-          return false;
+        if (one_content == other_content) continue;
+        return false;
       }
 
       if (storage::StorageUtil::ReadBytes(attr_size, one_content) !=
@@ -161,7 +159,7 @@ struct StorageTestUtil {
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       uint16_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
-      if (attr) {
+      if (attr != nullptr) {
         printf("col_id: %u is %" PRIx64 "\n", col_id,
                storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
       } else {
