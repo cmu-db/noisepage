@@ -143,7 +143,7 @@ class GenericArray {
    * @param new_length the length to be expanded to
    */
   void ResetAndExpand(int new_length) {
-    PELOTON_ASSERT(new_length >= 0);
+    PELOTON_ASSERT(new_length >= 0, "new length must be greater than or equal to 0");
     data_ = std::shared_ptr<T>(new T[new_length], std::default_delete<T[]>{});
     PELOTON_MEMSET(data_.get(), 0, new_length * sizeof(T));
     length_ = new_length;
@@ -158,8 +158,8 @@ class GenericArray {
    * @param new_length the length to be expanded to
    */
   void CopyAndExpand(int new_length) {
-    PELOTON_ASSERT(new_length >= 0);
-    PELOTON_ASSERT(new_length > length_);
+    PELOTON_ASSERT(new_length >= 0, "new length must be greater than or equal to 0");
+    PELOTON_ASSERT(new_length > length_, "new length must be greater than the original one");
     std::shared_ptr<T> new_data(new T[new_length], std::default_delete<T[]>{});
     PELOTON_MEMSET(new_data.get(), 0, new_length * sizeof(T));  // makes valgrind happy.
     PELOTON_MEMCPY(new_data.get(), data_.get(), length_ * sizeof(T));
@@ -199,9 +199,11 @@ class GenericArray {
    * @param assigned_length the assigned length of content to be copied
    */
   void Assign(const T *assigned_data, int offset, int assigned_length) {
-    PELOTON_ASSERT(!IsNull());
-    PELOTON_ASSERT(length_ >= offset + assigned_length);
-    PELOTON_ASSERT(offset >= 0);
+    PELOTON_ASSERT(!IsNull(), "the data of the GenericArray is null");
+    PELOTON_ASSERT(length_ >= offset + assigned_length,
+                   "the current length of the GenericArray is not enough for copying content "
+                   "of the assigned length from the assigned data");
+    PELOTON_ASSERT(offset >= 0, "the offset must be greater than or equal to 0");
     PELOTON_MEMCPY(data_.get() + offset, assigned_data, assigned_length * sizeof(T));
   }
 
@@ -213,8 +215,8 @@ class GenericArray {
    * @return the concatenated GenericArray
    */
   GenericArray<T> operator+(const GenericArray<T> &tail) const {
-    PELOTON_ASSERT(!IsNull());
-    PELOTON_ASSERT(!tail.IsNull());
+    PELOTON_ASSERT(!IsNull(), "the data of the first GenericArray is null");
+    PELOTON_ASSERT(!tail.IsNull(), "the data of the second GenericArray is null");
     GenericArray<T> concated(this->length_ + tail.length_);
     concated.Assign(this->data_.get(), 0, this->length_);
     concated.Assign(tail.data_.get(), this->length_, tail.length_);
@@ -230,8 +232,10 @@ class GenericArray {
    * @return the reference to the element at position index
    */
   const T &operator[](int index) const {
-    PELOTON_ASSERT(!IsNull());
-    PELOTON_ASSERT(length_ > index);
+    PELOTON_ASSERT(!IsNull(), "the data of the GenericArray is null");
+    PELOTON_ASSERT(length_ > index,
+                   "the index is greater than or equal to the "
+                   "length of the GenericArray");
     return data_.get()[index];
   }
 
@@ -244,8 +248,10 @@ class GenericArray {
    * @return the reference to the element at position index
    */
   T &operator[](int index) {
-    PELOTON_ASSERT(!IsNull());
-    PELOTON_ASSERT(length_ > index);
+    PELOTON_ASSERT(!IsNull(), "the data of the GenericArray is null");
+    PELOTON_ASSERT(length_ > index,
+                   "the index is greater than or equal to the "
+                   "length of the GenericArray");
     return data_.get()[index];
   }
 

@@ -64,7 +64,9 @@ class SerializeInput {
   const void *getRawPointer(uint32_t length) {
     const void *result = current_;
     current_ += length;
-    PELOTON_ASSERT(current_ <= end_);
+    PELOTON_ASSERT(current_ <= end_,
+                   "the current read position after being advanced must be less than or "
+                   "equal to the end position of the buffer");
     return result;
   }
 
@@ -161,7 +163,7 @@ class SerializeInput {
    */
   std::string ReadTextString() {
     int16_t stringLength = ReadShort();
-    PELOTON_ASSERT(stringLength >= 0);
+    PELOTON_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
     return std::string(reinterpret_cast<const char *>(getRawPointer(stringLength)), stringLength);
   }
 
@@ -172,7 +174,7 @@ class SerializeInput {
    */
   ByteArray ReadBinaryString() {
     int16_t stringLength = ReadShort();
-    PELOTON_ASSERT(stringLength >= 0);
+    PELOTON_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
     return ByteArray(reinterpret_cast<const std::byte *>(getRawPointer(stringLength)), stringLength);
   }
 
@@ -194,7 +196,7 @@ class SerializeInput {
   template <typename T>
   void ReadSimpleTypeVector(std::vector<T> *vec) {
     int size = ReadInt();
-    PELOTON_ASSERT(size >= 0);
+    PELOTON_ASSERT(size >= 0, "the size of the vector copied is less than 0");
     vec->resize(size);
     for (int i = 0; i < size; ++i) {
       vec[i] = ReadPrimitive<T>();
@@ -250,7 +252,7 @@ class SerializeOutput {
    */
   void Initialize(void *buffer, uint32_t capacity) {
     buffer_ = reinterpret_cast<std::byte *>(buffer);
-    PELOTON_ASSERT(position_ <= capacity);
+    PELOTON_ASSERT(position_ <= capacity, "the capacity must be greater than or equal to the current write position");
     capacity_ = capacity;
   }
 
@@ -395,7 +397,8 @@ class SerializeOutput {
    * @param value the enum value to be written
    */
   void WriteEnumInSingleByte(int value) {
-    PELOTON_ASSERT(std::numeric_limits<int8_t>::min() <= value && value <= std::numeric_limits<int8_t>::max());
+    PELOTON_ASSERT(std::numeric_limits<int8_t>::min() <= value && value <= std::numeric_limits<int8_t>::max(),
+                   "the enum value written must be between the minimum and maximum value of type int8_t");
     WriteByte(static_cast<std::byte>(value));
   }
 
@@ -407,7 +410,8 @@ class SerializeOutput {
    * @param length the length of the string or ByteArray to be written
    */
   void WriteBinaryString(const void *value, int16_t length) {
-    PELOTON_ASSERT(length <= std::numeric_limits<int16_t>::max());
+    PELOTON_ASSERT(length <= std::numeric_limits<int16_t>::max(),
+                   "the length must be less than or equal to the maximum value of type int16_t");
     int16_t stringLength = static_cast<int16_t>(length);
     AssureExpand(length + sizeof(stringLength));
 
@@ -468,7 +472,8 @@ class SerializeOutput {
    */
   template <typename T>
   void WriteSimpleTypeVector(const std::vector<T> &vec) {
-    PELOTON_ASSERT(vec.size() <= std::numeric_limits<int>::max());
+    PELOTON_ASSERT(vec.size() <= std::numeric_limits<int>::max(),
+                   "the size of the vector must be less than or equal to the maximum value of type int");
     int size = static_cast<int>(vec.size());
 
     // Resize the buffer once
@@ -501,7 +506,7 @@ class SerializeOutput {
    * @return the next write position where the copied value will not be overwritten
    */
   uint32_t WriteBytesAt(uint32_t offset, const void *value, uint32_t length) {
-    PELOTON_ASSERT(offset + length <= position_);
+    PELOTON_ASSERT(offset + length <= position_, "It writes bytes beyond the current write position");
     PELOTON_MEMCPY(buffer_ + offset, value, length);
     return offset + length;
   }
@@ -561,7 +566,7 @@ class SerializeOutput {
     if (minimum_desired > capacity_) {
       Expand(minimum_desired);
     }
-    PELOTON_ASSERT(capacity_ >= minimum_desired);
+    PELOTON_ASSERT(capacity_ >= minimum_desired, "the minimum desired size is greater than the buffer capacity");
   }
 
   /** Beginning of the buffer. */
@@ -631,7 +636,7 @@ class ReferenceSerializeOutput : public SerializeOutput {
  protected:
   /** Reference output can't resize the buffer: just crash. */
   virtual void Expand(UNUSED_ATTRIBUTE uint32_t minimum_desired) {
-    PELOTON_ASSERT(false);
+    PELOTON_ASSERT(false, "Reference output can't resize the buffer");
     abort();
   }
 };
@@ -687,7 +692,8 @@ class CopySerializeOutput : public SerializeOutput {
    */
   virtual void Expand(uint32_t minimum_desired) {
     uint32_t next_capacity = (bytes_.Length() + minimum_desired) * 2;
-    PELOTON_ASSERT(next_capacity < std::numeric_limits<int>::max());
+    PELOTON_ASSERT(next_capacity < std::numeric_limits<int>::max(),
+                   "the next capacity must be less than or equal to the maximum value of type int");
     bytes_.CopyAndExpand(static_cast<int>(next_capacity));
     Initialize(bytes_.Data(), next_capacity);
   }
