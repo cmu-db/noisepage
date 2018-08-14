@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/spdlog.h"
 
 namespace terrier::storage {
-  extern std::shared_ptr<spdlog::logger> storage_logger;
+extern std::shared_ptr<spdlog::logger> storage_logger;
 
-  void init_storage_logger();
+void init_storage_logger();
 }
 
 #define STORAGE_LOG_TRACE(...) ::terrier::storage::storage_logger->trace(__VA_ARGS__);
@@ -21,4 +21,4 @@ namespace terrier::storage {
 
 #define STORAGE_LOG_WARN(...) ::terrier::storage::storage`_logger->warn(__VA_ARGS__);
 
-#define STORAGE_LOG_ERROR(...)::terrier::storage::storage_logger->error(__VA_ARGS__);
+#define STORAGE_LOG_ERROR(...) ::terrier::storage::storage_logger->error(__VA_ARGS__);
