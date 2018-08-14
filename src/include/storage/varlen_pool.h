@@ -57,7 +57,7 @@ class VarlenPool {
     pool_lock_.Lock();
     auto result = locations_.erase(ptr);
     pool_lock_.Unlock();
-    if (result) delete[] reinterpret_cast<byte *>(ptr);
+    if (result != 0u) delete[] reinterpret_cast<byte *>(ptr);
   }
 
  public:

@@ -33,7 +33,7 @@ class TupleAccessStrategyTestObject {
     // Generate a random ProjectedRow to insert
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
-    byte *buffer = new byte[row_size];
+    auto *buffer = new byte[row_size];
     storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids, layout);
     std::default_random_engine real_generator;
     std::uniform_real_distribution<double> distribution{0.0, 1.0};
@@ -66,8 +66,8 @@ struct TupleAccessStrategyTests : public ::testing::Test {
   }
 };
 
-// Tests that we can set things to null and the access strategy returns
-// nullptr for null fields.
+// Tests that we can set things to null and the access strategy returns nullptr for null fields.
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, Nulls) {
   std::default_random_engine generator;
   const uint32_t repeat = 200;
@@ -108,8 +108,8 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
   }
 }
 
-// Tests that we can allocate a tuple slot, write things into the slot and
-// get them out.
+// Tests that we can allocate a tuple slot, write things into the slot and get them out.
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, SimpleInsert) {
   const uint32_t repeat = 100;
   const uint32_t max_cols = 100;
@@ -146,6 +146,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 // This test generates randomized block layouts, and checks its layout to ensure
 // that the header, the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, MemorySafety) {
   const uint32_t repeat = 500;
   std::default_random_engine generator;
@@ -192,6 +193,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
 // This test generates randomized block layouts, and checks its layout to ensure
 // that each columns null bitmap is aligned to 8 bytes, and that each column start is aligned to its attribute size.
 // These properties are necessary to ensure high performance by accessing aligned fields.
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, Alignment) {
   const uint32_t repeat = 500;
   std::default_random_engine generator;
@@ -212,6 +214,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 
 // This test consists of a number of threads inserting into the block concurrently,
 // and verifies that all tuples are written into unique slots correctly.
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
   const uint32_t repeat = 200;
   std::default_random_engine generator;
@@ -258,6 +261,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 // problems (thread B deleting a slot after thread A got it, but before A wrote
 // all the contents in). This kind of conflict avoidance is really the
 // responsibility of concurrency control and GC, not storage.
+// NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   const uint32_t repeat = 200;
   std::default_random_engine generator;
