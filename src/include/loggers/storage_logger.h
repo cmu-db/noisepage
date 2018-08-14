@@ -11,7 +11,7 @@ namespace terrier::storage {
 extern std::shared_ptr<spdlog::logger> storage_logger;
 
 void init_storage_logger();
-} // namespace terrier::storage
+}  // namespace terrier::storage
 
 #define STORAGE_LOG_TRACE(...) ::terrier::storage::storage_logger->trace(__VA_ARGS__);
 
