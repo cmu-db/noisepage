@@ -70,6 +70,9 @@ endif()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 
+include(ProcessorCount)
+ProcessorCount(NumProcessors)
+
 ###################################################
 # CMAKE OPTIONS
 ###################################################
@@ -124,14 +127,6 @@ endif()
 set(CLANG_TOOLS_VERSION "6.0")
 find_package(ClangTools)
 if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
-  # Generate a Clang compile_commands.json "compilation database" file for use
-  # with various development tools, such as Vim's YouCompleteMe plugin.
-  # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
-  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-endif()
-
-find_package(InferTools)
-if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR INFER_FOUND)
   # Generate a Clang compile_commands.json "compilation database" file for use
   # with various development tools, such as Vim's YouCompleteMe plugin.
   # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
@@ -239,7 +234,7 @@ if (UNIX)
   # Full lint
   # Balancing act: cpplint.py takes a non-trivial time to launch,
   # so process 12 files per invocation, while still ensuring parallelism
-  add_custom_target(lint echo ${LINT_FILES} | xargs -n12 -P8
+  add_custom_target(check-lint echo ${LINT_FILES} | xargs -n12 -P${NumProcessors}
   ${CPPLINT_BIN}
   --verbose=2 ${TERRIER_LINT_QUIET}
   --linelength=120
@@ -293,17 +288,8 @@ if (${CLANG_TIDY_FOUND})
 endif()
 
 ###########################################################
-# "make infer" target
+# Build properties
 ###########################################################
-
-if (${INFER_FOUND})
-  # runs infer capture
-  add_custom_target(infer ${BUILD_SUPPORT_DIR}/run-infer.sh ${INFER_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 1)
-  # runs infer analyze
-  add_custom_target(infer-analyze ${BUILD_SUPPORT_DIR}/run-infer.sh ${INFER_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 2)
-  # runs infer report
-  add_custom_target(infer-report ${BUILD_SUPPORT_DIR}/run-infer.sh ${INFER_BIN} ${CMAKE_BINARY_DIR}/compile_commands.json 3)
-endif()
 
 # set compile output directory
 string (TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)

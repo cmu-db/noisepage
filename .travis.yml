@@ -77,7 +77,7 @@ before_script:
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
-      docker exec build /bin/sh -c "cd /repo/build && make lint" ;
+      docker exec build /bin/sh -c "cd /repo/build && make check-lint" ;
     else
       cd apidoc &&
       touch warnings.txt &&
@@ -90,7 +90,7 @@ before_script:
       cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .. &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-clang-tidy &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-format &&
-      ASAN_OPTIONS=detect_container_overflow=0 make lint;
+      ASAN_OPTIONS=detect_container_overflow=0 make check-lint;
     fi
 
 script:
