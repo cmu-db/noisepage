@@ -3,7 +3,7 @@
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
-// This is not to be confused with a non-null version vector that has value nullptr (0).
+// This is not to be confused with a non-null version vector that has value nullptr (0). foo
 #define VERSION_VECTOR_COLUMN_ID PRESENCE_COLUMN_ID
 
 namespace terrier::storage {
