@@ -15,6 +15,11 @@ matrix:
       dist: trusty
       env:
         - NAME="Docker[dbg/packages.sh]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On DOCKER=true
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
       install:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
@@ -24,6 +29,11 @@ matrix:
       dist: trusty
       env:
         - NAME="Docker[dbg/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On DOCKER=true
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -41,6 +51,11 @@ matrix:
       dist: trusty
       env:
        - NAME="Docker[rel/packages.sh]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
       install:
         - docker pull ubuntu:18.04
         - docker run -itd --name build ubuntu:18.04
@@ -50,6 +65,11 @@ matrix:
       dist: trusty
       env:
         - NAME="Docker[rel/Dockerfile]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -59,6 +79,11 @@ matrix:
       dist: trusty
       env:
         - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
@@ -72,6 +97,7 @@ matrix:
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
+      docker --version &&
       docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
