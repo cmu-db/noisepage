@@ -95,7 +95,7 @@ class RandomWorkloadTransaction {
     if (aborted_)
       txn_manager_->Abort(txn_);
     else {
-      txn_manager_->Commit(txn_);
+      commit_time_ = txn_manager_->Commit(txn_);
       for (auto &entry : inserts_)
         all_slots_->PushBack(entry.first);
     }
@@ -113,6 +113,7 @@ class RandomWorkloadTransaction {
   using entry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
   std::vector<entry> updates_, selects_, inserts_;
   bool aborted_ = false;
+  timestamp_t commit_time_{0};
 
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
   uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
@@ -157,17 +158,41 @@ class LargeTransactionTestObject {
     return result;
   }
 
-//  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow>;
-//  std::unordered_map<timestamp_t,
-//                     TableSnapshot> ReconstructVersionedTable(std::vector<RandomWorkloadTransaction> *txns) {
-//
-//  }
+  using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
+  using VersionedSnapshots = std::unordered_map<timestamp_t, TableSnapshot>;
+  // This returned value will contain memory that has to be freed manually
+  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns) {
+    // filter out aborted transactions
+    std::vector<RandomWorkloadTransaction *> filtered;
+    filtered.resize(txns->size());
+    for (RandomWorkloadTransaction *txn : *txns)
+      if (!txn->aborted_) filtered.push_back(txn);
 
-  void CheckTransactionConsistent(std::vector<RandomWorkloadTransaction> *txns) {
+    // Sort according to commit timestamp
+    std::sort(filtered.begin(), filtered.end(),
+              [](const RandomWorkloadTransaction *&a, const RandomWorkloadTransaction *&b) {
+                return transaction::TransactionUtil::NewerThan(a->commit_time_, b->commit_time_);
+              });
+
   }
 
  private:
-  std::default_random_engine *generator_ UNUSED_ATTRIBUTE;
+
+  storage::ProjectedRow *CopyTuple(storage::ProjectedRow *other) {
+    byte *copy = new byte[other->Size()];
+    PELOTON_MEMCPY(copy, other, other->Size());
+    return reinterpret_cast<storage::ProjectedRow *>(copy);
+  }
+
+  TableSnapshot UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot before = {}) {
+    for (auto &insert : txn->inserts_)
+      before.emplace(insert.first, CopyTuple(insert.second));
+    for (auto &update : txn->updates_) {
+      storage::ProjectedRow *new_version = CopyTuple(before[update.first]);
+    }
+  }
+
+  std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;
   transaction::TransactionManager txn_manager_;
@@ -182,7 +207,7 @@ class LargeTransactionTests : public ::testing::Test {
 };
 
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 10000;
+  const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
   const uint32_t num_txns = 1000;
   const uint32_t num_concurrent_txns = 8;
@@ -192,19 +217,4 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
     for (auto w : result) delete w;
   }
 }
-
-//TEST(WTF, ConcurrentVector) {
-//  ConcurrentVectorWithSize<int> tested;
-//  auto workload = [&](uint32_t id) {
-//    std::default_random_engine r(id);
-//    auto insert = [&] {
-//      tested.PushBack(42);
-//    };
-//    auto read = [&] {
-//      EXPECT_EQ(42, tested.RandomElement(&r));
-//    };
-//    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, read}, {0.8, 0.2}, &r, 1000);
-//  };
-//  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 1000);
-//}
 }  // namespace terrier

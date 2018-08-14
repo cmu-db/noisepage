@@ -43,8 +43,9 @@ class TransactionManager {
   /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
+   * @return commit timestamp of this transaction
    */
-  void Commit(TransactionContext *txn) {
+  timestamp_t Commit(TransactionContext *txn) {
     common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
     timestamp_t commit_time = time_++;
     // Flip all timestamps to be committed
@@ -54,6 +55,7 @@ class TransactionManager {
     auto ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(txn->StartTime());
     PELOTON_ASSERT(ret == 1, "committed transaction did not exist in global transactions table");
     table_latch_.Unlock();
+    return commit_time;
   }
 
   /**
