@@ -70,6 +70,7 @@ install_mac() {
   # Update Homebrew.
   brew update
   # Install packages.
+  brew ls --versions boost || brew install boost
   brew ls --versions cmake || brew install cmake
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
@@ -92,6 +93,7 @@ install_linux() {
       doxygen \
       git \
       g++-7 \
+      libboost-filesystem-dev \
       libjemalloc-dev \
       libjsoncpp-dev \
       libtbb-dev \

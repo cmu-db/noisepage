@@ -6,7 +6,8 @@
 
 namespace terrier::common {
 /**
- * Allocator that allocates and destroys a byte array.
+ * Allocator that allocates and destroys a byte array. Memory location returned by this default allocator is
+ * not zeroed-out.
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
@@ -25,13 +26,15 @@ struct ByteAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(T *reused) { PELOTON_MEMSET(reused, 0, sizeof(T)); }
+  void Reuse(T *reused) {}
 
   /**
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *ptr) { delete[] ptr; }
+  void Delete(T *ptr) { delete[] ptr; }  // NOLINT
+  // TODO(WAN): clang-tidy believes we are trying to free released memory.
+  // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
 };
 
 // TODO(Tianyu): Should this be by size or by class type?

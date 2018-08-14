@@ -31,6 +31,7 @@ struct RawBlock {
   // store offsets within a block in ine 8-byte word.
 } __attribute__((aligned(common::Constants::BLOCK_SIZE)));
 
+// TODO(Tianyu): Put this into Constants?
 #define MAX_COL INT16_MAX
 // TODO(Tianyu): This code eventually should be compiled, which would eliminate
 // BlockLayout as a runtime object, instead baking them in as compiled code
@@ -200,24 +201,23 @@ struct BlockAllocator {
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
-// TODO(Tianyu): Store val_offsets or not? It sounds wasteful to have this extra space hang around, but it's the
-// easiest.
+// TODO(Tianyu): Align this
 /**
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
  * layout:
- * ------------------------------------------------------------------------
- * | num_cols | col_id1 | col_id2 | ... | val1_offset | val2_offset | ... |
- * ------------------------------------------------------------------------
- * | null-bitmap (pad up to byte) | val1 | val2 | ...                     |
- * ------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------
+ * | size | num_cols | col_id1 | col_id2 | ... | val1_offset | val2_offset | ... |
+ * -------------------------------------------------------------------------------
+ * | null-bitmap (pad up to byte) | val1 | val2 | ...                            |
+ * -------------------------------------------------------------------------------
  * Warning, 0 means null in the null-bitmap
  *
  * The projection list is encoded as position of col_id -> col_id. For example:
  *
- * ---------------------------------------------------
- * | 3 | 1 | 0 | 2 | 0 | 4 | 8 | 0xC0 | 721 | 15 | x |
- * ---------------------------------------------------
+ * --------------------------------------------------------
+ * | 36 | 3 | 1 | 0 | 2 | 0 | 4 | 8 | 0xC0 | 721 | 15 | x |
+ * --------------------------------------------------------
  * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
  */
 class ProjectedRow {
@@ -236,18 +236,36 @@ class ProjectedRow {
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @param col_ids projection list of column ids to map
+   * @param layout BlockLayout of the RawBlock to be accessed
    * @return pointer to the initialized ProjectedRow
    */
-  static ProjectedRow *InitializeProjectedRow(byte *head, const std::vector<uint16_t> &col_ids,
+  static ProjectedRow *InitializeProjectedRow(void *head, const std::vector<uint16_t> &col_ids,
                                               const BlockLayout &layout);
 
   /**
-   * @return number of columns stored in the ProjectedRow
+   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
+   * same layout as the given one.
+   *
+   * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @param other ProjectedRow to use as template for setup
+   * @return pointer to the initialized ProjectedRow
    */
-  uint16_t &NumColumns() { return num_cols_; }
+  static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other) {
+    auto *result = reinterpret_cast<ProjectedRow *>(head);
+    auto header_size =
+        static_cast<uint32_t>(sizeof(ProjectedRow) + +other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
+    // TODO(Tianyu): Pretty sure I can just mem-cpy the header?
+    PELOTON_MEMCPY(result, &other, header_size);
+    result->Bitmap().Clear(result->num_cols_);
+    return result;
+  }
+
+  /**
+   * @return the size of this ProjectedRow in memory, in bytes
+   */
+  const uint32_t &Size() const { return size_; }
 
   /**
    * @return number of columns stored in the ProjectedRow
@@ -318,6 +336,7 @@ class ProjectedRow {
   }
 
  private:
+  uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
 
@@ -332,6 +351,7 @@ class ProjectedRow {
   }
 };
 
+class DataTable;
 /**
  * Extension of a ProjectedRow that adds two additional fields: a timestamp and a pointer to the next entry in the
  * version chain
@@ -343,13 +363,24 @@ class DeltaRecord {
   ~DeltaRecord() = delete;
 
   /**
-   * Pointer to the next element in the version chain
+   * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *next_;
+  DeltaRecord *&Next() { return next_; }
+
   /**
-   * Timestamp up to which the old projected row was visible.
+   * @return Timestamp up to which the old projected row was visible.
    */
-  timestamp_t timestamp_;
+  std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
+
+  /**
+   * @return the DataTable this DeltaRecord points to
+   */
+  DataTable *Table() { return table_; }
+
+  /**
+   * @return the TupleSlot this DeltaRecord points to
+   */
+  TupleSlot Slot() { return slot_; }
 
   /**
    * Access the next version in the delta chain
@@ -364,26 +395,72 @@ class DeltaRecord {
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
   /**
+   * @return size of this DeltaRecord in memory, in bytes.
+   */
+  uint32_t Size() { return static_cast<uint32_t>(sizeof(DeltaRecord) + Delta()->Size()); }
+
+  /**
+   * @param redo the redo changes to be applied
+   * @return size of the DeltaRecord which can store the delta resulting from applying redo in memory, in bytes
+   */
+  static uint32_t Size(const ProjectedRow &redo) { return static_cast<uint32_t>(sizeof(DeltaRecord)) + redo.Size(); }
+
+  /**
    * Calculates the size of this DeltaRecord, including all members, values, and bitmap
+   *
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this DeltaRecord
    */
-  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
+    return static_cast<uint32_t>(sizeof(DeltaRecord)) + ProjectedRow::Size(layout, col_ids);
+  }
 
   /**
-   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and BlockLayout.
+   *
    * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param slot the TupleSlot this DeltaRecord points to
+   * @param table the DataTable this DeltaRecord points to
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
-   * @param head pointer to the byte buffer to initialize as a DeltaRecord
    * @return pointer to the initialized DeltaRecord
    */
-  static DeltaRecord *InitializeDeltaRecord(byte *head, timestamp_t timestamp, const BlockLayout &layout,
-                                            const std::vector<uint16_t> &col_ids);
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
+                                            const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+
+  /**
+   * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and the redo changes that
+   * this DeltaRecord is supposed to log.
+   *
+   * @param head pointer to the byte buffer to initialize as a DeltaRecord
+   * @param timestamp timestamp of the transaction that generated this DeltaRecord
+   * @param slot the TupleSlot this DeltaRecord points to
+   * @param table the DataTable this DeltaRecord points to
+   * @param redo the redo changes to be applied
+   * @return pointer to the initialized DeltaRecord
+   */
+  static DeltaRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
+                                            const storage::ProjectedRow &redo) {
+    auto *result = reinterpret_cast<DeltaRecord *>(head);
+
+    result->next_ = nullptr;
+    result->timestamp_.store(timestamp);
+    result->table_ = table;
+    result->slot_ = slot;
+
+    ProjectedRow::InitializeProjectedRow(result->varlen_contents_, redo);
+
+    return result;
+  }
 
  private:
+  DeltaRecord *next_;
+  std::atomic<timestamp_t> timestamp_;
+  DataTable *table_;
+  TupleSlot slot_;
+
   byte varlen_contents_[0];
 };
 }  // namespace terrier::storage

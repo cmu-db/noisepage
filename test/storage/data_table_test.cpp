@@ -1,9 +1,11 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier {
 // Not thread-safe
@@ -21,24 +23,26 @@ class RandomDataTableTestObject {
   ~RandomDataTableTestObject() {
     for (auto ptr : loose_pointers_)
       delete[] ptr;
+    for (auto ptr : loose_txns_)
+      delete ptr;
     delete[] select_buffer_;
   }
 
   template<class Random>
-  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator) {
+  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp,
+                                       Random *generator,
+                                       common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
-    byte *redo_buffer = new byte[redo_size_];
+    auto *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
-    // generate an undo DeltaRecord to populate on Insert
-    byte *undo_buffer = new byte[undo_size_];
-    loose_pointers_.push_back(undo_buffer);
-    storage::DeltaRecord *undo =
-        storage::DeltaRecord::InitializeDeltaRecord(undo_buffer, timestamp, layout_, all_col_ids_);
+    // generate a txn with an undo DeltaRecord to populate on Insert
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
+    loose_txns_.push_back(txn);
 
-    storage::TupleSlot slot = table_.Insert(*redo, undo);
+    storage::TupleSlot slot = table_.Insert(txn, *redo);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].emplace_back(timestamp, redo);
 
@@ -47,27 +51,29 @@ class RandomDataTableTestObject {
 
   // be sure to only update tuple incrementally (cannot go back in time)
   template<class Random>
-  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator) {
+  bool RandomlyUpdateTuple(const timestamp_t timestamp,
+                           const storage::TupleSlot slot,
+                           Random *generator,
+                           common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
-    // generate random update
+    // generate a random redo ProjectedRow to Update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    byte *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
+    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
     storage::ProjectedRow *update =
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
-    byte *undo_buffer = new byte[storage::DeltaRecord::Size(layout_, update_col_ids)];
-    loose_pointers_.push_back(undo_buffer);
-    storage::DeltaRecord *undo =
-        storage::DeltaRecord::InitializeDeltaRecord(undo_buffer, timestamp, layout_, update_col_ids);
+    // generate a txn with an undo DeltaRecord to populate on Insert
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
+    loose_txns_.push_back(txn);
 
-    bool result = table_.Update(slot, *update, undo);
+    bool result = table_.Update(txn, slot, *update);
 
     if (result) {
       // manually apply the delta in an append-only fashion
-      byte *version_buffer = new byte[redo_size_];
+      auto *version_buffer = new byte[redo_size_];
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
       PELOTON_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_size_);
@@ -102,10 +108,15 @@ class RandomDataTableTestObject {
 
   storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot,
                                           const timestamp_t timestamp,
-                                          const std::vector<uint16_t> &col_ids) {
+                                          const std::vector<uint16_t> &col_ids,
+                                          common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
+    // generate a txn with an undo DeltaRecord to populate on Insert
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
+    loose_txns_.push_back(txn);
+
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer_, col_ids, layout_);
-    table_.Select(timestamp, slot, select_row);
+    table_.Select(txn, slot, select_row);
     return select_row;
   }
 
@@ -117,16 +128,17 @@ class RandomDataTableTestObject {
   // oldest to newest
   std::unordered_map<storage::TupleSlot, std::vector<tuple_version>> tuple_versions_;
   std::vector<byte *> loose_pointers_;
+  std::vector<transaction::TransactionContext *> loose_txns_;
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
   double null_bias_;
   // These always over-provision in the case of partial selects or deltas, which is fine.
   uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
-  uint32_t undo_size_ = storage::DeltaRecord::Size(layout_, all_col_ids_);
   byte *select_buffer_ = new byte[redo_size_];
 };
 
 struct DataTableTests : public ::testing::Test {
   storage::BlockStore block_store_{100};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -134,6 +146,7 @@ struct DataTableTests : public ::testing::Test {
 // Generates a random table layout and coin flip bias for an attribute being null, inserts num_inserts random tuples
 // into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
 // random tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 1000;
@@ -143,13 +156,13 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
 
     // Populate the table with random tuples
-    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_);
+    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool_);
 
     EXPECT_EQ(num_inserts, tested.InsertedTuples().size());
 
     std::vector<uint16_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (const auto &inserted_tuple : tested.InsertedTuples()) {
-      storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), all_cols);
+      storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), all_cols, &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, timestamp_t(1));
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, ref));
     }
@@ -159,6 +172,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
 // delta chain produces the correct tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleVersionChain) {
   const uint32_t num_iterations = 100;
   const uint32_t num_updates = 10;
@@ -168,10 +182,11 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     timestamp_t timestamp(0);
 
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp++, &generator_, &buffer_pool_);
     EXPECT_EQ(1, tested.InsertedTuples().size());
 
-    for (uint32_t i = 0; i < num_updates; ++i) tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_);
+    for (uint32_t i = 0; i < num_updates; ++i)
+      tested.RandomlyUpdateTuple(timestamp++, tuple, &generator_, &buffer_pool_);
 
     std::vector<byte *> select_buffers(num_updates + 1);
 
@@ -179,7 +194,8 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (uint32_t i = 0; i < num_versions; i++) {
       const storage::ProjectedRow *reference_version = tested.GetReferenceVersionedTuple(tuple, timestamp_t(i));
-      storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids);
+      storage::ProjectedRow *stored_version =
+          tested.SelectIntoBuffer(tuple, timestamp_t(i), all_col_ids, &buffer_pool_);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
     }
   }
@@ -191,20 +207,21 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 // positive number representing a commit. Then, the second transaction updates again and should succeed, and its
 // timestamp is changed to positive. Lastly, Selects at first timestamp to verify that the delta chain produces the
 // correct tuple. Repeats for num_iterations.
+// NOLINTNEXTLINE
 TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
-    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), &generator_);
+    storage::TupleSlot tuple = tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool_);
     // take the write lock by updating with "negative" timestamp
-    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, &generator_));
+    EXPECT_TRUE(tested.RandomlyUpdateTuple(timestamp_t(UINT64_MAX), tuple, &generator_, &buffer_pool_));
     // second transaction attempts to write, should fail
-    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_));
+    EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_, &buffer_pool_));
 
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
-    storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), all_col_ids);
+    storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), all_col_ids, &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, timestamp_t(UINT64_MAX));
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));
   }

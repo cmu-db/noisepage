@@ -9,6 +9,7 @@
 
 namespace terrier {
 // Rather minimalistic checks for whether we reuse memory
+// NOLINTNEXTLINE
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t reuse_limit = 1;
@@ -16,8 +17,12 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
+  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
+  // NOLINTNEXTLINE
   tested.Release(reused_ptr);
 
+  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
+  // NOLINTNEXTLINE
   for (uint32_t i = 0; i < repeat; i++) {
     EXPECT_EQ(tested.Get(), reused_ptr);
     tested.Release(reused_ptr);
@@ -26,41 +31,39 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
 class ObjectPoolTestType {
  public:
-  ObjectPoolTestType *Use() {
-    // We would expect that the memory we get back is not in-use;
-    bool expected = false;
-    // If this comes back false we are being given a reference that others hold,
-    // which indicates a bug.
-    EXPECT_TRUE(in_use_.compare_exchange_strong(expected, true));
+  ObjectPoolTestType *Use(uint32_t thread_id) {
+    user_ = thread_id;
     return this;
   }
 
-  ObjectPoolTestType *Release() {
-    in_use_.store(false);
+  ObjectPoolTestType *Release(uint32_t thread_id) {
+    // Nobody used this
+    EXPECT_EQ(thread_id, user_);
     return this;
   }
  private:
-  std::atomic<bool> in_use_;
+  std::atomic<uint32_t> user_;
 };
 
 // This test generates random workload and sees if the pool gives out
 // the same pointer to two threads at the same time.
+// NOLINTNEXTLINE
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
-  auto workload = [&](uint32_t) {
+  auto workload = [&](uint32_t tid) {
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
     // Store the pointers we use.
     std::vector<ObjectPoolTestType *> ptrs;
     auto allocate = [&] {
-      ptrs.push_back(tested.Get()->Use());
+      ptrs.push_back(tested.Get()->Use(tid));
     };
     auto free = [&] {
       if (!ptrs.empty()) {
         auto pos = MultiThreadedTestUtil::UniformRandomElement(&ptrs, &generator);
-        tested.Release((*pos)->Release());
+        tested.Release((*pos)->Release(tid));
         ptrs.erase(pos);
       }
     };
@@ -69,7 +72,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
                                              &generator,
                                              100);
     for (auto *ptr : ptrs)
-      tested.Release(ptr->Release());
+      tested.Release(ptr->Release(tid));
   };
 
   MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
