@@ -24,7 +24,7 @@ class FakeTransaction {
   template<class Random>
   storage::TupleSlot InsertRandomTuple(Random *generator) {
     // generate a random redo ProjectedRow to Insert
-    byte *redo_buffer = new byte[redo_size_];
+    auto *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
@@ -39,7 +39,7 @@ class FakeTransaction {
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    byte *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
+    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
     storage::ProjectedRow *update =
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
@@ -85,6 +85,7 @@ struct DataTableConcurrentTests : public ::testing::Test {
 // Spawns multiple transactions. The timestamps of the transactions don't matter,
 // because every transaction is just inserting a new random tuple.
 // Therefore all transactions should successfully insert their tuples, which is what we test for.
+// NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 10000;
@@ -105,7 +106,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    byte *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
+    auto *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn.InsertedTuples()) {
         storage::ProjectedRow
@@ -121,6 +122,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 // Spawns multiple transactions that all begin at the same time.
 // Each transaction attempts to update the same tuple.
 // Therefore only one transaction should win, which is what we test for.
+// NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 20;
