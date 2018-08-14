@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tbb/spin_mutex.h>
+#include "common/macros.h"
 
 namespace terrier::common {
 
@@ -30,6 +31,27 @@ class SpinLatch {
    * @brief Unlocks the spin latch.
    */
   void Unlock() { latch_.unlock(); }
+
+  /**
+   * Scoped spin latch that guaranteees releasing the lock when destructed.
+   */
+  class ScopedSpinLatch {
+   public:
+    ScopedSpinLatch() = delete;
+    /**
+     * Acquire lock on SpinLatch.
+     * @param latch pointer to SpinLatch to acquire
+     */
+    explicit ScopedSpinLatch(SpinLatch *latch) : spin_latch_(latch) { spin_latch_->Lock(); }
+
+    /**
+     * Release lock (if acquired).
+     */
+    ~ScopedSpinLatch() { spin_latch_->Unlock(); }
+    DISALLOW_COPY_AND_MOVE(ScopedSpinLatch)
+   private:
+    SpinLatch *spin_latch_;
+  };
 
  private:
   tbb::spin_mutex latch_;
