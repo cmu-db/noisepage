@@ -15,17 +15,12 @@ extern std::shared_ptr<spdlog::logger> main_logger;
 
 void init_main_logger();
 
-#define LOG_TRACE(...) \
-  ::main_logger->trace(__VA_ARGS__);
+#define LOG_TRACE(...) ::main_logger->trace(__VA_ARGS__);
 
-#define LOG_DEBUG(...) \
-  ::main_logger->debug(__VA_ARGS__);
+#define LOG_DEBUG(...) ::main_logger->debug(__VA_ARGS__);
 
-#define LOG_INFO(...) \
-  ::main_logger->info(__VA_ARGS__);
+#define LOG_INFO(...) ::main_logger->info(__VA_ARGS__);
 
-#define LOG_WARN(...) \
-  ::main_logger->warn(__VA_ARGS__);
+#define LOG_WARN(...) ::main_logger->warn(__VA_ARGS__);
 
-#define LOG_ERROR(...) \
-  ::main_logger->error(__VA_ARGS__);
+#define LOG_ERROR(...)::main_logger->error(__VA_ARGS__);
