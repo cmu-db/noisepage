@@ -12,6 +12,8 @@
 
 namespace terrier {
 
+// Tests that the ConcurrentBitmap works in a single-threaded context
+// NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
@@ -49,6 +51,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   }
 }
 // The test exercises FirstUnsetPos in a single-threaded context
+// NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
@@ -126,6 +129,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   }
 }
 // The test exercises FirstUnsetPos with edge-case sizes
+// NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
   // fill an entire block of 16, then try to find an unset bit
   {
@@ -160,6 +164,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
   }
 }
 // The test attempts to concurrently flip every bit from 0 to 1 using FirstUnsetPos
+// NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   std::default_random_engine generator;
   const uint32_t num_iters = 200;
@@ -204,8 +209,8 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 
 // The test attempts to concurrently flip every bit from 0 to 1, and
 // record successful flips into thread-local storage
-// This is equivalent to grabbing a free slot if used in an
-// allocator
+// This is equivalent to grabbing a free slot if used in an allocator
+// NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   std::default_random_engine generator;
   const uint32_t num_iters = 200;

@@ -7,6 +7,7 @@
 namespace terrier {
 
 // Allocate and free once
+// NOLINTNEXTLINE
 TEST(VarlenPoolTests, AllocateOnceTest) {
   storage::VarlenPool pool;
   const uint32_t size = 40;
@@ -31,6 +32,7 @@ void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
 // This test generates random workload of both new and delete.
 // It checks that all varlen entries allocated are well formed (size field has
 // expected value, and no overlapping)
+// NOLINTNEXTLINE
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
   const uint32_t repeat = 100, num_threads = 8;
   for (uint32_t i = 0; i < repeat; i++) {

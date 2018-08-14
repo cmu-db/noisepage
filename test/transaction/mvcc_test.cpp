@@ -31,7 +31,7 @@ class MVCCDataTableTestObject {
 
   template<class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    byte *buffer = new byte[redo_size_];
+    auto *buffer = new byte[redo_size_];
     loose_pointers_.push_back(buffer);
     storage::ProjectedRow
         *redo = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids_, layout_);
@@ -42,7 +42,7 @@ class MVCCDataTableTestObject {
   template<class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    byte *buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
+    auto *buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
     loose_pointers_.push_back(buffer);
     storage::ProjectedRow *update =
         storage::ProjectedRow::InitializeProjectedRow(buffer, update_col_ids, layout_);
@@ -52,7 +52,7 @@ class MVCCDataTableTestObject {
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    byte *buffer = new byte[redo_size_];
+    auto *buffer = new byte[redo_size_];
     loose_pointers_.push_back(buffer);
     // Copy previous version
     PELOTON_MEMCPY(buffer, &previous, redo_size_);
@@ -113,6 +113,7 @@ struct MVCCTests : public ::testing::Test {
 // Txn #2 should only read Txn #0's version of X
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -168,6 +169,7 @@ TEST_F(MVCCTests, CommitInsert1) {
 // Txn #2 should only read Txn #1's version of X
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -223,6 +225,7 @@ TEST_F(MVCCTests, CommitInsert2) {
 // Txn #2 should only read the previous version of X because Txn #0 aborted
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -278,6 +281,7 @@ TEST_F(MVCCTests, AbortInsert1) {
 // Txn #2 should only read the previous version of X because Txn #1 aborted
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -333,6 +337,7 @@ TEST_F(MVCCTests, AbortInsert2) {
 // Txn #2 should only read Txn #0's version of X
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -399,6 +404,7 @@ TEST_F(MVCCTests, CommitUpdate1) {
 // Txn #2 should only read Txn #1's version of X
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -465,6 +471,7 @@ TEST_F(MVCCTests, CommitUpdate2) {
 // Txn #2 should only read the previous version of X because Txn #0 aborted
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
@@ -531,6 +538,7 @@ TEST_F(MVCCTests, AbortUpdate1) {
 // Txn #2 should only read the previous version of X because Txn #1 aborted
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
+// NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
