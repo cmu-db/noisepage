@@ -252,17 +252,30 @@ endif (UNIX)
 # "make format" and "make check-format" targets
 ###########################################################
 
+# we modified the format script to take multiple args
+
+string(CONCAT FORMAT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        )
+
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-  ${CLANG_FORMAT_BIN}
-  ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-  ${CMAKE_CURRENT_SOURCE_DIR}/src --fix ${TERRIER_LINT_QUIET})
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        --fix
+        ${TERRIER_LINT_QUIET})
 
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-   ${CLANG_FORMAT_BIN}
-   ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-   ${CMAKE_CURRENT_SOURCE_DIR}/src ${TERRIER_LINT_QUIET})
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        ${TERRIER_LINT_QUIET})
 
 ###########################################################
 # "make check-clang-tidy" target
