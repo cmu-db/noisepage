@@ -142,8 +142,7 @@ struct StorageTestUtil {
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
       if (one_content == nullptr || other_content == nullptr) {
-        if (one_content == other_content)
-          continue;
+        if (one_content == other_content) continue;
         return false;
       }
 
