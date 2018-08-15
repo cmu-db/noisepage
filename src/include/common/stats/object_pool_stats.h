@@ -31,13 +31,13 @@ class ObjectPoolStats : public AbstractStats {
   /** @brief Register a stats collector and register itself to the stats collector.
    *  @param stats_collector  stats collector which this class send the counters to.
    */
-  ObjectPoolStats(StatsCollector *stats_collector) : AbstractStats(stats_collector) {
+  explicit ObjectPoolStats(StatsCollector *stats_collector) : AbstractStats(stats_collector) {
     stats_collector_->RegisterCounter(create_block_counter_name_);
     stats_collector_->RegisterCounter(reuse_block_counter_name_);
   }
 
   /** @brief synchronize with the stats collector and deregister itself from the stats collector. */
-  ~ObjectPoolStats() { SyncAllCounters(); }
+  ~ObjectPoolStats() override { SyncAllCounters(); }
 
   /** @brief increment create block couter. */
   void IncrementCreateBlockCounter() { create_block_counter_++; };
@@ -52,7 +52,7 @@ class ObjectPoolStats : public AbstractStats {
   void ClearReuseBlockCounter() { reuse_block_counter_ = 0; }
 
   /** @brief synchronize all counters with the stats collector */
-  void SyncAllCounters() {
+  void SyncAllCounters() override {
     // Write create block counter's value to the collector and clear it.
     stats_collector_->AddValue(create_block_counter_name_, create_block_counter_);
     ClearCreateBlockCounter();

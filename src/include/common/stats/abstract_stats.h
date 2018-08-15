@@ -31,7 +31,7 @@ class AbstractStats {
    *         registration of the counters collected.
    *  @param stats_collector  stats collector which this class send the counters to.
    */
-  AbstractStats(StatsCollector *stats_collector);
+  explicit AbstractStats(StatsCollector *stats_collector);
 
   /** @brief Deregister itself from the stats collector. A inheritance class should add
    *         synchronization with the stats collector before local counter values are disappered.
