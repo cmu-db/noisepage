@@ -251,15 +251,19 @@ class LargeTransactionTests : public ::testing::Test {
   std::default_random_engine generator_;
 };
 
+// This test case generates random update-selects in concurrent transactions on a pre-populated database.
+// Each transaction logs their operations locally. At the end of the run, we can reconstruct the snapshot of
+// a database using the updates at every timstamp, and compares the reads with the reconstructed snapshot versions
+// to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 100;
+  const uint32_t num_iterations = 50;
   const uint16_t max_columns = 20;
-  const uint32_t initial_table_size = 1000;
+  const uint32_t initial_table_size = 500;
   const uint32_t txn_length = 50;
-  const uint32_t num_txns = 500;
+  const uint32_t num_txns = 200;
   const auto update_select_ratio = {0.3, 0.7};
-  const uint32_t num_concurrent_txns = 8;
+  const uint32_t num_concurrent_txns = 4;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns,
                                       initial_table_size,
