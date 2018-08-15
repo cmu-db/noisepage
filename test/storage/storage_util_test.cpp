@@ -99,4 +99,45 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     }
   }
 }
+
+
+// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected row and compare results.
+// Repeat for from the same position and compare results. Repeats for num_iterations.
+// NOLINTNEXTLINE
+TEST_F(StorageUtilTests, CopyToTupleSlot) {
+  uint32_t num_iterations = 500;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    StorageUtilTestObject test_obj;
+
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+    storage::TupleAccessStrategy tested(layout);
+    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
+
+    storage::TupleSlot slot;
+    EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
+
+    std::bernoulli_distribution null_dist(null_ratio_(generator_));
+    for(uint16_t col = 0; col < layout.num_cols_; ++col){
+      uint8_t attr_size = layout.attr_sizes_[col];
+      byte *from = nullptr;
+      bool is_null = null_dist(generator_);
+      if(!is_null){
+        // generate a random val
+        from = new byte[attr_size];
+        test_obj.loose_pointers_.push_back(from);
+        StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
+      }
+      storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col);
+
+      if(is_null){
+        EXPECT_EQ(tested.AccessWithNullCheck(slot, col), nullptr);
+      }else{
+        EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
+                  storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col)));
+      }
+    }
+  }
+}
+
 }
