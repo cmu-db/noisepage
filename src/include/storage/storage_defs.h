@@ -265,12 +265,12 @@ class PACKED ProjectedRow {
   /**
    * @return the size of this ProjectedRow in memory, in bytes
    */
-  const uint32_t &Size() const { return size_; }
+  uint32_t Size() const { return size_; }
 
   /**
    * @return number of columns stored in the ProjectedRow
    */
-  const uint16_t &NumColumns() const { return num_cols_; }
+  uint16_t NumColumns() const { return num_cols_; }
 
   /**
    * @return pointer to the start of the uint16_t array of column ids
