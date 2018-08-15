@@ -77,7 +77,7 @@ class StatsCollector {
   void ClearCounter(const std::string &name) { counters_[name] = 0; }
 
   /** @brief clear all counters registered */
-  void ClearCounters() {
+  void ClearAllCounters() {
     for (auto counter : counters_) {
       ClearCounter(counter.first);
     }
@@ -86,7 +86,7 @@ class StatsCollector {
   /** @brief collect all the latest counters' values from registered stats */
   void ColloectCounters() {
     for (auto stats : stats_vector_) {
-      stats->SyncAllCounters();
+      stats->SyncAndClearAllCounters();
     }
   }
 

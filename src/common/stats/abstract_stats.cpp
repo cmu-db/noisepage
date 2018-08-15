@@ -25,5 +25,3 @@ namespace terrier::common {
   }
 
 }  // namespace terrier::common
-
-

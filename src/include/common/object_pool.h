@@ -34,9 +34,7 @@ struct ByteAllocator {
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *ptr) { delete[] ptr; }  // NOLINT
-  // TODO(WAN): clang-tidy believes we are trying to free released memory.
-  // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
+  void Delete(T *ptr) { delete[] ptr; }
 };
 
 // TODO(Tianyu): Should this be by size or by class type?
@@ -72,6 +70,7 @@ class ObjectPool {
    */
   explicit ObjectPool(uint64_t reuse_limit, StatsCollector *stats_collector) : reuse_limit_(reuse_limit) {
     if (stats_collector != nullptr) {
+      // enable stats collection
       enable_stats_ = true;
       stats_ = std::make_unique<ObjectPoolStats>(stats_collector);
     }
@@ -137,7 +136,7 @@ class ObjectPool {
   const uint64_t reuse_limit_;
 
   // statistics about usage of blocks in the class.
-  // boolean flag, enable_stats, is used to disable the statistics.
+  // enable_stats is used to disable the statistics.
   bool enable_stats_ = false;
   std::unique_ptr<ObjectPoolStats> stats_;
 };

@@ -28,7 +28,7 @@ class ObjectPoolStats : public AbstractStats {
  public:
   ObjectPoolStats() = delete;
 
-  /** @brief Register a stats collector and register itself to the stats collector.
+  /** @brief Register a stats collector in the super class and register itself to the stats collector.
    *  @param stats_collector  stats collector which this class send the counters to.
    */
   explicit ObjectPoolStats(StatsCollector *stats_collector) : AbstractStats(stats_collector) {
@@ -36,7 +36,7 @@ class ObjectPoolStats : public AbstractStats {
     stats_collector_->RegisterCounter(reuse_block_counter_name_);
   }
 
-  /** @brief synchronize with the stats collector and deregister itself from the stats collector. */
+  /** @brief Snchronize with the stats collector. */
   ~ObjectPoolStats() override { SyncAllCounters(); }
 
   /** @brief increment create block couter. */
@@ -51,14 +51,22 @@ class ObjectPoolStats : public AbstractStats {
   /** @brief clear create block couter. */
   void ClearReuseBlockCounter() { reuse_block_counter_ = 0; }
 
-  /** @brief synchronize all counters with the stats collector */
-  void SyncAllCounters() override {
-    // Write create block counter's value to the collector and clear it.
-    stats_collector_->AddValue(create_block_counter_name_, create_block_counter_);
+  /** @brief clear all counters */
+  void ClearAllCounters() {
     ClearCreateBlockCounter();
-    // Write reuse block counter's value to the collector and clear it.
-    stats_collector_->AddValue(reuse_block_counter_name_, reuse_block_counter_);
     ClearReuseBlockCounter();
+  }
+
+  /** @brief synchronize all counters with the stats collector */
+  void SyncAllCounters() {
+    stats_collector_->AddValue(create_block_counter_name_, create_block_counter_);
+    stats_collector_->AddValue(reuse_block_counter_name_, reuse_block_counter_);
+  }
+
+  /** @brief synchronize all counters with the stats collector and clear them */
+  void SyncAndClearAllCounters() override {
+    SyncAllCounters();
+    ClearAllCounters();
   }
 
  private:

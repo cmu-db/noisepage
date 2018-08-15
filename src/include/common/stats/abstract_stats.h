@@ -19,8 +19,7 @@ class StatsCollector;
 /**
  * AbstractStats is a virtual stats class for diverse statistics classes.
  *   e.g. for statistics of memory, network or transaction usage.
- * This has to register a StatsCollector with which synchronizes counters defined in a class
- * inheriting this. Besides, the class has to implement the synchronizing method.
+ * An inheriting class has to implement the method synchronizing with collector.
  */
 
 class AbstractStats {
@@ -38,8 +37,8 @@ class AbstractStats {
    */
   virtual ~AbstractStats();
 
-  /** @brief synchronize all counters with the stats collector */
-  virtual void SyncAllCounters() = 0;
+  /** @brief synchronize all counters with the stats collector and clear them */
+  virtual void SyncAndClearAllCounters() = 0;
 
  protected:
   StatsCollector *stats_collector_;
