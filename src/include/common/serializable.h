@@ -22,6 +22,7 @@ namespace terrier {
  * A SerializeInput is an abstract class for reading-from-memory buffers
  */
 class SerializeInput {
+ public:
   /** No implicit copies */
   SerializeInput(const SerializeInput &) = delete;
   SerializeInput &operator=(const SerializeInput &) = delete;
@@ -32,7 +33,7 @@ class SerializeInput {
    *
    * @warning It does no initialization. Subclasses must call initialize.
    */
-  SerializeInput() : current_(NULL), end_(NULL) {}
+  SerializeInput() : current_(nullptr), end_(nullptr) {}
 
   /**
    * @brief Initializes a reading-from-memory buffer with the given data and
@@ -51,7 +52,7 @@ class SerializeInput {
    * @brief Pure virtual destructor to permit subclasses to customize
    * destruction.
    */
-  virtual ~SerializeInput() {}
+  virtual ~SerializeInput() = default;
 
   /**
    * @brief Gets a pointer to the current read position of the internal data
@@ -222,9 +223,9 @@ class SerializeInput {
   }
 
   /** Current read position */
-  const std::byte *current_;
+  const std::byte *current_{nullptr};
   /** End of the buffer. Valid byte range: current_ <= validPointer < end_. */
-  const std::byte *end_;
+  const std::byte *end_{nullptr};
 };
 
 /**
@@ -232,6 +233,7 @@ class SerializeInput {
  * Subclasses may optionally support resizing.
  */
 class SerializeOutput {
+ public:
   /** No implicit copies */
   SerializeOutput(const SerializeOutput &) = delete;
   SerializeOutput &operator=(const SerializeOutput &) = delete;
@@ -240,7 +242,7 @@ class SerializeOutput {
   /**
    * @brief Constructs a writing-to-memory buffer with no initialization.
    */
-  SerializeOutput() : buffer_(NULL), position_(0), capacity_(0) {}
+  SerializeOutput() : buffer_(nullptr), position_(0), capacity_(0) {}
 
   /**
    * @brief Sets the buffer to buffer with capacity to initialize it.
@@ -268,7 +270,7 @@ class SerializeOutput {
    * @brief Pure virtual destructor to permit subclasses to customize
    * destruction.
    */
-  virtual ~SerializeOutput() {}
+  virtual ~SerializeOutput() = default;
 
   /**
    * @brief Gets a pointer to the beginning of the buffer, for reading the
@@ -412,7 +414,7 @@ class SerializeOutput {
   void WriteBinaryString(const void *value, int16_t length) {
     PELOTON_ASSERT(length <= std::numeric_limits<int16_t>::max(),
                    "the length must be less than or equal to the maximum value of type int16_t");
-    int16_t stringLength = static_cast<int16_t>(length);
+    auto stringLength = static_cast<int16_t>(length);
     AssureExpand(length + sizeof(stringLength));
 
     std::byte *current = buffer_ + position_;
@@ -474,7 +476,7 @@ class SerializeOutput {
   void WriteSimpleTypeVector(const std::vector<T> &vec) {
     PELOTON_ASSERT(vec.size() <= std::numeric_limits<int>::max(),
                    "the size of the vector must be less than or equal to the maximum value of type int");
-    int size = static_cast<int>(vec.size());
+    auto size = static_cast<int>(vec.size());
 
     // Resize the buffer once
     AssureExpand(sizeof(size) + size * sizeof(T));
@@ -570,11 +572,11 @@ class SerializeOutput {
   }
 
   /** Beginning of the buffer. */
-  std::byte *buffer_;
+  std::byte *buffer_{nullptr};
   /** Current write position in the buffer. */
-  uint32_t position_;
+  uint32_t position_{0};
   /** Total bytes this buffer can contain. */
-  uint32_t capacity_;
+  uint32_t capacity_{0};
 };
 
 /**
@@ -596,7 +598,7 @@ class ReferenceSerializeInput : public SerializeInput {
    * @brief Destructor does nothing since there is nothing to clean up. Pure
    * virtual destructor to permit subclasses to customize destruction.
    */
-  virtual ~ReferenceSerializeInput() {}
+  ~ReferenceSerializeInput() override = default;
 };
 
 /**
@@ -612,7 +614,7 @@ class ReferenceSerializeOutput : public SerializeOutput {
    * @param data the data of the buffer to be referenced
    * @param length the length of the buffer to be referenced
    */
-  ReferenceSerializeOutput(void *data, uint32_t length) : SerializeOutput() { Initialize(data, length); }
+  ReferenceSerializeOutput(void *data, uint32_t length) { Initialize(data, length); }
 
   /**
    * @brief Sets the buffer to the existing one with a specified capacity and
@@ -631,11 +633,11 @@ class ReferenceSerializeOutput : public SerializeOutput {
    * @brief Destructor does nothing since there is nothing to clean up. Pure
    * virtual destructor to permit subclasses to customize destruction.
    */
-  virtual ~ReferenceSerializeOutput() {}
+  ~ReferenceSerializeOutput() override = default;
 
  protected:
   /** Reference output can't resize the buffer: just crash. */
-  virtual void Expand(UNUSED_ATTRIBUTE uint32_t minimum_desired) {
+  void Expand(UNUSED_ATTRIBUTE uint32_t minimum_desired) override {
     PELOTON_ASSERT(false, "Reference output can't resize the buffer");
     abort();
   }
@@ -662,7 +664,7 @@ class CopySerializeInput : public SerializeInput {
   /**
    * @brief Destructor frees the ByteArray.
    */
-  virtual ~CopySerializeInput() {}
+  ~CopySerializeInput() override = default;
 
  private:
   ByteArray bytes_;
@@ -677,12 +679,12 @@ class CopySerializeOutput : public SerializeOutput {
   /**
    * @brief Constructs a writing-to-memory buffer by making a new copy
    */
-  CopySerializeOutput() : bytes_(0) { Initialize(NULL, 0); }
+  CopySerializeOutput() : bytes_(0) { Initialize(nullptr, 0); }
 
   /**
    * @brief Destructor frees the ByteArray.
    */
-  virtual ~CopySerializeOutput() {}
+  ~CopySerializeOutput() override = default;
 
  protected:
   /**
@@ -690,7 +692,7 @@ class CopySerializeOutput : public SerializeOutput {
    *
    * @param minimum_desired the minimum amount of memory desired
    */
-  virtual void Expand(uint32_t minimum_desired) {
+  void Expand(uint32_t minimum_desired) override {
     uint32_t next_capacity = (bytes_.Length() + minimum_desired) * 2;
     PELOTON_ASSERT(next_capacity < std::numeric_limits<int>::max(),
                    "the next capacity must be less than or equal to the maximum value of type int");
