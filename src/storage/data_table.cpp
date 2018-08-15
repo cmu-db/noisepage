@@ -1,5 +1,5 @@
 #include <unordered_map>
-
+#include <unistd.h>
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -54,6 +54,45 @@ void DataTable::Select(transaction::TransactionContext *txn,
                             col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
+}
+
+ProjectedRow *DataTable::Select(timestamp_t t, TupleSlot slot) const {
+  ProjectedRow *out = reinterpret_cast<ProjectedRow *>(new byte[ProjectedRow::Size(accessor_.GetBlockLayout(), {1})]);
+  ProjectedRow::InitializeProjectedRow(out, {1}, accessor_.GetBlockLayout());
+  // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+  // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+  // can potentially happen, and chase the version chain before returning anyway,
+  for (uint16_t i = 0; i < out->NumColumns(); i++)
+    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out, i);
+
+  // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
+  // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
+  // enough to reorder this operation in or in front of the for loop.
+  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+
+  // Nullptr in version chain means no version visible to any transaction alive at this point.
+  // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
+  if (version_ptr == nullptr) return out;
+
+  // Creates a mapping from col offset to project list index. This allows us to efficiently
+  // access columns since deltas can concern a different set of columns when chasing the
+  // version chain
+  std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
+  for (uint16_t i = 0; i < out->NumColumns(); i++)
+    col_to_projection_list_index.emplace(out->ColumnIds()[i], i);
+
+  // Apply deltas until we reconstruct a version safe for us to read
+  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
+  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
+  while (version_ptr != nullptr
+      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), t)) {
+    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
+                            *(version_ptr->Delta()),
+                            out,
+                            col_to_projection_list_index);
+    version_ptr = version_ptr->Next();
+  }
+  return out;
 }
 
 bool DataTable::Update(transaction::TransactionContext *txn,
@@ -124,8 +163,9 @@ void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrFromProjection(accessor_, slot, *(version_ptr->Delta()), i);
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
-  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atoic
+  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
+//  usleep(1);
   AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
 }
 
@@ -142,7 +182,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired);
+  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired, std::memory_order::memory_order_release);
 }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,

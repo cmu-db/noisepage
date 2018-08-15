@@ -43,6 +43,8 @@ class DataTable {
    */
   void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
+  ProjectedRow *Select(timestamp_t t, TupleSlot slot) const;
+
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
    * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only

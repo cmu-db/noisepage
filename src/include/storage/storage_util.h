@@ -175,3 +175,204 @@ class StorageUtil {
   }
 };
 }  // namespace terrier::storage
+
+/*
+error version_timestamp: 19
+expected:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+actual:
+num_cols: 1
+col_id: 1 is 54f4c3ded577eb66
+version history below:
+at timestamp 0:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 3:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 6:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 11:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 15:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 18:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 21:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 32:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 39:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+at timestamp 44:
+num_cols: 1
+col_id: 1 is 8a0675e48d1b7486
+at timestamp 49:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+at timestamp 54:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+at timestamp 59:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+at timestamp 64:
+num_cols: 1
+col_id: 1 is f68d26814cb9450b
+
+
+*******begin txn*********
+transaction starting at: 2
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 3
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 4
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 6
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 9
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 11
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 13
+relevant reads to slot:
+relevant writes to slot:
+transaction committed at: 15
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 16
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 18
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 19
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+num_cols: 1
+col_id: 1 is 54f4c3ded577eb66
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 21
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 28
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 32
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 38
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+transaction committed at: 39
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 40
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 58787b8351e067f7
+relevant writes to slot:
+num_cols: 1
+col_id: 1 is 8a0675e48d1b7486
+transaction committed at: 44
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 45
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 8a0675e48d1b7486
+num_cols: 1
+col_id: 1 is 8a0675e48d1b7486
+relevant writes to slot:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+transaction committed at: 49
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 50
+relevant reads to slot:
+relevant writes to slot:
+transaction committed at: 54
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 56
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+relevant writes to slot:
+transaction committed at: 59
+*******end txn*********
+
+
+*******begin txn*********
+transaction starting at: 60
+relevant reads to slot:
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+num_cols: 1
+col_id: 1 is 6e23e704a8d57c45
+num_cols: 1
+col_id: 1 is f68d26814cb9450b
+relevant writes to slot:
+num_cols: 1
+col_id: 1 is f68d26814cb9450b
+transaction committed at: 64
+*******end txn*********
+*/
