@@ -1,7 +1,6 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -104,9 +103,9 @@ class DataTable {
     const timestamp_t txn_id = txn->TxnId();
     const timestamp_t start_time = txn->StartTime();
     return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
-        // Someone else owns this tuple, write-write-conflict
-        || (transaction::TransactionUtil::Committed(version_timestamp) &&
-            transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
+           // Someone else owns this tuple, write-write-conflict
+           || (transaction::TransactionUtil::Committed(version_timestamp) &&
+               transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
     // Someone else already committed an update to this tuple while we were running, we can't update this under SI
   }
 

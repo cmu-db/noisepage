@@ -50,9 +50,7 @@ class ConcurrentVector {
       return result;
     }
 
-    Iterator operator+(uint32_t by) {
-      return Iterator(it_ + by);
-    }
+    Iterator operator+(uint32_t by) { return Iterator(it_ + by); }
 
     /**
      * Equality test
@@ -81,9 +79,7 @@ class ConcurrentVector {
    */
   explicit ConcurrentVector(uint64_t size, const T &t = T()) : vector_(size, t) {}
 
-  uint64_t Size() const {
-    return vector_.size();
-  }
+  uint64_t Size() const { return vector_.size(); }
 
   /**
    * Adds a new element at the end of the vector, after its current last element.

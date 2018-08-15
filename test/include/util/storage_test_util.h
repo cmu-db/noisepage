@@ -201,6 +201,5 @@ struct StorageTestUtil {
       }
     }
   }
-
 };
 }  // namespace terrier

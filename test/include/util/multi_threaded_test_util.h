@@ -3,8 +3,8 @@
 #include <random>
 #include <thread>  // NOLINT
 #include <vector>
-#include "common/object_pool.h"
 #include "common/container/concurrent_vector.h"
+#include "common/object_pool.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -23,10 +23,26 @@ struct MultiThreadedTestUtil {
    * @param generator source of randomness to use
    * @return iterator to a randomly selected element
    */
-  template<typename T, typename Random>
+  template <typename T, typename Random>
   static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
     return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
   }
+
+  /**
+   * Selects an element from the supplied constant vector uniformly at random, using the
+   * given random generator.
+   *
+   * @tparam T type of elements in the vector
+   * @tparam Random type of random generator to use
+   * @param elems vector of elements to draw from
+   * @param generator source of randomness to use
+   * @return const iterator to a randomly selected element
+   */
+  template <class T, class Random>
+  static typename std::vector<T>::const_iterator UniformRandomElement(const std::vector<T> &elems, Random *generator) {
+    return elems.cbegin() + std::uniform_int_distribution(0, static_cast<int>(elems.size() - 1))(*generator);
+  }
+
   /**
    * Spawn up the specified number of threads with the workload and join them before
    * returning. This can be done repeatedly if desired.
@@ -57,7 +73,7 @@ struct MultiThreadedTestUtil {
    * @param generator source of randomness to use
    * @param repeat the number of times this should be done.
    */
-  template<typename Random>
+  template <typename Random>
   static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
                                              std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {

@@ -1,10 +1,11 @@
 #pragma once
 #include <tbb/reader_writer_lock.h>
+#include <map>
+#include "common/rw_latch.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
-#include "common/rw_latch.h"
 
 namespace terrier::transaction {
 /**
@@ -102,6 +103,5 @@ class TransactionManager {
   // think about this when refactoring the txn id thing.
   mutable common::SpinLatch table_latch_;
   std::map<timestamp_t, TransactionContext *> curr_running_txns_;
-
 };
 }  // namespace terrier::transaction

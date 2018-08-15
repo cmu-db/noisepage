@@ -1,5 +1,4 @@
 #include <unordered_map>
-#include <unistd.h>
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
