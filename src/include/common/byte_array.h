@@ -10,7 +10,7 @@
  ***************************************************************************/
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 #include <cstring>
 #include <memory>
 #include "common/macros.h"
@@ -122,7 +122,7 @@ class GenericArray {
    *
    * @return true if the data of the GenericArray is null, false otherwise
    */
-  bool IsNull() const { return data_ == NULL; }
+  bool IsNull() const { return data_ == nullptr; }
 
   /**
    * @brief Resets the data and length of the GenericArray.
@@ -260,5 +260,5 @@ class GenericArray {
   int length_;
 };
 
-typedef GenericArray<std::byte> ByteArray;
+using ByteArray = GenericArray<std::byte>;
 }  // namespace terrier
