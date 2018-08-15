@@ -197,9 +197,8 @@ class LargeTransactionTestObject {
       curr->emplace(entry.first, CopyTuple(entry.second));
     for (auto &update : txn->updates_) {
       // TODO(Tianyu): Can be smarter about copies
-      storage::ProjectedRow *new_version = CopyTuple((*curr)[update.first]);
+      storage::ProjectedRow *new_version = (*curr)[update.first];
       storage::StorageUtil::ApplyDelta(layout_, *update.second, new_version);
-      (*curr)[update.first] = new_version;
     }
   }
 
