@@ -2,9 +2,9 @@
 //
 //                         Terrier
 //
-// stats_collector.h
+// stats_collector.cpp
 //
-// Identification: src/common/stats/stats_collector.h
+// Identification: src/common/stats/stats_collector.cpp
 //
 // Copyright (c) 2015-18, Carnegie Mellon University Database Group
 //

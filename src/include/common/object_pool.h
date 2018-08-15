@@ -64,11 +64,16 @@ class ObjectPool {
 
   /**
    * Initializes a new object pool with the supplied limit to the number of
-   * objects reused with performance counters.
+   * objects reused with statistics collector.
    * @param reuse_limit
-   * @param pc  Performance counters to count the block creation and its queue use.
+   * @param stats_collector  stats collector pointer to collect and to print stats in this class.
    */
-  explicit ObjectPool(uint64_t reuse_limit, StatsCollector *stats_collector) : reuse_limit_(reuse_limit), enable_stats_(true), stats_(std::make_unique<ObjectPoolStats>(stats_collector)) {}
+  explicit ObjectPool(uint64_t reuse_limit, StatsCollector *stats_collector) : reuse_limit_(reuse_limit) {
+    if (stats_collector != nullptr) {
+      enable_stats_ = true;
+      stats_ = std::make_unique<ObjectPoolStats>(stats_collector);
+    }
+  }
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -130,7 +135,8 @@ class ObjectPool {
   // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 
-  // Performance counters
+  // statistics about usage of blocks in the class.
+  // boolean flag, enable_stats, is used to disable the statistics.
   bool enable_stats_ = false;
   std::unique_ptr<ObjectPoolStats> stats_;
 

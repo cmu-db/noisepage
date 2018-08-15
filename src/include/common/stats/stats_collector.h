@@ -27,21 +27,34 @@
 namespace terrier::common {
 
 /**
- *  Collector for statistics
- **/
+ *  StatsCollector aggregates counters as statistics from stats classes implementing
+ *  AbstractStats. The target stats classes have to register themselves to this class,
+ *  and also have to register counters. StatsCollector doesn't automatically collect
+ *  counters for the efficiency. So if it would be necessary to print the latest counters,
+ *  a method to collect all counters need to be called.
+ */
 
 class StatsCollector {
  public:
   StatsCollector() = default;
 
+  /** @brief Register a stats object into the stats collection list.
+   *  @param stats  stats object to be collected its counters.
+   */
   void RegisterStats(AbstractStats *stats) { stats_vector_.push_back(stats); }
 
+  /** @brief Deregister a stats object from the stats collection list.
+   *  @param stats  stats object to be out of collecting stats.
+   */
   void DeregisterStats(AbstractStats *stats) {
     for (auto itr = stats_vector_.begin(); itr < stats_vector_.end(); itr++) {
       if (*itr == stats) stats_vector_.erase(itr);
     }
   }
 
+  /** @brief Register a counter and initialize it.
+   *  @param name  counter name to be registered.
+   */
   void RegisterCounter(const std::string &name) {
     if (counters_.find(name) == counters_.end()) {
       counters_[name] = 0;
