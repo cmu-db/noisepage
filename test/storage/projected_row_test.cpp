@@ -31,13 +31,12 @@ struct ProjectedRowTests : public ::testing::Test {
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, Nulls) {
   const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     ProjectedRowTestObject test_obj;
 
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
