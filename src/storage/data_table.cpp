@@ -65,7 +65,7 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
-  if (HasConflict(version_ptr, txn->TxnId())) return false;
+  if (HasConflict(version_ptr, txn)) return false;
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
