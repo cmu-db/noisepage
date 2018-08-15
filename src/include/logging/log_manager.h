@@ -1,6 +1,8 @@
 #pragma once
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <string>
+#include <utility>
 #include "common/macros.h"
 
 namespace terrier::logging {
@@ -16,7 +18,6 @@ class LogManager {
    * @brief A LogManager is only initiated with parameters when the system
    * starts, and should never be copied or moved.
    */
-  LogManager() = delete;
   DISALLOW_COPY_AND_MOVE(LogManager);
 
   /**
@@ -26,8 +27,10 @@ class LogManager {
    * @param enabled whether the LogManager is enabled
    * @param dir the directory where the log file is stored
    */
-  LogManager(bool enabled, std::string dir) : enabled_(false), dir_(dir) {
-    //    std::filesystem::create_directories(dir_);
+  LogManager(bool enabled, std::string dir) : enabled_(false), dir_(std::move(dir)) {
+    // TODO(Aaron): Eventually we want to look into replacing this with C++17's
+    // native filesystem library, but Clang support isn't there yet.
+    boost::filesystem::create_directories(dir_);
     file_name_ = "terrier.log";
     std::string path = dir_ + "/" + file_name_;
     file_.open(path, std::ios::out | std::ios::app | std::ios::binary);
