@@ -98,12 +98,16 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
 
   // If there will be a write-write conflict.
-  bool HasConflict(DeltaRecord *version_ptr, timestamp_t txn_id) {
+  bool HasConflict(DeltaRecord *version_ptr, transaction::TransactionContext *const txn) {
     if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
-    timestamp_t version_timestamp = version_ptr->Timestamp().load();
-    return version_timestamp != txn_id  // This tuple's write lock is already owned by the txn
-                                        // Nobody owns this tuple's write lock, older version still visible
-           && !transaction::TransactionUtil::Committed(version_timestamp);
+    const timestamp_t version_timestamp = version_ptr->Timestamp().load();
+    const timestamp_t txn_id = txn->TxnId();
+    const timestamp_t start_time = txn->StartTime();
+    return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
+        // Someone else owns this tuple, write-write-conflict
+        || (transaction::TransactionUtil::Committed(version_timestamp) &&
+            transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
+    // Someone else already committed an update to this tuple while we were running, we can't update this under SI
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

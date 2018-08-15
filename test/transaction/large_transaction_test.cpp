@@ -265,26 +265,26 @@ class LargeTransactionTestObject {
       // Cannot check the tuples this transaction updated because the read would be for their own updated version.
       if (txn->updates_.find(entry.first) != txn->updates_.end()) continue;
       auto it = before_snapshot.find(entry.first);
-      if (!StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second)) {
-        printf("\nerror version_timestamp: %llu\n", !start_time);
-        printf("expected:\n");
-        StorageTestUtil::PrintRow(*it->second, layout_);
-        printf("actual:\n");
-        StorageTestUtil::PrintRow(*entry.second, layout_);
-        printf("version history below:\n");
-        for (auto &snap : snapshots) {
-          printf("at timestamp %llu:\n", !snap.first);
-          StorageTestUtil::PrintRow(*(snap.second.find(entry.first)->second), layout_);
-        }
-        for (auto txn : *commits)
-          PrintTransactionLog(txn, entry.first);
-
-        printf("\n\n\n aborted txns: \n\n\n");
-        for (auto txn : *aborts)
-          PrintTransactionLog(txn, entry.first);
-        PELOTON_ASSERT(false, "");
-//        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
-      }
+//      if (!StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second)) {
+//        printf("\nerror version_timestamp: %llu\n", !start_time);
+//        printf("expected:\n");
+//        StorageTestUtil::PrintRow(*it->second, layout_);
+//        printf("actual:\n");
+//        StorageTestUtil::PrintRow(*entry.second, layout_);
+//        printf("version history below:\n");
+//        for (auto &snap : snapshots) {
+//          printf("at timestamp %llu:\n", !snap.first);
+//          StorageTestUtil::PrintRow(*(snap.second.find(entry.first)->second), layout_);
+//        }
+//        for (auto txn : *commits)
+//          PrintTransactionLog(txn, entry.first);
+//
+//        printf("\n\n\n aborted txns: \n\n\n");
+//        for (auto txn : *aborts)
+//          PrintTransactionLog(txn, entry.first);
+//        PELOTON_ASSERT(false, "");
+//      }
+       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
     }
   }
 
@@ -304,10 +304,10 @@ class LargeTransactionTests : public ::testing::Test {
 };
 
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 10000;
   const uint16_t max_columns = 20;
-  const uint32_t num_txns = 50;
-  const uint32_t num_concurrent_txns = 4;
+  const uint32_t num_txns = 500;
+  const uint32_t num_concurrent_txns = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, &block_store_, &buffer_pool_, &generator_);
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);

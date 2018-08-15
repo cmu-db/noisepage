@@ -21,16 +21,21 @@ void DataTable::Select(transaction::TransactionContext *txn,
                  "The projection never returns the version pointer, so it should have fewer attributes.");
   PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
 
-  // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
-  // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-  // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+  DeltaRecord *version_ptr;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+    // can potentially happen, and chase the version chain before returning anyway,
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+
 
   // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
   // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
   // enough to reorder this operation in or in front of the for loop.
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+//  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
@@ -56,45 +61,6 @@ void DataTable::Select(transaction::TransactionContext *txn,
   }
 }
 
-ProjectedRow *DataTable::Select(timestamp_t t, TupleSlot slot) const {
-  ProjectedRow *out = reinterpret_cast<ProjectedRow *>(new byte[ProjectedRow::Size(accessor_.GetBlockLayout(), {1})]);
-  ProjectedRow::InitializeProjectedRow(out, {1}, accessor_.GetBlockLayout());
-  // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
-  // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-  // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < out->NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out, i);
-
-  // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
-  // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
-  // enough to reorder this operation in or in front of the for loop.
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-
-  // Nullptr in version chain means no version visible to any transaction alive at this point.
-  // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr) return out;
-
-  // Creates a mapping from col offset to project list index. This allows us to efficiently
-  // access columns since deltas can concern a different set of columns when chasing the
-  // version chain
-  std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-  for (uint16_t i = 0; i < out->NumColumns(); i++)
-    col_to_projection_list_index.emplace(out->ColumnIds()[i], i);
-
-  // Apply deltas until we reconstruct a version safe for us to read
-  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
-  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), t)) {
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
-                            *(version_ptr->Delta()),
-                            out,
-                            col_to_projection_list_index);
-    version_ptr = version_ptr->Next();
-  }
-  return out;
-}
-
 bool DataTable::Update(transaction::TransactionContext *txn,
                        const TupleSlot slot,
                        const ProjectedRow &redo) {
@@ -104,7 +70,7 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
-  if (HasConflict(version_ptr, txn->TxnId())) return false;
+  if (HasConflict(version_ptr, txn)) return false;
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
@@ -165,7 +131,6 @@ void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
-//  usleep(1);
   AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
 }
 
