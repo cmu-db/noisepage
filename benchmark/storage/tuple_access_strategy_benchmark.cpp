@@ -68,10 +68,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
     }
     block_store_.Release(raw_block_);
   }
-  // We want to approximate the amount of data processed so Google Benchmark can print stats for us
-  // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
-  size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
-  state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
+
   state.SetItemsProcessed(state.iterations() * layout_.num_slots_);
 }
 
@@ -102,10 +99,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
     block_store_.Release(raw_block_);
   }
-  // We want to approximate the amount of data processed so Google Benchmark can print stats for us
-  // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
-  size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
-  state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
+
   state.SetItemsProcessed(state.iterations() * layout_.num_slots_);
 }
 

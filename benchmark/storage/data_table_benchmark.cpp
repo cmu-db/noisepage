@@ -60,7 +60,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
     }
   }
 
-  state.SetBytesProcessed(state.iterations() * num_inserts_ * (redo_size_ + undo_size_));
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
@@ -80,7 +79,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
   }
 
-  state.SetBytesProcessed(state.iterations() * num_inserts_ * (redo_size_ + undo_size_));
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
