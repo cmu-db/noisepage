@@ -140,4 +140,39 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
   }
 }
 
+
+// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected row and compare results.
+// Repeat for from the same position and compare results. Repeats for num_iterations.
+// NOLINTNEXTLINE
+TEST_F(StorageUtilTests, ApplyDelta) {
+  uint32_t num_iterations = 500;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    StorageUtilTestObject test_obj;
+    // get a random table layout
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+
+    // generate a random projected row
+    std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+    std::unordered_map<uint16_t, uint16_t > col_to_index;
+    for(uint32_t i = 0; i < col_ids.size(); ++i){
+      col_to_index.insert(std::make_pair(col_ids[i], i));
+    }
+    auto *delta_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
+    storage::ProjectedRow *delta =
+        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
+    StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
+    test_obj.loose_pointers_.push_back(delta_buffer);
+
+    // generate a new projected row
+    auto *row_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
+    storage::ProjectedRow *row =
+        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
+    test_obj.loose_pointers_.push_back(row_buffer);
+
+    storage::StorageUtil::ApplyDelta(layout, *delta, row, col_to_index);
+
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, delta, row));
+  }
+}
+
 }
