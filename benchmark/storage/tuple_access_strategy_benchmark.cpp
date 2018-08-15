@@ -29,7 +29,7 @@ static void BM_SimpleInsert(benchmark::State &state) {
   // Generate a random redo ProjectedRow to insert
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout)};
   uint32_t row_size_ = storage::ProjectedRow::Size(layout, all_col_ids_);
-  byte *row_buffer = new byte[row_size_];
+  auto *row_buffer = new byte[row_size_];
   storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(row_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(row, layout, 0, &generator);
 
@@ -76,7 +76,7 @@ static void BM_ConcurrentInsert(benchmark::State &state) {
   // generate a random redo ProjectedRow to Insert
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout)};
   uint32_t row_size_ = storage::ProjectedRow::Size(layout, all_col_ids_);
-  byte *row_buffer = new byte[row_size_];
+  auto *row_buffer = new byte[row_size_];
   storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(row_buffer, all_col_ids_, layout);
   StorageTestUtil::PopulateRandomRow(row, layout, 0, &generator);
 

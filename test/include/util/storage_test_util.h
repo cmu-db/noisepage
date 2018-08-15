@@ -142,10 +142,8 @@ struct StorageTestUtil {
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
       if (one_content == nullptr || other_content == nullptr) {
-        if (one_content == other_content)
-          continue;
-        else
-          return false;
+        if (one_content == other_content) continue;
+        return false;
       }
 
       if (storage::StorageUtil::ReadBytes(attr_size, one_content) !=
@@ -161,7 +159,7 @@ struct StorageTestUtil {
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       uint16_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
-      if (attr) {
+      if (attr != nullptr) {
         printf("col_id: %u is %" PRIx64 "\n", col_id,
                storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
       } else {
@@ -170,21 +168,19 @@ struct StorageTestUtil {
     }
   }
 
-
   // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
-    for (uint16_t col = 1; col < layout.num_cols_  ; col++) {
+    for (uint16_t col = 1; col < layout.num_cols_; col++) {
       const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
         tested->SetNull(slot, col);
       } else {
         // Read the value
         uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val,
-                                         tested->AccessForceNotNull(slot, col));
+        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val, tested->AccessForceNotNull(slot, col));
       }
     }
   }

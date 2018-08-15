@@ -26,33 +26,11 @@ import os
 import subprocess
 import sys
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Runs clang format on all of the source "
-        "files. If --fix is specified,  and compares the output "
-        "with the existing file, outputting a unifiied diff if "
-        "there are any necessary changes")
-    parser.add_argument("clang_format_binary",
-                        help="Path to the clang-format binary")
-    parser.add_argument("exclude_globs",
-                        help="Filename containing globs for files "
-                        "that should be excluded from the checks")
-    parser.add_argument("source_dir",
-                        help="Root directory of the source code")
-    parser.add_argument("--fix", default=False,
-                        action="store_true",
-                        help="If specified, will re-format the source "
-                        "code instead of comparing the re-formatted "
-                        "output, defaults to %(default)s")
-    parser.add_argument("--quiet", default=False,
-                        action="store_true",
-                        help="If specified, only print errors")
 
-    arguments = parser.parse_args()
-
+def check(arguments, source_dir):
     formatted_filenames = []
-    exclude_globs = [line.strip() for line in open(arguments.exclude_globs)]
-    for directory, subdirs, filenames in os.walk(arguments.source_dir):
+    error = False
+    for directory, subdirs, filenames in os.walk(source_dir):
         fullpaths = (os.path.join(directory, filename)
                      for filename in filenames)
         source_files = [x for x in fullpaths
@@ -63,7 +41,6 @@ if __name__ == "__main__":
              if not any((fnmatch.fnmatch(filename, exclude_glob)
                          for exclude_glob in exclude_globs))])
 
-    error = False
     if arguments.fix:
         if not arguments.quiet:
             # Print out each file on its own line, but run
@@ -114,5 +91,37 @@ if __name__ == "__main__":
                     # Print out the diff to stderr
                     error = True
                     sys.stderr.writelines(diff)
+    return error
 
-    sys.exit(1 if error else 0)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Runs clang format on all of the source "
+        "files. If --fix is specified,  and compares the output "
+        "with the existing file, outputting a unifiied diff if "
+        "there are any necessary changes")
+    parser.add_argument("clang_format_binary",
+                        help="Path to the clang-format binary")
+    parser.add_argument("exclude_globs",
+                        help="Filename containing globs for files "
+                        "that should be excluded from the checks")
+    parser.add_argument("--source_dirs",
+                        help="Comma-separated root directories of the code")
+    parser.add_argument("--fix", default=False,
+                        action="store_true",
+                        help="If specified, will re-format the source "
+                        "code instead of comparing the re-formatted "
+                        "output, defaults to %(default)s")
+    parser.add_argument("--quiet", default=False,
+                        action="store_true",
+                        help="If specified, only print errors")
+
+    args = parser.parse_args()
+
+    had_err = False
+    exclude_globs = [line.strip() for line in open(args.exclude_globs)]
+    for source_dir in args.source_dirs.split(','):
+        if len(source_dir) > 0:
+            had_err = check(args, source_dir)
+
+    sys.exit(1 if had_err else 0)
