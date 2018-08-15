@@ -586,4 +586,48 @@ TEST_F(MVCCTests, AbortUpdate2) {
   }
 }
 
+//    Txn #0 | Txn #1
+//    -----------------
+//    BEGIN  |
+//           | BEGIN
+//           | W(X)
+//           | R(X)
+//           | COMMIT
+//    W(X)   |
+//    R(X)   |
+//    COMMIT |
+//
+// Txn #0 should fail to update and only read the previous version of X because its start time is before #1's commit
+// Txn #1 should only read Txn #1's version of X
+//
+// This test confirms that we are enforcing Snapshot Isolation. Txn #0 should never see Txn #'1 inserted tuple
+// NOLINTNEXTLINE
+TEST_F(MVCCTests, InsertUpdate1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_};
+    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn1);
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+  }
+}
+
 }  // namespace terrier

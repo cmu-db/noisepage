@@ -94,8 +94,8 @@ class DataTable {
   // contention
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
 
-  // If there will be a write-write conflict.
-  bool HasConflict(DeltaRecord *version_ptr, transaction::TransactionContext *const txn) {
+
+  bool HasConflict(DeltaRecord *const version_ptr, transaction::TransactionContext *const txn) {
     if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
     const timestamp_t version_timestamp = version_ptr->Timestamp().load();
     const timestamp_t txn_id = txn->TxnId();
