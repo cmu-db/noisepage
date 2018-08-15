@@ -17,7 +17,6 @@ class LogBuffer {
    * @brief A LogBuffer is only initiated with parameters when created,
    * and should never be copied or moved.
    */
-  LogBuffer() = delete;
   DISALLOW_COPY_AND_MOVE(LogBuffer);
 
   /**
@@ -40,7 +39,7 @@ class LogBuffer {
    *
    * @param record the log record to be written
    */
-  void WriteRecord(LogRecord &record);
+  void WriteRecord(const LogRecord &record);
 
  private:
   CopySerializeOutput buffer_;
