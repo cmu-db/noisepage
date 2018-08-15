@@ -383,8 +383,8 @@ class DeltaRecord {
   TupleSlot Slot() { return slot_; }
 
   /**
-   * Access the next version in the delta chain
-   * @return pointer to the next version
+   * Access the ProjectedRow containing this record's modifications
+   * @return pointer to the delta (modifications)
    */
   ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
 
