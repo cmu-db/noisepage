@@ -1,8 +1,8 @@
 #pragma once
 
+#include <ostream>
 #include <utility>
 #include <vector>
-#include <ostream>
 #include "common/constants.h"
 #include "common/container/bitmap.h"
 #include "common/macros.h"
