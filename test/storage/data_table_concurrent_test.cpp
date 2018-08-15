@@ -76,7 +76,7 @@ class FakeTransaction {
   transaction::TransactionContext txn_;
 };
 
-struct DataTableConcurrentTests : public ::terrier::test::TerrierTest {
+struct DataTableConcurrentTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;

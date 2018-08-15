@@ -137,7 +137,7 @@ class RandomDataTableTestObject {
   byte *select_buffer_ = new byte[redo_size_];
 };
 
-struct DataTableTests : public ::terrier::test::TerrierTest {
+struct DataTableTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;

@@ -1,6 +1,3 @@
-//
-// Created by pakhtar on 8/15/18.
-//
 
 #pragma once
 #include "gtest/gtest.h"
@@ -8,7 +5,6 @@
 #include "loggers/storage_logger.h"
 
 namespace terrier {
-namespace test {
 
 class TerrierTest : public ::testing::Test {
  protected:
@@ -26,5 +22,4 @@ class TerrierTest : public ::testing::Test {
   }
 };
 
-}  // namespace test
 }  // namespace terrier

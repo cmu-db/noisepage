@@ -1,7 +1,3 @@
-//
-// Created by pakhtar on 8/10/18.
-//
-
 #include <memory>
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
