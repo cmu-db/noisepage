@@ -46,7 +46,7 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     StorageUtilTestObject test_obj;
     // generate a random val
-    std::vector<uint8_t> valid_sizes{1,2,4,8};
+    std::vector<uint8_t> valid_sizes{1, 2, 4, 8};
     std::uniform_int_distribution<uint8_t> idx(0, static_cast<uint8_t>(valid_sizes.size() - 1));
     uint8_t attr_size = valid_sizes[idx(generator_)];
     uint64_t val = 0;
@@ -59,8 +59,8 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
   }
 }
 
-// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected row and compare results.
-// Repeat for from the same position and compare results. Repeats for num_iterations.
+// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected
+// row and compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
   uint32_t num_iterations = 500;
@@ -77,32 +77,31 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     test_obj.loose_pointers_.push_back(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
-    for(uint16_t col = 0; col < row->NumColumns(); ++col){
+    for (uint16_t col = 0; col < row->NumColumns(); ++col) {
       uint8_t attr_size = layout.attr_sizes_[static_cast<uint16_t >(col+1)];
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
-      if(!is_null){
+      if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
         test_obj.loose_pointers_.push_back(from);
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
-
       }
       storage::StorageUtil::CopyWithNullCheck(from, row, attr_size, col);
 
-      if(is_null){
+      if (is_null) {
         EXPECT_EQ(row->AccessWithNullCheck(col), nullptr);
-      }else{
+      } else {
         EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
-            storage::StorageUtil::ReadBytes( attr_size, row->AccessWithNullCheck(col)));
+            storage::StorageUtil::ReadBytes(attr_size, row->AccessWithNullCheck(col)));
       }
     }
   }
 }
 
 
-// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected row and compare results.
-// Repeat for from the same position and compare results. Repeats for num_iterations.
+// Generate a layout and get a tuple slot, copy a pointer location into the tuple slot, read it back and
+// compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
   uint32_t num_iterations = 500;
@@ -118,11 +117,11 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
-    for(uint16_t col = 0; col < layout.num_cols_; ++col){
+    for (uint16_t col = 0; col < layout.num_cols_; ++col) {
       uint8_t attr_size = layout.attr_sizes_[col];
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
-      if(!is_null){
+      if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
         test_obj.loose_pointers_.push_back(from);
@@ -130,9 +129,9 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
       }
       storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col);
 
-      if(is_null){
+      if (is_null) {
         EXPECT_EQ(tested.AccessWithNullCheck(slot, col), nullptr);
-      }else{
+      } else {
         EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
                   storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col)));
       }
@@ -141,8 +140,8 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 }
 
 
-// Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected row and compare results.
-// Repeat for from the same position and compare results. Repeats for num_iterations.
+// Generate a random populated projected row (delta), copy the delta into a projected row, and compare them.
+// Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ApplyDelta) {
   uint32_t num_iterations = 500;
@@ -153,8 +152,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // generate a random projected row
     std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-    std::unordered_map<uint16_t, uint16_t > col_to_index;
-    for(uint32_t i = 0; i < col_ids.size(); ++i){
+    std::unordered_map<uint16_t, uint16_t> col_to_index;
+    for (uint32_t i = 0; i < col_ids.size(); ++i) {
       col_to_index.insert(std::make_pair(col_ids[i], i));
     }
     auto *delta_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
@@ -175,4 +174,4 @@ TEST_F(StorageUtilTests, ApplyDelta) {
   }
 }
 
-}
+}  // namespace terrier
