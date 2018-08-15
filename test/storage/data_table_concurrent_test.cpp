@@ -141,7 +141,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
       fake_txns.emplace_back(layout,
                              &tested,
                              null_ratio_(generator_),
-                             timestamp_t(0),
+                             timestamp_t(2),
                              timestamp_t(static_cast<uint64_t>(-thread - 1)),
                              &buffer_pool_);
     std::atomic<uint32_t> success = 0, fail = 0;
