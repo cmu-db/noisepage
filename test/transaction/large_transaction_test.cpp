@@ -73,6 +73,8 @@ class RandomWorkloadTransaction {
     // Only track reads whose value depend on the snapshot
     if (updated == updates_.end())
       selects_.emplace_back(selected, select);
+    else
+      delete[] select_buffer;
   }
 
   void Finish() {
