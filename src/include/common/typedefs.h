@@ -168,6 +168,42 @@ class StrongTypeAlias {
   }
 
   /**
+   * less than
+   * @param rhs another strong typed value
+   * @return if this is less than the other value
+   */
+  bool operator<(const StrongTypeAlias &other) const {
+    return val_ < other.val_;
+  }
+
+  /**
+   * less than or equal to
+   * @param rhs another strong typed value
+   * @return if this is less than or equal to the other value
+   */
+  bool operator<=(const StrongTypeAlias &other) const {
+    return val_ <= other.val_;
+  }
+
+  /**
+   * greater than
+   * @param rhs another strong typed value
+   * @return if this is greater than the other value
+   */
+  bool operator>(const StrongTypeAlias &other) const {
+    return val_ > other.val_;
+  }
+
+  /**
+   * less than
+   * @param rhs another strong typed value
+   * @return if this is less than the other value
+   */
+  bool operator>=(const StrongTypeAlias &other) const {
+    return val_ >= other.val_;
+  }
+
+  /**
    * Outputs the StrongTypeAlias to the output stream.
    * @param os output stream to be written to.
    * @param alias StrongTypeAlias to be output.
