@@ -262,7 +262,7 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const uint32_t initial_table_size = 500;
   const uint32_t txn_length = 50;
   const uint32_t num_txns = 200;
-  const auto update_select_ratio = {0.3, 0.7};
+  const std::vector<double> update_select_ratio = {0.3, 0.7};
   const uint32_t num_concurrent_txns = 4;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns,
