@@ -15,8 +15,8 @@
 #include <tbb/concurrent_unordered_map.h>
 #include <string>
 #include <vector>
-#include "common/stats/abstract_stats.h"
 #include "common/macros.h"
+#include "common/stats/abstract_stats.h"
 
 #ifdef __APPLE__
 #include <json/json.h>
@@ -110,7 +110,7 @@ class StatsCollector {
 
  private:
   /** Stats objects collected statistics */
-  std::vector<AbstractStats*> stats_vector_;
+  std::vector<AbstractStats *> stats_vector_;
 
   /** Counter map as statistics */
   tbb::concurrent_unordered_map<std::string, int> counters_;

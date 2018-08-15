@@ -46,4 +46,3 @@ class AbstractStats {
 };
 
 }  // namespace terrier::common
-

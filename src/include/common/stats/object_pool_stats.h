@@ -37,9 +37,7 @@ class ObjectPoolStats : public AbstractStats {
   }
 
   /** @brief synchronize with the stats collector and deregister itself from the stats collector. */
-  ~ObjectPoolStats() {
-    SyncAllCounters();
-  }
+  ~ObjectPoolStats() { SyncAllCounters(); }
 
   /** @brief increment create block couter. */
   void IncrementCreateBlockCounter() { create_block_counter_++; };
@@ -72,6 +70,3 @@ class ObjectPoolStats : public AbstractStats {
 };
 
 }  // namespace terrier::common
-
-
-

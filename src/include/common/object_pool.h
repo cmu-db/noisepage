@@ -128,7 +128,6 @@ class ObjectPool {
     }
   }
 
-
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
@@ -139,6 +138,5 @@ class ObjectPool {
   // boolean flag, enable_stats, is used to disable the statistics.
   bool enable_stats_ = false;
   std::unique_ptr<ObjectPoolStats> stats_;
-
 };
 }  // namespace terrier::common
