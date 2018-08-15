@@ -25,13 +25,13 @@ struct ProjectedRowTests : public ::testing::Test {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
 
-// Generates a random table layout and coin flip bias for an attribute being null, inserts num_inserts random tuples
-// into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
-// random tuple. Repeats for num_iterations.
+// Generates a random table layout and a random table layout. Coin flip bias for an attribute being null and set the
+// value bytes for null attributes to be 0. Then, compare the addresses (and values for null attribute) returned by
+// the access methods. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, Nulls) {
   const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 10;
+  const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     ProjectedRowTestObject test_obj;
