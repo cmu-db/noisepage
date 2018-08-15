@@ -74,4 +74,38 @@ TEST_F(ProjectedRowTests, Nulls) {
     }
   }
 }
+
+// This test generates randomized block layouts, and checks its layout to ensure
+// that the header, the column bitmaps, and the columns don't overlap, and don't
+// go out of page boundary. (In other words, memory safe.)
+// NOLINTNEXTLINE
+TEST_F(ProjectedRowTests, MemorySafety){
+  const uint32_t num_iterations = 500;
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    ProjectedRowTestObject test_obj;
+    // get a random table layout
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+
+    // generate a random projectedRow
+    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
+    storage::ProjectedRow *update =
+        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout);
+    test_obj.loose_pointers_.push_back(update_buffer);
+
+    EXPECT_EQ(layout.num_cols_ -1, update->NumColumns());
+    void *lower_bound = update->ColumnIds();
+    void *upper_bound = update + update->Size();
+    // check the first value is in bound
+    StorageTestUtil::CheckInBounds(update->AccessForceNotNull(0), lower_bound, upper_bound);
+    // check the rest values memory addresses don't overlapping previous addresses.
+    for (uint16_t col = 1; col < update->NumColumns(); col++) {
+      lower_bound = update->AccessForceNotNull(static_cast<uint16_t >(col - 1));
+      upper_bound = StorageTestUtil::IncrementByBytes(update->AccessForceNotNull(static_cast<uint16_t >(col - 1)),
+                                                      layout.attr_sizes_[col]);
+      // check if the value address is in bound
+      StorageTestUtil::CheckNotInBounds(update->AccessForceNotNull(col), lower_bound, upper_bound);
+    }
+  }
+}
 }  // namespace terrier
