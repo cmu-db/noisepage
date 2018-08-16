@@ -6,6 +6,7 @@
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
 #include "storage/storage_defs.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 
@@ -20,7 +21,7 @@ class DeltaRecordTestObject {
   std::vector<byte *> loose_pointers_;
 };
 
-struct DeltaRecordTests : public ::testing::Test {
+struct DeltaRecordTests : public ::terrier::TerrierTest {
   std::default_random_engine generator_;
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
@@ -29,11 +30,13 @@ struct DeltaRecordTests : public ::testing::Test {
 
  protected:
   void SetUp() override {
+    TerrierTest::SetUp();
     raw_block_ = block_store_.Get();
   }
 
   void TearDown() override {
     block_store_.Release(raw_block_);
+    TerrierTest::TearDown();
   }
 };
 

@@ -6,6 +6,7 @@
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
 #include "storage/storage_defs.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 
@@ -20,9 +21,18 @@ class ProjectedRowTestObject {
   std::vector<byte *> loose_pointers_;
 };
 
-struct ProjectedRowTests : public ::testing::Test {
+ struct ProjectedRowTests : public ::terrier::TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
+
+  protected:
+   void SetUp() override {
+     TerrierTest::SetUp();
+   }
+
+   void TearDown() override {
+     TerrierTest::TearDown();
+   }
 };
 
 // Generates a random table layout and a random table layout. Coin flip bias for an attribute being null and set the
