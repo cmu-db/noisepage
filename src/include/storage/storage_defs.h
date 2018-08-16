@@ -370,7 +370,7 @@ class DeltaRecord {
   /**
    * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *&Next() { return next_; }
+  std::atomic<DeltaRecord *> &Next() { return next_; }
 
   /**
    * @return Timestamp up to which the old projected row was visible.
@@ -461,8 +461,7 @@ class DeltaRecord {
   }
 
  private:
-  // TODO(Tianyu): Always padded?
-  DeltaRecord *next_;
+  std::atomic<DeltaRecord *> next_;
   std::atomic<timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;

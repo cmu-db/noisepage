@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_queue.h"
+#include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
@@ -12,6 +13,8 @@
 
 namespace terrier::storage {
 
+static constexpr uint32_t MAX_ATTEMPTS = 1000000;
+
 class GarbageCollector {
  private:
   bool running_ = false;
@@ -19,12 +22,10 @@ class GarbageCollector {
   std::thread *gc_thread_ = nullptr;
   timestamp_t oldest_txn_{0};
   timestamp_t last_run_{0};
-  common::ConcurrentQueue<transaction::TransactionContext *> completed_txns_;
   std::vector<transaction::TransactionContext *> garbage_txns_;
 
   uint32_t ClearGarbage() {
     uint32_t garbage_cleared = 0;
-
     transaction::TransactionContext *txn = nullptr;
     std::vector<transaction::TransactionContext *> requeue;
     while (!garbage_txns_.empty()) {
@@ -49,11 +50,34 @@ class GarbageCollector {
     uint32_t txns_cleared = 0;
     transaction::TransactionContext *txn = nullptr;
     std::vector<transaction::TransactionContext *> requeue;
-    while (completed_txns_.Dequeue(&txn)) {
+    while (txn_manager_->CompletedTransactions().Dequeue(&txn) && txns_cleared < MAX_ATTEMPTS) {
       if (transaction::TransactionUtil::NewerThan(oldest_txn_, txn->TxnId())) {
         transaction::UndoBuffer &undos = txn->GetUndoBuffer();
-        for (UNUSED_ATTRIBUTE auto &undo_record : undos) {
-          // prune version chain
+        for (auto &undo_record : undos) {
+          DataTable *const table = undo_record.Table();
+          const TupleSlot slot = undo_record.Slot();
+          const TupleAccessStrategy &accessor = table->accessor_;
+          DeltaRecord *curr = table->AtomicallyReadVersionPtr(slot, accessor);
+          DeltaRecord *next = curr->Next();
+          if (next == nullptr) {
+            PELOTON_ASSERT(curr->Timestamp().load() == txn->TxnId(),
+                           "There's only one element in the version chain. This must be ours.");
+            if (table->CompareAndSwapVersionPtr(slot, accessor, curr, next)) {
+              // We successfully swapped it
+              continue;
+            } else {
+              // Someone swooped the VersionPointer while we were trying to swap it, start iterating
+              curr = table->AtomicallyReadVersionPtr(slot, accessor);
+              next = curr->Next();
+            }
+          } else {
+            while (next->Timestamp().load() != txn->TxnId()) {
+              curr = next;
+              next = curr->Next();
+            }
+            UNUSED_ATTRIBUTE bool result = curr->Next().compare_exchange_strong(next, next->Next().load());
+            PELOTON_ASSERT(result, "This had better work.");
+          }
         }
         garbage_txns_.emplace_back(txn);
         txns_cleared++;
@@ -63,7 +87,7 @@ class GarbageCollector {
     }
 
     for (auto &i : requeue) {
-      completed_txns_.Enqueue(std::move(i));
+      txn_manager_->CompletedTransactions().Enqueue(std::move(i));
     }
 
     return txns_cleared;
@@ -71,15 +95,11 @@ class GarbageCollector {
 
   void ThreadLoop() {
     while (running_) {
-      STORAGE_LOG_INFO("hello from a GC thread\n");
+      if (!txn_manager_->CompletedTransactions().Empty() || !garbage_txns_.empty()) {
+        RunGC();
+      }
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-  }
-
-  void RunGC() {
-    ClearGarbage();
-    ClearTransactions();
-    last_run_ = txn_manager_->Time();
   }
 
  public:
@@ -87,25 +107,32 @@ class GarbageCollector {
   explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
   ~GarbageCollector() = default;
 
-  bool Running() const {
-    return running_;
+  bool ThreadRunning() const { return running_; }
+
+  std::pair<uint32_t, uint32_t> RunGC() {
+    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
+    uint32_t garbage_cleared = ClearGarbage();
+    uint32_t txns_cleared = ClearTransactions();
+    last_run_ = txn_manager_->Time();
+    return std::make_pair(garbage_cleared, txns_cleared);
   }
 
-  void StartGC() {
+  void StartGCThread() {
     PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
     gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
     running_ = true;
   }
 
-  void StopGC() {
+  void StopGCThread() {
     PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
     running_ = false;
     gc_thread_->join();
+    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
+    ClearGarbage();
+    ClearTransactions();
+    last_run_ = txn_manager_->Time();
     gc_thread_ = nullptr;
   }
-
- public:
-  void AddGarbage(transaction::TransactionContext *txn) { completed_txns_.Enqueue(std::move(txn)); }
 };
 
 }  // namespace terrier::storage

@@ -24,8 +24,6 @@ class GarbageCollectorDataTableTestObject {
   ~GarbageCollectorDataTableTestObject() {
     for (auto ptr : loose_pointers_)
       delete[] ptr;
-    for (auto ptr : loose_txns_)
-      delete ptr;
     delete[] select_buffer_;
   }
 
@@ -81,7 +79,6 @@ class GarbageCollectorDataTableTestObject {
   // we don't want the logically deleted field to end up set NULL.
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
-  std::vector<transaction::TransactionContext *> loose_txns_;
   std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
   // These always over-provision in the case of partial selects or deltas, which is fine.
   uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
@@ -99,14 +96,49 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, BasicTest) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager{&buffer_pool_};
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
-    gc.StartGC();
-    EXPECT_TRUE(gc.Running());
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    gc.StopGC();
-    EXPECT_FALSE(gc.Running());
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    EXPECT_EQ(1, gc.RunGC().second);
+    EXPECT_EQ(1, gc.RunGC().first);
+
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, BasicThreadTest) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    gc.StartGCThread();
+    EXPECT_TRUE(gc.ThreadRunning());
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    gc.StopGCThread();
+    EXPECT_FALSE(gc.ThreadRunning());
+
   }
 }
 

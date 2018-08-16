@@ -20,7 +20,8 @@ class TransactionManager {
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    */
-  explicit TransactionManager(common::ObjectPool<UndoBufferSegment> *buffer_pool) : buffer_pool_(buffer_pool) {}
+  explicit TransactionManager(common::ObjectPool<UndoBufferSegment> *buffer_pool, bool gc_enabled)
+      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
 
   /**
    * Begins a transaction.
@@ -59,6 +60,10 @@ class TransactionManager {
     PELOTON_ASSERT(it != curr_running_txns_.end(), "committed transaction did not exist in global transactions table");
     curr_running_txns_.erase(it);
     table_latch_.Unlock();
+    txn->TxnId() = commit_time;
+    if (gc_enabled_ && undos.begin() != undos.end()) {
+      completed_txns_.Enqueue(std::move(txn));
+    }
     return commit_time;
   }
 
@@ -99,6 +104,8 @@ class TransactionManager {
    */
   timestamp_t Time() const { return time_.load(); }
 
+  common::ConcurrentQueue<transaction::TransactionContext *> &CompletedTransactions() { return completed_txns_; }
+
  private:
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient
@@ -114,5 +121,8 @@ class TransactionManager {
   // think about this when refactoring the txn id thing.
   mutable common::SpinLatch table_latch_;
   std::map<timestamp_t, TransactionContext *> curr_running_txns_;
+
+  bool gc_enabled_ = false;
+  common::ConcurrentQueue<transaction::TransactionContext *> completed_txns_;
 };
 }  // namespace terrier::transaction

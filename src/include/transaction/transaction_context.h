@@ -207,7 +207,12 @@ class TransactionContext {
   /**
    * @return id of this transaction
    */
-  timestamp_t TxnId() const { return txn_id_; }
+  const timestamp_t &TxnId() const { return txn_id_; }
+
+  /**
+   * @return id of this transaction
+   */
+  timestamp_t &TxnId() { return txn_id_; }
 
   /**
    * @return the undo buffer of this transaction
@@ -246,7 +251,7 @@ class TransactionContext {
 
  private:
   const timestamp_t start_time_;
-  const timestamp_t txn_id_;
+  timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
 }  // namespace terrier::transaction

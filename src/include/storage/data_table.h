@@ -74,6 +74,8 @@ class DataTable {
   void Rollback(timestamp_t txn_id, TupleSlot slot);
 
  private:
+  friend class GarbageCollector;
+
   BlockStore *block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
