@@ -58,7 +58,10 @@ class RandomWorkloadTransaction {
     auto it = updates_.find(updated);
     // don't want to double update, as it is complicated to keep track of on snapshots, and not very helpful
     // in finding bugs anyways
-    if (it != updates_.end()) return;
+    if (it != updates_.end()) {
+      delete[] update_buffer;
+      return;
+    }
     updates_[updated] = update;
     auto result = table_->Update(txn_, updated, *update);
     aborted_ = !result;
