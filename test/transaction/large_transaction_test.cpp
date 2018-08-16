@@ -8,6 +8,7 @@
 #include "transaction/transaction_manager.h"
 #include "common/container/concurrent_vector.h"
 #include "util/storage_test_util.h"
+#include "util/test_harness.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -250,7 +251,7 @@ class LargeTransactionTestObject {
   RandomWorkloadTransaction initial_txn_;
 };
 
-class LargeTransactionTests : public ::testing::Test {
+class LargeTransactionTests : public ::terrier::TerrierTest {
  public:
   storage::BlockStore block_store_{1000};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{1000};
