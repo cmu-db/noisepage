@@ -75,7 +75,6 @@ install_mac() {
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
-  brew ls --versions jsoncpp || brew install jsoncpp
   (brew ls --versions llvm | grep 6) || brew install llvm@6
   brew ls --versions tbb || brew install tbb
 }
@@ -95,7 +94,6 @@ install_linux() {
       g++-7 \
       libboost-filesystem-dev \
       libjemalloc-dev \
-      libjsoncpp-dev \
       libtbb-dev \
       libz-dev \
       llvm-6.0
