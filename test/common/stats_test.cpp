@@ -1,4 +1,5 @@
 
+#include <memory>
 #include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "common/object_pool.h"

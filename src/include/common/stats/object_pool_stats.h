@@ -40,7 +40,7 @@ class ObjectPoolStats : public AbstractStats {
   ~ObjectPoolStats() override { SyncAllCounters(); }
 
   /** @brief increment create block couter. */
-  void IncrementCreateBlockCounter() { create_block_counter_++; };
+  void IncrementCreateBlockCounter() { create_block_counter_++; }
 
   /** @brief increment reuse block couter. */
   void IncrementReuseBlockCounter() { reuse_block_counter_++; }
