@@ -85,7 +85,8 @@ class TransactionManager {
    */
   timestamp_t OldestTransactionStartTime() const {
     table_latch_.Lock();
-    timestamp_t result = curr_running_txns_.begin()->second->StartTime();
+    auto oldest_txn = curr_running_txns_.begin();
+    timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? oldest_txn->second->StartTime() : time_.load();
     table_latch_.Unlock();
     return result;
   }
