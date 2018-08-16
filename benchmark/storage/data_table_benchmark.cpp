@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "benchmark/benchmark.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"

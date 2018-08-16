@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "benchmark/benchmark.h"
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
@@ -38,7 +40,6 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   const uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
 
   storage::RawBlock *raw_block_;
-  
   // Insert buffer pointers
   byte *redo_buffer_;
   storage::ProjectedRow *redo_;
@@ -47,7 +48,6 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsert)
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State &state) {
-
   storage::TupleAccessStrategy tested(layout_);
 
   // NOLINTNEXTLINE
@@ -75,7 +75,6 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // Roughly corresponds to TEST_F(TupleAccessStrategyTests, ConcurrentInsert)
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
-
   storage::TupleAccessStrategy tested(layout_);
 
   // NOLINTNEXTLINE
