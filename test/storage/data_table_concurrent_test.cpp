@@ -4,6 +4,7 @@
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
 #include "transaction/transaction_context.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 class FakeTransaction {
@@ -75,7 +76,7 @@ class FakeTransaction {
   transaction::TransactionContext txn_;
 };
 
-struct DataTableConcurrentTests : public ::testing::Test {
+struct DataTableConcurrentTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
