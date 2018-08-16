@@ -42,6 +42,7 @@ class GarbageCollector {
     PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
     running_ = false;
     gc_thread_->join();
+    delete gc_thread_;
     oldest_txn_ = txn_manager_->OldestTransactionStartTime();
     ClearGarbage();
     ClearTransactions();
@@ -81,9 +82,11 @@ class GarbageCollector {
 
   uint32_t ClearTransactions() {
     uint32_t txns_cleared = 0;
+    uint32_t attempts = 0;
     transaction::TransactionContext *txn = nullptr;
     std::vector<transaction::TransactionContext *> requeue;
-    while (txn_manager_->CompletedTransactions().Dequeue(&txn) && txns_cleared < MAX_ATTEMPTS) {
+    while (txn_manager_->CompletedTransactions().Dequeue(&txn) && attempts < MAX_ATTEMPTS) {
+      attempts++;
       if (transaction::TransactionUtil::NewerThan(oldest_txn_, txn->TxnId())) {
         transaction::UndoBuffer &undos = txn->GetUndoBuffer();
         for (auto &undo_record : undos) {
@@ -94,7 +97,7 @@ class GarbageCollector {
           DeltaRecord *next = curr->Next();
           if (next == nullptr) {
             PELOTON_ASSERT(curr->Timestamp().load() == txn->TxnId(),
-                           "There's only one element in the version chain. This must be ours.");
+                           "There's only one element in the version chain. This must be our DeltaRecord.");
             if (table->CompareAndSwapVersionPtr(slot, accessor, curr, next)) {
               // We successfully swapped it
               continue;
@@ -102,6 +105,8 @@ class GarbageCollector {
               // Someone swooped the VersionPointer while we were trying to swap it, start iterating
               curr = table->AtomicallyReadVersionPtr(slot, accessor);
               next = curr->Next();
+              PELOTON_ASSERT(next != nullptr,
+                             "Somehow we failed the CAS but Next isn't nullptr? That shouldn't happen.");
             }
           } else {
             while (next->Timestamp().load() != txn->TxnId()) {
@@ -109,7 +114,8 @@ class GarbageCollector {
               next = curr->Next();
             }
             UNUSED_ATTRIBUTE bool result = curr->Next().compare_exchange_strong(next, next->Next().load());
-            PELOTON_ASSERT(result, "This had better work.");
+            PELOTON_ASSERT(result,
+                           "We shouldn't be able to fail this CAS later in the version chain since there should be no other writers.");
           }
         }
         garbage_txns_.emplace_back(txn);
