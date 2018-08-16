@@ -13,6 +13,7 @@
 
 namespace terrier {
 
+// TODO(Tianyu): Some of these code might qualify for StorageTestUtil, as we may also use them in GC tests.
 class RandomWorkloadTransaction {
  public:
   RandomWorkloadTransaction(const storage::BlockLayout &layout,
@@ -260,7 +261,7 @@ class LargeTransactionTests : public ::terrier::TerrierTest {
 
 // This test case generates random update-selects in concurrent transactions on a pre-populated database.
 // Each transaction logs their operations locally. At the end of the run, we can reconstruct the snapshot of
-// a database using the updates at every timstamp, and compares the reads with the reconstructed snapshot versions
+// a database using the updates at every timestamp, and compares the reads with the reconstructed snapshot versions
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {

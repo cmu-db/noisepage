@@ -220,6 +220,11 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
  * --------------------------------------------------------
  * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
  */
+// TODO(Tianyu): The PACKED directive here is not necessary, but C++ does some weird thing where
+// it will pad sizeof(ProjectedRow) to 8 but the varlen content still points at 6. This should not
+// break any code, but the padding no will be immediately before the values instead of after num_cols,
+// which is weird. We should make a consistent policy on how to deal with this type of issue for other
+// cases as well. (The other use cases of byte[0] all have aligned sizes already I think?)
 class PACKED ProjectedRow {
  public:
   ProjectedRow() = delete;

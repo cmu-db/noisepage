@@ -146,7 +146,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired, std::memory_order::memory_order_release);
+  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired);
 }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,

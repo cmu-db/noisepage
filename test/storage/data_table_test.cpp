@@ -153,8 +153,6 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint32_t num_inserts = 1000;
   const uint16_t max_columns = 100;
 
-  LOG_INFO("DataTableTest start");
-
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
 
