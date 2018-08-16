@@ -10,23 +10,13 @@
 
 namespace terrier {
 
-class DeltaRecordTestObject {
- public:
-  ~DeltaRecordTestObject() {
-    for (auto entry : loose_pointers_) {
-      delete[] entry;
-    }
-  }
-
-  std::vector<byte *> loose_pointers_;
-};
-
 struct DeltaRecordTests : public ::terrier::TerrierTest {
   std::default_random_engine generator_;
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
+  std::vector<byte *> loose_pointers_;
 
  protected:
   void SetUp() override {
@@ -36,6 +26,9 @@ struct DeltaRecordTests : public ::terrier::TerrierTest {
 
   void TearDown() override {
     block_store_.Release(raw_block_);
+    for (auto entry : loose_pointers_) {
+      delete[] entry;
+    }
     TerrierTest::TearDown();
   }
 };
@@ -51,7 +44,6 @@ TEST_F(DeltaRecordTests, ChainAccess) {
     std::vector<storage::DeltaRecord *> record_list;
     std::uniform_int_distribution<> size_dist(1, max_chain_size);
     uint32_t chain_size = size_dist(generator_);
-    DeltaRecordTestObject test_obj;
     for (uint32_t i = 0; i < chain_size; ++i) {
       // get random layout
       storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
@@ -71,13 +63,13 @@ TEST_F(DeltaRecordTests, ChainAccess) {
       uint32_t size = storage::DeltaRecord::Size(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
       auto *record_buffer = new byte[size];
-      test_obj.loose_pointers_.push_back(record_buffer);
+      loose_pointers_.push_back(record_buffer);
       storage::DeltaRecord *record = storage::DeltaRecord::InitializeDeltaRecord(record_buffer,
                                                                                  time,
                                                                                  slot,
                                                                                  &data_table,
                                                                                  layout,
-                                                                              col_ids);
+                                                                                 col_ids);
       // Chain the records
       if (i != 0)
         record_list.back()->Next() = record;
@@ -96,7 +88,6 @@ TEST_F(DeltaRecordTests, ChainAccess) {
 TEST_F(DeltaRecordTests, GetProjectedRow){
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    DeltaRecordTestObject test_obj;
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
@@ -108,9 +99,9 @@ TEST_F(DeltaRecordTests, GetProjectedRow){
     auto *redo_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
     storage::ProjectedRow *redo =
         storage::ProjectedRow::InitializeProjectedRow(redo_buffer, update_col_ids, layout);
-    // we don't need to populate projected row since we only copying the layout when we create a deltarecord using
+    // we don't need to populate projected row since we only copying the layout when we create a DeltaRecord using
     // projected row
-    test_obj.loose_pointers_.push_back(redo_buffer);
+    loose_pointers_.push_back(redo_buffer);
 
     // get data table
     storage::DataTable data_table(&block_store_, layout);
@@ -123,7 +114,7 @@ TEST_F(DeltaRecordTests, GetProjectedRow){
     uint32_t size = storage::DeltaRecord::Size(*redo);
     timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
     auto *record_buffer = new byte[size];
-    test_obj.loose_pointers_.push_back(record_buffer);
+    loose_pointers_.push_back(record_buffer);
     storage::DeltaRecord *record = storage::DeltaRecord::InitializeDeltaRecord(record_buffer,
                                                                                time,
                                                                                slot,

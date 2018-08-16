@@ -10,24 +10,14 @@
 
 namespace terrier {
 
-class StorageUtilTestObject {
- public:
-  ~StorageUtilTestObject() {
-    for (auto entry : loose_pointers_) {
-      delete[] entry;
-    }
-  }
-
-  std::vector<byte *> loose_pointers_;
-};
-
- struct StorageUtilTests : public ::terrier::TerrierTest {
+struct StorageUtilTests : public ::terrier::TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
-  std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
+
+  std::vector<byte *> loose_pointers_;
 
  protected:
   void SetUp() override {
@@ -37,6 +27,10 @@ class StorageUtilTestObject {
 
   void TearDown() override {
     block_store_.Release(raw_block_);
+
+    for (auto &entry : loose_pointers_) {
+      delete[] entry;
+    }
     TerrierTest::TearDown();
   }
 };
@@ -47,7 +41,6 @@ class StorageUtilTestObject {
 TEST_F(StorageUtilTests, ReadWriteBytes) {
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    StorageUtilTestObject test_obj;
     // generate a random val
     std::vector<uint8_t> valid_sizes{1, 2, 4, 8};
     std::uniform_int_distribution<uint8_t> idx(0, static_cast<uint8_t>(valid_sizes.size() - 1));
@@ -68,7 +61,6 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    StorageUtilTestObject test_obj;
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
 
@@ -77,7 +69,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     auto *row_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
     storage::ProjectedRow *row =
         storage::ProjectedRow::InitializeProjectedRow(row_buffer, update_col_ids, layout);
-    test_obj.loose_pointers_.push_back(row_buffer);
+    loose_pointers_.push_back(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t col = 0; col < row->NumColumns(); ++col) {
@@ -87,7 +79,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
       if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
-        test_obj.loose_pointers_.push_back(from);
+        loose_pointers_.push_back(from);
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
       storage::StorageUtil::CopyWithNullCheck(from, row, attr_size, col);
@@ -109,8 +101,6 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    StorageUtilTestObject test_obj;
-
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
@@ -127,7 +117,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
       if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
-        test_obj.loose_pointers_.push_back(from);
+        loose_pointers_.push_back(from);
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
       storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col);
@@ -149,7 +139,6 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 TEST_F(StorageUtilTests, ApplyDelta) {
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    StorageUtilTestObject test_obj;
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
 
@@ -163,13 +152,13 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     storage::ProjectedRow *delta =
         storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
-    test_obj.loose_pointers_.push_back(delta_buffer);
+    loose_pointers_.push_back(delta_buffer);
 
     // generate a new projected row
     auto *row_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
     storage::ProjectedRow *row =
         storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
-    test_obj.loose_pointers_.push_back(row_buffer);
+    loose_pointers_.push_back(row_buffer);
 
     storage::StorageUtil::ApplyDelta(layout, *delta, row, col_to_index);
 
