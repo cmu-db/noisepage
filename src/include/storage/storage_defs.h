@@ -232,7 +232,7 @@ class PACKED ProjectedRow {
   ~ProjectedRow() = delete;
 
   /**
-   * Calculates the size of this ProjectedRow, including all members, values, and bitmap
+   * Calculates the size of this ProjectedRow, including all members, values, bitmap, and potential padding
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this ProjectedRow
