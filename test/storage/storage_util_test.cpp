@@ -1,6 +1,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <iostream>
+#include <unordered_set>
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -137,32 +139,72 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 // Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ApplyDelta) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 100;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
 
-    // generate a random projected row
-    std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-    std::unordered_map<uint16_t, uint16_t> col_to_index;
-    for (uint32_t i = 0; i < col_ids.size(); ++i) {
-      col_to_index.insert(std::make_pair(col_ids[i], i));
+    // the old row
+    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    auto *old_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
+    storage::ProjectedRow *old =
+        storage::ProjectedRow::InitializeProjectedRow(old_buffer, all_col_ids, layout);
+    StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
+    loose_pointers_.push_back(old_buffer);
+
+    // store the values as a reference
+    std::vector<std::pair<byte *, uint64_t>> copy;
+    for (uint16_t col = 0; col < old->NumColumns(); ++col) {
+      byte * ptr = old->AccessWithNullCheck(col);
+      if (ptr != nullptr)
+        copy.emplace_back(std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col+1], ptr)));
+      else
+        copy.emplace_back(std::make_pair(ptr, 0));
     }
-    auto *delta_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
+
+    // the delta change to apply
+    std::vector<uint16_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+    std::unordered_map<uint16_t, uint16_t> col_to_index;
+    for (auto &entry : rand_col_ids) {
+      col_to_index.insert(std::make_pair(entry, entry - 1));
+    }
+    auto *delta_buffer = new byte[storage::ProjectedRow::Size(layout, rand_col_ids)];
     storage::ProjectedRow *delta =
-        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
+        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, rand_col_ids, layout);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
     loose_pointers_.push_back(delta_buffer);
 
-    // generate a new projected row
-    auto *row_buffer = new byte[storage::ProjectedRow::Size(layout, col_ids)];
-    storage::ProjectedRow *row =
-        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, col_ids, layout);
-    loose_pointers_.push_back(row_buffer);
+    // apply delta
+    storage::StorageUtil::ApplyDelta(layout, *delta, old, col_to_index);
 
-    storage::StorageUtil::ApplyDelta(layout, *delta, row, col_to_index);
+    // check changes has been applied
+    for (uint16_t  delta_col_offset = 0; delta_col_offset < rand_col_ids.size(); ++delta_col_offset) {
+      uint16_t col = rand_col_ids[delta_col_offset];
+      auto got = col_to_index.find(col);
+      EXPECT_TRUE(got != col_to_index.end());
+      uint16_t old_col_offset = got->second;
+      byte * delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
+      byte * old_val_ptr = old->AccessWithNullCheck(old_col_offset);
+      if (delta_val_ptr == nullptr) {
+        EXPECT_TRUE(old_val_ptr == nullptr);
+      } else {
+        // check that the change has been applied
+        EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], delta_val_ptr),
+                  storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], old_val_ptr));
+      }
+    }
 
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, delta, row));
+    // check whether other cols have been polluted
+    std::unordered_set<uint16_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
+    for (uint16_t i = 0; i < old->NumColumns(); ++i) {
+      if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
+        byte * ptr = old->AccessWithNullCheck(i);
+        EXPECT_EQ(ptr, copy[i].first);
+        if (ptr != nullptr) {
+          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.attr_sizes_[i + 1], ptr), copy[i].second);
+        }
+      }
+    }
   }
 }
 
