@@ -91,6 +91,14 @@ class TransactionManager {
     return result;
   }
 
+  /**
+   * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it
+   * is not guaranteed that upon return the txn is still alive. However, it is guaranteed that the return
+   * timestamp is older than any transactions live.
+   * @return timestamp that is older than any transactions alive
+   */
+  timestamp_t Time() const { return time_.load(); }
+
  private:
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient

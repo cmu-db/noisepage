@@ -5,12 +5,14 @@
 #include "common/container/concurrent_queue.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 
 class GarbageCollector {
  private:
+  transaction::TransactionManager *txn_manager_;
   timestamp_t oldest_txn_{0};
   timestamp_t last_run_{0};
   common::ConcurrentQueue<transaction::TransactionContext *> completed_txns_;
@@ -63,9 +65,15 @@ class GarbageCollector {
     return txns_cleared;
   }
 
-  void Running() {
+ public:
+  GarbageCollector() = delete;
+  GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
+  ~GarbageCollector() = default;
+
+  void RunGC() {
     ClearGarbage();
     ClearTransactions();
+    last_run_ = txn_manager_->Time();
   }
 
  public:

@@ -1,7 +1,6 @@
 #include <iostream>
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
-#include "storage/garbage_collector.h"
 
 int main() {
   // initialize loggers
