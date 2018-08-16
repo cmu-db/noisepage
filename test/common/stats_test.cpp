@@ -12,7 +12,7 @@ namespace terrier {
 TEST(StatsTests, ObjectPoolStatsTest) {
   const uint64_t reuse_limit = 1;
   common::StatsCollector stats_collector;
-  storage::BlockStore *tested = new storage::BlockStore(reuse_limit, &stats_collector);
+  std::unique_ptr<storage::BlockStore> tested(new storage::BlockStore(reuse_limit, &stats_collector));
 
   // Create RawBlock
   storage::RawBlock *block_ptr1 = tested->Get();
@@ -47,7 +47,7 @@ TEST(StatsTests, ObjectPoolStatsTest) {
   // Destructor test
   storage::RawBlock *block_ptr6 = tested->Get();
   tested->Release(block_ptr6);
-  delete tested;
+  tested.reset();
   stats_collector.PrintStats();
   EXPECT_EQ(3, stats_collector.GetCounter("create block"));
   EXPECT_EQ(3, stats_collector.GetCounter("reuse block"));

@@ -138,6 +138,6 @@ class ObjectPool {
   // statistics about usage of blocks in the class.
   // enable_stats is used to disable the statistics.
   bool enable_stats_ = false;
-  std::unique_ptr<ObjectPoolStats> stats_;
+  std::unique_ptr<ObjectPoolStats> stats_ = nullptr;
 };
 }  // namespace terrier::common
