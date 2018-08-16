@@ -69,7 +69,7 @@ class GarbageCollector {
     return txns_cleared;
   }
 
-  void Running() {
+  void ThreadLoop() {
     while (running_) {
       STORAGE_LOG_INFO("hello from a GC thread\n");
       std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -87,16 +87,18 @@ class GarbageCollector {
   explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
   ~GarbageCollector() = default;
 
+  bool Running() const {
+    return running_;
+  }
+
   void StartGC() {
-    PELOTON_ASSERT(!running_, "Should only be invoking this on a GC that is not running.");
-    PELOTON_ASSERT(gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
-    gc_thread_ = new std::thread(&GarbageCollector::Running, this);
+    PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
+    gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
     running_ = true;
   }
 
   void StopGC() {
-    PELOTON_ASSERT(running_, "Should only be invoking this on a GC that is running.");
-    PELOTON_ASSERT(gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
+    PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
     running_ = false;
     gc_thread_->join();
     gc_thread_ = nullptr;

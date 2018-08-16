@@ -103,8 +103,10 @@ TEST_F(GarbageCollectorTests, BasicTest) {
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&txn_manager);
     gc.StartGC();
+    EXPECT_TRUE(gc.Running());
     std::this_thread::sleep_for(std::chrono::seconds(5));
     gc.StopGC();
+    EXPECT_FALSE(gc.Running());
   }
 }
 
