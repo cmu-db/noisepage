@@ -7,6 +7,7 @@
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 
@@ -52,17 +53,19 @@ class TupleAccessStrategyTestObject {
   std::vector<byte *> loose_pointers_;
 };
 
-struct TupleAccessStrategyTests : public ::testing::Test {
+struct TupleAccessStrategyTests : public ::terrier::TerrierTest{
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
 
  protected:
   void SetUp() override {
+    TerrierTest::SetUp();
     raw_block_ = block_store_.Get();
   }
 
   void TearDown() override {
     block_store_.Release(raw_block_);
+    TerrierTest::TearDown();
   }
 };
 
