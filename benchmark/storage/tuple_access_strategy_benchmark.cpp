@@ -18,9 +18,8 @@ namespace terrier {
 class TupleAccessStrategyBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
-    redo_buffer_ = new byte[redo_size_];
-
     // generate a random redo ProjectedRow to Insert
+    redo_buffer_ = new byte[redo_size_];
     redo_ = storage::ProjectedRow::InitializeProjectedRow(redo_buffer_, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }

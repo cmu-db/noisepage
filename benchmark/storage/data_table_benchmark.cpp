@@ -20,9 +20,8 @@ namespace terrier {
 class DataTableBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
-    redo_buffer_ = new byte[redo_size_];
-
     // generate a random redo ProjectedRow to Insert
+    redo_buffer_ = new byte[redo_size_];
     redo_ = storage::ProjectedRow::InitializeProjectedRow(redo_buffer_, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
@@ -68,7 +67,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
 
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
-
 
 // Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
