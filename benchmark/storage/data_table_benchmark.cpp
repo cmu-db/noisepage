@@ -29,15 +29,6 @@ class DataTableBenchmark : public benchmark::Fixture {
     delete[] redo_buffer_;
   }
 
-  // Workload
-  const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_threads_ = 8;
-
-  // Test infrastructure
-  std::default_random_engine generator_;
-  storage::BlockStore block_store_{1000};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{num_inserts_};
-
   // Tuple layout
   const uint16_t num_columns_ = 2;
   const uint8_t column_size_ = 8;
@@ -48,6 +39,15 @@ class DataTableBenchmark : public benchmark::Fixture {
   const uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
   const uint32_t undo_size_ = storage::DeltaRecord::Size(layout_, all_col_ids_);
 
+  // Workload
+  const uint32_t num_inserts_ = 10000000;
+  const uint32_t num_threads_ = 8;
+  
+  // Test infrastructure
+  std::default_random_engine generator_;
+  storage::BlockStore block_store_{1000};
+  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{num_inserts_};
+  
   // Insert buffer pointers
   byte *redo_buffer_;
   storage::ProjectedRow *redo_;
