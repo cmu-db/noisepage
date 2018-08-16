@@ -10,7 +10,7 @@
 
 namespace terrier {
 
-struct ProjectedRowTests : public ::terrier::TerrierTest {
+struct ProjectedRowTests : public TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
   std::vector<byte *> loose_pointers_;
@@ -99,11 +99,10 @@ TEST_F(ProjectedRowTests, MemorySafety){
     StorageTestUtil::CheckInBounds(update->AccessForceNotNull(0), lower_bound, upper_bound);
     // check the rest values memory addresses don't overlapping previous addresses.
     for (uint16_t col = 1; col < update->NumColumns(); col++) {
-      lower_bound = update->AccessForceNotNull(static_cast<uint16_t >(col - 1));
-      upper_bound = StorageTestUtil::IncrementByBytes(update->AccessForceNotNull(static_cast<uint16_t >(col - 1)),
+      lower_bound = StorageTestUtil::IncrementByBytes(update->AccessForceNotNull(static_cast<uint16_t >(col - 1)),
                                                       layout.attr_sizes_[col]);
       // check if the value address is in bound
-      StorageTestUtil::CheckNotInBounds(update->AccessForceNotNull(col), lower_bound, upper_bound);
+      StorageTestUtil::CheckInBounds(update->AccessForceNotNull(col), lower_bound, upper_bound);
     }
   }
 }

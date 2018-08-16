@@ -10,7 +10,7 @@
 
 namespace terrier {
 
-struct DeltaRecordTests : public ::terrier::TerrierTest {
+struct DeltaRecordTests : public TerrierTest {
   std::default_random_engine generator_;
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 

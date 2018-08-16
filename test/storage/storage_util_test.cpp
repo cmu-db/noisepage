@@ -12,7 +12,7 @@
 
 namespace terrier {
 
-struct StorageUtilTests : public ::terrier::TerrierTest {
+struct StorageUtilTests : public TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 
