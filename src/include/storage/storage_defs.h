@@ -375,7 +375,9 @@ class DeltaRecord {
   /**
    * @return Timestamp up to which the old projected row was visible.
    */
-  std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
+  std::atomic<timestamp_t> &Timestamp() {
+    return timestamp_;
+  }
 
   /**
    * @return the DataTable this DeltaRecord points to
@@ -461,13 +463,15 @@ class DeltaRecord {
   }
 
  private:
+  // TODO(Tianyu): Always padded?
   DeltaRecord *next_;
   std::atomic<timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
-
   byte varlen_contents_[0];
 };
+
+static_assert(sizeof(DeltaRecord) == 32, "must be aligned");
 }  // namespace terrier::storage
 
 namespace std {

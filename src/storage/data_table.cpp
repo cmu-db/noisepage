@@ -1,4 +1,6 @@
 #include <unordered_map>
+#include <zconf.h>
+#include <util/storage_test_util.h>
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -13,7 +15,7 @@ DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store
   PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
-void DataTable::Select(transaction::TransactionContext *txn,
+timestamp_t DataTable::Select(transaction::TransactionContext *txn,
                        const TupleSlot slot,
                        ProjectedRow *out_buffer) const {
   PELOTON_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
@@ -34,11 +36,11 @@ void DataTable::Select(transaction::TransactionContext *txn,
   // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
   // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
   // enough to reorder this operation in or in front of the for loop.
-//  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  //  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId()) return;
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId()) return txn->TxnId();
 
   // Creates a mapping from col offset to project list index. This allows us to efficiently
   // access columns since deltas can concern a different set of columns when chasing the
@@ -47,17 +49,31 @@ void DataTable::Select(transaction::TransactionContext *txn,
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
     col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
 
+  timestamp_t version;
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+  while (version_ptr != nullptr) {
+    version = version_ptr->Timestamp().load();
+    if (!transaction::TransactionUtil::NewerThan(version, txn->StartTime()))
+      break;
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
                             col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
+  timestamp_t actual;
+  if (version_ptr != nullptr) {
+    actual = version_ptr->Timestamp().load();
+    if (version != actual) {
+      printf("memory location: %p\n", version_ptr);
+      printf("thinks it is: %llu\n", !version);
+      printf("turns out to be: %llu\n", !actual);
+      StorageTestUtil::PrintRow(*version_ptr->Delta(), accessor_.GetBlockLayout());
+    }
+  }
+  return actual;
 }
 
 bool DataTable::Update(transaction::TransactionContext *txn,
@@ -74,11 +90,9 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-  // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
-  // Populate undo record with the before image of attribute
-  for (uint16_t i = 0; i < redo.NumColumns(); i++)
+  // Store before-image before making any changes or grabbing lock
+  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
-
   // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) return false;
   // Update in place with the new value.
@@ -155,7 +169,8 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
+  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)
+      ->compare_exchange_strong(expected, desired);
 }
 
 void DataTable::NewBlock(RawBlock *expected_val) {

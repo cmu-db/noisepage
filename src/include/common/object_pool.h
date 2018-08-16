@@ -17,7 +17,7 @@ struct ByteAllocator {
    * @return a pointer to the byte array allocated.
    */
   T *New() {
-    auto *result = reinterpret_cast<T *>(new byte[sizeof(T)]);
+    auto *result = reinterpret_cast<T *>(new uint64_t[sizeof(T) / 8 + 1]);
     Reuse(result);
     return result;
   }

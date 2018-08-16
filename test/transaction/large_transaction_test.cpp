@@ -32,8 +32,8 @@ class RandomWorkloadTransaction {
       delete[] reinterpret_cast<byte *>(entry.second);
     for (auto &entry : updates_)
       delete[] reinterpret_cast<byte *>(entry.second);
-    for (auto &entry : selects_)
-      delete[] reinterpret_cast<byte *>(entry.second);
+//    for (auto &entry : selects_)
+//      delete[] reinterpret_cast<byte *>(entry.second);
   }
 
   template<class Random>
@@ -75,11 +75,11 @@ class RandomWorkloadTransaction {
     storage::TupleSlot selected = *MultiThreadedTestUtil::UniformRandomElement(all_slots_, generator);
     auto *select_buffer = new byte[redo_size_];
     storage::ProjectedRow *select = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids_, layout_);
-    table_->Select(txn_, selected, select);
+    timestamp_t read_version = table_->Select(txn_, selected, select);
     auto updated = updates_.find(selected);
     // Only track reads whose value depend on the snapshot
     if (updated == updates_.end())
-      selects_.emplace_back(selected, select);
+      selects_.push_back({{selected, select}, read_version});
     else
       delete[] select_buffer;
   }
@@ -101,7 +101,8 @@ class RandomWorkloadTransaction {
   // This will not work if GC is turned on
   const std::vector<storage::TupleSlot> &all_slots_;
   using entry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
-  std::vector<entry> selects_, inserts_;
+  std::vector<std::pair<entry, timestamp_t>> selects_;
+  std::vector<entry> inserts_;
 
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> updates_;
   bool aborted_ = false;
@@ -116,7 +117,7 @@ class LargeTransactionTestObject {
   using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
   using VersionedSnapshots = std::map<timestamp_t, TableSnapshot>;
 
-  LargeTransactionTestObject(uint16_t max_columns,
+  LargeTransactionTestObject(uint16_t max_columns UNUSED_ATTRIBUTE,
                              uint32_t initial_table_size,
                              uint32_t txn_length,
                              std::vector<double> update_select_ratio,
@@ -126,6 +127,7 @@ class LargeTransactionTestObject {
       : txn_length_(txn_length),
         update_select_ratio_(std::move(update_select_ratio)),
         generator_(generator),
+//        layout_(2, {8, 8}),
         layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
         table_(block_store, layout_),
         txn_manager_(buffer_pool),
@@ -150,7 +152,7 @@ class LargeTransactionTestObject {
     txn->Finish();
   }
 
-  std::vector<RandomWorkloadTransaction *> SimulateOltp(uint32_t num_transactions,
+  std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>> SimulateOltp(uint32_t num_transactions,
                                                         uint32_t num_concurrent_txns) {
     std::vector<RandomWorkloadTransaction *> result(num_transactions);
     volatile std::atomic<uint32_t> txns_run = 0;
@@ -164,11 +166,12 @@ class LargeTransactionTestObject {
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_concurrent_txns, workload);
     // filter out aborted transactions
     std::vector<RandomWorkloadTransaction *> committed;
+    std::vector<RandomWorkloadTransaction *> aborted;
     for (RandomWorkloadTransaction *txn : result) {
       if (!txn->aborted_)
         committed.push_back(txn);
       else
-        delete txn;  // will never look at aborted transactions
+        aborted.push_back(txn);  // will never look at aborted transactions
     }
 
     // Sort according to commit timestamp
@@ -176,14 +179,15 @@ class LargeTransactionTestObject {
               [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
                 return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
               });
-    return committed;
+    return {committed, aborted};
   }
 
-  void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
+  void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits,
+                         std::vector<RandomWorkloadTransaction *> *aborts) {
     VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
     // Only need to check that reads make sense?
     for (RandomWorkloadTransaction *txn : *commits)
-      CheckTransactionReadCorrect(txn, snapshots);
+      CheckTransactionReadCorrect(txn, snapshots, commits, aborts);
 
     // clean up memory
     for (auto &snapshot : snapshots)
@@ -227,7 +231,9 @@ class LargeTransactionTestObject {
   }
 
   void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
-                                   const VersionedSnapshots &snapshots) {
+                                   const VersionedSnapshots &snapshots,
+                                   std::vector<RandomWorkloadTransaction *> *commits,
+                                   std::vector<RandomWorkloadTransaction *> *aborts) {
     timestamp_t start_time = txn->txn_->StartTime();
     // this version is the most recent future update
     auto ret = snapshots.upper_bound(start_time);
@@ -237,9 +243,45 @@ class LargeTransactionTestObject {
     const TableSnapshot &before_snapshot = ret->second;
     EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
     for (auto &entry : txn->selects_) {
-      auto it = before_snapshot.find(entry.first);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
+      auto it = before_snapshot.find(entry.first.first);
+      if (!StorageTestUtil::ProjectionListEqual(layout_, entry.first.second, it->second)) {
+        printf("\nerror version_timestamp: %llu\n", !start_time);
+        printf("expected:\n");
+        StorageTestUtil::PrintRow(*it->second, layout_);
+        printf("actual:\n");
+        StorageTestUtil::PrintRow(*entry.first.second, layout_);
+        printf("version history below:\n");
+        for (auto &snap : snapshots) {
+          printf("at timestamp %llu:\n", !snap.first);
+          StorageTestUtil::PrintRow(*(snap.second.find(entry.first.first)->second), layout_);
+        }
+        for (auto txn : *commits)
+          PrintTransactionLog(txn, entry.first.first);
+        printf("\n\n\n aborted txns: \n\n\n");
+        for (auto txn : *aborts)
+          PrintTransactionLog(txn, entry.first.first);
+        throw std::runtime_error("failure");
+      }
+//      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
     }
+  }
+
+  void PrintTransactionLog(RandomWorkloadTransaction *txn, storage::TupleSlot slot) {
+    printf("\n\n*******begin txn*********\n");
+    printf("transaction starting at: %llu\n", !txn->txn_->StartTime());
+    printf("relevant reads to slot:\n");
+    for (auto &entry : txn->selects_) {
+      if (entry.first.first == slot) {
+        StorageTestUtil::PrintRow(*entry.first.second, layout_);
+        printf("read version: %llu\n", !entry.second);
+      }
+    }
+    printf("relevant writes to slot:\n");
+    for (auto &entry : txn->updates_) {
+      if (entry.first == slot) StorageTestUtil::PrintRow(*entry.second, layout_);
+    }
+    printf("transaction committed at: %llu\n", !txn->commit_time_);
+    printf("*******end txn*********\n");
   }
 
   uint32_t txn_length_;
@@ -264,25 +306,26 @@ class LargeTransactionTests : public ::terrier::TerrierTest {
 // a database using the updates at every timestamp, and compares the reads with the reconstructed snapshot versions
 // to make sure they are the same.
 // NOLINTNEXTLINE
-TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 50;
-  const uint16_t max_columns = 20;
-  const uint32_t initial_table_size = 500;
-  const uint32_t txn_length = 50;
-  const uint32_t num_txns = 200;
-  const std::vector<double> update_select_ratio = {0.3, 0.7};
-  const uint32_t num_concurrent_txns = 4;
-  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested(max_columns,
-                                      initial_table_size,
-                                      txn_length,
-                                      update_select_ratio,
-                                      &block_store_,
-                                      &buffer_pool_,
-                                      &generator_);
-    auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
-    tested.CheckReadsCorrect(&result);
-    for (auto w : result) delete w;
-  }
-}
+//TEST_F(LargeTransactionTests, MixedReadWrite) {
+//  const uint32_t num_iterations = 50000;
+//  const uint16_t max_columns = 20;
+//  const uint32_t initial_table_size = 1000;
+//  const uint32_t txn_length = 100;
+//  const uint32_t num_txns = 500;
+//  const std::vector<double> update_select_ratio = {0.3, 0.7};
+//  const uint32_t num_concurrent_txns = 4;
+//  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+//    LargeTransactionTestObject tested(max_columns,
+//                                      initial_table_size,
+//                                      txn_length,
+//                                      update_select_ratio,
+//                                      &block_store_,
+//                                      &buffer_pool_,
+//                                      &generator_);
+//    auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
+//    tested.CheckReadsCorrect(&result.first, &result.second);
+//    for (auto w : result.first) delete w;
+//    for (auto w : result.second) delete w;
+//  }
+//}
 }  // namespace terrier
