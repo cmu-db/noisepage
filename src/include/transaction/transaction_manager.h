@@ -52,7 +52,7 @@ class TransactionManager {
     timestamp_t commit_time = time_++;
     // Flip all timestamps to be committed
     UndoBuffer &undos = txn->GetUndoBuffer();
-    for (auto it = undos.Begin(); it != undos.End(); ++it) it->Timestamp().store(commit_time);
+    for (auto &it : undos) it.Timestamp().store(commit_time);
     table_latch_.Lock();
     timestamp_t start_time = txn->StartTime();
     auto it = curr_running_txns_.find(start_time);
@@ -69,7 +69,7 @@ class TransactionManager {
   void Abort(TransactionContext *txn) {
     // no latch required on undo since all operations are transaction-local
     UndoBuffer &undos = txn->GetUndoBuffer();
-    for (auto it = undos.Begin(); it != undos.End(); ++it) it->Table()->Rollback(txn->TxnId(), it->Slot());
+    for (auto &it : undos) it.Table()->Rollback(txn->TxnId(), it.Slot());
     table_latch_.Lock();
     timestamp_t start_time = txn->StartTime();
     auto ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);

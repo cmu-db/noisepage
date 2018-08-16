@@ -161,12 +161,12 @@ class UndoBuffer {
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() { return {buffers_.begin(), 0}; }
+  Iterator begin() { return {buffers_.begin(), 0}; }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() { return {buffers_.end(), 0}; }
+  Iterator end() { return {buffers_.end(), 0}; }
 
  private:
   friend class TransactionContext;
