@@ -26,6 +26,8 @@ class RandomWorkloadTransaction {
 
   ~RandomWorkloadTransaction() {
     delete txn_;
+    for (auto &entry : inserts_)
+      delete[] reinterpret_cast<byte *>(entry.second);
     for (auto &entry : updates_)
       delete[] reinterpret_cast<byte *>(entry.second);
     for (auto &entry : selects_)
