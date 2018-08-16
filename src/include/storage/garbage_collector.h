@@ -16,6 +16,39 @@ namespace terrier::storage {
 static constexpr uint32_t MAX_ATTEMPTS = 1000000;
 
 class GarbageCollector {
+
+ public:
+  GarbageCollector() = delete;
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
+  ~GarbageCollector() = default;
+
+  bool ThreadRunning() const { return running_; }
+
+  std::pair<uint32_t, uint32_t> RunGC() {
+    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
+    uint32_t garbage_cleared = ClearGarbage();
+    uint32_t txns_cleared = ClearTransactions();
+    last_run_ = txn_manager_->Time();
+    return std::make_pair(garbage_cleared, txns_cleared);
+  }
+
+  void StartGCThread() {
+    PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
+    gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
+    running_ = true;
+  }
+
+  void StopGCThread() {
+    PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
+    running_ = false;
+    gc_thread_->join();
+    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
+    ClearGarbage();
+    ClearTransactions();
+    last_run_ = txn_manager_->Time();
+    gc_thread_ = nullptr;
+  }
+
  private:
   bool running_ = false;
   transaction::TransactionManager *txn_manager_;
@@ -102,37 +135,6 @@ class GarbageCollector {
     }
   }
 
- public:
-  GarbageCollector() = delete;
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
-  ~GarbageCollector() = default;
-
-  bool ThreadRunning() const { return running_; }
-
-  std::pair<uint32_t, uint32_t> RunGC() {
-    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
-    uint32_t garbage_cleared = ClearGarbage();
-    uint32_t txns_cleared = ClearTransactions();
-    last_run_ = txn_manager_->Time();
-    return std::make_pair(garbage_cleared, txns_cleared);
-  }
-
-  void StartGCThread() {
-    PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
-    gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
-    running_ = true;
-  }
-
-  void StopGCThread() {
-    PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
-    running_ = false;
-    gc_thread_->join();
-    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
-    ClearGarbage();
-    ClearTransactions();
-    last_run_ = txn_manager_->Time();
-    gc_thread_ = nullptr;
-  }
 };
 
 }  // namespace terrier::storage

@@ -50,12 +50,12 @@ class TransactionManager {
    */
   timestamp_t Commit(TransactionContext *txn) {
     common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
-    timestamp_t commit_time = time_++;
+    const timestamp_t commit_time = time_++;
     // Flip all timestamps to be committed
     UndoBuffer &undos = txn->GetUndoBuffer();
     for (auto &it : undos) it.Timestamp().store(commit_time);
     table_latch_.Lock();
-    timestamp_t start_time = txn->StartTime();
+    const timestamp_t start_time = txn->StartTime();
     auto it = curr_running_txns_.find(start_time);
     PELOTON_ASSERT(it != curr_running_txns_.end(), "committed transaction did not exist in global transactions table");
     curr_running_txns_.erase(it);
