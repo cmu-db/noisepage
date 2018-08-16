@@ -150,7 +150,7 @@ class LargeTransactionTestObject {
     txn->Finish();
   }
 
-   std::vector<RandomWorkloadTransaction *> SimulateOltp(uint32_t num_transactions,
+  std::vector<RandomWorkloadTransaction *> SimulateOltp(uint32_t num_transactions,
                                                         uint32_t num_concurrent_txns) {
     std::vector<RandomWorkloadTransaction *> result(num_transactions);
     volatile std::atomic<uint32_t> txns_run = 0;
@@ -265,13 +265,13 @@ class LargeTransactionTests : public ::terrier::TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 50000;
+  const uint32_t num_iterations = 50;
   const uint16_t max_columns = 20;
   const uint32_t initial_table_size = 1000;
-  const uint32_t txn_length = 100;
-  const uint32_t num_txns = 500;
+  const uint32_t txn_length = 20;
+  const uint32_t num_txns = 100;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
-  const uint32_t num_concurrent_txns = 4;
+  const uint32_t num_concurrent_txns = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns,
                                       initial_table_size,

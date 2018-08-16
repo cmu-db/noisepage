@@ -57,7 +57,7 @@ class TransactionManager {
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient
   std::atomic<timestamp_t> time_{timestamp_t(0)};
-//  std::atomic<timestamp_t> txn_id_{timestamp_t(static_cast<uint64_t>(INT64_MIN))};  // start from "negative" value
+  //  std::atomic<timestamp_t> txn_id_{timestamp_t(static_cast<uint64_t>(INT64_MIN))};  // start from "negative" value
 
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
   common::ReaderWriterLatch commit_latch_;

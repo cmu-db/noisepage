@@ -225,7 +225,7 @@ class TransactionContext {
                                             const storage::ProjectedRow &redo) {
     uint32_t size = storage::DeltaRecord::Size(redo);
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-//    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
+    //    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
     return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, redo);
   }
 
@@ -242,7 +242,7 @@ class TransactionContext {
     // Pretty sure we want 1, the primary key column?
     uint32_t size = storage::DeltaRecord::Size(layout, {1});
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-//    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
+    //    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
     return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, layout, {1});
   }
 

@@ -1,6 +1,4 @@
 #include <unordered_map>
-#include <zconf.h>
-#include <util/storage_test_util.h>
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -15,7 +13,7 @@ DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store
   PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
-timestamp_t DataTable::Select(transaction::TransactionContext *txn,
+void DataTable::Select(transaction::TransactionContext *txn,
                        const TupleSlot slot,
                        ProjectedRow *out_buffer) const {
   PELOTON_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
@@ -40,7 +38,7 @@ timestamp_t DataTable::Select(transaction::TransactionContext *txn,
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId()) return txn->TxnId();
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId()) return;
 
   // Creates a mapping from col offset to project list index. This allows us to efficiently
   // access columns since deltas can concern a different set of columns when chasing the
@@ -49,31 +47,17 @@ timestamp_t DataTable::Select(transaction::TransactionContext *txn,
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
     col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
 
-  timestamp_t version;
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr) {
-    version = version_ptr->Timestamp().load();
-    if (!transaction::TransactionUtil::NewerThan(version, txn->StartTime()))
-      break;
+  while (version_ptr != nullptr
+  && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
                             col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
-  timestamp_t actual;
-  if (version_ptr != nullptr) {
-    actual = version_ptr->Timestamp().load();
-    if (version != actual) {
-      printf("memory location: %p\n", version_ptr);
-      printf("thinks it is: %llu\n", !version);
-      printf("turns out to be: %llu\n", !actual);
-      StorageTestUtil::PrintRow(*version_ptr->Delta(), accessor_.GetBlockLayout());
-    }
-  }
-  return actual;
 }
 
 bool DataTable::Update(transaction::TransactionContext *txn,

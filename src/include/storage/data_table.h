@@ -40,7 +40,7 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  timestamp_t Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
+  void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
