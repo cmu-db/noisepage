@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
 #include "common/container/concurrent_queue.h"
@@ -138,6 +139,6 @@ class ObjectPool {
   // statistics about usage of blocks in the class.
   // enable_stats is used to disable the statistics.
   bool enable_stats_ = false;
-  std::unique_ptr<ObjectPoolStats> stats_ = nullptr;
+  std::unique_ptr<ObjectPoolStats> stats_;
 };
 }  // namespace terrier::common

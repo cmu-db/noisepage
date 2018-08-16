@@ -84,7 +84,7 @@ class StatsCollector {
   }
 
   /** @brief collect all the latest counters' values from registered stats */
-  void ColloectCounters() {
+  void CollectCounters() {
     for (auto stats : stats_vector_) {
       stats->SyncAndClearAllCounters();
     }

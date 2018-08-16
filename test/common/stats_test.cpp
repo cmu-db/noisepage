@@ -5,12 +5,13 @@
 
 namespace terrier {
 
-//===--------------------------------------------------------------------===//
-// Block store performance counter Tests
-//===--------------------------------------------------------------------===//
+/**
+ * Stats Tests
+ */
 
+// Stats test for object pool stats
 TEST(StatsTests, ObjectPoolStatsTest) {
-  const uint64_t reuse_limit = 1;
+  const uint64_t reuse_limit = 10;
   common::StatsCollector stats_collector;
   std::unique_ptr<storage::BlockStore> tested(new storage::BlockStore(reuse_limit, &stats_collector));
 
@@ -19,7 +20,7 @@ TEST(StatsTests, ObjectPoolStatsTest) {
   storage::RawBlock *block_ptr2 = tested->Get();
   EXPECT_EQ(0, stats_collector.GetCounter("create block"));
   EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
-  stats_collector.ColloectCounters();
+  stats_collector.CollectCounters();
   stats_collector.PrintStats();
   EXPECT_EQ(2, stats_collector.GetCounter("create block"));
   EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
@@ -34,7 +35,7 @@ TEST(StatsTests, ObjectPoolStatsTest) {
   storage::RawBlock *block_ptr5 = tested->Get();
   EXPECT_EQ(2, stats_collector.GetCounter("create block"));
   EXPECT_EQ(0, stats_collector.GetCounter("reuse block"));
-  stats_collector.ColloectCounters();
+  stats_collector.CollectCounters();
   stats_collector.PrintStats();
   EXPECT_EQ(3, stats_collector.GetCounter("create block"));
   EXPECT_EQ(2, stats_collector.GetCounter("reuse block"));
