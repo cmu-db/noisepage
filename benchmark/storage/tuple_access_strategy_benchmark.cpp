@@ -10,6 +10,11 @@
 
 namespace terrier {
 
+// This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
+// reference to other fast data structures (indexes) to compare against. We are interested in the TAS' raw
+// performance, so the tuple's contents are intentionally left garbage and we don't verify correctness. That's the job
+// of the Google Tests.
+
 class TupleAccessStrategyBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
@@ -45,7 +50,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   storage::ProjectedRow *redo_;
 };
 
-// Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsert)
+// Insert the maximum number of tuples into a Block in a single thread
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State &state) {
   storage::TupleAccessStrategy tested(layout_);
@@ -57,7 +62,6 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
-    // Insert the maximum number of tuples into this Block
     for (uint32_t j = 0; j < layout_.num_slots_; j++) {
       storage::TupleSlot slot;
       tested.Allocate(raw_block_, &slot);
@@ -72,7 +76,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
   state.SetItemsProcessed(state.iterations() * layout_.num_slots_);
 }
 
-// Roughly corresponds to TEST_F(TupleAccessStrategyTests, ConcurrentInsert)
+// Insert the maximum number of tuples into a Block concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
   storage::TupleAccessStrategy tested(layout_);

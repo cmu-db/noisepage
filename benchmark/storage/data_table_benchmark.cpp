@@ -12,6 +12,11 @@
 
 namespace terrier {
 
+// This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
+// reference to other fast data structures (indexes) to compare against. We are interested in the DataTable's raw
+// performance, so the tuple's contents are intentionally left garbage and we don't verify correctness. That's the job
+// of the Google Tests.
+
 class DataTableBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
@@ -49,8 +54,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   storage::ProjectedRow *redo_;
 };
 
-// Test raw DataTable insert time. Generate a fixed layout allocate undo and redo buffers, and then reuse them to
-// repeatedly insert the same garbage tuple over and over into the DataTable to test throughput.
+// Insert the num_inserts_ of tuples into a DataTable in a single thread
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
@@ -66,8 +70,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
 }
 
 
-// Test raw DataTable insert time concurrently. Generate a fixed layout allocate undo and redo buffers, and then reuse
-// them to repeatedly insert the same garbage tuple over and over into the DataTable to test throughput.
+// Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
