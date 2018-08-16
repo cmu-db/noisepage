@@ -1,8 +1,10 @@
 #pragma once
 
+#include <thread>
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_queue.h"
+#include "loggers/storage_logger.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -12,7 +14,9 @@ namespace terrier::storage {
 
 class GarbageCollector {
  private:
+  bool running_ = false;
   transaction::TransactionManager *txn_manager_;
+  std::thread *gc_thread_ = nullptr;
   timestamp_t oldest_txn_{0};
   timestamp_t last_run_{0};
   common::ConcurrentQueue<transaction::TransactionContext *> completed_txns_;
@@ -65,15 +69,37 @@ class GarbageCollector {
     return txns_cleared;
   }
 
- public:
-  GarbageCollector() = delete;
-  GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
-  ~GarbageCollector() = default;
+  void Running() {
+    while (running_) {
+      STORAGE_LOG_INFO("hello from a GC thread\n");
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
 
   void RunGC() {
     ClearGarbage();
     ClearTransactions();
     last_run_ = txn_manager_->Time();
+  }
+
+ public:
+  GarbageCollector() = delete;
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {}
+  ~GarbageCollector() = default;
+
+  void StartGC() {
+    PELOTON_ASSERT(!running_, "Should only be invoking this on a GC that is not running.");
+    PELOTON_ASSERT(gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
+    gc_thread_ = new std::thread(&GarbageCollector::Running, this);
+    running_ = true;
+  }
+
+  void StopGC() {
+    PELOTON_ASSERT(running_, "Should only be invoking this on a GC that is running.");
+    PELOTON_ASSERT(gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
+    running_ = false;
+    gc_thread_->join();
+    gc_thread_ = nullptr;
   }
 
  public:

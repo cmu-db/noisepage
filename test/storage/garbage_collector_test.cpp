@@ -6,6 +6,7 @@
 #include "storage/garbage_collector.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
+#include "util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -87,11 +88,11 @@ class GarbageCollectorDataTableTestObject {
   byte *select_buffer_ = new byte[redo_size_];
 };
 
-struct GarbageCollectorTests : public ::testing::Test {
+struct GarbageCollectorTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
-  const uint32_t num_iterations_ = 1000;
+  const uint32_t num_iterations_ = 5;
   const uint16_t max_columns_ = 100;
 };
 
@@ -100,8 +101,10 @@ TEST_F(GarbageCollectorTests, BasicTest) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_};
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-
     storage::GarbageCollector gc(&txn_manager);
+    gc.StartGC();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    gc.StopGC();
   }
 }
 
