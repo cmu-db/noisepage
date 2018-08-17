@@ -10,6 +10,36 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
+
+//
+//  void StartGCThread() {
+//    PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
+//    gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
+//    running_ = true;
+//  }
+//
+//  void StopGCThread() {
+//    PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
+//    running_ = false;
+//    gc_thread_->join();
+//    delete gc_thread_;
+//    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
+//    ClearGarbage();
+//    ClearTransactions();
+//    last_run_ = txn_manager_->Time();
+//    gc_thread_ = nullptr;
+//  }
+
+
+//  void ThreadLoop() {
+//    while (running_) {
+//      if (!txn_manager_->CompletedTransactions().Empty() || !garbage_txns_.empty()) {
+//        RunGC();
+//      }
+//      std::this_thread::sleep_for(std::chrono::seconds(1));
+//    }
+//  }
+
 namespace terrier {
 // Not thread-safe
 class GarbageCollectorDataTableTestObject {
@@ -112,33 +142,6 @@ TEST_F(GarbageCollectorTests, BasicTest) {
 
     EXPECT_EQ(1, gc.RunGC().second);
     EXPECT_EQ(1, gc.RunGC().first);
-
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(GarbageCollectorTests, BasicThreadTest) {
-  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager{&buffer_pool_, true};
-    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&txn_manager);
-
-    gc.StartGCThread();
-    EXPECT_TRUE(gc.ThreadRunning());
-
-    auto *txn0 = txn_manager.BeginTransaction();
-
-    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
-
-    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
-
-    txn_manager.Commit(txn0);
-
-    gc.StopGCThread();
-    EXPECT_FALSE(gc.ThreadRunning());
-
   }
 }
 

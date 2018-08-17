@@ -1,6 +1,8 @@
 #pragma once
 #include "common/rw_latch.h"
 #include <map>
+#include <queue>
+#include <utility>
 #include "common/rw_latch.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
@@ -59,11 +61,11 @@ class TransactionManager {
     auto it = curr_running_txns_.find(start_time);
     PELOTON_ASSERT(it != curr_running_txns_.end(), "committed transaction did not exist in global transactions table");
     curr_running_txns_.erase(it);
-    table_latch_.Unlock();
     txn->TxnId() = commit_time;
     if (gc_enabled_ && !undos.Empty()) {
-      completed_txns_.Enqueue(std::move(txn));
+      completed_txns_.push(txn);
     }
+    table_latch_.Unlock();
     return commit_time;
   }
 
@@ -104,7 +106,13 @@ class TransactionManager {
    */
   timestamp_t Time() const { return time_.load(); }
 
-  common::ConcurrentQueue<transaction::TransactionContext *> &CompletedTransactions() { return completed_txns_; }
+  std::queue<transaction::TransactionContext *> CompletedTransactions() {
+    table_latch_.Lock();
+    std::queue<transaction::TransactionContext *> hand_to_gc(std::move(completed_txns_));
+    PELOTON_ASSERT(completed_txns_.empty(), "Transaction manager's queue should now be empty.");
+    table_latch_.Unlock();
+    return hand_to_gc;
+  }
 
  private:
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
@@ -123,6 +131,6 @@ class TransactionManager {
   std::map<timestamp_t, TransactionContext *> curr_running_txns_;
 
   bool gc_enabled_ = false;
-  common::ConcurrentQueue<transaction::TransactionContext *> completed_txns_;
+  std::queue<transaction::TransactionContext *> completed_txns_;
 };
 }  // namespace terrier::transaction
