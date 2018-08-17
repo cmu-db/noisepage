@@ -45,11 +45,11 @@ PerformanceCounter::~PerformanceCounter() = default;
 #ifdef NDEBUG
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
 #define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  constexpr void Inc_##MemberName() { ((void)0); }
+  void Inc_##MemberName() { ((void)0); }
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  constexpr void Dec_##MemberName() { ((void)0); }
+  void Dec_##MemberName() { ((void)0); }
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  constexpr MemberType Get_##MemberName() { return 0; }
+  MemberType Get_##MemberName() { return 0; }
 #define PC_FN_JSON_FROM(MemberType, MemberName)
 #define PC_FN_JSON_TO(MemberType, MemberName)
 #define PC_FN_ZERO(MemberType, MemberName)
@@ -72,20 +72,20 @@ PerformanceCounter::~PerformanceCounter() = default;
  * This macro defines an Inc_MemberName() function which increments MemberName.
  */
 #define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  constexpr void Inc_##MemberName() { ++MemberName; }
+  void Inc_##MemberName() { ++MemberName; }
 
 /**
  * This macro defines a Dec_MemberName() function which decrements MemberName.
  */
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  constexpr void Dec_##MemberName() { --MemberName; }
+  void Dec_##MemberName() { --MemberName; }
 
 /**
  * This macro defines a Get_MemberName() function which returns MemberName.
  * If performance counters are disabled, it always returns 0.
  */
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  constexpr MemberType Get_##MemberName() { return MemberName.load(); }
+  MemberType Get_##MemberName() { return MemberName.load(); }
 
 /*
  * Performance counter functions.
@@ -174,7 +174,7 @@ PerformanceCounter::~PerformanceCounter() = default;
     };                                                                                \
     void FromJson(const nlohmann::json &j) override { MemberList(PC_FN_JSON_FROM); }; \
                                                                                       \
-    constexpr void ZeroCounters() { MemberList(PC_FN_ZERO) }                          \
+    void ZeroCounters() { MemberList(PC_FN_ZERO) }                                    \
   };                                                                                  \
                                                                                       \
   /* ClassName support for nlohmann::json serialization to JSON. */                   \
