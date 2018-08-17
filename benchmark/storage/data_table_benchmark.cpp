@@ -37,7 +37,6 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Tuple properties
   const std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
   const uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
-  const uint32_t undo_size_ = storage::DeltaRecord::Size(layout_, all_col_ids_);
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
@@ -59,6 +58,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_);
+    // We can use dummy timestamps here since we're not invoking concurrency control
     transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
       table.Insert(&txn, *redo_);
@@ -75,6 +75,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_);
     auto workload = [&](uint32_t id) {
+      // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++)
         table.Insert(&txn, *redo_);
