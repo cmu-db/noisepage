@@ -58,9 +58,8 @@ class TransactionManager {
     for (auto &it : undos) it.Timestamp().store(commit_time);
     table_latch_.Lock();
     const timestamp_t start_time = txn->StartTime();
-    auto it = curr_running_txns_.find(start_time);
-    PELOTON_ASSERT(it != curr_running_txns_.end(), "committed transaction did not exist in global transactions table");
-    curr_running_txns_.erase(it);
+    size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
+    PELOTON_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
     txn->TxnId() = commit_time;
     if (gc_enabled_ && !undos.Empty()) {
       completed_txns_.push(txn);
@@ -73,15 +72,22 @@ class TransactionManager {
    * Aborts a transaction, rolling back its changes (if any).
    * @param txn the transaction to abort.
    */
-  void Abort(TransactionContext *txn) {
+  timestamp_t Abort(TransactionContext *txn) {
     // no latch required on undo since all operations are transaction-local
+    // TODO(Matt): maybe don't need to increment?
+    const timestamp_t abort_time = time_++;
     UndoBuffer &undos = txn->GetUndoBuffer();
     for (auto &it : undos) it.Table()->Rollback(txn->TxnId(), it.Slot());
     table_latch_.Lock();
-    timestamp_t start_time = txn->StartTime();
-    auto ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
+    const timestamp_t start_time = txn->StartTime();
+    size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     PELOTON_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
+    txn->TxnId() = abort_time + INT64_MIN;
+    if (gc_enabled_ && !undos.Empty()) {
+      completed_txns_.push(txn);
+    }
     table_latch_.Unlock();
+    return abort_time;
   }
 
   /**

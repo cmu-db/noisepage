@@ -59,8 +59,24 @@ class GarbageCollector {
     DataTable *const table = undo_record.Table();
     const TupleSlot slot = undo_record.Slot();
     const TupleAccessStrategy &accessor = table->accessor_;
+
+    DeltaRecord *version_ptr;
+    do {
+      version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+      PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
+      // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+      // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+      // can potentially happen, and chase the version chain before returning anyway,
+      for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+        StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+      // Here we will need to check that the version pointer did not change during our read. If it did, the content
+      // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
+      // we will have to loop around to avoid a dirty read.
+    } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+
     DeltaRecord *curr = table->AtomicallyReadVersionPtr(slot, accessor);
     DeltaRecord *next = curr->Next();
+
     if (next == nullptr) {
       PELOTON_ASSERT(curr->Timestamp().load() == txn->TxnId(),
                      "There's only one element in the version chain. This must be our DeltaRecord.");
@@ -91,7 +107,12 @@ class GarbageCollector {
     while (!txns_to_unlink_.empty()) {
       txn = txns_to_unlink_.front();
       txns_to_unlink_.pop();
-      if (transaction::TransactionUtil::NewerThan(oldest_txn_, txn->TxnId())) {
+      if (!transaction::TransactionUtil::Committed(txn->TxnId())) {
+        // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need to safely free the txn
+        txns_to_deallocate_.push(txn);
+        txns_cleared++;
+      } else if (transaction::TransactionUtil::NewerThan(oldest_txn_, txn->TxnId())) {
+        // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
         transaction::UndoBuffer &undos = txn->GetUndoBuffer();
         for (auto &undo_record : undos) {
           UnlinkDeltaRecord(txn, undo_record);
@@ -99,6 +120,7 @@ class GarbageCollector {
         txns_to_deallocate_.push(txn);
         txns_cleared++;
       } else {
+        // this is a committed txn that is still visible, requeue for next GC run
         requeue.push(txn);
       }
     }
