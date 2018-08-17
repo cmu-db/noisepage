@@ -1,5 +1,4 @@
 #pragma once
-#include "common/rw_latch.h"
 #include <map>
 #include <queue>
 #include <utility>
@@ -72,22 +71,18 @@ class TransactionManager {
    * Aborts a transaction, rolling back its changes (if any).
    * @param txn the transaction to abort.
    */
-  timestamp_t Abort(TransactionContext *txn) {
+  void Abort(TransactionContext *txn) {
     // no latch required on undo since all operations are transaction-local
-    // TODO(Matt): maybe don't need to increment?
-    const timestamp_t abort_time = time_++;
     UndoBuffer &undos = txn->GetUndoBuffer();
     for (auto &it : undos) it.Table()->Rollback(txn->TxnId(), it.Slot());
     table_latch_.Lock();
     const timestamp_t start_time = txn->StartTime();
     size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     PELOTON_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
-    txn->TxnId() = abort_time + INT64_MIN;
     if (gc_enabled_ && !undos.Empty()) {
       completed_txns_.push(txn);
     }
     table_latch_.Unlock();
-    return abort_time;
   }
 
   /**
@@ -104,13 +99,7 @@ class TransactionManager {
     return result;
   }
 
-  /**
-   * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it
-   * is not guaranteed that upon return the txn is still alive. However, it is guaranteed that the return
-   * timestamp is older than any transactions live.
-   * @return timestamp that is older than any transactions alive
-   */
-  timestamp_t Time() const { return time_.load(); }
+  timestamp_t GetTimestamp() { return time_++; }
 
   /**
    * Return the completed txns queue and empty it
@@ -120,6 +109,7 @@ class TransactionManager {
     table_latch_.Lock();
     std::queue<transaction::TransactionContext *> hand_to_gc(std::move(completed_txns_));
     PELOTON_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
+
     table_latch_.Unlock();
     return hand_to_gc;
   }

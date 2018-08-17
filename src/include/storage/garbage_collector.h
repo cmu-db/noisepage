@@ -21,7 +21,7 @@ class GarbageCollector {
   std::pair<uint32_t, uint32_t> RunGC() {
     uint32_t garbage_cleared = Deallocate();
     uint32_t txns_cleared = Unlink();
-    last_run_ = txn_manager_->Time();
+    last_run_ = txn_manager_->GetTimestamp();
     return std::make_pair(garbage_cleared, txns_cleared);
   }
 
@@ -34,84 +34,83 @@ class GarbageCollector {
   std::queue<transaction::TransactionContext *> txns_to_unlink_;
 
   uint32_t Deallocate() {
+    const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
     uint32_t garbage_cleared = 0;
     transaction::TransactionContext *txn = nullptr;
-    std::queue<transaction::TransactionContext *> requeue;
-    while (!txns_to_deallocate_.empty()) {
-      txn = txns_to_deallocate_.front();
-      txns_to_deallocate_.pop();
-      if (transaction::TransactionUtil::NewerThan(last_run_, txn->TxnId())) {
+
+    if (transaction::TransactionUtil::NewerThan(oldest_txn, last_run_)) {
+      // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
+      // We are now safe to deallocate these txns because no one should hold a reference to them anymore
+      garbage_cleared = txns_to_deallocate_.size();
+      while (!txns_to_deallocate_.empty()) {
+        txn = txns_to_deallocate_.front();
+        txns_to_deallocate_.pop();
         delete txn;
-        garbage_cleared++;
-      } else {
-        requeue.push(txn);
       }
     }
-
-    // requeue any txns that we weren't able to deallocate yet
-    txns_to_deallocate_ = requeue;
 
     return garbage_cleared;
   }
 
   void UnlinkDeltaRecord(transaction::TransactionContext *const txn, const DeltaRecord &undo_record) {
-
     DataTable *const table = undo_record.Table();
     const TupleSlot slot = undo_record.Slot();
     const TupleAccessStrategy &accessor = table->accessor_;
 
     DeltaRecord *version_ptr;
     do {
-      version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+      version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
       PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
-      // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
-      // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-      // can potentially happen, and chase the version chain before returning anyway,
-      for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-        StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-      // Here we will need to check that the version pointer did not change during our read. If it did, the content
-      // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
-      // we will have to loop around to avoid a dirty read.
-    } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-    DeltaRecord *curr = table->AtomicallyReadVersionPtr(slot, accessor);
-    DeltaRecord *next = curr->Next();
+      if (version_ptr->Timestamp().load() == txn->TxnId()) {
+        // our DeltaRecord is the first in the chain, this could get ugly with contention
+        if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) break;
+        // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+        version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
+      }
+      // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
+      // to traverse and update pointers without CAS
+      DeltaRecord *curr = version_ptr;
+      DeltaRecord *next = curr->Next();
 
-    if (next == nullptr) {
-      PELOTON_ASSERT(curr->Timestamp().load() == txn->TxnId(),
-                     "There's only one element in the version chain. This must be our DeltaRecord.");
-      if (table->CompareAndSwapVersionPtr(slot, accessor, curr, next)) return;
-
-      // Someone swooped the VersionPointer while we were trying to swap it
-      curr = table->AtomicallyReadVersionPtr(slot, accessor);
-      next = curr->Next();
-      // TODO: an abort on another txn would screw this assumption up
-      PELOTON_ASSERT(next != nullptr, "Somehow we failed the CAS but Next isn't nullptr? That shouldn't happen.");
-    } else {
-      while (next->Timestamp().load() != txn->TxnId()) {
+      // traverse until we hit the DeltaRecord that we want to unlink
+      while (next != nullptr && next->Timestamp().load() != txn->TxnId()) {
         curr = next;
         next = curr->Next();
       }
-      curr->Next().store(next->Next().load());
-    }
+      if (next != nullptr && next->Timestamp().load() == txn->TxnId()) {
+        curr->Next().store(next->Next().load());
+        break;
+      }
+    } while (true);
   }
 
   uint32_t Unlink() {
-    const timestamp_t oldest_txn_ = txn_manager_->OldestTransactionStartTime();
-    // TODO need to add to it, not just overwrite
-    txns_to_unlink_ = txn_manager_->CompletedTransactions();
-    uint32_t txns_cleared = 0;
+    const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
     transaction::TransactionContext *txn = nullptr;
+
+    std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactions();
+    if (!txns_to_unlink_.empty()) {
+      while (!from_txn_manager.empty()) {
+        txn = from_txn_manager.front();
+        from_txn_manager.pop();
+        txns_to_unlink_.push(txn);
+      }
+    } else {
+      txns_to_unlink_ = from_txn_manager;
+    }
+
+    uint32_t txns_cleared = 0;
     std::queue<transaction::TransactionContext *> requeue;
-    txns_to_unlink_ = txn_manager_->CompletedTransactions();
     while (!txns_to_unlink_.empty()) {
       txn = txns_to_unlink_.front();
       txns_to_unlink_.pop();
       if (!transaction::TransactionUtil::Committed(txn->TxnId())) {
-        // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need to safely free the txn
+        // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
+        // to safely free the txn
         txns_to_deallocate_.push(txn);
         txns_cleared++;
-      } else if (transaction::TransactionUtil::NewerThan(oldest_txn_, txn->TxnId())) {
+      } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
         // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
         transaction::UndoBuffer &undos = txn->GetUndoBuffer();
         for (auto &undo_record : undos) {
