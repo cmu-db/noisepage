@@ -5,6 +5,7 @@
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
+#include "util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -86,7 +87,8 @@ class MVCCDataTableTestObject {
   byte *select_buffer_ = new byte[redo_size_];
 };
 
-struct MVCCTests : public ::testing::Test {
+class MVCCTests : public ::terrier::TerrierTest {
+ public:
   storage::BlockStore block_store_{100};
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;

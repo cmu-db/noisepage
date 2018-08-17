@@ -1,5 +1,4 @@
 #include <unordered_map>
-
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -21,16 +20,19 @@ void DataTable::Select(transaction::TransactionContext *txn,
                  "The projection never returns the version pointer, so it should have fewer attributes.");
   PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
 
-  // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
-  // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-  // can potentially happen, and chase the version chain before returning anyway,
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+  DeltaRecord *version_ptr;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+    // can potentially happen, and chase the version chain before returning anyway,
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+    // Here we will need to check that the version pointer did not change during our read. If it did, the content
+    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
+    // we will have to loop around to avoid a dirty read.
+  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-  // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
-  // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
-  // enough to reorder this operation in or in front of the for loop.
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
@@ -47,7 +49,7 @@ void DataTable::Select(transaction::TransactionContext *txn,
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+  && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
@@ -70,11 +72,9 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-  // TODO(Tianyu): Is it conceivable that the caller would have already obtained the values and don't need this?
-  // Populate undo record with the before image of attribute
-  for (uint16_t i = 0; i < redo.NumColumns(); i++)
+  // Store before-image before making any changes or grabbing lock
+  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
-
   // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) return false;
   // Update in place with the new value.
@@ -101,8 +101,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   DeltaRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
 
   // Populate undo record with the before image of presence column
-  // TODO(Tianyu): This is projection list id, not col id, fix eventually
-  undo->Delta()->SetNull(VERSION_VECTOR_COLUMN_ID);
+  undo->Delta()->SetNull(0);
 
   // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
   // may result in a segfault
@@ -120,12 +119,12 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
 void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // We do not hold the lock. Should just return
-  if (version_ptr->Timestamp().load() != txn_id) return;
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image
   for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrFromProjection(accessor_, slot, *(version_ptr->Delta()), i);
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
-  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atoic
+  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
   AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
 }
@@ -152,7 +151,8 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          DeltaRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
+  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)
+      ->compare_exchange_strong(expected, desired);
 }
 
 void DataTable::NewBlock(RawBlock *expected_val) {
