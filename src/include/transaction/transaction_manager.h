@@ -20,6 +20,7 @@ class TransactionManager {
    * Initializes a new transaction manager. Transactions will use the given object pool as source of their undo
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
+   * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
   explicit TransactionManager(common::ObjectPool<UndoBufferSegment> *buffer_pool, bool gc_enabled)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
@@ -99,7 +100,15 @@ class TransactionManager {
     return result;
   }
 
+  /**
+   * @return unique timestamp based on current time, and advances one tick
+   */
   timestamp_t GetTimestamp() { return time_++; }
+
+  /**
+   * @return true if gc_enabled and storing completed txns in local queue, false otherwise
+   */
+  bool GCEnabled() const { return gc_enabled_; }
 
   /**
    * Return the completed txns queue and empty it

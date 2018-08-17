@@ -12,12 +12,34 @@
 
 namespace terrier::storage {
 
+/**
+ * The garbage collector is responsible for processing a queue of completed transactions from the transaction manager.
+ * Based on the contents of this queue, it unlinks the DeltaRecords from their version chains when no running
+ * transactions can view those versions anymore. It then stores those transactions to attempt to deallocate on the next
+ * iteration if no running transactions can still hold references to them.
+ */
 class GarbageCollector {
  public:
   GarbageCollector() = delete;
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), last_run_{0} {}
+  /**
+   * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
+   * GC to invoke the TM's function for handing off the completed transactions queue.
+   * @param txn_manager pointer to the TransactionManager
+   */
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), last_run_{0} {
+    PELOTON_ASSERT(txn_manager_->GCEnabled(),
+                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+  }
   ~GarbageCollector() = default;
 
+  /**
+   * Deallocates transactions that can no longer be references by running transactions, and unlinks DeltaRecords that
+   * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
+   * first invocation will unlink a transaction's DeltaRecords, while the second time around will allow the GC to free
+   * the transaction if safe to do so.
+   * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
+   * the second is the number of transactions unlinked on this iteration.
+   */
   std::pair<uint64_t, uint32_t> RunGC() {
     uint64_t txns_deallocated = Deallocate();
     uint32_t txns_unlinked = Unlink();
