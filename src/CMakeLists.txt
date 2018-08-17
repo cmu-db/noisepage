@@ -12,6 +12,12 @@ list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 #   )
 # list(APPEND TERRIER_SRCS ${EASYLOGGINGPP_SOURCES})
 
+# spdlog
+file(GLOB_RECURSE SPDLOG_SOURCES
+   ${PROJECT_SOURCE_DIR}/third_party/spdlog/*.h
+   )
+list(APPEND TERRIER_SRCS ${SPDLOG_SOURCES})
+
 ###############################################
 # Terrier library
 ###############################################

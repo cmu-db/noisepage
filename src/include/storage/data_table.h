@@ -1,10 +1,10 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
@@ -36,41 +36,46 @@ class DataTable {
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.
    *
-   * @param txn_start_time the timestamp threshold that the returned projection should be visible at. In practice this
-   *                       will just be the start time of the caller transaction.
+   * @param txn the calling transaction
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(timestamp_t txn_start_time, TupleSlot slot, ProjectedRow *out_buffer) const;
+  void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo slot given, and update the version chain to link to the given
    * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only
    * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
    *
+   * @param txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
-   * @param undo the undo record to maintain and populate. It is expected that the projected row has the same structure
-   *             as the redo, but the contents need not be filled beforehand, and will be populated with the
-   * before-image after this method returns.
    * @return whether the update is successful.
    */
-  bool Update(TupleSlot slot, const ProjectedRow &redo, DeltaRecord *undo);
+  bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
 
   /**
    * Inserts a tuple, as given in the redo, and update the version chain the link to the given
    * delta record. The slot allocated for the tuple and returned.
    *
+   * @param txn the calling transaction
    * @param redo after-image of the inserted tuple
-   * @param undo the undo record to maintain and populate. It is expected that this simply contains one column of
-   *             the table's primary key, set to null (logically deleted) to denote that the tuple did not exist
-   *             before.
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
    * such.
    */
-  TupleSlot Insert(const ProjectedRow &redo, DeltaRecord *undo);
+  TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
+
+  /**
+   * Rolls back changes on the given tuple slot, written by the given transaction. Should only be called when
+   * aborting a transaction
+   * @param txn_id the transaction that updated the tuple
+   * @param slot the tuple to roll back
+   */
+  void Rollback(timestamp_t txn_id, TupleSlot slot);
 
  private:
+  friend class GarbageCollector;
+
   BlockStore *block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
@@ -91,12 +96,16 @@ class DataTable {
   // contention
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
 
-  // If there will be a write-write conflict.
-  bool HasConflict(DeltaRecord *version_ptr, DeltaRecord *undo) {
-    return version_ptr != nullptr  // Nobody owns this tuple's write lock, no older version visible
-           && version_ptr->timestamp_ != undo->timestamp_  // This tuple's write lock is already owned by the txn
-           && !transaction::TransactionUtil::Committed(
-                  version_ptr->timestamp_);  // Nobody owns this tuple's write lock, older version still visible
+  bool HasConflict(DeltaRecord *const version_ptr, transaction::TransactionContext *const txn) {
+    if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
+    const timestamp_t version_timestamp = version_ptr->Timestamp().load();
+    const timestamp_t txn_id = txn->TxnId();
+    const timestamp_t start_time = txn->StartTime();
+    return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
+           // Someone else owns this tuple, write-write-conflict
+           || (transaction::TransactionUtil::Committed(version_timestamp) &&
+               transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
+    // Someone else already committed an update to this tuple while we were running, we can't update this under SI
   }
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

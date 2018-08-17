@@ -146,8 +146,12 @@ class ConcurrentMap {
   };
 
   /**
-   *
-   * @return
+   * Constructs element in place
+   * @tparam Args types of arguments to forward to the constructor
+   * @param args arguments to forward to the constructor of the element
+   * @return a pair consisting of an iterator to the inserted element, or the already-existing
+   *         element if no insertion happened, and a bool denoting whether the insertion took place.
+   *         True for Insertion, False for No Insertion.
    */
   template <typename... Args>
   std::pair<Iterator, bool> Emplace(Args &&... args) {

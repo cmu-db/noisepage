@@ -8,7 +8,8 @@
 
 namespace terrier {
 
-// tests a RawBitmap whose base pointer is word aligned, and the num_elements is a multiple of 8 (byte size)
+// Tests a RawBitmap whose base pointer is word aligned, where num_elements is a multiple of 8 (byte size)
+// NOLINTNEXTLINE
 TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
@@ -45,7 +46,8 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   }
 }
 
-// tests a RawBitmap whose base pointer is word aligned, but the num_elements is not a multiple of 8 (byte size)
+// Tests a RawBitmap whose base pointer is word aligned, but the num_elements is not a multiple of 8 (byte size)
+// NOLINTNEXTLINE
 TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
@@ -83,7 +85,8 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   }
 }
 
-// tests a RawBitmap whose base pointer is not word aligned
+// Tests a RawBitmap whose base pointer is not word aligned
+// NOLINTNEXTLINE
 TEST(BitmapTests, WordUnalignedCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
