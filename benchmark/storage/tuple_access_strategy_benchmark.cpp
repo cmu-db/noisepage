@@ -1,4 +1,3 @@
-#include <unordered_map>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -11,110 +10,120 @@
 
 namespace terrier {
 
-// Roughly corresponds to TEST_F(TupleAccessStrategyTests, SimpleInsert)
-// NOLINTNEXTLINE
-static void BM_SimpleInsert(benchmark::State &state) {
-  // Get a BlockStore and then RawBlock to use for inserting into
-  storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+// This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
+// reference to other fast data structures (indexes) to compare against. We are interested in the TAS' raw
+// performance, so the tuple's contents are intentionally left garbage and we don't verify correctness. That's the job
+// of the Google Tests.
 
-  std::default_random_engine generator;
-
-  // Tuple layout
-  uint16_t num_columns = 2;
-  uint8_t column_size = 8;
-  storage::BlockLayout layout(num_columns, {column_size, column_size});
-  storage::TupleAccessStrategy tested(layout);
-
-  // Generate a random redo ProjectedRow to insert
-  std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout)};
-  uint32_t row_size_ = storage::ProjectedRow::Size(layout, all_col_ids_);
-  auto *row_buffer = new byte[row_size_];
-  storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(row_buffer, all_col_ids_, layout);
-  StorageTestUtil::PopulateRandomRow(row, layout, 0, &generator);
-
-
-  while (state.KeepRunning()) {
-    // Get the Block, zero it, and initialize
-    raw_block_ = block_store_.Get();
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
-
-    // Insert the maximum number of tuples into this Block
-    for (uint32_t j = 0; j < layout.num_slots_; j++) {
-      storage::TupleSlot slot;
-      tested.Allocate(raw_block_, &slot);
-      TupleAccessStrategyBenchmarkUtil::InsertTuple(*row,
-                                                    &tested,
-                                                    layout,
-                                                    slot);
-    }
-    block_store_.Release(raw_block_);
+class TupleAccessStrategyBenchmark : public benchmark::Fixture {
+ public:
+  void SetUp(const benchmark::State &state) final {
+    // generate a random redo ProjectedRow to Insert
+    redo_buffer_ = new byte[redo_size_];
+    redo_ = storage::ProjectedRow::InitializeProjectedRow(redo_buffer_, all_col_ids_, layout_);
+    StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
-  // We want to approximate the amount of data processed so Google Benchmark can print stats for us
-  // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
-  size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
-  state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
-  state.SetItemsProcessed(state.iterations() * layout.num_slots_);
-}
+  void TearDown(const benchmark::State &state) final {
+    delete[] redo_buffer_;
+  }
 
-// Roughly corresponds to TEST_F(TupleAccessStrategyTests, ConcurrentInsert)
+  // Tuple layout_
+  const uint16_t num_columns_ = 2;
+  const uint8_t column_size_ = 8;
+  const storage::BlockLayout layout_{num_columns_, {column_size_, column_size_}};
+
+  // Tuple properties
+  const std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
+  const uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
+
+  // Workload
+  const uint32_t num_inserts_ = 10000000;
+  const uint32_t num_threads_ = 8;
+  const uint32_t num_blocks_ = num_inserts_ / layout_.num_slots_;
+
+  // Test infrastructure
+  std::default_random_engine generator_;
+  storage::BlockStore block_store_{num_blocks_};
+
+  std::vector<storage::RawBlock *>raw_blocks_;
+  // Insert buffer pointers
+  byte *redo_buffer_;
+  storage::ProjectedRow *redo_;
+};
+
+// Insert the num_inserts_ of tuples into Blocks in a single thread
 // NOLINTNEXTLINE
-static void BM_ConcurrentInsert(benchmark::State &state) {
-  // Get a BlockStore and then RawBlock to use for inserting into
-  storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State &state) {
+  storage::TupleAccessStrategy tested(layout_);
 
-  std::default_random_engine generator;
-
-  // Tuple layout
-  uint16_t num_columns = 2;
-  uint8_t column_size = 8;
-  storage::BlockLayout layout(num_columns, {column_size, column_size});
-  storage::TupleAccessStrategy tested(layout);
-
-  // generate a random redo ProjectedRow to Insert
-  std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout)};
-  uint32_t row_size_ = storage::ProjectedRow::Size(layout, all_col_ids_);
-  auto *row_buffer = new byte[row_size_];
-  storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(row_buffer, all_col_ids_, layout);
-  StorageTestUtil::PopulateRandomRow(row, layout, 0, &generator);
-
-  const uint32_t num_threads = 8;
-
-  while (state.KeepRunning()) {
-    // Get the Block, zero it, and initialize
-    raw_block_ = block_store_.Get();
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
-
-    auto workload = [&](uint32_t id) {
-      for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++){
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_blocks_; i++) {
+      // Get a Block, zero it, and initialize
+      storage::RawBlock *raw_block = block_store_.Get();
+      raw_blocks_.emplace_back(raw_block);
+      PELOTON_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      tested.InitializeRawBlock(raw_block, layout_version_t(0));
+      for (uint32_t j = 0; j < layout_.num_slots_; j++) {
         storage::TupleSlot slot;
-        tested.Allocate(raw_block_, &slot);
-        TupleAccessStrategyBenchmarkUtil::InsertTuple(*row,
+        tested.Allocate(raw_block, &slot);
+        TupleAccessStrategyBenchmarkUtil::InsertTuple(*redo_,
                                                       &tested,
-                                                      layout,
+                                                      layout_,
                                                       slot);
       }
-    };
-
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
-    block_store_.Release(raw_block_);
+    }
+    // return all of the used blocks to the BlockStore
+    for (uint32_t i = 0; i < num_blocks_; i++) {
+      block_store_.Release(raw_blocks_[i]);
+    }
   }
-  // We want to approximate the amount of data processed so Google Benchmark can print stats for us
-  // We'll say it 2x RawBlock because we zero it, and then populate it. This is likely an underestimation
-  size_t bytes_per_repeat = 2 * sizeof(storage::RawBlock);
-  state.SetBytesProcessed(state.iterations() * bytes_per_repeat);
-  state.SetItemsProcessed(state.iterations() * layout.num_slots_);
+
+  state.SetItemsProcessed(state.iterations() * layout_.num_slots_ * num_blocks_);
 }
 
-BENCHMARK(BM_SimpleInsert)
+// Insert the num_inserts_ of tuples into Blocks concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
+  storage::TupleAccessStrategy tested(layout_);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_blocks_; i++) {
+      // Get a Block, zero it, and initialize
+      storage::RawBlock *raw_block = block_store_.Get();
+      raw_blocks_.emplace_back(raw_block);
+      PELOTON_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      tested.InitializeRawBlock(raw_block, layout_version_t(0));
+
+      auto workload = [&](uint32_t id) {
+        for (uint32_t j = 0; j < layout_.num_slots_ / num_threads_; j++) {
+          storage::TupleSlot slot;
+          tested.Allocate(raw_block, &slot);
+          TupleAccessStrategyBenchmarkUtil::InsertTuple(*redo_,
+                                                        &tested,
+                                                        layout_,
+                                                        slot);
+        }
+      };
+
+      MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
+    }
+    // return all of the used blocks to the BlockStore
+    for (uint32_t i = 0; i < num_blocks_; i++) {
+      block_store_.Release(raw_blocks_[i]);
+    }
+  }
+
+  state.SetItemsProcessed(state.iterations() * layout_.num_slots_ * num_blocks_);
+}
+
+BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)
     ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
-BENCHMARK(BM_ConcurrentInsert)
+BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, ConcurrentInsert)
     ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
