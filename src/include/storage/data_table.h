@@ -1,7 +1,6 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_map.h"
 #include "common/container/concurrent_vector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"

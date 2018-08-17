@@ -324,4 +324,22 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
    */
   size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
 };
+
+/**
+ * Implements std::less for StrongTypeAlias.
+ * @tparam Tag a dummy class type to annotate the underlying type.
+ * @tparam T the underlying type.
+ */
+template <class Tag, class T>
+struct less<terrier::common::StrongTypeAlias<Tag, T>> {
+  /**
+   * @param x one value
+   * @param y other value
+   * @return x < y (underlying value)
+   */
+  bool operator()(const terrier::common::StrongTypeAlias<Tag, T> &x,
+                  const terrier::common::StrongTypeAlias<Tag, T> &y) const {
+    return std::less<T>()(!x, !y);
+  }
+};
 }  // namespace std

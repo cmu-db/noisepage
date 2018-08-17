@@ -1,5 +1,5 @@
 #pragma once
-#include <tbb/reader_writer_lock.h>
+#include "common/rw_latch.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
@@ -25,20 +25,23 @@ class TransactionManager {
    * @return transaction context for the newly begun transaction
    */
   TransactionContext *BeginTransaction() {
-    tbb::reader_writer_lock::scoped_lock_read guard(commit_latch_);
-    return new TransactionContext{time_++, txn_id_++, buffer_pool_};
+    common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
+    timestamp_t id = time_++;
+    // An uncommitted transaction has "commit timestamp" larger than any transaction ("negative" values)
+    return new TransactionContext{id, id + INT64_MIN, buffer_pool_};
   }
 
   /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
    */
-  void Commit(TransactionContext *txn) {
-    tbb::reader_writer_lock::scoped_lock guard(commit_latch_);
+  timestamp_t Commit(TransactionContext *txn) {
+    common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
     timestamp_t commit_time = time_++;
     // Flip all timestamps to be committed
     UndoBuffer &undos = txn->GetUndoBuffer();
     for (auto it = undos.Begin(); it != undos.End(); ++it) it->Timestamp().store(commit_time);
+    return commit_time;
   }
 
   /**
@@ -54,11 +57,10 @@ class TransactionManager {
  private:
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient
+  // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
-  std::atomic<timestamp_t> txn_id_{timestamp_t(static_cast<uint64_t>(INT64_MIN))};  // start from "negative" value
 
-  // TODO(Tianyu): Maybe don't use tbb?
-  // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
-  tbb::reader_writer_lock commit_latch_;
+  // TODO(Tianyu): This is the famed HyPer Latch. Re-evaluate performance later.
+  common::ReaderWriterLatch commit_latch_;
 };
 }  // namespace terrier::transaction
