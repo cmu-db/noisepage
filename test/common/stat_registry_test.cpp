@@ -24,7 +24,8 @@ TEST(StatRegistryTest, SimpleCorrectnessTest) {
   std::vector<std::string> expected;
 
   // register under root
-  reg.Register({}, &cc);
+  reg.Register({}, &cc, this);
+  EXPECT_EQ(reg.GetRegistrant({}, "CacheCounter"), this);
   expected = {"CacheCounter"};
   current = reg.GetRegistryListing();
   EXPECT_TRUE(current == expected);
@@ -38,7 +39,7 @@ TEST(StatRegistryTest, SimpleCorrectnessTest) {
   EXPECT_TRUE(current == expected);
 
   // register under cache submodule
-  reg.Register({"Cache"}, &cc);
+  reg.Register({"Cache"}, &cc, this);
   expected = {"Cache"};
   current = reg.GetRegistryListing();
   EXPECT_TRUE(current == expected);
@@ -47,7 +48,7 @@ TEST(StatRegistryTest, SimpleCorrectnessTest) {
   current = reg.GetRegistryListing({"Cache"});
   EXPECT_TRUE(current == expected);
   // add something else to cache submodule
-  reg.Register({"Cache"}, &nc);
+  reg.Register({"Cache"}, &nc, this);
   expected = {"CacheCounter", "NetworkCounter"};
   current = reg.GetRegistryListing({"Cache"});
   std::sort(current.begin(), current.end());
@@ -74,8 +75,8 @@ TEST(StatRegistryTest, MultipleNameTest) {
   std::vector<std::string> current;
   std::vector<std::string> expected;
 
-  reg.Register({}, &cc);
-  reg.Register({}, &cc2);
+  reg.Register({}, &cc, this);
+  reg.Register({}, &cc2, this);
   expected = {"CacheCounter", "CacheCounter1"};
   current = reg.GetRegistryListing();
   std::sort(current.begin(), current.end());
@@ -96,8 +97,8 @@ TEST(StatRegistryTest, DumpTest) {
   std::vector<std::string> current;
   std::vector<std::string> expected;
 
-  reg.Register({}, &cc);
-  reg.Register({"Cache"}, &cc2);
+  reg.Register({}, &cc, this);
+  reg.Register({"Cache"}, &cc2, this);
 
   cc.Inc_num_failure();
   cc2.Inc_num_hit();

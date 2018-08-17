@@ -21,6 +21,10 @@ class StatisticsRegistry {
    */
   static constexpr const char *RESERVED_PC_PTR_STRING = "__PC_PTRS";
   /**
+   * We will store the pointer to the instance that registered this function here.
+   */
+  static constexpr const char *RESERVED_PC_REGISTRANT_PTR = "__PC_REGISTRANT";
+  /**
    * The root registry object. It stores strings and integers, where strings denote new modules and
    * integers are actually pointers to PerformanceCounter objects.
    */
@@ -36,6 +40,7 @@ class StatisticsRegistry {
     json *node = root_registry_;
     for (const auto &mod : module_path) {
       PELOTON_ASSERT(mod != RESERVED_PC_PTR_STRING, "We reserve that name for pointers.");
+      PELOTON_ASSERT(mod != RESERVED_PC_REGISTRANT_PTR, "We reserve that name for the registering class.");
       if (create_if_missing) {
         node->emplace(mod, "{}"_json);
       }
@@ -57,6 +62,8 @@ class StatisticsRegistry {
       if (key == RESERVED_PC_PTR_STRING) {
         auto val = root->at(key).get<uintptr_t>();
         output = reinterpret_cast<PerformanceCounter *>(val)->ToJson();
+      } else if (key == RESERVED_PC_REGISTRANT_PTR) {
+        /* don't include the registrant in the output */
       } else {
         auto val = root->at(key).get<json>();
         output[key] = GetTrueJson(&val);
@@ -73,8 +80,9 @@ class StatisticsRegistry {
    * pc's name will be modified until the binding succeeds.
    * @param module_path path to destination module
    * @param pc performance counter to be registered
+   * @param registrant pointer to instance that is registering this counter
    */
-  void Register(const std::vector<std::string> &module_path, PerformanceCounter *pc) {
+  void Register(const std::vector<std::string> &module_path, PerformanceCounter *pc, void *registrant) {
     json *mod = FindModule(module_path, true);
 
     // generate a new insertion name
@@ -89,6 +97,7 @@ class StatisticsRegistry {
     // create if doesn't exist
     mod->emplace(insert_name, "{}"_json);
     mod->at(insert_name)[RESERVED_PC_PTR_STRING] = reinterpret_cast<uintptr_t>(pc);
+    mod->at(insert_name)[RESERVED_PC_REGISTRANT_PTR] = reinterpret_cast<uintptr_t>(registrant);
   }
 
   /**
@@ -119,8 +128,14 @@ class StatisticsRegistry {
    */
   PerformanceCounter *GetPerformanceCounter(const std::vector<std::string> &module_path, const std::string &name) {
     json *mod = FindModule(module_path, false);
-    auto val = mod->at(name).get<uintptr_t>();
+    auto val = mod->at(name)[RESERVED_PC_PTR_STRING].get<uintptr_t>();
     return reinterpret_cast<PerformanceCounter *>(val);
+  }
+
+  void *GetRegistrant(const std::vector<std::string> &module_path, const std::string &name) {
+    json *mod = FindModule(module_path, false);
+    auto val = mod->at(name)[RESERVED_PC_REGISTRANT_PTR].get<uintptr_t>();
+    return reinterpret_cast<void *>(val);
   }
 
   /**
