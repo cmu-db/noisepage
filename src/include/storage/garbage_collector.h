@@ -18,11 +18,11 @@ class GarbageCollector {
   explicit GarbageCollector(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), last_run_{0} {}
   ~GarbageCollector() = default;
 
-  std::pair<uint32_t, uint32_t> RunGC() {
-    uint32_t garbage_cleared = Deallocate();
-    uint32_t txns_cleared = Unlink();
+  std::pair<uint64_t, uint32_t> RunGC() {
+    uint64_t txns_deallocated = Deallocate();
+    uint32_t txns_unlinked = Unlink();
     last_run_ = txn_manager_->GetTimestamp();
-    return std::make_pair(garbage_cleared, txns_cleared);
+    return std::make_pair(txns_deallocated, txns_unlinked);
   }
 
  private:
@@ -33,9 +33,9 @@ class GarbageCollector {
   // queue of txns that need to be unlinked
   std::queue<transaction::TransactionContext *> txns_to_unlink_;
 
-  uint32_t Deallocate() {
+  uint64_t Deallocate() {
     const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
-    uint32_t garbage_cleared = 0;
+    uint64_t garbage_cleared = 0;
     transaction::TransactionContext *txn = nullptr;
 
     if (transaction::TransactionUtil::NewerThan(oldest_txn, last_run_)) {
