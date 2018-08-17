@@ -1,5 +1,7 @@
 
 #pragma once
+
+#include "common/main_stat_registry.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
@@ -16,6 +18,9 @@ class TerrierTest : public ::testing::Test {
     // initialize namespace specific loggers
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
+
+    // initialize main statistics registry
+    init_main_stat_reg();
   }
 
   void TearDown() override {
