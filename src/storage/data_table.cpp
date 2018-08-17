@@ -28,13 +28,11 @@ void DataTable::Select(transaction::TransactionContext *txn,
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+    // Here we will need to check that the version pointer did not change during our read. If it did, the content
+    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
+    // we will have to loop around to avoid a dirty read.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-
-  // TODO(Tianyu): Potentially we need a memory fence here to make sure the check on version ptr
-  // happens after the row is populated. For now, the compiler should not be smart (or rebellious)
-  // enough to reorder this operation in or in front of the for loop.
-  //  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.

@@ -27,6 +27,7 @@ class TransactionManager {
   TransactionContext *BeginTransaction() {
     common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
     timestamp_t id = time_++;
+    // An uncommitted transaction has "commit timestamp" larger than any transaction ("negative" values)
     return new TransactionContext{id, id + INT64_MIN, buffer_pool_};
   }
 
@@ -56,10 +57,10 @@ class TransactionManager {
  private:
   common::ObjectPool<UndoBufferSegment> *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient
+  // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
-  //  std::atomic<timestamp_t> txn_id_{timestamp_t(static_cast<uint64_t>(INT64_MIN))};  // start from "negative" value
 
-  // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
+  // TODO(Tianyu): This is the famed HyPer Latch. Re-evaluate performance later.
   common::ReaderWriterLatch commit_latch_;
 };
 }  // namespace terrier::transaction

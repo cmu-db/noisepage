@@ -174,7 +174,7 @@ class UndoBuffer {
     if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
       // we are out of space in the buffer. Get a new buffer segment.
       UndoBufferSegment *new_segment = buffer_pool_->Get();
-      PELOTON_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "not aligned");
+      PELOTON_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
       new_segment->Reset();
       buffers_.push_back(new_segment);
     }
@@ -186,7 +186,7 @@ class UndoBuffer {
 };
 
 /**
- * A transaction context encapsulates the information kept while the transaction is runnning
+ * A transaction context encapsulates the information kept while the transaction is running
  */
 class TransactionContext {
  public:
@@ -225,7 +225,6 @@ class TransactionContext {
                                             const storage::ProjectedRow &redo) {
     uint32_t size = storage::DeltaRecord::Size(redo);
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    //    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
     return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, redo);
   }
 
@@ -242,7 +241,6 @@ class TransactionContext {
     // Pretty sure we want 1, the primary key column?
     uint32_t size = storage::DeltaRecord::Size(layout, {1});
     storage::DeltaRecord *result = undo_buffer_.NewEntry(size);
-    //    PELOTON_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "not aligned");
     return storage::DeltaRecord::InitializeDeltaRecord(result, txn_id_, slot, table, layout, {1});
   }
 
