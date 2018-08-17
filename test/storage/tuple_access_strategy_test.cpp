@@ -53,7 +53,7 @@ class TupleAccessStrategyTestObject {
   std::vector<byte *> loose_pointers_;
 };
 
-struct TupleAccessStrategyTests : public ::terrier::TerrierTest{
+struct TupleAccessStrategyTests : public TerrierTest{
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
 
