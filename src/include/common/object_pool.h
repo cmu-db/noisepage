@@ -7,17 +7,17 @@
 namespace terrier::common {
 /**
  * Allocator that allocates and destroys a byte array. Memory location returned by this default allocator is
- * not zeroed-out.
+ * not zeroed-out. The address returned is guaranteed to be aligned to 8 bytes.
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
-struct ByteAllocator {
+struct AlignedByteAllocator {
   /**
    * Allocates a new byte array sized to hold a T.
    * @return a pointer to the byte array allocated.
    */
   T *New() {
-    auto *result = reinterpret_cast<T *>(new byte[sizeof(T)]);
+    auto *result = reinterpret_cast<T *>(new uint64_t[sizeof(T) / 8 + 1]);
     Reuse(result);
     return result;
   }
@@ -52,7 +52,7 @@ struct ByteAllocator {
  *         supplied Delete method, but its memory location will potentially be
  *         handed out multiple times before that happens.
  */
-template <typename T, class Allocator = ByteAllocator<T>>
+template <typename T, class Allocator = AlignedByteAllocator<T>>
 class ObjectPool {
  public:
   /**

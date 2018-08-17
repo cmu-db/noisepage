@@ -123,7 +123,7 @@ class StrongTypeAlias {
    * @param operand another int type
    * @return sum of the underlying value and given operand
    */
-  StrongTypeAlias operator+(const IntType &operand) { return StrongTypeAlias(val_ + operand); }
+  StrongTypeAlias operator+(const IntType &operand) const { return StrongTypeAlias(val_ + operand); }
 
   /**
    * addition and assignment
@@ -155,7 +155,7 @@ class StrongTypeAlias {
    * @param operand another int type
    * @return difference between the underlying value and given operand
    */
-  StrongTypeAlias operator-(const IntType &operand) { return StrongTypeAlias(val_ - operand); }
+  StrongTypeAlias operator-(const IntType &operand) const { return StrongTypeAlias(val_ - operand); }
 
   /**
    * subtraction and assignment
@@ -323,5 +323,23 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
    * @return the hash of the aliased type.
    */
   size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
+};
+
+/**
+ * Implements std::less for StrongTypeAlias.
+ * @tparam Tag a dummy class type to annotate the underlying type.
+ * @tparam T the underlying type.
+ */
+template <class Tag, class T>
+struct less<terrier::common::StrongTypeAlias<Tag, T>> {
+  /**
+   * @param x one value
+   * @param y other value
+   * @return x < y (underlying value)
+   */
+  bool operator()(const terrier::common::StrongTypeAlias<Tag, T> &x,
+                  const terrier::common::StrongTypeAlias<Tag, T> &y) const {
+    return std::less<T>()(!x, !y);
+  }
 };
 }  // namespace std

@@ -53,8 +53,8 @@ class UndoBufferSegment {
 
  private:
   friend class UndoBuffer;
-  uint32_t end_ = 0;
   byte bytes_[UNDO_BUFFER_SEGMENT_SIZE];
+  uint32_t end_ = 0;
 };
 
 // TODO(Tianyu): Not thread-safe. We can probably just allocate thread-local buffers (or segments) if we ever want
@@ -161,12 +161,17 @@ class UndoBuffer {
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() { return {buffers_.begin(), 0}; }
+  Iterator begin() { return {buffers_.begin(), 0}; }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() { return {buffers_.end(), 0}; }
+  Iterator end() { return {buffers_.end(), 0}; }
+
+  /**
+   * @return true if UndoBuffer contains no DeltaRecords, false otherwise
+   */
+  bool Empty() const { return buffers_.empty(); }
 
  private:
   friend class TransactionContext;
@@ -174,6 +179,7 @@ class UndoBuffer {
     if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
       // we are out of space in the buffer. Get a new buffer segment.
       UndoBufferSegment *new_segment = buffer_pool_->Get();
+      PELOTON_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
       new_segment->Reset();
       buffers_.push_back(new_segment);
     }
@@ -185,7 +191,7 @@ class UndoBuffer {
 };
 
 /**
- * A transaction context encapsulates the information kept while the transaction is runnning
+ * A transaction context encapsulates the information kept while the transaction is running
  */
 class TransactionContext {
  public:
@@ -206,7 +212,12 @@ class TransactionContext {
   /**
    * @return id of this transaction
    */
-  timestamp_t TxnId() const { return txn_id_; }
+  const timestamp_t &TxnId() const { return txn_id_; }
+
+  /**
+   * @return id of this transaction
+   */
+  timestamp_t &TxnId() { return txn_id_; }
 
   /**
    * @return the undo buffer of this transaction
@@ -245,7 +256,7 @@ class TransactionContext {
 
  private:
   const timestamp_t start_time_;
-  const timestamp_t txn_id_;
+  timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
 }  // namespace terrier::transaction

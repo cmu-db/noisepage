@@ -1,10 +1,10 @@
 #pragma once
 
+#include <ostream>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
 #include "common/container/bitmap.h"
-#include "common/json_serializable.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/typedefs.h"
@@ -220,14 +220,19 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
  * --------------------------------------------------------
  * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
  */
-class ProjectedRow {
+// TODO(Tianyu): The PACKED directive here is not necessary, but C++ does some weird thing where
+// it will pad sizeof(ProjectedRow) to 8 but the varlen content still points at 6. This should not
+// break any code, but the padding no will be immediately before the values instead of after num_cols,
+// which is weird. We should make a consistent policy on how to deal with this type of issue for other
+// cases as well. (The other use cases of byte[0] all have aligned sizes already I think?)
+class PACKED ProjectedRow {
  public:
   ProjectedRow() = delete;
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
 
   /**
-   * Calculates the size of this ProjectedRow, including all members, values, and bitmap
+   * Calculates the size of this ProjectedRow, including all members, values, bitmap, and potential padding
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    * @return number of bytes for this ProjectedRow
@@ -265,12 +270,12 @@ class ProjectedRow {
   /**
    * @return the size of this ProjectedRow in memory, in bytes
    */
-  const uint32_t &Size() const { return size_; }
+  uint32_t Size() const { return size_; }
 
   /**
    * @return number of columns stored in the ProjectedRow
    */
-  const uint16_t &NumColumns() const { return num_cols_; }
+  uint16_t NumColumns() const { return num_cols_; }
 
   /**
    * @return pointer to the start of the uint16_t array of column ids
@@ -365,7 +370,7 @@ class DeltaRecord {
   /**
    * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *&Next() { return next_; }
+  std::atomic<DeltaRecord *> &Next() { return next_; }
 
   /**
    * @return Timestamp up to which the old projected row was visible.
@@ -373,14 +378,19 @@ class DeltaRecord {
   std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
   /**
+   * @return Timestamp up to which the old projected row was visible.
+   */
+  const std::atomic<timestamp_t> &Timestamp() const { return timestamp_; }
+
+  /**
    * @return the DataTable this DeltaRecord points to
    */
-  DataTable *Table() { return table_; }
+  DataTable *Table() const { return table_; }
 
   /**
    * @return the TupleSlot this DeltaRecord points to
    */
-  TupleSlot Slot() { return slot_; }
+  TupleSlot Slot() const { return slot_; }
 
   /**
    * Access the ProjectedRow containing this record's modifications
@@ -456,13 +466,14 @@ class DeltaRecord {
   }
 
  private:
-  DeltaRecord *next_;
+  std::atomic<DeltaRecord *> next_;
   std::atomic<timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
-
   byte varlen_contents_[0];
 };
+
+static_assert(sizeof(DeltaRecord) == 32, "must be aligned");
 }  // namespace terrier::storage
 
 namespace std {
