@@ -106,10 +106,14 @@ class TransactionManager {
    */
   timestamp_t Time() const { return time_.load(); }
 
+  /**
+   * Return the completed txns queue and empty it
+   * @return
+   */
   std::queue<transaction::TransactionContext *> CompletedTransactions() {
     table_latch_.Lock();
     std::queue<transaction::TransactionContext *> hand_to_gc(std::move(completed_txns_));
-    PELOTON_ASSERT(completed_txns_.empty(), "Transaction manager's queue should now be empty.");
+    PELOTON_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
     table_latch_.Unlock();
     return hand_to_gc;
   }
@@ -122,7 +126,7 @@ class TransactionManager {
 
   // TODO(Tianyu): Maybe don't use tbb?
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
-  mutable common::ReaderWriterLatch commit_latch_;
+  common::ReaderWriterLatch commit_latch_;
 
   // TODO(Tianyu): Get a better data structure for this.
   // TODO(Tianyu): Also, we are leveraging off the fact that we know start time to be globally unique, so we should

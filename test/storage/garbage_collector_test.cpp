@@ -33,7 +33,7 @@
 
 //  void ThreadLoop() {
 //    while (running_) {
-//      if (!txn_manager_->CompletedTransactions().Empty() || !garbage_txns_.empty()) {
+//      if (!txn_manager_->CompletedTransactions().Empty() || !txns_to_deallocate.empty()) {
 //        RunGC();
 //      }
 //      std::this_thread::sleep_for(std::chrono::seconds(1));

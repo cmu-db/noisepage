@@ -380,12 +380,12 @@ class DeltaRecord {
   /**
    * @return the DataTable this DeltaRecord points to
    */
-  DataTable *Table() { return table_; }
+  DataTable *Table() const { return table_; }
 
   /**
    * @return the TupleSlot this DeltaRecord points to
    */
-  TupleSlot Slot() { return slot_; }
+  TupleSlot Slot() const { return slot_; }
 
   /**
    * Access the ProjectedRow containing this record's modifications
