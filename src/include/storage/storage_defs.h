@@ -378,6 +378,11 @@ class DeltaRecord {
   std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
   /**
+   * @return Timestamp up to which the old projected row was visible.
+   */
+  const std::atomic<timestamp_t> &Timestamp() const { return timestamp_; }
+
+  /**
    * @return the DataTable this DeltaRecord points to
    */
   DataTable *Table() const { return table_; }

@@ -49,12 +49,17 @@ class GarbageCollector {
 
  private:
   transaction::TransactionManager *txn_manager_;
+  // timestamp of the last time GC completed. We need this to know when unlinked versions are safe to deallocate.
   timestamp_t last_run_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run
   std::queue<transaction::TransactionContext *> txns_to_deallocate_;
   // queue of txns that need to be unlinked
   std::queue<transaction::TransactionContext *> txns_to_unlink_;
 
+  /**
+   * Process the deallocate queue
+   * @return number of txns deallocated (not DeltaRecords) for debugging/testing
+   */
   uint64_t Deallocate() {
     const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
     uint64_t garbage_cleared = 0;
@@ -74,7 +79,14 @@ class GarbageCollector {
     return garbage_cleared;
   }
 
+  /**
+   * Given a DeltaRecord that has been deemed safe to unlink by the GC, removes it from the version chain. This requires
+   * a while loop to handle contention from running transactions (basically restart the process if needed).
+   * @param txn pointer to the transaction that created this DeltaRecord
+   * @param undo_record DeltaRecord to be unlinked
+   */
   void UnlinkDeltaRecord(transaction::TransactionContext *const txn, const DeltaRecord &undo_record) {
+    PELOTON_ASSERT(txn->TxnId() == undo_record.Timestamp().load(), "This undo_record does not belong to this txn.");
     DataTable *const table = undo_record.Table();
     const TupleSlot slot = undo_record.Slot();
     const TupleAccessStrategy &accessor = table->accessor_;
@@ -85,7 +97,7 @@ class GarbageCollector {
       PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
       if (version_ptr->Timestamp().load() == txn->TxnId()) {
-        // our DeltaRecord is the first in the chain, this could get ugly with contention
+        // Our DeltaRecord is the first in the chain, handle contention on the write lock with CAS
         if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) break;
         // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
         version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
@@ -100,30 +112,40 @@ class GarbageCollector {
         curr = next;
         next = curr->Next();
       }
+      // we're in position with next being the DeltaRecord to be unlinked
       if (next != nullptr && next->Timestamp().load() == txn->TxnId()) {
         curr->Next().store(next->Next().load());
         break;
       }
+      // If that process didn't work (interleaved abort) then try again
     } while (true);
   }
 
+  /**
+   * Process the unlink queue
+   * @return number of txns unlinked (not DeltaRecords) for debugging/testing
+   */
   uint32_t Unlink() {
     const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
     transaction::TransactionContext *txn = nullptr;
 
+    // Get the completed transactions from the TransactionManager
     std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactions();
     if (!txns_to_unlink_.empty()) {
+      // Append to our non-empty unlink queue
       while (!from_txn_manager.empty()) {
         txn = from_txn_manager.front();
         from_txn_manager.pop();
         txns_to_unlink_.push(txn);
       }
     } else {
+      // Overwrite our empty unlink queue
       txns_to_unlink_ = from_txn_manager;
     }
 
     uint32_t txns_cleared = 0;
     std::queue<transaction::TransactionContext *> requeue;
+    // Process every transaction in the unlink queue
     while (!txns_to_unlink_.empty()) {
       txn = txns_to_unlink_.front();
       txns_to_unlink_.pop();
@@ -146,14 +168,8 @@ class GarbageCollector {
       }
     }
 
-    // requeue any txns that we weren't able to unlink yet
-    if (!requeue.empty() && !txns_to_unlink_.empty()) {
-      while (!requeue.empty()) {
-        txn = requeue.front();
-        requeue.pop();
-        txns_to_unlink_.push(txn);
-      }
-    } else if (!requeue.empty() && txns_to_unlink_.empty()) {
+    // requeue any txns that we were still visible to running transactions
+    if (!requeue.empty()) {
       txns_to_unlink_ = requeue;
     }
 
