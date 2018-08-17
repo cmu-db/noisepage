@@ -168,6 +168,11 @@ class UndoBuffer {
    */
   Iterator end() { return {buffers_.end(), 0}; }
 
+  /**
+   * @return true if UndoBuffer contains no DeltaRecords, false otherwise
+   */
+  bool Empty() const { return buffers_.empty(); }
+
  private:
   friend class TransactionContext;
   storage::DeltaRecord *NewEntry(const uint32_t size) {

@@ -61,7 +61,7 @@ class TransactionManager {
     curr_running_txns_.erase(it);
     table_latch_.Unlock();
     txn->TxnId() = commit_time;
-    if (gc_enabled_ && undos.begin() != undos.end()) {
+    if (gc_enabled_ && !undos.Empty()) {
       completed_txns_.Enqueue(std::move(txn));
     }
     return commit_time;
