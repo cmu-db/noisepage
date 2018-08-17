@@ -12,7 +12,7 @@ namespace terrier::common {
  */
 class PerformanceCounter {
  public:
-  virtual ~PerformanceCounter() = 0;
+  virtual ~PerformanceCounter() = default;
   /**
    * Return the name of the performance counter.
    * Names may change
@@ -34,9 +34,6 @@ class PerformanceCounter {
    */
   virtual void FromJson(const json &) = 0;
 };
-
-PerformanceCounter::~PerformanceCounter() = default;
-
 }  // namespace terrier::common
 
 /*
@@ -144,7 +141,7 @@ PerformanceCounter::~PerformanceCounter() = default;
  *      #define NETWORK_MEMBERS(f) f(uint64_t, requests_received) f(uint32_t, connections_opened)
  *
  * You can use the resulting PerformanceCounter as a class in its own right. For example,
- *      #define MAKE_PERFORMANCE_COUNTER(NetworkCounter, NETWORK_MEMBERS)
+ *      #define DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
  * will make the following code valid:
  *      NetworkCounter nc;
  *      nc.requests_received++;
@@ -152,7 +149,7 @@ PerformanceCounter::~PerformanceCounter() = default;
  *
  * Note that every class member is wrapped in std::atomic.
  */
-#define MAKE_PERFORMANCE_COUNTER(ClassName, MemberList)                               \
+#define DEFINE_PERFORMANCE_CLASS(ClassName, MemberList)                               \
   class ClassName : public terrier::common::PerformanceCounter {                      \
    private:                                                                           \
     std::string name = #ClassName;                                                    \
@@ -175,14 +172,4 @@ PerformanceCounter::~PerformanceCounter() = default;
     void FromJson(const nlohmann::json &j) override { MemberList(PC_FN_JSON_FROM); }; \
                                                                                       \
     void ZeroCounters() { MemberList(PC_FN_ZERO) }                                    \
-  };                                                                                  \
-                                                                                      \
-  /* ClassName support for nlohmann::json serialization to JSON. */                   \
-  void to_json(nlohmann::json &j, const ClassName &c) { /* NOLINT */                  \
-    j = c.ToJson();                                                                   \
-  }                                                                                   \
-                                                                                      \
-  /* ClassName support for nlohmann::json serialization from JSON. */                 \
-  void from_json(const nlohmann::json &j, ClassName &c) { /* NOLINT */                \
-    c.FromJson(j);                                                                    \
-  }
+  };

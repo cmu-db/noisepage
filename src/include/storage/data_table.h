@@ -2,12 +2,20 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
+#include "common/main_stat_registry.h"
+#include "common/performance_counter.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
+#define DataTableCounterMembers(f)                                                                  \
+  f(uint64_t, num_select) f(uint64_t, num_update) f(uint64_t, num_insert) f(uint64_t, num_rollback) \
+      f(uint64_t, num_new_block)
+
 namespace terrier::storage {
+
+DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
@@ -31,6 +39,7 @@ class DataTable {
    */
   ~DataTable() {
     for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
+    STAT_DEREGISTER({"Storage"}, data_table_counter_->GetName());
   }
 
   /**
@@ -88,6 +97,7 @@ class DataTable {
 
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
+  DataTableCounter *data_table_counter_;
 
   // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;

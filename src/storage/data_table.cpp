@@ -1,4 +1,6 @@
 #include <unordered_map>
+
+#include "common/main_stat_registry.h"
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -7,6 +9,8 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
+  data_table_counter_ = new DataTableCounter;
+  STAT_REGISTER({"Storage"}, data_table_counter_, this);
   PELOTON_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
   PELOTON_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
   NewBlock(nullptr);
@@ -56,6 +60,7 @@ void DataTable::Select(transaction::TransactionContext *txn,
                             col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
+  data_table_counter_->Inc_num_select();
 }
 
 bool DataTable::Update(transaction::TransactionContext *txn,
@@ -80,6 +85,7 @@ bool DataTable::Update(transaction::TransactionContext *txn,
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
 
+  data_table_counter_->Inc_num_update();
   return true;
 }
 
@@ -113,6 +119,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
 
+  data_table_counter_->Inc_num_insert();
   return result;
 }
 
@@ -127,6 +134,7 @@ void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
   AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
+  data_table_counter_->Inc_num_rollback();
 }
 
 DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
@@ -168,5 +176,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
     // We should release this new block and return. The caller would presumably try again on the new
     // block.
     block_store_->Release(new_block);
+  data_table_counter_->Inc_num_new_block();
 }
 }  // namespace terrier::storage

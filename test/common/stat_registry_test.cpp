@@ -4,19 +4,35 @@
 #include <string>
 #include <vector>
 #include "common/json.h"
+#include "common/macros.h"
 #include "common/stat_registry.h"
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
-#include "util/performance_counter_test_util.h"
 
 namespace terrier {
 
-#ifdef NDEBUG
-TEST(StatRegistryTest, CannotTest) {}
-#else
+/**
+ * A simple dummy cache object with four differently typed attributes:
+ *   uint64_t num_insert
+ *   uint32_t num_hit
+ *   uint16_t num_failure
+ *   uint8_t num_user
+ */
+#define CACHE_MEMBERS(f) f(uint64_t, num_insert) f(uint32_t, num_hit) f(uint16_t, num_failure) f(uint8_t, num_user)
+
+DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
+
+/**
+ * A simple dummy network object
+ *   uint64_t num_requests
+ */
+#define NETWORK_MEMBERS(f) f(uint64_t, num_requests)
+
+DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
+
 // Test being able to register/deregister a performance counter to the registry
 // NOLINTNEXTLINE
-TEST(StatRegistryTest, SimpleCorrectnessTest) {
+TEST(StatRegistryTest, GTEST_DEBUG_ONLY(SimpleCorrectnessTest)) {
   terrier::common::StatisticsRegistry reg;
   CacheCounter cc;
   NetworkCounter nc;
@@ -68,7 +84,7 @@ TEST(StatRegistryTest, SimpleCorrectnessTest) {
 
 // Test registering multiple performance counters with the same name
 // NOLINTNEXTLINE
-TEST(StatRegistryTest, MultipleNameTest) {
+TEST(StatRegistryTest, GTEST_DEBUG_ONLY(MultipleNameTest)) {
   terrier::common::StatisticsRegistry reg;
   CacheCounter cc;
   CacheCounter cc2;
@@ -90,7 +106,7 @@ TEST(StatRegistryTest, MultipleNameTest) {
 
 // Test dumping statistics
 // NOLINTNEXTLINE
-TEST(StatRegistryTest, DumpTest) {
+TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   terrier::common::StatisticsRegistry reg;
   CacheCounter cc;
   CacheCounter cc2;
@@ -107,6 +123,4 @@ TEST(StatRegistryTest, DumpTest) {
   EXPECT_EQ(json["CacheCounter"]["Counters"]["num_failure"], 1);
   EXPECT_EQ(json["Cache"]["CacheCounter"]["Counters"]["num_hit"], 1);
 }
-#endif  // NDEBUG
-
 }  // namespace terrier

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <vector>
 #include "common/macros.h"
@@ -54,7 +56,7 @@ class StatisticsRegistry {
    * i.e. follows all the pointers to the performance counters and reads them as JSON.
    */
   json GetTrueJson(json *root) {
-    json output = "{}"_json;
+    json output = static_cast<json>("{}"_json);
 
     for (const auto &item : root->items()) {
       const auto &key = item.key();
@@ -132,6 +134,12 @@ class StatisticsRegistry {
     return reinterpret_cast<PerformanceCounter *>(val);
   }
 
+  /**
+   * Return a pointer to the registrant of the specified performance counter.
+   * @param module_path path to destination module
+   * @param name name of the performance counter
+   * @return pointer to whoever registered the performance counter
+   */
   void *GetRegistrant(const std::vector<std::string> &module_path, const std::string &name) {
     json *mod = FindModule(module_path, false);
     auto val = mod->at(name)[RESERVED_PC_REGISTRANT_PTR].get<uintptr_t>();

@@ -2,11 +2,31 @@
 #include <random>
 #include <vector>
 #include "common/json.h"
+#include "common/performance_counter.h"
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
-#include "util/performance_counter_test_util.h"
 
 namespace terrier {
+
+/**
+ * A simple dummy cache object with four differently typed attributes:
+ *   uint64_t num_insert
+ *   uint32_t num_hit
+ *   uint16_t num_failure
+ *   uint8_t num_user
+ */
+#define CACHE_MEMBERS(f) f(uint64_t, num_insert) f(uint32_t, num_hit) f(uint16_t, num_failure) f(uint8_t, num_user)
+
+DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
+
+/**
+ * A simple dummy network object
+ *   uint64_t num_requests
+ */
+#define NETWORK_MEMBERS(f) f(uint64_t, num_requests)
+
+DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
+
 
 /**
  * Helper class for testing the four attributes of a CacheCounter.
@@ -71,12 +91,9 @@ class CacheCounterTestObject {
   }
 };
 
-#ifdef NDEBUG
-TEST(PerformanceCounterTests, CannotTest) {}
-#else
 // Test simple increment/decrement/zero/name setting operations on a performance counter
 // NOLINTNEXTLINE
-TEST(PerformanceCounterTests, SimpleCorrectnessTest) {
+TEST(PerformanceCounterTests, GTEST_DEBUG_ONLY(SimpleCorrectnessTest)) {
   std::default_random_engine generator;
   const uint32_t num_iterations = 1000;
   const uint32_t num_operations = 1000;
@@ -100,7 +117,7 @@ TEST(PerformanceCounterTests, SimpleCorrectnessTest) {
 
 // Test that we can serialize and deserialize our performance counters
 // NOLINTNEXTLINE
-TEST(PerformanceCounterTests, SerializationTest) {
+TEST(PerformanceCounterTests, GTEST_DEBUG_ONLY(SerializationTest)) {
   std::default_random_engine generator;
   const uint32_t num_iterations = 1000;
   const uint32_t num_operations = 100;
@@ -130,7 +147,4 @@ TEST(PerformanceCounterTests, SerializationTest) {
     EXPECT_EQ(json_old, cc.ToJson());
   }
 }
-
-#endif  // NDEBUG
-
 }  // namespace terrier
