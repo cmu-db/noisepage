@@ -10,36 +10,6 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-
-//
-//  void StartGCThread() {
-//    PELOTON_ASSERT(!running_ && gc_thread_ == nullptr, "Should only be invoking this on a GC that is not running.");
-//    gc_thread_ = new std::thread(&GarbageCollector::ThreadLoop, this);
-//    running_ = true;
-//  }
-//
-//  void StopGCThread() {
-//    PELOTON_ASSERT(running_ && gc_thread_ != nullptr, "Should only be invoking this on a GC that is running.");
-//    running_ = false;
-//    gc_thread_->join();
-//    delete gc_thread_;
-//    oldest_txn_ = txn_manager_->OldestTransactionStartTime();
-//    ClearGarbage();
-//    ClearTransactions();
-//    last_run_ = txn_manager_->Time();
-//    gc_thread_ = nullptr;
-//  }
-
-
-//  void ThreadLoop() {
-//    while (running_) {
-//      if (!txn_manager_->CompletedTransactions().Empty() || !txns_to_deallocate.empty()) {
-//        RunGC();
-//      }
-//      std::this_thread::sleep_for(std::chrono::seconds(1));
-//    }
-//  }
-
 namespace terrier {
 // Not thread-safe
 class GarbageCollectorDataTableTestObject {
