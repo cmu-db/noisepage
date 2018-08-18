@@ -26,6 +26,8 @@ class TerrierTest : public ::testing::Test {
   void TearDown() override {
     // shutdown loggers
     spdlog::shutdown();
+
+    shutdown_main_stat_reg();
   }
 };
 

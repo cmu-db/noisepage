@@ -39,7 +39,7 @@ class DataTable {
    */
   ~DataTable() {
     for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
-    STAT_DEREGISTER({"Storage"}, data_table_counter_->GetName());
+    STAT_DEREGISTER({"Storage"}, data_table_counter_->GetName(), true);
   }
 
   /**

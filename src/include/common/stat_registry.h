@@ -75,6 +75,25 @@ class StatisticsRegistry {
     return output;
   }
 
+  /**
+   * Frees all the performance counters stored in the registry.
+   */
+  void FreePerformanceCounters(json *root) {
+    for (const auto &item : root->items()) {
+      const auto &key = item.key();
+
+      if (key == RESERVED_PC_PTR_STRING) {
+        auto val = root->at(key).get<uintptr_t>();
+        delete reinterpret_cast<PerformanceCounter *>(val);
+      } else if (key == RESERVED_PC_REGISTRANT_PTR) {
+        /* don't touch the parent */
+      } else {
+        auto val = root->at(key).get<json>();
+        FreePerformanceCounters(&val);
+      }
+    }
+  }
+
  public:
   /**
    * Registers the given performance counter pc at the module specified.
@@ -104,13 +123,23 @@ class StatisticsRegistry {
 
   /**
    * Deregister and remove the named performance counter from the module specified.
+   *
    * @param module_path path to destination module
    * @param name name of the performance counter to be deregistered
+   * @param free_pc true if the performance counter should be freed, false otherwise
    * @return true if the performance counter was successfully removed, false otherwise
    */
-  bool Deregister(const std::vector<std::string> &module_path, const std::string &name) {
+  bool Deregister(const std::vector<std::string> &module_path, const std::string &name, bool free_pc) {
     json *mod = FindModule(module_path, false);
-    auto deleted = static_cast<bool>(mod->erase(name));
+    bool deleted = false;
+
+    if (mod->find(name) != mod->end()) {
+      if (free_pc) {
+        auto pc = reinterpret_cast<PerformanceCounter *>(mod->find(name)->at(RESERVED_PC_PTR_STRING).get<uintptr_t>());
+        delete pc;
+      }
+      deleted = static_cast<bool>(mod->erase(name));
+    }
 
     // delete the enclosing parent if it was the last thing
     if (deleted && mod->empty() && !module_path.empty()) {
@@ -120,6 +149,15 @@ class StatisticsRegistry {
     }
 
     return deleted;
+  }
+
+  /**
+   * Shuts down this registry.
+   * @param free_pc true if the performance counters inside should be freed, false otherwise
+   */
+  void Shutdown(bool free_pc) {
+    if (free_pc) FreePerformanceCounters(root_registry_);
+    delete root_registry_;
   }
 
   /**

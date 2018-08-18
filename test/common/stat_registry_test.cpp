@@ -49,7 +49,7 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(SimpleCorrectnessTest)) {
   terrier::common::PerformanceCounter *pc = reg.GetPerformanceCounter({}, "CacheCounter");
   EXPECT_EQ(pc, &cc);
   // delete from root
-  reg.Deregister({}, "CacheCounter");
+  reg.Deregister({}, "CacheCounter", false);
   expected = {};
   current = reg.GetRegistryListing();
   EXPECT_TRUE(current == expected);
@@ -70,16 +70,18 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(SimpleCorrectnessTest)) {
   std::sort(current.begin(), current.end());
   EXPECT_TRUE(current == expected);
   // try deleting one thing from cache submodule
-  reg.Deregister({"Cache"}, "CacheCounter");
+  reg.Deregister({"Cache"}, "CacheCounter", false);
   expected = {"NetworkCounter"};
   current = reg.GetRegistryListing({"Cache"});
   EXPECT_TRUE(current == expected);
   // try deleting another thing from cache submodule
   // since that becomes empty, should delete cache submodule itself
-  reg.Deregister({"Cache"}, "NetworkCounter");
+  reg.Deregister({"Cache"}, "NetworkCounter", false);
   expected = {};
   current = reg.GetRegistryListing();
   EXPECT_TRUE(current == expected);
+
+  reg.Shutdown(false);
 }
 
 // Test registering multiple performance counters with the same name
@@ -97,11 +99,13 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(MultipleNameTest)) {
   current = reg.GetRegistryListing();
   std::sort(current.begin(), current.end());
   EXPECT_TRUE(current == expected);
-  reg.Deregister({}, "CacheCounter");
+  reg.Deregister({}, "CacheCounter", false);
   expected = {"CacheCounter1"};
   current = reg.GetRegistryListing();
   std::sort(current.begin(), current.end());
   EXPECT_TRUE(current == expected);
+
+  reg.Shutdown(false);
 }
 
 // Test dumping statistics
@@ -122,5 +126,7 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   terrier::common::json json = terrier::common::json::parse(reg.DumpStats());
   EXPECT_EQ(json["CacheCounter"]["Counters"]["num_failure"], 1);
   EXPECT_EQ(json["Cache"]["CacheCounter"]["Counters"]["num_hit"], 1);
+
+  reg.Shutdown(false);
 }
 }  // namespace terrier

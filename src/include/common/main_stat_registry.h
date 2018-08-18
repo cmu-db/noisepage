@@ -7,9 +7,13 @@ extern std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg;
 
 void init_main_stat_reg();
 
+void shutdown_main_stat_reg();
+
 #define STAT_REGISTER(...) ::main_stat_reg->Register(__VA_ARGS__);
 
 #define STAT_DEREGISTER(...) ::main_stat_reg->Deregister(__VA_ARGS__);
+
+#define STAT_SHUTDOWN(...) ::main_stat_reg->Shutdown(__VA_ARGS__);
 
 #define STAT_GET_PERFORMANCE_COUNTER(...) ::main_stat_reg->GetPerformanceCounter(__VA_ARGS__);
 
