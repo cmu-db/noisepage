@@ -50,12 +50,13 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   // TODO(Tianyu): Unfortunately, with GC, this test is very slow (we need large enough runs before we check
   // correctness, otherwise GC might not kick in)
   const uint32_t num_iterations = 1;
-  const uint16_t max_columns = 20;
+  const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 10000;
   const uint32_t txn_length = 5;
-  const uint32_t num_txns = 1000;
+  const uint32_t num_txns = 10000000;
+  const uint32_t batch_size = 500;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
-  const uint32_t num_concurrent_txns = 8;
+  const uint32_t num_concurrent_txns = 4;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns,
                                       initial_table_size,
@@ -66,12 +67,14 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
                                       &generator_,
                                       true,
                                       true);
-    StartGC(tested.GetTxnManager(), 5);
-    auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
+    StartGC(tested.GetTxnManager(), 20);
+    for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
+      auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
+      tested.CheckReadsCorrect(&result.first);
+      for (auto w : result.first) delete w;
+      for (auto w : result.second) delete w;
+    }
     EndGC();
-    tested.CheckReadsCorrect(&result.first);
-    for (auto w : result.first) delete w;
-    for (auto w : result.second) delete w;
   }
 }
 }  // namespace terrier

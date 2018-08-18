@@ -91,6 +91,8 @@ class LargeTransactionTestObject {
 
   void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn, const VersionedSnapshots &snapshots);
 
+  void UpdateLastCheckedVersion(const TableSnapshot &snapshot);
+
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
@@ -101,7 +103,7 @@ class LargeTransactionTestObject {
   transaction::TransactionContext *initial_txn_;
   bool gc_on_, bookkeeping_;
   // tuple content is meaningless if bookkeeping is off.
-  std::vector<TupleEntry> initial_table_;
+  std::vector<TupleEntry> last_checked_version_;
 
   // so we don't have to calculate these over and over again
   std::vector<uint16_t> all_cols_{StorageTestUtil::ProjectionListAllColumns(layout_)};
