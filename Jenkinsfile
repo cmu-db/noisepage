@@ -13,7 +13,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
                         sh 'cd build && make unittest -j4'
@@ -44,7 +43,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make -j4'
                         sh 'cd build && make unittest -j4'
@@ -55,7 +53,6 @@ pipeline {
                     agent { label 'benchmark' }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make -j4'
                         sh 'cd build && make runbenchmark -j4'
