@@ -11,8 +11,8 @@
 
 namespace terrier::storage {
 
-std::pair<uint64_t, uint32_t> GarbageCollector::RunGC() {
-  uint64_t txns_deallocated = Deallocate();
+std::pair<uint32_t, uint32_t> GarbageCollector::RunGC() {
+  uint32_t txns_deallocated = Deallocate();
   uint32_t txns_unlinked = Unlink();
   if (txns_unlinked > 0) {
     last_unlinked_ = txn_manager_->GetTimestamp();
@@ -20,15 +20,15 @@ std::pair<uint64_t, uint32_t> GarbageCollector::RunGC() {
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
-uint64_t GarbageCollector::Deallocate() {
+uint32_t GarbageCollector::Deallocate() {
   const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
-  uint64_t garbage_cleared = 0;
+  uint32_t garbage_cleared = 0;
   transaction::TransactionContext *txn = nullptr;
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
     // We are now safe to deallocate these txns because no one should hold a reference to them anymore
-    garbage_cleared = txns_to_deallocate_.size();
+    garbage_cleared = static_cast<uint32_t>(txns_to_deallocate_.size());
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop();

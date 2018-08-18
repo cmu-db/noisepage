@@ -34,14 +34,14 @@ class GarbageCollector {
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint64_t, uint32_t> RunGC();
+  std::pair<uint32_t, uint32_t> RunGC();
 
  private:
   /**
    * Process the deallocate queue
    * @return number of txns deallocated (not DeltaRecords) for debugging/testing
    */
-  uint64_t Deallocate();
+  uint32_t Deallocate();
 
   /**
    * Process the unlink queue
