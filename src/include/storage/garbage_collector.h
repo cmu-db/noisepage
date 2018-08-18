@@ -20,7 +20,6 @@ namespace terrier::storage {
  */
 class GarbageCollector {
  public:
-  GarbageCollector() = delete;
   /**
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
@@ -30,7 +29,6 @@ class GarbageCollector {
     PELOTON_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
-  ~GarbageCollector() = default;
 
   /**
    * Deallocates transactions that can no longer be references by running transactions, and unlinks DeltaRecords that
@@ -131,16 +129,12 @@ class GarbageCollector {
 
     // Get the completed transactions from the TransactionManager
     std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactions();
-    if (!txns_to_unlink_.empty()) {
-      // Append to our non-empty unlink queue
-      while (!from_txn_manager.empty()) {
-        txn = from_txn_manager.front();
-        from_txn_manager.pop();
-        txns_to_unlink_.push(txn);
-      }
-    } else {
-      // Overwrite our empty unlink queue
-      txns_to_unlink_ = from_txn_manager;
+
+    // Append to our local unlink queue
+    while (!from_txn_manager.empty()) {
+      txn = from_txn_manager.front();
+      from_txn_manager.pop();
+      txns_to_unlink_.push(txn);
     }
 
     uint32_t txns_cleared = 0;
