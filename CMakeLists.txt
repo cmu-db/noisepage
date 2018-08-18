@@ -320,7 +320,11 @@ set(LIBRARY_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
 set(EXECUTABLE_OUTPUT_PATH "${BUILD_OUTPUT_ROOT_DIRECTORY}")
 
 include_directories(${PROJECT_SOURCE_DIR}/src/include)
-include_directories(${PROJECT_SOURCE_DIR}/third_party)
+if (${COMPILER_FAMILY} STREQUAL "gcc")
+  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party)
+else()
+  include_directories(${PROJECT_SOURCE_DIR}/third_party)
+endif()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
