@@ -1,5 +1,5 @@
 file(GLOB_RECURSE TEST_HDRS ${PROJECT_SOURCE_DIR}/test/include/*.h)
-file(GLOB_RECURSE TEST_UTIL_SRCS ${PROJECT_SOURCE_DIR}/test/util/*.cpp)
+file(GLOB_RECURSE TEST_UTIL_SRCS util/*.cpp)
 list(APPEND TEST_UTIL_SRCS ${TEST_HDRS})
 
 ###############################################

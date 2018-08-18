@@ -325,13 +325,14 @@ include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 set(TERRIER_LINK_LIBS
+    gtest
     ${TERRIER_LINK_LIBS}
     ${PTHREAD_LIBRARY})
 
 set(TERRIER_TEST_LINK_LIBS
     terrier_shared
     test_shared
-    gtest
+#    gtest
     gtest_main
     ${CMAKE_DL_LIBS})
 
