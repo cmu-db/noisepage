@@ -1,19 +1,8 @@
-#include <unordered_map>
-#include <map>
-#include <utility>
-#include <algorithm>
 #include <vector>
-#include "storage/data_table.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
-#include "common/container/concurrent_vector.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
-
 class LargeTransactionTests : public TerrierTest {
  public:
   storage::BlockStore block_store_{1000};
@@ -27,11 +16,11 @@ class LargeTransactionTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 100;
+  const uint32_t num_iterations = 10;
   const uint16_t max_columns = 20;
-  const uint32_t initial_table_size = 10000;
-  const uint32_t txn_length = 5;
-  const uint32_t num_txns = 1000;
+  const uint32_t initial_table_size = 1000;
+  const uint32_t txn_length = 20;
+  const uint32_t num_txns = 100;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -43,10 +32,11 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
                                       &buffer_pool_,
                                       &generator_,
                                       false,
-                                      false);
+                                      true);
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
-//    tested.CheckReadsCorrect(&result);
-//    for (auto w : result) delete w;
+    tested.CheckReadsCorrect(&result.first);
+    for (auto w : result.first) delete w;
+    for (auto w : result.second) delete w;
   }
 }
 }  // namespace terrier

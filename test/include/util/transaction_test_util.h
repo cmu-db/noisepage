@@ -1,16 +1,16 @@
 #pragma once
-#include <unordered_map>
-#include <map>
-#include <utility>
 #include <algorithm>
+#include <map>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+#include "common/container/concurrent_vector.h"
+#include "gtest/gtest.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-#include "common/container/concurrent_vector.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "gtest/gtest.h"
 
 namespace terrier {
 class LargeTransactionTestObject;
@@ -34,14 +34,14 @@ using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std
 // the extra effort.
 class RandomWorkloadTransaction {
  public:
-  RandomWorkloadTransaction(LargeTransactionTestObject *test_object);
+  explicit RandomWorkloadTransaction(LargeTransactionTestObject *test_object);
 
   ~RandomWorkloadTransaction();
 
-  template<class Random>
+  template <class Random>
   void RandomUpdate(Random *generator);
 
-  template<class Random>
+  template <class Random>
   void RandomSelect(Random *generator);
 
   void Finish();
@@ -60,39 +60,36 @@ class RandomWorkloadTransaction {
 
 class LargeTransactionTestObject {
  public:
-  LargeTransactionTestObject(uint16_t max_columns,
-                             uint32_t initial_table_size,
-                             uint32_t txn_length,
-                             std::vector<double> update_select_ratio,
-                             storage::BlockStore *block_store,
+  LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
+                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
                              common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool,
-                             std::default_random_engine *generator,
-                             bool gc_on,
-                             bool bookkeeping);
+                             std::default_random_engine *generator, bool gc_on, bool bookkeeping);
 
   ~LargeTransactionTestObject();
 
-  SimulationResult SimulateOltp(uint32_t num_transactions,
-                                uint32_t num_concurrent_txns);
+  transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
+  SimulationResult SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
+
+  // TODO(Tianyu): Interesting thought: If we let an external correctness checker share the list of
+  // RandomWorkloadTransaction objects, we can in theory check correctness as more operations are run, and
+  // keep the memory consumption of all this bookkeeping down. (Just like checkpoints)
   void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
 
  private:
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 
-  template<class Random>
+  template <class Random>
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
 
   storage::ProjectedRow *CopyTuple(storage::ProjectedRow *other);
 
-  void UpdateSnapshot(RandomWorkloadTransaction *txn,
-                      TableSnapshot *curr, const TableSnapshot &before);
+  void UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr, const TableSnapshot &before);
 
   // This returned value will contain memory that has to be freed manually
   VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns);
 
-  void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
-                                   const VersionedSnapshots &snapshots);
+  void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn, const VersionedSnapshots &snapshots);
 
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;
@@ -110,4 +107,4 @@ class LargeTransactionTestObject {
   std::vector<uint16_t> all_cols_{StorageTestUtil::ProjectionListAllColumns(layout_)};
   uint32_t row_size_ = storage::ProjectedRow::Size(layout_, all_cols_);
 };
-}  // nanespace terrier
+}  // namespace terrier

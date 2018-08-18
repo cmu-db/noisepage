@@ -1,4 +1,8 @@
+#include <utility>
+#include <algorithm>
+#include <vector>
 #include "util/transaction_test_util.h"
+
 namespace terrier {
 RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject *test_object)
     : test_object_(test_object),
@@ -72,8 +76,9 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
                                                        uint32_t initial_table_size,
                                                        uint32_t txn_length,
                                                        std::vector<double> update_select_ratio,
-                                                       terrier::storage::BlockStore *block_store,
-                                                       terrier::common::ObjectPool<terrier::transaction::UndoBufferSegment> *buffer_pool,
+                                                       storage::BlockStore *block_store,
+                                                       common::ObjectPool<terrier::transaction::UndoBufferSegment>
+                                                           *buffer_pool,
                                                        std::default_random_engine *generator,
                                                        bool gc_on, bool bookkeeping)
     : txn_length_(txn_length),
@@ -81,7 +86,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
       generator_(generator),
       layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
       table_(block_store, layout_),
-      txn_manager_(buffer_pool,  gc_on),
+      txn_manager_(buffer_pool, gc_on),
       gc_on_(gc_on),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
@@ -130,18 +135,17 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
     for (RandomWorkloadTransaction *txn : txns) delete txn;
     // This result is meaningless if bookkeeping is not turned on.
     return {{}, {}};
-  } else {
-    // filter out aborted transactions
-    std::vector<RandomWorkloadTransaction *> committed, aborted;
-    for (RandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
-
-    // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
-    std::sort(committed.begin(), committed.end(),
-              [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
-                return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
-              });
-    return {committed, aborted};
   }
+  // filter out aborted transactions
+  std::vector<RandomWorkloadTransaction *> committed, aborted;
+  for (RandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
+
+  // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
+  std::sort(committed.begin(), committed.end(),
+            [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
+              return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
+            });
+  return {committed, aborted};
 }
 
 void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
@@ -212,7 +216,8 @@ void LargeTransactionTestObject::UpdateSnapshot(RandomWorkloadTransaction *txn,
   }
 }
 
-VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns) {
+VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
+    std::vector<RandomWorkloadTransaction *> *txns) {
   VersionedSnapshots result;
   // empty starting version
   TableSnapshot *prev = &(result.emplace(timestamp_t(0), TableSnapshot()).first->second);
@@ -230,7 +235,7 @@ VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(std::ve
 
 void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
                                                              const VersionedSnapshots &snapshots) {
-  timestamp_t start_time = txn->txn_->StartTime();
+  timestamp_t start_time = txn->start_time_;
   // this version is the most recent future update
   auto ret = snapshots.upper_bound(start_time);
   // Go to the version visible to this txn
@@ -243,4 +248,4 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
   }
 }
-}
+}  // namespace terrier
