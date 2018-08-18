@@ -4,6 +4,20 @@ pipeline {
         stage('Build') {
             parallel {
 
+                stage('macOS 10.13/Apple LLVM version 9.1.0 (Debug/ASAN)') {
+                    agent { label 'macos' }
+                    environment {
+                        PATH="/usr/local/opt/llvm/bin:$PATH"
+                        ASAN_OPTIONS="detect_container_overflow=0"
+                    }
+                    steps {
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
+                        sh 'cd build && make unittest -j4'
+                    }
+                }
+
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Debug/ASAN)') {
                     agent {
                         docker { 
@@ -31,6 +45,20 @@ pipeline {
                         sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_GENERATE_COVERAGE=ON .. && make -j4'
+                        sh 'cd build && make unittest -j4'
+                    }
+                }
+
+                stage('macOS 10.13/Apple LLVM version 9.1.0 (Release/unittest)') {
+                    agent { label 'macos' }
+                    environment {
+                        PATH="/usr/local/opt/llvm/bin:$PATH"
+                        ASAN_OPTIONS="detect_container_overflow=0"
+                    }
+                    steps {
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && make unittest -j4'
                     }
                 }
