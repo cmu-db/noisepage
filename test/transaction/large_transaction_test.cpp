@@ -128,7 +128,7 @@ class LargeTransactionTestObject {
         generator_(generator),
         layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
         table_(block_store, layout_),
-        txn_manager_(buffer_pool),
+        txn_manager_(buffer_pool, false),
         initial_txn_(layout_, &table_, &txn_manager_, all_slots_) {
     // Bootstrap the table to have the specified number of tuples
     for (uint32_t i = 0; i < initial_table_size; i++)

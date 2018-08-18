@@ -161,12 +161,17 @@ class UndoBuffer {
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() { return {buffers_.begin(), 0}; }
+  Iterator begin() { return {buffers_.begin(), 0}; }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() { return {buffers_.end(), 0}; }
+  Iterator end() { return {buffers_.end(), 0}; }
+
+  /**
+   * @return true if UndoBuffer contains no DeltaRecords, false otherwise
+   */
+  bool Empty() const { return buffers_.empty(); }
 
  private:
   friend class TransactionContext;
@@ -207,7 +212,12 @@ class TransactionContext {
   /**
    * @return id of this transaction
    */
-  timestamp_t TxnId() const { return txn_id_; }
+  const timestamp_t &TxnId() const { return txn_id_; }
+
+  /**
+   * @return id of this transaction
+   */
+  timestamp_t &TxnId() { return txn_id_; }
 
   /**
    * @return the undo buffer of this transaction
@@ -246,7 +256,7 @@ class TransactionContext {
 
  private:
   const timestamp_t start_time_;
-  const timestamp_t txn_id_;
+  timestamp_t txn_id_;
   UndoBuffer undo_buffer_;
 };
 }  // namespace terrier::transaction

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <ostream>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
 #include "common/container/bitmap.h"
-#include "common/json_serializable.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/typedefs.h"
@@ -370,7 +370,7 @@ class DeltaRecord {
   /**
    * @return Pointer to the next element in the version chain
    */
-  DeltaRecord *&Next() { return next_; }
+  std::atomic<DeltaRecord *> &Next() { return next_; }
 
   /**
    * @return Timestamp up to which the old projected row was visible.
@@ -378,14 +378,19 @@ class DeltaRecord {
   std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
 
   /**
+   * @return Timestamp up to which the old projected row was visible.
+   */
+  const std::atomic<timestamp_t> &Timestamp() const { return timestamp_; }
+
+  /**
    * @return the DataTable this DeltaRecord points to
    */
-  DataTable *Table() { return table_; }
+  DataTable *Table() const { return table_; }
 
   /**
    * @return the TupleSlot this DeltaRecord points to
    */
-  TupleSlot Slot() { return slot_; }
+  TupleSlot Slot() const { return slot_; }
 
   /**
    * Access the ProjectedRow containing this record's modifications
@@ -461,8 +466,7 @@ class DeltaRecord {
   }
 
  private:
-  // TODO(Tianyu): Always padded?
-  DeltaRecord *next_;
+  std::atomic<DeltaRecord *> next_;
   std::atomic<timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
