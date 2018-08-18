@@ -1,13 +1,15 @@
 #include <iostream>
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
+#include "loggers/transaction_logger.h"
 
 int main() {
   // initialize loggers
   try {
     init_main_logger();
     // initialize namespace specific loggers
-    ::terrier::storage::init_storage_logger();
+    terrier::storage::init_storage_logger();
+    terrier::transaction::init_transaction_logger();
 
     // Flush all *registered* loggers using a worker thread.
     // Registered loggers must be thread safe for this to work correctly
