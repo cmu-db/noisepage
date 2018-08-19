@@ -160,7 +160,7 @@ void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTra
   // clean up memory, update the kept version to be the latest.
   for (auto &snapshot : snapshots) {
     if (snapshot.first == latest_version) {
-      UpdateLastCheckedVersion(snapshot);
+      UpdateLastCheckedVersion(snapshot.second);
     } else {
       for (auto &entry : snapshot.second)
         delete[] reinterpret_cast<byte *>(entry.second);

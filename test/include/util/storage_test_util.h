@@ -93,7 +93,7 @@ struct StorageTestUtil {
       if (coin(*generator))
         FillWithRandomBytes(layout.attr_sizes_[col], row->AccessForceNotNull(projection_list_idx), generator);
       else
-        row->SetNull(col);
+        row->SetNull(projection_list_idx);
     }
   }
 

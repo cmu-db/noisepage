@@ -53,7 +53,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 10000;
   const uint32_t txn_length = 5;
-  const uint32_t num_txns = 10000000;
+  const uint32_t num_txns = 1000;
   const uint32_t batch_size = 500;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
   const uint32_t num_concurrent_txns = 4;
