@@ -32,7 +32,6 @@ uint32_t GarbageCollector::Deallocate() {
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop();
-//      printf("txn deallocated: %llu\n", !txn->StartTime());
       delete txn;
     }
   }
@@ -57,7 +56,6 @@ uint32_t GarbageCollector::Unlink() {
   std::queue<transaction::TransactionContext *> requeue;
   // Process every transaction in the unlink queue
 
-  auto before_deallocate_size = txns_to_deallocate_.size();
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop();
