@@ -50,7 +50,7 @@ class LogRecord {
   LogRecord(LogRecordType type, timestamp_t txn_id, timestamp_t commit_id, storage::TupleSlot slot,
             const storage::ProjectedRow &redo)
       : type_(type), txn_id_(txn_id), commit_id_(commit_id), slot_(slot) {
-    storage::ProjectedRow::InitializeProjectedRow(varlen_contents_, redo);
+    storage::ProjectedRow::InitializeProjectedRow(projected_row_, redo);
   }
 
   /**
@@ -58,13 +58,50 @@ class LogRecord {
    *
    * @return the type of the LofRecord
    */
-  LogRecordType GetType() const { return type_; }
+  LogRecordType Type() const { return type_; }
+
+  /**
+   * @brief Gets the transaction id of the LogRecord
+   *
+   * @return the transaction id of the LofRecord
+   */
+  timestamp_t TxnId() const { return txn_id_; }
+
+  /**
+   * @brief Gets the commit id of the LogRecord
+   *
+   * @return the commit id of the LofRecord
+   */
+  timestamp_t CommitId() const { return commit_id_; }
+
+  /**
+   * @brief Gets the tuple slot of the LogRecord
+   *
+   * @return the tuple slot of the LofRecord
+   */
+  storage::TupleSlot TupleSlot() const { return slot_; }
+
+  /**
+   * @brief Gets the size of the projected row in the LogRecord
+   *
+   * @return the size of the projected row in the LogRecord
+   */
+  uint32_t ProjectedRowSize() const {
+    return reinterpret_cast<storage::ProjectedRow *>(const_cast<std::byte *>(projected_row_))->Size();
+  }
+
+  /**
+   * @brief Gets the projected row of the LogRecord
+   *
+   * @return the projected row of the LofRecord
+   */
+  std::byte *ProjectedRow() const { return const_cast<std::byte *>(projected_row_); }
 
  private:
   LogRecordType type_;
   timestamp_t txn_id_;
   timestamp_t commit_id_;
   storage::TupleSlot slot_;
-  std::byte varlen_contents_[0];
+  std::byte projected_row_[0];
 };
 }  // namespace terrier::logging
