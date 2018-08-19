@@ -32,6 +32,7 @@ uint32_t GarbageCollector::Deallocate() {
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop();
+//      printf("txn deallocated: %llu\n", !txn->StartTime());
       delete txn;
     }
   }
@@ -45,7 +46,6 @@ uint32_t GarbageCollector::Unlink() {
 
   // Get the completed transactions from the TransactionManager
   std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactions();
-
   // Append to our local unlink queue
   while (!from_txn_manager.empty()) {
     txn = from_txn_manager.front();
@@ -53,9 +53,11 @@ uint32_t GarbageCollector::Unlink() {
     txns_to_unlink_.push(txn);
   }
 
-  uint32_t txns_cleared = 0;
+  uint32_t txns_unlinked = 0;
   std::queue<transaction::TransactionContext *> requeue;
   // Process every transaction in the unlink queue
+
+  auto before_deallocate_size = txns_to_deallocate_.size();
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop();
@@ -63,7 +65,7 @@ uint32_t GarbageCollector::Unlink() {
       // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push(txn);
-      txns_cleared++;
+      txns_unlinked++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
       // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
       transaction::UndoBuffer &undos = txn->GetUndoBuffer();
@@ -71,19 +73,18 @@ uint32_t GarbageCollector::Unlink() {
         UnlinkDeltaRecord(txn, undo_record);
       }
       txns_to_deallocate_.push(txn);
-      txns_cleared++;
+      txns_unlinked++;
     } else {
       // this is a committed txn that is still visible, requeue for next GC run
       requeue.push(txn);
     }
   }
-
   // requeue any txns that we were still visible to running transactions
   if (!requeue.empty()) {
     txns_to_unlink_ = requeue;
   }
 
-  return txns_cleared;
+  return txns_unlinked;
 }
 
 void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const txn,
