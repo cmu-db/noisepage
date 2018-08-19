@@ -4,8 +4,7 @@
 #include <string>
 #include <utility>
 #include "common/macros.h"
-
-#define LOG_FILE_NAME "terrier.log"
+#include "logging/log_common.h"
 
 namespace terrier::logging {
 
