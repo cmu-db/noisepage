@@ -15,12 +15,14 @@
 #include <vector>
 #include "common/byte_array.h"
 #include "common/macros.h"
+#include "storage/storage_defs.h"
 
 namespace terrier {
 
 /**
  * A SerializeInput is an abstract class for reading-from-memory buffers
  */
+// TODO(Aaron): Remove inheritance and convert this into delegation
 class SerializeInput {
  public:
   /** No implicit copies */
@@ -375,6 +377,14 @@ class SerializeOutput {
    * @param value the long value to be written
    */
   void WriteLong(int64_t value) { WritePrimitive(value); }
+
+  /**
+   * @brief Writes a value of a timestamp type to the buffer, advancing the write position by
+   * bytes of a timestamp type.
+   *
+   * @param value the value of a timestamp type to be written
+   */
+  void WriteTimestamp(timestamp_t value) { WritePrimitive(value); }
 
   /**
    * @brief Writes a float value to the buffer, advancing the write position by

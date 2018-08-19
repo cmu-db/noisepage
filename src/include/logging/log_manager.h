@@ -5,6 +5,8 @@
 #include <utility>
 #include "common/macros.h"
 
+#define LOG_FILE_NAME "terrier.log"
+
 namespace terrier::logging {
 
 /**
@@ -31,7 +33,7 @@ class LogManager {
     // TODO(Aaron): Eventually we want to look into replacing this with C++17's
     // native filesystem library, but Clang support isn't there yet.
     boost::filesystem::create_directories(dir_);
-    file_name_ = "terrier.log";
+    file_name_ = LOG_FILE_NAME;
     std::string path = dir_ + "/" + file_name_;
     file_.open(path, std::ios::out | std::ios::app | std::ios::binary);
   }
@@ -61,6 +63,18 @@ class LogManager {
    * @return the log file stream
    */
   std::ofstream &GetFile() { return file_; }
+
+  /**
+   * @brief Writes changes in the output file stream to the underlying output
+   * sequence and resets the stream.
+   */
+  void Flush() {
+    file_.flush();
+    // Clear fail and eof bits
+    file_.clear();
+    // Reset the insert position
+    file_.seekp(0, std::ios_base::beg);
+  }
 
  private:
   // TODO(Aaron): ofstream is not thread safe, might need to change it if more
