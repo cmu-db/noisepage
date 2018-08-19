@@ -257,8 +257,7 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
 }
 
 void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &snapshot) {
-  for (uint32_t i = 0; i < last_checked_version_.size(); i++) {
-    auto &entry = last_checked_version_[i];
+  for (auto &entry : last_checked_version_) {
     delete[] reinterpret_cast<byte *>(entry.second);
     entry.second = snapshot.find(entry.first)->second;
   }
