@@ -338,8 +338,8 @@ set(TERRIER_TEST_LINK_LIBS
 set(TERRIER_BENCHMARK_LINK_LIBS
     test_util
     benchmark_util
-    gtest
-    terrier_shared)
+    terrier_shared
+    gtest)
 
 # ---[ Subdirectories
 add_subdirectory(src)
