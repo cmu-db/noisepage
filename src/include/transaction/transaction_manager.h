@@ -61,9 +61,7 @@ class TransactionManager {
     size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     PELOTON_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
     txn->TxnId() = commit_time;
-    if (gc_enabled_ && !undos.Empty()) {
-      completed_txns_.push(txn);
-    }
+    if (gc_enabled_) completed_txns_.push(txn);
     table_latch_.Unlock();
     return commit_time;
   }
@@ -80,9 +78,7 @@ class TransactionManager {
     const timestamp_t start_time = txn->StartTime();
     size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     PELOTON_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
-    if (gc_enabled_ && !undos.Empty()) {
-      completed_txns_.push(txn);
-    }
+    if (gc_enabled_) completed_txns_.push(txn);
     table_latch_.Unlock();
   }
 
