@@ -88,6 +88,7 @@ struct DataTableConcurrentTests : public TerrierTest {
 // Therefore all transactions should successfully insert their tuples, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
+  MultiThreadedTestUtil mtt_util;
   const uint32_t num_iterations = 10;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
@@ -105,7 +106,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
         fake_txns[id].InsertRandomTuple(&thread_generator);
     };
 
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    mtt_util.RunThreadsUntilFinish(num_threads, workload);
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     auto *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
     for (auto &fake_txn : fake_txns) {
@@ -125,6 +126,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 // Therefore only one transaction should win, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
+  MultiThreadedTestUtil mtt_util;
   const uint32_t num_iterations = 1000;
   const uint16_t max_columns = 20;
   const uint32_t num_threads = 8;
@@ -154,7 +156,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
         fail++;
     };
 
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    mtt_util.RunThreadsUntilFinish(num_threads, workload);
     EXPECT_EQ(1, success);
     EXPECT_EQ(num_threads - 1, fail);
   }

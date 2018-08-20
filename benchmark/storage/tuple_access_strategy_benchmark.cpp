@@ -85,6 +85,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // Insert the num_inserts_ of tuples into Blocks concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
+  MultiThreadedTestUtil mtt_util;
   storage::TupleAccessStrategy tested(layout_);
 
   // NOLINTNEXTLINE
@@ -107,7 +108,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
         }
       };
 
-      MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
+      mtt_util.RunThreadsUntilFinish(num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
     for (uint32_t i = 0; i < num_blocks_; i++) {

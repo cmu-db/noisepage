@@ -219,6 +219,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 // and verifies that all tuples are written into unique slots correctly.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
+  MultiThreadedTestUtil mtt_util;
   const uint32_t repeat = 200;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
@@ -245,7 +246,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
                                          &thread_generator);
     };
 
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    mtt_util.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),
@@ -266,6 +267,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 // responsibility of concurrency control and GC, not storage.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
+  MultiThreadedTestUtil mtt_util;
   const uint32_t repeat = 200;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
@@ -308,7 +310,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
                                                             &generator,
                                                             layout.num_slots_ / num_threads);
     };
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    mtt_util.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),

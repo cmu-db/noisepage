@@ -71,6 +71,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
 // Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state) {
+  MultiThreadedTestUtil mtt_util;
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_);
@@ -80,7 +81,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++)
         table.Insert(&txn, *redo_);
     };
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
+    mtt_util.RunThreadsUntilFinish(num_threads_, workload);
   }
 
   state.SetItemsProcessed(state.iterations() * num_inserts_);

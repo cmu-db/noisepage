@@ -49,6 +49,7 @@ class ObjectPoolTestType {
 // the same pointer to two threads at the same time.
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
+  MultiThreadedTestUtil mtt_util;
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
@@ -75,6 +76,6 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.Release(ptr->Release(tid));
   };
 
-  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
+  mtt_util.RunThreadsUntilFinish(8, workload, 100);
 }
 }  // namespace terrier

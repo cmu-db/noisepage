@@ -103,6 +103,7 @@ LargeTransactionTestObject::~LargeTransactionTestObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+  MultiThreadedTestUtil mtt_util;
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -128,7 +129,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
     };
   }
 
-  MultiThreadedTestUtil::RunThreadsUntilFinish(num_concurrent_txns, workload);
+  mtt_util.RunThreadsUntilFinish(num_concurrent_txns, workload);
 
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
