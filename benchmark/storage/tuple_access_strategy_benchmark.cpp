@@ -119,12 +119,10 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
 }
 
 BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)
-    ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
 BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, ConcurrentInsert)
-    ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
