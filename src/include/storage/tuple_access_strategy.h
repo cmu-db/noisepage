@@ -39,8 +39,8 @@ class TupleAccessStrategy {
      * @return a pointer to the start of the column. (use as an array)
      */
     byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
-      return varlen_contents_
-          + StorageUtil::PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+      return varlen_contents_ +
+             StorageUtil::PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
     }
 
     /**

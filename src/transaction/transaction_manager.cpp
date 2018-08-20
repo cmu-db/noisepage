@@ -1,3 +1,5 @@
+#include <queue>
+#include <utility>
 #include "transaction/transaction_manager.h"
 
 namespace terrier::transaction {

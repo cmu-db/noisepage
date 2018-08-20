@@ -7,10 +7,10 @@
 #include <vector>
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
+#include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
-#include "storage/delta_record.h"
 #include "util/multi_threaded_test_util.h"
 
 namespace terrier {

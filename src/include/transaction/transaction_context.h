@@ -2,10 +2,10 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "common/typedefs.h"
-#include "storage/storage_defs.h"
-#include "storage/tuple_access_strategy.h"
 #include "storage/delta_record.h"
 #include "storage/record_buffer.h"
+#include "storage/storage_defs.h"
+#include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {
 class DataTable;
@@ -54,7 +54,7 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
-                                            const storage::ProjectedRow &redo) {
+                                           const storage::ProjectedRow &redo) {
     uint32_t size = storage::UndoRecord::Size(redo);
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
     return storage::UndoRecord::InitializeDeltaRecord(result, txn_id_, slot, table, redo);
@@ -68,7 +68,7 @@ class TransactionContext {
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *table, const storage::BlockLayout &layout,
-                                            storage::TupleSlot slot) {
+                                           storage::TupleSlot slot) {
     // TODO(Tianyu): Remove magic constant
     // Pretty sure we want 1, the primary key column?
     uint32_t size = storage::UndoRecord::Size(layout, {1});

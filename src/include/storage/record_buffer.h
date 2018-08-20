@@ -1,6 +1,7 @@
 #pragma once
-#include "common/typedefs.h"
+#include <vector>
 #include "common/object_pool.h"
+#include "common/typedefs.h"
 #include "storage/delta_record.h"
 
 namespace terrier::storage {

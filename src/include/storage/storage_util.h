@@ -62,9 +62,7 @@ class StorageUtil {
    * @param to projected row to copy into
    * @param projection_list_offset The projection_list index to copy to on the projected row.
    */
-  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
-                                     TupleSlot from,
-                                     ProjectedRow *to,
+  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
                                      uint16_t projection_list_offset);
 
   /**
@@ -74,9 +72,7 @@ class StorageUtil {
    * @param from projected row to copy from
    * @param projection_list_offset The projection_list index to copy from on the projected row.
    */
-  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor,
-                                     TupleSlot to,
-                                     const ProjectedRow &from,
+  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const ProjectedRow &from,
                                      uint16_t projection_list_offset);
 
   /**
@@ -91,9 +87,7 @@ class StorageUtil {
    * @param col_to_index a mapping between column id and projection list index for the buffer to apply delta to. This
    *                     speeds up operation if multiple deltas are expected to be applied to the same buffer.
    */
-  static void ApplyDelta(const BlockLayout &layout,
-                         const ProjectedRow &delta,
-                         ProjectedRow *buffer,
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
                          const std::unordered_map<uint16_t, uint16_t> &col_to_index);
 
   /**
@@ -113,11 +107,11 @@ class StorageUtil {
    */
   static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
   /**
- * Given an address offset, aligns it to the word_size
- * @param word_size size in bytes to align offset to
- * @param offset address to be aligned
- * @return modified version of address padded to align to word_size
- */
+   * Given an address offset, aligns it to the word_size
+   * @param word_size size in bytes to align offset to
+   * @param offset address to be aligned
+   * @return modified version of address padded to align to word_size
+   */
   static uint32_t PadOffsetToSize(uint8_t word_size, uint32_t offset);
 };
 }  // namespace terrier::storage

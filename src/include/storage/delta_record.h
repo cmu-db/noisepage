@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 
@@ -233,7 +234,7 @@ class UndoRecord {
    * @return pointer to the initialized DeltaRecord
    */
   static UndoRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
-                                            const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+                                           const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
 
   /**
    * Populates the DeltaRecord's members based on next pointer, timestamp, projection list, and the redo changes that
@@ -247,7 +248,7 @@ class UndoRecord {
    * @return pointer to the initialized DeltaRecord
    */
   static UndoRecord *InitializeDeltaRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
-                                            const storage::ProjectedRow &redo) {
+                                           const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
     result->next_ = nullptr;

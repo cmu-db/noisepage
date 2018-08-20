@@ -2,11 +2,11 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
+#include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
-#include "storage/delta_record.h"
 
 namespace terrier::storage {
 
@@ -97,7 +97,7 @@ class DataTable {
   // contention
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
-  bool HasConflict(UndoRecord * version_ptr, transaction::TransactionContext * txn);
+  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn);
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
