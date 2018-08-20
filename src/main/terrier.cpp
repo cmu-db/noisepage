@@ -1,4 +1,6 @@
 #include <iostream>
+#include <memory>
+#include <vector>
 #include "common/main_stat_registry.h"
 #include "common/typedefs.h"
 #include "loggers/main_logger.h"
@@ -6,6 +8,8 @@
 #include "loggers/transaction_logger.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
+
+std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg;
 
 int main() {
   // initialize loggers
@@ -29,18 +33,20 @@ int main() {
   std::cout << "hello world!" << std::endl;
 
   // initialize stat registry
-  init_main_stat_reg();
+  main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
+
   terrier::common::ObjectPool<terrier::transaction::UndoBufferSegment> buffer_pool_{10000};
   terrier::storage::BlockStore block_store_{100};
   terrier::storage::BlockLayout block_layout_(2, {8, 16});
+  const std::vector<uint16_t> col_ids = {0, 1};
   terrier::storage::DataTable data_table_(&block_store_, block_layout_);
 
   terrier::timestamp_t timestamp(0);
   auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_);
-
-  auto *redo_buffer = new terrier::byte[1000000];
+  auto size = terrier::storage::ProjectedRow::Size(block_layout_, col_ids);
+  auto *redo_buffer = new terrier::byte[size];
   terrier::storage::ProjectedRow *redo =
-      terrier::storage::ProjectedRow::InitializeProjectedRow(redo_buffer, {0, 1}, block_layout_);
+      terrier::storage::ProjectedRow::InitializeProjectedRow(redo_buffer, col_ids, block_layout_);
 
   data_table_.Insert(txn, *redo);
 
@@ -49,4 +55,5 @@ int main() {
 
   // shutdown loggers
   spdlog::shutdown();
+  main_stat_reg->Shutdown(false);
 }

@@ -99,6 +99,7 @@ class StatisticsRegistry {
    * Registers the given performance counter pc at the module specified.
    * If the specified module contains a binding which conflicts with pc's name,
    * pc's name will be modified until the binding succeeds.
+   *
    * @param module_path path to destination module
    * @param pc performance counter to be registered
    * @param registrant pointer to instance that is registering this counter

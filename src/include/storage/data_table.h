@@ -9,9 +9,14 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
-#define DataTableCounterMembers(f)                                                                  \
-  f(uint64_t, num_select) f(uint64_t, num_update) f(uint64_t, num_insert) f(uint64_t, num_rollback) \
-      f(uint64_t, num_new_block)
+// clang-format off
+#define DataTableCounterMembers(f) \
+  f(uint64_t, NumSelect) \
+  f(uint64_t, NumUpdate) \
+  f(uint64_t, NumInsert) \
+  f(uint64_t, NumRollback) \
+  f(uint64_t, NumNewBlock)
+// clang-format on
 
 namespace terrier::storage {
 
@@ -39,7 +44,7 @@ class DataTable {
    */
   ~DataTable() {
     for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
-    STAT_DEREGISTER({"Storage"}, data_table_counter_->GetName(), true);
+    STAT_DEREGISTER({"Storage"}, data_table_counter_.GetName(), false);
   }
 
   /**
@@ -97,7 +102,7 @@ class DataTable {
 
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
-  DataTableCounter *data_table_counter_;
+  mutable DataTableCounter data_table_counter_;
 
   // Atomically read out the version pointer value.
   DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;

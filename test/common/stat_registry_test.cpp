@@ -11,6 +11,7 @@
 
 namespace terrier {
 
+// clang-format off
 /**
  * A simple dummy cache object with four differently typed attributes:
  *   uint64_t num_insert
@@ -18,15 +19,20 @@ namespace terrier {
  *   uint16_t num_failure
  *   uint8_t num_user
  */
-#define CACHE_MEMBERS(f) f(uint64_t, num_insert) f(uint32_t, num_hit) f(uint16_t, num_failure) f(uint8_t, num_user)
+#define CACHE_MEMBERS(f) \
+  f(uint64_t, NumInsert) \
+  f(uint32_t, NumHit) \
+  f(uint16_t, NumFailure) \
+  f(uint8_t, NumUser)
+// clang-format on
 
 DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
 
 /**
  * A simple dummy network object
- *   uint64_t num_requests
+ *   uint64_t num_request
  */
-#define NETWORK_MEMBERS(f) f(uint64_t, num_requests)
+#define NETWORK_MEMBERS(f) f(uint64_t, NumRequest)
 
 DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
 
@@ -120,8 +126,8 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   reg.Register({}, &cc, this);
   reg.Register({"Cache"}, &cc2, this);
 
-  cc.Inc_num_failure();
-  cc2.Inc_num_hit();
+  cc.IncNumFailure();
+  cc2.IncNumHit();
 
   terrier::common::json json = terrier::common::json::parse(reg.DumpStats());
   EXPECT_EQ(json["CacheCounter"]["Counters"]["num_failure"], 1);

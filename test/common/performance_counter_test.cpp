@@ -8,6 +8,7 @@
 
 namespace terrier {
 
+// clang-format off
 /**
  * A simple dummy cache object with four differently typed attributes:
  *   uint64_t num_insert
@@ -15,7 +16,12 @@ namespace terrier {
  *   uint16_t num_failure
  *   uint8_t num_user
  */
-#define CACHE_MEMBERS(f) f(uint64_t, num_insert) f(uint32_t, num_hit) f(uint16_t, num_failure) f(uint8_t, num_user)
+#define CACHE_MEMBERS(f) \
+  f(uint64_t, NumInsert) \
+  f(uint32_t, NumHit) \
+  f(uint16_t, NumFailure) \
+  f(uint8_t, NumUser)
+// clang-format on
 
 DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
 
@@ -43,22 +49,22 @@ class CacheCounterTestObject {
    * Calls the gtest EXPECT_EQ function for all the relevant variables.
    */
   void Equal() const {
-    EXPECT_EQ(cc->Get_num_insert(), num_insert);
-    EXPECT_EQ(cc->Get_num_hit(), num_hit);
-    EXPECT_EQ(cc->Get_num_failure(), num_failure);
-    EXPECT_EQ(cc->Get_num_user(), num_user);
+    EXPECT_EQ(cc->GetNumInsert(), num_insert);
+    EXPECT_EQ(cc->GetNumHit(), num_hit);
+    EXPECT_EQ(cc->GetNumFailure(), num_failure);
+    EXPECT_EQ(cc->GetNumUser(), num_user);
   }
 
   std::vector<double> work_probs = std::vector<double>(8, 0.125);
   std::vector<std::function<void()>> workloads = {
-      [&] {cc->Inc_num_insert(); num_insert++; Equal();},
-      [&] {cc->Inc_num_hit(); num_hit++; Equal();},
-      [&] {cc->Inc_num_failure(); num_failure++; Equal();},
-      [&] {cc->Inc_num_user(); num_user++; Equal();},
-      [&] {cc->Dec_num_insert(); num_insert--; Equal();},
-      [&] {cc->Dec_num_hit(); num_hit--; Equal();},
-      [&] {cc->Dec_num_failure(); num_failure--; Equal();},
-      [&] {cc->Dec_num_user(); num_user--; Equal();},
+      [&] {cc->IncNumInsert(); num_insert++; Equal();},
+      [&] {cc->IncNumHit(); num_hit++; Equal();},
+      [&] {cc->IncNumFailure(); num_failure++; Equal();},
+      [&] {cc->IncNumUser(); num_user++; Equal();},
+      [&] {cc->DecNumInsert(); num_insert--; Equal();},
+      [&] {cc->DecNumHit(); num_hit--; Equal();},
+      [&] {cc->DecNumFailure(); num_failure--; Equal();},
+      [&] {cc->DecNumUser(); num_user--; Equal();},
   };
 
  public:

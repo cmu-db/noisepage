@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -11,6 +12,8 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
+std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg;
+
 namespace terrier {
 
 // This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
@@ -21,14 +24,14 @@ namespace terrier {
 class DataTableBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
-    init_main_stat_reg();
+    main_stat_reg = std::make_shared<common::StatisticsRegistry>();
     // generate a random redo ProjectedRow to Insert
     redo_buffer_ = new byte[redo_size_];
     redo_ = storage::ProjectedRow::InitializeProjectedRow(redo_buffer_, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
   void TearDown(const benchmark::State &state) final {
-    shutdown_main_stat_reg();
+    main_stat_reg->Shutdown(false);
     delete[] redo_buffer_;
   }
 

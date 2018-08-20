@@ -39,18 +39,7 @@ class PerformanceCounter {
 /*
  * Every helper macro needs to appear in both NDEBUG and DEBUG branches.
  */
-#ifdef NDEBUG
-#define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
-#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  void Inc_##MemberName() { ((void)0); }
-#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  void Dec_##MemberName() { ((void)0); }
-#define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  MemberType Get_##MemberName() { return 0; }
-#define PC_FN_JSON_FROM(MemberType, MemberName)
-#define PC_FN_JSON_TO(MemberType, MemberName)
-#define PC_FN_ZERO(MemberType, MemberName)
-#else
+#ifndef NDEBUG
 /*
  * Performance counter helper macros.
  * These auxiliary macros do not add any new functionality.
@@ -69,20 +58,20 @@ class PerformanceCounter {
  * This macro defines an Inc_MemberName() function which increments MemberName.
  */
 #define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  void Inc_##MemberName() { ++MemberName; }
+  void Inc##MemberName() { ++MemberName; }
 
 /**
  * This macro defines a Dec_MemberName() function which decrements MemberName.
  */
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  void Dec_##MemberName() { --MemberName; }
+  void Dec##MemberName() { --MemberName; }
 
 /**
  * This macro defines a Get_MemberName() function which returns MemberName.
  * If performance counters are disabled, it always returns 0.
  */
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  MemberType Get_##MemberName() { return MemberName.load(); }
+  MemberType Get##MemberName() { return MemberName.load(); }
 
 /*
  * Performance counter functions.
@@ -109,6 +98,17 @@ class PerformanceCounter {
  * This macro zeroes out ClassName.MemberName.
  */
 #define PC_FN_ZERO(MemberType, MemberName) MemberName.store(0);
+#else
+#define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
+#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
+  void Inc##MemberName() { ((void)0); }
+#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
+  void Dec##MemberName() { ((void)0); }
+#define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
+  MemberType Get##MemberName() { return 0; }
+#define PC_FN_JSON_FROM(MemberType, MemberName)
+#define PC_FN_JSON_TO(MemberType, MemberName)
+#define PC_FN_ZERO(MemberType, MemberName)
 #endif  // NDEBUG
 
 /*
