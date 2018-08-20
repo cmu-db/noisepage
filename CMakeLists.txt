@@ -40,7 +40,7 @@ if (TERRIER_VERSION_MAJOR STREQUAL "" OR
     TERRIER_VERSION_MINOR STREQUAL "" OR
     TERRIER_VERSION_PATCH STREQUAL "")
   MESSAGE(FATAL_ERROR "Failed to determine Terrier version from '${TERRIER_VERSION}'")
-endif()
+endif ()
 
 # The SO version is also the ABI version
 # Terrier 0.x.y => SO version is "x", full SO version is "x.y.0"
@@ -50,7 +50,6 @@ set(TERRIER_FULL_SO_VERSION "${TERRIER_SO_VERSION}.${TERRIER_VERSION_PATCH}.0")
 message(STATUS "Terrier version: "
     "${TERRIER_VERSION_MAJOR}.${TERRIER_VERSION_MINOR}.${TERRIER_VERSION_PATCH} "
     "(full: '${TERRIER_VERSION}')")
-
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
@@ -63,10 +62,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GNUInstallDirs)
 
 # Compatibility with CMake 3.1
-if(POLICY CMP0054)
+if (POLICY CMP0054)
   # http://www.cmake.org/cmake/help/v3.1/policy/CMP0054.html
   cmake_policy(SET CMP0054 NEW)
-endif()
+endif ()
+
+if (APPLE)
+  cmake_policy(SET CMP0068 NEW)
+endif ()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 
@@ -76,6 +79,14 @@ set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 
 set(TERRIER_CXXFLAGS "" CACHE STRING
     "Compiler flags to append when compiling Terrier")
+
+option(TERRIER_BUILD_STATIC
+    "Build the libterrier static libraries"
+    ON)
+
+option(TERRIER_BUILD_SHARED
+    "Build the libterrier shared libraries"
+    ON)
 
 option(TERRIER_TEST_MEMCHECK
     "Run the test suite using valgrind --tool=memcheck"
@@ -109,13 +120,13 @@ option(TERRIER_VERBOSE_LINT
     "If off, 'quiet' flags will be passed to linting tools"
     OFF)
 
-if(NOT TERRIER_BUILD_TESTS)
+if (NOT TERRIER_BUILD_TESTS)
   set(NO_TESTS 1)
-endif()
+endif ()
 
-if(NOT TERRIER_BUILD_BENCHMARKS)
+if (NOT TERRIER_BUILD_BENCHMARKS)
   set(NO_BENCHMARKS 1)
-endif()
+endif ()
 
 ###################################################
 # COMPILER TOOLS
@@ -128,7 +139,7 @@ if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
   # with various development tools, such as Vim's YouCompleteMe plugin.
   # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-endif()
+endif ()
 
 set(USE_GOLD true CACHE BOOL "Use the GNU Gold linker if available")
 if (USE_GOLD)
@@ -141,7 +152,7 @@ if (USE_GOLD)
     message(STATUS "GNU gold not found")
     set(USE_GOLD OFF)
   endif ()
-endif()
+endif ()
 
 ############################################################
 # Compiler flags
@@ -184,7 +195,7 @@ if (TERRIER_GENERATE_COVERAGE)
 
   if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
     message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
-  endif()
+  endif ()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 
@@ -202,7 +213,7 @@ if (TERRIER_GENERATE_COVERAGE)
       "${COVERAGE_UPLOAD}"
       "${CMAKE_MODULE_PATH}"
   )
-endif()
+endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
@@ -212,18 +223,18 @@ message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 ###########################################################
 if (NOT TERRIER_VERBOSE_LINT)
   set(TERRIER_LINT_QUIET "--quiet")
-endif()
+endif ()
 
 if (UNIX)
 
   file(GLOB_RECURSE LINT_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
-    )
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
+      )
 
   find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
   message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
@@ -232,13 +243,12 @@ if (UNIX)
   # Balancing act: cpplint.py takes a non-trivial time to launch,
   # so process 12 files per invocation, while still ensuring parallelism
   add_custom_target(check-lint echo ${LINT_FILES} | xargs -n12 -P8
-  ${CPPLINT_BIN}
-  --verbose=2 ${TERRIER_LINT_QUIET}
-  --linelength=120
-  --filter=-legal/copyright,-build/header_guard
-  )
+      ${CPPLINT_BIN}
+      --verbose=2 ${TERRIER_LINT_QUIET}
+      --linelength=120
+      --filter=-legal/copyright,-build/header_guard
+      )
 endif (UNIX)
-
 
 ###########################################################
 # "make format" and "make check-format" targets
@@ -247,27 +257,27 @@ endif (UNIX)
 # we modified the format script to take multiple args
 
 string(CONCAT FORMAT_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
-        )
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+    )
 
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        --fix
-        ${TERRIER_LINT_QUIET})
+    ${CLANG_FORMAT_BIN}
+    ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+    --source_dirs
+    ${FORMAT_DIRS}
+    --fix
+    ${TERRIER_LINT_QUIET})
 
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        ${TERRIER_LINT_QUIET})
+    ${CLANG_FORMAT_BIN}
+    ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+    --source_dirs
+    ${FORMAT_DIRS}
+    ${TERRIER_LINT_QUIET})
 
 ###########################################################
 # "make check-clang-tidy" target
@@ -276,20 +286,20 @@ if (${CLANG_TIDY_FOUND})
   # runs clang-tidy and exits with a non-zero exit code if any errors are found.
   # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
   add_custom_target(check-clang-tidy
-          ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
-          -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
-          -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-          )
+      ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
+      -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+      -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+      )
   add_dependencies(check-clang-tidy benchmark gtest)                        # clang-tidy needs their headers to exist
 
-endif()
+endif ()
 
 ###########################################################
 # Build properties
 ###########################################################
 
 # set compile output directory
-string (TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
+string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
 
 # If build in-source, create the latest symlink. If build out-of-source, which is
 # preferred, simply output the binaries in the build folder
@@ -301,12 +311,12 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
   FILE(MAKE_DIRECTORY ${BUILD_OUTPUT_ROOT_DIRECTORY})
   if (NOT APPLE)
     set(MORE_ARGS "-T")
-  endif()
+  endif ()
   EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
       ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
-else()
+else ()
   set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
-endif()
+endif ()
 
 # where to put generated archives (.a files)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
@@ -329,16 +339,16 @@ set(TERRIER_LINK_LIBS
     ${PTHREAD_LIBRARY})
 
 set(TERRIER_TEST_LINK_LIBS
-    terrier_shared
-    test_shared
+    test_util
+    terrier_static
     gtest
     gtest_main
     ${CMAKE_DL_LIBS})
 
 set(TERRIER_BENCHMARK_LINK_LIBS
-    terrier_shared
-    benchmark_shared
-    test_shared
+    test_util
+    benchmark_util
+    terrier_static
     gtest)
 
 # ---[ Subdirectories

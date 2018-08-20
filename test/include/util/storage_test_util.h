@@ -90,9 +90,10 @@ struct StorageTestUtil {
       uint16_t col = row->ColumnIds()[projection_list_idx];
       std::bernoulli_distribution coin(1 - null_bias);
 
-      if (coin(*generator)) {
+      if (coin(*generator))
         FillWithRandomBytes(layout.attr_sizes_[col], row->AccessForceNotNull(projection_list_idx), generator);
-      }
+      else
+        row->SetNull(projection_list_idx);
     }
   }
 
