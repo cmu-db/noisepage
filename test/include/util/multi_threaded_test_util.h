@@ -6,6 +6,8 @@
 #include "common/container/concurrent_vector.h"
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
+#include "tbb/task_scheduler_init.h"
+#include "tbb/task_group.h"
 
 namespace terrier {
 /**
@@ -53,11 +55,18 @@ struct MultiThreadedTestUtil {
    */
   static void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload,
                                     uint32_t repeat = 1) {
+    // requires that calling thread does not use any of TBB's task scheduling
+    // alternatively, we can spawn up a new thread
+    // but we are not guaranteed these run in parallel..
+    tbb::task_scheduler_init scheduler(num_threads);
     for (uint32_t i = 0; i < repeat; i++) {
-      std::vector<std::thread> threads;
-      for (uint32_t j = 0; j < num_threads; j++) threads.emplace_back([j, &workload] { workload(j); });
-      for (auto &thread : threads) thread.join();
+      tbb::task_group group;
+      for (uint32_t j = 0; j < num_threads; j++) {
+        group.run(tbb::make_task([j, &workload] { workload(j); }));
+      }
+      group.wait();
     }
+    scheduler.terminate();
   }
 
   /**
