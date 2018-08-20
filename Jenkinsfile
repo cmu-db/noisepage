@@ -11,7 +11,7 @@ pipeline {
                         ASAN_OPTIONS="detect_container_overflow=0"
                     }
                     steps {
-                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
                         sh 'cd build && make unittest -j4'
@@ -56,7 +56,7 @@ pipeline {
                         ASAN_OPTIONS="detect_container_overflow=0"
                     }
                     steps {
-                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && make unittest -j4'
