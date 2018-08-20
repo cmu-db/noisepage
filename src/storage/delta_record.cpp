@@ -1,6 +1,5 @@
 #include <vector>
-
-#include "storage/storage_defs.h"
+#include "storage/delta_record.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -31,13 +30,23 @@ ProjectedRow *ProjectedRow::InitializeProjectedRow(void *head,
   return result;
 }
 
-DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
+ProjectedRow* ProjectedRow::InitializeProjectedRow(void *head, const ProjectedRow &other)  {
+  auto *result = reinterpret_cast<ProjectedRow *>(head);
+  auto header_size =
+      static_cast<uint32_t>(sizeof(ProjectedRow) + +other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
+  // TODO(Tianyu): Pretty sure I can just mem-cpy the header?
+  PELOTON_MEMCPY(result, &other, header_size);
+  result->Bitmap().Clear(result->num_cols_);
+  return result;
+}
+
+UndoRecord *UndoRecord::InitializeDeltaRecord(void *head,
                                                 timestamp_t timestamp,
                                                 TupleSlot slot,
                                                 DataTable *table,
                                                 const BlockLayout &layout,
                                                 const std::vector<uint16_t> &col_ids) {
-  auto *result = reinterpret_cast<DeltaRecord *>(head);
+  auto *result = reinterpret_cast<UndoRecord *>(head);
 
   result->next_ = nullptr;
   result->timestamp_.store(timestamp);
@@ -48,5 +57,4 @@ DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
 
   return result;
 }
-
 }  // namespace terrier::storage

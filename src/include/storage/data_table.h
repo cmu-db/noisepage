@@ -6,6 +6,7 @@
 #include "storage/tuple_access_strategy.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
+#include "storage/delta_record.h"
 
 namespace terrier::storage {
 
@@ -90,27 +91,17 @@ class DataTable {
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
   // Atomically read out the version pointer value.
-  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
+  UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Atomically write the version pointer value. Should only be used by Insert where there is guaranteed to be no
   // contention
-  void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
+  void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
-  bool HasConflict(DeltaRecord *const version_ptr, transaction::TransactionContext *const txn) {
-    if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
-    const timestamp_t version_timestamp = version_ptr->Timestamp().load();
-    const timestamp_t txn_id = txn->TxnId();
-    const timestamp_t start_time = txn->StartTime();
-    return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
-           // Someone else owns this tuple, write-write-conflict
-           || (transaction::TransactionUtil::Committed(version_timestamp) &&
-               transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
-    // Someone else already committed an update to this tuple while we were running, we can't update this under SI
-  }
+  bool HasConflict(UndoRecord * version_ptr, transaction::TransactionContext * txn);
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
-  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *expected,
-                                DeltaRecord *desired);
+  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
+                                UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val);

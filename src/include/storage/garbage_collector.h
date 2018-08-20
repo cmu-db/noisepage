@@ -55,7 +55,7 @@ class GarbageCollector {
    * @param txn pointer to the transaction that created this DeltaRecord
    * @param undo_record DeltaRecord to be unlinked
    */
-  void UnlinkDeltaRecord(transaction::TransactionContext *txn, const DeltaRecord &undo_record) const;
+  void UnlinkDeltaRecord(transaction::TransactionContext *txn, const UndoRecord &undo_record) const;
 
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate

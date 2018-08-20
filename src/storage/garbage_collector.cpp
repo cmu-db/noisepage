@@ -66,7 +66,7 @@ uint32_t GarbageCollector::Unlink() {
       txns_unlinked++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
       // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
-      transaction::UndoBuffer &undos = txn->GetUndoBuffer();
+      UndoBuffer &undos = txn->GetUndoBuffer();
       for (auto &undo_record : undos) {
         UnlinkDeltaRecord(txn, undo_record);
       }
@@ -86,13 +86,13 @@ uint32_t GarbageCollector::Unlink() {
 }
 
 void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const txn,
-                                         const DeltaRecord &undo_record) const {
+                                         const UndoRecord &undo_record) const {
   PELOTON_ASSERT(txn->TxnId() == undo_record.Timestamp().load(), "This undo_record does not belong to this txn.");
   DataTable *const table = undo_record.Table();
   const TupleSlot slot = undo_record.Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
 
-  DeltaRecord *version_ptr;
+  UndoRecord *version_ptr;
   do {
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
     PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
@@ -105,8 +105,8 @@ void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const 
     }
     // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
     // to traverse and update pointers without CAS
-    DeltaRecord *curr = version_ptr;
-    DeltaRecord *next = curr->Next();
+    UndoRecord *curr = version_ptr;
+    UndoRecord *next = curr->Next();
 
     // traverse until we hit the DeltaRecord that we want to unlink
     while (next != nullptr && next->Timestamp().load() != txn->TxnId()) {

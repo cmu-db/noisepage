@@ -20,7 +20,7 @@ void DataTable::Select(transaction::TransactionContext *txn,
                  "The projection never returns the version pointer, so it should have fewer attributes.");
   PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
 
-  DeltaRecord *version_ptr;
+  UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
     // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
@@ -49,7 +49,7 @@ void DataTable::Select(transaction::TransactionContext *txn,
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
-  && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
                             out_buffer,
@@ -63,8 +63,8 @@ bool DataTable::Update(transaction::TransactionContext *txn,
                        const ProjectedRow &redo) {
   // TODO(Tianyu): We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
-  DeltaRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
+  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
   if (HasConflict(version_ptr, txn)) return false;
@@ -98,7 +98,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  DeltaRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
+  UndoRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
 
   // Populate undo record with the before image of presence column
   undo->Delta()->SetNull(0);
@@ -117,7 +117,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *txn,
 }
 
 void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
-  DeltaRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // We do not hold the lock. Should just return
   if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image
@@ -129,29 +129,42 @@ void DataTable::Rollback(timestamp_t txn_id, terrier::storage::TupleSlot slot) {
   AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
 }
 
-DeltaRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
+UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
   // an issue (probably not, we are just reading one extra byte.)
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
-  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->load();
+  return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
 
 void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           const TupleAccessStrategy &accessor,
-                                          DeltaRecord *desired) {
+                                          UndoRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)->store(desired);
+  reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
+}
+
+bool DataTable::HasConflict(UndoRecord *const version_ptr,
+                            transaction::TransactionContext *const txn) {
+  if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
+  const timestamp_t version_timestamp = version_ptr->Timestamp().load();
+  const timestamp_t txn_id = txn->TxnId();
+  const timestamp_t start_time = txn->StartTime();
+  return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
+      // Someone else owns this tuple, write-write-conflict
+      || (transaction::TransactionUtil::Committed(version_timestamp) &&
+          transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
+  // Someone else already committed an update to this tuple while we were running, we can't update this under SI
 }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          const TupleAccessStrategy &accessor,
-                                         DeltaRecord *expected,
-                                         DeltaRecord *desired) {
+                                         UndoRecord *expected,
+                                         UndoRecord *desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
-  return reinterpret_cast<std::atomic<DeltaRecord *> *>(ptr_location)
+  return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
       ->compare_exchange_strong(expected, desired);
 }
 

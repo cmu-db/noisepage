@@ -8,6 +8,7 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/test_harness.h"
+#include "storage/delta_record.h"
 
 namespace terrier {
 

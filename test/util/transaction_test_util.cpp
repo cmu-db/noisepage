@@ -20,6 +20,7 @@ RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   for (auto &entry : selects_)
     delete[] reinterpret_cast<byte *>(entry.second);
 }
+
 template<class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
@@ -77,7 +78,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
                                                        uint32_t txn_length,
                                                        std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
-                                                       common::ObjectPool<terrier::transaction::UndoBufferSegment>
+                                                       common::ObjectPool<storage::BufferSegment>
                                                        *buffer_pool,
                                                        std::default_random_engine *generator,
                                                        bool gc_on, bool bookkeeping)

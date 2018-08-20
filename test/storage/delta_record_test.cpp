@@ -41,7 +41,7 @@ TEST_F(DeltaRecordTests, ChainAccess) {
   uint32_t num_iterations = 10;
   uint32_t max_chain_size = 100;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
-    std::vector<storage::DeltaRecord *> record_list;
+    std::vector<storage::UndoRecord *> record_list;
     std::uniform_int_distribution<> size_dist(1, max_chain_size);
     uint32_t chain_size = size_dist(generator_);
     for (uint32_t i = 0; i < chain_size; ++i) {
@@ -60,11 +60,11 @@ TEST_F(DeltaRecordTests, ChainAccess) {
 
       // compute the size of the buffer
       const std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-      uint32_t size = storage::DeltaRecord::Size(layout, col_ids);
+      uint32_t size = storage::UndoRecord::Size(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
       auto *record_buffer = new byte[size];
       loose_pointers_.push_back(record_buffer);
-      storage::DeltaRecord *record = storage::DeltaRecord::InitializeDeltaRecord(record_buffer,
+      storage::UndoRecord *record = storage::UndoRecord::InitializeDeltaRecord(record_buffer,
                                                                                  time,
                                                                                  slot,
                                                                                  &data_table,
@@ -111,11 +111,11 @@ TEST_F(DeltaRecordTests, GetProjectedRow){
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
     // compute the size of the buffer
-    uint32_t size = storage::DeltaRecord::Size(*redo);
+    uint32_t size = storage::UndoRecord::Size(*redo);
     timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
     auto *record_buffer = new byte[size];
     loose_pointers_.push_back(record_buffer);
-    storage::DeltaRecord *record = storage::DeltaRecord::InitializeDeltaRecord(record_buffer,
+    storage::UndoRecord *record = storage::UndoRecord::InitializeDeltaRecord(record_buffer,
                                                                                time,
                                                                                slot,
                                                                                &data_table,

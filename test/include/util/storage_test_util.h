@@ -9,6 +9,8 @@
 #include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
+#include "storage/delta_record.h"
 #include "util/multi_threaded_test_util.h"
 
 namespace terrier {
@@ -60,6 +62,9 @@ struct StorageTestUtil {
   static A *IncrementByBytes(A *ptr, uint64_t bytes) {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
+
+  // TODO(Tianyu): The following functions can technically be written in a .cpp, but then I'll have to
+  // explicitly instantiate each static member template...this is stupid...
 
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
