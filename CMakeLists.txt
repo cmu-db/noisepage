@@ -77,6 +77,14 @@ set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(TERRIER_CXXFLAGS "" CACHE STRING
     "Compiler flags to append when compiling Terrier")
 
+option(TERRIER_BUILD_STATIC
+    "Build the libterrier static libraries"
+    OFF)
+
+option(TERRIER_BUILD_SHARED
+    "Build the libterrier shared libraries"
+    ON)
+
 option(TERRIER_TEST_MEMCHECK
     "Run the test suite using valgrind --tool=memcheck"
     OFF)
