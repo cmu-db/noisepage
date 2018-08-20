@@ -144,6 +144,14 @@ class SerializeInput {
   int64_t ReadLong() { return ReadPrimitive<int64_t>(); }
 
   /**
+   * @brief Copies a timestamp value from the buffer, advancing the read position by
+   * bytes of a timestamp type.
+   *
+   * @return the timestamp value read
+   */
+  timestamp_t ReadTimestamp() { return ReadPrimitive<timestamp_t>(); }
+
+  /**
    * @brief Copies a float value from the buffer, advancing the read position by
    * bytes of a float type.
    *
