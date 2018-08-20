@@ -79,7 +79,7 @@ set(TERRIER_CXXFLAGS "" CACHE STRING
 
 option(TERRIER_BUILD_STATIC
     "Build the libterrier static libraries"
-    OFF)
+    ON)
 
 option(TERRIER_BUILD_SHARED
     "Build the libterrier shared libraries"
@@ -338,7 +338,7 @@ set(TERRIER_LINK_LIBS
 
 set(TERRIER_TEST_LINK_LIBS
     test_util
-    terrier_shared
+    terrier_static
     gtest
     gtest_main
     ${CMAKE_DL_LIBS})
@@ -346,7 +346,7 @@ set(TERRIER_TEST_LINK_LIBS
 set(TERRIER_BENCHMARK_LINK_LIBS
     test_util
     benchmark_util
-    terrier_shared
+    terrier_static
     gtest)
 
 # ---[ Subdirectories
