@@ -40,7 +40,7 @@ if (TERRIER_VERSION_MAJOR STREQUAL "" OR
     TERRIER_VERSION_MINOR STREQUAL "" OR
     TERRIER_VERSION_PATCH STREQUAL "")
   MESSAGE(FATAL_ERROR "Failed to determine Terrier version from '${TERRIER_VERSION}'")
-endif()
+endif ()
 
 # The SO version is also the ABI version
 # Terrier 0.x.y => SO version is "x", full SO version is "x.y.0"
@@ -50,7 +50,6 @@ set(TERRIER_FULL_SO_VERSION "${TERRIER_SO_VERSION}.${TERRIER_VERSION_PATCH}.0")
 message(STATUS "Terrier version: "
     "${TERRIER_VERSION_MAJOR}.${TERRIER_VERSION_MINOR}.${TERRIER_VERSION_PATCH} "
     "(full: '${TERRIER_VERSION}')")
-
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
@@ -63,10 +62,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GNUInstallDirs)
 
 # Compatibility with CMake 3.1
-if(POLICY CMP0054)
+if (POLICY CMP0054)
   # http://www.cmake.org/cmake/help/v3.1/policy/CMP0054.html
   cmake_policy(SET CMP0054 NEW)
-endif()
+endif ()
+
+if (APPLE)
+  cmake_policy(SET CMP0068 NEW)
+endif ()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 
@@ -117,13 +120,13 @@ option(TERRIER_VERBOSE_LINT
     "If off, 'quiet' flags will be passed to linting tools"
     OFF)
 
-if(NOT TERRIER_BUILD_TESTS)
+if (NOT TERRIER_BUILD_TESTS)
   set(NO_TESTS 1)
-endif()
+endif ()
 
-if(NOT TERRIER_BUILD_BENCHMARKS)
+if (NOT TERRIER_BUILD_BENCHMARKS)
   set(NO_BENCHMARKS 1)
-endif()
+endif ()
 
 ###################################################
 # COMPILER TOOLS
@@ -136,7 +139,7 @@ if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
   # with various development tools, such as Vim's YouCompleteMe plugin.
   # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-endif()
+endif ()
 
 set(USE_GOLD true CACHE BOOL "Use the GNU Gold linker if available")
 if (USE_GOLD)
@@ -149,7 +152,7 @@ if (USE_GOLD)
     message(STATUS "GNU gold not found")
     set(USE_GOLD OFF)
   endif ()
-endif()
+endif ()
 
 ############################################################
 # Compiler flags
@@ -192,7 +195,7 @@ if (TERRIER_GENERATE_COVERAGE)
 
   if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
     message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
-  endif()
+  endif ()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 
@@ -210,7 +213,7 @@ if (TERRIER_GENERATE_COVERAGE)
       "${COVERAGE_UPLOAD}"
       "${CMAKE_MODULE_PATH}"
   )
-endif()
+endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
@@ -220,7 +223,7 @@ message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 ###########################################################
 if (NOT TERRIER_VERBOSE_LINT)
   set(TERRIER_LINT_QUIET "--quiet")
-endif()
+endif ()
 
 if (UNIX)
 
@@ -246,7 +249,6 @@ if (UNIX)
       --filter=-legal/copyright,-build/header_guard
       )
 endif (UNIX)
-
 
 ###########################################################
 # "make format" and "make check-format" targets
@@ -290,14 +292,14 @@ if (${CLANG_TIDY_FOUND})
       )
   add_dependencies(check-clang-tidy benchmark gtest)                        # clang-tidy needs their headers to exist
 
-endif()
+endif ()
 
 ###########################################################
 # Build properties
 ###########################################################
 
 # set compile output directory
-string (TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
+string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
 
 # If build in-source, create the latest symlink. If build out-of-source, which is
 # preferred, simply output the binaries in the build folder
@@ -309,12 +311,12 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
   FILE(MAKE_DIRECTORY ${BUILD_OUTPUT_ROOT_DIRECTORY})
   if (NOT APPLE)
     set(MORE_ARGS "-T")
-  endif()
+  endif ()
   EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
       ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
-else()
+else ()
   set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
-endif()
+endif ()
 
 # where to put generated archives (.a files)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
