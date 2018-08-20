@@ -5,7 +5,8 @@ list(APPEND BENCHMARK_UTIL_SRCS ${BENCHMARK_UTIL_HDRS})
 ###############################################
 # Benchmark library
 ###############################################
-add_library(benchmark_util SHARED ${BENCHMARK_UTIL_SRCS})
+add_library(benchmark_util STATIC ${BENCHMARK_UTIL_SRCS})
 target_link_libraries(benchmark_util benchmark)
+add_dependencies(benchmark_util gtest)
 
 add_subdirectory(storage)
