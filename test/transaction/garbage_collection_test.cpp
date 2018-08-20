@@ -27,6 +27,7 @@ class LargeGCTests : public TerrierTest {
   common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{1000};
   std::default_random_engine generator_;
   volatile bool run_gc_ = false;
+  volatile bool paused_ = false;
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
 
@@ -34,9 +35,7 @@ class LargeGCTests : public TerrierTest {
   void GCThreadLoop(uint32_t gc_period_milli) {
     while (run_gc_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
-      auto result UNUSED_ATTRIBUTE = gc_->RunGC();
-//      std::cout << "tuples unlinked: " << result.second << std::endl;
-//      std::cout << "tuples deallocated: " << result.first << std::endl;
+      if (!paused_) gc_->RunGC();
     }
   }
 };
@@ -47,13 +46,13 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  // TODO(Tianyu): Unfortunately, with GC, this test is very slow (we need large enough runs before we check
-  // correctness, otherwise GC might not kick in)
+  // TODO(Tianyu): Unfortunately, with GC, this test is pretty slow... we could make correctness checks sample based if
+  // it becomes too much,
   const uint32_t num_iterations = 1;
   const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 10000;
   const uint32_t txn_length = 10;
-  const uint32_t num_txns = 1000;
+  const uint32_t num_txns = 100000;
   const uint32_t batch_size = 100;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
   const uint32_t num_concurrent_txns = 4;
@@ -70,9 +69,11 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
     StartGC(tested.GetTxnManager(), 10);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
+      paused_ = true;
       tested.CheckReadsCorrect(&result.first);
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
+      paused_ = false;
     }
     EndGC();
   }
