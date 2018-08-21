@@ -46,7 +46,7 @@ class TupleAccessStrategyTestObject {
 
     // The tuple slot is not something that is already in use.
     EXPECT_TRUE(result.second);
-    StorageTestUtil::InsertTuple(*(result.first->second), &tested, layout, slot);
+    StorageTestUtil::InsertTuple(*(result.first->second), tested, layout, slot);
     return *(result.first);
   }
 
@@ -140,7 +140,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     // Check that all inserted tuples are equal to their expected values
     for (auto &entry : tuples) {
       StorageTestUtil::CheckTupleEqual(*(entry.second),
-                                       &tested,
+                                       tested,
                                        layout,
                                        entry.first);
     }
@@ -250,7 +250,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),
-                                         &tested,
+                                         tested,
                                          layout,
                                          entry.first);
       }
@@ -313,7 +313,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),
-                                         &tested,
+                                         tested,
                                          layout,
                                          entry.first);
       }

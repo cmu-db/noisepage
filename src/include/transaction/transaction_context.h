@@ -23,7 +23,8 @@ class TransactionContext {
    * @param txn_id the id of the transaction, should be larger than all start time and commit time
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    */
-  TransactionContext(timestamp_t start, timestamp_t txn_id, common::ObjectPool<storage::BufferSegment> *buffer_pool)
+  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
+                     common::ObjectPool<storage::BufferSegment> *const buffer_pool)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool) {}
 
   /**
@@ -34,12 +35,12 @@ class TransactionContext {
   /**
    * @return id of this transaction
    */
-  const timestamp_t &TxnId() const { return txn_id_; }
+  const std::atomic<timestamp_t> &TxnId() const { return txn_id_; }
 
   /**
    * @return id of this transaction
    */
-  timestamp_t &TxnId() { return txn_id_; }
+  std::atomic<timestamp_t> &TxnId() { return txn_id_; }
 
   /**
    * @return the undo buffer of this transaction
@@ -53,11 +54,11 @@ class TransactionContext {
    * @param redo the content of the update
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
-  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
+  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     uint32_t size = storage::UndoRecord::Size(redo);
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeRecord(result, txn_id_, slot, table, redo);
+    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, redo);
   }
 
   /**
@@ -67,18 +68,18 @@ class TransactionContext {
    * @param slot the TupleSlot being updated
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
-  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *table, const storage::BlockLayout &layout,
-                                           storage::TupleSlot slot) {
+  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::BlockLayout &layout,
+                                           const storage::TupleSlot slot) {
     // TODO(Tianyu): Remove magic constant
     // Pretty sure we want 1, the primary key column?
     uint32_t size = storage::UndoRecord::Size(layout, {1});
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeRecord(result, txn_id_, slot, table, layout, {1});
+    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, layout, {1});
   }
 
  private:
   const timestamp_t start_time_;
-  timestamp_t txn_id_;
+  std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;
 };
 }  // namespace terrier::transaction

@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <vector>
+#include <memory>
 #include "storage/data_table.h"
 #include "util/storage_test_util.h"
 #include "util/multi_threaded_test_util.h"
@@ -95,25 +96,30 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout);
-    std::vector<FakeTransaction> fake_txns;
+    std::vector<std::unique_ptr<FakeTransaction>> fake_txns;
     for (uint32_t thread = 0; thread < num_threads; thread++)
       // timestamps are irrelevant for inserts
-      fake_txns.emplace_back(layout, &tested, null_ratio_(generator_), timestamp_t(0), timestamp_t(0), &buffer_pool_);
+      fake_txns.emplace_back(std::make_unique<FakeTransaction>(layout,
+                                                               &tested,
+                                                               null_ratio_(generator_),
+                                                               timestamp_t(0),
+                                                               timestamp_t(0),
+                                                               &buffer_pool_));
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++)
-        fake_txns[id].InsertRandomTuple(&thread_generator);
+        fake_txns[id]->InsertRandomTuple(&thread_generator);
     };
 
     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     auto *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
     for (auto &fake_txn : fake_txns) {
-      for (auto slot : fake_txn.InsertedTuples()) {
+      for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow
             *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids, layout);
-        tested.Select(fake_txn.GetTxn(), slot, select_row);
-        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn.GetReferenceTuple(slot), select_row));
+        tested.Select(fake_txn->GetTxn(), slot, select_row);
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }
     }
     delete[] select_buffer;
@@ -135,20 +141,20 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
     // Insert one tuple, the timestamp needs to show committed
     storage::TupleSlot slot = insert_txn.InsertRandomTuple(&generator_);
 
-    std::vector<FakeTransaction> fake_txns;
+    std::vector<std::unique_ptr<FakeTransaction>> fake_txns;
     for (uint64_t thread = 0; thread < num_threads; thread++)
       // need negative timestamp to denote uncommitted
-      fake_txns.emplace_back(layout,
-                             &tested,
-                             null_ratio_(generator_),
-                             timestamp_t(2),
-                             timestamp_t(static_cast<uint64_t>(-thread - 1)),
-                             &buffer_pool_);
+      fake_txns.emplace_back(std::make_unique<FakeTransaction>(layout,
+                                              &tested,
+                                              null_ratio_(generator_),
+                                              timestamp_t(2),
+                                              timestamp_t(static_cast<uint64_t>(-thread - 1)),
+                                              &buffer_pool_));
     std::atomic<uint32_t> success = 0, fail = 0;
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       // log whether update is successful
-      if (fake_txns[id].RandomlyUpdateTuple(slot, &thread_generator))
+      if (fake_txns[id]->RandomlyUpdateTuple(slot, &thread_generator))
         success++;
       else
         fail++;

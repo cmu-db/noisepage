@@ -24,7 +24,7 @@ class TransactionManager {
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
-  explicit TransactionManager(common::ObjectPool<storage::BufferSegment> *buffer_pool, bool gc_enabled)
+  explicit TransactionManager(common::ObjectPool<storage::BufferSegment> *const buffer_pool, const bool gc_enabled)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
 
   /**

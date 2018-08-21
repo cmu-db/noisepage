@@ -28,7 +28,7 @@ struct StorageTestUtil {
    * @param upper upper bound
    */
   template <typename A, typename B, typename C>
-  static void CheckInBounds(A *val, B *lower, C *upper) {
+  static void CheckInBounds(A *const val, B *const lower, C *const upper) {
     EXPECT_GE(TO_INT(val), TO_INT(lower));
     EXPECT_LT(TO_INT(val), TO_INT(upper));
   }
@@ -43,12 +43,12 @@ struct StorageTestUtil {
    * @param upper upper bound
    */
   template <typename A, typename B, typename C>
-  static void CheckNotInBounds(A *val, B *lower, C *upper) {
+  static void CheckNotInBounds(A *const val, B *const lower, C *const upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
   }
 
   template <typename A>
-  static void CheckAlignment(A *val, uint32_t word_size) {
+  static void CheckAlignment(A *const val, const uint32_t word_size) {
     EXPECT_EQ(0, TO_INT(val) % word_size);
   }
 #undef TO_INT
@@ -59,7 +59,7 @@ struct StorageTestUtil {
    * @return  pointer that is the specified amount of bytes ahead of the given
    */
   template <typename A>
-  static A *IncrementByBytes(A *ptr, uint64_t bytes) {
+  static A *IncrementByBytes(A *const ptr, const uint64_t bytes) {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 
@@ -68,7 +68,7 @@ struct StorageTestUtil {
 
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
-  static storage::BlockLayout RandomLayout(uint16_t max_cols, Random *generator) {
+  static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
     PELOTON_ASSERT(max_cols > 1, "There should be at least 2 cols (first is version).");
     // We probably won't allow tables with fewer than 2 columns
     uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(2, max_cols)(*generator);
@@ -82,14 +82,14 @@ struct StorageTestUtil {
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
   template <typename Random>
-  static void FillWithRandomBytes(uint32_t num_bytes, byte *out, Random *generator) {
+  static void FillWithRandomBytes(const uint32_t num_bytes, byte *const out, Random *const generator) {
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
     for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(*generator));
   }
 
   template <typename Random>
-  static void PopulateRandomRow(storage::ProjectedRow *row, const storage::BlockLayout &layout, const double null_bias,
-                                Random *generator) {
+  static void PopulateRandomRow(storage::ProjectedRow *const row, const storage::BlockLayout &layout,
+                                const double null_bias, Random *const generator) {
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       uint16_t col = row->ColumnIds()[projection_list_idx];
@@ -113,7 +113,8 @@ struct StorageTestUtil {
   }
 
   template <typename Random>
-  static std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout, Random *generator) {
+  static std::vector<uint16_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
+                                                           Random *const generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
     uint16_t num_cols =
@@ -135,8 +136,8 @@ struct StorageTestUtil {
     return col_ids;
   }
 
-  static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *one,
-                                  const storage::ProjectedRow *other) {
+  static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *const one,
+                                  const storage::ProjectedRow *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       if (one->ColumnIds()[projection_list_index] != other->ColumnIds()[projection_list_index]) return false;
@@ -176,27 +177,27 @@ struct StorageTestUtil {
 
   // Write the given tuple (projected row) into a block using the given access strategy,
   // at the specified offset
-  static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy *tested,
+  static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
       const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
-        tested->SetNull(slot, col);
+        tested.SetNull(slot, col);
       } else {
         // Read the value
         uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val, tested->AccessForceNotNull(slot, col));
+        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val, tested.AccessForceNotNull(slot, col));
       }
     }
   }
 
   // Check that the written tuple is the same as the expected one
-  static void CheckTupleEqual(const storage::ProjectedRow &expected, storage::TupleAccessStrategy *tested,
+  static void CheckTupleEqual(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = 1; col < layout.num_cols_; col++) {
       const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
-      byte *col_slot = tested->AccessWithNullCheck(slot, col);
+      byte *col_slot = tested.AccessWithNullCheck(slot, col);
       if (val_ptr != nullptr) {
         // Read the value
         uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);

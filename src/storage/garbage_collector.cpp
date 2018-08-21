@@ -59,12 +59,12 @@ uint32_t GarbageCollector::Unlink() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop();
-    if (!transaction::TransactionUtil::Committed(txn->TxnId())) {
+    if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push(txn);
       txns_unlinked++;
-    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
+    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
       UndoBuffer &undos = txn->GetUndoBuffer();
       for (auto &undo_record : undos) {
@@ -87,7 +87,8 @@ uint32_t GarbageCollector::Unlink() {
 
 void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
                                         const UndoRecord &undo_record) const {
-  PELOTON_ASSERT(txn->TxnId() == undo_record.Timestamp().load(), "This undo_record does not belong to this txn.");
+  PELOTON_ASSERT(txn->TxnId().load() == undo_record.Timestamp().load(),
+                 "This undo_record does not belong to this txn.");
   DataTable *const table = undo_record.Table();
   const TupleSlot slot = undo_record.Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
@@ -97,7 +98,7 @@ void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
     PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
-    if (version_ptr->Timestamp().load() == txn->TxnId()) {
+    if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
       // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
       if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) break;
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
@@ -109,12 +110,12 @@ void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
     UndoRecord *next = curr->Next();
 
     // traverse until we hit the UndoRecord that we want to unlink
-    while (next != nullptr && next->Timestamp().load() != txn->TxnId()) {
+    while (next != nullptr && next->Timestamp().load() != txn->TxnId().load()) {
       curr = next;
       next = curr->Next();
     }
     // we're in position with next being the UndiRecord to be unlinked
-    if (next != nullptr && next->Timestamp().load() == txn->TxnId()) {
+    if (next != nullptr && next->Timestamp().load() == txn->TxnId().load()) {
       curr->Next().store(next->Next().load());
       break;
     }

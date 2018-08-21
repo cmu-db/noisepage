@@ -4,7 +4,7 @@
 #include "storage/delta_record.h"
 
 namespace terrier::storage {
-void StorageUtil::WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
+void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *const pos) {
   switch (attr_size) {
     case sizeof(uint8_t):*reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
       break;
@@ -20,7 +20,7 @@ void StorageUtil::WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
   }
 }
 
-uint64_t StorageUtil::ReadBytes(uint8_t attr_size, const byte *pos) {
+uint64_t StorageUtil::ReadBytes(const uint8_t attr_size, const byte *const pos) {
   switch (attr_size) {
     case sizeof(uint8_t):return *reinterpret_cast<const uint8_t *>(pos);
     case sizeof(uint16_t):return *reinterpret_cast<const uint16_t *>(pos);
@@ -32,17 +32,20 @@ uint64_t StorageUtil::ReadBytes(uint8_t attr_size, const byte *pos) {
   }
 }
 
-void StorageUtil::CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id) {
+void StorageUtil::CopyWithNullCheck(const byte *const from,
+                                    ProjectedRow *const to,
+                                    const uint8_t size,
+                                    const uint16_t col_id) {
   if (from == nullptr)
     to->SetNull(col_id);
   else
     WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(col_id));
 }
 
-void StorageUtil::CopyWithNullCheck(const byte *from,
+void StorageUtil::CopyWithNullCheck(const byte *const from,
                                     const TupleAccessStrategy &accessor,
-                                    TupleSlot to,
-                                    uint16_t col_id) {
+                                    const TupleSlot to,
+                                    const uint16_t col_id) {
   if (from == nullptr) {
     accessor.SetNull(to, col_id);
   } else {
@@ -52,9 +55,9 @@ void StorageUtil::CopyWithNullCheck(const byte *from,
 }
 
 void StorageUtil::CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
-                                         TupleSlot from,
-                                         ProjectedRow *to,
-                                         uint16_t projection_list_offset) {
+                                         const TupleSlot from,
+                                         ProjectedRow *const to,
+                                         const uint16_t projection_list_offset) {
   uint16_t col_id = to->ColumnIds()[projection_list_offset];
   uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
   byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
@@ -62,9 +65,9 @@ void StorageUtil::CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
 }
 
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor,
-                                         TupleSlot to,
+                                         const TupleSlot to,
                                          const ProjectedRow &from,
-                                         uint16_t projection_list_offset) {
+                                         const uint16_t projection_list_offset) {
   uint16_t col_id = from.ColumnIds()[projection_list_offset];
   const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
@@ -72,7 +75,7 @@ void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor,
 
 void StorageUtil::ApplyDelta(const BlockLayout &layout,
                              const ProjectedRow &delta,
-                             ProjectedRow *buffer,
+                             ProjectedRow *const buffer,
                              const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
   for (uint16_t i = 0; i < delta.NumColumns(); i++) {
     uint16_t delta_col_id = delta.ColumnIds()[i];

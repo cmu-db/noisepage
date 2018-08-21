@@ -18,7 +18,7 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   }
 }
 
-void TupleAccessStrategy::InitializeRawBlock(RawBlock *raw,
+void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw,
                                              const layout_version_t layout_version) {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
@@ -37,7 +37,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *raw,
   result->Column(PRESENCE_COLUMN_ID)->PresenceBitmap()->UnsafeClear(layout_.num_slots_);
 }
 
-bool TupleAccessStrategy::Allocate(RawBlock *block, TupleSlot *slot) const {
+bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
   const uint32_t start = block->num_records_;
 

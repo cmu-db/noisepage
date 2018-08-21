@@ -19,7 +19,7 @@ TransactionContext* TransactionManager::BeginTransaction() {
   return result;
 }
 
-timestamp_t TransactionManager::Commit(TransactionContext *txn) {
+timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
@@ -29,16 +29,16 @@ timestamp_t TransactionManager::Commit(TransactionContext *txn) {
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
   PELOTON_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
-  txn->TxnId() = commit_time;
+  txn->TxnId().store(commit_time);
   if (gc_enabled_) completed_txns_.push(txn);
   table_latch_.Unlock();
   return commit_time;
 }
 
-void TransactionManager::Abort(TransactionContext *txn) {
+void TransactionManager::Abort(TransactionContext *const txn) {
   // no latch required on undo since all operations are transaction-local
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos) it.Table()->Rollback(txn->TxnId(), it.Slot());
+  for (auto &it : undos) it.Table()->Rollback(txn->TxnId().load(), it.Slot());
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
