@@ -40,7 +40,7 @@ class TupleAccessStrategy {
      */
     byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
       return varlen_contents_ +
-             StorageUtil::PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+          StorageUtil::PadUpToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
     }
 
     /**
@@ -133,7 +133,7 @@ class TupleAccessStrategy {
    * @param raw pointer to the raw block to initialize
    * @param layout_version the layout version of this block
    */
-  void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version);
+  void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
 
   /* Vectorized Access */
   /**
@@ -172,9 +172,8 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute.
    */
   byte *AccessForceNotNull(TupleSlot slot, const uint16_t col) const {
-    // Noop if not null
-    // TODO(Tianyu): Don't compare and swap this shit
-    ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), false);
+    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col);
+    if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
   }
 
@@ -205,7 +204,6 @@ class TupleAccessStrategy {
   const BlockLayout &GetBlockLayout() const { return layout_; }
 
  private:
-  // TODO(Tianyu): This will be baked in for codegen, not a field.
   const BlockLayout layout_;
   // Start of each mini block, in offset to the start of the block
   std::vector<uint32_t> column_offsets_;

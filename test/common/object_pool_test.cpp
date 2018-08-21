@@ -18,11 +18,11 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
-  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
+  // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
   // NOLINTNEXTLINE
   tested.Release(reused_ptr);
 
-  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
+  // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
   // NOLINTNEXTLINE
   for (uint32_t i = 0; i < repeat; i++) {
     EXPECT_EQ(tested.Get(), reused_ptr);

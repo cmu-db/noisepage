@@ -33,11 +33,10 @@ struct AlignedByteAllocator {
    * @param ptr pointer to the byte array to be deleted.
    */
   void Delete(T *ptr) { delete[] ptr; }  // NOLINT
-  // TODO(WAN): clang-tidy believes we are trying to free released memory.
-  // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
+  // clang-tidy believes we are trying to free released memory.
+  // We believe otherwise, hence we're telling it to shut up.
 };
 
-// TODO(Tianyu): Should this be by size or by class type?
 /**
  * Object pool for memory allocation.
  *
@@ -73,12 +72,6 @@ class ObjectPool {
     while (reuse_queue_.Dequeue(&result)) alloc_.Delete(result);
   }
 
-  // TODO(Tianyu): The object pool can have much richer semantics in the future.
-  // The current one does not do anything more intelligent other trying to keep
-  // the memory it recycles to a limited size.
-  // A very clear improvement would be to bulk-malloc objects into the reuse queue,
-  // or even to elastically grow or shrink the memory size depending on use pattern.
-
   /**
    * Returns a piece of memory to hold an object of T.
    *
@@ -110,7 +103,6 @@ class ObjectPool {
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
-  // TODO(Tianyu): It might make sense for this to be changeable in the future
   const uint64_t reuse_limit_;
 };
 }  // namespace terrier::common

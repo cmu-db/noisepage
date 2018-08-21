@@ -5,11 +5,17 @@
 #include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_util.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+class TransactionManager;
+}
 
 namespace terrier::storage {
-
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+#define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
+#define PRIMARY_KEY_COLUMN_ID 1
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
@@ -65,19 +71,11 @@ class DataTable {
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
-
-  /**
-   * Rolls back changes on the given tuple slot, written by the given transaction. Should only be called when
-   * aborting a transaction
-   * @param txn_id the transaction that updated the tuple
-   * @param slot the tuple to roll back
-   */
-  void Rollback(timestamp_t txn_id, TupleSlot slot);
-
  private:
   friend class GarbageCollector;
+  friend class transaction::TransactionManager;
 
-  BlockStore *block_store_;
+  BlockStore *const block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // layout_version_t curr_layout_version_{0};
@@ -85,7 +83,7 @@ class DataTable {
   // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
 
   // TODO(Matt): remove this single TAS when using concurrent schema
-  TupleAccessStrategy accessor_;
+  const TupleAccessStrategy accessor_;
 
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;

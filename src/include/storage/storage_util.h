@@ -112,6 +112,6 @@ class StorageUtil {
    * @param offset address to be aligned
    * @return modified version of address padded to align to word_size
    */
-  static uint32_t PadOffsetToSize(uint8_t word_size, uint32_t offset);
+  static uint32_t PadUpToSize(uint8_t word_size, uint32_t offset);
 };
 }  // namespace terrier::storage

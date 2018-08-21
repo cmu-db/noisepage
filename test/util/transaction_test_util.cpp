@@ -1,6 +1,7 @@
 #include <utility>
 #include <algorithm>
 #include <vector>
+#include "transaction/transaction_util.h"
 #include "util/transaction_test_util.h"
 
 namespace terrier {

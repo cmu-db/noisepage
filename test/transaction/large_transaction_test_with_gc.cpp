@@ -46,8 +46,6 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  // TODO(Tianyu): Unfortunately, with GC, this test is pretty slow... we could make correctness checks sample based if
-  // it becomes too much,
   const uint32_t num_iterations = 1;
   const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 1000;

@@ -5,6 +5,7 @@
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
+#include "transaction/transaction_util.h"
 #include "transaction/transaction_context.h"
 #include "util/test_harness.h"
 

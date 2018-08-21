@@ -8,7 +8,7 @@ uint32_t ProjectedRow::Size(const BlockLayout &layout, const std::vector<uint16_
   for (uint16_t col_id : col_ids)
     result += static_cast<uint32_t>(sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id]);
   result += common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
-  return result % 8 == 0 ? result : result + 8 - result % 8;  // pad up to 8 bytes
+  return storage::StorageUtil::PadUpToSize(sizeof(uint64_t), result);  // pad up to 8 bytes
 }
 
 ProjectedRow *ProjectedRow::InitializeProjectedRow(void *head,

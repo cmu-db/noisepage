@@ -31,12 +31,6 @@ struct RawBlock {
   // store offsets within a block in ine 8-byte word.
 } __attribute__((aligned(common::Constants::BLOCK_SIZE)));
 
-// TODO(Tianyu): Put this into Constants?
-#define MAX_COL INT16_MAX
-// TODO(Tianyu): This code eventually should be compiled, which would eliminate
-// BlockLayout as a runtime object, instead baking them in as compiled code
-// (Think of this as writing the class with a BlockLayout template arg, except
-// template instantiation is done by LLVM at runtime and not at compile time.
 /**
  * Stores metadata about the layout of a block.
  * This will eventually be baked in as compiled code by LLVM.
@@ -53,7 +47,8 @@ struct BlockLayout {
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
         num_slots_(NumSlots()) {
-    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= MAX_COL, "number of columns must be between 1 and 32767");
+    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
+                   "number of columns must be between 1 and 32767");
     PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   }
 
@@ -89,12 +84,11 @@ struct BlockLayout {
 
   uint32_t HeaderSize() {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+        + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
   uint32_t NumSlots() {
-    // Need to account for extra bitmap structures needed for each attribute.
-    // TODO(Tianyu): I am subtracting 1 from this number so we will always have
+    // subtracting 1 from this number so we will always have
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
     // feel like thinking about this now.
@@ -118,7 +112,7 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)),
                    "Address must be aligned to block size (last bits zero).");
     PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
@@ -206,7 +200,7 @@ namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template <>
+template<>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.
