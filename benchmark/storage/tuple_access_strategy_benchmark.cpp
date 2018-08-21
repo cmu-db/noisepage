@@ -5,7 +5,7 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/test_thread_pool.h"
 #include "util/storage_benchmark_util.h"
 
 namespace terrier {
@@ -85,6 +85,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // Insert the num_inserts_ of tuples into Blocks concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
+  TestThreadPool thread_pool;
   storage::TupleAccessStrategy tested(layout_);
 
   // NOLINTNEXTLINE
@@ -107,7 +108,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
         }
       };
 
-      MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads_, workload);
+      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
     for (uint32_t i = 0; i < num_blocks_; i++) {

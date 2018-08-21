@@ -24,7 +24,7 @@ template<class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot
-      updated = MultiThreadedTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+      updated = RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   auto *update_buffer =
       test_object_->bookkeeping_ ? new byte[storage::ProjectedRow::Size(test_object_->layout_, update_col_ids)]
@@ -50,7 +50,7 @@ template<class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot
-      selected = MultiThreadedTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+      selected = RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = test_object_->bookkeeping_ ? new byte[test_object_->row_size_] : buffer_;
   storage::ProjectedRow *select =
       storage::ProjectedRow::InitializeProjectedRow(select_buffer, test_object_->all_cols_, test_object_->layout_);
@@ -103,6 +103,7 @@ LargeTransactionTestObject::~LargeTransactionTestObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+  TestThreadPool thread_pool;
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -128,7 +129,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
     };
   }
 
-  MultiThreadedTestUtil::RunThreadsUntilFinish(num_concurrent_txns, workload);
+  thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
 
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
@@ -173,7 +174,7 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  MultiThreadedTestUtil::InvokeWorkloadWithDistribution({update, select},
+  RandomTestUtil::InvokeWorkloadWithDistribution({update, select},
                                                         update_select_ratio_,
                                                         &thread_generator,
                                                         txn_length_);
