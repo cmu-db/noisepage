@@ -61,6 +61,13 @@ class RecoveryManager {
   uint32_t ParseFile();
 
   /**
+   * @brief Load committed transactions in log files into the recovery memory area.
+   *
+   * @param size the total size of log records of all committed transactions
+   */
+  void LoadFile(uint32_t size);
+
+  /**
    * @brief Reads some bytes from a file stream to memory.
    *
    * @param stream the file stream from which the bytes are read
@@ -120,6 +127,7 @@ class RecoveryManager {
   std::string dir_;
   std::string file_name_;
   std::fstream file_;
+  std::byte *recovery_memory_;
   std::map<timestamp_t, uint32_t> offsets_;
   std::map<timestamp_t, uint64_t> txns_;
 };
