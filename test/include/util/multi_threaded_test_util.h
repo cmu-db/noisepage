@@ -17,43 +17,7 @@ namespace terrier {
 /**
  * Static utility class for common code for multi-threaded tests.
  */
-struct MultiThreadedTestUtil {
- private:
-  std::vector<std::thread> thread_pool_;
-  std::queue<std::function<void()>> work_pool_;
-  std::mutex work_lock_;
-  std::condition_variable work_cv_;
-  std::condition_variable finished_cv_;
-  uint32_t busy_threads_ = 0;
-  bool shutdown_ = false;
-
-  void AddThread() {
-    thread_pool_.emplace_back([this] {
-      // keep the thread alive
-      while (true) {
-        // grab the lock
-        std::unique_lock<std::mutex> lock(work_lock_);
-        // try to get work
-        work_cv_.wait(lock, [this] { return shutdown_ || !work_pool_.empty(); });
-        // woke up! time to work or time to die?
-        if (shutdown_) {
-          break;
-        }
-        // grab the work
-        ++busy_threads_;
-        auto work = std::move(work_pool_.front());
-        work_pool_.pop();
-        // release the lock while we work
-        lock.unlock();
-        work();
-        // we lock again to notify that we're done
-        lock.lock();
-        --busy_threads_;
-        finished_cv_.notify_one();
-      }
-    });
-  }
-
+class MultiThreadedTestUtil {
  public:
   ~MultiThreadedTestUtil() {
     std::unique_lock<std::mutex> lock(work_lock_);    // grab the lock
@@ -137,6 +101,42 @@ struct MultiThreadedTestUtil {
     PELOTON_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
     std::discrete_distribution dist(probabilities.begin(), probabilities.end());
     for (uint32_t i = 0; i < repeat; i++) workloads[dist(*generator)]();
+  }
+
+ private:
+  std::vector<std::thread> thread_pool_;
+  std::queue<std::function<void()>> work_pool_;
+  std::mutex work_lock_;
+  std::condition_variable work_cv_;
+  std::condition_variable finished_cv_;
+  uint32_t busy_threads_ = 0;
+  bool shutdown_ = false;
+
+  void AddThread() {
+    thread_pool_.emplace_back([this] {
+      // keep the thread alive
+      while (true) {
+        // grab the lock
+        std::unique_lock<std::mutex> lock(work_lock_);
+        // try to get work
+        work_cv_.wait(lock, [this] { return shutdown_ || !work_pool_.empty(); });
+        // woke up! time to work or time to die?
+        if (shutdown_) {
+          break;
+        }
+        // grab the work
+        ++busy_threads_;
+        auto work = std::move(work_pool_.front());
+        work_pool_.pop();
+        // release the lock while we work
+        lock.unlock();
+        work();
+        // we lock again to notify that we're done
+        lock.lock();
+        --busy_threads_;
+        finished_cv_.notify_one();
+      }
+    });
   }
 };
 
