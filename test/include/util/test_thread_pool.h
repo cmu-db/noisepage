@@ -10,51 +10,19 @@
 #include "common/container/concurrent_vector.h"
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
-#include "tbb/task_group.h"
-#include "tbb/task_scheduler_init.h"
 
 namespace terrier {
 /**
- * Static utility class for common code for multi-threaded tests.
+ * Thread pool for use in tests to avoid creating and destroying a ton of threads when running multiple iterations
  */
-class MultiThreadedTestUtil {
+class TestThreadPool {
  public:
-  ~MultiThreadedTestUtil() {
+  ~TestThreadPool() {
     std::unique_lock<std::mutex> lock(work_lock_);    // grab the lock
     shutdown_ = true;                                 // signal all the threads to shutdown
     work_cv_.notify_all();                            // wake up all the threads
     lock.unlock();                                    // free the lock
     for (auto &thread : thread_pool_) thread.join();  // wait for all the threads to terminate
-  }
-
-  /**
-   * Selects an element from the supplied vector uniformly at random, using the
-   * given random generator.
-   *
-   * @tparam T type of elements in the vector
-   * @tparam Random type of random generator to use
-   * @param elems vector of elements to draw from
-   * @param generator source of randomness to use
-   * @return iterator to a randomly selected element
-   */
-  template <typename T, typename Random>
-  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
-    return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
-  }
-
-  /**
-   * Selects an element from the supplied constant vector uniformly at random, using the
-   * given random generator.
-   *
-   * @tparam T type of elements in the vector
-   * @tparam Random type of random generator to use
-   * @param elems vector of elements to draw from
-   * @param generator source of randomness to use
-   * @return const iterator to a randomly selected element
-   */
-  template <class T, class Random>
-  static typename std::vector<T>::const_iterator UniformRandomElement(const std::vector<T> &elems, Random *generator) {
-    return elems.cbegin() + std::uniform_int_distribution(0, static_cast<int>(elems.size() - 1))(*generator);
   }
 
   /**

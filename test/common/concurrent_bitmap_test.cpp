@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/test_thread_pool.h"
 #include "common/container/concurrent_bitmap.h"
 #include "util/container_test_util.h"
 
@@ -166,7 +166,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
 // The test attempts to concurrently flip every bit from 0 to 1 using FirstUnsetPos
 // NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
-  MultiThreadedTestUtil mtt_util;
+  TestThreadPool thread_pool;
   std::default_random_engine generator;
   const uint32_t num_iters = 200;
   const uint32_t max_elements = 10000;
@@ -186,7 +186,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
       }
     };
 
-    mtt_util.RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and
     // then sort the results
@@ -213,7 +213,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 // This is equivalent to grabbing a free slot if used in an allocator
 // NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
-  MultiThreadedTestUtil mtt_util;
+  TestThreadPool thread_pool;
   std::default_random_engine generator;
   const uint32_t num_iters = 200;
   const uint32_t max_elements = 450000;
@@ -229,7 +229,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
         if (bitmap->Flip(i, false)) elements[thread_id].push_back(i);
     };
 
-    mtt_util.RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and
     // then sort the results
