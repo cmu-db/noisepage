@@ -16,6 +16,6 @@ void init_transaction_logger();
 
 #define TXN_LOG_INFO(...) ::terrier::transaction::transaction_logger->info(__VA_ARGS__);
 
-#define TXN_LOG_WARN(...) ::terrier::transaction::transaction`_logger->warn(__VA_ARGS__);
+#define TXN_LOG_WARN(...) ::terrier::transaction::transaction_logger->warn(__VA_ARGS__);
 
 #define TXN_LOG_ERROR(...) ::terrier::transaction::transaction_logger->error(__VA_ARGS__);
