@@ -32,14 +32,14 @@ class RandomDataTableTestObject {
   template<class Random>
   storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp,
                                        Random *generator,
-                                       common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
+                                       common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
     auto *redo_buffer = new byte[redo_size_];
     loose_pointers_.push_back(redo_buffer);
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
-    // generate a txn with an undo DeltaRecord to populate on Insert
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
@@ -55,7 +55,7 @@ class RandomDataTableTestObject {
   bool RandomlyUpdateTuple(const timestamp_t timestamp,
                            const storage::TupleSlot slot,
                            Random *generator,
-                           common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
+                           common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // tuple must already exist
     PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
@@ -66,7 +66,7 @@ class RandomDataTableTestObject {
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
-    // generate a txn with an undo DeltaRecord to populate on Insert
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
@@ -110,8 +110,8 @@ class RandomDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot,
                                           const timestamp_t timestamp,
                                           const std::vector<uint16_t> &col_ids,
-                                          common::ObjectPool<transaction::UndoBufferSegment> *buffer_pool) {
-    // generate a txn with an undo DeltaRecord to populate on Insert
+                                          common::ObjectPool<storage::BufferSegment> *buffer_pool) {
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
@@ -139,7 +139,7 @@ class RandomDataTableTestObject {
 
 struct DataTableTests : public TerrierTest {
   storage::BlockStore block_store_{100};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };

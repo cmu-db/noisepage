@@ -24,7 +24,7 @@ class LargeGCTests : public TerrierTest {
   }
 
   storage::BlockStore block_store_{1000};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{1000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000};
   std::default_random_engine generator_;
   volatile bool run_gc_ = false;
   volatile bool paused_ = false;
