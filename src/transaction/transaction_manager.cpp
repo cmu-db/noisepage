@@ -3,7 +3,7 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::transaction {
-TransactionContext* TransactionManager::BeginTransaction() {
+TransactionContext *TransactionManager::BeginTransaction() {
   common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
   timestamp_t id = time_++;
   // TODO(Tianyu):
@@ -38,7 +38,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no latch required on undo since all operations are transaction-local
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos) it.Table()->Rollback(txn->TxnId().load(), it.Slot());
+  timestamp_t txn_id = txn->TxnId().load();  // will not change
+  for (auto &it : undos) Rollback(txn_id, it);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
@@ -61,5 +62,21 @@ std::queue<TransactionContext *> TransactionManager::CompletedTransactions() {
   PELOTON_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
   table_latch_.Unlock();
   return hand_to_gc;
+}
+
+void TransactionManager::Rollback(timestamp_t txn_id, const storage::UndoRecord &record) {
+  storage::DataTable *table = record.Table();
+  storage::TupleSlot slot = record.Slot();
+  storage::UndoRecord
+      *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+  // We do not hold the lock. Should just return
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
+  // Re-apply the before image
+  for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
+    storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
+  // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
+  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
+  // write.
+  table->AtomicallyWriteVersionPtr(slot, table->accessor_, version_ptr->Next());
 }
 }  // namespace terrier::transaction

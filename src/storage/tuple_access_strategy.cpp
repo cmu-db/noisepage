@@ -8,18 +8,18 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     : layout_(std::move(layout)), column_offsets_(layout.num_cols_) {
   // Calculate the start position of each column
   // we use 64-bit vectorized scans on bitmaps.
-  uint32_t acc_offset = StorageUtil::PadOffsetToSize(sizeof(uint64_t), layout_.header_size_);
+  uint32_t acc_offset = StorageUtil::PadUpToSize(sizeof(uint64_t), layout_.header_size_);
   for (uint16_t i = 0; i < layout_.num_cols_; i++) {
     column_offsets_[i] = acc_offset;
     uint32_t column_size = layout_.attr_sizes_[i] * layout_.num_slots_  // content
-        + StorageUtil::PadOffsetToSize(layout_.attr_sizes_[i],
-                                       common::BitmapSize(layout_.num_slots_));  // padded-bitmap size
-    acc_offset += StorageUtil::PadOffsetToSize(sizeof(uint64_t), column_size);
+        + StorageUtil::PadUpToSize(layout_.attr_sizes_[i],
+                                   common::BitmapSize(layout_.num_slots_));  // padded-bitmap size
+    acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
   }
 }
 
 void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw,
-                                             const layout_version_t layout_version) {
+                                             const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->num_records_ = 0;

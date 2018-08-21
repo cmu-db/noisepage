@@ -64,9 +64,6 @@ struct StorageTestUtil {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 
-  // TODO(Tianyu): The following functions can technically be written in a .cpp, but then I'll have to
-  // explicitly instantiate each static member template...this is stupid...
-
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {

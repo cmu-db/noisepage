@@ -1,13 +1,11 @@
 #pragma once
 #include <vector>
+#include "common/constants.h"
 #include "common/object_pool.h"
 #include "common/typedefs.h"
 #include "storage/delta_record.h"
 
 namespace terrier::storage {
-// TODO(Tianyu): Size of this buffer can probably be optimized
-// TODO(Tianyu): Put this into common::Constants?
-#define UNDO_BUFFER_SEGMENT_SIZE (1 << 15)  // in bytes
 
 /**
  * An UndoBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
@@ -23,7 +21,7 @@ class BufferSegment {
    * @param size the amount of bytes to check for
    * @return Whether this segment have enough space left for size many bytes
    */
-  bool HasBytesLeft(uint32_t size) const { return end_ + size <= UNDO_BUFFER_SEGMENT_SIZE; }
+  bool HasBytesLeft(uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
 
   /**
    * Reserve space for a delta record of given size to be written in this segment. The segment must have
@@ -46,7 +44,7 @@ class BufferSegment {
 
  private:
   friend class UndoBuffer;
-  byte bytes_[UNDO_BUFFER_SEGMENT_SIZE];
+  byte bytes_[common::Constants::BUFFER_SEGMENT_SIZE];
   uint32_t end_ = 0;
 };
 

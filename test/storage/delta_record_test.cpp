@@ -46,7 +46,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
     uint32_t chain_size = size_dist(generator_);
     for (uint32_t i = 0; i < chain_size; ++i) {
       // get random layout
-      storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+      storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
       storage::TupleAccessStrategy tested(layout);
       PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block_, layout_version_t(0));
@@ -89,7 +89,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow){
   uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));

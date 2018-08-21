@@ -2,14 +2,11 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "common/typedefs.h"
+#include "storage/data_table.h"
 #include "storage/delta_record.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-
-namespace terrier::storage {
-class DataTable;
-}
 
 namespace terrier::transaction {
 /**
@@ -70,11 +67,9 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::BlockLayout &layout,
                                            const storage::TupleSlot slot) {
-    // TODO(Tianyu): Remove magic constant
-    // Pretty sure we want 1, the primary key column?
-    uint32_t size = storage::UndoRecord::Size(layout, {1});
+    uint32_t size = storage::UndoRecord::Size(layout, {PRIMARY_KEY_COLUMN_ID});
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, layout, {1});
+    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, layout, {PRIMARY_KEY_COLUMN_ID});
   }
 
  private:

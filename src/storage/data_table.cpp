@@ -1,9 +1,8 @@
 #include <unordered_map>
 #include "storage/storage_util.h"
 #include "storage/data_table.h"
-// All tuples potentially visible to txns should have a non-null attribute of version vector.
-// This is not to be confused with a non-null version vector that has value nullptr (0).
-#define VERSION_VECTOR_COLUMN_ID PRESENCE_COLUMN_ID
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
@@ -61,7 +60,7 @@ void DataTable::Select(transaction::TransactionContext *const txn,
 bool DataTable::Update(transaction::TransactionContext *const txn,
                        const TupleSlot slot,
                        const ProjectedRow &redo) {
-  // TODO(Tianyu): We never bother deallocating this entry, which is why we need to remember to check on abort
+  // We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
   UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -116,23 +115,10 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
   return result;
 }
 
-void DataTable::Rollback(const timestamp_t txn_id, const terrier::storage::TupleSlot slot) {
-  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-  // We do not hold the lock. Should just return
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
-  // Re-apply the before image
-  for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
-    StorageUtil::CopyAttrFromProjection(accessor_, slot, *(version_ptr->Delta()), i);
-  // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
-  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
-  // write.
-  AtomicallyWriteVersionPtr(slot, accessor_, version_ptr->Next());
-}
-
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
   // an issue (probably not, we are just reading one extra byte.)
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
@@ -140,7 +126,7 @@ UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const Tupl
 void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           const TupleAccessStrategy &accessor,
                                           UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
@@ -162,7 +148,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          const TupleAccessStrategy &accessor,
                                          UndoRecord *expected,
                                          UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_VECTOR_COLUMN_ID);
+  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
       ->compare_exchange_strong(expected, desired);

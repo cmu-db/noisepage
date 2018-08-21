@@ -88,5 +88,7 @@ class TransactionManager {
 
   bool gc_enabled_ = false;
   std::queue<transaction::TransactionContext *> completed_txns_;
+
+  void Rollback(timestamp_t txn_id, const storage::UndoRecord &record);
 };
 }  // namespace terrier::transaction
