@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <vector>
 #include <utility>
-#include "util/multi_threaded_test_util.h"
+#include "util/test_thread_pool.h"
 #include "util/storage_test_util.h"
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
@@ -220,6 +220,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 // and verifies that all tuples are written into unique slots correctly.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
+  TestThreadPool thread_pool;
   const uint32_t repeat = 200;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
@@ -246,7 +247,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
                                          &thread_generator);
     };
 
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),
@@ -267,6 +268,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 // responsibility of concurrency control and GC, not storage.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
+  TestThreadPool thread_pool;
   const uint32_t repeat = 200;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
@@ -298,18 +300,18 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
 
       auto remove = [&] {
         if (slots[id].empty()) return;
-        auto elem = MultiThreadedTestUtil::UniformRandomElement(&(slots[id]), &generator);
+        auto elem = RandomTestUtil::UniformRandomElement(&(slots[id]), &generator);
         tested.SetNull(*elem, PRESENCE_COLUMN_ID);
         tuples[id].erase(*elem);
         slots[id].erase(elem);
       };
 
-      MultiThreadedTestUtil::InvokeWorkloadWithDistribution({insert, remove},
+      RandomTestUtil::InvokeWorkloadWithDistribution({insert, remove},
                                                             {0.7, 0.3},
                                                             &generator,
                                                             layout.num_slots_ / num_threads);
     };
-    MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second),

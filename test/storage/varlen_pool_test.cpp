@@ -1,7 +1,8 @@
 #include <vector>
 #include "storage/varlen_pool.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/random_test_util.h"
 #include "util/storage_test_util.h"
+#include "util/test_thread_pool.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -34,6 +35,7 @@ void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
 // expected value, and no overlapping)
 // NOLINTNEXTLINE
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
+  TestThreadPool thread_pool;
   const uint32_t repeat = 100, num_threads = 8;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::VarlenPool pool;
@@ -52,7 +54,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       auto free = [&] {
         if (!entries[thread_id].empty()) {
-          auto pos = MultiThreadedTestUtil::UniformRandomElement(&(entries[thread_id]), &generator);
+          auto pos = RandomTestUtil::UniformRandomElement(&(entries[thread_id]), &generator);
           // Check size field as expected
           EXPECT_EQ(sizes[thread_id][pos - entries[thread_id].begin()], (*pos)->size_);
           // clean up
@@ -62,13 +64,13 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
         }
       };
 
-      MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
+      RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                                {0.2, 0.8},
                                                &generator,
                                                100);
     };
 
-     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
 
     // Concat all the entries we have
     std::vector<storage::VarlenEntry *> all_entries;

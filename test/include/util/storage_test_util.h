@@ -11,7 +11,8 @@
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/random_test_util.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 struct StorageTestUtil {
@@ -75,7 +76,7 @@ struct StorageTestUtil {
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
     for (uint16_t i = 1; i < num_attrs; i++)
-      attr_sizes[i] = *MultiThreadedTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
+      attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return {num_attrs, attr_sizes};
   }
 
