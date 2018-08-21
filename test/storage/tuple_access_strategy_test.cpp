@@ -305,7 +305,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
         slots[id].erase(elem);
       };
 
-      TestThreadPool::InvokeWorkloadWithDistribution({insert, remove},
+      RandomTestUtil::InvokeWorkloadWithDistribution({insert, remove},
                                                             {0.7, 0.3},
                                                             &generator,
                                                             layout.num_slots_ / num_threads);

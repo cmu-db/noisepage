@@ -174,7 +174,7 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  TestThreadPool::InvokeWorkloadWithDistribution({update, select},
+  RandomTestUtil::InvokeWorkloadWithDistribution({update, select},
                                                         update_select_ratio_,
                                                         &thread_generator,
                                                         txn_length_);

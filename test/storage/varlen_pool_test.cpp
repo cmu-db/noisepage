@@ -64,7 +64,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
         }
       };
 
-      TestThreadPool::InvokeWorkloadWithDistribution({free, allocate},
+      RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                                {0.2, 0.8},
                                                &generator,
                                                100);

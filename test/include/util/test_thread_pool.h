@@ -49,28 +49,6 @@ class TestThreadPool {
     }
   }
 
-  /**
-   * Given a list of workloads and probabilities (must be of the same size), select
-   * a random workload according to the probability to be run. This can be done
-   * repeatedly if desired.
-   *
-   * @tparam Random type of random generator to use
-   * @param workloads list of workloads to draw from
-   * @param probabilities list of probabilities for each workload to be selected
-   *    (if they don't sum up to one, they would be treated as weights
-   *     i.e. suppose we have {w1, w2, ...} pr_n = w_n / sum(ws))
-   * @param generator source of randomness to use
-   * @param repeat the number of times this should be done.
-   */
-  template <typename Random>
-  static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
-                                             std::vector<double> probabilities, Random *generator,
-                                             uint32_t repeat = 1) {
-    PELOTON_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
-    std::discrete_distribution dist(probabilities.begin(), probabilities.end());
-    for (uint32_t i = 0; i < repeat; i++) workloads[dist(*generator)]();
-  }
-
  private:
   std::vector<std::thread> thread_pool_;
   std::queue<std::function<void()>> work_pool_;

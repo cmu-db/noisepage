@@ -69,7 +69,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    TestThreadPool::InvokeWorkloadWithDistribution({free, allocate},
+    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate},
                                              {0.5, 0.5},
                                              &generator,
                                              100);
