@@ -9,7 +9,7 @@
 namespace terrier::transaction {
 class TransactionContext;
 class TransactionManager;
-}
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
@@ -71,6 +71,7 @@ class DataTable {
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
+
  private:
   friend class GarbageCollector;
   friend class transaction::TransactionManager;

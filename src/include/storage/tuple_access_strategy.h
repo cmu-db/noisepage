@@ -40,7 +40,7 @@ class TupleAccessStrategy {
      */
     byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
       return varlen_contents_ +
-          StorageUtil::PadUpToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+             StorageUtil::PadUpToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
     }
 
     /**
