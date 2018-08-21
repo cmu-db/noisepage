@@ -335,7 +335,6 @@ include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 set(TERRIER_LINK_LIBS
-    gtest
     ${TERRIER_LINK_LIBS}
     ${PTHREAD_LIBRARY})
 

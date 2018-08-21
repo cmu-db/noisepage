@@ -7,7 +7,7 @@
 namespace terrier::storage {
 // TODO(Tianyu): Size of this buffer can probably be optimized
 // TODO(Tianyu): Put this into common::Constants?
-#define UNDO_BUFFER_SEGMENT_SIZE (1 << 15)
+#define UNDO_BUFFER_SEGMENT_SIZE (1 << 15)  // in bytes
 
 /**
  * An UndoBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
@@ -23,7 +23,7 @@ class BufferSegment {
    * @param size the amount of bytes to check for
    * @return Whether this segment have enough space left for size many bytes
    */
-  bool HasBytesLeft(uint32_t size) { return end_ + size <= UNDO_BUFFER_SEGMENT_SIZE; }
+  bool HasBytesLeft(uint32_t size) const { return end_ + size <= UNDO_BUFFER_SEGMENT_SIZE; }
 
   /**
    * Reserve space for a delta record of given size to be written in this segment. The segment must have
@@ -65,7 +65,7 @@ class BufferSegment {
 class UndoBuffer {
  public:
   /**
-   * Iterator to access DeltaRecords inside the undo buffer.
+   * Iterator to access UndoRecords inside the undo buffer.
    *
    * Iterators are always guaranteed to be valid once handed out, provided that the UndoBuffer is not
    * destructed, regardless of modifications to the UndoBuffer.
@@ -162,7 +162,7 @@ class UndoBuffer {
   Iterator end() { return {buffers_.end(), 0}; }
 
   /**
-   * @return true if UndoBuffer contains no DeltaRecords, false otherwise
+   * @return true if UndoBuffer contains no UndoRecords, false otherwise
    */
   bool Empty() const { return buffers_.empty(); }
 

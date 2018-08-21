@@ -40,12 +40,12 @@ ProjectedRow* ProjectedRow::InitializeProjectedRow(void *head, const ProjectedRo
   return result;
 }
 
-UndoRecord *UndoRecord::InitializeDeltaRecord(void *head,
-                                                timestamp_t timestamp,
-                                                TupleSlot slot,
-                                                DataTable *table,
-                                                const BlockLayout &layout,
-                                                const std::vector<uint16_t> &col_ids) {
+UndoRecord *UndoRecord::InitializeRecord(void *head,
+                                         timestamp_t timestamp,
+                                         TupleSlot slot,
+                                         DataTable *table,
+                                         const BlockLayout &layout,
+                                         const std::vector<uint16_t> &col_ids) {
   auto *result = reinterpret_cast<UndoRecord *>(head);
 
   result->next_ = nullptr;

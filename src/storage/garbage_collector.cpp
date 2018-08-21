@@ -65,10 +65,10 @@ uint32_t GarbageCollector::Unlink() {
       txns_to_deallocate_.push(txn);
       txns_unlinked++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
-      // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
+      // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
       UndoBuffer &undos = txn->GetUndoBuffer();
       for (auto &undo_record : undos) {
-        UnlinkDeltaRecord(txn, undo_record);
+        UnlinkUndoRecord(txn, undo_record);
       }
       txns_to_deallocate_.push(txn);
       txns_unlinked++;
@@ -85,8 +85,8 @@ uint32_t GarbageCollector::Unlink() {
   return txns_unlinked;
 }
 
-void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const txn,
-                                         const UndoRecord &undo_record) const {
+void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
+                                        const UndoRecord &undo_record) const {
   PELOTON_ASSERT(txn->TxnId() == undo_record.Timestamp().load(), "This undo_record does not belong to this txn.");
   DataTable *const table = undo_record.Table();
   const TupleSlot slot = undo_record.Slot();
@@ -98,7 +98,7 @@ void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const 
     PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
     if (version_ptr->Timestamp().load() == txn->TxnId()) {
-      // Our DeltaRecord is the first in the chain, handle contention on the write lock with CAS
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
       if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) break;
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
       version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
@@ -108,12 +108,12 @@ void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const 
     UndoRecord *curr = version_ptr;
     UndoRecord *next = curr->Next();
 
-    // traverse until we hit the DeltaRecord that we want to unlink
+    // traverse until we hit the UndoRecord that we want to unlink
     while (next != nullptr && next->Timestamp().load() != txn->TxnId()) {
       curr = next;
       next = curr->Next();
     }
-    // we're in position with next being the DeltaRecord to be unlinked
+    // we're in position with next being the UndiRecord to be unlinked
     if (next != nullptr && next->Timestamp().load() == txn->TxnId()) {
       curr->Next().store(next->Next().load());
       break;

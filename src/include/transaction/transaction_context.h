@@ -57,7 +57,7 @@ class TransactionContext {
                                            const storage::ProjectedRow &redo) {
     uint32_t size = storage::UndoRecord::Size(redo);
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeDeltaRecord(result, txn_id_, slot, table, redo);
+    return storage::UndoRecord::InitializeRecord(result, txn_id_, slot, table, redo);
   }
 
   /**
@@ -73,7 +73,7 @@ class TransactionContext {
     // Pretty sure we want 1, the primary key column?
     uint32_t size = storage::UndoRecord::Size(layout, {1});
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeDeltaRecord(result, txn_id_, slot, table, layout, {1});
+    return storage::UndoRecord::InitializeRecord(result, txn_id_, slot, table, layout, {1});
   }
 
  private:

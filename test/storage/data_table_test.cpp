@@ -39,7 +39,7 @@ class RandomDataTableTestObject {
     storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
-    // generate a txn with an undo DeltaRecord to populate on Insert
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
@@ -66,7 +66,7 @@ class RandomDataTableTestObject {
         storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
-    // generate a txn with an undo DeltaRecord to populate on Insert
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
@@ -111,7 +111,7 @@ class RandomDataTableTestObject {
                                           const timestamp_t timestamp,
                                           const std::vector<uint16_t> &col_ids,
                                           common::ObjectPool<storage::BufferSegment> *buffer_pool) {
-    // generate a txn with an undo DeltaRecord to populate on Insert
+    // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
     loose_txns_.push_back(txn);
 
