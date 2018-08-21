@@ -45,7 +45,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Test infrastructure
   std::default_random_engine generator_;
   storage::BlockStore block_store_{1000};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{num_inserts_};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{num_inserts_};
 
   // Insert buffer pointers
   byte *redo_buffer_;

@@ -59,16 +59,16 @@ uint32_t GarbageCollector::Unlink() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop();
-    if (!transaction::TransactionUtil::Committed(txn->TxnId())) {
+    if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push(txn);
       txns_unlinked++;
-    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId())) {
-      // this is a committed txn that is no visible to any running txns. Proceed with unlinking its DeltaRecords
-      transaction::UndoBuffer &undos = txn->GetUndoBuffer();
+    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
+      // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
+      UndoBuffer &undos = txn->GetUndoBuffer();
       for (auto &undo_record : undos) {
-        UnlinkDeltaRecord(txn, undo_record);
+        UnlinkUndoRecord(txn, undo_record);
       }
       txns_to_deallocate_.push(txn);
       txns_unlinked++;
@@ -85,36 +85,37 @@ uint32_t GarbageCollector::Unlink() {
   return txns_unlinked;
 }
 
-void GarbageCollector::UnlinkDeltaRecord(transaction::TransactionContext *const txn,
-                                         const DeltaRecord &undo_record) const {
-  PELOTON_ASSERT(txn->TxnId() == undo_record.Timestamp().load(), "This undo_record does not belong to this txn.");
+void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
+                                        const UndoRecord &undo_record) const {
+  PELOTON_ASSERT(txn->TxnId().load() == undo_record.Timestamp().load(),
+                 "This undo_record does not belong to this txn.");
   DataTable *const table = undo_record.Table();
   const TupleSlot slot = undo_record.Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
 
-  DeltaRecord *version_ptr;
+  UndoRecord *version_ptr;
   do {
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
     PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
-    if (version_ptr->Timestamp().load() == txn->TxnId()) {
-      // Our DeltaRecord is the first in the chain, handle contention on the write lock with CAS
+    if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
       if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) break;
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
       version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
     }
     // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
     // to traverse and update pointers without CAS
-    DeltaRecord *curr = version_ptr;
-    DeltaRecord *next = curr->Next();
+    UndoRecord *curr = version_ptr;
+    UndoRecord *next = curr->Next();
 
-    // traverse until we hit the DeltaRecord that we want to unlink
-    while (next != nullptr && next->Timestamp().load() != txn->TxnId()) {
+    // traverse until we hit the UndoRecord that we want to unlink
+    while (next != nullptr && next->Timestamp().load() != txn->TxnId().load()) {
       curr = next;
       next = curr->Next();
     }
-    // we're in position with next being the DeltaRecord to be unlinked
-    if (next != nullptr && next->Timestamp().load() == txn->TxnId()) {
+    // we're in position with next being the UndiRecord to be unlinked
+    if (next != nullptr && next->Timestamp().load() == txn->TxnId().load()) {
       curr->Next().store(next->Next().load());
       break;
     }

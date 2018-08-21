@@ -5,6 +5,7 @@
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
+#include "storage/storage_util.h"
 
 // We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
 // be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
@@ -18,18 +19,6 @@ namespace terrier::storage {
  */
 class TupleAccessStrategy {
  private:
-  /**
-   * Given an address offset, aligns it to the word_size
-   * @param word_size size in bytes to align offset to
-   * @param offset address to be aligned
-   * @return modified version of address padded to align to word_size
-   */
-  static uint32_t PadOffsetToSize(const uint8_t word_size, const uint32_t offset) {
-    uint32_t remainder = offset % word_size;
-    return remainder == 0 ? offset : offset + word_size - remainder;
-  }
-
-  // TODO(Tianyu): These two classes should be aligned for LLVM
   /**
    * A mini block stores individual columns. Mini block layout:
    * ----------------------------------------------------
@@ -50,7 +39,8 @@ class TupleAccessStrategy {
      * @return a pointer to the start of the column. (use as an array)
      */
     byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
-      return varlen_contents_ + PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+      return varlen_contents_ +
+             StorageUtil::PadOffsetToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
     }
 
     /**
@@ -164,7 +154,6 @@ class TupleAccessStrategy {
     return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_, col);
   }
 
-  /* Tuple-level access */
   /**
    * @param slot tuple slot to access
    * @param col offset representing the column
@@ -201,31 +190,13 @@ class TupleAccessStrategy {
       slot.GetBlock()->num_records_--;
   }
 
-  /* Allocation and Deallocation */
   /**
    * Allocates a slot for a new tuple, writing to the given reference.
    * @param block block to allocate a slot in.
    * @param[out] slot tuple to write to.
    * @return true if the allocation succeeded, false if no space could be found.
    */
-  bool Allocate(RawBlock *block, TupleSlot *slot) const {
-    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
-    const uint32_t start = block->num_records_;
-
-    if (start == layout_.num_slots_) return false;
-
-    uint32_t pos = start;
-
-    while (bitmap->FirstUnsetPos(layout_.num_slots_, pos, &pos)) {
-      if (bitmap->Flip(pos, false)) {
-        *slot = TupleSlot(block, pos);
-        block->num_records_++;
-        return true;
-      }
-    }
-
-    return false;
-  }
+  bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
   /**
    * Returns the block layout.
