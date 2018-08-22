@@ -3,7 +3,7 @@ language: cpp
 notifications:
   webhooks:
     urls:
-      - http://jenkins.db.cs.cmu.edu:8080/github-webhook/
+      - http://jenkins.db.cs.cmu.edu:8080/generic-webhook-trigger/invoke?token=5331146c7f6f99b995e8
     on_success: always
     on_failure: never
     on_start: never
