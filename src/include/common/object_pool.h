@@ -46,6 +46,10 @@ class AlignedByteAllocator {
  */
 class NoMoreObjectException : public std::exception {
  public:
+  /***
+   * Describe the exception.
+   * @return a string of exception description
+   */
   const char *what() const noexcept override { return "Object Pool have no object to hand out\n"; }
 };
 
@@ -138,15 +142,14 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    SpinLatch lock;
-    lock.Lock();
+    lock_.Lock();
     if (new_size >= current_size_) {
       // current_size_ might change and become > new_size
       size_limit_ = new_size;
-      lock.Unlock();
+      lock_.Unlock();
       return true;
     }
-    lock.Unlock();
+    lock_.Unlock();
     return false;
   }
 
@@ -158,12 +161,11 @@ class ObjectPool {
    * @param new_reuse_limit
    */
   void SetReuseLimit(uint64_t new_reuse_limit) {
-    SpinLatch lock;
-    lock.Lock();
+    lock_.Lock();
     if (new_reuse_limit <= size_limit_) {
       // size_limit_ can change after we enter this if clause
       reuse_limit_ = new_reuse_limit;
-      lock.Unlock();
+      lock_.Unlock();
       T *obj = nullptr;
       while (reuse_queue_.UnsafeSize() > reuse_limit_) {
         reuse_queue_.Dequeue(&obj);
@@ -171,7 +173,7 @@ class ObjectPool {
         current_size_--;
       }
     } else {
-      lock.Unlock();
+      lock_.Unlock();
     }
   }
 
@@ -193,6 +195,7 @@ class ObjectPool {
 
  private:
   Allocator alloc_;
+  SpinLatch lock_;
   ConcurrentQueue<T *> reuse_queue_;
   uint64_t size_limit_;   // the maximum number of objects a object pool can have
   uint64_t reuse_limit_;  // the maximum number of reusable objects in reuse_queue
