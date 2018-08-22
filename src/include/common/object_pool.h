@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <utility>
 #include "common/container/concurrent_queue.h"
+#include "common/spin_latch.h"
 #include "common/typedefs.h"
 
 namespace terrier::common {
@@ -37,6 +39,16 @@ struct AlignedByteAllocator {
   // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
 };
 
+// TODO(Yangjun): this class shouldn't be in common namespace.
+/***
+ * An exception thrown by object pools when they reach their size limits and
+ * cannot give more memory space for objects.
+ */
+class NoMoreObjectException : public std::exception {
+ public:
+  const char *what() const noexcept override { return "Object Pool have no object to hand out\n"; }
+};
+
 // TODO(Tianyu): Should this be by size or by class type?
 /**
  * Object pool for memory allocation.
@@ -55,12 +67,24 @@ struct AlignedByteAllocator {
 template <typename T, class Allocator = AlignedByteAllocator<T>>
 class ObjectPool {
  public:
+  /***
+   * Initializes a new object pool with the supplied limit to the number of
+   * objects reused.
+   * @param size_limit the maximum number of objects the object pool controls
+   * @param reuse_limit the maximum number of reusable objects, which needs be to
+   * not greater than size_limit
+   */
+  explicit ObjectPool(uint64_t size_limit, uint64_t reuse_limit)
+      : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
+
   /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
+   *
+   * The reuse_limit is set to be the size limit
    * @param size_limit the number of objects the object pool controls
    */
-  explicit ObjectPool(uint64_t size_limit) : size_limit_(size_limit), current_size_(0) {}
+  explicit ObjectPool(uint64_t size_limit) : size_limit_(size_limit), reuse_limit_(size_limit), current_size_(0) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -102,7 +126,7 @@ class ObjectPool {
       }
       if (result == nullptr) {
         // out of memory
-        throw std::bad_alloc();
+        throw NoMoreObjectException();
       }
     } else {
       alloc_.Reuse(result);
@@ -113,20 +137,48 @@ class ObjectPool {
   /***
    * Set the object pool's size limit.
    *
+   * The operation fails if the object pool has already allocated more objects
+   * than the size limit.
+   *
    * @param new_size the new object pool size
-   * @return true if new_size is successfully set and false otherwise
+   * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    if (new_size > current_size_) {
+    SpinLatch lock;
+    lock.Lock();
+    if (new_size >= current_size_) {
+      // current_size_ might change and become > new_size
       size_limit_ = new_size;
-      T *obj = nullptr;
-      while (reuse_queue_.UnsafeSize() > size_limit_) {
-        reuse_queue_.Dequeue(&obj);
-        alloc_.Delete(obj);
-      }
+      lock.Unlock();
       return true;
     }
+    lock.Unlock();
     return false;
+  }
+
+  /***
+   * Set the reuse limit to a new value.
+   *
+   * The new_reuse_limit is required to be no grater than the size_limit
+   *
+   * @param new_reuse_limit
+   */
+  void SetReuseLimit(uint64_t new_reuse_limit) {
+    SpinLatch lock;
+    lock.Lock();
+    if (new_reuse_limit <= size_limit_) {
+      // size_limit_ can change after we enter this if clause
+      reuse_limit_ = new_reuse_limit;
+      lock.Unlock();
+      T *obj = nullptr;
+      while (reuse_queue_.UnsafeSize() > reuse_limit_) {
+        reuse_queue_.Dequeue(&obj);
+        alloc_.Delete(obj);
+        current_size_--;
+      }
+    } else {
+      lock.Unlock();
+    }
   }
 
   /**
@@ -137,16 +189,19 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > size_limit_)
+    if (reuse_queue_.UnsafeSize() >= reuse_limit_) {
       alloc_.Delete(obj);
-    else
+      current_size_--;
+    } else {
       reuse_queue_.Enqueue(std::move(obj));
+    }
   }
 
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
-  const uint64_t size_limit_;
-  std::atomic<uint64_t> current_size_;
+  uint64_t size_limit_;                 // the maximum number of objects a object pool can have
+  uint64_t reuse_limit_;                // the maximum number of reusable objects in reuse_queue
+  std::atomic<uint64_t> current_size_;  // the number of objects the object pool has allocated
 };
 }  // namespace terrier::common
