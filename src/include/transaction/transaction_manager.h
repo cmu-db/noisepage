@@ -65,10 +65,10 @@ class TransactionManager {
   bool GCEnabled() const { return gc_enabled_; }
 
   /**
-   * Return the completed txns queue and empty it
-   * @return
+   * Return a copy of the completed txns queue and empty the local version
+   * @return copy of the completed txns for the GC to process
    */
-  std::queue<transaction::TransactionContext *> CompletedTransactions();
+  std::queue<transaction::TransactionContext *> CompletedTransactionsForGC();
 
  private:
   common::ObjectPool<storage::BufferSegment> *buffer_pool_;

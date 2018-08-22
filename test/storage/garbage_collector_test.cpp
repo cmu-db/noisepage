@@ -110,8 +110,8 @@ TEST_F(GarbageCollectorTests, BasicTest) {
 
     txn_manager.Commit(txn0);
 
-    EXPECT_EQ(1, gc.RunGC().second);
-    EXPECT_EQ(1, gc.RunGC().first);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().second);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().first);
   }
 }
 

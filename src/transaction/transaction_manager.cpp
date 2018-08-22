@@ -56,7 +56,7 @@ timestamp_t TransactionManager::OldestTransactionStartTime() const {
   return result;
 }
 
-std::queue<TransactionContext *> TransactionManager::CompletedTransactions() {
+std::queue<TransactionContext *> TransactionManager::CompletedTransactionsForGC() {
   table_latch_.Lock();
   std::queue<transaction::TransactionContext *> hand_to_gc(std::move(completed_txns_));
   TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");

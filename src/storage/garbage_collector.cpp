@@ -11,24 +11,26 @@
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::RunGC() {
-  uint32_t txns_deallocated = Deallocate();
-  uint32_t txns_unlinked = Unlink();
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  uint32_t txns_deallocated = ProcessDeallocateQueue();
+  uint32_t txns_unlinked = ProcessUnlinkQueue();
   if (txns_unlinked > 0) {
+    // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
+    // safe to deallocate the transactions in our queue.
     last_unlinked_ = txn_manager_->GetTimestamp();
   }
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
-uint32_t GarbageCollector::Deallocate() {
+uint32_t GarbageCollector::ProcessDeallocateQueue() {
   const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
-  uint32_t garbage_cleared = 0;
+  uint32_t txns_deallocated = 0;
   transaction::TransactionContext *txn = nullptr;
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
     // We are now safe to deallocate these txns because no one should hold a reference to them anymore
-    garbage_cleared = static_cast<uint32_t>(txns_to_deallocate_.size());
+    txns_deallocated = static_cast<uint32_t>(txns_to_deallocate_.size());
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop();
@@ -36,15 +38,15 @@ uint32_t GarbageCollector::Deallocate() {
     }
   }
 
-  return garbage_cleared;
+  return txns_deallocated;
 }
 
-uint32_t GarbageCollector::Unlink() {
+uint32_t GarbageCollector::ProcessUnlinkQueue() {
   const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
-  std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactions();
+  std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactionsForGC();
   // Append to our local unlink queue
   while (!from_txn_manager.empty()) {
     txn = from_txn_manager.front();
@@ -85,7 +87,7 @@ uint32_t GarbageCollector::Unlink() {
   return txns_unlinked;
 }
 
-void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
+void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
                                         const UndoRecord &undo_record) const {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record.Timestamp().load(),
                  "This undo_record does not belong to this txn.");
