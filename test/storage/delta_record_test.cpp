@@ -48,7 +48,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       // get random layout
       storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
       storage::TupleAccessStrategy tested(layout);
-      PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+      TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
       // get data table
@@ -91,7 +91,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow){
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // generate a random projectedRow

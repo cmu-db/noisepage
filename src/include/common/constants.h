@@ -8,7 +8,7 @@ namespace terrier::common {
  */
 struct Constants {
   /**
-   * Block size, in bytes.
+   * Block/RawBlock size, in bytes.
    */
   static const uint32_t BLOCK_SIZE = 1048576u;  // Should only ever be a power of 2.
   /**

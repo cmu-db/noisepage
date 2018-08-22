@@ -42,7 +42,7 @@ class SpinLatch {
      * Acquire lock on SpinLatch.
      * @param latch pointer to SpinLatch to acquire
      */
-    explicit ScopedSpinLatch(SpinLatch *latch) : spin_latch_(latch) { spin_latch_->Lock(); }
+    explicit ScopedSpinLatch(SpinLatch *const latch) : spin_latch_(latch) { spin_latch_->Lock(); }
 
     /**
      * Release lock (if acquired).

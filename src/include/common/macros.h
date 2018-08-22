@@ -37,70 +37,30 @@ namespace terrier::common {
 // memfuncs
 //===--------------------------------------------------------------------===//
 
-// TODO(Tianyu): Rename peloton to whatever we call this later
 #define USE_BUILTIN_MEMFUNCS
 
 #ifdef USE_BUILTIN_MEMFUNCS
-#define PELOTON_MEMCPY __builtin_memcpy
-#define PELOTON_MEMSET __builtin_memset
+#define TERRIER_MEMCPY __builtin_memcpy
+#define TERRIER_MEMSET __builtin_memset
 #else
-#define PELOTON_MEMCPY memcpy
-#define PELOTON_MEMSET memset
+#define TERRIER_MEMCPY memcpy
+#define TERRIER_MEMSET memset
 #endif
-
-//===--------------------------------------------------------------------===//
-// packed
-//===--------------------------------------------------------------------===//
-
-#define __XCONCAT2(a, b) a##b
-#define __XCONCAT(a, b) __XCONCAT2(a, b)
-#define CACHE_PADOUT char __XCONCAT(__padout, __COUNTER__)[0] __attribute__((aligned(CACHELINE_SIZE)))
-#define PACKED __attribute__((packed))
-
-//===--------------------------------------------------------------------===//
-// invariants
-//===--------------------------------------------------------------------===//
-
-#ifdef CHECK_INVARIANTS
-#define INVARIANT(expr) PELOTON_ASSERT(expr)
-#else
-#define INVARIANT(expr) ((void)0)
-#endif /* CHECK_INVARIANTS */
-
-//===--------------------------------------------------------------------===//
-// unimplemented
-//===--------------------------------------------------------------------===//
-
-// TODO(Tianyu): Rename peloton to whatever we call this later
-// throw exception after the assert(), so that GCC knows
-// we'll never return
-#define PELOTON_UNIMPLEMENTED(what)   \
-  do {                                \
-    PELOTON_ASSERT(false);            \
-    throw ::std::runtime_error(what); \
-  } while (0)
 
 //===--------------------------------------------------------------------===//
 // ALWAYS_ASSERT
 //===--------------------------------------------------------------------===//
 
-// TODO(Tianyu): Rename peloton to whatever we call this later
 #ifdef NDEBUG
-#define PELOTON_ASSERT(expr, message) ((void)0)
+#define TERRIER_ASSERT(expr, message) ((void)0)
 #else
 /*
  * On assert failure, most existing implementations of C++ will print out the condition.
  * By ANDing the truthy not-null message and our initial expression together, we get
  * asserts-with-messages without needing to bring in iostream or logging.
  */
-#define PELOTON_ASSERT(expr, message) assert((expr) && (message))
+#define TERRIER_ASSERT(expr, message) assert((expr) && (message))
 #endif /* NDEBUG */
-
-#ifdef CHECK_INVARIANTS
-#define INVARIANT(expr) PELOTON_ASSERT(expr)
-#else
-#define INVARIANT(expr) ((void)0)
-#endif /* CHECK_INVARIANTS */
 
 //===--------------------------------------------------------------------===//
 // Compiler version checks
@@ -171,13 +131,12 @@ namespace terrier::common {
 //===----------------------------------------------------------------------===//
 // switch statements
 //===----------------------------------------------------------------------===//
-// TODO(Tianyu): Rename peloton to whatever we call this later
 #if defined __clang__
-#define PELOTON_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
+#define TERRIER_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
 #elif defined __GNUC__ && __GNUC__ >= 7
-#define PELOTON_FALLTHROUGH [[fallthrough]]  // NOLINT
+#define TERRIER_FALLTHROUGH [[fallthrough]]  // NOLINT
 #else
-#define PELOTON_FALLTHROUGH
+#define TERRIER_FALLTHROUGH
 #endif
 
 }  // namespace terrier::common

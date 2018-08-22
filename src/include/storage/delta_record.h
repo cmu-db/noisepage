@@ -90,7 +90,7 @@ class PACKED ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   byte *AccessWithNullCheck(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -102,7 +102,7 @@ class PACKED ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   const byte *AccessWithNullCheck(const uint16_t offset) const {
-    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -113,7 +113,7 @@ class PACKED ProjectedRow {
    * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
    */
   byte *AccessForceNotNull(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -123,7 +123,7 @@ class PACKED ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNull(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, false);
   }
 
@@ -132,7 +132,7 @@ class PACKED ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNotNull(const uint16_t offset) {
-    PELOTON_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, true);
   }
 

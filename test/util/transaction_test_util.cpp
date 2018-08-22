@@ -152,7 +152,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
 }
 
 void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
-  PELOTON_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
+  TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
   VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
   // make sure table_version is updated
   timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
@@ -210,7 +210,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
 
 storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedRow *other) {
   auto *copy = new byte[other->Size()];
-  PELOTON_MEMCPY(copy, other, other->Size());
+  TERRIER_MEMCPY(copy, other, other->Size());
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }
 

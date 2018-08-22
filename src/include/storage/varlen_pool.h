@@ -40,7 +40,7 @@ class VarlenPool {
    * Allocate bytes of memory from the varlen pool
    * @param size The size of bytes to be allocated
    */
-  VarlenEntry *Allocate(uint32_t size) {
+  VarlenEntry *Allocate(const uint32_t size) {
     auto *entry = reinterpret_cast<VarlenEntry *>(new byte[size + sizeof(uint32_t)]);
     entry->size_ = size;
     pool_lock_.Lock();
@@ -53,7 +53,7 @@ class VarlenPool {
    * Free some certain memory from the varlen pool
    * @param ptr The address of memory to be freed
    */
-  void Free(VarlenEntry *ptr) {
+  void Free(VarlenEntry *const ptr) {
     pool_lock_.Lock();
     auto result = locations_.erase(ptr);
     pool_lock_.Unlock();

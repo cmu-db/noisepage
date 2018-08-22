@@ -47,9 +47,9 @@ struct BlockLayout {
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
         num_slots_(NumSlots()) {
-    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
+    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
-    PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+    TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   }
 
   /**
@@ -75,19 +75,19 @@ struct BlockLayout {
   const uint32_t num_slots_;
 
  private:
-  uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
+  uint32_t ComputeTupleSize() const {
+    TERRIER_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
   }
 
-  uint32_t HeaderSize() {
+  uint32_t HeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
                                  + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
-  uint32_t NumSlots() {
+  uint32_t NumSlots() const {
     // subtracting 1 from this number so we will always have
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
@@ -111,10 +111,10 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+  TupleSlot(const RawBlock *const block, const uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
+    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
                    "Address must be aligned to block size (last bits zero).");
-    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
+    TERRIER_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
   }
 
@@ -167,7 +167,8 @@ class TupleSlot {
 /**
  * Allocator that allocates a block
  */
-struct BlockAllocator {
+class BlockAllocator {
+ public:
   /**
    * Allocates a new object by calling its constructor.
    * @return a pointer to the allocated object.
@@ -178,14 +179,14 @@ struct BlockAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(RawBlock *reused) { /* no operation required */
+  void Reuse(RawBlock *const reused) { /* no operation required */
   }
 
   /**
    * Deletes the object by calling its destructor.
    * @param ptr a pointer to the object to be deleted.
    */
-  void Delete(RawBlock *ptr) { delete ptr; }
+  void Delete(RawBlock *const ptr) { delete ptr; }
 };
 
 /**

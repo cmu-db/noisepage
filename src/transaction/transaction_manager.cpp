@@ -14,7 +14,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   auto *result = new TransactionContext(id, id + INT64_MIN, buffer_pool_);
   table_latch_.Lock();
   auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime(), result);
-  PELOTON_ASSERT(ret.second, "commit start time should be globally unique");
+  TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
   table_latch_.Unlock();
   return result;
 }
@@ -28,7 +28,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  PELOTON_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
+  TERRIER_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
   if (gc_enabled_) completed_txns_.push(txn);
   table_latch_.Unlock();
@@ -43,7 +43,7 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  PELOTON_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
+  TERRIER_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
   if (gc_enabled_) completed_txns_.push(txn);
   table_latch_.Unlock();
 }
@@ -56,10 +56,10 @@ timestamp_t TransactionManager::OldestTransactionStartTime() const {
   return result;
 }
 
-std::queue<TransactionContext *> TransactionManager::CompletedTransactions() {
+std::queue<TransactionContext *> TransactionManager::CompletedTransactionsForGC() {
   table_latch_.Lock();
   std::queue<transaction::TransactionContext *> hand_to_gc(std::move(completed_txns_));
-  PELOTON_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
+  TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
   table_latch_.Unlock();
   return hand_to_gc;
 }

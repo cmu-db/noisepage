@@ -11,7 +11,8 @@ namespace terrier::common {
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
-struct AlignedByteAllocator {
+class AlignedByteAllocator {
+ public:
   /**
    * Allocates a new byte array sized to hold a T.
    * @return a pointer to the byte array allocated.
@@ -26,13 +27,13 @@ struct AlignedByteAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(T *reused) {}
+  void Reuse(T *const reused) {}
 
   /**
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *ptr) { delete[] ptr; }  // NOLINT
+  void Delete(T *const ptr) { delete[] ptr; }  // NOLINT
   // clang-tidy believes we are trying to free released memory.
   // We believe otherwise, hence we're telling it to shut up.
 };
@@ -59,7 +60,7 @@ class ObjectPool {
    * objects reused.
    * @param reuse_limit
    */
-  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+  explicit ObjectPool(const uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.

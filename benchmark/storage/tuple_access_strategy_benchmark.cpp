@@ -62,7 +62,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       // Get a Block, zero it, and initialize
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
-      PELOTON_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block, layout_version_t(0));
       for (uint32_t j = 0; j < layout_.num_slots_; j++) {
         storage::TupleSlot slot;
@@ -94,7 +94,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
       // Get a Block, zero it, and initialize
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
-      PELOTON_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
+      TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block, layout_version_t(0));
 
       auto workload = [&](uint32_t id) {
