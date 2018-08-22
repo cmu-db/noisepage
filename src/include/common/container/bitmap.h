@@ -63,7 +63,9 @@ class RawBitmap {
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool Test(const uint32_t pos) const { return static_cast<bool>(bits_[pos / BYTE_SIZE] & ONE_HOT_MASK(pos % BYTE_SIZE)); }
+  bool Test(const uint32_t pos) const {
+    return static_cast<bool>(bits_[pos / BYTE_SIZE] & ONE_HOT_MASK(pos % BYTE_SIZE));
+  }
 
   /**
    * Test the bit value at the given position

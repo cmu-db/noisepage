@@ -16,13 +16,13 @@ void DataTable::Select(transaction::TransactionContext *const txn,
                        const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
-                 "The projection never returns the version pointer, so it should have fewer attributes.");
-  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
+                 "The output buffer never returns the version pointer, so it should have fewer attributes.");
+  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
@@ -31,8 +31,7 @@ void DataTable::Select(transaction::TransactionContext *const txn,
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-
-
+  
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) return;
@@ -49,10 +48,7 @@ void DataTable::Select(transaction::TransactionContext *const txn,
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
       && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
-                            *(version_ptr->Delta()),
-                            out_buffer,
-                            col_to_projection_list_index);
+    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer, col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
 }
@@ -62,8 +58,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn,
                        const ProjectedRow &redo) {
   // We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
-  UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
-  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
   if (HasConflict(version_ptr, txn)) return false;
@@ -82,7 +78,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn,
   return true;
 }
 
-TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
+const TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
                             const ProjectedRow &redo) {
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent

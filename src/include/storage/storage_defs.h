@@ -167,7 +167,8 @@ class TupleSlot {
 /**
  * Allocator that allocates a block
  */
-struct BlockAllocator {
+class BlockAllocator {
+ public:
   /**
    * Allocates a new object by calling its constructor.
    * @return a pointer to the allocated object.
@@ -178,14 +179,14 @@ struct BlockAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(RawBlock *reused) { /* no operation required */
+  void Reuse(RawBlock *const reused) { /* no operation required */
   }
 
   /**
    * Deletes the object by calling its destructor.
    * @param ptr a pointer to the object to be deleted.
    */
-  void Delete(RawBlock *ptr) { delete ptr; }
+  void Delete(RawBlock *const ptr) { delete ptr; }
 };
 
 /**

@@ -105,9 +105,9 @@ class RawConcurrentBitmap {
     }
 
     const uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
-    uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
-    uint32_t bits_left = bitmap_num_bits - start_pos;  // number of bits remaining
-    bool found_unset_bit = false;                      // whether we found an unset bit previously
+    uint32_t byte_pos = start_pos / BYTE_SIZE;               // current byte position
+    uint32_t bits_left = bitmap_num_bits - start_pos;        // number of bits remaining
+    bool found_unset_bit = false;                            // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
       // if we haven't found an unset bit yet, we make a wide search.
