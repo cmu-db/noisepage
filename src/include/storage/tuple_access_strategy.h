@@ -183,7 +183,7 @@ class TupleAccessStrategy {
    * @param col offset representing the column
    * @return a pointer to the attribute.
    */
-  byte *AccessForceNotNull(TupleSlot slot, const uint16_t col) const {
+  byte *AccessForceNotNull(const TupleSlot slot, const uint16_t col) const {
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col);
     if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
@@ -195,7 +195,7 @@ class TupleAccessStrategy {
    * @param slot tuple slot to access
    * @param col offset representing the column
    */
-  void SetNull(TupleSlot slot, const uint16_t col) const {
+  void SetNull(const TupleSlot slot, const uint16_t col) const {
     if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true)  // Noop if already null
         && col == PRESENCE_COLUMN_ID)
       slot.GetBlock()->num_records_--;
