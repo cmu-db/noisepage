@@ -18,8 +18,8 @@ class LargeGCTests : public TerrierTest {
     run_gc_ = false;
     gc_thread_.join();
     // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->RunGC();
-    gc_->RunGC();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
     delete gc_;
   }
 
@@ -35,7 +35,7 @@ class LargeGCTests : public TerrierTest {
   void GCThreadLoop(uint32_t gc_period_milli) {
     while (run_gc_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
-      if (!paused_) gc_->RunGC();
+      if (!paused_) gc_->PerformGarbageCollection();
     }
   }
 };

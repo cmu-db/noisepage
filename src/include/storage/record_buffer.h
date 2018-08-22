@@ -21,7 +21,7 @@ class BufferSegment {
    * @param size the amount of bytes to check for
    * @return Whether this segment have enough space left for size many bytes
    */
-  bool HasBytesLeft(uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
+  bool HasBytesLeft(const uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
 
   /**
    * Reserve space for a delta record of given size to be written in this segment. The segment must have
@@ -30,8 +30,8 @@ class BufferSegment {
    * @param size the amount of bytes to reserve
    * @return pointer to the head of the allocated record
    */
-  byte *Reserve(uint32_t size) {
-    PELOTON_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
+  byte *Reserve(const uint32_t size) {
+    TERRIER_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
     auto *result = bytes_ + end_;
     end_ += size;
     return result;
@@ -173,7 +173,7 @@ class UndoBuffer {
     if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
       // we are out of space in the buffer. Get a new buffer segment.
       BufferSegment *new_segment = buffer_pool_->Get();
-      PELOTON_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
+      TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
       new_segment->Reset();
       buffers_.push_back(new_segment);
     }

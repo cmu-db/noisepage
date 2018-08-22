@@ -53,7 +53,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
-    uint32_t size = storage::UndoRecord::Size(redo);
+    const uint32_t size = storage::UndoRecord::Size(redo);
     storage::UndoRecord *result = undo_buffer_.NewEntry(size);
     return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, redo);
   }
@@ -67,7 +67,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::BlockLayout &layout,
                                            const storage::TupleSlot slot) {
-    storage::ProjectedRowInitializer initializer(layout, {PRIMARY_KEY_COLUMN_ID});
+    const storage::ProjectedRowInitializer initializer(layout, {PRIMARY_KEY_COLUMN_ID});
     storage::UndoRecord *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(initializer));
     return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, initializer);
   }

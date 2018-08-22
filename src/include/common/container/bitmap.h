@@ -7,10 +7,8 @@
 #define BYTE_SIZE 8u
 #endif
 
-// Some platforms would have already defined the macro. But its presence is
-// not standard and thus not portable. Pretty sure this is always 8 bits.
-// If not, consider getting a new machine, and preferably not from another
-// dimension :)
+// Some platforms would have already defined the macro. But its presence is not standard and thus not portable. Pretty
+// sure this is always 8 bits. If not, consider getting a new machine, and preferably not from another dimension :)
 static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit
@@ -21,20 +19,23 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 namespace terrier::common {
 
 /**
- * A RawBitmap is a bitmap that does not have the compile-time
- * information about sizes, because we expect it to be reinterpreted from
- * raw memory bytes.
+ * A RawBitmap is a bitmap that does not have the compile-time information about sizes, because we expect it to be
+ * reinterpreted from raw memory bytes.
  *
- * Therefore, you should never construct an instance of a RawBitmap.
- * Reinterpret an existing block of memory that you know will be a valid bitmap.
+ * Therefore, you should never construct an instance of a RawBitmap. Reinterpret an existing block of memory that you
+ * know will be a valid bitmap.
  *
+<<<<<<< HEAD
  * Use @see SizeInBytes to get the correct size for a bitmap of n
  * elements. Beware that because the size information is lost at compile time,
  * there is ABSOLUTELY no bounds check and you have to rely on programming
+=======
+ * Use @see common::BitmapSize to get the correct size for a bitmap of n elements. Beware that because the size
+ * information is lost at compile time, there is ABSOLUTELY no bounds check and you have to rely on programming
+>>>>>>> master
  * discipline to ensure safe access.
  *
- * For easy initialization in tests and such, use the static Allocate and
- * Deallocate methods
+ * For easy initialization in tests and such, use the static Allocate and Deallocate methods
  */
 class RawBitmap {
  public:
@@ -48,13 +49,13 @@ class RawBitmap {
   /**
    * Allocates a new RawBitmap of size num_bits.
    * Up to the caller to call Deallocate on its return value.
-   * @param num_bits number of bits in the bitmap.
+   * @param num_bits number of bits (elements to represent) in the bitmap.
    * @return ptr to new RawBitmap.
    */
-  static RawBitmap *Allocate(uint32_t num_bits) {
+  static RawBitmap *Allocate(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
     auto *result = new uint8_t[size];
-    PELOTON_MEMSET(result, 0, size);
+    TERRIER_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
   }
 
@@ -62,21 +63,23 @@ class RawBitmap {
    * Deallocates a RawBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
    */
-  static void Deallocate(RawBitmap *map) { delete[] reinterpret_cast<uint8_t *>(map); }
+  static void Deallocate(RawBitmap *const map) { delete[] reinterpret_cast<uint8_t *>(map); }
 
   /**
    * Test the bit value at the given position
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool Test(uint32_t pos) const { return static_cast<bool>(bits_[pos / BYTE_SIZE] & ONE_HOT_MASK(pos % BYTE_SIZE)); }
+  bool Test(const uint32_t pos) const {
+    return static_cast<bool>(bits_[pos / BYTE_SIZE] & ONE_HOT_MASK(pos % BYTE_SIZE));
+  }
 
   /**
    * Test the bit value at the given position
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool operator[](uint32_t pos) const { return Test(pos); }
+  bool operator[](const uint32_t pos) const { return Test(pos); }
 
   /**
    * Sets the bit value at position to be true.
@@ -84,7 +87,7 @@ class RawBitmap {
    * @param val value to set to
    * @return self-reference for chaining
    */
-  RawBitmap &Set(uint32_t pos, bool val) {
+  RawBitmap &Set(const uint32_t pos, const bool val) {
     if (val)
       bits_[pos / BYTE_SIZE] |= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     else
@@ -97,18 +100,19 @@ class RawBitmap {
    * @param pos the position of the bit to flip
    * @return self-reference for chaining
    */
-  RawBitmap &Flip(uint32_t pos) {
+  RawBitmap &Flip(const uint32_t pos) {
     bits_[pos / BYTE_SIZE] ^= static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     return *this;
   }
 
   /**
    * Clears the bitmap by setting bits to 0.
-   * @param num_bits number of bits to clear.
+   * @param num_bits number of bits to clear. This should be equal to the number of elements of the entire bitmap or
+   * unintended elements may be cleared
    */
-  void Clear(uint32_t num_bits) {
+  void Clear(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
-    PELOTON_MEMSET(bits_, 0, size);
+    TERRIER_MEMSET(bits_, 0, size);
   }
 
  private:

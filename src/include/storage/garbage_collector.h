@@ -22,32 +22,32 @@ class GarbageCollector {
    */
   explicit GarbageCollector(transaction::TransactionManager *txn_manager)
       : txn_manager_(txn_manager), last_unlinked_{0} {
-    PELOTON_ASSERT(txn_manager_->GCEnabled(),
+    TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
   /**
-   * Deallocates transactions that can no longer be references by running transactions, and unlinks UndoRecords that
+   * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
    * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
    * first invocation will unlink a transaction's UndoRecords, while the second time around will allow the GC to free
    * the transaction if safe to do so.
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint32_t, uint32_t> RunGC();
+  std::pair<uint32_t, uint32_t> PerformGarbageCollection();
 
  private:
   /**
    * Process the deallocate queue
    * @return number of txns deallocated (not UndoRecords) for debugging/testing
    */
-  uint32_t Deallocate();
+  uint32_t ProcessDeallocateQueue();
 
   /**
    * Process the unlink queue
    * @return number of txns unlinked (not UndoRecords) for debugging/testing
    */
-  uint32_t Unlink();
+  uint32_t ProcessUnlinkQueue();
 
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, removes it from the version chain. This requires
@@ -57,7 +57,7 @@ class GarbageCollector {
    */
   void UnlinkUndoRecord(transaction::TransactionContext *txn, const UndoRecord &undo_record) const;
 
-  transaction::TransactionManager *txn_manager_;
+  transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run

@@ -58,7 +58,7 @@ class RandomDataTableTestObject {
                            Random *generator,
                            common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // tuple must already exist
-    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate a random redo ProjectedRow to Update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -78,7 +78,7 @@ class RandomDataTableTestObject {
       auto *version_buffer = StorageTestUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
-      PELOTON_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
+      TERRIER_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
       auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
       // apply delta
       std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
@@ -99,7 +99,7 @@ class RandomDataTableTestObject {
 
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot, const timestamp_t timestamp) {
-    PELOTON_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)

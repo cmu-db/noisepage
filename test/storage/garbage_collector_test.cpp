@@ -54,7 +54,7 @@ class GarbageCollectorDataTableTestObject {
     auto *buffer = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    PELOTON_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
+    TERRIER_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     for (uint16_t i = 0; i < version->NumColumns(); i++)
@@ -106,8 +106,8 @@ TEST_F(GarbageCollectorTests, BasicTest) {
 
     txn_manager.Commit(txn0);
 
-    EXPECT_EQ(1, gc.RunGC().second);
-    EXPECT_EQ(1, gc.RunGC().first);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().second);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().first);
   }
 }
 

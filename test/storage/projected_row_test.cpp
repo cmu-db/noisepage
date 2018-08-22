@@ -75,6 +75,8 @@ TEST_F(ProjectedRowTests, Nulls) {
   }
 }
 
+// NOLINTNEXTLINE
+// This tests checks that the copy function works as intended
 TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
   const uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -133,6 +135,8 @@ TEST_F(ProjectedRowTests, MemorySafety) {
   }
 }
 
+// NOLINTNEXTLINE
+// This test checks that all the fields within projected row is aligned
 TEST_F(ProjectedRowTests, Alignment) {
   const uint32_t num_iterations = 500;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {

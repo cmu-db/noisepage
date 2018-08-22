@@ -96,8 +96,8 @@ void StorageUtil::ApplyDelta(const terrier::storage::BlockLayout &layout,
   ApplyDelta(layout, delta, buffer, col_to_index);
 }
 
-uint32_t StorageUtil::PadUpToSize(uint8_t word_size, uint32_t offset) {
-  uint32_t remainder = offset % word_size;
+uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
+  const uint32_t remainder = offset % word_size;
   return remainder == 0 ? offset : offset + word_size - remainder;
 }
 }  // namespace terrier::storage

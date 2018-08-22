@@ -6,23 +6,23 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  PELOTON_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
-  PELOTON_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
+  TERRIER_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
+  TERRIER_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
   NewBlock(nullptr);
-  PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
+  TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
 void DataTable::Select(transaction::TransactionContext *const txn,
                        const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
-  PELOTON_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
-                 "The projection never returns the version pointer, so it should have fewer attributes.");
-  PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
+                 "The output buffer never returns the version pointer, so it should have fewer attributes.");
+  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the projection list. These operations don't need to be atomic,
+    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
@@ -31,7 +31,6 @@ void DataTable::Select(transaction::TransactionContext *const txn,
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
@@ -62,8 +61,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn,
                        const ProjectedRow &redo) {
   // We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
-  UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
-  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
   if (HasConflict(version_ptr, txn)) return false;
@@ -116,23 +115,19 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
 }
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
-  // an issue (probably not, we are just reading one extra byte.)
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
 
 void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           const TupleAccessStrategy &accessor,
                                           UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
 bool DataTable::HasConflict(UndoRecord *const version_ptr,
-                            transaction::TransactionContext *const txn) {
+                            transaction::TransactionContext *const txn) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const timestamp_t version_timestamp = version_ptr->Timestamp().load();
   const timestamp_t txn_id = txn->TxnId().load();
@@ -148,8 +143,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          const TupleAccessStrategy &accessor,
                                          UndoRecord *expected,
                                          UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
       ->compare_exchange_strong(expected, desired);
 }

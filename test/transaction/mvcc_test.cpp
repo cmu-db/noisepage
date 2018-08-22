@@ -55,7 +55,7 @@ class MVCCDataTableTestObject {
     auto *buffer = StorageTestUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    PELOTON_MEMCPY(buffer, &previous, redo_initializer.ProjectedRowSize());
+    TERRIER_MEMCPY(buffer, &previous, redo_initializer.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     for (uint16_t i = 0; i < version->NumColumns(); i++)

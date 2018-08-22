@@ -17,13 +17,14 @@ namespace terrier::storage {
 #define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
 #define PRIMARY_KEY_COLUMN_ID 1
 /**
- * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
+ * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
  * as SQL types, varlens and nullabilities are still not meaningful at this level.
  */
 class DataTable {
  public:
-  // TODO(Tianyu): Consider taking in some other info to avoid copying layout
+  // TODO(Tianyu): Consider taking in some other info (like schema) to avoid copying layout. BlockLayout shouldn't
+  // really exist above the storage layer
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks.
@@ -50,8 +51,8 @@ class DataTable {
   void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
-   * Update the tuple according to the redo slot given, and update the version chain to link to the given
-   * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only
+   * Update the tuple according to the redo buffer given, and update the version chain to link to the given
+   * undo record. The undo record is populated with a before-image of the tuple in the process. Update will only
    * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
    *
    * @param txn the calling transaction
@@ -73,7 +74,9 @@ class DataTable {
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
  private:
+  // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
+  // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
 
   BlockStore *const block_store_;
@@ -81,7 +84,8 @@ class DataTable {
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
-  // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
+  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
+  // deleted tuples and recycle slots
 
   // TODO(Matt): remove this single TAS when using concurrent schema
   const TupleAccessStrategy accessor_;
@@ -96,7 +100,8 @@ class DataTable {
   // contention
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
-  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn);
+  // Checks for Snapshot Isolation conflicts, used by Update
+  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,

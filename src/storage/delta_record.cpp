@@ -1,4 +1,5 @@
 #include <vector>
+#include <utility>
 #include "storage/delta_record.h"
 #include "storage/storage_util.h"
 
@@ -7,7 +8,7 @@ namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   auto header_size = reinterpret_cast<uintptr_t>(&other.Bitmap()) - reinterpret_cast<uintptr_t>(&other);
-  PELOTON_MEMCPY(result, &other, header_size);
+  TERRIER_MEMCPY(result, &other, header_size);
   result->Bitmap().Clear(result->num_cols_);
   return result;
 }
@@ -15,9 +16,9 @@ ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRo
 // TODO(Tianyu): I don't think we can reasonably fit these into a cache line?
 ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLayout &layout,
                                                  std::vector<uint16_t> col_ids)
-    : col_ids_(col_ids),
+    : col_ids_(std::move(col_ids)),
       offsets_(col_ids.size()) {
-  PELOTON_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
+  TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
   size_ = sizeof(ProjectedRow);  // size and num_col size
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
@@ -37,7 +38,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
 }
 
 ProjectedRow *ProjectedRowInitializer::InitializeProjectedRow(void *head) const {
-  PELOTON_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
+  TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
   auto *result = reinterpret_cast<ProjectedRow *>(head);

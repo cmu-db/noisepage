@@ -125,9 +125,8 @@ class StorageUtil {
   static byte *AlignedPtr(const uint8_t size, const void *ptr) {
     auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
     uint64_t remainder = ptr_value % size;
-    return remainder == 0
-           ? reinterpret_cast<byte *>(ptr_value)
-           : reinterpret_cast<byte *>(ptr_value + size - remainder);
+    return remainder == 0 ? reinterpret_cast<byte *>(ptr_value)
+                          : reinterpret_cast<byte *>(ptr_value + size - remainder);
   }
 
   /**
@@ -136,10 +135,9 @@ class StorageUtil {
    * @param ptr the pointer to pad
    * @return padded pointer
    */
-  template<class A>
+  template <class A>
   static A *AlignedPtr(const void *ptr) {
     return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
-
 };
 }  // namespace terrier::storage
