@@ -72,17 +72,14 @@ class TransactionManager {
 
  private:
   common::ObjectPool<storage::BufferSegment> *buffer_pool_;
-  // TODO(Tianyu): Timestamp generation needs to be more efficient
+  // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
 
-  // TODO(Tianyu): Maybe don't use tbb?
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
   common::ReaderWriterLatch commit_latch_;
 
-  // TODO(Tianyu): Get a better data structure for this.
-  // TODO(Tianyu): Also, we are leveraging off the fact that we know start time to be globally unique, so we should
-  // think about this when refactoring the txn id thing.
+  // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   mutable common::SpinLatch table_latch_;
   std::map<timestamp_t, TransactionContext *> curr_running_txns_;
 
