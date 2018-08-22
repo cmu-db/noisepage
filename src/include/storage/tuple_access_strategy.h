@@ -165,6 +165,18 @@ class TupleAccessStrategy {
   }
 
   /**
+   * @param slot tuple slot to access
+   * @param col offset representing the column
+   * @return a pointer to the attribute, or garbage if attribute is null.
+   * @warning currently this should only be used by the DataTable when updating VersionPtrs on known-present tuples
+   */
+  byte *AccessWithoutNullCheck(const TupleSlot slot, const uint16_t col) const {
+    TERRIER_ASSERT(col == PRESENCE_COLUMN_ID,
+                   "Currently this should only be called on the presence column by the DataTable.");
+    return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
+  }
+
+  /**
    * Returns a pointer to the attribute. If the attribute is null, set null to
    * false.
    * @param slot tuple slot to access

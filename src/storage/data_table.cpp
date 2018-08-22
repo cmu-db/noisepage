@@ -31,7 +31,7 @@ void DataTable::Select(transaction::TransactionContext *const txn,
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-  
+
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) return;
@@ -112,23 +112,19 @@ const TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
 }
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
-  // an issue (probably not, we are just reading one extra byte.)
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  TERRIER_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
 
 void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           const TupleAccessStrategy &accessor,
                                           UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  TERRIER_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
 bool DataTable::HasConflict(UndoRecord *const version_ptr,
-                            transaction::TransactionContext *const txn) {
+                            transaction::TransactionContext *const txn) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const timestamp_t version_timestamp = version_ptr->Timestamp().load();
   const timestamp_t txn_id = txn->TxnId().load();
@@ -144,8 +140,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          const TupleAccessStrategy &accessor,
                                          UndoRecord *expected,
                                          UndoRecord *const desired) {
-  byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  TERRIER_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
       ->compare_exchange_strong(expected, desired);
 }

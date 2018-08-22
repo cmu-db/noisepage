@@ -101,7 +101,7 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Checks for Snapshot Isolation conflicts, used by Update
-  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn);
+  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
