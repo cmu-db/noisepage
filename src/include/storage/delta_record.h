@@ -173,7 +173,7 @@ class DataTable;
  * pointer to the next record, timestamp of the transaction that created this record, pointer to the data table, and the
  * tuple slot.
  */
-class UndoRecord {  // See comment in ProjectedRow about why this is packed
+class UndoRecord {
  public:
   UndoRecord() = delete;
   DISALLOW_COPY_AND_MOVE(UndoRecord)
