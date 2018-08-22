@@ -6,14 +6,30 @@
 #include "gtest/gtest.h"
 #include "util/multi_threaded_test_util.h"
 #include "common/object_pool.h"
+#include "util/test_harness.h"
 
 namespace terrier {
+
+struct ObjectPoolTests : public TerrierTest {
+  std::default_random_engine generator_;
+  std::uniform_int_distribution<uint64_t> size_dist_;
+
+ protected:
+  void SetUp() override {
+    TerrierTest::SetUp();
+  }
+
+  void TearDown() override {
+    TerrierTest::TearDown();
+  }
+};
+
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
-  const uint64_t reuse_limit = 1;
-  common::ObjectPool<uint32_t> tested(reuse_limit);
+  const uint64_t size_limit = 1;
+  common::ObjectPool<uint32_t> tested(size_limit);
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
@@ -26,6 +42,43 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
   for (uint32_t i = 0; i < repeat; i++) {
     EXPECT_EQ(tested.Get(), reused_ptr);
     tested.Release(reused_ptr);
+  }
+}
+
+// Reset the size of the object pool
+// NOLINTNEXTLINE
+TEST(ObjectPoolTests, ResetLimitTest) {
+  const uint32_t repeat = 10;
+  const uint64_t size_limit = 10;
+  for (uint32_t iteration = 0; iteration < repeat; ++iteration) {
+    common::ObjectPool<uint32_t> tested(size_limit);
+    std::unordered_set<uint32_t *> used_ptrs;
+
+    // The reuse_queue should have a size of size_limit
+    for (uint32_t i = 0; i < size_limit; ++i)
+      used_ptrs.insert(tested.Get());
+    for (auto &it : used_ptrs)
+      tested.Release(it);
+
+    tested.SetReuseLimit(size_limit / 2);
+    EXPECT_TRUE(tested.SetSizeLimit(size_limit / 2));
+
+    std::vector<uint32_t *> ptrs;
+    for (uint32_t i = 0; i < size_limit / 2; ++i) {
+      // the first half should be reused pointers
+      uint32_t *ptr = tested.Get();
+      EXPECT_FALSE(used_ptrs.find(ptr) == used_ptrs.end());
+
+      // store the pointer to free later
+      ptrs.emplace_back(ptr);
+    }
+
+    // I should get an exception
+    EXPECT_THROW(tested.Get(), common::NoMoreObjectException);
+
+    // free memory
+    for (auto &it : ptrs)
+      tested.Release(it);
   }
 }
 
@@ -53,6 +106,8 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
   auto workload = [&](uint32_t tid) {
+    std::uniform_int_distribution<uint64_t> size_dist_;
+
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
     // Store the pointers we use.
@@ -67,10 +122,19 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
-                                             {0.5, 0.5},
-                                             &generator,
-                                             100);
+
+    auto set_reuse_limit = [&] {
+      tested.SetReuseLimit(size_dist_(generator));
+    };
+
+    auto set_size_limit = [&] {
+      tested.SetSizeLimit(size_dist_(generator));
+    };
+
+    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
+                                                          {0.25, 0.25, 0.25, 0.25},
+                                                          &generator,
+                                                          100);
     for (auto *ptr : ptrs)
       tested.Release(ptr->Release(tid));
   };
