@@ -4,7 +4,8 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/random_test_util.h"
+#include "util/test_thread_pool.h"
 #include "common/object_pool.h"
 #include "util/test_harness.h"
 
@@ -33,11 +34,11 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
-  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
+  // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
   // NOLINTNEXTLINE
   tested.Release(reused_ptr);
 
-  // TODO(WAN): clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
+  // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
   // NOLINTNEXTLINE
   for (uint32_t i = 0; i < repeat; i++) {
     EXPECT_EQ(tested.Get(), reused_ptr);
@@ -102,6 +103,7 @@ class ObjectPoolTestType {
 // the same pointer to two threads at the same time.
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
+  TestThreadPool thread_pool;
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
@@ -117,12 +119,11 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     };
     auto free = [&] {
       if (!ptrs.empty()) {
-        auto pos = MultiThreadedTestUtil::UniformRandomElement(&ptrs, &generator);
+        auto pos = RandomTestUtil::UniformRandomElement(&ptrs, &generator);
         tested.Release((*pos)->Release(tid));
         ptrs.erase(pos);
       }
     };
-
     auto set_reuse_limit = [&] {
       tested.SetReuseLimit(size_dist_(generator));
     };
@@ -131,7 +132,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.SetSizeLimit(size_dist_(generator));
     };
 
-    MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
+    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
                                                           {0.25, 0.25, 0.25, 0.25},
                                                           &generator,
                                                           100);
@@ -139,6 +140,6 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.Release(ptr->Release(tid));
   };
 
-  MultiThreadedTestUtil::RunThreadsUntilFinish(8, workload, 100);
+  thread_pool.RunThreadsUntilFinish(8, workload, 100);
 }
 }  // namespace terrier

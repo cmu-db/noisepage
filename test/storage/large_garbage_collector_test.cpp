@@ -18,13 +18,13 @@ class LargeGCTests : public TerrierTest {
     run_gc_ = false;
     gc_thread_.join();
     // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->RunGC();
-    gc_->RunGC();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
     delete gc_;
   }
 
   storage::BlockStore block_store_{1000};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{1000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000};
   std::default_random_engine generator_;
   volatile bool run_gc_ = false;
   volatile bool paused_ = false;
@@ -35,7 +35,7 @@ class LargeGCTests : public TerrierTest {
   void GCThreadLoop(uint32_t gc_period_milli) {
     while (run_gc_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(gc_period_milli));
-      if (!paused_) gc_->RunGC();
+      if (!paused_) gc_->PerformGarbageCollection();
     }
   }
 };
@@ -46,8 +46,6 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  // TODO(Tianyu): Unfortunately, with GC, this test is pretty slow... we could make correctness checks sample based if
-  // it becomes too much,
   const uint32_t num_iterations = 1;
   const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 1000;

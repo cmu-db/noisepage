@@ -8,6 +8,7 @@ namespace terrier::common {
  * A thread-safe queue implementation
  * @tparam T element type
  * @tparam Alloc allocator used
+ * @warning Consider the non-trivial overhead associated with a concurrent data structure before defaulting to its use.
  */
 template <typename T, typename Alloc = tbb::cache_aligned_allocator<T>>
 class ConcurrentQueue {

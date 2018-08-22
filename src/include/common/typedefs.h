@@ -178,13 +178,6 @@ class StrongTypeAlias {
  private:
   IntType val_;
 };
-
-// TODO(Tianyu): Follow this example to extend the StrongTypeAlias type to
-// have the operators and other std utils you normally expect from certain types.
-// template <class Tag>
-// class StrongTypeAlias<Tag, uint32_t> {
-//  // Write your operator here!
-//};
 }  // namespace terrier::common
 
 /* Define all typedefs here */

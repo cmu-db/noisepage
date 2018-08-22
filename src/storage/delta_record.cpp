@@ -1,6 +1,5 @@
 #include <vector>
-
-#include "storage/storage_defs.h"
+#include "storage/delta_record.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -9,7 +8,7 @@ uint32_t ProjectedRow::Size(const BlockLayout &layout, const std::vector<uint16_
   for (uint16_t col_id : col_ids)
     result += static_cast<uint32_t>(sizeof(uint16_t) + sizeof(uint32_t) + layout.attr_sizes_[col_id]);
   result += common::BitmapSize(static_cast<uint32_t>(col_ids.size()));
-  return result % 8 == 0 ? result : result + 8 - result % 8;  // pad up to 8 bytes
+  return storage::StorageUtil::PadUpToSize(sizeof(uint64_t), result);  // pad up to 8 bytes
 }
 
 ProjectedRow *ProjectedRow::InitializeProjectedRow(void *head,
@@ -31,13 +30,22 @@ ProjectedRow *ProjectedRow::InitializeProjectedRow(void *head,
   return result;
 }
 
-DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
-                                                timestamp_t timestamp,
-                                                TupleSlot slot,
-                                                DataTable *table,
-                                                const BlockLayout &layout,
-                                                const std::vector<uint16_t> &col_ids) {
-  auto *result = reinterpret_cast<DeltaRecord *>(head);
+ProjectedRow* ProjectedRow::InitializeProjectedRow(void *head, const ProjectedRow &other)  {
+  auto *result = reinterpret_cast<ProjectedRow *>(head);
+  auto header_size =
+      static_cast<uint32_t>(sizeof(ProjectedRow) + +other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
+  TERRIER_MEMCPY(result, &other, header_size);
+  result->Bitmap().Clear(result->num_cols_);
+  return result;
+}
+
+UndoRecord *UndoRecord::InitializeRecord(void *head,
+                                         timestamp_t timestamp,
+                                         TupleSlot slot,
+                                         DataTable *table,
+                                         const BlockLayout &layout,
+                                         const std::vector<uint16_t> &col_ids) {
+  auto *result = reinterpret_cast<UndoRecord *>(head);
 
   result->next_ = nullptr;
   result->timestamp_.store(timestamp);
@@ -48,5 +56,4 @@ DeltaRecord *DeltaRecord::InitializeDeltaRecord(void *head,
 
   return result;
 }
-
 }  // namespace terrier::storage

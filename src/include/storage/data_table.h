@@ -2,21 +2,29 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
+#include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_util.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+class TransactionManager;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
-
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+#define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
+#define PRIMARY_KEY_COLUMN_ID 1
 /**
- * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintainence of versions for a
+ * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
  * as SQL types, varlens and nullabilities are still not meaningful at this level.
  */
 class DataTable {
  public:
-  // TODO(Tianyu): Consider taking in some other info to avoid copying layout
+  // TODO(Tianyu): Consider taking in some other info (like schema) to avoid copying layout. BlockLayout shouldn't
+  // really exist above the storage layer
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks.
@@ -43,8 +51,8 @@ class DataTable {
   void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
-   * Update the tuple according to the redo slot given, and update the version chain to link to the given
-   * delta record. The delta record is populated with a before-image of the tuple in the process. Update will only
+   * Update the tuple according to the redo buffer given, and update the version chain to link to the given
+   * undo record. The undo record is populated with a before-image of the tuple in the process. Update will only
    * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
    *
    * @param txn the calling transaction
@@ -65,52 +73,39 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
-  /**
-   * Rolls back changes on the given tuple slot, written by the given transaction. Should only be called when
-   * aborting a transaction
-   * @param txn_id the transaction that updated the tuple
-   * @param slot the tuple to roll back
-   */
-  void Rollback(timestamp_t txn_id, TupleSlot slot);
-
  private:
+  // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
+  // The TransactionManager needs to modify VersionPtrs when rolling back aborts
+  friend class transaction::TransactionManager;
 
-  BlockStore *block_store_;
+  BlockStore *const block_store_;
   // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
   // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
   // layout_version_t curr_layout_version_{0};
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
-  // new one when the current one is full. Needless to say, we will need to revisit this when writing GC.
+  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
+  // deleted tuples and recycle slots
 
   // TODO(Matt): remove this single TAS when using concurrent schema
-  TupleAccessStrategy accessor_;
+  const TupleAccessStrategy accessor_;
 
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
   // Atomically read out the version pointer value.
-  DeltaRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
+  UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Atomically write the version pointer value. Should only be used by Insert where there is guaranteed to be no
   // contention
-  void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *desired);
+  void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
-  bool HasConflict(DeltaRecord *const version_ptr, transaction::TransactionContext *const txn) {
-    if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
-    const timestamp_t version_timestamp = version_ptr->Timestamp().load();
-    const timestamp_t txn_id = txn->TxnId();
-    const timestamp_t start_time = txn->StartTime();
-    return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
-           // Someone else owns this tuple, write-write-conflict
-           || (transaction::TransactionUtil::Committed(version_timestamp) &&
-               transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
-    // Someone else already committed an update to this tuple while we were running, we can't update this under SI
-  }
+  // Checks for Snapshot Isolation conflicts, used by Update
+  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
-  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, DeltaRecord *expected,
-                                DeltaRecord *desired);
+  bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
+                                UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val);

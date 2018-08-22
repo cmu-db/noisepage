@@ -12,7 +12,8 @@ namespace terrier::common {
  * @tparam T object whose size determines the byte array size.
  */
 template <typename T>
-struct AlignedByteAllocator {
+class AlignedByteAllocator {
+ public:
   /**
    * Allocates a new byte array sized to hold a T.
    * @return a pointer to the byte array allocated.
@@ -27,15 +28,15 @@ struct AlignedByteAllocator {
    * Reuse a reused chunk of memory to be handed out again
    * @param reused memory location, possibly filled with junk bytes
    */
-  void Reuse(T *reused) {}
+  void Reuse(T *const reused) {}
 
   /**
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *ptr) { delete[] ptr; }  // NOLINT
-  // TODO(WAN): clang-tidy believes we are trying to free released memory.
-  // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
+  void Delete(T *const ptr) { delete[] ptr; }  // NOLINT
+  // clang-tidy believes we are trying to free released memory.
+  // We believe otherwise, hence we're telling it to shut up.
 };
 
 // TODO(Yangjun): this class should be moved somewhere else.
@@ -48,7 +49,6 @@ class NoMoreObjectException : public std::exception {
   const char *what() const noexcept override { return "Object Pool have no object to hand out\n"; }
 };
 
-// TODO(Tianyu): Should this be by size or by class type?
 /**
  * Object pool for memory allocation.
  *
@@ -74,7 +74,7 @@ class ObjectPool {
    * @param reuse_limit the maximum number of reusable objects, which needs be to
    * not greater than size_limit
    */
-  explicit ObjectPool(uint64_t size_limit, uint64_t reuse_limit)
+  explicit ObjectPool(const uint64_t size_limit, const uint64_t reuse_limit)
       : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
 
   /**
@@ -83,7 +83,7 @@ class ObjectPool {
    *
    * @param size_limit the number of objects the object pool controls
    */
-  explicit ObjectPool(uint64_t size_limit) : size_limit_(size_limit), reuse_limit_(size_limit), current_size_(0) {}
+  explicit ObjectPool(const uint64_t size_limit) : size_limit_(size_limit), reuse_limit_(size_limit), current_size_(0) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -95,12 +95,6 @@ class ObjectPool {
     T *result = nullptr;
     while (reuse_queue_.Dequeue(&result)) alloc_.Delete(result);
   }
-
-  // TODO(Tianyu): The object pool can have much richer semantics in the future.
-  // The current one does not do anything more intelligent other trying to keep
-  // the memory it recycles to a limited size. (done)
-  // A very clear improvement would be to bulk-malloc objects into the reuse queue,
-  // or even to elastically grow or shrink the memory size depending on use pattern.
 
   /**
    * Returns a piece of memory to hold an object of T.

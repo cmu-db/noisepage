@@ -55,7 +55,7 @@ class GarbageCollectorDataTableTestObject {
     auto *buffer = new byte[redo_size_];
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    PELOTON_MEMCPY(buffer, &previous, redo_size_);
+    TERRIER_MEMCPY(buffer, &previous, redo_size_);
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     for (uint16_t i = 0; i < version->NumColumns(); i++)
@@ -87,7 +87,7 @@ class GarbageCollectorDataTableTestObject {
 
 struct GarbageCollectorTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100};
-  common::ObjectPool<transaction::UndoBufferSegment> buffer_pool_{10000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
   std::default_random_engine generator_;
   const uint32_t num_iterations_ = 5;
   const uint16_t max_columns_ = 100;
@@ -110,8 +110,8 @@ TEST_F(GarbageCollectorTests, BasicTest) {
 
     txn_manager.Commit(txn0);
 
-    EXPECT_EQ(1, gc.RunGC().second);
-    EXPECT_EQ(1, gc.RunGC().first);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().second);
+    EXPECT_EQ(1, gc.PerformGarbageCollection().first);
   }
 }
 

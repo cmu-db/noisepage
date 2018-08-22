@@ -18,7 +18,7 @@ namespace terrier::common {
  * Therefore, you should never construct an instance of a RawConcurrentBitmap.
  * Reinterpret an existing block of memory that you know will be a valid bitmap.
  *
- * Use @see terrier::BitmapSize to get the correct size for a bitmap of n
+ * Use @see common::BitmapSize to get the correct size for a bitmap of n
  * elements. Beware that because the size information is lost at compile time,
  * there is ABSOLUTELY no bounds check and you have to rely on programming
  * discipline to ensure safe access.
@@ -36,13 +36,13 @@ class RawConcurrentBitmap {
   /**
    * Allocates a new RawConcurrentBitmap of size num_bits. Up to the caller to call
    * Deallocate on its return value
-   * @param num_bits number of bits in the bitmap
+   * @param num_bits number of bits (elements to represent) in the bitmap
    * @return ptr to new RawConcurrentBitmap
    */
-  static RawConcurrentBitmap *Allocate(uint32_t num_bits) {
+  static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = BitmapSize(num_bits);
     auto *result = new uint8_t[num_bytes];
-    PELOTON_MEMSET(result, 0, num_bytes);
+    TERRIER_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
@@ -50,14 +50,14 @@ class RawConcurrentBitmap {
    * Deallocates a RawConcurrentBitmap. Only call on pointers given out by Allocate
    * @param map the map to deallocate
    */
-  static void Deallocate(RawConcurrentBitmap *map) { delete[] reinterpret_cast<uint8_t *>(map); }
+  static void Deallocate(RawConcurrentBitmap *const map) { delete[] reinterpret_cast<uint8_t *>(map); }
 
   /**
    * Test the bit value at the given position
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool Test(uint32_t pos) const {
+  bool Test(const uint32_t pos) const {
     return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
@@ -66,7 +66,7 @@ class RawConcurrentBitmap {
    * @param pos position to test
    * @return true if 1, false if 0
    */
-  bool operator[](uint32_t pos) const { return Test(pos); }
+  bool operator[](const uint32_t pos) const { return Test(pos); }
 
   /**
    * @brief Flip the bit only if current value is actually expected_val
@@ -77,8 +77,8 @@ class RawConcurrentBitmap {
    * @param expected_val the expected current value of the bit to be flipped
    * @return true if flip succeeds, otherwise expected_val didn't match
    */
-  bool Flip(uint32_t pos, bool expected_val) {
-    uint32_t element = pos / BYTE_SIZE;
+  bool Flip(const uint32_t pos, const bool expected_val) {
+    const uint32_t element = pos / BYTE_SIZE;
     auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
     for (uint8_t old_val = bits_[element]; static_cast<bool>(old_val & mask) == expected_val;
          old_val = bits_[element]) {
@@ -98,16 +98,16 @@ class RawConcurrentBitmap {
    * @param[out] out_pos the position of the first unset bit will be written here, if it exists.
    * @return true if an unset bit was found, and false otherwise.
    */
-  bool FirstUnsetPos(uint32_t bitmap_num_bits, uint32_t start_pos, uint32_t *out_pos) {
+  bool FirstUnsetPos(const uint32_t bitmap_num_bits, const uint32_t start_pos, uint32_t *const out_pos) const {
     // invalid starting position.
     if (start_pos >= bitmap_num_bits) {
       return false;
     }
 
-    uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
-    uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
-    uint32_t bits_left = bitmap_num_bits - start_pos;  // number of bits remaining
-    bool found_unset_bit = false;                      // whether we found an unset bit previously
+    const uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
+    uint32_t byte_pos = start_pos / BYTE_SIZE;               // current byte position
+    uint32_t bits_left = bitmap_num_bits - start_pos;        // number of bits remaining
+    bool found_unset_bit = false;                            // whether we found an unset bit previously
 
     while (byte_pos < num_bytes && bits_left > 0) {
       // if we haven't found an unset bit yet, we make a wide search.
@@ -170,12 +170,13 @@ class RawConcurrentBitmap {
 
   /**
    * Clears the bitmap by setting bits to 0.
-   * @param num_bits number of bits to clear.
+   * @param num_bits number of bits to clear. This should be equal to the number of elements of the entire bitmap or
+   * unintended elements may be cleared
    * @warning this is not thread safe!
    */
-  void UnsafeClear(uint32_t num_bits) {
+  void UnsafeClear(const uint32_t num_bits) {
     auto size = BitmapSize(num_bits);
-    PELOTON_MEMSET(bits_, 0, size);
+    TERRIER_MEMSET(bits_, 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
@@ -194,9 +195,9 @@ class RawConcurrentBitmap {
    * @return true if an unset bit was found, false otherwise.
    */
   template <class T>
-  bool FindUnsetBit(uint32_t *byte_pos, uint32_t *bits_left) {
+  bool FindUnsetBit(uint32_t *const byte_pos, uint32_t *const bits_left) const {
     // for a signed integer, -1 represents that all the bits are set
-    T bits = reinterpret_cast<std::atomic<T> *>(&bits_[*byte_pos])->load();
+    T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
       // prevent underflow
@@ -219,7 +220,7 @@ class RawConcurrentBitmap {
    * @return true if a word of size T would both fit and be aligned.
    */
   template <class T>
-  bool IsAlignedAndFits(uint32_t bits_left, uint32_t byte_pos) {
+  bool IsAlignedAndFits(const uint32_t bits_left, const uint32_t byte_pos) const {
     return bits_left >= sizeof(T) * BYTE_SIZE && byte_pos % sizeof(T) == 0;
   }
 };

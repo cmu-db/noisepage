@@ -52,7 +52,7 @@ class ReaderWriterLatch {
      * Acquire write lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedReaderLatch(ReaderWriterLatch *rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockRead(); }
+    explicit ScopedReaderLatch(ReaderWriterLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockRead(); }
     /**
      * Release write lock (if acquired).
      */
@@ -72,7 +72,7 @@ class ReaderWriterLatch {
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedWriterLatch(ReaderWriterLatch *rw_latch) : rw_latch_(rw_latch) { rw_latch_->Lock(); }
+    explicit ScopedWriterLatch(ReaderWriterLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->Lock(); }
     /**
      * Release read lock (if acquired).
      */
