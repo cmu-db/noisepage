@@ -47,9 +47,9 @@ struct BlockLayout {
         tuple_size_(ComputeTupleSize()),
         header_size_(HeaderSize()),
         num_slots_(NumSlots()) {
-    PELOTON_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
+    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
-    PELOTON_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+    TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   }
 
   /**
@@ -76,7 +76,7 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() {
-    PELOTON_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
+    TERRIER_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
@@ -112,9 +112,9 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    PELOTON_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
                    "Address must be aligned to block size (last bits zero).");
-    PELOTON_ASSERT(offset < common::Constants::BLOCK_SIZE,
+    TERRIER_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
   }
 

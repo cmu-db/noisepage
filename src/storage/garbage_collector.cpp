@@ -87,7 +87,7 @@ uint32_t GarbageCollector::Unlink() {
 
 void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
                                         const UndoRecord &undo_record) const {
-  PELOTON_ASSERT(txn->TxnId().load() == undo_record.Timestamp().load(),
+  TERRIER_ASSERT(txn->TxnId().load() == undo_record.Timestamp().load(),
                  "This undo_record does not belong to this txn.");
   DataTable *const table = undo_record.Table();
   const TupleSlot slot = undo_record.Slot();
@@ -96,7 +96,7 @@ void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *txn,
   UndoRecord *version_ptr;
   do {
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-    PELOTON_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
+    TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
     if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
       // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS

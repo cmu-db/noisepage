@@ -105,7 +105,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     storage::TupleSlot slot;

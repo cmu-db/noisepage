@@ -78,7 +78,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     storage::TupleSlot slot;
@@ -123,7 +123,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_cols, &generator);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     uint32_t num_inserts =
@@ -231,7 +231,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>>
@@ -279,7 +279,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    PELOTON_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);

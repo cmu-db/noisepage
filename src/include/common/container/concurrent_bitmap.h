@@ -42,7 +42,7 @@ class RawConcurrentBitmap {
   static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = BitmapSize(num_bits);
     auto *result = new uint8_t[num_bytes];
-    PELOTON_MEMSET(result, 0, num_bytes);
+    TERRIER_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
@@ -176,7 +176,7 @@ class RawConcurrentBitmap {
    */
   void UnsafeClear(const uint32_t num_bits) {
     auto size = BitmapSize(num_bits);
-    PELOTON_MEMSET(bits_, 0, size);
+    TERRIER_MEMSET(bits_, 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and

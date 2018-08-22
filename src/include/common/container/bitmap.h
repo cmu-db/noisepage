@@ -48,7 +48,7 @@ class RawBitmap {
   static RawBitmap *Allocate(const uint32_t num_bits) {
     auto size = BitmapSize(num_bits);
     auto *result = new uint8_t[size];
-    PELOTON_MEMSET(result, 0, size);
+    TERRIER_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
   }
 
@@ -103,7 +103,7 @@ class RawBitmap {
    */
   void Clear(const uint32_t num_bits) {
     auto size = BitmapSize(num_bits);
-    PELOTON_MEMSET(bits_, 0, size);
+    TERRIER_MEMSET(bits_, 0, size);
   }
 
  private:

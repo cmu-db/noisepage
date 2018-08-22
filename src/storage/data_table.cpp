@@ -6,18 +6,18 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  PELOTON_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
-  PELOTON_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
+  TERRIER_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
+  TERRIER_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
   NewBlock(nullptr);
-  PELOTON_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
+  TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
 void DataTable::Select(transaction::TransactionContext *const txn,
                        const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
-  PELOTON_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
                  "The projection never returns the version pointer, so it should have fewer attributes.");
-  PELOTON_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
+  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The projection should return at least one attribute.");
 
   UndoRecord *version_ptr;
   do {
@@ -119,7 +119,7 @@ UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const Tupl
   // TODO(Tianyu): We can get rid of this and write a "AccessWithoutNullCheck" if this turns out to be
   // an issue (probably not, we are just reading one extra byte.)
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
+  TERRIER_ASSERT(ptr_location != nullptr, "Version pointer cannot be null.");
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
 
@@ -127,7 +127,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
                                           const TupleAccessStrategy &accessor,
                                           UndoRecord *const desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  TERRIER_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
@@ -149,7 +149,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
                                          UndoRecord *expected,
                                          UndoRecord *const desired) {
   byte *ptr_location = accessor.AccessWithNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  PELOTON_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
+  TERRIER_ASSERT(ptr_location != nullptr, "Only write version vectors for tuples that are present.");
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
       ->compare_exchange_strong(expected, desired);
 }

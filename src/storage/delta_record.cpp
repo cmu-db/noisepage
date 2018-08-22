@@ -34,7 +34,7 @@ ProjectedRow* ProjectedRow::InitializeProjectedRow(void *head, const ProjectedRo
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   auto header_size =
       static_cast<uint32_t>(sizeof(ProjectedRow) + +other.num_cols_ * (sizeof(uint16_t) + sizeof(uint32_t)));
-  PELOTON_MEMCPY(result, &other, header_size);
+  TERRIER_MEMCPY(result, &other, header_size);
   result->Bitmap().Clear(result->num_cols_);
   return result;
 }

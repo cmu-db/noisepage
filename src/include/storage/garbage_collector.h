@@ -22,7 +22,7 @@ class GarbageCollector {
    */
   explicit GarbageCollector(transaction::TransactionManager *txn_manager)
       : txn_manager_(txn_manager), last_unlinked_{0} {
-    PELOTON_ASSERT(txn_manager_->GCEnabled(),
+    TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 

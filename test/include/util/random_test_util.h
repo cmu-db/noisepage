@@ -59,7 +59,7 @@ class RandomTestUtil {
   static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
                                              std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {
-    PELOTON_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
+    TERRIER_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
     std::discrete_distribution dist(probabilities.begin(), probabilities.end());
     for (uint32_t i = 0; i < repeat; i++) workloads[dist(*generator)]();
   }
