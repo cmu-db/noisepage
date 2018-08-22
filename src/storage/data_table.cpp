@@ -96,7 +96,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  UndoRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
+  UndoRecord *undo = txn->UndoRecordForInsert(this, result, insert_record_initializer_);
 
   // Populate undo record with the before image of presence column
   undo->Delta()->SetNull(0);
