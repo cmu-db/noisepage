@@ -17,7 +17,7 @@ struct AlignedByteAllocator {
    * @return a pointer to the byte array allocated.
    */
   T *New() {
-    auto *result = reinterpret_cast<T *>(new uint64_t[sizeof(T) / 8 + 1]);
+    auto *result = reinterpret_cast<T *>(new uint64_t[(sizeof(T) + 7) / 8]);
     Reuse(result);
     return result;
   }
@@ -58,9 +58,9 @@ class ObjectPool {
   /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
-   * @param reuse_limit
+   * @param size_limit the number of objects the object pool controls
    */
-  explicit ObjectPool(uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
+  explicit ObjectPool(uint64_t size_limit) : size_limit_(size_limit), current_size_(0) {}
 
   /**
    * Destructs the memory pool. Frees any memory it holds.
@@ -75,22 +75,58 @@ class ObjectPool {
 
   // TODO(Tianyu): The object pool can have much richer semantics in the future.
   // The current one does not do anything more intelligent other trying to keep
-  // the memory it recycles to a limited size.
+  // the memory it recycles to a limited size. (done)
   // A very clear improvement would be to bulk-malloc objects into the reuse queue,
   // or even to elastically grow or shrink the memory size depending on use pattern.
 
   /**
    * Returns a piece of memory to hold an object of T.
    *
+   * It throws exception if the object pool fails to fetch memory.
+   *
    * @return pointer to memory that can hold T
    */
   T *Get() {
     T *result = nullptr;
-    if (!reuse_queue_.Dequeue(&result))
-      result = alloc_.New();
-    else
+    if (!reuse_queue_.Dequeue(&result)) {
+      uint64_t old = current_size_;
+      while (old < size_limit_) {
+        if (current_size_.compare_exchange_strong(old, old + 1)) {
+          result = alloc_.New();
+        } else {
+          // CAS failed, current_size has changed. Recheck
+          old = current_size_;
+          continue;
+        }
+        break;
+      }
+      if (result == nullptr) {
+        // out of memory
+        throw std::bad_alloc();
+      }
+    } else {
       alloc_.Reuse(result);
+    }
     return result;
+  }
+
+  /***
+   * Set the object pool's size limit.
+   *
+   * @param new_size the new object pool size
+   * @return true if new_size is successfully set and false otherwise
+   */
+  bool SetSizeLimit(uint64_t new_size) {
+    if (new_size > current_size_) {
+      size_limit_ = new_size;
+      T *obj = nullptr;
+      while (reuse_queue_.UnsafeSize() > size_limit_) {
+        reuse_queue_.Dequeue(&obj);
+        alloc_.Delete(obj);
+      }
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -101,7 +137,7 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > reuse_limit_)
+    if (reuse_queue_.UnsafeSize() > size_limit_)
       alloc_.Delete(obj);
     else
       reuse_queue_.Enqueue(std::move(obj));
@@ -110,7 +146,7 @@ class ObjectPool {
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
-  // TODO(Tianyu): It might make sense for this to be changeable in the future
-  const uint64_t reuse_limit_;
+  const uint64_t size_limit_;
+  std::atomic<uint64_t> current_size_;
 };
 }  // namespace terrier::common
