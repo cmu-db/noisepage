@@ -48,7 +48,10 @@ void DataTable::Select(transaction::TransactionContext *const txn,
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr
       && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer, col_to_projection_list_index);
+    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
+                            *(version_ptr->Delta()),
+                            out_buffer,
+                            col_to_projection_list_index);
     version_ptr = version_ptr->Next();
   }
 }
