@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
@@ -39,7 +38,7 @@ struct AlignedByteAllocator {
   // We believe otherwise, hence we're telling it to shut up. We could be wrong though.
 };
 
-// TODO(Yangjun): this class shouldn't be in common namespace.
+// TODO(Yangjun): this class should be moved somewhere else.
 /***
  * An exception thrown by object pools when they reach their size limits and
  * cannot give more memory space for objects.
@@ -70,6 +69,7 @@ class ObjectPool {
   /***
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
+   *
    * @param size_limit the maximum number of objects the object pool controls
    * @param reuse_limit the maximum number of reusable objects, which needs be to
    * not greater than size_limit
@@ -79,9 +79,8 @@ class ObjectPool {
 
   /**
    * Initializes a new object pool with the supplied limit to the number of
-   * objects reused.
+   * objects reused. The reuse_limit is set to be the same as size limit.
    *
-   * The reuse_limit is set to be the size limit
    * @param size_limit the number of objects the object pool controls
    */
   explicit ObjectPool(uint64_t size_limit) : size_limit_(size_limit), reuse_limit_(size_limit), current_size_(0) {}
@@ -200,8 +199,10 @@ class ObjectPool {
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
-  uint64_t size_limit_;                 // the maximum number of objects a object pool can have
-  uint64_t reuse_limit_;                // the maximum number of reusable objects in reuse_queue
-  std::atomic<uint64_t> current_size_;  // the number of objects the object pool has allocated
+  uint64_t size_limit_;   // the maximum number of objects a object pool can have
+  uint64_t reuse_limit_;  // the maximum number of reusable objects in reuse_queue
+  // current_size_ represents the number of objects the object pool has allocated,
+  // including objects that have been given out to callers and those reside in reuse_queue
+  std::atomic<uint64_t> current_size_;
 };
 }  // namespace terrier::common
