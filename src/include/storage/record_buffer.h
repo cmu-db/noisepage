@@ -21,7 +21,7 @@ class BufferSegment {
    * @param size the amount of bytes to check for
    * @return Whether this segment have enough space left for size many bytes
    */
-  bool HasBytesLeft(uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
+  bool HasBytesLeft(const uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
 
   /**
    * Reserve space for a delta record of given size to be written in this segment. The segment must have
@@ -30,7 +30,7 @@ class BufferSegment {
    * @param size the amount of bytes to reserve
    * @return pointer to the head of the allocated record
    */
-  byte *Reserve(uint32_t size) {
+  byte *Reserve(const uint32_t size) {
     TERRIER_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
     auto *result = bytes_ + end_;
     end_ += size;

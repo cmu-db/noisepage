@@ -75,19 +75,19 @@ struct BlockLayout {
   const uint32_t num_slots_;
 
  private:
-  uint32_t ComputeTupleSize() {
+  uint32_t ComputeTupleSize() const {
     TERRIER_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
   }
 
-  uint32_t HeaderSize() {
+  uint32_t HeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
                                  + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
-  uint32_t NumSlots() {
+  uint32_t NumSlots() const {
     // subtracting 1 from this number so we will always have
     // space to pad each individual bitmap to full bytes (every attribute is
     // at least a byte). Somebody can come and fix this later, because I don't
@@ -111,7 +111,7 @@ class TupleSlot {
    * @param block the block this slot is in
    * @param offset the offset of this slot in its block
    */
-  TupleSlot(RawBlock *block, uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
+  TupleSlot(const RawBlock *const block, const uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
     TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
                    "Address must be aligned to block size (last bits zero).");
     TERRIER_ASSERT(offset < common::Constants::BLOCK_SIZE,

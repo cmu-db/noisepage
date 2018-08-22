@@ -78,7 +78,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn,
   return true;
 }
 
-const TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
+TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
                             const ProjectedRow &redo) {
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent

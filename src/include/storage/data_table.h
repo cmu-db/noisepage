@@ -71,7 +71,7 @@ class DataTable {
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
    * such.
    */
-  const TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
+  TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
