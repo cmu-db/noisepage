@@ -13,7 +13,7 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     column_offsets_[i] = acc_offset;
     uint32_t column_size = layout_.attr_sizes_[i] * layout_.num_slots_  // content
         + StorageUtil::PadUpToSize(layout_.attr_sizes_[i],
-                                   common::BitmapSize(layout_.num_slots_));  // padded-bitmap size
+                                   common::RawBitmap::SizeInBytes(layout_.num_slots_));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
   }
 }

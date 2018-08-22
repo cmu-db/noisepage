@@ -1,10 +1,10 @@
 #pragma once
 #include <vector>
 #include "common/macros.h"
+#include "storage/storage_util.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::storage {
-// TODO(Tianyu): Align the values
 /**
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
@@ -23,35 +23,19 @@ namespace terrier::storage {
  * --------------------------------------------------------
  * Would be the row: { 0 -> 15, 1 -> 721, 2 -> nul}
  */
-// TODO(Tianyu): The PACKED directive here is not necessary, but C++ does some weird thing where
-// it will pad sizeof(ProjectedRow) to 8 but the varlen content still points at 6. This should not
-// break any code, but the padding now will be immediately before the values instead of after num_cols,
-// which is weird. We should make a consistent policy on how to deal with this type of issue for other
-// cases as well. (The other use cases of byte[0] all have aligned sizes already I think?)
+// The PACKED directive here is not necessary, but C++ does some weird thing where it will pad sizeof(ProjectedRow)
+// to 8 but the varlen content still points at 6. This should not break any code, but the padding now will be
+// immediately before the values instead of after num_cols, which is weird.
+//
+// This should not have any impact because we disallow direct construction of a ProjectedRow and
+// we will have control over the exact padding and layout by allocating byte arrays on the heap
+// and then initializing using the static factory provided.
 class PACKED ProjectedRow {
  public:
   // A ProjectedRow should only be reinterpreted from raw bytes on the heap
   ProjectedRow() = delete;
   DISALLOW_COPY_AND_MOVE(ProjectedRow)
   ~ProjectedRow() = delete;
-
-  /**
-   * Calculates the size of this ProjectedRow, including all members, values, bitmap, and potential padding
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
-   * @return number of bytes for this ProjectedRow
-   */
-  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
-
-  /**
-   * Populates the ProjectedRow's members based on projection list and BlockLayout
-   * @param head pointer to the byte buffer to initialize as a ProjectedRow
-   * @param col_ids projection list of column ids to map
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @return pointer to the initialized ProjectedRow
-   */
-  static ProjectedRow *InitializeProjectedRow(void *head, const std::vector<uint16_t> &col_ids,
-                                              const BlockLayout &layout);
 
   /**
    * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
@@ -61,7 +45,7 @@ class PACKED ProjectedRow {
    * @param other ProjectedRow to use as template for setup
    * @return pointer to the initialized ProjectedRow
    */
-  static ProjectedRow *InitializeProjectedRow(void *head, const ProjectedRow &other);
+  static ProjectedRow *CopyProjectedRowLayout(void *head, const ProjectedRow &other);
 
   /**
    * @return the size of this ProjectedRow in memory, in bytes
@@ -137,19 +121,55 @@ class PACKED ProjectedRow {
   }
 
  private:
+  friend class ProjectedRowInitializer;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
 
-  uint32_t *AttrValueOffsets() { return reinterpret_cast<uint32_t *>(ColumnIds() + num_cols_); }
+  uint32_t *AttrValueOffsets() {
+    return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_);
+  }
 
-  const uint32_t *AttrValueOffsets() const { return reinterpret_cast<const uint32_t *>(ColumnIds() + num_cols_); }
+  const uint32_t *AttrValueOffsets() const {
+    return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_);
+  }
 
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_); }
 
   const common::RawBitmap &Bitmap() const {
     return *reinterpret_cast<const common::RawBitmap *>(AttrValueOffsets() + num_cols_);
   }
+};
+
+class ProjectedRowInitializer {
+ public:
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map
+   */
+  ProjectedRowInitializer(const BlockLayout &layout, std::vector<uint16_t> col_ids);
+
+  /**
+   * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer
+   * @param head pointer to the byte buffer to initialize as a ProjectedRow
+   * @return pointer to the initialized ProjectedRow
+   */
+  ProjectedRow *InitializeProjectedRow(void *head) const;
+
+  /**
+   * @return size of the ProjectedRow in memory, in bytes, that this initializer constructs.
+   */
+  uint32_t ProjectedRowSize() const {
+    return size_;
+  }
+
+ private:
+  uint32_t size_ = 0;
+  std::vector<uint16_t> col_ids_;
+  std::vector<uint32_t> offsets_;
 };
 
 class DataTable;
@@ -159,7 +179,7 @@ class DataTable;
  * pointer to the next record, timestamp of the transaction that created this record, pointer to the data table, and the
  * tuple slot.
  */
-class UndoRecord {
+class PACKED UndoRecord {  // See comment in ProjectedRow about why this is packed
  public:
   UndoRecord() = delete;
   DISALLOW_COPY_AND_MOVE(UndoRecord)
@@ -221,12 +241,11 @@ class UndoRecord {
   /**
    * Calculates the size of this UndoRecord, including all members, values, and bitmap
    *
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param initializer initializer to use for the embedded ProjectedRow
    * @return number of bytes for this UndoRecord
    */
-  static uint32_t Size(const BlockLayout &layout, const std::vector<uint16_t> &col_ids) {
-    return static_cast<uint32_t>(sizeof(UndoRecord)) + ProjectedRow::Size(layout, col_ids);
+  static uint32_t Size(const ProjectedRowInitializer &initializer) {
+    return static_cast<uint32_t>(sizeof(UndoRecord)) + initializer.ProjectedRowSize();
   }
 
   /**
@@ -236,12 +255,11 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
-                                      const BlockLayout &layout, const std::vector<uint16_t> &col_ids);
+                                      const ProjectedRowInitializer &initializer);
 
   /**
    * Populates the UndoRecord's members based on next pointer, timestamp, projection list, and the redo changes that
@@ -263,7 +281,7 @@ class UndoRecord {
     result->table_ = table;
     result->slot_ = slot;
 
-    ProjectedRow::InitializeProjectedRow(result->varlen_contents_, redo);
+    ProjectedRow::CopyProjectedRowLayout(result->varlen_contents_, redo);
 
     return result;
   }

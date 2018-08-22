@@ -33,10 +33,9 @@ class TupleAccessStrategyTestObject {
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
     // Generate a random ProjectedRow to insert
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
-    auto *buffer = new byte[row_size];
-    storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids, layout);
+    storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
     std::default_random_engine real_generator;
     std::uniform_real_distribution<double> distribution{0.0, 1.0};
     StorageTestUtil::PopulateRandomRow(row, layout, distribution(real_generator), generator);
@@ -173,7 +172,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
                                      upper_bound);
       lower_bound =
           StorageTestUtil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col),
-                                            common::BitmapSize(layout.num_slots_));
+                                            common::RawBitmap::SizeInBytes(layout.num_slots_));
 
       StorageTestUtil::CheckInBounds(tested.ColumnStart(raw_block_, col),
                                      lower_bound,

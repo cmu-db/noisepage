@@ -19,7 +19,6 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 #define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
 
 namespace terrier::common {
-constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
 /**
  * A RawBitmap is a bitmap that does not have the compile-time
@@ -29,7 +28,7 @@ constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE
  * Therefore, you should never construct an instance of a RawBitmap.
  * Reinterpret an existing block of memory that you know will be a valid bitmap.
  *
- * Use @see terrier::BitmapSize to get the correct size for a bitmap of n
+ * Use @see SizeInBytes to get the correct size for a bitmap of n
  * elements. Beware that because the size information is lost at compile time,
  * there is ABSOLUTELY no bounds check and you have to rely on programming
  * discipline to ensure safe access.
@@ -44,6 +43,8 @@ class RawBitmap {
   ~RawBitmap() = delete;
   DISALLOW_COPY_AND_MOVE(RawBitmap)
 
+  static constexpr uint32_t SizeInBytes(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
+
   /**
    * Allocates a new RawBitmap of size num_bits.
    * Up to the caller to call Deallocate on its return value.
@@ -51,7 +52,7 @@ class RawBitmap {
    * @return ptr to new RawBitmap.
    */
   static RawBitmap *Allocate(uint32_t num_bits) {
-    auto size = BitmapSize(num_bits);
+    auto size = SizeInBytes(num_bits);
     auto *result = new uint8_t[size];
     PELOTON_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
@@ -106,7 +107,7 @@ class RawBitmap {
    * @param num_bits number of bits to clear.
    */
   void Clear(uint32_t num_bits) {
-    auto size = BitmapSize(num_bits);
+    auto size = SizeInBytes(num_bits);
     PELOTON_MEMSET(bits_, 0, size);
   }
 

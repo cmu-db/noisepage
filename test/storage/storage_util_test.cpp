@@ -68,9 +68,9 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 
     // generate a random projectedRow
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    auto *row_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
-    storage::ProjectedRow *row =
-        storage::ProjectedRow::InitializeProjectedRow(row_buffer, update_col_ids, layout);
+    storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
+    auto *row_buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = update_initializer.InitializeProjectedRow(row_buffer);
     loose_pointers_.push_back(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
@@ -146,9 +146,9 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the old row
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    auto *old_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
-    storage::ProjectedRow *old =
-        storage::ProjectedRow::InitializeProjectedRow(old_buffer, all_col_ids, layout);
+    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    auto *old_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *old = initializer.InitializeProjectedRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
     loose_pointers_.push_back(old_buffer);
 
@@ -164,16 +164,14 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the delta change to apply
     std::vector<uint16_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-    std::unordered_map<uint16_t, uint16_t> col_to_index;
-    for (auto &entry : rand_col_ids) {
-      col_to_index.insert(std::make_pair(entry, entry - 1));
-    }
-    auto *delta_buffer = new byte[storage::ProjectedRow::Size(layout, rand_col_ids)];
-    storage::ProjectedRow *delta =
-        storage::ProjectedRow::InitializeProjectedRow(delta_buffer, rand_col_ids, layout);
+    storage::ProjectedRowInitializer rand_initializer(layout, rand_col_ids);
+    auto *delta_buffer = StorageTestUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
+    storage::ProjectedRow *delta = rand_initializer.InitializeProjectedRow(delta_buffer);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
     loose_pointers_.push_back(delta_buffer);
 
+    std::unordered_map<uint16_t, uint16_t> col_to_index;
+    for (auto id : rand_col_ids) col_to_index.emplace(id, id - 1);
     // apply delta
     storage::StorageUtil::ApplyDelta(layout, *delta, old, col_to_index);
 

@@ -24,7 +24,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos) it.Timestamp().store(commit_time);
+  for (auto &it : undos)
+    it.Timestamp().store(commit_time);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);

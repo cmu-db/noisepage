@@ -19,8 +19,8 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
     // generate a random redo ProjectedRow to Insert
-    redo_buffer_ = new byte[redo_size_];
-    redo_ = storage::ProjectedRow::InitializeProjectedRow(redo_buffer_, all_col_ids_, layout_);
+    redo_buffer_ = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
+    redo_ = initializer_.InitializeProjectedRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
   void TearDown(const benchmark::State &state) final {
@@ -33,8 +33,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   const storage::BlockLayout layout_{num_columns_, {column_size_, column_size_}};
 
   // Tuple properties
-  const std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
-  const uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
+  const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
 
   // Workload
   const uint32_t num_inserts_ = 10000000;

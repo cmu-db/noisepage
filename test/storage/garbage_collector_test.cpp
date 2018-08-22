@@ -31,10 +31,9 @@ class GarbageCollectorDataTableTestObject {
 
   template<class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    auto *buffer = new byte[redo_size_];
+    auto *buffer = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow
-        *redo = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids_, layout_);
+    storage::ProjectedRow *redo = initializer_.InitializeProjectedRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
@@ -42,20 +41,20 @@ class GarbageCollectorDataTableTestObject {
   template<class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    auto *buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
+    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    auto *buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *update =
-        storage::ProjectedRow::InitializeProjectedRow(buffer, update_col_ids, layout_);
+    storage::ProjectedRow *update = update_initializer.InitializeProjectedRow(buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
     return update;
   }
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    auto *buffer = new byte[redo_size_];
+    auto *buffer = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    PELOTON_MEMCPY(buffer, &previous, redo_size_);
+    PELOTON_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     for (uint16_t i = 0; i < version->NumColumns(); i++)
@@ -65,10 +64,9 @@ class GarbageCollectorDataTableTestObject {
   }
 
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn,
-                                          const storage::TupleSlot slot,
-                                          const std::vector<uint16_t> &col_ids) {
+                                          const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer_, col_ids, layout_);
+    storage::ProjectedRow *select_row = initializer_.InitializeProjectedRow(select_buffer_);
     table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -79,10 +77,8 @@ class GarbageCollectorDataTableTestObject {
   // we don't want the logically deleted field to end up set NULL.
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
-  std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
-  // These always over-provision in the case of partial selects or deltas, which is fine.
-  uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
-  byte *select_buffer_ = new byte[redo_size_];
+  storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  byte *select_buffer_ = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
 };
 
 struct GarbageCollectorTests : public ::terrier::TerrierTest {
@@ -105,7 +101,7 @@ TEST_F(GarbageCollectorTests, BasicTest) {
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
     storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
 
-    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
 
     txn_manager.Commit(txn0);

@@ -40,7 +40,7 @@ class RawConcurrentBitmap {
    * @return ptr to new RawConcurrentBitmap
    */
   static RawConcurrentBitmap *Allocate(uint32_t num_bits) {
-    uint32_t num_bytes = BitmapSize(num_bits);
+    uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
     auto *result = new uint8_t[num_bytes];
     PELOTON_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
@@ -104,7 +104,7 @@ class RawConcurrentBitmap {
       return false;
     }
 
-    uint32_t num_bytes = BitmapSize(bitmap_num_bits);  // maximum number of bytes in the bitmap
+    uint32_t num_bytes = RawBitmap::SizeInBytes(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;         // current byte position
     uint32_t bits_left = bitmap_num_bits - start_pos;  // number of bits remaining
     bool found_unset_bit = false;                      // whether we found an unset bit previously
@@ -174,7 +174,7 @@ class RawConcurrentBitmap {
    * @warning this is not thread safe!
    */
   void UnsafeClear(uint32_t num_bits) {
-    auto size = BitmapSize(num_bits);
+    auto size = RawBitmap::SizeInBytes(num_bits);
     PELOTON_MEMSET(bits_, 0, size);
   }
 

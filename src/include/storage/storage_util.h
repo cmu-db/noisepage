@@ -106,6 +106,7 @@ class StorageUtil {
    * @param buffer buffer to apply delta into
    */
   static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
+
   /**
    * Given an address offset, aligns it to the word_size
    * @param word_size size in bytes to align offset to
@@ -113,5 +114,32 @@ class StorageUtil {
    * @return modified version of address padded to align to word_size
    */
   static uint32_t PadUpToSize(uint8_t word_size, uint32_t offset);
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the given size.
+   * @param size the size to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  // This const qualifier on ptr lies. Use this really only for pointer arithmetic.
+  static byte *AlignedPtr(const uint8_t size, const void *ptr) {
+    auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
+    uint64_t remainder = ptr_value % size;
+    return remainder == 0
+           ? reinterpret_cast<byte *>(ptr_value)
+           : reinterpret_cast<byte *>(ptr_value + size - remainder);
+  }
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the size of A.
+   * @tparam A type of value to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  template<class A>
+  static A *AlignedPtr(const void *ptr) {
+    return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
+  }
+
 };
 }  // namespace terrier::storage
