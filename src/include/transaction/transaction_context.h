@@ -61,8 +61,8 @@ class TransactionContext {
   /**
    * Reserve space on this transaction's undo buffer for a record to log the insert given
    * @param table pointer to the updated DataTable object
-   * @param layout the layout of the insert target
    * @param slot the TupleSlot being updated
+   * @param insert_record_initializer ProjectedRowInitializer used to initialize an insert undo record
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot,

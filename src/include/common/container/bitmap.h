@@ -25,14 +25,8 @@ namespace terrier::common {
  * Therefore, you should never construct an instance of a RawBitmap. Reinterpret an existing block of memory that you
  * know will be a valid bitmap.
  *
-<<<<<<< HEAD
- * Use @see SizeInBytes to get the correct size for a bitmap of n
- * elements. Beware that because the size information is lost at compile time,
- * there is ABSOLUTELY no bounds check and you have to rely on programming
-=======
  * Use @see common::BitmapSize to get the correct size for a bitmap of n elements. Beware that because the size
  * information is lost at compile time, there is ABSOLUTELY no bounds check and you have to rely on programming
->>>>>>> master
  * discipline to ensure safe access.
  *
  * For easy initialization in tests and such, use the static Allocate and Deallocate methods
@@ -44,6 +38,10 @@ class RawBitmap {
   ~RawBitmap() = delete;
   DISALLOW_COPY_AND_MOVE(RawBitmap)
 
+  /**
+   * @param n number of elements in the bitmap
+   * @return the size of the bitmap holding the given number of elements, in bytes.
+   */
   static constexpr uint32_t SizeInBytes(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
   /**

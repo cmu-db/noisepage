@@ -137,6 +137,10 @@ class PACKED ProjectedRow {
   }
 };
 
+/**
+ * A ProjectedRowInitializer calculates and stores information on how to initialize ProjectedRows
+ * for a specific layout.
+ */
 class ProjectedRowInitializer {
  public:
   /**
