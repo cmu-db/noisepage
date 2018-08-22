@@ -65,8 +65,7 @@ class TransactionContext {
    * @param slot the TupleSlot being updated
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
-  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table,
-                                           const storage::TupleSlot slot,
+  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRowInitializer &insert_record_initializer) {
     storage::UndoRecord *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(insert_record_initializer));
     return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, insert_record_initializer);

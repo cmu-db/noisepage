@@ -90,7 +90,8 @@ class DataTable {
   // TODO(Matt): remove this single TAS when using concurrent schema
   const TupleAccessStrategy accessor_;
   // for performance in generating initializer for inserts
-  const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(), {PRIMARY_KEY_COLUMN_ID}};
+  const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(),
+                                                                    {PRIMARY_KEY_COLUMN_ID}};
 
   common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<RawBlock *> insertion_head_ = nullptr;
