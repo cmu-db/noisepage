@@ -135,14 +135,18 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.SetSizeLimit(size_dist_(generator));
     };
 
-    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
-                                                          {0.25, 0.25, 0.25, 0.25},
+    auto check = [&] {
+      EXPECT_TRUE(tested.CheckInvariance());
+    };
+
+    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit, check},
+                                                          {0.25, 0.25, 0.25, 0.25, 0.25},
                                                           &generator,
-                                                          100);
+                                                          1000);
     for (auto *ptr : ptrs)
       tested.Release(ptr->Release(tid));
   };
 
-  thread_pool.RunThreadsUntilFinish(8, workload, 200);
+  thread_pool.RunThreadsUntilFinish(8, workload, 1000);
 }
 }  // namespace terrier
