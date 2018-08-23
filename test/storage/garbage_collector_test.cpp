@@ -86,8 +86,9 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
   const uint16_t max_columns_ = 100;
 };
 
+// Run a single txn that performs an Insert. Confirm that it takes 2 GC cycles to process this tuple.
 // NOLINTNEXTLINE
-TEST_F(GarbageCollectorTests, BasicTest) {
+TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_, true};
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
@@ -101,10 +102,548 @@ TEST_F(GarbageCollectorTests, BasicTest) {
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
 
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
     txn_manager.Commit(txn0);
 
-    EXPECT_EQ(1, gc.PerformGarbageCollection().second);
-    EXPECT_EQ(1, gc.PerformGarbageCollection().first);
+    // Unlink the Insert's UndoRecord, then deallocate it on the next run
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Run a single read-only txn (empty UndoBuffer). Confirm that it takes 1 GC cycles to process this tuple.
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, ReadOnly) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    txn_manager.Commit(txn0);
+
+    // Unlink the txn and deallocate immediately because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, CommitInsert1)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, CommitInsert1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    // Nothing should be able to be GC'd yet because txn1 started before txn0's commit
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn1);
+
+    // Unlink the two transactions and then deallocate the single non-read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction, and it shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, CommitInsert2)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, CommitInsert2) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Commit(txn1);
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn0 started before txn1's commit
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Commit(txn0);
+
+    // Unlink the two transactions and then deallocate the single non-read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, AbortInsert1)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, AbortInsert1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Abort(txn0);
+
+    // Aborted transactions can be removed from the unlink queue immediately
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // But it's not safe to deallocate it yet because txn #1 is still running and may hold a reference to it
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn1);
+
+    // Deallocate the aborted txn, and process the read-only transaction
+    EXPECT_EQ(std::make_pair(1u, 1u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, AbortInsert2)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, AbortInsert2) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn1 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Abort(txn1);
+
+    // Aborted transactions can be removed from the unlink queue immediately
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // But it's not safe to deallocate it yet because txn #0 is still running and may hold a reference to it
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    // Deallocate the aborted txn, and process the read-only transaction
+    EXPECT_EQ(std::make_pair(1u, 1u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, CommitUpdate1)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, CommitUpdate1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn);
+
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    // Nothing should be able to be GC'd yet because txn1 started before txn0's commit
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn1);
+
+    // Unlink the update and read-only txns, then deallocate the update txn
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, CommitUpdate2)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, CommitUpdate2) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn);
+
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+
+    // Nothing should be able to be GC'd yet because txn1 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    txn_manager.Commit(txn1);
+
+    // Nothing should be able to be GC'd yet because txn0 started before txn1's commit
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0);
+
+    // Unlink the update and read-only txns, then deallocate the update txn
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, AbortUpdate1)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, AbortUpdate1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn);
+
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Abort(txn0);
+
+    // Aborted transactions can be removed from the unlink queue immediately
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // But it's not safe to deallocate it yet because txn #1 is still running and may hold a reference to it
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn1);
+
+    // Deallocate the aborted txn, and process the read-only transaction
+    EXPECT_EQ(std::make_pair(1u, 1u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, AbortUpdate2)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, AbortUpdate2) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn);
+
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    // Nothing should be able to be GC'd yet because txn1 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Abort(txn1);
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Aborted transactions can be removed from the unlink queue immediately
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // But it's not safe to deallocate it yet because txn #0 is still running and may hold a reference to it
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Commit(txn0);
+
+    // Deallocate the aborted txn, and process the read-only transaction
+    EXPECT_EQ(std::make_pair(1u, 1u), gc.PerformGarbageCollection());
+    // Read-only transaction shouldn't have made it to the deallocate queue
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    auto *txn2 = txn_manager.BeginTransaction();
+
+    select_tuple = tested.SelectIntoBuffer(txn2, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn2);
+
+    // Unlink the read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    // It shouldn't make it to the second invocation because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
+// Corresponds to (MVCCTests, InsertUpdate1)
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, InsertUpdate1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager{&buffer_pool_, true};
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+
+    auto *txn1 = txn_manager.BeginTransaction();
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot, tested.all_col_ids_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    // Nothing should be able to be GC'd yet because txn1 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    txn_manager.Commit(txn1);
+
+    // Nothing should be able to be GC'd yet because txn0 started before txn1's commit
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
+    EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Abort(txn0);
+
+    // Process the insert and aborted txns. Both should make it to the unlink phase
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 

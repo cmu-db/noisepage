@@ -31,13 +31,13 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 
 uint32_t GarbageCollector::ProcessDeallocateQueue() {
   const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
-  uint32_t txns_deallocated = 0;
+  uint32_t txns_processed = 0;
   transaction::TransactionContext *txn = nullptr;
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
     // We are now safe to deallocate these txns because no one should hold a reference to them anymore
-    txns_deallocated = static_cast<uint32_t>(txns_to_deallocate_.size());
+    txns_processed = static_cast<uint32_t>(txns_to_deallocate_.size());
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop();
@@ -45,7 +45,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
     }
   }
 
-  return txns_deallocated;
+  return txns_processed;
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue() {
@@ -62,18 +62,22 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     txns_to_unlink_.push(txn);
   }
 
-  uint32_t txns_unlinked = 0;
+  uint32_t txns_processed = 0;
   transaction::TransactionQueue requeue;
   // Process every transaction in the unlink queue
 
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop();
-    if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
+    if (txn->GetUndoBuffer().Empty()) {
+      // this is a read-only transaction so this is safe to immediately delete
+      delete txn;
+      txns_processed++;
+    } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push(txn);
-      txns_unlinked++;
+      txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
       UndoBuffer &undos = txn->GetUndoBuffer();
@@ -81,7 +85,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
         UnlinkUndoRecord(txn, undo_record);
       }
       txns_to_deallocate_.push(txn);
-      txns_unlinked++;
+      txns_processed++;
     } else {
       // this is a committed txn that is still visible, requeue for next GC run
       requeue.push(txn);
@@ -93,7 +97,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     txns_to_unlink_ = requeue;
   }
 
-  return txns_unlinked;
+  return txns_processed;
 }
 
 void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,

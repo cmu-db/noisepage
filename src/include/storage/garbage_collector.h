@@ -31,7 +31,8 @@ class GarbageCollector {
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
    * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
    * first invocation will unlink a transaction's UndoRecords, while the second time around will allow the GC to free
-   * the transaction if safe to do so.
+   * the transaction if safe to do so. The only exception is read-only transactions, which can be deallocated in a
+   * single GC pass.
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
@@ -40,13 +41,13 @@ class GarbageCollector {
  private:
   /**
    * Process the deallocate queue
-   * @return number of txns deallocated (not UndoRecords) for debugging/testing
+   * @return number of txns (not UndoRecords) processed for debugging/testing
    */
   uint32_t ProcessDeallocateQueue();
 
   /**
    * Process the unlink queue
-   * @return number of txns unlinked (not UndoRecords) for debugging/testing
+   * @return number of txns (not UndoRecords) processed for debugging/testing
    */
   uint32_t ProcessUnlinkQueue();
 
