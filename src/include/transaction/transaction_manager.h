@@ -1,6 +1,5 @@
 #pragma once
 #include <map>
-#include <queue>
 #include <utility>
 #include "common/rw_latch.h"
 #include "common/spin_latch.h"
@@ -9,6 +8,7 @@
 #include "storage/delta_record.h"
 #include "storage/record_buffer.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
 /**
@@ -68,7 +68,7 @@ class TransactionManager {
    * Return a copy of the completed txns queue and empty the local version
    * @return copy of the completed txns for the GC to process
    */
-  std::queue<transaction::TransactionContext *> CompletedTransactionsForGC();
+  TransactionQueue CompletedTransactionsForGC();
 
  private:
   common::ObjectPool<storage::BufferSegment> *buffer_pool_;
@@ -84,7 +84,7 @@ class TransactionManager {
   std::map<timestamp_t, TransactionContext *> curr_running_txns_;
 
   bool gc_enabled_ = false;
-  std::queue<transaction::TransactionContext *> completed_txns_;
+  TransactionQueue completed_txns_;
 
   void Rollback(timestamp_t txn_id, const storage::UndoRecord &record);
 };
