@@ -189,7 +189,7 @@ class ObjectPool {
   /***
    * Check if current_size_ is always no greater than size_limit_
    *
-   * @return true if current size > size_limit; false otherwise.
+   * @return true if current size <= size_limit; false otherwise.
    */
   bool CheckInvariance() {
     curr_add_lock_.Lock();    // current_size is not allowed to increase at this point
