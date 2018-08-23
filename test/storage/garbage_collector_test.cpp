@@ -93,6 +93,7 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
   const uint16_t max_columns_ = 100;
 };
 
+// Run a single txn that performs an Insert. Confirm that it takes 2 GC cycles to process this tuple.
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
@@ -108,6 +109,9 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
 
+    // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+
     txn_manager.Commit(txn0);
 
     // Unlink the Insert's UndoRecord, then deallocate it on the next run
@@ -116,6 +120,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
   }
 }
 
+// Run a single read-only txn (empty UndoBuffer). Confirm that it takes 1 GC cycles to process this tuple.
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, ReadOnly) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
