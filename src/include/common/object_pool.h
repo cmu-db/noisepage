@@ -142,6 +142,7 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
+    // A lock is used to ensure the invariance current_size_ <= size_limit
     lock_.Lock();
     if (new_size >= current_size_) {
       // current_size_ might change and become > new_size
@@ -161,6 +162,7 @@ class ObjectPool {
    * @param new_reuse_limit
    */
   void SetReuseLimit(uint64_t new_reuse_limit) {
+    // A lock is used to ensure the invariance reuse_limit_ <= size_limit
     lock_.Lock();
     if (new_reuse_limit <= size_limit_) {
       // size_limit_ can change after we enter this if clause
@@ -168,9 +170,10 @@ class ObjectPool {
       lock_.Unlock();
       T *obj = nullptr;
       while (reuse_queue_.UnsafeSize() > reuse_limit_) {
-        reuse_queue_.Dequeue(&obj);
-        alloc_.Delete(obj);
-        current_size_--;
+        if (reuse_queue_.Dequeue(&obj)) {
+          alloc_.Delete(obj);
+          current_size_--;
+        }
       }
     } else {
       lock_.Unlock();
