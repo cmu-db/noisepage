@@ -64,11 +64,11 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return hand_to_gc;
 }
 
-void TransactionManager::Rollback(timestamp_t txn_id, const storage::UndoRecord &record) {
-  storage::DataTable *table = record.Table();
-  storage::TupleSlot slot = record.Slot();
+void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoRecord &record) const {
+  storage::DataTable *const table = record.Table();
+  const storage::TupleSlot slot = record.Slot();
   storage::UndoRecord
-      *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+      *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
   // We do not hold the lock. Should just return
   if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image
