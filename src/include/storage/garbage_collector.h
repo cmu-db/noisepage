@@ -3,6 +3,7 @@
 #include <queue>
 #include <utility>
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
@@ -61,9 +62,9 @@ class GarbageCollector {
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run
-  std::queue<transaction::TransactionContext *> txns_to_deallocate_;
+  transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
-  std::queue<transaction::TransactionContext *> txns_to_unlink_;
+  transaction::TransactionQueue txns_to_unlink_;
 };
 
 }  // namespace terrier::storage
