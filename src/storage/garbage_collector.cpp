@@ -1,4 +1,3 @@
-#include <queue>
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/macros.h"
@@ -6,6 +5,7 @@
 #include "storage/data_table.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
@@ -19,6 +19,13 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
     // safe to deallocate the transactions in our queue.
     last_unlinked_ = txn_manager_->GetTimestamp();
   }
+  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
+                    static_cast<uint64_t>(last_unlinked_));
+  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
+  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
+  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_to_deallocate_.size(): {}",
+                    txns_to_deallocate_.size());
+  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_to_unlink_.size(): {}", txns_to_unlink_.size());
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
@@ -46,7 +53,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
-  std::queue<transaction::TransactionContext *> from_txn_manager = txn_manager_->CompletedTransactionsForGC();
+  transaction::TransactionQueue from_txn_manager = txn_manager_->CompletedTransactionsForGC();
+  STORAGE_LOG_TRACE("GarbageCollector::ProcessUnlinkQueue(): from_txn_manager.size(): {}", from_txn_manager.size());
   // Append to our local unlink queue
   while (!from_txn_manager.empty()) {
     txn = from_txn_manager.front();
@@ -55,7 +63,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   }
 
   uint32_t txns_unlinked = 0;
-  std::queue<transaction::TransactionContext *> requeue;
+  transaction::TransactionQueue requeue;
   // Process every transaction in the unlink queue
 
   while (!txns_to_unlink_.empty()) {
@@ -81,6 +89,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   }
   // requeue any txns that we were still visible to running transactions
   if (!requeue.empty()) {
+    STORAGE_LOG_TRACE("GarbageCollector::ProcessUnlinkQueue(): requeue.size(): {}", requeue.size());
     txns_to_unlink_ = requeue;
   }
 
@@ -116,7 +125,7 @@ void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
       curr = next;
       next = curr->Next();
     }
-    // we're in position with next being the UndiRecord to be unlinked
+    // we're in position with next being the UndoRecord to be unlinked
     if (next != nullptr && next->Timestamp().load() == txn->TxnId().load()) {
       curr->Next().store(next->Next().load());
       break;
