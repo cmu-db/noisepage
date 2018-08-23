@@ -147,6 +147,11 @@ class ProjectedRowInitializer {
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
+   *
+   * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
+   * utilization and performance. Make no assumption about the ordering of these elements and always consult either
+   * the initializer or the populated ProjectedRow for the true ordering.
+   *
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    */
@@ -163,6 +168,16 @@ class ProjectedRowInitializer {
    * @return size of the ProjectedRow in memory, in bytes, that this initializer constructs.
    */
   uint32_t ProjectedRowSize() const { return size_; }
+
+  /**
+   * @return number of columns in the projection list
+   */
+  uint16_t NumCols() const { return static_cast<uint16_t>(col_ids_.size()); }
+
+  /**
+   * @return column ids at the given offset in the projection list
+   */
+  uint16_t ColId(uint16_t i) const { return col_ids_.at(i); }
 
  private:
   uint32_t size_ = 0;
@@ -289,7 +304,9 @@ class UndoRecord {
   std::atomic<timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
-  byte varlen_contents_[0];
+  // This needs to be aligned to 8 bytes to ensure the real size of UndoRecord (plus actual ProjectedRow) is also
+  // a multiple of 8.
+  uint64_t varlen_contents_[0];
 };
 
 static_assert(sizeof(UndoRecord) % 8 == 0,

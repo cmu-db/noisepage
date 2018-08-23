@@ -56,10 +56,7 @@ class GarbageCollectorDataTableTestObject {
     // Copy previous version
     TERRIER_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
-    std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-    for (uint16_t i = 0; i < version->NumColumns(); i++)
-      col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
-    storage::StorageUtil::ApplyDelta(layout_, delta, version, col_to_projection_list_index);
+    storage::StorageUtil::ApplyDelta(layout_, delta, version);
     return version;
   }
 

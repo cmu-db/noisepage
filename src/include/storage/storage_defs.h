@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <functional>
 #include <ostream>
 #include <utility>
 #include <vector>
@@ -33,11 +35,14 @@ struct RawBlock {
 
 /**
  * Stores metadata about the layout of a block.
- * This will eventually be baked in as compiled code by LLVM.
  */
 struct BlockLayout {
   /**
    * Constructs a new block layout.
+   * @warning The resulting column ids WILL be reordered and are not the same as the indexes given in the
+   * attr_sizes, as the constructor applies optimizations based on sizes. It is up to the caller to then
+   * associate these "column ids" with the right upper level concepts.
+   *
    * @param num_attrs number of attributes.
    * @param attr_sizes vector of attribute sizes.
    */
@@ -45,33 +50,46 @@ struct BlockLayout {
       : num_cols_(num_attrs),
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
-        header_size_(HeaderSize()),
-        num_slots_(NumSlots()) {
+        header_size_(ComputeHeaderSize()),
+        num_slots_(ComputeNumSlots()) {
     TERRIER_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
     TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
+    // sort the attributes when laying out memory to minimize impact of padding
+    std::sort(attr_sizes_.begin(), attr_sizes_.end(), std::greater<>());
   }
 
   /**
    * Number of columns.
    */
-  const uint16_t num_cols_;
+  const uint16_t NumCols() const { return num_cols_; }
+
   /**
-   * Vector of attribute sizes.
+   * attribute size at given col_id.
    */
-  const std::vector<uint8_t> attr_sizes_;
-  // Cached tuple size so that we don't have to iterate through attr_sizes_ every time.
+  uint8_t AttrSize(uint16_t col_id) const { return attr_sizes_.at(col_id); }
+
   /**
    * Tuple size.
    */
-  const uint32_t tuple_size_;
+  const uint32_t TupleSize() const { return tuple_size_; }
+
   /**
    * Header size.
    */
-  const uint32_t header_size_;
+  const uint32_t HeaderSize() const { return header_size_; }
+
   /**
    * Number of slots in the tuple.
    */
+  const uint32_t NumSlots() const { return num_slots_; }
+
+ private:
+  const uint16_t num_cols_;
+  std::vector<uint8_t> attr_sizes_;
+  // Cached values so that we don't have to iterate through attr_sizes_ every time.
+  const uint32_t tuple_size_;
+  const uint32_t header_size_;
   const uint32_t num_slots_;
 
  private:
@@ -82,16 +100,19 @@ struct BlockLayout {
     return result;
   }
 
-  uint32_t HeaderSize() const {
+  uint32_t ComputeHeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
                                  + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
   }
 
-  uint32_t NumSlots() const {
+  uint32_t ComputeNumSlots() const {
+    // TODO(Tianyu):
     // subtracting 1 from this number so we will always have
     // space to pad each individual bitmap to full bytes (every attribute is
-    // at least a byte). Somebody can come and fix this later, because I don't
-    // feel like thinking about this now.
+    // at least a byte). Subtracting another 1 to account for padding. Somebody can come and fix
+    // this later, because I don't feel like thinking about this now.
+    // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
+    // up to the size of 1 tuple, so this can probably change to be more optimistic,
     return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
   }
 };

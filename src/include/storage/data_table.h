@@ -90,6 +90,7 @@ class DataTable {
   // TODO(Matt): remove this single TAS when using concurrent schema
   const TupleAccessStrategy accessor_;
   // for performance in generating initializer for inserts
+  // TODO(Tianyu): I suppose we can use this for deletes too?
   const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(),
                                                                     {PRIMARY_KEY_COLUMN_ID}};
 

@@ -14,7 +14,7 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
     // need to over provision, accounting for all the padding that could go in
       buffer_(test_object->bookkeeping_ ? nullptr : StorageTestUtil::AllocateAligned(
           test_object->row_initializer_.ProjectedRowSize()
-              + static_cast<uint32_t>(sizeof(uint64_t) * test_object->layout_.num_cols_))) {}
+              + static_cast<uint32_t>(sizeof(uint64_t) * test_object->layout_.NumCols()))) {}
 
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;

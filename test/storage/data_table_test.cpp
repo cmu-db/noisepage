@@ -81,10 +81,7 @@ class RandomDataTableTestObject {
       TERRIER_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
       auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
       // apply delta
-      std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-      for (uint16_t i = 0; i < version->NumColumns(); i++)
-        col_to_projection_list_index.emplace(version->ColumnIds()[i], i);
-      storage::StorageUtil::ApplyDelta(layout_, *update, version, col_to_projection_list_index);
+      storage::StorageUtil::ApplyDelta(layout_, *update, version);
       tuple_versions_[slot].emplace_back(timestamp, version);
     }
 

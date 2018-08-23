@@ -41,7 +41,7 @@ TEST_F(ProjectedRowTests, Nulls) {
       null_cols[i] = coin(generator_);
       if (null_cols[i]) {
         byte *val_ptr = update->AccessForceNotNull(i);
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[i + 1], 0, val_ptr);
+        storage::StorageUtil::WriteBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), 0, val_ptr);
         update->SetNull(i);
       } else {
         update->SetNotNull(i);
@@ -53,7 +53,7 @@ TEST_F(ProjectedRowTests, Nulls) {
       if (null_cols[i]) {
         EXPECT_EQ(addr, nullptr);
         byte *val_ptr = update->AccessForceNotNull(i);
-        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.attr_sizes_[i + 1], val_ptr));
+        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), val_ptr));
       } else {
         EXPECT_FALSE(addr == nullptr);
       }
@@ -108,12 +108,12 @@ TEST_F(ProjectedRowTests, MemorySafety) {
     auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
 
-    EXPECT_EQ(layout.num_cols_ - 1, row->NumColumns());
+    EXPECT_EQ(layout.NumCols() - 1, row->NumColumns());
     void *upper_bound = reinterpret_cast<byte *>(row) + row->Size();
     // check the rest values memory addresses don't overlapping previous addresses.
     for (uint16_t i = 1; i < row->NumColumns(); i++) {
       void *lower_bound = StorageTestUtil::IncrementByBytes(row->AccessForceNotNull(static_cast<uint16_t>(i - 1)),
-                                                            layout.attr_sizes_[row->ColumnIds()[i - 1]]);
+                                                            layout.AttrSize(row->ColumnIds()[i - 1]));
       // Check that the previous address is within allocated bounds
       StorageTestUtil::CheckInBounds(lower_bound, row, upper_bound);
       // check if the value address is in bound
@@ -138,7 +138,7 @@ TEST_F(ProjectedRowTests, Alignment) {
     storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
     for (uint16_t i = 0; i < row->NumColumns(); i++)
       StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i),
-                                      layout.attr_sizes_[row->ColumnIds()[i]]);
+                                      layout.AttrSize(row->ColumnIds()[i]));
     delete[] buffer;
   }
 }

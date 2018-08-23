@@ -81,25 +81,6 @@ class StorageUtil {
    * Specifically, columns present in the delta will have their value (or lack of value, in the case of null) copied
    * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
    * behavior is not defined.
-   * @param layout layout used for the projected row
-   * @param delta delta to apply
-   * @param buffer buffer to apply delta into
-   * @param col_to_index a mapping between column id and projection list index for the buffer to apply delta to. This
-   *                     speeds up operation if multiple deltas are expected to be applied to the same buffer.
-   */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
-                         const std::unordered_map<uint16_t, uint16_t> &col_to_index);
-
-  /**
-   * Applies delta into the given buffer.
-   *
-   * Specifically, columns present in the delta will have their value (or lack of value, in the case of null) copied
-   * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
-   * behavior is not defined.
-   *
-   * @warning This version of the function is slow if you expect to apply multiple deltas into the same buffer, because
-   * every call will construct their own maps from column id to projection list index. If that is your use case, call
-   * the other version of this function that takes in a map that can be reused across different calls.
    *
    * @param layout layout used for the projected row
    * @param delta delta to apply
