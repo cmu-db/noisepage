@@ -111,14 +111,14 @@ class ObjectPool {
   T *Get() {
     T *result = nullptr;
     if (!reuse_queue_.Dequeue(&result)) {
-      curr_lock_.Lock();
+      curr_add_lock_.Lock();
       size_limit_lock_.Lock();
       if (current_size_ < size_limit_) {
         result = alloc_.New();
         current_size_++;
       }
       size_limit_lock_.Unlock();
-      curr_lock_.Unlock();
+      curr_add_lock_.Unlock();
 
       if (result == nullptr) {
         // out of memory
@@ -141,16 +141,16 @@ class ObjectPool {
    */
   bool SetSizeLimit(uint64_t new_size) {
     // A lock is used to ensure the invariance current_size_ <= size_limit
-    curr_lock_.Lock();
+    curr_add_lock_.Lock();
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_lock_.Lock();
       size_limit_ = new_size;
       size_limit_lock_.Unlock();
-      curr_lock_.Unlock();
+      curr_add_lock_.Unlock();
       return true;
     }
-    curr_lock_.Unlock();
+    curr_add_lock_.Unlock();
     return false;
   }
 
@@ -192,19 +192,19 @@ class ObjectPool {
    * @return true if current size > size_limit; false otherwise.
    */
   bool CheckInvariance() {
-    curr_lock_.Lock();        // current_size is not allowed to increase at this point
+    curr_add_lock_.Lock();    // current_size is not allowed to increase at this point
     size_limit_lock_.Lock();  // size_limit is not allowed to change at this point
     uint64_t curr = current_size_;
     uint64_t limit = size_limit_;
     size_limit_lock_.Unlock();
-    curr_lock_.Unlock();
+    curr_add_lock_.Unlock();
     return curr <= limit;
   }
 
  private:
   Allocator alloc_;
   SpinLatch size_limit_lock_;  // A lock for changing size_limit
-  SpinLatch curr_lock_;        // A lock for incrementing current_size
+  SpinLatch curr_add_lock_;    // A lock for incrementing current_size
   ConcurrentQueue<T *> reuse_queue_;
   uint64_t size_limit_;   // the maximum number of objects a object pool can have
   uint64_t reuse_limit_;  // the maximum number of reusable objects in reuse_queue
