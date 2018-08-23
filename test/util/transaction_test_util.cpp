@@ -15,7 +15,7 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
 
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;
-  if (test_object_->bookkeeping_) delete[] buffer_;
+  if (!test_object_->bookkeeping_) delete[] buffer_;
   for (auto &entry : updates_)
     delete[] reinterpret_cast<byte *>(entry.second);
   for (auto &entry : selects_)
