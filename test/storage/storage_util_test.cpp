@@ -85,7 +85,6 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
             storage::StorageUtil::ReadBytes(attr_size, row->AccessWithNullCheck(col)));
         delete[] from;
       }
-
     }
     delete[] row_buffer;
   }

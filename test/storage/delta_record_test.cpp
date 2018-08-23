@@ -68,7 +68,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
     for (uint32_t i = 0; i < record_list.size() - 1; i++)
       EXPECT_EQ(record_list[i]->Next(), record_list[i + 1]);
 
-    for(auto record : record_list) delete[] reinterpret_cast<byte *>(record);
+    for (auto record : record_list) delete[] reinterpret_cast<byte *>(record);
   }
 }
 
