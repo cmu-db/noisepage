@@ -168,7 +168,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // check changes has been applied
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumCols(); ++delta_col_offset) {
       uint16_t col = rand_initializer.ColId(delta_col_offset);
-      uint16_t old_col_offset = col - 1;  // since all columns were in the old one
+      uint16_t old_col_offset = static_cast<uint16_t>(col - 1);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
       byte *old_val_ptr = old->AccessWithNullCheck(old_col_offset);
       if (delta_val_ptr == nullptr) {
@@ -187,7 +187,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(i + 1), ptr), copy[i].second);
+          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), ptr),
+                    copy[i].second);
         }
       }
     }
