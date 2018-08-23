@@ -108,14 +108,17 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
   auto workload = [&](uint32_t tid) {
-    std::uniform_int_distribution<uint64_t> size_dist_;
+    std::uniform_int_distribution<uint64_t> size_dist_(1, reuse_limit);
 
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
     // Store the pointers we use.
     std::vector<ObjectPoolTestType *> ptrs;
     auto allocate = [&] {
-      ptrs.push_back(tested.Get()->Use(tid));
+      try {
+        ObjectPoolTestType * temp = tested.Get();
+        ptrs.push_back(temp->Use(tid));
+      } catch (common::NoMoreObjectException) {}
     };
     auto free = [&] {
       if (!ptrs.empty()) {
@@ -140,6 +143,6 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.Release(ptr->Release(tid));
   };
 
-  thread_pool.RunThreadsUntilFinish(8, workload, 100);
+  thread_pool.RunThreadsUntilFinish(8, workload, 200);
 }
 }  // namespace terrier
