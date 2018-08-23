@@ -16,20 +16,11 @@ struct DeltaRecordTests : public TerrierTest {
 
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
-  std::vector<byte *> loose_pointers_;
 
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
     raw_block_ = block_store_.Get();
-  }
-
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    for (auto entry : loose_pointers_) {
-      delete[] entry;
-    }
-    TerrierTest::TearDown();
   }
 };
 
@@ -63,7 +54,6 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       storage::ProjectedRowInitializer initializer(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
       auto *record_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-      loose_pointers_.push_back(record_buffer);
       storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer,
                                                                           time,
                                                                           slot,
@@ -77,6 +67,8 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
 
     for (uint32_t i = 0; i < record_list.size() - 1; i++)
       EXPECT_EQ(record_list[i]->Next(), record_list[i + 1]);
+
+    for(auto record : record_list) delete[] reinterpret_cast<byte *>(record);
   }
 }
 
@@ -100,7 +92,6 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     storage::ProjectedRow *redo = initializer.InitializeProjectedRow(redo_buffer);
     // we don't need to populate projected row since we only copying the layout when we create a UndoRecord using
     // projected row
-    loose_pointers_.push_back(redo_buffer);
 
     // get data table
     storage::DataTable data_table(&block_store_, layout);
@@ -113,13 +104,14 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     uint32_t size = storage::UndoRecord::Size(*redo);
     timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
     auto *record_buffer = StorageTestUtil::AllocateAligned(size);
-    loose_pointers_.push_back(record_buffer);
     storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer,
                                                                         time,
                                                                         slot,
                                                                         &data_table,
                                                                         *redo);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, record->Delta(), redo));
+    delete[] redo_buffer;
+    delete[] record_buffer;
   }
 }
 }  // namespace terrier

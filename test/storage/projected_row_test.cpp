@@ -13,19 +13,6 @@ namespace terrier {
 struct ProjectedRowTests : public TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
-  std::vector<byte *> loose_pointers_;
-
- protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-  }
-
-  void TearDown() override {
-    for (auto entry : loose_pointers_) {
-      delete[] entry;
-    }
-    TerrierTest::TearDown();
-  }
 };
 
 // Generates a random table layout and a random table layout. Coin flip bias for an attribute being null and set the
@@ -45,7 +32,6 @@ TEST_F(ProjectedRowTests, Nulls) {
     auto *update_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *update = initializer.InitializeProjectedRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout, null_ratio_(generator_), &generator_);
-    loose_pointers_.push_back(update_buffer);
 
 
     // generator a binary vector and set nulls according to binary vector. For null attributes, we set value to be 0.
@@ -72,6 +58,7 @@ TEST_F(ProjectedRowTests, Nulls) {
         EXPECT_FALSE(addr == nullptr);
       }
     }
+    delete[] update_buffer;
   }
 }
 
@@ -88,7 +75,6 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
-    loose_pointers_.push_back(buffer);
 
     auto *copy = StorageTestUtil::AllocateAligned(row->Size());
     auto *copied_row = storage::ProjectedRow::CopyProjectedRowLayout(copy, *row);
@@ -101,6 +87,8 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
           - reinterpret_cast<uintptr_t>(copied_row);
       EXPECT_EQ(offset, copied_offset);
     }
+    delete[] buffer;
+    delete[] copy;
   }
 }
 
@@ -119,7 +107,6 @@ TEST_F(ProjectedRowTests, MemorySafety) {
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
-    loose_pointers_.push_back(buffer);
 
     EXPECT_EQ(layout.num_cols_ - 1, row->NumColumns());
     void *upper_bound = reinterpret_cast<byte *>(row) + row->Size();
@@ -132,6 +119,7 @@ TEST_F(ProjectedRowTests, MemorySafety) {
       // check if the value address is in bound
       StorageTestUtil::CheckInBounds(row->AccessForceNotNull(i), lower_bound, upper_bound);
     }
+    delete[] buffer;
   }
 }
 
@@ -148,10 +136,10 @@ TEST_F(ProjectedRowTests, Alignment) {
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
-    loose_pointers_.push_back(buffer);
     for (uint16_t i = 0; i < row->NumColumns(); i++)
       StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i),
                                       layout.attr_sizes_[row->ColumnIds()[i]]);
+    delete[] buffer;
   }
 }
 }  // namespace terrier

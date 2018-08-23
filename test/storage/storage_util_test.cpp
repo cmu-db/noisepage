@@ -19,8 +19,6 @@ struct StorageUtilTests : public TerrierTest {
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1};
 
-  std::vector<byte *> loose_pointers_;
-
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
@@ -29,10 +27,6 @@ struct StorageUtilTests : public TerrierTest {
 
   void TearDown() override {
     block_store_.Release(raw_block_);
-
-    for (auto &entry : loose_pointers_) {
-      delete[] entry;
-    }
     TerrierTest::TearDown();
   }
 };
@@ -71,7 +65,6 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
     auto *row_buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeProjectedRow(row_buffer);
-    loose_pointers_.push_back(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t col = 0; col < row->NumColumns(); ++col) {
@@ -81,7 +74,6 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
       if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
-        loose_pointers_.push_back(from);
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
       storage::StorageUtil::CopyWithNullCheck(from, row, attr_size, col);
@@ -91,8 +83,11 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
       } else {
         EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
             storage::StorageUtil::ReadBytes(attr_size, row->AccessWithNullCheck(col)));
+        delete[] from;
       }
+
     }
+    delete[] row_buffer;
   }
 }
 
@@ -119,7 +114,6 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
       if (!is_null) {
         // generate a random val
         from = new byte[attr_size];
-        loose_pointers_.push_back(from);
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
       storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col);
@@ -129,6 +123,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
       } else {
         EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
                   storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col)));
+        delete[] from;
       }
     }
   }
@@ -150,7 +145,6 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     auto *old_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeProjectedRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
-    loose_pointers_.push_back(old_buffer);
 
     // store the values as a reference
     std::vector<std::pair<byte *, uint64_t>> copy;
@@ -168,7 +162,6 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     auto *delta_buffer = StorageTestUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
     storage::ProjectedRow *delta = rand_initializer.InitializeProjectedRow(delta_buffer);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
-    loose_pointers_.push_back(delta_buffer);
 
     std::unordered_map<uint16_t, uint16_t> col_to_index;
     for (auto id : rand_col_ids) col_to_index.emplace(id, id - 1);
@@ -203,6 +196,9 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         }
       }
     }
+
+    delete[] delta_buffer;
+    delete[] old_buffer;
   }
 }
 
