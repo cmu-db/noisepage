@@ -628,7 +628,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     select_tuple = tested.SelectIntoBuffer(txn0, slot, tested.all_col_ids_);
     EXPECT_FALSE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0);
+    txn_manager.Abort(txn0);
   }
 }
 
