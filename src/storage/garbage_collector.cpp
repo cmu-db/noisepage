@@ -125,7 +125,7 @@ void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
       curr = next;
       next = curr->Next();
     }
-    // we're in position with next being the UndiRecord to be unlinked
+    // we're in position with next being the UndoRecord to be unlinked
     if (next != nullptr && next->Timestamp().load() == txn->TxnId().load()) {
       curr->Next().store(next->Next().load());
       break;
