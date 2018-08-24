@@ -81,31 +81,13 @@ class StorageUtil {
    * Specifically, columns present in the delta will have their value (or lack of value, in the case of null) copied
    * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
    * behavior is not defined.
-   * @param layout layout used for the projected row
-   * @param delta delta to apply
-   * @param buffer buffer to apply delta into
-   * @param col_to_index a mapping between column id and projection list index for the buffer to apply delta to. This
-   *                     speeds up operation if multiple deltas are expected to be applied to the same buffer.
-   */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
-                         const std::unordered_map<uint16_t, uint16_t> &col_to_index);
-
-  /**
-   * Applies delta into the given buffer.
-   *
-   * Specifically, columns present in the delta will have their value (or lack of value, in the case of null) copied
-   * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
-   * behavior is not defined.
-   *
-   * @warning This version of the function is slow if you expect to apply multiple deltas into the same buffer, because
-   * every call will construct their own maps from column id to projection list index. If that is your use case, call
-   * the other version of this function that takes in a map that can be reused across different calls.
    *
    * @param layout layout used for the projected row
    * @param delta delta to apply
    * @param buffer buffer to apply delta into
    */
   static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
+
   /**
    * Given an address offset, aligns it to the word_size
    * @param word_size size in bytes to align offset to
@@ -113,5 +95,30 @@ class StorageUtil {
    * @return modified version of address padded to align to word_size
    */
   static uint32_t PadUpToSize(uint8_t word_size, uint32_t offset);
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the given size.
+   * @param size the size to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  // This const qualifier on ptr lies. Use this really only for pointer arithmetic.
+  static byte *AlignedPtr(const uint8_t size, const void *ptr) {
+    auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
+    uint64_t remainder = ptr_value % size;
+    return remainder == 0 ? reinterpret_cast<byte *>(ptr_value)
+                          : reinterpret_cast<byte *>(ptr_value + size - remainder);
+  }
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the size of A.
+   * @tparam A type of value to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  template <class A>
+  static A *AlignedPtr(const void *ptr) {
+    return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
+  }
 };
 }  // namespace terrier::storage

@@ -49,7 +49,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from,
   if (from == nullptr) {
     accessor.SetNull(to, col_id);
   } else {
-    uint8_t size = accessor.GetBlockLayout().attr_sizes_[col_id];
+    uint8_t size = accessor.GetBlockLayout().AttrSize(col_id);
     WriteBytes(size, ReadBytes(size, from), accessor.AccessForceNotNull(to, col_id));
   }
 }
@@ -59,7 +59,7 @@ void StorageUtil::CopyAttrIntoProjection(const TupleAccessStrategy &accessor,
                                          ProjectedRow *const to,
                                          const uint16_t projection_list_offset) {
   uint16_t col_id = to->ColumnIds()[projection_list_offset];
-  uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
+  uint8_t attr_size = accessor.GetBlockLayout().AttrSize(col_id);
   byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
   CopyWithNullCheck(stored_attr, to, attr_size, projection_list_offset);
 }
@@ -73,27 +73,29 @@ void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor,
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
 }
 
-void StorageUtil::ApplyDelta(const BlockLayout &layout,
-                             const ProjectedRow &delta,
-                             ProjectedRow *const buffer,
-                             const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
-  for (uint16_t i = 0; i < delta.NumColumns(); i++) {
-    uint16_t delta_col_id = delta.ColumnIds()[i];
-    auto it = col_to_index.find(delta_col_id);
-    if (it != col_to_index.end()) {
-      uint16_t col_id = it->first, buffer_offset = it->second;
-      uint8_t attr_size = layout.attr_sizes_[col_id];
-      StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
-    }
-  }
-}
-
 void StorageUtil::ApplyDelta(const terrier::storage::BlockLayout &layout,
                              const terrier::storage::ProjectedRow &delta,
                              terrier::storage::ProjectedRow *buffer) {
-  std::unordered_map<uint16_t, uint16_t> col_to_index;
-  for (uint16_t i = 0; i < buffer->NumColumns(); i++) col_to_index.emplace(buffer->ColumnIds()[i], i);
-  ApplyDelta(layout, delta, buffer, col_to_index);
+  // the projection list in delta and buffer have to be sorted in the same way for this to work,
+  // which should be guaranteed if both are constructed correctly using ProjectedRowInitializer,
+  // (or copied from a valid ProjectedRow)
+  uint16_t delta_i = 0, buffer_i = 0;
+  while (delta_i < delta.NumColumns() && buffer_i < buffer->NumColumns()) {
+    uint16_t delta_col_id = delta.ColumnIds()[delta_i], buffer_col_id = buffer->ColumnIds()[buffer_i];
+    if (delta_col_id == buffer_col_id) {
+      // Should apply changes
+      uint8_t attr_size = layout.AttrSize(delta_col_id);
+      StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(delta_i), buffer, attr_size, buffer_i);
+      delta_i++;
+      buffer_i++;
+    } else if (delta_col_id > buffer_col_id) {
+      // buffer is behind
+      buffer_i++;
+    } else {
+      // delta is behind
+      delta_i++;
+    }
+  }
 }
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {

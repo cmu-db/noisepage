@@ -172,7 +172,6 @@ class LargeTransactionTestObject {
   std::vector<TupleEntry> last_checked_version_;
 
   // so we don't have to calculate these over and over again
-  std::vector<uint16_t> all_cols_{StorageTestUtil::ProjectionListAllColumns(layout_)};
-  uint32_t row_size_ = storage::ProjectedRow::Size(layout_, all_cols_);
+  storage::ProjectedRowInitializer row_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
 };
 }  // namespace terrier

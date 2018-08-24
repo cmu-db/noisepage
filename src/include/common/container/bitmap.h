@@ -17,7 +17,6 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 #define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
 
 namespace terrier::common {
-constexpr uint32_t BitmapSize(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
 
 /**
  * A RawBitmap is a bitmap that does not have the compile-time information about sizes, because we expect it to be
@@ -40,13 +39,19 @@ class RawBitmap {
   DISALLOW_COPY_AND_MOVE(RawBitmap)
 
   /**
+   * @param n number of elements in the bitmap
+   * @return the size of the bitmap holding the given number of elements, in bytes.
+   */
+  static constexpr uint32_t SizeInBytes(uint32_t n) { return n % BYTE_SIZE == 0 ? n / BYTE_SIZE : n / BYTE_SIZE + 1; }
+
+  /**
    * Allocates a new RawBitmap of size num_bits.
    * Up to the caller to call Deallocate on its return value.
    * @param num_bits number of bits (elements to represent) in the bitmap.
    * @return ptr to new RawBitmap.
    */
   static RawBitmap *Allocate(const uint32_t num_bits) {
-    auto size = BitmapSize(num_bits);
+    auto size = SizeInBytes(num_bits);
     auto *result = new uint8_t[size];
     TERRIER_MEMSET(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
@@ -104,7 +109,7 @@ class RawBitmap {
    * unintended elements may be cleared
    */
   void Clear(const uint32_t num_bits) {
-    auto size = BitmapSize(num_bits);
+    auto size = SizeInBytes(num_bits);
     TERRIER_MEMSET(bits_, 0, size);
   }
 

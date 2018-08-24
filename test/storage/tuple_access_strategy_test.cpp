@@ -33,10 +33,9 @@ class TupleAccessStrategyTestObject {
     EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
 
     // Generate a random ProjectedRow to insert
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    uint32_t row_size = storage::ProjectedRow::Size(layout, all_col_ids);
-    auto *buffer = new byte[row_size];
-    storage::ProjectedRow *row = storage::ProjectedRow::InitializeProjectedRow(buffer, all_col_ids, layout);
+    storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     std::default_random_engine real_generator;
     std::uniform_real_distribution<double> distribution{0.0, 1.0};
     StorageTestUtil::PopulateRandomRow(row, layout, distribution(real_generator), generator);
@@ -74,7 +73,7 @@ struct TupleAccessStrategyTests : public TerrierTest{
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, Nulls) {
   std::default_random_engine generator;
-  const uint32_t repeat = 200;
+  const uint32_t repeat = 100;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
@@ -83,12 +82,12 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
 
     storage::TupleSlot slot;
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
-    std::vector<bool> nulls(layout.num_cols_);
+    std::vector<bool> nulls(layout.NumCols());
     std::bernoulli_distribution coin(0.5);
     // primary key always not null
     nulls[0] = false;
     // Randomly set some columns to be not null
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       if (coin(generator)) {
         nulls[col] = true;
       } else {
@@ -97,7 +96,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
       }
     }
 
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
+    for (uint16_t col = 0; col < layout.NumCols(); col++) {
       // Either the field is null and the access returns nullptr,
       // or the field is not null and the access ptr is not null
       EXPECT_TRUE(
@@ -105,7 +104,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
     }
 
     // Flip non-null columns to null should result in returning of nullptr.
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       if (!nulls[col]) tested.SetNull(slot, col);
       EXPECT_TRUE(tested.AccessWithNullCheck(slot, col) == nullptr);
     }
@@ -127,7 +126,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     uint32_t num_inserts =
-        std::uniform_int_distribution<uint32_t>(1, layout.num_slots_)(generator);
+        std::uniform_int_distribution<uint32_t>(1, layout.NumSlots())(generator);
 
     std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> tuples;
     for (uint32_t j = 0; j < num_inserts; j++) {
@@ -164,7 +163,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     // Skip header
     void *lower_bound = tested.ColumnNullBitmap(raw_block_, 0);
     void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
+    for (uint16_t col = 0; col < layout.NumCols(); col++) {
       // This test should be robust against any future paddings, since
       // we are checking for non-overlapping ranges and not hard-coded
       // boundaries.
@@ -173,7 +172,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
                                      upper_bound);
       lower_bound =
           StorageTestUtil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col),
-                                            common::BitmapSize(layout.num_slots_));
+                                            common::RawBitmap::SizeInBytes(layout.NumSlots()));
 
       StorageTestUtil::CheckInBounds(tested.ColumnStart(raw_block_, col),
                                      lower_bound,
@@ -181,12 +180,12 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
 
       lower_bound =
           StorageTestUtil::IncrementByBytes(tested.ColumnStart(raw_block_, col),
-                                            layout.num_slots_
-                                                * layout.attr_sizes_[col]);
+                                            layout.NumSlots()
+                                                * layout.AttrSize(col));
     }
     // check that the last column does not go out of the block
     uint32_t last_column_size =
-        layout.num_slots_ * layout.attr_sizes_[layout.num_cols_ - 1];
+        layout.NumSlots() * layout.AttrSize(static_cast<uint16_t>(layout.NumCols() - 1));
     StorageTestUtil::CheckInBounds(StorageTestUtil::IncrementByBytes(lower_bound,
                                                                      last_column_size),
                                    lower_bound,
@@ -209,8 +208,8 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     // test layout, not the content.
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
-    for (uint16_t col = 0; col < layout.num_cols_; col++) {
-      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col), layout.attr_sizes_[col]);
+    for (uint16_t col = 0; col < layout.NumCols(); col++) {
+      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col), layout.AttrSize(col));
       StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col), 8);
     }
   }
@@ -239,7 +238,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
-      for (uint32_t j = 0; j < layout.num_slots_ / num_threads; j++)
+      for (uint32_t j = 0; j < layout.NumSlots() / num_threads; j++)
         test_objs[id].TryInsertFakeTuple(layout,
                                          tested,
                                          raw_block_,
@@ -309,7 +308,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
       RandomTestUtil::InvokeWorkloadWithDistribution({insert, remove},
                                                             {0.7, 0.3},
                                                             &generator,
-                                                            layout.num_slots_ / num_threads);
+                                                            layout.NumSlots() / num_threads);
     };
     thread_pool.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)

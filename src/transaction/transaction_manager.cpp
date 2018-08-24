@@ -4,13 +4,13 @@
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
-  timestamp_t id = time_++;
+  timestamp_t start_time = time_++;
   // TODO(Tianyu):
   // Maybe embed this into the data structure, or use an object pool?
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *result = new TransactionContext(id, id + INT64_MIN, buffer_pool_);
+  auto *result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_);
   table_latch_.Lock();
   auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime(), result);
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
@@ -20,10 +20,12 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
+  // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos) it.Timestamp().store(commit_time);
+  for (auto &it : undos)
+    it.Timestamp().store(commit_time);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
@@ -63,11 +65,11 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return hand_to_gc;
 }
 
-void TransactionManager::Rollback(timestamp_t txn_id, const storage::UndoRecord &record) {
-  storage::DataTable *table = record.Table();
-  storage::TupleSlot slot = record.Slot();
+void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoRecord &record) const {
+  storage::DataTable *const table = record.Table();
+  const storage::TupleSlot slot = record.Slot();
   storage::UndoRecord
-      *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+      *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
   // We do not hold the lock. Should just return
   if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image

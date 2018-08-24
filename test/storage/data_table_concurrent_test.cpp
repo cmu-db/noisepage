@@ -26,9 +26,9 @@ class FakeTransaction {
   template<class Random>
   storage::TupleSlot InsertRandomTuple(Random *generator) {
     // generate a random redo ProjectedRow to Insert
-    auto *redo_buffer = new byte[redo_size_];
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(redo_buffer);
-    storage::ProjectedRow *redo = storage::ProjectedRow::InitializeProjectedRow(redo_buffer, all_col_ids_, layout_);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     storage::TupleSlot slot = table_->Insert(&txn_, *redo);
@@ -41,9 +41,9 @@ class FakeTransaction {
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout_, update_col_ids)];
-    storage::ProjectedRow *update =
-        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout_);
+    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     bool result = table_->Update(&txn_, slot, *update);
@@ -67,8 +67,7 @@ class FakeTransaction {
   const storage::BlockLayout &layout_;
   storage::DataTable *table_;
   double null_bias_;
-  std::vector<uint16_t> all_col_ids_{StorageTestUtil::ProjectionListAllColumns(layout_)};
-  uint32_t redo_size_ = storage::ProjectedRow::Size(layout_, all_col_ids_);
+  storage::ProjectedRowInitializer redo_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
   // All data structures here are only accessed thread-locally so no need
   // for concurrent versions
   std::vector<storage::TupleSlot> inserted_slots_;
@@ -113,12 +112,12 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
     };
 
     thread_pool.RunThreadsUntilFinish(num_threads, workload);
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    auto *select_buffer = new byte[storage::ProjectedRow::Size(layout, all_col_ids)];
+    storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow
-            *select_row = storage::ProjectedRow::InitializeProjectedRow(select_buffer, all_col_ids, layout);
+            *select_row = select_initializer.InitializeRow(select_buffer);
         tested.Select(fake_txn->GetTxn(), slot, select_row);
         EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }

@@ -39,8 +39,8 @@ class TupleAccessStrategy {
      * @return a pointer to the start of the column. (use as an array)
      */
     byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
-      return varlen_contents_ +
-             StorageUtil::PadUpToSize(layout.attr_sizes_[col], common::BitmapSize(layout.num_slots_));
+      return StorageUtil::AlignedPtr(layout.AttrSize(col),
+                                     varlen_contents_ + common::RawBitmap::SizeInBytes(layout.NumSlots()));
     }
 
     /**
@@ -105,7 +105,7 @@ class TupleAccessStrategy {
      * @return reference to num_attrs. Use as a member.
      */
     uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.num_cols_);
+      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumCols());
     }
 
     /**
@@ -161,7 +161,7 @@ class TupleAccessStrategy {
    */
   byte *AccessWithNullCheck(const TupleSlot slot, const uint16_t col) const {
     if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset())) return nullptr;
-    return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
+    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
   }
 
   /**
@@ -173,7 +173,7 @@ class TupleAccessStrategy {
   byte *AccessWithoutNullCheck(const TupleSlot slot, const uint16_t col) const {
     TERRIER_ASSERT(col == PRESENCE_COLUMN_ID,
                    "Currently this should only be called on the presence column by the DataTable.");
-    return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
+    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
   }
 
   /**
@@ -186,7 +186,7 @@ class TupleAccessStrategy {
   byte *AccessForceNotNull(const TupleSlot slot, const uint16_t col) const {
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col);
     if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
-    return ColumnStart(slot.GetBlock(), col) + layout_.attr_sizes_[col] * slot.GetOffset();
+    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
   }
 
   /**
