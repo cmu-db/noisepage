@@ -19,8 +19,11 @@ class AlignedByteAllocator {
    * @return a pointer to the byte array allocated.
    */
   T *New() {
-    auto *result = reinterpret_cast<T *>(new uint64_t[(sizeof(T) + 7) / 8]);
-    Reuse(result);
+    T *result = nullptr;
+    int status = posix_memalign(reinterpret_cast<void **>(&result), 8, sizeof(T));
+    if (status == 0) {
+      Reuse(result);
+    }
     return result;
   }
 
@@ -34,7 +37,7 @@ class AlignedByteAllocator {
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *const ptr) { delete[] ptr; }  // NOLINT
+  void Delete(T *const ptr) { free(ptr); }  // NOLINT
   // clang-tidy believes we are trying to free released memory.
   // We believe otherwise, hence we're telling it to shut up.
 };
