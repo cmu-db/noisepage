@@ -103,9 +103,7 @@ class ObjectPool {
 
   /**
    * Returns a piece of memory to hold an object of T.
-   *
-   * It throws exception if the object pool fails to fetch memory.
-   *
+   * @throw NoMoreObjectException if the object pool fails to fetch memory.
    * @return pointer to memory that can hold T
    */
   T *Get() {
