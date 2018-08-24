@@ -4,13 +4,13 @@
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
-  timestamp_t id = time_++;
+  timestamp_t start_time = time_++;
   // TODO(Tianyu):
   // Maybe embed this into the data structure, or use an object pool?
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *result = new TransactionContext(id, id + INT64_MIN, buffer_pool_);
+  auto *result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_);
   table_latch_.Lock();
   auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime(), result);
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
