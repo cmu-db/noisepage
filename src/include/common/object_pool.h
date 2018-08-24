@@ -119,16 +119,14 @@ class ObjectPool {
     T *result = nullptr;
     if (!reuse_queue_.Dequeue(&result)) {
       latch_.Lock();
-      if (current_size_ < size_limit_) {
-        result = alloc_.New();
-        current_size_++;
-      }
-      latch_.Unlock();
-
+      if (current_size_ < size_limit_) result = alloc_.New();
       if (result == nullptr) {
         // out of memory
+        latch_.Unlock();
         throw NoMoreObjectException(size_limit_);
       }
+      current_size_++;
+      latch_.Unlock();
     } else {
       alloc_.Reuse(result);
     }
