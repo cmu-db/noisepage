@@ -9,14 +9,14 @@
 
 namespace terrier::common {
 // TODO(Yangjun): this class should be moved somewhere else.
-/***
+/**
  * An exception thrown by object pools when they reach their size limits and
  * cannot give more memory space for objects.
  */
 class NoMoreObjectException : public std::exception {
  public:
   explicit NoMoreObjectException(uint64_t limit) : limit_(limit) {}
-  /***
+  /**
    * Describe the exception.
    * @return a string of exception description
    */
@@ -45,7 +45,7 @@ class NoMoreObjectException : public std::exception {
 template <typename T, class Allocator = ByteAlignedAllocator<T>>
 class ObjectPool {
  public:
-  /***
+  /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.
    *
