@@ -21,8 +21,8 @@ class DataTableBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
     // generate a random redo ProjectedRow to Insert
-    redo_buffer_ = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
-    redo_ = initializer_.InitializeProjectedRow(redo_buffer_);
+    redo_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
+    redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
   void TearDown(const benchmark::State &state) final {

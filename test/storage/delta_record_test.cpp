@@ -58,12 +58,12 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       const std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
       storage::ProjectedRowInitializer initializer(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
-      auto *record_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-      storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer,
-                                                                          time,
-                                                                          slot,
-                                                                          &data_table,
-                                                                          initializer);
+      auto *record_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      storage::UndoRecord *record = storage::UndoRecord::Initialize(record_buffer,
+                                                                    time,
+                                                                    slot,
+                                                                    &data_table,
+                                                                    initializer);
       // Chain the records
       if (i != 0)
         record_list.back()->Next() = record;
@@ -93,8 +93,8 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // generate a random projectedRow
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
-    auto *redo_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *redo = initializer.InitializeProjectedRow(redo_buffer);
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
     // we don't need to populate projected row since we only copying the layout when we create a UndoRecord using
     // projected row
 
@@ -108,7 +108,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // compute the size of the buffer
     uint32_t size = storage::UndoRecord::Size(*redo);
     timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
-    auto *record_buffer = StorageTestUtil::AllocateAligned(size);
+    auto *record_buffer = common::AllocationUtil::AllocateAligned(size);
     storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer,
                                                                         time,
                                                                         slot,

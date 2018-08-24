@@ -29,8 +29,8 @@ TEST_F(ProjectedRowTests, Nulls) {
     // generate a random projectedRow
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
-    auto *update_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *update = initializer.InitializeProjectedRow(update_buffer);
+    auto *update_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout, null_ratio_(generator_), &generator_);
 
 
@@ -73,10 +73,10 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
     // generate a random projectedRow
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
-    auto *copy = StorageTestUtil::AllocateAligned(row->Size());
+    auto *copy = common::AllocationUtil::AllocateAligned(row->Size());
     auto *copied_row = storage::ProjectedRow::CopyProjectedRowLayout(copy, *row);
 
     EXPECT_EQ(copied_row->NumColumns(), row->NumColumns());
@@ -105,8 +105,8 @@ TEST_F(ProjectedRowTests, MemorySafety) {
     // generate a random projectedRow
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
     EXPECT_EQ(layout.NumCols() - 1, row->NumColumns());
     void *upper_bound = reinterpret_cast<byte *>(row) + row->Size();
@@ -134,8 +134,8 @@ TEST_F(ProjectedRowTests, Alignment) {
     // generate a random projectedRow
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     for (uint16_t i = 0; i < row->NumColumns(); i++)
       StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i),
                                       layout.AttrSize(row->ColumnIds()[i]));

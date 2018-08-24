@@ -26,9 +26,9 @@ class FakeTransaction {
   template<class Random>
   storage::TupleSlot InsertRandomTuple(Random *generator) {
     // generate a random redo ProjectedRow to Insert
-    auto *redo_buffer = StorageTestUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(redo_buffer);
-    storage::ProjectedRow *redo = redo_initializer_.InitializeProjectedRow(redo_buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     storage::TupleSlot slot = table_->Insert(&txn_, *redo);
@@ -42,8 +42,8 @@ class FakeTransaction {
     // generate random update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
-    auto *update_buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
-    storage::ProjectedRow *update = update_initializer.InitializeProjectedRow(update_buffer);
+    auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     bool result = table_->Update(&txn_, slot, *update);
@@ -113,11 +113,11 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 
     thread_pool.RunThreadsUntilFinish(num_threads, workload);
     storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-    auto *select_buffer = StorageTestUtil::AllocateAligned(select_initializer.ProjectedRowSize());
+    auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow
-            *select_row = select_initializer.InitializeProjectedRow(select_buffer);
+            *select_row = select_initializer.InitializeRow(select_buffer);
         tested.Select(fake_txn->GetTxn(), slot, select_row);
         EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }

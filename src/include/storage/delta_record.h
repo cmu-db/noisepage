@@ -140,6 +140,12 @@ class PACKED ProjectedRow {
 /**
  * A ProjectedRowInitializer calculates and stores information on how to initialize ProjectedRows
  * for a specific layout.
+ *
+ * More specifically, ProjectedRowInitializer will calculate an optimal layout for the given col_ids and layout,
+ * treating the vector as an unordered set of ids to include, and stores the information locally so it can be copied
+ * into new ProjectedRows. It works almost like compilation, in that the initialization process is slightly more
+ * expensive on the first invocation but cheaper on sequential ones. The correct way to use this is to get an
+ * initializer and use it multiple times. Avoid throwing these away every time you are done.
  */
 class ProjectedRowInitializer {
  public:
@@ -162,7 +168,7 @@ class ProjectedRowInitializer {
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
    * @return pointer to the initialized ProjectedRow
    */
-  ProjectedRow *InitializeProjectedRow(void *head) const;
+  ProjectedRow *InitializeRow(void *head) const;
 
   /**
    * @return size of the ProjectedRow in memory, in bytes, that this initializer constructs.
@@ -271,8 +277,8 @@ class UndoRecord {
    * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *InitializeRecord(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
-                                      const ProjectedRowInitializer &initializer);
+  static UndoRecord *Initialize(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
+                                const ProjectedRowInitializer &initializer);
 
   /**
    * Populates the UndoRecord's members based on next pointer, timestamp, projection list, and the redo changes that

@@ -1,43 +1,11 @@
 #pragma once
 
 #include <utility>
+#include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
 #include "common/typedefs.h"
 
 namespace terrier::common {
-/**
- * Allocator that allocates and destroys a byte array. Memory location returned by this default allocator is
- * not zeroed-out. The address returned is guaranteed to be aligned to 8 bytes.
- * @tparam T object whose size determines the byte array size.
- */
-template <typename T>
-class AlignedByteAllocator {
- public:
-  /**
-   * Allocates a new byte array sized to hold a T.
-   * @return a pointer to the byte array allocated.
-   */
-  T *New() {
-    auto *result = reinterpret_cast<T *>(new uint64_t[sizeof(T) / 8 + 1]);
-    Reuse(result);
-    return result;
-  }
-
-  /**
-   * Reuse a reused chunk of memory to be handed out again
-   * @param reused memory location, possibly filled with junk bytes
-   */
-  void Reuse(T *const reused) {}
-
-  /**
-   * Deletes the byte array.
-   * @param ptr pointer to the byte array to be deleted.
-   */
-  void Delete(T *const ptr) { delete[] ptr; }  // NOLINT
-  // clang-tidy believes we are trying to free released memory.
-  // We believe otherwise, hence we're telling it to shut up.
-};
-
 /**
  * Object pool for memory allocation.
  *
@@ -52,7 +20,7 @@ class AlignedByteAllocator {
  *         supplied Delete method, but its memory location will potentially be
  *         handed out multiple times before that happens.
  */
-template <typename T, class Allocator = AlignedByteAllocator<T>>
+template <typename T, class Allocator = ByteAlignedAllocator<T>>
 class ObjectPool {
  public:
   /**

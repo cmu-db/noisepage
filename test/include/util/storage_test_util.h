@@ -64,11 +64,6 @@ struct StorageTestUtil {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 
-  // Align some bytes that is aligned to 8 bytes
-  static byte *AllocateAligned(uint32_t byte_size) {
-    return reinterpret_cast<byte *>(new uint64_t[storage::StorageUtil::PadUpToSize(sizeof(uint64_t), byte_size)]);
-  }
-
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {

@@ -35,9 +35,9 @@ class RandomDataTableTestObject {
                                        Random *generator,
                                        common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
-    auto *redo_buffer = StorageTestUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(redo_buffer);
-    storage::ProjectedRow *redo = redo_initializer_.InitializeProjectedRow(redo_buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
@@ -63,8 +63,8 @@ class RandomDataTableTestObject {
     // generate a random redo ProjectedRow to Update
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
-    auto *update_buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
-    storage::ProjectedRow *update = update_initializer.InitializeProjectedRow(update_buffer);
+    auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
@@ -75,7 +75,7 @@ class RandomDataTableTestObject {
 
     if (result) {
       // manually apply the delta in an append-only fashion
-      auto *version_buffer = StorageTestUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+      auto *version_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
       TERRIER_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
@@ -113,7 +113,7 @@ class RandomDataTableTestObject {
     loose_txns_.push_back(txn);
 
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = redo_initializer_.InitializeProjectedRow(select_buffer_);
+    storage::ProjectedRow *select_row = redo_initializer_.InitializeRow(select_buffer_);
     table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -130,7 +130,7 @@ class RandomDataTableTestObject {
   double null_bias_;
   // These always over-provision in the case of partial selects or deltas, which is fine.
   storage::ProjectedRowInitializer redo_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
-  byte *select_buffer_ = StorageTestUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
 };
 
 struct DataTableTests : public TerrierTest {

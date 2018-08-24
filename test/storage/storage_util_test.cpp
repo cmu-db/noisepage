@@ -63,8 +63,8 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     // generate a random projectedRow
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
-    auto *row_buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
-    storage::ProjectedRow *row = update_initializer.InitializeProjectedRow(row_buffer);
+    auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
@@ -141,8 +141,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // the old row
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
-    auto *old_buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *old = initializer.InitializeProjectedRow(old_buffer);
+    auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
 
     // store the values as a reference
@@ -159,8 +159,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // the delta change to apply
     std::vector<uint16_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
     storage::ProjectedRowInitializer rand_initializer(layout, rand_col_ids);
-    auto *delta_buffer = StorageTestUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
-    storage::ProjectedRow *delta = rand_initializer.InitializeProjectedRow(delta_buffer);
+    auto *delta_buffer = common::AllocationUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
+    storage::ProjectedRow *delta = rand_initializer.InitializeRow(delta_buffer);
     StorageTestUtil::PopulateRandomRow(delta, layout, null_ratio_(generator_), &generator_);
 
     // apply delta

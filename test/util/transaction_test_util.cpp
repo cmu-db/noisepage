@@ -1,6 +1,7 @@
 #include <utility>
 #include <algorithm>
 #include <vector>
+#include "common/allocator.h"
 #include "transaction/transaction_util.h"
 #include "util/transaction_test_util.h"
 
@@ -12,7 +13,7 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
       start_time_(txn_->StartTime()),
       commit_time_(UINT64_MAX),
       buffer_(test_object->bookkeeping_ ? nullptr
-                                        : StorageTestUtil::AllocateAligned(test_object->row_initializer_
+                                        : common::AllocationUtil::AllocateAligned(test_object->row_initializer_
                                                                                       .ProjectedRowSize())) {}
 
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
@@ -32,9 +33,9 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
-      test_object_->bookkeeping_ ? StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize())
+      test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize())
                                  : buffer_;
-  storage::ProjectedRow *update = initializer.InitializeProjectedRow(update_buffer);
+  storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   if (test_object_->bookkeeping_) {
     auto it = updates_.find(updated);
@@ -56,9 +57,9 @@ void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   storage::TupleSlot
       selected = RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = test_object_->bookkeeping_
-                        ? StorageTestUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
+                        ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
                         : buffer_;
-  storage::ProjectedRow *select = test_object_->row_initializer_.InitializeProjectedRow(select_buffer);
+  storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
   test_object_->table_.Select(txn_, selected, select);
   if (test_object_->bookkeeping_) {
     auto updated = updates_.find(selected);
@@ -192,15 +193,15 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
   byte *redo_buffer = nullptr;
   if (!bookkeeping_) {
     // If no bookkeeping is required we can reuse the same buffer over and over again.
-    redo_buffer = StorageTestUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
-    row_initializer_.InitializeProjectedRow(redo_buffer);
+    redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
+    row_initializer_.InitializeRow(redo_buffer);
   }
   for (uint32_t i = 0; i < num_tuples; i++) {
     // Otherwise we will need to get a new redo buffer each insert so we log the values inserted.
-    if (bookkeeping_) redo_buffer = StorageTestUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
+    if (bookkeeping_) redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
     // reinitialize every time only if bookkeeping;
     storage::ProjectedRow *redo =
-        bookkeeping_ ? row_initializer_.InitializeProjectedRow(redo_buffer)
+        bookkeeping_ ? row_initializer_.InitializeRow(redo_buffer)
                      : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
@@ -212,7 +213,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
 }
 
 storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedRow *other) {
-  auto *copy = StorageTestUtil::AllocateAligned(other->Size());
+  auto *copy = common::AllocationUtil::AllocateAligned(other->Size());
   TERRIER_MEMCPY(copy, other, other->Size());
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }

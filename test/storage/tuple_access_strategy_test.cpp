@@ -34,8 +34,8 @@ class TupleAccessStrategyTestObject {
 
     // Generate a random ProjectedRow to insert
     storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *row = initializer.InitializeProjectedRow(buffer);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     std::default_random_engine real_generator;
     std::uniform_real_distribution<double> distribution{0.0, 1.0};
     StorageTestUtil::PopulateRandomRow(row, layout, distribution(real_generator), generator);

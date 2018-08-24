@@ -31,9 +31,9 @@ class GarbageCollectorDataTableTestObject {
 
   template<class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *redo = initializer_.InitializeProjectedRow(buffer);
+    storage::ProjectedRow *redo = initializer_.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
@@ -42,16 +42,16 @@ class GarbageCollectorDataTableTestObject {
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
-    auto *buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *update = update_initializer.InitializeProjectedRow(buffer);
+    storage::ProjectedRow *update = update_initializer.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
     return update;
   }
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    auto *buffer = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
     TERRIER_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
@@ -63,7 +63,7 @@ class GarbageCollectorDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn,
                                           const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = initializer_.InitializeProjectedRow(select_buffer_);
+    storage::ProjectedRow *select_row = initializer_.InitializeRow(select_buffer_);
     table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -75,7 +75,7 @@ class GarbageCollectorDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
-  byte *select_buffer_ = StorageTestUtil::AllocateAligned(initializer_.ProjectedRowSize());
+  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
 };
 
 struct GarbageCollectorTests : public ::terrier::TerrierTest {

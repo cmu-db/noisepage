@@ -68,7 +68,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRowInitializer &insert_record_initializer) {
     storage::UndoRecord *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(insert_record_initializer));
-    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, insert_record_initializer);
+    return storage::UndoRecord::Initialize(result, txn_id_.load(), slot, table, insert_record_initializer);
   }
 
  private:

@@ -20,6 +20,11 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
     : col_ids_(std::move(col_ids)),
       offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
+  TERRIER_ASSERT(col_ids.size() < layout.NumCols(),
+                 "projected row should have number of columns smaller than the table's");
+  // TODO(Tianyu): We should really assert that the projected row has a subset of columns, but that
+  // is a bit more complicated.
+
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
   // descending order in attribute size.
@@ -42,7 +47,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   }
 }
 
-ProjectedRow *ProjectedRowInitializer::InitializeProjectedRow(void *head) const {
+ProjectedRow *ProjectedRowInitializer::InitializeRow(void *head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
@@ -55,11 +60,11 @@ ProjectedRow *ProjectedRowInitializer::InitializeProjectedRow(void *head) const 
   return result;
 }
 
-UndoRecord *UndoRecord::InitializeRecord(void *head,
-                                         timestamp_t timestamp,
-                                         TupleSlot slot,
-                                         DataTable *table,
-                                         const ProjectedRowInitializer &initializer) {
+UndoRecord *UndoRecord::Initialize(void *head,
+                                   timestamp_t timestamp,
+                                   TupleSlot slot,
+                                   DataTable *table,
+                                   const ProjectedRowInitializer &initializer) {
   auto *result = reinterpret_cast<UndoRecord *>(head);
 
   result->next_ = nullptr;
@@ -67,7 +72,7 @@ UndoRecord *UndoRecord::InitializeRecord(void *head,
   result->table_ = table;
   result->slot_ = slot;
 
-  initializer.InitializeProjectedRow(result->varlen_contents_);
+  initializer.InitializeRow(result->varlen_contents_);
 
   return result;
 }

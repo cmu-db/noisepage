@@ -32,9 +32,9 @@ class MVCCDataTableTestObject {
 
   template<class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    auto *buffer = StorageTestUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow* redo = redo_initializer.InitializeProjectedRow(buffer);
+    storage::ProjectedRow* redo = redo_initializer.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
@@ -43,16 +43,16 @@ class MVCCDataTableTestObject {
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
-    auto *buffer = StorageTestUtil::AllocateAligned(update_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *update = update_initializer.InitializeProjectedRow(buffer);
+    storage::ProjectedRow *update = update_initializer.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
     return update;
   }
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    auto *buffer = StorageTestUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
     TERRIER_MEMCPY(buffer, &previous, redo_initializer.ProjectedRowSize());
@@ -65,7 +65,7 @@ class MVCCDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn,
                                           const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = redo_initializer.InitializeProjectedRow(select_buffer_);
+    storage::ProjectedRow *select_row = redo_initializer.InitializeRow(select_buffer_);
     table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -78,7 +78,7 @@ class MVCCDataTableTestObject {
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
   storage::ProjectedRowInitializer redo_initializer{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
-  byte *select_buffer_ = StorageTestUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
 };
 
 class MVCCTests : public ::terrier::TerrierTest {
