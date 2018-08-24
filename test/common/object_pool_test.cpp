@@ -121,12 +121,8 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
       tested.SetSizeLimit(size_dist_(generator));
     };
 
-    auto check = [&] {
-      EXPECT_TRUE(tested.CheckInvariance());
-    };
-
-    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit, check},
-                                                          {0.25, 0.25, 0.25, 0.25, 0.25},
+    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
+                                                          {0.25, 0.25, 0.25, 0.25},
                                                           &generator,
                                                           1000);
     for (auto *ptr : ptrs)

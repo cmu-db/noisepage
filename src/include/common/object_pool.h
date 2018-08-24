@@ -129,6 +129,7 @@ class ObjectPool {
     } else {
       alloc_.Reuse(result);
     }
+    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
     return result;
   }
 
@@ -142,15 +143,16 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    // A lock is used to ensure the invariance current_size_ <= size_limit
     latch_.Lock();
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
       latch_.Unlock();
+      TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
       return true;
     }
     latch_.Unlock();
+    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
     return false;
   }
 
@@ -168,6 +170,7 @@ class ObjectPool {
         current_size_--;
       }
     }
+    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
   }
 
   /**
@@ -184,8 +187,10 @@ class ObjectPool {
     } else {
       reuse_queue_.Enqueue(std::move(obj));
     }
+    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
   }
 
+ private:
   /**
    * Check if current_size_ is always no greater than size_limit_
    *
@@ -199,7 +204,6 @@ class ObjectPool {
     return curr <= limit;
   }
 
- private:
   Allocator alloc_;
   SpinLatch latch_;  // A lock for changing size_limit and incrementing current_size_
   ConcurrentQueue<T *> reuse_queue_;
