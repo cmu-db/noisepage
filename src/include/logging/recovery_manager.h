@@ -78,7 +78,7 @@ class RecoveryManager {
    * @return the number of bytes actually read
    */
   uint32_t ReadBytes(std::fstream &stream, byte *pos, uint32_t size) {
-    PELOTON_ASSERT(!stream.fail(), "an error occurs during an input or output operation");
+    TERRIER_ASSERT(!stream.fail(), "an error occurs during an input or output operation");
     stream.read(reinterpret_cast<char *>(pos), size);
     return static_cast<uint32_t>(stream.gcount());
   }

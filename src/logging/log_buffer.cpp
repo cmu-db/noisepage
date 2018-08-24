@@ -32,7 +32,7 @@ void LogBuffer::WriteRecord(const LogRecord &record) {
       break;
     }
     default: {
-      PELOTON_ASSERT(false, "the log record type is not supported");
+      TERRIER_ASSERT(false, "the log record type is not supported");
     }
   }
 

@@ -75,8 +75,8 @@ uint32_t RecoveryManager::ParseFile() {
       }
     }
 
-    PELOTON_MEMMOVE(buffer, buffer + buffer_read_pos, buffer_unread_size);
-    PELOTON_MEMSET(buffer + buffer_unread_size, 0, buffer_capacity - buffer_unread_size);
+    TERRIER_MEMMOVE(buffer, buffer + buffer_read_pos, buffer_unread_size);
+    TERRIER_MEMSET(buffer + buffer_unread_size, 0, buffer_capacity - buffer_unread_size);
     buffer_read_pos = buffer_unread_size;
   }
 
@@ -129,7 +129,7 @@ void RecoveryManager::LoadFile(uint32_t size) {
                            " from byte %u to byte %u in the recovery memory area",
                            static_cast<uint64_t >(txn_id), current_offset,
                            current_offset + record_len + sizeof(record_len)-1);
-          PELOTON_MEMCPY(recovery_memory_ + current_offset,
+          TERRIER_MEMCPY(recovery_memory_ + current_offset,
             buffer + buffer_read_pos, record_len + sizeof(record_len));
           offsets_copy[txn_id] += record_len + static_cast<uint32_t >(sizeof(record_len));
         }
@@ -140,8 +140,8 @@ void RecoveryManager::LoadFile(uint32_t size) {
       }
     }
 
-    PELOTON_MEMMOVE(buffer, buffer + buffer_read_pos, buffer_unread_size);
-    PELOTON_MEMSET(buffer + buffer_unread_size, 0, buffer_capacity - buffer_unread_size);
+    TERRIER_MEMMOVE(buffer, buffer + buffer_read_pos, buffer_unread_size);
+    TERRIER_MEMSET(buffer + buffer_unread_size, 0, buffer_capacity - buffer_unread_size);
     buffer_read_pos = buffer_unread_size;
   }
 
