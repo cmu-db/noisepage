@@ -130,7 +130,7 @@ class ObjectPool {
     return result;
   }
 
-  /***
+  /**
    * Set the object pool's size limit.
    *
    * The operation fails if the object pool has already allocated more objects
@@ -154,7 +154,7 @@ class ObjectPool {
     return false;
   }
 
-  /***
+  /**
    * Set the reuse limit to a new value.
    *
    * @param new_reuse_limit
@@ -186,7 +186,7 @@ class ObjectPool {
     }
   }
 
-  /***
+  /**
    * Check if current_size_ is always no greater than size_limit_
    *
    * @return true if current size <= size_limit; false otherwise.
