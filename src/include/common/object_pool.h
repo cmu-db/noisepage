@@ -49,11 +49,17 @@ class AlignedByteAllocator {
  */
 class NoMoreObjectException : public std::exception {
  public:
+  explicit NoMoreObjectException(uint64_t limit) : limit_(limit) {}
   /***
    * Describe the exception.
    * @return a string of exception description
    */
-  const char *what() const noexcept override { return "Object Pool have no object to hand out\n"; }
+  const char *what() const noexcept override {
+    return ("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit_) + ".\n").c_str();
+  }
+
+ private:
+  uint64_t limit_;
 };
 
 /**
@@ -121,7 +127,7 @@ class ObjectPool {
 
       if (result == nullptr) {
         // out of memory
-        throw NoMoreObjectException();
+        throw NoMoreObjectException(size_limit_);
       }
     } else {
       alloc_.Reuse(result);
