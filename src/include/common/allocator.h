@@ -18,7 +18,7 @@ struct AllocationUtil {
    * @return allocated memory pointer
    */
   static byte *AllocateAligned(uint64_t byte_size, uint64_t alignment = sizeof(uint64_t)) {
-    void *result;
+    void *result = nullptr;
     posix_memalign(&result, alignment, byte_size);
     return reinterpret_cast<byte *>(result);
   }
