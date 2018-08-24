@@ -434,13 +434,13 @@ class SerializeOutput {
     TERRIER_ASSERT(length <= std::numeric_limits<uint32_t>::max(),
                    "the length must be less than or equal to the maximum value of type int16_t");
     auto stringLength = length;
-    AssureExpand(length + static_cast<uint32_t >(sizeof(stringLength)));
+    AssureExpand(length + static_cast<uint32_t>(sizeof(stringLength)));
 
     byte *current = buffer_ + position_;
     TERRIER_MEMCPY(current, &stringLength, sizeof(stringLength));
     current += sizeof(stringLength);
     TERRIER_MEMCPY(current, value, length);
-    position_ += static_cast<uint32_t >(sizeof(stringLength)) + length;
+    position_ += static_cast<uint32_t>(sizeof(stringLength)) + length;
   }
 
   /**
@@ -458,7 +458,7 @@ class SerializeOutput {
    * @param value the string to be written
    */
   void WriteTextString(const std::string &value) {
-    WriteBinaryString(value.data(), static_cast<uint32_t >(value.size()));
+    WriteBinaryString(value.data(), static_cast<uint32_t>(value.size()));
   }
 
   /**
@@ -575,7 +575,7 @@ class SerializeOutput {
   void WritePrimitive(T value) {
     AssureExpand(sizeof(value));
     TERRIER_MEMCPY(buffer_ + position_, &value, sizeof(value));
-    position_ += static_cast<uint32_t >(sizeof(value));
+    position_ += static_cast<uint32_t>(sizeof(value));
   }
 
   /**

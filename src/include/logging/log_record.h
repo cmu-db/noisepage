@@ -1,6 +1,6 @@
 #pragma once
 #include "common/typedefs.h"
-#include "storage/storage_defs.h"
+#include "storage/delta_record.h"
 
 namespace terrier::logging {
 /**
@@ -50,7 +50,7 @@ class LogRecord {
   LogRecord(LogRecordType type, timestamp_t txn_id, timestamp_t commit_id, storage::TupleSlot slot,
             const storage::ProjectedRow &redo)
       : type_(type), txn_id_(txn_id), commit_id_(commit_id), slot_(slot) {
-    storage::ProjectedRow::InitializeProjectedRow(projected_row_, redo);
+    storage::ProjectedRow::CopyProjectedRowLayout(projected_row_, redo);
   }
 
   /**
