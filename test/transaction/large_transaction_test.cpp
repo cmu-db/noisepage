@@ -1,6 +1,6 @@
 #include <vector>
-#include "util/transaction_test_util.h"
 #include "gtest/gtest.h"
+#include "util/transaction_test_util.h"
 
 namespace terrier {
 class LargeTransactionTests : public TerrierTest {
@@ -24,15 +24,8 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 8;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested(max_columns,
-                                      initial_table_size,
-                                      txn_length,
-                                      update_select_ratio,
-                                      &block_store_,
-                                      &buffer_pool_,
-                                      &generator_,
-                                      false,
-                                      true);
+    LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
+                                      &buffer_pool_, &generator_, false, true);
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;

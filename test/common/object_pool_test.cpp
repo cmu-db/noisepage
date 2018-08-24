@@ -1,12 +1,12 @@
-#include <unordered_set>
 #include <atomic>
 #include <thread>  // NOLINT
+#include <unordered_set>
 #include <vector>
 
+#include "common/object_pool.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
-#include "common/object_pool.h"
 
 namespace terrier {
 // Rather minimalistic checks for whether we reuse memory
@@ -42,6 +42,7 @@ class ObjectPoolTestType {
     EXPECT_EQ(thread_id, user_);
     return this;
   }
+
  private:
   std::atomic<uint32_t> user_;
 };
@@ -59,9 +60,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     std::default_random_engine generator;
     // Store the pointers we use.
     std::vector<ObjectPoolTestType *> ptrs;
-    auto allocate = [&] {
-      ptrs.push_back(tested.Get()->Use(tid));
-    };
+    auto allocate = [&] { ptrs.push_back(tested.Get()->Use(tid)); };
     auto free = [&] {
       if (!ptrs.empty()) {
         auto pos = RandomTestUtil::UniformRandomElement(&ptrs, &generator);
@@ -69,12 +68,8 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate},
-                                             {0.5, 0.5},
-                                             &generator,
-                                             100);
-    for (auto *ptr : ptrs)
-      tested.Release(ptr->Release(tid));
+    RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate}, {0.5, 0.5}, &generator, 100);
+    for (auto *ptr : ptrs) tested.Release(ptr->Release(tid));
   };
 
   thread_pool.RunThreadsUntilFinish(8, workload, 100);

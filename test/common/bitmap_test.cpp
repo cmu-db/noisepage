@@ -1,9 +1,9 @@
+#include "common/container/bitmap.h"
 #include <random>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
 #include "gtest/gtest.h"
-#include "common/container/bitmap.h"
 #include "util/container_test_util.h"
 
 namespace terrier {
@@ -35,8 +35,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_aligned);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
       aligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
@@ -74,8 +73,7 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_aligned);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
       aligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
@@ -123,8 +121,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*unaligned_bitmap, stl_bitmap, num_elements);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
       unaligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*unaligned_bitmap, stl_bitmap, num_elements);

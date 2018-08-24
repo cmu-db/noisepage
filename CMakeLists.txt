@@ -219,7 +219,7 @@ endif ()
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###########################################################
-# "make lint" target
+# "make check-lint" target
 ###########################################################
 if (NOT TERRIER_VERBOSE_LINT)
   set(TERRIER_LINT_QUIET "--quiet")
