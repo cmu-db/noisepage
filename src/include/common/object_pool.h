@@ -21,11 +21,8 @@ class AlignedByteAllocator {
    * @return a pointer to the byte array allocated.
    */
   T *New() {
-    T *result = nullptr;
-    int status = posix_memalign(reinterpret_cast<void **>(&result), 8, sizeof(T));
-    if (status == 0) {
-      Reuse(result);
-    }
+    auto *result = reinterpret_cast<T *>(new uint64_t[(sizeof(T) + 7) / 8]);
+    Reuse(result);
     return result;
   }
 
