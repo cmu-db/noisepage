@@ -5,6 +5,7 @@
 #include <utility>
 #include "common/macros.h"
 #include "common/serializable.h"
+#include "common/typedefs.h"
 #include "loggers/storage_logger.h"
 #include "logging/log_common.h"
 #include "logging/log_record.h"
@@ -76,7 +77,7 @@ class RecoveryManager {
    *
    * @return the number of bytes actually read
    */
-  uint32_t ReadBytes(std::fstream &stream, std::byte *pos, uint32_t size) {
+  uint32_t ReadBytes(std::fstream &stream, byte *pos, uint32_t size) {
     PELOTON_ASSERT(!stream.fail(), "an error occurs during an input or output operation");
     stream.read(reinterpret_cast<char *>(pos), size);
     return static_cast<uint32_t>(stream.gcount());
@@ -127,7 +128,7 @@ class RecoveryManager {
   std::string dir_;
   std::string file_name_;
   std::fstream file_;
-  std::byte *recovery_memory_;
+  byte *recovery_memory_;
   std::map<timestamp_t, uint32_t> offsets_;
   std::map<timestamp_t, uint64_t> txns_;
 };
