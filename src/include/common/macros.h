@@ -40,9 +40,9 @@ namespace terrier::common {
 #define USE_BUILTIN_MEMFUNCS
 
 #ifdef USE_BUILTIN_MEMFUNCS
-#define PELOTON_MEMMOVE __builtin_memmove
-#define PELOTON_MEMCPY __builtin_memcpy
-#define PELOTON_MEMSET __builtin_memset
+#define TERRIER_MEMMOVE __builtin_memmove
+#define TERRIER_MEMCPY __builtin_memcpy
+#define TERRIER_MEMSET __builtin_memset
 #else
 #define TERRIER_MEMCPY memcpy
 #define TERRIER_MEMSET memset

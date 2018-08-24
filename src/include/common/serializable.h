@@ -68,7 +68,7 @@ class SerializeInput {
   const void *getRawPointer(uint32_t length) {
     const void *result = current_;
     current_ += length;
-    PELOTON_ASSERT(current_ <= end_,
+    TERRIER_ASSERT(current_ <= end_,
                    "the current read position after being advanced must be less than or "
                    "equal to the end position of the buffer");
     return result;
@@ -175,7 +175,7 @@ class SerializeInput {
    */
   std::string ReadTextString() {
     int16_t stringLength = ReadShort();
-    PELOTON_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
+    TERRIER_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
     return std::string(reinterpret_cast<const char *>(getRawPointer(stringLength)), stringLength);
   }
 
@@ -186,7 +186,7 @@ class SerializeInput {
    */
   ByteArray ReadBinaryString() {
     int16_t stringLength = ReadShort();
-    PELOTON_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
+    TERRIER_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
     return ByteArray(reinterpret_cast<const byte *>(getRawPointer(stringLength)), stringLength);
   }
 
@@ -196,7 +196,7 @@ class SerializeInput {
    * @param destination the memory address to which the bytes are copied
    * @param length the length of bytes copied
    */
-  void ReadBytes(void *destination, uint32_t length) { PELOTON_MEMCPY(destination, getRawPointer(length), length); }
+  void ReadBytes(void *destination, uint32_t length) { TERRIER_MEMCPY(destination, getRawPointer(length), length); }
 
   /**
    * @brief Copies a vector from the buffer.
@@ -208,7 +208,7 @@ class SerializeInput {
   template <typename T>
   void ReadSimpleTypeVector(std::vector<T> *vec) {
     int size = ReadInt();
-    PELOTON_ASSERT(size >= 0, "the size of the vector copied is less than 0");
+    TERRIER_ASSERT(size >= 0, "the size of the vector copied is less than 0");
     vec->resize(size);
     for (int i = 0; i < size; ++i) {
       vec[i] = ReadPrimitive<T>();
@@ -228,7 +228,7 @@ class SerializeInput {
   template <typename T>
   T ReadPrimitive() {
     T value;
-    PELOTON_MEMCPY(&value, current_, sizeof(value));
+    TERRIER_MEMCPY(&value, current_, sizeof(value));
     current_ += sizeof(value);
     return value;
   }
@@ -265,7 +265,7 @@ class SerializeOutput {
    */
   void Initialize(void *buffer, uint32_t capacity) {
     buffer_ = reinterpret_cast<byte *>(buffer);
-    PELOTON_ASSERT(position_ <= capacity, "the capacity must be greater than or equal to the current write position");
+    TERRIER_ASSERT(position_ <= capacity, "the capacity must be greater than or equal to the current write position");
     capacity_ = capacity;
   }
 
@@ -318,7 +318,7 @@ class SerializeOutput {
   static bool IsLittleEndian() {
     static const uint16_t s = 0x0001;
     uint8_t byte;
-    PELOTON_MEMCPY(&byte, &s, 1);
+    TERRIER_MEMCPY(&byte, &s, 1);
     return byte != 0;
   }
 
@@ -418,7 +418,7 @@ class SerializeOutput {
    * @param value the enum value to be written
    */
   void WriteEnumInSingleByte(int value) {
-    PELOTON_ASSERT(std::numeric_limits<int8_t>::min() <= value && value <= std::numeric_limits<int8_t>::max(),
+    TERRIER_ASSERT(std::numeric_limits<int8_t>::min() <= value && value <= std::numeric_limits<int8_t>::max(),
                    "the enum value written must be between the minimum and maximum value of type int8_t");
     WriteByte(static_cast<byte>(value));
   }
@@ -431,15 +431,15 @@ class SerializeOutput {
    * @param length the length of the string or ByteArray to be written
    */
   void WriteBinaryString(const void *value, uint32_t length) {
-    PELOTON_ASSERT(length <= std::numeric_limits<uint32_t>::max(),
+    TERRIER_ASSERT(length <= std::numeric_limits<uint32_t>::max(),
                    "the length must be less than or equal to the maximum value of type int16_t");
     auto stringLength = length;
     AssureExpand(length + static_cast<uint32_t >(sizeof(stringLength)));
 
     byte *current = buffer_ + position_;
-    PELOTON_MEMCPY(current, &stringLength, sizeof(stringLength));
+    TERRIER_MEMCPY(current, &stringLength, sizeof(stringLength));
     current += sizeof(stringLength);
-    PELOTON_MEMCPY(current, value, length);
+    TERRIER_MEMCPY(current, value, length);
     position_ += static_cast<uint32_t >(sizeof(stringLength)) + length;
   }
 
@@ -470,7 +470,7 @@ class SerializeOutput {
    */
   void WriteBytes(const void *value, uint32_t length) {
     AssureExpand(length);
-    PELOTON_MEMCPY(buffer_ + position_, value, length);
+    TERRIER_MEMCPY(buffer_ + position_, value, length);
     position_ += length;
   }
 
@@ -482,7 +482,7 @@ class SerializeOutput {
    */
   void WriteZeros(uint32_t length) {
     AssureExpand(length);
-    PELOTON_MEMSET(buffer_ + position_, 0, length);
+    TERRIER_MEMSET(buffer_ + position_, 0, length);
     position_ += length;
   }
 
@@ -495,7 +495,7 @@ class SerializeOutput {
    */
   template <typename T>
   void WriteSimpleTypeVector(const std::vector<T> &vec) {
-    PELOTON_ASSERT(vec.size() <= std::numeric_limits<int>::max(),
+    TERRIER_ASSERT(vec.size() <= std::numeric_limits<int>::max(),
                    "the size of the vector must be less than or equal to the maximum value of type int");
     auto size = static_cast<int>(vec.size());
 
@@ -529,8 +529,8 @@ class SerializeOutput {
    * @return the next write position where the copied value will not be overwritten
    */
   uint32_t WriteBytesAt(uint32_t offset, const void *value, uint32_t length) {
-    PELOTON_ASSERT(offset + length <= position_, "It writes bytes beyond the current write position");
-    PELOTON_MEMCPY(buffer_ + offset, value, length);
+    TERRIER_ASSERT(offset + length <= position_, "It writes bytes beyond the current write position");
+    TERRIER_MEMCPY(buffer_ + offset, value, length);
     return offset + length;
   }
 
@@ -574,7 +574,7 @@ class SerializeOutput {
   template <typename T>
   void WritePrimitive(T value) {
     AssureExpand(sizeof(value));
-    PELOTON_MEMCPY(buffer_ + position_, &value, sizeof(value));
+    TERRIER_MEMCPY(buffer_ + position_, &value, sizeof(value));
     position_ += static_cast<uint32_t >(sizeof(value));
   }
 
@@ -589,7 +589,7 @@ class SerializeOutput {
     if (minimum_desired > capacity_) {
       Expand(minimum_desired);
     }
-    PELOTON_ASSERT(capacity_ >= minimum_desired, "the minimum desired size is greater than the buffer capacity");
+    TERRIER_ASSERT(capacity_ >= minimum_desired, "the minimum desired size is greater than the buffer capacity");
   }
 
   /** Beginning of the buffer. */
@@ -659,7 +659,7 @@ class ReferenceSerializeOutput : public SerializeOutput {
  protected:
   /** Reference output can't resize the buffer: just crash. */
   void Expand(UNUSED_ATTRIBUTE uint32_t minimum_desired) override {
-    PELOTON_ASSERT(false, "Reference output can't resize the buffer");
+    TERRIER_ASSERT(false, "Reference output can't resize the buffer");
     abort();
   }
 };
@@ -715,7 +715,7 @@ class CopySerializeOutput : public SerializeOutput {
    */
   void Expand(uint32_t minimum_desired) override {
     uint32_t next_capacity = (bytes_.Length() + minimum_desired) * 2;
-    PELOTON_ASSERT(next_capacity < std::numeric_limits<int>::max(),
+    TERRIER_ASSERT(next_capacity < std::numeric_limits<int>::max(),
                    "the next capacity must be less than or equal to the maximum value of type int");
     bytes_.CopyAndExpand(next_capacity);
     Initialize(bytes_.Data(), next_capacity);
