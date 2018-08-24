@@ -1,6 +1,6 @@
 #pragma once
 #include "common/typedefs.h"
-#include "storage/storage_defs.h"
+#include "storage/delta_record.h"
 
 namespace terrier::logging {
 /**
