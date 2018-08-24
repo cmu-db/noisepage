@@ -84,8 +84,7 @@ class ObjectPool {
    * objects reused.
    *
    * @param size_limit the maximum number of objects the object pool controls
-   * @param reuse_limit the maximum number of reusable objects, which needs be to
-   * not greater than size_limit
+   * @param reuse_limit the maximum number of reusable objects
    */
   ObjectPool(const uint64_t size_limit, const uint64_t reuse_limit)
       : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
