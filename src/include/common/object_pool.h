@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <queue>
 #include <utility>
 #include "common/container/concurrent_queue.h"
