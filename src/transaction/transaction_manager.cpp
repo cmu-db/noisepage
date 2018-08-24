@@ -20,6 +20,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
+  // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
