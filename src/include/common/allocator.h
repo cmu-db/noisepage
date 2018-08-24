@@ -11,19 +11,18 @@ struct AllocationUtil {
   AllocationUtil() = delete;
 
   /**
-   * Allocates a chunk of memory whose start address is aligned to the given word size (which is
-   * 8 bytes by default) If you ever use an argument that is not 8 bytes, you should really know
-   * what you are doing. Alignment must be both a power of two and a multiple of sizeof(void *)
+   * Allocates a chunk of memory whose start address is guaranteed to be aligned to 8 bytes
    * @param byte_size size of the memory chunk to allocate, in bytes
-   * @param alignment the word size to align up to, 8 bytes by default
    * @return allocated memory pointer
    */
-  static byte *AllocateAligned(uint64_t byte_size, uint64_t alignment = sizeof(void *)) {
-    void *result = nullptr;
-    int32_t ret UNUSED_ATTRIBUTE = posix_memalign(&result, alignment, byte_size);
-    TERRIER_ASSERT(ret != EINVAL,
-                   "Invalid alignment given to posix_memalign, should be a power of 2 and multiple pf sizeof(void *)");
-    return reinterpret_cast<byte *>(result);
+  static byte *AllocateAligned(uint64_t byte_size) {
+    // This is basically allocating the chunk as a 64-bit array, which forces c++ to give back to us
+    // 8 byte-aligned addresses. + 7 / 8 is equivalent to padding up the nearest 8-byte size. We
+    // use this hack instead of std::aligned_alloc because calling delete on it does not make ASAN
+    // happy on Linux + GCC, and calling std::free on pointers obtained from new is undefined behavior.
+    // Having to support two paradigms when we liberally use byte * throughout the codebase is a
+    // maintainability nightmare.
+    return reinterpret_cast<byte *>(new uint64_t[(byte_size + 7) / 8]);
   }
 };
 
