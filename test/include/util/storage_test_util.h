@@ -94,17 +94,17 @@ struct StorageTestUtil {
       std::bernoulli_distribution coin(1 - null_bias);
 
       if (coin(*generator))
-        FillWithRandomBytes(layout.attr_sizes_[col], row->AccessForceNotNull(projection_list_idx), generator);
+        FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
       else
         row->SetNull(projection_list_idx);
     }
   }
 
   static std::vector<uint16_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
-    std::vector<uint16_t> col_ids(layout.num_cols_ - 1u);
+    std::vector<uint16_t> col_ids(layout.NumCols() - 1u);
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       col_ids[col - 1] = col;
     }
     return col_ids;
@@ -116,12 +116,12 @@ struct StorageTestUtil {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
     uint16_t num_cols =
-        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.num_cols_ - 1))(*generator);
+        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.NumCols() - 1))(*generator);
 
     std::vector<uint16_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       col_ids.push_back(col);
     }
 
@@ -142,7 +142,7 @@ struct StorageTestUtil {
     }
 
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
-      uint8_t attr_size = layout.attr_sizes_[one->ColumnIds()[projection_list_index]];
+      uint8_t attr_size = layout.AttrSize(one->ColumnIds()[projection_list_index]);
       const byte *one_content = one->AccessWithNullCheck(projection_list_index);
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
 
@@ -165,8 +165,7 @@ struct StorageTestUtil {
       uint16_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
       if (attr != nullptr) {
-        printf("col_id: %u is %" PRIx64 "\n", col_id,
-               storage::StorageUtil::ReadBytes(layout.attr_sizes_[col_id], attr));
+        printf("col_id: %u is %" PRIx64 "\n", col_id, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), attr));
       } else {
         printf("col_id: %u is NULL\n", col_id);
       }
@@ -178,14 +177,14 @@ struct StorageTestUtil {
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       if (val_ptr == nullptr) {
         tested.SetNull(slot, col);
       } else {
         // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[col], val, tested.AccessForceNotNull(slot, col));
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(col), val_ptr);
+        storage::StorageUtil::WriteBytes(layout.AttrSize(col), val, tested.AccessForceNotNull(slot, col));
       }
     }
   }
@@ -193,14 +192,14 @@ struct StorageTestUtil {
   // Check that the written tuple is the same as the expected one
   static void CheckTupleEqual(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 1; col < layout.num_cols_; col++) {
+    for (uint16_t col = 1; col < layout.NumCols(); col++) {
       const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
       byte *col_slot = tested.AccessWithNullCheck(slot, col);
       if (val_ptr != nullptr) {
         // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], val_ptr);
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(col), val_ptr);
         EXPECT_TRUE(col_slot != nullptr);
-        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.attr_sizes_[col], col_slot));
+        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.AttrSize(col), col_slot));
       } else {
         EXPECT_TRUE(col_slot == nullptr);
       }

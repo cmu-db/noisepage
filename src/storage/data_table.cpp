@@ -6,8 +6,8 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  TERRIER_ASSERT(layout.attr_sizes_[0] == 8, "First column must have size 8 for the version chain.");
-  TERRIER_ASSERT(layout.num_cols_ > 1, "First column is reserved for version info.");
+  TERRIER_ASSERT(layout.AttrSize(0) == 8, "First column must have size 8 for the version chain.");
+  TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
   NewBlock(nullptr);
   TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
@@ -15,7 +15,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block
 void DataTable::Select(transaction::TransactionContext *const txn,
                        const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().num_cols_,
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols(),
                  "The output buffer never returns the version pointer, so it should have fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
@@ -36,13 +36,6 @@ void DataTable::Select(transaction::TransactionContext *const txn,
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) return;
 
-  // Creates a mapping from col offset to project list index. This allows us to efficiently
-  // access columns since deltas can concern a different set of columns when chasing the
-  // version chain
-  std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
-    col_to_projection_list_index.emplace(out_buffer->ColumnIds()[i], i);
-
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
@@ -50,8 +43,7 @@ void DataTable::Select(transaction::TransactionContext *const txn,
       && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
                             *(version_ptr->Delta()),
-                            out_buffer,
-                            col_to_projection_list_index);
+                            out_buffer);
     version_ptr = version_ptr->Next();
   }
 }
@@ -96,7 +88,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
-  UndoRecord *undo = txn->UndoRecordForInsert(this, accessor_.GetBlockLayout(), result);
+  UndoRecord *undo = txn->UndoRecordForInsert(this, result, insert_record_initializer_);
 
   // Populate undo record with the before image of presence column
   undo->Delta()->SetNull(0);
