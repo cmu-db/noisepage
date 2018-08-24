@@ -14,7 +14,7 @@ uint32_t RecoveryManager::ParseFile() {
   uint32_t buffer_capacity = RECOVERY_BUFFER_CAPACITY;
   uint32_t buffer_unread_size = 0;
   uint32_t buffer_read_pos = 0;
-  auto *buffer = new std::byte[buffer_capacity];
+  auto *buffer = new byte[buffer_capacity];
   bool parsing_finished = false;
 
   file_.clear();
@@ -34,11 +34,11 @@ uint32_t RecoveryManager::ParseFile() {
       CopySerializeInput length_input(buffer+buffer_read_pos, 4);
       record_len = static_cast<uint32_t >(length_input.ReadInt());
       if (buffer_unread_size >= record_len + sizeof(record_len)) {
-        uint32_t record_offset = buffer_read_pos + sizeof(record_len);
+        uint32_t record_offset = buffer_read_pos + static_cast<uint32_t >(sizeof(record_len));
         CopySerializeInput record_input(buffer+record_offset, record_len);
         auto record_type = static_cast<LogRecordType>(record_input.ReadEnumInSingleByte());
         auto txn_id = record_input.ReadTimestamp();
-        uint32_t requested_size = record_len + sizeof(record_len);
+        uint32_t requested_size = record_len + static_cast<uint32_t >(sizeof(record_len));
 
         switch (record_type) {
           case LogRecordType::BEGIN: {
@@ -68,8 +68,8 @@ uint32_t RecoveryManager::ParseFile() {
             STORAGE_LOG_ERROR("Unknown log record type in recovery.");
           }
         }
-        buffer_read_pos += (record_len + sizeof(record_len));
-        buffer_unread_size -= (record_len + sizeof(record_len));
+        buffer_read_pos += record_len + static_cast<uint32_t >(sizeof(record_len));
+        buffer_unread_size -= (record_len + static_cast<uint32_t >(sizeof(record_len)));
       } else {
         break;
       }
@@ -94,11 +94,11 @@ uint32_t RecoveryManager::ParseFile() {
 }
 
 void RecoveryManager::LoadFile(uint32_t size) {
-  recovery_memory_  = new std::byte[size];
+  recovery_memory_  = new byte[size];
   uint32_t buffer_capacity = RECOVERY_BUFFER_CAPACITY;
   uint32_t buffer_unread_size = 0;
   uint32_t buffer_read_pos = 0;
-  auto *buffer = new std::byte[buffer_capacity];
+  auto *buffer = new byte[buffer_capacity];
   bool parsing_finished = false;
   std::map<timestamp_t, uint32_t> offsets_copy(offsets_);
 
@@ -118,8 +118,8 @@ void RecoveryManager::LoadFile(uint32_t size) {
     while (buffer_unread_size >= sizeof(record_len)) {
       CopySerializeInput length_input(buffer+buffer_read_pos, 4);
       record_len = static_cast<uint32_t >(length_input.ReadInt());
-      if (buffer_unread_size >= record_len + sizeof(record_len)) {
-        uint32_t record_offset = buffer_read_pos + sizeof(record_len);
+      if (buffer_unread_size >= record_len + static_cast<uint32_t>(sizeof(record_len))) {
+        uint32_t record_offset = buffer_read_pos + static_cast<uint32_t>(sizeof(record_len));
         CopySerializeInput record_input(buffer + record_offset, record_len);
         record_input.ReadEnumInSingleByte();
         timestamp_t txn_id = record_input.ReadTimestamp();
@@ -131,10 +131,10 @@ void RecoveryManager::LoadFile(uint32_t size) {
                            current_offset + record_len + sizeof(record_len)-1);
           PELOTON_MEMCPY(recovery_memory_ + current_offset,
             buffer + buffer_read_pos, record_len + sizeof(record_len));
-          offsets_copy[txn_id] += (record_len + sizeof(record_len));
+          offsets_copy[txn_id] += record_len + static_cast<uint32_t >(sizeof(record_len));
         }
-        buffer_read_pos += (record_len + sizeof(record_len));
-        buffer_unread_size -= (record_len + sizeof(record_len));
+        buffer_read_pos += (record_len + static_cast<uint32_t >(sizeof(record_len)));
+        buffer_unread_size -= (record_len + static_cast<uint32_t >(sizeof(record_len)));
       } else {
         break;
       }

@@ -87,7 +87,7 @@ class LogRecord {
    * @return the size of the projected row in the LogRecord
    */
   uint32_t ProjectedRowSize() const {
-    return reinterpret_cast<storage::ProjectedRow *>(const_cast<std::byte *>(projected_row_))->Size();
+    return reinterpret_cast<storage::ProjectedRow *>(const_cast<byte *>(projected_row_))->Size();
   }
 
   /**
@@ -95,13 +95,13 @@ class LogRecord {
    *
    * @return the projected row of the LofRecord
    */
-  std::byte *ProjectedRow() const { return const_cast<std::byte *>(projected_row_); }
+  byte *ProjectedRow() const { return const_cast<byte *>(projected_row_); }
 
  private:
   LogRecordType type_;
   timestamp_t txn_id_;
   timestamp_t commit_id_;
   storage::TupleSlot slot_;
-  std::byte projected_row_[0];
+  byte projected_row_[0];
 };
 }  // namespace terrier::logging

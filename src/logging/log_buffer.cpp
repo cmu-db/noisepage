@@ -37,7 +37,7 @@ void LogBuffer::WriteRecord(const LogRecord &record) {
   }
 
   // Fill the reserved space with the frame length
-  uint32_t length = buffer_.Position() - start - sizeof(uint32_t);
+  uint32_t length = buffer_.Position() - start - static_cast<uint32_t >(sizeof(uint32_t));
   buffer_.WriteIntAt(start, length);
 }
 }  // namespace terrier::logging

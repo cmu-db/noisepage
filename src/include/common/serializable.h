@@ -15,6 +15,7 @@
 #include <vector>
 #include "common/byte_array.h"
 #include "common/macros.h"
+#include "common/typedefs.h"
 #include "storage/storage_defs.h"
 
 namespace terrier {
@@ -45,7 +46,7 @@ class SerializeInput {
    * @param length the number of bytes of the data
    */
   void Initialize(const void *data, uint32_t length) {
-    current_ = reinterpret_cast<const std::byte *>(data);
+    current_ = reinterpret_cast<const byte *>(data);
     end_ = current_ + length;
   }
 
@@ -101,7 +102,7 @@ class SerializeInput {
    *
    * @return the byte value read
    */
-  std::byte ReadByte() { return ReadPrimitive<std::byte>(); }
+  byte ReadByte() { return ReadPrimitive<byte>(); }
 
   /**
    * @brief Copies a short value from the buffer, advancing the read position by
@@ -133,7 +134,7 @@ class SerializeInput {
    *
    * @return the byte value read
    */
-  std::byte ReadEnumInSingleByte() { return ReadByte(); }
+  byte ReadEnumInSingleByte() { return ReadByte(); }
 
   /**
    * @brief Copies a long value from the buffer, advancing the read position by
@@ -186,7 +187,7 @@ class SerializeInput {
   ByteArray ReadBinaryString() {
     int16_t stringLength = ReadShort();
     PELOTON_ASSERT(stringLength >= 0, "the length of the string copied is less than 0");
-    return ByteArray(reinterpret_cast<const std::byte *>(getRawPointer(stringLength)), stringLength);
+    return ByteArray(reinterpret_cast<const byte *>(getRawPointer(stringLength)), stringLength);
   }
 
   /**
@@ -233,9 +234,9 @@ class SerializeInput {
   }
 
   /** Current read position */
-  const std::byte *current_{nullptr};
+  const byte *current_{nullptr};
   /** End of the buffer. Valid byte range: current_ <= validPointer < end_. */
-  const std::byte *end_{nullptr};
+  const byte *end_{nullptr};
 };
 
 /**
@@ -263,7 +264,7 @@ class SerializeOutput {
    * @note this does not change the position.
    */
   void Initialize(void *buffer, uint32_t capacity) {
-    buffer_ = reinterpret_cast<std::byte *>(buffer);
+    buffer_ = reinterpret_cast<byte *>(buffer);
     PELOTON_ASSERT(position_ <= capacity, "the capacity must be greater than or equal to the current write position");
     capacity_ = capacity;
   }
@@ -288,7 +289,7 @@ class SerializeOutput {
    *
    * @return The pointer to the beginning of the buffer.
    */
-  const std::byte *Data() const { return buffer_; }
+  const byte *Data() const { return buffer_; }
 
   /**
    * @brief Gets the number of bytes written in to the buffer.
@@ -352,7 +353,7 @@ class SerializeOutput {
    *
    * @param value the byte value to be written
    */
-  void WriteByte(std::byte value) { WritePrimitive(value); }
+  void WriteByte(byte value) { WritePrimitive(value); }
 
   /**
    * @brief Writes a short value to the buffer, advancing the write position by
@@ -376,7 +377,7 @@ class SerializeOutput {
    *
    * @param value the bool value to be written
    */
-  void WriteBool(bool value) { WriteByte(value ? std::byte(1) : std::byte(0)); }
+  void WriteBool(bool value) { WriteByte(value ? byte(1) : byte(0)); }
 
   /**
    * @brief Writes a long value to the buffer, advancing the write position by
@@ -419,7 +420,7 @@ class SerializeOutput {
   void WriteEnumInSingleByte(int value) {
     PELOTON_ASSERT(std::numeric_limits<int8_t>::min() <= value && value <= std::numeric_limits<int8_t>::max(),
                    "the enum value written must be between the minimum and maximum value of type int8_t");
-    WriteByte(static_cast<std::byte>(value));
+    WriteByte(static_cast<byte>(value));
   }
 
   /**
@@ -429,17 +430,17 @@ class SerializeOutput {
    * @param value the pointer to the string or ByteArray to be written
    * @param length the length of the string or ByteArray to be written
    */
-  void WriteBinaryString(const void *value, int16_t length) {
-    PELOTON_ASSERT(length <= std::numeric_limits<int16_t>::max(),
+  void WriteBinaryString(const void *value, uint32_t length) {
+    PELOTON_ASSERT(length <= std::numeric_limits<uint32_t>::max(),
                    "the length must be less than or equal to the maximum value of type int16_t");
-    auto stringLength = static_cast<int16_t>(length);
-    AssureExpand(length + sizeof(stringLength));
+    auto stringLength = length;
+    AssureExpand(length + static_cast<uint32_t >(sizeof(stringLength)));
 
-    std::byte *current = buffer_ + position_;
+    byte *current = buffer_ + position_;
     PELOTON_MEMCPY(current, &stringLength, sizeof(stringLength));
     current += sizeof(stringLength);
     PELOTON_MEMCPY(current, value, length);
-    position_ += sizeof(stringLength) + length;
+    position_ += static_cast<uint32_t >(sizeof(stringLength)) + length;
   }
 
   /**
@@ -456,7 +457,9 @@ class SerializeOutput {
    *
    * @param value the string to be written
    */
-  void WriteTextString(const std::string &value) { WriteBinaryString(value.data(), value.size()); }
+  void WriteTextString(const std::string &value) {
+    WriteBinaryString(value.data(), static_cast<uint32_t >(value.size()));
+  }
 
   /**
    * @brief Writes bytes of the given length to the buffer, advancing the write
@@ -572,7 +575,7 @@ class SerializeOutput {
   void WritePrimitive(T value) {
     AssureExpand(sizeof(value));
     PELOTON_MEMCPY(buffer_ + position_, &value, sizeof(value));
-    position_ += sizeof(value);
+    position_ += static_cast<uint32_t >(sizeof(value));
   }
 
   /**
@@ -590,7 +593,7 @@ class SerializeOutput {
   }
 
   /** Beginning of the buffer. */
-  std::byte *buffer_{nullptr};
+  byte *buffer_{nullptr};
   /** Current write position in the buffer. */
   uint32_t position_{0};
   /** Total bytes this buffer can contain. */
@@ -675,7 +678,7 @@ class CopySerializeInput : public SerializeInput {
    * @param length the length of the data to be copied
    */
   CopySerializeInput(const void *data, uint32_t length)
-      : bytes_(reinterpret_cast<const std::byte *>(data), static_cast<int>(length)) {
+      : bytes_(reinterpret_cast<const byte *>(data), static_cast<int>(length)) {
     Initialize(bytes_.Data(), static_cast<int>(length));
   }
 
@@ -714,7 +717,7 @@ class CopySerializeOutput : public SerializeOutput {
     uint32_t next_capacity = (bytes_.Length() + minimum_desired) * 2;
     PELOTON_ASSERT(next_capacity < std::numeric_limits<int>::max(),
                    "the next capacity must be less than or equal to the maximum value of type int");
-    bytes_.CopyAndExpand(static_cast<int>(next_capacity));
+    bytes_.CopyAndExpand(next_capacity);
     Initialize(bytes_.Data(), next_capacity);
   }
 
