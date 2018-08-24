@@ -5,10 +5,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "util/test_thread_pool.h"
 #include "common/container/concurrent_bitmap.h"
+#include "gtest/gtest.h"
 #include "util/container_test_util.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -36,16 +36,14 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
     uint32_t num_iterations = 32;
     std::default_random_engine generator;
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
       EXPECT_TRUE(bitmap->Flip(element, bitmap->Test(element)));
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap>(*bitmap, stl_bitmap, num_elements);
     }
 
     // Verify that Flip fails if expected_val doesn't match current value
-    auto element =
-        std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+    auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     EXPECT_FALSE(bitmap->Flip(element, !bitmap->Test(element)));
     common::RawConcurrentBitmap::Deallocate(bitmap);
   }
@@ -192,9 +190,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
     // then sort the results
     std::vector<uint32_t> all_elements;
     for (uint32_t i = 0; i < num_threads; ++i)
-      all_elements.insert(all_elements.end(),
-                          elements[i].begin(),
-                          elements[i].end());
+      all_elements.insert(all_elements.end(), elements[i].begin(), elements[i].end());
 
     // Verify coalesced result size
     EXPECT_EQ(num_elements, all_elements.size());
@@ -235,9 +231,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
     // then sort the results
     std::vector<uint32_t> all_elements;
     for (uint32_t i = 0; i < num_threads; ++i)
-      all_elements.insert(all_elements.end(),
-                          elements[i].begin(),
-                          elements[i].end());
+      all_elements.insert(all_elements.end(), elements[i].begin(), elements[i].end());
 
     // Verify coalesced result size
     EXPECT_EQ(num_elements, all_elements.size());

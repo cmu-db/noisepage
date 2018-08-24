@@ -1,9 +1,9 @@
-#include <utility>
+#include "util/transaction_test_util.h"
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include "common/allocator.h"
 #include "transaction/transaction_util.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier {
 RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject *test_object)
@@ -12,29 +12,26 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
       aborted_(false),
       start_time_(txn_->StartTime()),
       commit_time_(UINT64_MAX),
-      buffer_(test_object->bookkeeping_ ? nullptr
-                                        : common::AllocationUtil::AllocateAligned(test_object->row_initializer_
-                                                                                      .ProjectedRowSize())) {}
+      buffer_(test_object->bookkeeping_
+                  ? nullptr
+                  : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
 
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;
   if (!test_object_->bookkeeping_) delete[] buffer_;
-  for (auto &entry : updates_)
-    delete[] reinterpret_cast<byte *>(entry.second);
-  for (auto &entry : selects_)
-    delete[] reinterpret_cast<byte *>(entry.second);
+  for (auto &entry : updates_) delete[] reinterpret_cast<byte *>(entry.second);
+  for (auto &entry : selects_) delete[] reinterpret_cast<byte *>(entry.second);
 }
 
-template<class Random>
+template <class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
-  storage::TupleSlot
-      updated = RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  storage::TupleSlot updated =
+      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
-      test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize())
-                                 : buffer_;
+      test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   if (test_object_->bookkeeping_) {
@@ -51,14 +48,14 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   aborted_ = !result;
 }
 
-template<class Random>
+template <class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
-  storage::TupleSlot
-      selected = RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  storage::TupleSlot selected =
+      RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = test_object_->bookkeeping_
-                        ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
-                        : buffer_;
+                            ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
+                            : buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
   test_object_->table_.Select(txn_, selected, select);
   if (test_object_->bookkeeping_) {
@@ -78,15 +75,12 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_);
 }
 
-LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
-                                                       uint32_t initial_table_size,
-                                                       uint32_t txn_length,
-                                                       std::vector<double> update_select_ratio,
+LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
+                                                       uint32_t txn_length, std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
-                                                       common::ObjectPool<storage::BufferSegment>
-                                                       *buffer_pool,
-                                                       std::default_random_engine *generator,
-                                                       bool gc_on, bool bookkeeping)
+                                                       common::ObjectPool<storage::BufferSegment> *buffer_pool,
+                                                       std::default_random_engine *generator, bool gc_on,
+                                                       bool bookkeeping)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
@@ -102,8 +96,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
 LargeTransactionTestObject::~LargeTransactionTestObject() {
   if (!gc_on_) delete initial_txn_;
   if (bookkeeping_) {
-    for (auto &tuple : last_checked_version_)
-      delete[] reinterpret_cast<byte *>(tuple.second);
+    for (auto &tuple : last_checked_version_) delete[] reinterpret_cast<byte *>(tuple.second);
   }
 }
 
@@ -148,10 +141,9 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
   for (RandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
 
   // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
-  std::sort(committed.begin(), committed.end(),
-            [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
-              return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
-            });
+  std::sort(committed.begin(), committed.end(), [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
+    return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
+  });
   return {committed, aborted};
 }
 
@@ -161,16 +153,14 @@ void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTra
   // make sure table_version is updated
   timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
   // Only need to check that reads make sense?
-  for (RandomWorkloadTransaction *txn : *commits)
-    CheckTransactionReadCorrect(txn, snapshots);
+  for (RandomWorkloadTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
 
   // clean up memory, update the kept version to be the latest.
   for (auto &snapshot : snapshots) {
     if (snapshot.first == latest_version) {
       UpdateLastCheckedVersion(snapshot.second);
     } else {
-      for (auto &entry : snapshot.second)
-        delete[] reinterpret_cast<byte *>(entry.second);
+      for (auto &entry : snapshot.second) delete[] reinterpret_cast<byte *>(entry.second);
     }
   }
 }
@@ -180,14 +170,12 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  RandomTestUtil::InvokeWorkloadWithDistribution({update, select},
-                                                 update_select_ratio_,
-                                                 &thread_generator,
+  RandomTestUtil::InvokeWorkloadWithDistribution({update, select}, update_select_ratio_, &thread_generator,
                                                  txn_length_);
   txn->Finish();
 }
 
-template<class Random>
+template <class Random>
 void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
   byte *redo_buffer = nullptr;
@@ -200,9 +188,8 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     // Otherwise we will need to get a new redo buffer each insert so we log the values inserted.
     if (bookkeeping_) redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
     // reinitialize every time only if bookkeeping;
-    storage::ProjectedRow *redo =
-        bookkeeping_ ? row_initializer_.InitializeRow(redo_buffer)
-                     : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
+    storage::ProjectedRow *redo = bookkeeping_ ? row_initializer_.InitializeRow(redo_buffer)
+                                               : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
@@ -218,11 +205,9 @@ storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedR
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }
 
-void LargeTransactionTestObject::UpdateSnapshot(RandomWorkloadTransaction *txn,
-                                                TableSnapshot *curr,
+void LargeTransactionTestObject::UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr,
                                                 const TableSnapshot &before) {
-  for (auto &entry : before)
-    curr->emplace(entry.first, CopyTuple(entry.second));
+  for (auto &entry : before) curr->emplace(entry.first, CopyTuple(entry.second));
   for (auto &update : txn->updates_) {
     // TODO(Tianyu): Can be smarter about copies
     storage::ProjectedRow *new_version = (*curr)[update.first];
@@ -236,8 +221,7 @@ VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
   // empty starting version
   TableSnapshot *prev = &(result.emplace(timestamp_t(0), TableSnapshot()).first->second);
   // populate with initial image of the table
-  for (auto &entry : last_checked_version_)
-    (*prev)[entry.first] = CopyTuple(entry.second);
+  for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
 
   for (RandomWorkloadTransaction *txn : *txns) {
     auto ret = result.emplace(txn->commit_time_, TableSnapshot());

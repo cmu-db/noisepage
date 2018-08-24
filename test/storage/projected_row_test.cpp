@@ -3,9 +3,9 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "storage/data_table.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
-#include "storage/storage_defs.h"
 #include "util/test_harness.h"
 
 namespace terrier {
@@ -32,7 +32,6 @@ TEST_F(ProjectedRowTests, Nulls) {
     auto *update_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout, null_ratio_(generator_), &generator_);
-
 
     // generator a binary vector and set nulls according to binary vector. For null attributes, we set value to be 0.
     std::bernoulli_distribution coin(null_ratio_(generator_));
@@ -83,8 +82,8 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
     for (uint16_t i = 0; i < row->NumColumns(); i++) {
       EXPECT_EQ(row->ColumnIds()[i], copied_row->ColumnIds()[i]);
       uintptr_t offset = reinterpret_cast<uintptr_t>(row->AccessForceNotNull(i)) - reinterpret_cast<uintptr_t>(row);
-      uintptr_t copied_offset = reinterpret_cast<uintptr_t>(copied_row->AccessForceNotNull(i))
-          - reinterpret_cast<uintptr_t>(copied_row);
+      uintptr_t copied_offset =
+          reinterpret_cast<uintptr_t>(copied_row->AccessForceNotNull(i)) - reinterpret_cast<uintptr_t>(copied_row);
       EXPECT_EQ(offset, copied_offset);
     }
     delete[] buffer;
@@ -137,8 +136,7 @@ TEST_F(ProjectedRowTests, Alignment) {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     for (uint16_t i = 0; i < row->NumColumns(); i++)
-      StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i),
-                                      layout.AttrSize(row->ColumnIds()[i]));
+      StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i), layout.AttrSize(row->ColumnIds()[i]));
     delete[] buffer;
   }
 }

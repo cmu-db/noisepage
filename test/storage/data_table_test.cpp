@@ -1,38 +1,33 @@
+#include "storage/data_table.h"
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/object_pool.h"
-#include "storage/data_table.h"
 #include "storage/storage_util.h"
-#include "util/storage_test_util.h"
-#include "transaction/transaction_util.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_util.h"
+#include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
-  template<class Random>
-  RandomDataTableTestObject(storage::BlockStore *block_store,
-                            const uint16_t max_col,
-                            const double null_bias,
+  template <class Random>
+  RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
         table_(block_store, layout_),
         null_bias_(null_bias) {}
 
   ~RandomDataTableTestObject() {
-    for (auto ptr : loose_pointers_)
-      delete[] ptr;
-    for (auto ptr : loose_txns_)
-      delete ptr;
+    for (auto ptr : loose_pointers_) delete[] ptr;
+    for (auto ptr : loose_txns_) delete ptr;
     delete[] select_buffer_;
   }
 
-  template<class Random>
-  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp,
-                                       Random *generator,
+  template <class Random>
+  storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator,
                                        common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
     auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
@@ -52,10 +47,8 @@ class RandomDataTableTestObject {
   }
 
   // be sure to only update tuple incrementally (cannot go back in time)
-  template<class Random>
-  bool RandomlyUpdateTuple(const timestamp_t timestamp,
-                           const storage::TupleSlot slot,
-                           Random *generator,
+  template <class Random>
+  bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // tuple must already exist
     TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
@@ -105,8 +98,7 @@ class RandomDataTableTestObject {
     return nullptr;
   }
 
-  storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot,
-                                          const timestamp_t timestamp,
+  storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot, const timestamp_t timestamp,
                                           common::ObjectPool<storage::BufferSegment> *buffer_pool) {
     // generate a txn with an UndoRecord to populate on Insert
     auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool);
@@ -190,8 +182,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (uint32_t i = 0; i < num_versions; i++) {
       const storage::ProjectedRow *reference_version = tested.GetReferenceVersionedTuple(tuple, timestamp_t(i));
-      storage::ProjectedRow *stored_version =
-          tested.SelectIntoBuffer(tuple, timestamp_t(i), &buffer_pool_);
+      storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), &buffer_pool_);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
     }
   }

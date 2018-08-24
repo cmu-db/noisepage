@@ -1,8 +1,8 @@
-#include <vector>
-#include <utility>
-#include <functional>
-#include <algorithm>
 #include "storage/delta_record.h"
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <vector>
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -17,8 +17,7 @@ ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRo
 // TODO(Tianyu): I don't think we can reasonably fit these into a cache line?
 ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLayout &layout,
                                                  std::vector<uint16_t> col_ids)
-    : col_ids_(std::move(col_ids)),
-      offsets_(col_ids_.size()) {
+    : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
   TERRIER_ASSERT(col_ids.size() < layout.NumCols(),
                  "projected row should have number of columns smaller than the table's");
@@ -40,9 +39,8 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     offsets_[i] = size_;
     // Pad up to either the next value's size, or 8 bytes at the end of the ProjectedRow.
-    auto next_size = static_cast<uint8_t>(i == col_ids_.size() - 1
-                                          ? sizeof(uint64_t)
-                                          : layout.AttrSize(col_ids_[i + 1]));
+    auto next_size =
+        static_cast<uint8_t>(i == col_ids_.size() - 1 ? sizeof(uint64_t) : layout.AttrSize(col_ids_[i + 1]));
     size_ = StorageUtil::PadUpToSize(next_size, size_ + layout.AttrSize(col_ids_[i]));
   }
 }
@@ -60,10 +58,7 @@ ProjectedRow *ProjectedRowInitializer::InitializeRow(void *head) const {
   return result;
 }
 
-UndoRecord *UndoRecord::Initialize(void *head,
-                                   timestamp_t timestamp,
-                                   TupleSlot slot,
-                                   DataTable *table,
+UndoRecord *UndoRecord::Initialize(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
                                    const ProjectedRowInitializer &initializer) {
   auto *result = reinterpret_cast<UndoRecord *>(head);
 

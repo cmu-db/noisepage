@@ -1,7 +1,7 @@
 #include <vector>
-#include "util/transaction_test_util.h"
-#include "storage/garbage_collector.h"
 #include "gtest/gtest.h"
+#include "storage/garbage_collector.h"
+#include "util/transaction_test_util.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {
@@ -9,9 +9,7 @@ class LargeGCTests : public TerrierTest {
   void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {
     gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
-    gc_thread_ = std::thread([gc_period_milli, this] {
-      GCThreadLoop(gc_period_milli);
-    });
+    gc_thread_ = std::thread([gc_period_milli, this] { GCThreadLoop(gc_period_milli); });
   }
 
   void EndGC() {
@@ -55,15 +53,8 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const std::vector<double> update_select_ratio = {0.3, 0.7};
   const uint32_t num_concurrent_txns = 4;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested(max_columns,
-                                      initial_table_size,
-                                      txn_length,
-                                      update_select_ratio,
-                                      &block_store_,
-                                      &buffer_pool_,
-                                      &generator_,
-                                      true,
-                                      true);
+    LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
+                                      &buffer_pool_, &generator_, true, true);
     StartGC(tested.GetTxnManager(), 10);
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
