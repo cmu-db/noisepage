@@ -35,7 +35,7 @@ class AlignedByteAllocator {
    * Deletes the byte array.
    * @param ptr pointer to the byte array to be deleted.
    */
-  void Delete(T *const ptr) { free(ptr); }  // NOLINT
+  void Delete(T *const ptr) { delete[] ptr; }  // NOLINT
   // clang-tidy believes we are trying to free released memory.
   // We believe otherwise, hence we're telling it to shut up.
 };
