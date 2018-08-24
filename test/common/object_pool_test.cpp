@@ -11,20 +11,6 @@
 
 namespace terrier {
 
-struct ObjectPoolTests : public TerrierTest {
-  std::default_random_engine generator_;
-  std::uniform_int_distribution<uint64_t> size_dist_;
-
- protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-  }
-
-  void TearDown() override {
-    TerrierTest::TearDown();
-  }
-};
-
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, SimpleReuseTest) {
