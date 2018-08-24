@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <queue>
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
@@ -106,7 +108,11 @@ class ObjectPool {
    */
   ~ObjectPool() {
     T *result = nullptr;
-    while (reuse_queue_.Dequeue(&result)) alloc_.Delete(result);
+    while (!reuse_queue_.empty()) {
+      result = reuse_queue_.front();
+      alloc_.Delete(result);
+      reuse_queue_.pop();
+    }
   }
 
   /**
@@ -115,21 +121,21 @@ class ObjectPool {
    * @return pointer to memory that can hold T
    */
   T *Get() {
+    SpinLatch::ScopedSpinLatch guard(&latch_);
     T *result = nullptr;
-    if (!reuse_queue_.Dequeue(&result)) {
-      latch_.Lock();
+    if (reuse_queue_.empty()) {
       if (current_size_ < size_limit_) result = alloc_.New();
       if (result == nullptr) {
         // out of memory
-        latch_.Unlock();
         throw NoMoreObjectException(size_limit_);
       }
       current_size_++;
-      latch_.Unlock();
     } else {
+      result = reuse_queue_.front();
+      reuse_queue_.pop();
       alloc_.Reuse(result);
     }
-    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
+    TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed it's size limit");
     return result;
   }
 
@@ -143,16 +149,13 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    latch_.Lock();
+    SpinLatch::ScopedSpinLatch guard(&latch_);
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
-      latch_.Unlock();
-      TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
+      TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed it's size limit");
       return true;
     }
-    latch_.Unlock();
-    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
     return false;
   }
 
@@ -162,15 +165,15 @@ class ObjectPool {
    * @param new_reuse_limit
    */
   void SetReuseLimit(uint64_t new_reuse_limit) {
+    SpinLatch::ScopedSpinLatch guard(&latch_);
     reuse_limit_ = new_reuse_limit;
     T *obj = nullptr;
-    while (reuse_queue_.UnsafeSize() > reuse_limit_) {
-      if (reuse_queue_.Dequeue(&obj)) {
-        alloc_.Delete(obj);
-        current_size_--;
-      }
+    while (reuse_queue_.size() > reuse_limit_) {
+      obj = reuse_queue_.front();
+      alloc_.Delete(obj);
+      reuse_queue_.pop();
+      current_size_--;
     }
-    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
   }
 
   /**
@@ -181,36 +184,23 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() >= reuse_limit_) {
+    SpinLatch::ScopedSpinLatch guard(&latch_);
+    if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
       current_size_--;
     } else {
-      reuse_queue_.Enqueue(std::move(obj));
+      reuse_queue_.push(obj);
     }
-    TERRIER_ASSERT(CheckInvariance(), "Invariance Violated");
   }
 
  private:
-  /**
-   * Check if current_size_ is always no greater than size_limit_
-   *
-   * @return true if current size <= size_limit; false otherwise.
-   */
-  bool CheckInvariance() {
-    latch_.Lock();  // current_size is not allowed to increase at this point
-    uint64_t curr = current_size_;
-    uint64_t limit = size_limit_;
-    latch_.Unlock();
-    return curr <= limit;
-  }
-
   Allocator alloc_;
-  SpinLatch latch_;  // A lock for changing size_limit and incrementing current_size_
-  ConcurrentQueue<T *> reuse_queue_;
+  SpinLatch latch_;
+  std::queue<T *> reuse_queue_;
   uint64_t size_limit_;   // the maximum number of objects a object pool can have
   uint64_t reuse_limit_;  // the maximum number of reusable objects in reuse_queue
   // current_size_ represents the number of objects the object pool has allocated,
   // including objects that have been given out to callers and those reside in reuse_queue
-  std::atomic<uint64_t> current_size_;
+  uint64_t current_size_;
 };
 }  // namespace terrier::common
