@@ -6,6 +6,17 @@ namespace terrier::logging {
 void RecoveryManager::Recover() {
   auto size = ParseFile();
   LoadFile(size);
+  Replay();
+}
+
+void RecoveryManager::ReplayTxn(timestamp_t txn_id) {
+
+}
+
+void RecoveryManager::Replay() {
+  for (auto it = offsets_.begin(); it != offsets_.end(); it++) {
+    ReplayTxn(it->first);
+  }
 }
 
 uint32_t RecoveryManager::ParseFile() {

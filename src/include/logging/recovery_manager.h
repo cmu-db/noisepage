@@ -69,6 +69,18 @@ class RecoveryManager {
   void LoadFile(uint32_t size);
 
   /**
+   * @brief Replay log records of all committed transactions.
+   */
+  void Replay();
+
+  /**
+   * @brief Replay log records of a committed transaction.
+   *
+   * @param txn_id the id of the committed transaction
+   */
+  void ReplayTxn(timestamp_t txn_id);
+
+  /**
    * @brief Reads some bytes from a file stream to memory.
    *
    * @param stream the file stream from which the bytes are read
