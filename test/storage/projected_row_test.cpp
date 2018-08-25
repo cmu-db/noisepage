@@ -64,7 +64,7 @@ TEST_F(ProjectedRowTests, Nulls) {
 // This tests checks that the copy function works as intended
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
-  const uint32_t num_iterations = 500;
+  const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
@@ -96,7 +96,7 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
 // go out of page boundary. (In other words, memory safe.)
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, MemorySafety) {
-  const uint32_t num_iterations = 500;
+  const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
@@ -125,7 +125,7 @@ TEST_F(ProjectedRowTests, MemorySafety) {
 // This test checks that all the fields within projected row is aligned
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, Alignment) {
-  const uint32_t num_iterations = 500;
+  const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
