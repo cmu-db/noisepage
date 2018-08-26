@@ -34,7 +34,7 @@ struct DeltaRecordTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(DeltaRecordTests, UndoChainAccess) {
   uint32_t num_iterations = 10;
-  uint32_t max_chain_size = 100;
+  uint32_t max_chain_size = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     std::vector<storage::UndoRecord *> record_list;
     std::uniform_int_distribution<> size_dist(1, max_chain_size);
@@ -75,7 +75,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
 // ProjectedRows back. Repeat for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);

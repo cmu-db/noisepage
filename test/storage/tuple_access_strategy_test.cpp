@@ -73,7 +73,7 @@ struct TupleAccessStrategyTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, Nulls) {
   std::default_random_engine generator;
-  const uint32_t repeat = 100;
+  const uint32_t repeat = 10;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
@@ -113,7 +113,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
 // Tests that we can allocate a tuple slot, write things into the slot and get them out.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, SimpleInsert) {
-  const uint32_t repeat = 100;
+  const uint32_t repeat = 50;
   const uint32_t max_cols = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
@@ -142,7 +142,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 // go out of page boundary. (In other words, memory safe.)
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, MemorySafety) {
-  const uint32_t repeat = 500;
+  const uint32_t repeat = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
@@ -179,7 +179,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
 // These properties are necessary to ensure high performance by accessing aligned fields.
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, Alignment) {
-  const uint32_t repeat = 500;
+  const uint32_t repeat = 100;
   std::default_random_engine generator;
   StorageTestUtil::CheckAlignment(raw_block_, common::Constants::BLOCK_SIZE);
   for (uint32_t i = 0; i < repeat; i++) {
@@ -201,7 +201,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
   TestThreadPool thread_pool;
-  const uint32_t repeat = 200;
+  const uint32_t repeat = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
@@ -241,7 +241,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   TestThreadPool thread_pool;
-  const uint32_t repeat = 200;
+  const uint32_t repeat = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots

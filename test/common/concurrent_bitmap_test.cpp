@@ -17,7 +17,7 @@ namespace terrier {
 TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
-  const uint32_t num_bitmap_sizes = 1000;
+  const uint32_t num_bitmap_sizes = 50;
   // Maximum bitmap size.
   const uint32_t max_bitmap_size = 1000;
 
@@ -53,7 +53,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
 TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
-  const uint32_t num_bitmap_sizes = 1000;
+  const uint32_t num_bitmap_sizes = 50;
   // Maximum bitmap size.
   const uint32_t max_bitmap_size = 1000;
   uint32_t pos;
@@ -166,7 +166,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   TestThreadPool thread_pool;
   std::default_random_engine generator;
-  const uint32_t num_iters = 200;
+  const uint32_t num_iters = 100;
   const uint32_t max_elements = 10000;
   const uint32_t num_threads = 8;
 
@@ -211,8 +211,8 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
   std::default_random_engine generator;
-  const uint32_t num_iters = 200;
-  const uint32_t max_elements = 450000;
+  const uint32_t num_iters = 100;
+  const uint32_t max_elements = 100000;
   const uint32_t num_threads = 8;
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {

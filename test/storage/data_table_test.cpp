@@ -137,7 +137,7 @@ struct DataTableTests : public TerrierTest {
 // random tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleInsertSelect) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 1000;
   const uint16_t max_columns = 100;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
@@ -162,7 +162,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // delta chain produces the correct tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleVersionChain) {
-  const uint32_t num_iterations = 100;
+  const uint32_t num_iterations = 50;
   const uint32_t num_updates = 10;
   const uint16_t max_columns = 100;
 
@@ -196,7 +196,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
 // correct tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 50;
   const uint16_t max_columns = 100;
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
