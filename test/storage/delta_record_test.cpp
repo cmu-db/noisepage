@@ -3,9 +3,9 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "storage/data_table.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
-#include "storage/storage_defs.h"
 #include "util/test_harness.h"
 
 namespace terrier {
@@ -29,13 +29,12 @@ struct DeltaRecordTests : public TerrierTest {
   }
 };
 
-
 // Generates a list of UndoRecords and chain them together. Access from the beginning and see if we can access all
 // UndoRecords. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DeltaRecordTests, UndoChainAccess) {
   uint32_t num_iterations = 10;
-  uint32_t max_chain_size = 100;
+  uint32_t max_chain_size = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     std::vector<storage::UndoRecord *> record_list;
     std::uniform_int_distribution<> size_dist(1, max_chain_size);
@@ -57,32 +56,26 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       // compute the size of the buffer
       const std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
       storage::ProjectedRowInitializer initializer(layout, col_ids);
-      timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
+      timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
-      storage::UndoRecord *record = storage::UndoRecord::Initialize(record_buffer,
-                                                                    time,
-                                                                    slot,
-                                                                    &data_table,
-                                                                    initializer);
+      storage::UndoRecord *record =
+          storage::UndoRecord::Initialize(record_buffer, time, slot, &data_table, initializer);
       // Chain the records
-      if (i != 0)
-        record_list.back()->Next() = record;
+      if (i != 0) record_list.back()->Next() = record;
       record_list.push_back(record);
     }
 
-    for (uint32_t i = 0; i < record_list.size() - 1; i++)
-      EXPECT_EQ(record_list[i]->Next(), record_list[i + 1]);
+    for (uint32_t i = 0; i < record_list.size() - 1; i++) EXPECT_EQ(record_list[i]->Next(), record_list[i + 1]);
 
     for (auto record : record_list) delete[] reinterpret_cast<byte *>(record);
   }
 }
 
-
 // Generate UndoRecords using ProjectedRows and get ProjectedRows back from UndoRecords to see if you get the same
 // ProjectedRows back. Repeat for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
@@ -107,13 +100,9 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
 
     // compute the size of the buffer
     uint32_t size = storage::UndoRecord::Size(*redo);
-    timestamp_t time = static_cast<timestamp_t >(timestamp_dist_(generator_));
+    timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
     auto *record_buffer = common::AllocationUtil::AllocateAligned(size);
-    storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer,
-                                                                        time,
-                                                                        slot,
-                                                                        &data_table,
-                                                                        *redo);
+    storage::UndoRecord *record = storage::UndoRecord::InitializeRecord(record_buffer, time, slot, &data_table, *redo);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, record->Delta(), redo));
     delete[] redo_buffer;
     delete[] record_buffer;

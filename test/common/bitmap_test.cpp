@@ -1,9 +1,9 @@
+#include "common/container/bitmap.h"
 #include <random>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
 #include "gtest/gtest.h"
-#include "common/container/bitmap.h"
 #include "util/container_test_util.h"
 
 namespace terrier {
@@ -17,7 +17,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap
@@ -35,8 +35,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_aligned);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
       aligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
@@ -55,7 +54,7 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a non-byte-multiple sized bitmap
@@ -74,8 +73,7 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements_aligned);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements_aligned - 1))(generator);
       aligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*aligned_bitmap, stl_bitmap, num_elements_aligned);
@@ -94,7 +92,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap
@@ -123,8 +121,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
     std::vector<bool> stl_bitmap = std::vector<bool>(num_elements);
     ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*unaligned_bitmap, stl_bitmap, num_elements);
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
       unaligned_bitmap->Flip(element);
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawBitmap>(*unaligned_bitmap, stl_bitmap, num_elements);

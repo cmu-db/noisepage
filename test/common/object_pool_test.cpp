@@ -1,13 +1,12 @@
-#include <unordered_set>
 #include <atomic>
 #include <thread>  // NOLINT
+#include <unordered_set>
 #include <vector>
 
+#include "common/object_pool.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
-#include "common/object_pool.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 
@@ -42,10 +41,8 @@ TEST(ObjectPoolTests, ResetLimitTest) {
     std::unordered_set<uint32_t *> used_ptrs;
 
     // The reuse_queue should have a size of size_limit
-    for (uint32_t i = 0; i < size_limit; ++i)
-      used_ptrs.insert(tested.Get());
-    for (auto &it : used_ptrs)
-      tested.Release(it);
+    for (uint32_t i = 0; i < size_limit; ++i) used_ptrs.insert(tested.Get());
+    for (auto &it : used_ptrs) tested.Release(it);
 
     tested.SetReuseLimit(size_limit / 2);
     EXPECT_TRUE(tested.SetSizeLimit(size_limit / 2));
@@ -64,8 +61,7 @@ TEST(ObjectPoolTests, ResetLimitTest) {
     EXPECT_THROW(tested.Get(), common::NoMoreObjectException);
 
     // free memory
-    for (auto &it : ptrs)
-      tested.Release(it);
+    for (auto &it : ptrs) tested.Release(it);
   }
 }
 
@@ -81,6 +77,7 @@ class ObjectPoolTestType {
     EXPECT_EQ(thread_id, user_);
     return this;
   }
+
  private:
   std::atomic<uint32_t> user_;
 };
@@ -102,9 +99,10 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     std::vector<ObjectPoolTestType *> ptrs;
     auto allocate = [&] {
       try {
-        ObjectPoolTestType * temp = tested.Get();
+        ObjectPoolTestType *temp = tested.Get();
         ptrs.push_back(temp->Use(tid));
-      } catch (common::NoMoreObjectException) {}
+      } catch (common::NoMoreObjectException) {
+      }
     };
     auto free = [&] {
       if (!ptrs.empty()) {
@@ -113,20 +111,13 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    auto set_reuse_limit = [&] {
-      tested.SetReuseLimit(size_dist_(generator));
-    };
+    auto set_reuse_limit = [&] { tested.SetReuseLimit(size_dist_(generator)); };
 
-    auto set_size_limit = [&] {
-      tested.SetSizeLimit(size_dist_(generator));
-    };
+    auto set_size_limit = [&] { tested.SetSizeLimit(size_dist_(generator)); };
 
     RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
-                                                          {0.25, 0.25, 0.25, 0.25},
-                                                          &generator,
-                                                          1000);
-    for (auto *ptr : ptrs)
-      tested.Release(ptr->Release(tid));
+                                                   {0.25, 0.25, 0.25, 0.25}, &generator, 1000);
+    for (auto *ptr : ptrs) tested.Release(ptr->Release(tid));
   };
 
   thread_pool.RunThreadsUntilFinish(8, workload, 1000);

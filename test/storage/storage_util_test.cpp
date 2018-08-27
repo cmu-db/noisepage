@@ -1,13 +1,13 @@
+#include "storage/storage_util.h"
+#include <iostream>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <iostream>
-#include <unordered_set>
 #include "common/object_pool.h"
 #include "storage/data_table.h"
-#include "storage/storage_util.h"
-#include "util/storage_test_util.h"
 #include "storage/storage_defs.h"
+#include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier {
@@ -31,11 +31,10 @@ struct StorageUtilTests : public TerrierTest {
   }
 };
 
-
 // Write a value to a position, read from the same position and compare results. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ReadWriteBytes) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // generate a random val
     std::vector<uint8_t> valid_sizes{1, 2, 4, 8};
@@ -55,7 +54,7 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
 // row and compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
@@ -68,7 +67,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
-      uint8_t attr_size = layout.AttrSize(static_cast<uint16_t >(i + 1));
+      uint8_t attr_size = layout.AttrSize(static_cast<uint16_t>(i + 1));
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -90,12 +89,11 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
   }
 }
 
-
 // Generate a layout and get a tuple slot, copy a pointer location into the tuple slot, read it back and
 // compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
@@ -128,12 +126,11 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
   }
 }
 
-
 // Generate a random populated projected row (delta), copy the delta into a projected row, and compare them.
 // Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ApplyDelta) {
-  uint32_t num_iterations = 500;
+  uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);

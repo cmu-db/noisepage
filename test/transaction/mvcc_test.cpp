@@ -4,42 +4,37 @@
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/storage_test_util.h"
+#include "util/test_harness.h"
 
 namespace terrier {
 // Not thread-safe
 class MVCCDataTableTestObject {
  public:
-  template<class Random>
-  MVCCDataTableTestObject(storage::BlockStore *block_store,
-                          const uint16_t max_col,
-                          Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
-        table_(block_store, layout_) {}
+  template <class Random>
+  MVCCDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
+      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_) {}
 
   ~MVCCDataTableTestObject() {
-    for (auto ptr : loose_pointers_)
-      delete[] ptr;
-    for (auto ptr : loose_txns_)
-      delete ptr;
+    for (auto ptr : loose_pointers_) delete[] ptr;
+    for (auto ptr : loose_txns_) delete ptr;
     delete[] select_buffer_;
   }
 
   const storage::BlockLayout &Layout() const { return layout_; }
 
-  template<class Random>
+  template <class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
     auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow* redo = redo_initializer.InitializeRow(buffer);
+    storage::ProjectedRow *redo = redo_initializer.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
 
-  template<class Random>
+  template <class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
@@ -62,8 +57,7 @@ class MVCCDataTableTestObject {
     return version;
   }
 
-  storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn,
-                                          const storage::TupleSlot slot) {
+  storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = redo_initializer.InitializeRow(select_buffer_);
     table_.Select(txn, slot, select_row);

@@ -1,5 +1,5 @@
-#include <utility>
 #include "transaction/transaction_manager.h"
+#include <utility>
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
@@ -24,8 +24,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
   storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos)
-    it.Timestamp().store(commit_time);
+  for (auto &it : undos) it.Timestamp().store(commit_time);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
@@ -68,8 +67,7 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
 void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoRecord &record) const {
   storage::DataTable *const table = record.Table();
   const storage::TupleSlot slot = record.Slot();
-  storage::UndoRecord
-      *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+  storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
   // We do not hold the lock. Should just return
   if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
   // Re-apply the before image

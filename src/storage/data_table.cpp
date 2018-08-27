@@ -1,6 +1,6 @@
+#include "storage/data_table.h"
 #include <unordered_map>
 #include "storage/storage_util.h"
-#include "storage/data_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
@@ -12,8 +12,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block
   TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
-void DataTable::Select(transaction::TransactionContext *const txn,
-                       const TupleSlot slot,
+void DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols(),
                  "The output buffer never returns the version pointer, so it should have fewer attributes.");
@@ -39,18 +38,14 @@ void DataTable::Select(transaction::TransactionContext *const txn,
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr
-      && transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(),
-                            *(version_ptr->Delta()),
-                            out_buffer);
+  while (version_ptr != nullptr &&
+         transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
     version_ptr = version_ptr->Next();
   }
 }
 
-bool DataTable::Update(transaction::TransactionContext *const txn,
-                       const TupleSlot slot,
-                       const ProjectedRow &redo) {
+bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
   // We never bother deallocating this entry, which is why we need to remember to check on abort
   // whether the transaction actually holds a write lock
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
@@ -73,8 +68,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn,
   return true;
 }
 
-TupleSlot DataTable::Insert(transaction::TransactionContext *const txn,
-                            const ProjectedRow &redo) {
+TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
   // inserts could have already created a new block, we need to use compare and swap
@@ -111,33 +105,28 @@ UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const Tupl
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
 }
 
-void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot,
-                                          const TupleAccessStrategy &accessor,
+void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor,
                                           UndoRecord *const desired) {
   byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
-bool DataTable::HasConflict(UndoRecord *const version_ptr,
-                            transaction::TransactionContext *const txn) const {
+bool DataTable::HasConflict(UndoRecord *const version_ptr, transaction::TransactionContext *const txn) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const timestamp_t version_timestamp = version_ptr->Timestamp().load();
   const timestamp_t txn_id = txn->TxnId().load();
   const timestamp_t start_time = txn->StartTime();
   return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
-      // Someone else owns this tuple, write-write-conflict
-      || (transaction::TransactionUtil::Committed(version_timestamp) &&
-          transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
+         // Someone else owns this tuple, write-write-conflict
+         || (transaction::TransactionUtil::Committed(version_timestamp) &&
+             transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
   // Someone else already committed an update to this tuple while we were running, we can't update this under SI
 }
 
-bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot,
-                                         const TupleAccessStrategy &accessor,
-                                         UndoRecord *expected,
-                                         UndoRecord *const desired) {
+bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor,
+                                         UndoRecord *expected, UndoRecord *const desired) {
   byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
-  return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)
-      ->compare_exchange_strong(expected, desired);
+  return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
 void DataTable::NewBlock(RawBlock *expected_val) {

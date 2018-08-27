@@ -4,11 +4,11 @@
 #include "common/typedefs.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_thread_pool.h"
-#include "util/storage_benchmark_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/storage_benchmark_util.h"
+#include "util/storage_test_util.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -25,9 +25,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
-  void TearDown(const benchmark::State &state) final {
-    delete[] redo_buffer_;
-  }
+  void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout
   const uint16_t num_columns_ = 2;
@@ -77,8 +75,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
-      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++)
-        table.Insert(&txn, *redo_);
+      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
     thread_pool.RunThreadsUntilFinish(num_threads_, workload);
   }
@@ -86,12 +83,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
 
 }  // namespace terrier

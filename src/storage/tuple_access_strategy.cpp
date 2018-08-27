@@ -1,6 +1,6 @@
+#include "storage/tuple_access_strategy.h"
 #include <utility>
 #include "common/container/concurrent_bitmap.h"
-#include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {
 
@@ -11,28 +11,26 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   uint32_t acc_offset = StorageUtil::PadUpToSize(sizeof(uint64_t), layout_.HeaderSize());
   for (uint16_t i = 0; i < layout_.NumCols(); i++) {
     column_offsets_[i] = acc_offset;
-    uint32_t column_size = layout_.AttrSize(i) * layout_.NumSlots()  // content
+    uint32_t column_size =
+        layout_.AttrSize(i) * layout_.NumSlots()  // content
         + StorageUtil::PadUpToSize(layout_.AttrSize(i),
                                    common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
   }
 }
 
-void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw,
-                                             const layout_version_t layout_version) const {
+void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->num_records_ = 0;
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout_.NumSlots();
 
-  for (uint16_t i = 0; i < layout_.NumCols(); i++)
-    result->AttrOffets()[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrOffets()[i] = column_offsets_[i];
 
   result->NumAttrs(layout_) = layout_.NumCols();
 
-  for (uint16_t i = 0; i < layout_.NumCols(); i++)
-    result->AttrSizes(layout_)[i] = layout_.AttrSize(i);
+  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(i);
 
   result->Column(PRESENCE_COLUMN_ID)->PresenceBitmap()->UnsafeClear(layout_.NumSlots());
 }

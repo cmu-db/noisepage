@@ -5,10 +5,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "util/test_thread_pool.h"
 #include "common/container/concurrent_bitmap.h"
+#include "gtest/gtest.h"
 #include "util/container_test_util.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -17,7 +17,7 @@ namespace terrier {
 TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
-  const uint32_t num_bitmap_sizes = 1000;
+  const uint32_t num_bitmap_sizes = 50;
   // Maximum bitmap size.
   const uint32_t max_bitmap_size = 1000;
 
@@ -36,16 +36,14 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
     uint32_t num_iterations = 32;
     std::default_random_engine generator;
     for (uint32_t i = 0; i < num_iterations; ++i) {
-      auto element =
-          std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+      auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
       EXPECT_TRUE(bitmap->Flip(element, bitmap->Test(element)));
       stl_bitmap[element] = !stl_bitmap[element];
       ContainerTestUtil::CheckReferenceBitmap<common::RawConcurrentBitmap>(*bitmap, stl_bitmap, num_elements);
     }
 
     // Verify that Flip fails if expected_val doesn't match current value
-    auto element =
-        std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
+    auto element = std::uniform_int_distribution(0, static_cast<int>(num_elements - 1))(generator);
     EXPECT_FALSE(bitmap->Flip(element, !bitmap->Test(element)));
     common::RawConcurrentBitmap::Deallocate(bitmap);
   }
@@ -55,7 +53,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
 TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   std::default_random_engine generator;
   // Number of bitmap sizes to test.
-  const uint32_t num_bitmap_sizes = 1000;
+  const uint32_t num_bitmap_sizes = 50;
   // Maximum bitmap size.
   const uint32_t max_bitmap_size = 1000;
   uint32_t pos;
@@ -168,7 +166,7 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   TestThreadPool thread_pool;
   std::default_random_engine generator;
-  const uint32_t num_iters = 200;
+  const uint32_t num_iters = 100;
   const uint32_t max_elements = 10000;
   const uint32_t num_threads = 8;
 
@@ -192,9 +190,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
     // then sort the results
     std::vector<uint32_t> all_elements;
     for (uint32_t i = 0; i < num_threads; ++i)
-      all_elements.insert(all_elements.end(),
-                          elements[i].begin(),
-                          elements[i].end());
+      all_elements.insert(all_elements.end(), elements[i].begin(), elements[i].end());
 
     // Verify coalesced result size
     EXPECT_EQ(num_elements, all_elements.size());
@@ -215,8 +211,8 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
   std::default_random_engine generator;
-  const uint32_t num_iters = 200;
-  const uint32_t max_elements = 450000;
+  const uint32_t num_iters = 100;
+  const uint32_t max_elements = 100000;
   const uint32_t num_threads = 8;
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
@@ -235,9 +231,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
     // then sort the results
     std::vector<uint32_t> all_elements;
     for (uint32_t i = 0; i < num_threads; ++i)
-      all_elements.insert(all_elements.end(),
-                          elements[i].begin(),
-                          elements[i].end());
+      all_elements.insert(all_elements.end(), elements[i].begin(), elements[i].end());
 
     // Verify coalesced result size
     EXPECT_EQ(num_elements, all_elements.size());

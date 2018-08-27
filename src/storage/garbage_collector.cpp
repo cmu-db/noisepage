@@ -1,9 +1,9 @@
+#include "storage/garbage_collector.h"
 #include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
-#include "storage/garbage_collector.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
