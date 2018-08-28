@@ -15,7 +15,12 @@ namespace terrier::common {
  */
 class NoMoreObjectException : public std::exception {
  public:
+  /**
+   * Construct an exception that can be thrown by a object pool
+   * @param limit the object pool limit size
+   */
   explicit NoMoreObjectException(uint64_t limit) : limit_(limit) {}
+
   /**
    * Describe the exception.
    * @return a string of exception description
