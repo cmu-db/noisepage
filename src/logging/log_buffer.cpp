@@ -7,14 +7,13 @@ void LogBuffer::WriteRecord(const LogRecord &record) {
   buffer_.WriteInt(0);
 
   auto type = record.Type();
-  buffer_.WriteEnumInSingleByte(
-    static_cast<int>(type));
+  buffer_.WriteEnumInSingleByte(static_cast<int>(type));
 
   buffer_.WriteTimestamp(record.TxnId());
   buffer_.WriteTimestamp(record.CommitId());
 
-  buffer_.WriteLong(reinterpret_cast<int64_t>(record.TupleSlot().GetBlock())
-                    | record.TupleSlot().GetOffset());
+  buffer_.WriteLong(reinterpret_cast<int64_t>(record.TupleSlot().GetBlock()));
+  buffer_.WriteLong(reinterpret_cast<uint32_t>(record.TupleSlot().GetOffset()));
 
   switch (type) {
     case LogRecordType::INSERT:
@@ -31,13 +30,11 @@ void LogBuffer::WriteRecord(const LogRecord &record) {
     case LogRecordType::ABORT: {
       break;
     }
-    default: {
-      TERRIER_ASSERT(false, "the log record type is not supported");
-    }
+    default: { TERRIER_ASSERT(false, "the log record type is not supported"); }
   }
 
   // Fill the reserved space with the frame length
-  uint32_t length = buffer_.Position() - start - static_cast<uint32_t >(sizeof(uint32_t));
+  uint32_t length = buffer_.Position() - start - static_cast<uint32_t>(sizeof(uint32_t));
   buffer_.WriteIntAt(start, length);
 }
 }  // namespace terrier::logging

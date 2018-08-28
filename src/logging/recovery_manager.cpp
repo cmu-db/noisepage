@@ -1,6 +1,6 @@
-#include <utility>
-#include <map>
 #include "logging/recovery_manager.h"
+#include <map>
+#include <utility>
 
 namespace terrier::logging {
 void RecoveryManager::Recover() {
@@ -10,12 +10,44 @@ void RecoveryManager::Recover() {
 }
 
 void RecoveryManager::ReplayTxn(timestamp_t txn_id) {
+  auto offset = offsets_[txn_id];
+  auto total_len = txns_[txn_id];
 
+  while (total_len > 0) {
+    CopySerializeInput length_input(recovery_memory_ + offset, static_cast<uint32_t>(sizeof(int)));
+    auto record_length = static_cast<uint32_t>(length_input.ReadInt());
+    offset += static_cast<uint32_t>(sizeof(int));
+    CopySerializeInput record_input(recovery_memory_ + offset, record_length);
+    auto type = static_cast<LogRecordType>(record_input.ReadEnumInSingleByte());
+    record_input.ReadLong();
+    record_input.ReadLong();
+    auto block = reinterpret_cast<storage::RawBlock *>(record_input.ReadLong());
+    auto slot_offset = static_cast<uint32_t>(record_input.ReadInt());
+    storage::TupleSlot tuple_slot(block, slot_offset);
+
+    // TODO(Aaron): Add recovery logic for different types of log records once
+    // we have tuple IDs
+    if (type == LogRecordType::INSERT) {
+      STORAGE_LOG_INFO("Replay an INSERT log record");
+    } else if (type == LogRecordType::DELETE) {
+      STORAGE_LOG_INFO("Replay a DELETE log record");
+    } else if (type == LogRecordType::UPDATE) {
+      STORAGE_LOG_INFO("Replay a UPDATE log record");
+    } else if (type == LogRecordType::BEGIN) {
+      STORAGE_LOG_INFO("Replay a Transaction BEGIN log record");
+    } else if (type == LogRecordType::COMMIT) {
+      STORAGE_LOG_INFO("Replay a Transaction COMMIT log record");
+    } else if (type == LogRecordType::ABORT) {
+      STORAGE_LOG_INFO("Replay a Transaction UPDATE log record");
+    }
+    offset += record_length;
+    total_len -= (record_length + static_cast<uint32_t>(sizeof(int)));
+  }
 }
 
 void RecoveryManager::Replay() {
-  for (auto it = offsets_.begin(); it != offsets_.end(); it++) {
-    ReplayTxn(it->first);
+  for (auto &offset : offsets_) {
+    ReplayTxn(offset.first);
   }
 }
 
@@ -38,18 +70,18 @@ uint32_t RecoveryManager::ParseFile() {
     STORAGE_LOG_INFO("Read %d bytes from the log file stream", read_size);
     buffer_unread_size += read_size;
     if (read_size != buffer_unused_size && file_.eof()) {
-        parsing_finished = true;
+      parsing_finished = true;
     }
 
     while (buffer_unread_size >= sizeof(record_len)) {
-      CopySerializeInput length_input(buffer+buffer_read_pos, 4);
-      record_len = static_cast<uint32_t >(length_input.ReadInt());
+      CopySerializeInput length_input(buffer + buffer_read_pos, 4);
+      record_len = static_cast<uint32_t>(length_input.ReadInt());
       if (buffer_unread_size >= record_len + sizeof(record_len)) {
-        uint32_t record_offset = buffer_read_pos + static_cast<uint32_t >(sizeof(record_len));
-        CopySerializeInput record_input(buffer+record_offset, record_len);
+        uint32_t record_offset = buffer_read_pos + static_cast<uint32_t>(sizeof(record_len));
+        CopySerializeInput record_input(buffer + record_offset, record_len);
         auto record_type = static_cast<LogRecordType>(record_input.ReadEnumInSingleByte());
         auto txn_id = record_input.ReadTimestamp();
-        uint32_t requested_size = record_len + static_cast<uint32_t >(sizeof(record_len));
+        uint32_t requested_size = record_len + static_cast<uint32_t>(sizeof(record_len));
 
         switch (record_type) {
           case LogRecordType::BEGIN: {
@@ -71,16 +103,13 @@ uint32_t RecoveryManager::ParseFile() {
             if (txns_.find(txn_id) == txns_.end()) {
               STORAGE_LOG_ERROR("The transaction is illegal in recovery");
             }
-            txns_[txn_id] = PackTypeLength(record_type,
-              ExtractLength(txns_[txn_id]) + requested_size);
+            txns_[txn_id] = PackTypeLength(record_type, ExtractLength(txns_[txn_id]) + requested_size);
             break;
           }
-          default: {
-            STORAGE_LOG_ERROR("Unknown log record type in recovery.");
-          }
+          default: { STORAGE_LOG_ERROR("Unknown log record type in recovery."); }
         }
-        buffer_read_pos += record_len + static_cast<uint32_t >(sizeof(record_len));
-        buffer_unread_size -= (record_len + static_cast<uint32_t >(sizeof(record_len)));
+        buffer_read_pos += record_len + static_cast<uint32_t>(sizeof(record_len));
+        buffer_unread_size -= (record_len + static_cast<uint32_t>(sizeof(record_len)));
       } else {
         break;
       }
@@ -105,7 +134,7 @@ uint32_t RecoveryManager::ParseFile() {
 }
 
 void RecoveryManager::LoadFile(uint32_t size) {
-  recovery_memory_  = new byte[size];
+  recovery_memory_ = new byte[size];
   uint32_t buffer_capacity = RECOVERY_BUFFER_CAPACITY;
   uint32_t buffer_unread_size = 0;
   uint32_t buffer_read_pos = 0;
@@ -127,8 +156,8 @@ void RecoveryManager::LoadFile(uint32_t size) {
     }
 
     while (buffer_unread_size >= sizeof(record_len)) {
-      CopySerializeInput length_input(buffer+buffer_read_pos, 4);
-      record_len = static_cast<uint32_t >(length_input.ReadInt());
+      CopySerializeInput length_input(buffer + buffer_read_pos, 4);
+      record_len = static_cast<uint32_t>(length_input.ReadInt());
       if (buffer_unread_size >= record_len + static_cast<uint32_t>(sizeof(record_len))) {
         uint32_t record_offset = buffer_read_pos + static_cast<uint32_t>(sizeof(record_len));
         CopySerializeInput record_input(buffer + record_offset, record_len);
@@ -136,16 +165,15 @@ void RecoveryManager::LoadFile(uint32_t size) {
         timestamp_t txn_id = record_input.ReadTimestamp();
         if (offsets_copy.find(txn_id) != offsets_copy.end()) {
           uint32_t current_offset = offsets_copy[txn_id];
-          STORAGE_LOG_INFO("Transaction %lu writes a log record and its length"
-                           " from byte %u to byte %u in the recovery memory area",
-                           static_cast<uint64_t >(txn_id), current_offset,
-                           current_offset + record_len + sizeof(record_len)-1);
-          TERRIER_MEMCPY(recovery_memory_ + current_offset,
-            buffer + buffer_read_pos, record_len + sizeof(record_len));
-          offsets_copy[txn_id] += record_len + static_cast<uint32_t >(sizeof(record_len));
+          STORAGE_LOG_INFO(
+              "Transaction %lu writes a log record and its length"
+              " from byte %u to byte %u in the recovery memory area",
+              static_cast<uint64_t>(txn_id), current_offset, current_offset + record_len + sizeof(record_len) - 1);
+          TERRIER_MEMCPY(recovery_memory_ + current_offset, buffer + buffer_read_pos, record_len + sizeof(record_len));
+          offsets_copy[txn_id] += record_len + static_cast<uint32_t>(sizeof(record_len));
         }
-        buffer_read_pos += (record_len + static_cast<uint32_t >(sizeof(record_len)));
-        buffer_unread_size -= (record_len + static_cast<uint32_t >(sizeof(record_len)));
+        buffer_read_pos += (record_len + static_cast<uint32_t>(sizeof(record_len)));
+        buffer_unread_size -= (record_len + static_cast<uint32_t>(sizeof(record_len)));
       } else {
         break;
       }
