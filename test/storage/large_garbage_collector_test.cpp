@@ -44,7 +44,7 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  const uint32_t num_iterations = 1;
+  const uint32_t num_iterations = 10;
   const uint16_t max_columns = 2;
   const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 10;

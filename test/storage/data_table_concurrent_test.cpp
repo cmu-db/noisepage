@@ -83,7 +83,7 @@ struct DataTableConcurrentTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   TestThreadPool thread_pool;
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
   const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
@@ -120,7 +120,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   TestThreadPool thread_pool;
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
   const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {

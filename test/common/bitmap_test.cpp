@@ -17,7 +17,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap
@@ -54,7 +54,7 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a non-byte-multiple sized bitmap
@@ -92,7 +92,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
   // Maximum bitmap size multiplier.
   const uint32_t max_size_multiplier = 100;
   // Number of times to randomly permute bitmap
-  const uint32_t num_iterations = 1000;
+  const uint32_t num_iterations = 100;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap

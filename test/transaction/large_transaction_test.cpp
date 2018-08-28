@@ -16,7 +16,7 @@ class LargeTransactionTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
   const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 20;
