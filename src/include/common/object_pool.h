@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 #include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
+#include "common/stats/object_pool_stats.h"
 #include "common/typedefs.h"
 
 namespace terrier::common {
@@ -31,6 +33,20 @@ class ObjectPool {
   explicit ObjectPool(const uint64_t reuse_limit) : reuse_limit_(reuse_limit) {}
 
   /**
+   * Initializes a new object pool with the supplied limit to the number of
+   * objects reused with statistics collector.
+   * @param reuse_limit
+   * @param stats_collector  stats collector pointer to collect and to print stats in this class.
+   */
+  explicit ObjectPool(uint64_t reuse_limit, StatsCollector *stats_collector) : reuse_limit_(reuse_limit) {
+    if (stats_collector != nullptr) {
+      // enable stats collection
+      enable_stats_ = true;
+      stats_ = std::make_unique<ObjectPoolStats>(stats_collector);
+    }
+  }
+
+  /**
    * Destructs the memory pool. Frees any memory it holds.
    *
    * Beware that the object pool will not deallocate some piece of memory
@@ -48,10 +64,17 @@ class ObjectPool {
    */
   T *Get() {
     T *result = nullptr;
-    if (!reuse_queue_.Dequeue(&result))
+    if (!reuse_queue_.Dequeue(&result)) {
       result = alloc_.New();
-    else
+
+      // for statistics
+      if (enable_stats_) stats_->IncrementCreateBlockCounter();
+    } else {
       alloc_.Reuse(result);
+
+      // for statistics
+      if (enable_stats_) stats_->IncrementReuseBlockCounter();
+    }
     return result;
   }
 
@@ -63,15 +86,21 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    if (reuse_queue_.UnsafeSize() > reuse_limit_)
+    if (reuse_queue_.UnsafeSize() > reuse_limit_) {
       alloc_.Delete(obj);
-    else
+    } else {
       reuse_queue_.Enqueue(std::move(obj));
+    }
   }
 
  private:
   Allocator alloc_;
   ConcurrentQueue<T *> reuse_queue_;
   const uint64_t reuse_limit_;
+
+  // statistics about usage of blocks in the class.
+  // enable_stats is used to disable the statistics.
+  bool enable_stats_ = false;
+  std::unique_ptr<ObjectPoolStats> stats_;
 };
 }  // namespace terrier::common
