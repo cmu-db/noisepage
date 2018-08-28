@@ -20,3 +20,6 @@
 GTEST_VERSION=1.8.0
 GFLAGS_VERSION=2.2.0
 GBENCHMARK_VERSION=1.4.1
+
+# Library, Version, Commit Hash
+# nlohmann::json, 3.1.2, d2dd27dc3b8472dbaa7d66f83619b3ebcd9185fe
