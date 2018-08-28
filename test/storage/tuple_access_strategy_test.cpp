@@ -55,7 +55,7 @@ class TupleAccessStrategyTestObject {
 
 struct TupleAccessStrategyTests : public TerrierTest {
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{1, 1};
 
  protected:
   void SetUp() override {

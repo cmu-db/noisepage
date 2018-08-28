@@ -61,15 +61,6 @@ class ObjectPool {
       : size_limit_(size_limit), reuse_limit_(reuse_limit), current_size_(0) {}
 
   /**
-   * Initializes a new object pool with the supplied limit to the number of
-   * objects reused. The reuse_limit is set to be the same as size limit.
-   *
-   * @param size_limit the number of objects the object pool controls
-   */
-  explicit ObjectPool(const uint64_t size_limit)
-      : size_limit_(size_limit), reuse_limit_(size_limit), current_size_(0) {}
-
-  /**
    * Destructs the memory pool. Frees any memory it holds.
    *
    * Beware that the object pool will not deallocate some piece of memory

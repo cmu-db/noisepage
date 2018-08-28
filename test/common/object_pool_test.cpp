@@ -15,7 +15,7 @@ namespace terrier {
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 1;
-  common::ObjectPool<uint32_t> tested(size_limit);
+  common::ObjectPool<uint32_t> tested(size_limit, size_limit);
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
@@ -37,7 +37,7 @@ TEST(ObjectPoolTests, ResetLimitTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 10;
   for (uint32_t iteration = 0; iteration < repeat; ++iteration) {
-    common::ObjectPool<uint32_t> tested(size_limit);
+    common::ObjectPool<uint32_t> tested(size_limit, size_limit);
     std::unordered_set<uint32_t *> used_ptrs;
 
     // The reuse_queue should have a size of size_limit
@@ -89,7 +89,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
   // This should have no bearing on the correctness of test
   const uint64_t reuse_limit = 100;
-  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit);
+  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit, reuse_limit);
   auto workload = [&](uint32_t tid) {
     std::uniform_int_distribution<uint64_t> size_dist_(1, reuse_limit);
 

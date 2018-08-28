@@ -41,7 +41,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{num_blocks_};
+  storage::BlockStore block_store_{num_blocks_, num_blocks_};
 
   std::vector<storage::RawBlock *> raw_blocks_;
   // Insert buffer pointers
