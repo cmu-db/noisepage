@@ -38,11 +38,12 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_threads_ = 8;
+  const uint64_t bp_reuse_limit_ = 10000000;
 
   // Test infrastructure
   std::default_random_engine generator_;
   storage::BlockStore block_store_{1000, 1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{num_inserts_, num_inserts_};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{num_inserts_, bp_reuse_limit_};
 
   // Insert buffer pointers
   byte *redo_buffer_;

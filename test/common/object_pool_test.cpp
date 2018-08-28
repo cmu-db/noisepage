@@ -15,7 +15,8 @@ namespace terrier {
 TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 1;
-  common::ObjectPool<uint32_t> tested(size_limit, size_limit);
+  const uint64_t reuse_limit = 1;
+  common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
 
   // Put a pointer on the the reuse queue
   uint32_t *reused_ptr = tested.Get();
@@ -87,9 +88,10 @@ class ObjectPoolTestType {
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
-  // This should have no bearing on the correctness of test
+
+  const uint64_t size_limit = 100;
   const uint64_t reuse_limit = 100;
-  common::ObjectPool<ObjectPoolTestType> tested(reuse_limit, reuse_limit);
+  common::ObjectPool<ObjectPoolTestType> tested(size_limit, reuse_limit);
   auto workload = [&](uint32_t tid) {
     std::uniform_int_distribution<uint64_t> size_dist_(1, reuse_limit);
 
@@ -99,9 +101,12 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     std::vector<ObjectPoolTestType *> ptrs;
     auto allocate = [&] {
       try {
-        ObjectPoolTestType *temp = tested.Get();
-        ptrs.push_back(temp->Use(tid));
+        ptrs.push_back(tested.Get()->Use(tid));
       } catch (common::NoMoreObjectException) {
+        // Since threads are alloc and free in random order, object pool could possibly have no object to hand out.
+        // When this occurs, we just do nothing. The purpose of this test is to test object pool concurrently and
+        // check correctness. We just skip and do nothing. The object pool will eventually have objects when other
+        // threads release objects.
       }
     };
     auto free = [&] {

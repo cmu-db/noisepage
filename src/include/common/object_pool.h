@@ -95,7 +95,7 @@ class ObjectPool {
       reuse_queue_.pop();
       alloc_.Reuse(result);
     }
-    TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed it's size limit");
+    TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
     return result;
   }
 
@@ -113,14 +113,24 @@ class ObjectPool {
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
-      TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed it's size limit");
+      TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
       return true;
     }
     return false;
   }
 
   /**
-   * Set the reuse limit to a new value.
+   * Set the reuse limit to a new value. This function always succeed and immediately changes
+   * reuse limit.
+   *
+   * A reuse limit simply determines the maximum number of reusable objects the object pool should
+   * maintain and can be any non-negative number.
+   *
+   * If reuse limit > size limit. It's still valid.
+   * It's just that the number of reusable objects in the pool will never reach reuse limit because
+   * # of reusable objects <= current size <= size limit < reuse_limit.
+   *
+   * If it's 0, then the object pool just never reuse object.
    *
    * @param new_reuse_limit
    */
@@ -156,6 +166,8 @@ class ObjectPool {
  private:
   Allocator alloc_;
   SpinLatch latch_;
+  // TODO(yangjuns): We don't need to reuse objects in a FIFO pattern. We could potentially pass a second template
+  // parameter to define the backing container for the std::queue. That way we can measure each backing container.
   std::queue<T *> reuse_queue_;
   uint64_t size_limit_;   // the maximum number of objects a object pool can have
   uint64_t reuse_limit_;  // the maximum number of reusable objects in reuse_queue
