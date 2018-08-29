@@ -85,6 +85,10 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  /**
+   * Return a pointer to the performance counter for the data table.
+   * @return pointer to the performance counter
+   */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
  private:
