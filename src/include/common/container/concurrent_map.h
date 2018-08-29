@@ -9,13 +9,14 @@
 namespace terrier::common {
 #define TEMPLATE_ARGS K, V, Hasher, Equality, Alloc
 /**
- * A thread-safe map implementation. For the time being make sure that the value
- * types are trivially copyable value types (ints, pointers, reference, etc.)
+ * A thread-safe map implementation. For the time being make sure that the value types are trivially copyable value
+ * types (ints, pointers, reference, etc.)
  * @tparam K key type
  * @tparam V value type
  * @tparam Hasher hasher used for keys.
  * @tparam Equality equality check used for keys
  * @tparam Alloc Allocator type used
+ * @warning Consider the non-trivial overhead associated with a concurrent data structure before defaulting to its use.
  */
 template <typename K, typename V, typename Hasher = tbb::tbb_hash<K>, typename Equality = std::equal_to<K>,
           typename Alloc = tbb::tbb_allocator<std::pair<const K, V>>>

@@ -3,9 +3,10 @@
 #include "common/macros.h"
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
-#include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {
+class ProjectedRow;
+class TupleAccessStrategy;
 /**
  * Static utility class for common functions in storage
  */
@@ -21,25 +22,7 @@ class StorageUtil {
    * @param val the byte value to write. Truncated if neccessary.
    * @param pos the location to write to.
    */
-  static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos) {
-    switch (attr_size) {
-      case sizeof(uint8_t):
-        *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
-        break;
-      case sizeof(uint16_t):
-        *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
-        break;
-      case sizeof(uint32_t):
-        *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
-        break;
-      case sizeof(uint64_t):
-        *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
-        break;
-      default:
-        // Invalid attr size
-        throw std::runtime_error("Invalid byte write value");
-    }
-  }
+  static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos);
 
   /**
    * Read specified number of bytes from position and interpret the bytes as
@@ -49,21 +32,7 @@ class StorageUtil {
    * @param pos the location to read from.
    * @return the byte value at position, padded up to 8 bytes.
    */
-  static uint64_t ReadBytes(uint8_t attr_size, const byte *pos) {
-    switch (attr_size) {
-      case sizeof(uint8_t):
-        return *reinterpret_cast<const uint8_t *>(pos);
-      case sizeof(uint16_t):
-        return *reinterpret_cast<const uint16_t *>(pos);
-      case sizeof(uint32_t):
-        return *reinterpret_cast<const uint32_t *>(pos);
-      case sizeof(uint64_t):
-        return *reinterpret_cast<const uint64_t *>(pos);
-      default:
-        // Invalid attr size
-        throw std::runtime_error("Invalid byte write value");
-    }
-  }
+  static uint64_t ReadBytes(uint8_t attr_size, const byte *pos);
 
   /**
    * Copy from pointer location into projected row at given column id. If the pointer location is null,
@@ -73,12 +42,7 @@ class StorageUtil {
    * @param size size of the attribute
    * @param col_id column id to copy into
    */
-  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id) {
-    if (from == nullptr)
-      to->SetNull(col_id);
-    else
-      WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(col_id));
-  }
+  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
@@ -89,14 +53,7 @@ class StorageUtil {
    * @param to tuple slot to copy into
    * @param col_id col_id to copy into
    */
-  static void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, TupleSlot to, uint16_t col_id) {
-    if (from == nullptr) {
-      accessor.SetNull(to, col_id);
-    } else {
-      uint8_t size = accessor.GetBlockLayout().attr_sizes_[col_id];
-      WriteBytes(size, ReadBytes(size, from), accessor.AccessForceNotNull(to, col_id));
-    }
-  }
+  static void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, TupleSlot to, uint16_t col_id);
 
   /**
    * Copy an attribute from a block into a ProjectedRow.
@@ -106,12 +63,7 @@ class StorageUtil {
    * @param projection_list_offset The projection_list index to copy to on the projected row.
    */
   static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
-                                     uint16_t projection_list_offset) {
-    uint16_t col_id = to->ColumnIds()[projection_list_offset];
-    uint8_t attr_size = accessor.GetBlockLayout().attr_sizes_[col_id];
-    byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
-    CopyWithNullCheck(stored_attr, to, attr_size, projection_list_offset);
-  }
+                                     uint16_t projection_list_offset);
 
   /**
    * Copy an attribute from a ProjectedRow into a block.
@@ -121,36 +73,7 @@ class StorageUtil {
    * @param projection_list_offset The projection_list index to copy from on the projected row.
    */
   static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const ProjectedRow &from,
-                                     uint16_t projection_list_offset) {
-    uint16_t col_id = from.ColumnIds()[projection_list_offset];
-    const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
-    CopyWithNullCheck(stored_attr, accessor, to, col_id);
-  }
-
-  /**
-   * Applies delta into the given buffer.
-   *
-   * Specifically, columns present in the delta will have their value (or lack of value, in the case of null) copied
-   * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
-   * behavior is not defined.
-   * @param layout layout used for the projected row
-   * @param delta delta to apply
-   * @param buffer buffer to apply delta into
-   * @param col_to_index a mapping between column id and projection list index for the buffer to apply delta to. This
-   *                     speeds up operation if multiple deltas are expected to be applied to the same buffer.
-   */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer,
-                         const std::unordered_map<uint16_t, uint16_t> &col_to_index) {
-    for (uint16_t i = 0; i < delta.NumColumns(); i++) {
-      uint16_t delta_col_id = delta.ColumnIds()[i];
-      auto it = col_to_index.find(delta_col_id);
-      if (it != col_to_index.end()) {
-        uint16_t col_id = it->first, buffer_offset = it->second;
-        uint8_t attr_size = layout.attr_sizes_[col_id];
-        StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(i), buffer, attr_size, buffer_offset);
-      }
-    }
-  }
+                                     uint16_t projection_list_offset);
 
   /**
    * Applies delta into the given buffer.
@@ -159,18 +82,43 @@ class StorageUtil {
    * into the same column in the buffer. It is expected that the buffer's columns is a super set of the delta. If not,
    * behavior is not defined.
    *
-   * @warning This version of the function is slow if you expect to apply multiple deltas into the same buffer, because
-   * every call will construct their own maps from column id to projection list index. If that is your use case, call
-   * the other version of this function that takes in a map that can be reused across different calls.
-   *
    * @param layout layout used for the projected row
    * @param delta delta to apply
    * @param buffer buffer to apply delta into
    */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer) {
-    std::unordered_map<uint16_t, uint16_t> col_to_index;
-    for (uint16_t i = 0; i < buffer->NumColumns(); i++) col_to_index.emplace(buffer->ColumnIds()[i], i);
-    ApplyDelta(layout, delta, buffer, col_to_index);
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
+
+  /**
+   * Given an address offset, aligns it to the word_size
+   * @param word_size size in bytes to align offset to
+   * @param offset address to be aligned
+   * @return modified version of address padded to align to word_size
+   */
+  static uint32_t PadUpToSize(uint8_t word_size, uint32_t offset);
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the given size.
+   * @param size the size to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  // This const qualifier on ptr lies. Use this really only for pointer arithmetic.
+  static byte *AlignedPtr(const uint8_t size, const void *ptr) {
+    auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
+    uint64_t remainder = ptr_value % size;
+    return remainder == 0 ? reinterpret_cast<byte *>(ptr_value)
+                          : reinterpret_cast<byte *>(ptr_value + size - remainder);
+  }
+
+  /**
+   * Given a pointer, pad the pointer so that the pointer aligns to the size of A.
+   * @tparam A type of value to pad up to
+   * @param ptr the pointer to pad
+   * @return padded pointer
+   */
+  template <class A>
+  static A *AlignedPtr(const void *ptr) {
+    return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
 };
 }  // namespace terrier::storage
