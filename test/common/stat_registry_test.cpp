@@ -134,4 +134,22 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
 
   reg.Shutdown(false);
 }
+
+// Test freeing the performance counters stored inside
+// NOLINTNEXTLINE
+TEST(StatRegistryTest, GTEST_DEBUG_ONLY(FreeTest)) {
+  {
+    terrier::common::StatisticsRegistry reg;
+    auto *cc = new CacheCounter;
+    reg.Register({}, cc, this);
+    reg.Shutdown(true);
+  }
+  {
+    terrier::common::StatisticsRegistry reg;
+    auto *cc = new CacheCounter;
+    reg.Register({}, cc, this);
+    reg.Deregister({}, cc->GetName(), true);
+    reg.Shutdown(true);
+  }
+}
 }  // namespace terrier
