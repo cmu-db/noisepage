@@ -138,7 +138,7 @@ class TupleAccessStrategy {
   /* Vectorized Access */
   /**
    * @param block block to access
-   * @param col id of the column
+   * @param col_id id of the column
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
@@ -147,7 +147,7 @@ class TupleAccessStrategy {
 
   /**
    * @param block block to access
-   * @param col id of the column
+   * @param col_id id of the column
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
