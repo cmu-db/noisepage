@@ -5,8 +5,8 @@ Run micro-benchmarks on a PR, for the purpose of comparing performance with
 the master branch.
 
 Usage:
-From the top level of the terrier build tree
-./script/micro_bench/run_micro_bench.py
+From the directory in which this script resides
+./run_micro_bench.py
 """
 
 import os
@@ -44,7 +44,7 @@ class RunMicroBenchmarks(object):
     def run_single_benchmark(self, benchmark_name):
         """ Run benchmark, generate JSON results
         """
-        benchmark_path = os.path.join("./release/release", benchmark_name)
+        benchmark_path = os.path.join("../../build/release", benchmark_name)
         output_file = "{}_out.json".format(benchmark_name)
 
         cmd = "{} --benchmark_min_time={} " + \
