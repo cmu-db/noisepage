@@ -49,6 +49,11 @@ class TestThreadPool {
     }
   }
 
+  /**
+   * @return the number of concurrent threads supported on this machine, or 0 if not well-defined.
+   */
+  static uint32_t HardwareConcurrency() noexcept { return std::thread::hardware_concurrency(); }
+
  private:
   std::vector<std::thread> thread_pool_;
   std::queue<std::function<void()>> work_pool_;
