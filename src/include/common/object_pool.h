@@ -34,6 +34,21 @@ class NoMoreObjectException : public std::exception {
 };
 
 /**
+ * An exception thrown by object pools when the allocator fails to fetch memory
+ * space. This can happen when the caller asks for an object, the object pool
+ * doesn't have reusable object and the underlying allocator fails to get new
+ * memory due to system running out of memory
+ */
+class AllocatorFailureException : public std::exception {
+ public:
+  /**
+   * Describe the exception.
+   * @return a string of exception description
+   */
+  const char *what() const noexcept override { return "Allocator fails to allocate memory.\n"; }
+};
+
+/**
  * Object pool for memory allocation.
  *
  * This prevents liberal calls to malloc and new in the code and makes tracking
@@ -78,24 +93,22 @@ class ObjectPool {
   /**
    * Returns a piece of memory to hold an object of T.
    * @throw NoMoreObjectException if the object pool fails to fetch memory.
+   * @throw AllocatorFailureException if the allocator fails to return a valid memory address.
    * @return pointer to memory that can hold T
    */
   T *Get() {
     SpinLatch::ScopedSpinLatch guard(&latch_);
+    if (reuse_queue_.empty() && current_size_ >= size_limit_) throw NoMoreObjectException(size_limit_);
     T *result = nullptr;
     if (reuse_queue_.empty()) {
-      if (current_size_ < size_limit_) result = alloc_.New();
-      if (result != nullptr) {
-        current_size_++;
-      } else {
-        // out of memory
-        throw NoMoreObjectException(size_limit_);
-      }
+      result = alloc_.New();  // result could be null because the allocator may not find enough memory space
+      if (result != nullptr) current_size_++;
     } else {
       result = reuse_queue_.front();
       reuse_queue_.pop();
       alloc_.Reuse(result);
     }
+    if (result == nullptr) throw AllocatorFailureException();
     TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
     return result;
   }
