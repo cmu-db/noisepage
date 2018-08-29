@@ -27,16 +27,17 @@ class RunMicroBenchmarks(object):
         return
 
     def run_all_benchmarks(self):
-        """ Return True on success of all benchmarks
-                   False if any fail
+        """ Return 0 if all benchmarks succeed, otherwise return the error code
+            code from the last benchmark to fail
         """
-        ret_val = True
+        ret_val = 0
 
         # iterate over all benchmarks and run them
         for benchmark_name in self.benchmark_list:
             bench_ret_val = self.run_single_benchmark(benchmark_name)
             if bench_ret_val:
-                ret_val = False
+                print "{} terminated with {}".format(benchmark_name, bench_ret_val)
+                ret_val = bench_ret_val
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
@@ -58,7 +59,7 @@ class RunMicroBenchmarks(object):
                                   shell=True,
                                   stdout=sys.stdout,
                                   stderr=sys.stderr)
-
+        
         # return the process exit code
         return ret_val
 
