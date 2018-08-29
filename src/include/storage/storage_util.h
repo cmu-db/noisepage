@@ -40,9 +40,9 @@ class StorageUtil {
    * @param from pointer location to copy fro, or nullptr
    * @param to ProjectedRow to copy into
    * @param size size of the attribute
-   * @param col_id column id to copy into
+   * @param projection_list_index the projection_list_index to copy to
    */
-  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t col_id);
+  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
@@ -51,9 +51,9 @@ class StorageUtil {
    * @param to ProjectedRow to copy into
    * @param accessor TupleAccessStrategy used to interact with the given block.
    * @param to tuple slot to copy into
-   * @param col_id col_id to copy into
+   * @param col_id the col_id to copy into
    */
-  static void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, TupleSlot to, uint16_t col_id);
+  static void CopyWithNullCheck(const byte *from, const TupleAccessStrategy &accessor, TupleSlot to, col_id_t col_id);
 
   /**
    * Copy an attribute from a block into a ProjectedRow.

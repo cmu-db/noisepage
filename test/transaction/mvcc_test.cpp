@@ -36,7 +36,7 @@ class MVCCDataTableTestObject {
 
   template <class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);

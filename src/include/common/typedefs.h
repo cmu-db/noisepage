@@ -123,7 +123,9 @@ class StrongTypeAlias {
    * @param operand another int type
    * @return sum of the underlying value and given operand
    */
-  StrongTypeAlias operator+(const IntType &operand) const { return StrongTypeAlias(val_ + operand); }
+  StrongTypeAlias operator+(const IntType &operand) const {
+    return StrongTypeAlias(static_cast<IntType>(val_ + operand));
+  }
 
   /**
    * addition and assignment
@@ -168,6 +170,30 @@ class StrongTypeAlias {
   }
 
   /**
+   * @param other the other type alias to compare to
+   * @return whether underlying value of this < other
+   */
+  bool operator<(const StrongTypeAlias &other) const { return val_ < other.val_; }
+
+  /**
+   * @param other the other type alias to compare to
+   * @return whether underlying value of this < other
+   */
+  bool operator<=(const StrongTypeAlias &other) const { return val_ <= other.val_; }
+
+  /**
+   * @param other the other type alias to compare to
+   * @return whether underlying value of this < other
+   */
+  bool operator>(const StrongTypeAlias &other) const { return val_ > other.val_; }
+
+  /**
+   * @param other the other type alias to compare to
+   * @return whether underlying value of this < other
+   */
+  bool operator>=(const StrongTypeAlias &other) const { return val_ >= other.val_; }
+
+  /**
    * Outputs the StrongTypeAlias to the output stream.
    * @param os output stream to be written to.
    * @param alias StrongTypeAlias to be output.
@@ -187,6 +213,7 @@ using byte = std::byte;
 
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
+STRONG_TYPEDEF(col_id_t, uint16_t);
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
