@@ -51,7 +51,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const uint32_t num_txns = 1000;
   const uint32_t batch_size = 100;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
-  const uint32_t num_concurrent_txns = 4;
+  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                       &buffer_pool_, &generator_, true, true);

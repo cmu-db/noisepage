@@ -39,7 +39,7 @@ class DataTableBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_threads_ = 8;
+  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
 
   // Test infrastructure
   std::default_random_engine generator_;
