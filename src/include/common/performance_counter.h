@@ -55,13 +55,13 @@ class PerformanceCounter {
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName) std::atomic<MemberType> MemberName{0};
 
 /**
- * This macro defines an Inc_MemberName() function which increments MemberName.
+ * This macro defines an IncMemberName() function which increments MemberName.
  */
 #define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
   void Inc##MemberName() { ++MemberName; }
 
 /**
- * This macro defines a Dec_MemberName() function which decrements MemberName.
+ * This macro defines a DecMemberName() function which decrements MemberName.
  */
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
   void Dec##MemberName() { --MemberName; }
@@ -118,15 +118,15 @@ class PerformanceCounter {
  * More concretely, given the following macro definitions:
  *
  * #define NETWORK_MEMBERS(f) \
- *    f(uint64_t, requests_received) \
- *    f(uint32_t, connections_opened)
+ *    f(uint64_t, RequestsReceived) \
+ *    f(uint32_t, ConnectionsOpened)
  *
  * #define MAKE_MEMBER(MemberType, MemberName) \
  *    std::atomic<MemberType> MemberName{0};
  *
  * The preprocessor will expand NETWORK_MEMBERS(MAKE_MEMBER) to
- *    std::atomic<uint64_t> requests_received{0};
- *    std::atomic<uint32_t> connections_opened{0};
+ *    std::atomic<uint64_t> RequestsReceived{0};
+ *    std::atomic<uint32_t> ConnectionsOpened{0};
  *
  * Furthermore, you have access to the surrounding scope's variables,
  * though you have to be careful with any assumptions you make there.
@@ -138,14 +138,18 @@ class PerformanceCounter {
  * The actual counters are defined by passing in MemberList, a macro of the form
  *      #define MEMBER_LIST(f) f(type1, name1) f(type2, name2) ... f(typeN, nameN)
  * Note that all of the types should be integral types. An example:
- *      #define NETWORK_MEMBERS(f) f(uint64_t, requests_received) f(uint32_t, connections_opened)
+ *      #define NETWORK_MEMBERS(f) f(uint64_t, RequestsReceived) f(uint32_t, ConnectionsOpened)
  *
  * You can use the resulting PerformanceCounter as a class in its own right. For example,
  *      #define DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
  * will make the following code valid:
  *      NetworkCounter nc;
- *      nc.requests_received++;
- *      nc.connections_opened.store(100);
+ *      nc.IncRequestsReceived();
+ *      nc.DecConnectionsOpened();
+ *
+ * In general, every declared member XYZ has IncXYZ(), DecXYZ(), GetXYZ() defined
+ * to increment, decrement and get the value accordingly.
+ * We need a function call so that we can compile this out in release mode.
  *
  * Note that every class member is wrapped in std::atomic.
  */
