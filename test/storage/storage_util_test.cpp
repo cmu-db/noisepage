@@ -185,7 +185,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(i + 1)), ptr), copy[i].second);
+          col_id_t col_id(static_cast<uint16_t>(i + 1));
+          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), ptr), copy[i].second);
         }
       }
     }
