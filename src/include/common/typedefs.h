@@ -123,7 +123,9 @@ class StrongTypeAlias {
    * @param operand another int type
    * @return sum of the underlying value and given operand
    */
-  StrongTypeAlias operator+(const IntType &operand) const { return StrongTypeAlias(val_ + operand); }
+  StrongTypeAlias operator+(const IntType &operand) const {
+    return StrongTypeAlias(static_cast<IntType>(val_ + operand));
+  }
 
   /**
    * addition and assignment
