@@ -87,12 +87,9 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
 }
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)
-    ->Repetitions(10)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime();
+    ->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
-    ->Repetitions(10)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 
