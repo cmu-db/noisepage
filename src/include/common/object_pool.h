@@ -85,11 +85,12 @@ class ObjectPool {
     T *result = nullptr;
     if (reuse_queue_.empty()) {
       if (current_size_ < size_limit_) result = alloc_.New();
-      if (result == nullptr) {
+      if (result != nullptr) {
+        current_size_++;
+      } else {
         // out of memory
         throw NoMoreObjectException(size_limit_);
       }
-      current_size_++;
     } else {
       result = reuse_queue_.front();
       reuse_queue_.pop();
