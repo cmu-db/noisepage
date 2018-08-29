@@ -54,7 +54,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
       // compute the size of the buffer
-      const std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+      const std::vector<col_id_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
       storage::ProjectedRowInitializer initializer(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
@@ -84,7 +84,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
     auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);

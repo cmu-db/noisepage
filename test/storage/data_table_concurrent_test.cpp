@@ -36,7 +36,7 @@ class FakeTransaction {
   template <class Random>
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
+    std::vector<col_id_t > update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);

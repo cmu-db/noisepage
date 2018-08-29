@@ -28,7 +28,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
-  std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
+  std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;

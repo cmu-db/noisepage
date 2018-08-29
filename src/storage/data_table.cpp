@@ -6,7 +6,8 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  TERRIER_ASSERT(layout.AttrSize(0) == 8, "First column must have size 8 for the version chain.");
+  TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
+                 "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
   NewBlock(nullptr);
   TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");

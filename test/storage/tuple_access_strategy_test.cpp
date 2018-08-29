@@ -23,7 +23,7 @@ class TupleAccessStrategyTestObject {
   // Using the given random generator, attempts to allocate a slot and write a
   // random tuple into it. The slot and the tuple are logged in the given map.
   // Checks are performed to make sure the insertion is sensible.
-  template <typename Random>
+  template<typename Random>
   std::pair<const storage::TupleSlot, storage::ProjectedRow *> &TryInsertFakeTuple(
       const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
       std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *tuples, Random *generator) {
@@ -92,20 +92,20 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
         nulls[col] = true;
       } else {
         nulls[col] = false;
-        tested.AccessForceNotNull(slot, col);
+        tested.AccessForceNotNull(slot, col_id_t(col));
       }
     }
 
     for (uint16_t col = 0; col < layout.NumCols(); col++) {
       // Either the field is null and the access returns nullptr,
       // or the field is not null and the access ptr is not null
-      EXPECT_TRUE((tested.AccessWithNullCheck(slot, col) != nullptr) ^ nulls[col]);
+      EXPECT_TRUE((tested.AccessWithNullCheck(slot, col_id_t(col)) != nullptr) ^ nulls[col]);
     }
 
     // Flip non-null columns to null should result in returning of nullptr.
     for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      if (!nulls[col]) tested.SetNull(slot, col);
-      EXPECT_TRUE(tested.AccessWithNullCheck(slot, col) == nullptr);
+      if (!nulls[col]) tested.SetNull(slot, col_id_t(col));
+      EXPECT_TRUE(tested.AccessWithNullCheck(slot, col_id_t(col)) == nullptr);
     }
   }
 }
@@ -152,23 +152,25 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // Skip header
-    void *lower_bound = tested.ColumnNullBitmap(raw_block_, 0);
+    void *lower_bound = tested.ColumnNullBitmap(raw_block_, PRESENCE_COLUMN_ID);
     void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
-    for (uint16_t col = 0; col < layout.NumCols(); col++) {
+    for (uint16_t offset = 0; offset < layout.NumCols(); offset++) {
+      col_id_t col_id(offset);
       // This test should be robust against any future paddings, since
       // we are checking for non-overlapping ranges and not hard-coded
       // boundaries.
-      StorageTestUtil::CheckInBounds(tested.ColumnNullBitmap(raw_block_, col), lower_bound, upper_bound);
-      lower_bound = StorageTestUtil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col),
+      StorageTestUtil::CheckInBounds(tested.ColumnNullBitmap(raw_block_, col_id), lower_bound, upper_bound);
+      lower_bound = StorageTestUtil::IncrementByBytes(tested.ColumnNullBitmap(raw_block_, col_id),
                                                       common::RawBitmap::SizeInBytes(layout.NumSlots()));
 
-      StorageTestUtil::CheckInBounds(tested.ColumnStart(raw_block_, col), lower_bound, upper_bound);
+      StorageTestUtil::CheckInBounds(tested.ColumnStart(raw_block_, col_id), lower_bound, upper_bound);
 
-      lower_bound = StorageTestUtil::IncrementByBytes(tested.ColumnStart(raw_block_, col),
-                                                      layout.NumSlots() * layout.AttrSize(col));
+      lower_bound = StorageTestUtil::IncrementByBytes(tested.ColumnStart(raw_block_, col_id),
+                                                      layout.NumSlots() * layout.AttrSize(col_id));
     }
     // check that the last column does not go out of the block
-    uint32_t last_column_size = layout.NumSlots() * layout.AttrSize(static_cast<uint16_t>(layout.NumCols() - 1));
+    uint32_t last_column_size = layout.NumSlots()
+        * layout.AttrSize(col_id_t(static_cast<uint16_t>(layout.NumCols() - 1)));
     StorageTestUtil::CheckInBounds(StorageTestUtil::IncrementByBytes(lower_bound, last_column_size), lower_bound,
                                    upper_bound);
   }
@@ -189,9 +191,10 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     // test layout, not the content.
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
-    for (uint16_t col = 0; col < layout.NumCols(); col++) {
-      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col), layout.AttrSize(col));
-      StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col), 8);
+    for (uint16_t i = 0; i < layout.NumCols(); i++) {
+      col_id_t col_id(i);
+      StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col_id), layout.AttrSize(col_id));
+      StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col_id), 8);
     }
   }
 }
