@@ -171,33 +171,25 @@ class StrongTypeAlias {
    * @param other the other type alias to compare to
    * @return whether underlying value of this < other
    */
-  bool operator<(const StrongTypeAlias &other) const {
-    return val_ < other.val_;
-  }
+  bool operator<(const StrongTypeAlias &other) const { return val_ < other.val_; }
 
   /**
    * @param other the other type alias to compare to
    * @return whether underlying value of this < other
    */
-  bool operator<=(const StrongTypeAlias &other) const {
-    return val_ <= other.val_;
-  }
+  bool operator<=(const StrongTypeAlias &other) const { return val_ <= other.val_; }
 
   /**
    * @param other the other type alias to compare to
    * @return whether underlying value of this < other
    */
-  bool operator>(const StrongTypeAlias &other) const {
-    return val_ > other.val_;
-  }
+  bool operator>(const StrongTypeAlias &other) const { return val_ > other.val_; }
 
   /**
    * @param other the other type alias to compare to
    * @return whether underlying value of this < other
    */
-  bool operator>=(const StrongTypeAlias &other) const {
-    return val_ >= other.val_;
-  }
+  bool operator>=(const StrongTypeAlias &other) const { return val_ >= other.val_; }
 
   /**
    * Outputs the StrongTypeAlias to the output stream.

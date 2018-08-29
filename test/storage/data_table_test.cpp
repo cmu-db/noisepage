@@ -148,7 +148,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
     EXPECT_EQ(num_inserts, tested.InsertedTuples().size());
 
-    std::vector<col_id_t > all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    std::vector<col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (const auto &inserted_tuple : tested.InsertedTuples()) {
       storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, timestamp_t(1));

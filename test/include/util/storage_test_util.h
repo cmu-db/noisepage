@@ -28,7 +28,7 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template<typename A, typename B, typename C>
+  template <typename A, typename B, typename C>
   static void CheckInBounds(A *const val, B *const lower, C *const upper) {
     EXPECT_GE(TO_INT(val), TO_INT(lower));
     EXPECT_LT(TO_INT(val), TO_INT(upper));
@@ -43,12 +43,12 @@ struct StorageTestUtil {
    * @param lower lower bound
    * @param upper upper bound
    */
-  template<typename A, typename B, typename C>
+  template <typename A, typename B, typename C>
   static void CheckNotInBounds(A *const val, B *const lower, C *const upper) {
     EXPECT_TRUE(TO_INT(val) < TO_INT(lower) || TO_INT(val) >= TO_INT(upper));
   }
 
-  template<typename A>
+  template <typename A>
   static void CheckAlignment(A *const val, const uint32_t word_size) {
     EXPECT_EQ(0, TO_INT(val) % word_size);
   }
@@ -59,13 +59,13 @@ struct StorageTestUtil {
    * @param bytes bytes to advance
    * @return  pointer that is the specified amount of bytes ahead of the given
    */
-  template<typename A>
+  template <typename A>
   static A *IncrementByBytes(A *const ptr, const uint64_t bytes) {
     return reinterpret_cast<A *>(reinterpret_cast<byte *>(ptr) + bytes);
   }
 
   // Returns a random layout that is guaranteed to be valid.
-  template<typename Random>
+  template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
     TERRIER_ASSERT(max_cols > 1, "There should be at least 2 cols (first is version).");
     // We probably won't allow tables with fewer than 2 columns
@@ -79,13 +79,13 @@ struct StorageTestUtil {
 
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
-  template<typename Random>
+  template <typename Random>
   static void FillWithRandomBytes(const uint32_t num_bytes, byte *const out, Random *const generator) {
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
     for (uint32_t i = 0; i < num_bytes; i++) out[i] = static_cast<byte>(dist(*generator));
   }
 
-  template<typename Random>
+  template <typename Random>
   static void PopulateRandomRow(storage::ProjectedRow *const row, const storage::BlockLayout &layout,
                                 const double null_bias, Random *const generator) {
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
@@ -110,7 +110,7 @@ struct StorageTestUtil {
     return col_ids;
   }
 
-  template<typename Random>
+  template <typename Random>
   static std::vector<col_id_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
                                                            Random *const generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
@@ -121,9 +121,7 @@ struct StorageTestUtil {
     std::vector<col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      col_ids.push_back(col_id_t(col));
-    }
+    for (uint16_t col = 1; col < layout.NumCols(); col++) col_ids.emplace_back(col);
 
     // permute the column ids for our random delta
     std::shuffle(col_ids.begin(), col_ids.end(), *generator);
@@ -184,8 +182,7 @@ struct StorageTestUtil {
       } else {
         // Read the value
         uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(col)), val_ptr);
-        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id_t(col)),
-                                         val,
+        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id_t(col)), val,
                                          tested.AccessForceNotNull(slot, col_id_t(col)));
       }
     }

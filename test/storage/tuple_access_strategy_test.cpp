@@ -23,7 +23,7 @@ class TupleAccessStrategyTestObject {
   // Using the given random generator, attempts to allocate a slot and write a
   // random tuple into it. The slot and the tuple are logged in the given map.
   // Checks are performed to make sure the insertion is sensible.
-  template<typename Random>
+  template <typename Random>
   std::pair<const storage::TupleSlot, storage::ProjectedRow *> &TryInsertFakeTuple(
       const storage::BlockLayout &layout, const storage::TupleAccessStrategy &tested, storage::RawBlock *block,
       std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *tuples, Random *generator) {
@@ -169,8 +169,8 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
                                                       layout.NumSlots() * layout.AttrSize(col_id));
     }
     // check that the last column does not go out of the block
-    uint32_t last_column_size = layout.NumSlots()
-        * layout.AttrSize(col_id_t(static_cast<uint16_t>(layout.NumCols() - 1)));
+    uint32_t last_column_size =
+        layout.NumSlots() * layout.AttrSize(col_id_t(static_cast<uint16_t>(layout.NumCols() - 1)));
     StorageTestUtil::CheckInBounds(StorageTestUtil::IncrementByBytes(lower_bound, last_column_size), lower_bound,
                                    upper_bound);
   }

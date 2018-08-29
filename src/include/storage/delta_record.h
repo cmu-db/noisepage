@@ -161,7 +161,7 @@ class ProjectedRowInitializer {
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    */
-  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t > col_ids);
+  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer

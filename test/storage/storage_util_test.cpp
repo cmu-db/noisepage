@@ -60,7 +60,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<col_id_t > update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
     auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
@@ -149,8 +149,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
       col_id_t col_id(i);
       byte *ptr = old->AccessWithNullCheck(i);
       if (ptr != nullptr)
-        copy.emplace_back(
-            std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), ptr)));
+        copy.emplace_back(std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), ptr)));
       else
         copy.emplace_back(std::make_pair(ptr, 0));
     }
@@ -186,8 +185,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(i + 1)), ptr),
-                    copy[i].second);
+          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(i + 1)), ptr), copy[i].second);
         }
       }
     }
