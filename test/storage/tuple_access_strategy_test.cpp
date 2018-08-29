@@ -206,7 +206,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
-    const uint32_t num_threads = 8;
+    const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
@@ -246,7 +246,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
-    const uint32_t num_threads = 8;
+    const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
