@@ -149,27 +149,30 @@ class PerformanceCounter {
  *
  * Note that every class member is wrapped in std::atomic.
  */
-#define DEFINE_PERFORMANCE_CLASS(ClassName, MemberList)                               \
-  class ClassName : public terrier::common::PerformanceCounter {                      \
-   private:                                                                           \
-    std::string name = #ClassName;                                                    \
-    MemberList(PC_HELPER_DEFINE_MEMBERS);                                             \
-                                                                                      \
-   public:                                                                            \
-    MemberList(PC_HELPER_DEFINE_INCREMENT);                                           \
-    MemberList(PC_HELPER_DEFINE_DECREMENT);                                           \
-    MemberList(PC_HELPER_DEFINE_GET);                                                 \
-                                                                                      \
-    std::string GetName() override { return name; }                                   \
-    void SetName(const std::string &name) override { this->name = name; }             \
-                                                                                      \
-    nlohmann::json ToJson() const override {                                          \
-      nlohmann::json output;                                                          \
-      output["CounterName"] = #ClassName;                                             \
-      MemberList(PC_FN_JSON_TO);                                                      \
-      return output;                                                                  \
-    };                                                                                \
-    void FromJson(const nlohmann::json &j) override { MemberList(PC_FN_JSON_FROM); }; \
-                                                                                      \
-    void ZeroCounters() { MemberList(PC_FN_ZERO) }                                    \
-  };
+#define DEFINE_PERFORMANCE_CLASS(ClassName, MemberList)                                        \
+  class ClassName : public terrier::common::PerformanceCounter {                               \
+   private:                                                                                    \
+    std::string name = #ClassName;                                                             \
+    MemberList(PC_HELPER_DEFINE_MEMBERS);                                                      \
+                                                                                               \
+   public:                                                                                     \
+    MemberList(PC_HELPER_DEFINE_INCREMENT);                                                    \
+    MemberList(PC_HELPER_DEFINE_DECREMENT);                                                    \
+    MemberList(PC_HELPER_DEFINE_GET);                                                          \
+                                                                                               \
+    std::string GetName() override { return name; }                                            \
+    void SetName(const std::string &name) override { this->name = name; }                      \
+                                                                                               \
+    nlohmann::json ToJson() const override {                                                   \
+      nlohmann::json output;                                                                   \
+      output["CounterName"] = #ClassName;                                                      \
+      MemberList(PC_FN_JSON_TO);                                                               \
+      return output;                                                                           \
+    };                                                                                         \
+    void FromJson(const nlohmann::json &j) override { MemberList(PC_FN_JSON_FROM); };          \
+                                                                                               \
+    void ZeroCounters() { MemberList(PC_FN_ZERO) }                                             \
+  };                                                                                           \
+                                                                                               \
+  inline void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */ \
+  inline void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */
