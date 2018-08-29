@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
-#include "common/main_stat_registry.h"
 #include "common/performance_counter.h"
 #include "storage/delta_record.h"
 #include "storage/storage_defs.h"
@@ -52,7 +51,6 @@ class DataTable {
    */
   ~DataTable() {
     for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
-    STAT_DEREGISTER({"Storage"}, data_table_counter_.GetName(), false);
   }
 
   /**
@@ -86,6 +84,8 @@ class DataTable {
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
+
+  DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains

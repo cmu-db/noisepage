@@ -2,7 +2,7 @@
 #include <memory>
 #include <vector>
 #include "common/allocator.h"
-#include "common/main_stat_registry.h"
+#include "common/stat_registry.h"
 #include "common/typedefs.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
@@ -11,8 +11,6 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
-
-std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg;
 
 int main() {
   // initialize loggers
@@ -34,9 +32,6 @@ int main() {
   LOG_INFO("woof!");
   std::cout << "hello world!" << std::endl;
 
-  // initialize stat registry
-  main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
-
   terrier::common::ObjectPool<terrier::storage::BufferSegment> buffer_pool_{10000};
   terrier::storage::BlockStore block_store_{100};
   terrier::storage::BlockLayout block_layout_(2, {4, 8});
@@ -51,8 +46,10 @@ int main() {
 
   data_table_.Insert(txn, *redo);
 
-  std::cout << STAT_DUMP_STATS({}, 4);
-  std::cout << std::endl;
+  // initialize stat registry
+  auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
+  main_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
+  std::cout << main_stat_reg->DumpStats() << std::endl;
 
   // shutdown loggers
   spdlog::shutdown();

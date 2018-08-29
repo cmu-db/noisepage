@@ -1,8 +1,8 @@
+#include "common/performance_counter.h"
 #include <functional>
 #include <random>
 #include <vector>
 #include "common/json.h"
-#include "common/performance_counter.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
 

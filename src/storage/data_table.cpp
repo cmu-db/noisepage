@@ -1,7 +1,6 @@
 #include "storage/data_table.h"
 #include <unordered_map>
 
-#include "common/main_stat_registry.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
@@ -9,7 +8,6 @@
 namespace terrier::storage {
 
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  STAT_REGISTER({"Storage"}, &data_table_counter_, this);
   TERRIER_ASSERT(layout.AttrSize(0) == 8, "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
   NewBlock(nullptr);

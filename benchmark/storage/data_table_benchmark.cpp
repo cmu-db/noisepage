@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/main_stat_registry.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -11,8 +10,6 @@
 #include "util/storage_benchmark_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_thread_pool.h"
-
-std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg;
 
 namespace terrier {
 
@@ -24,17 +21,13 @@ namespace terrier {
 class DataTableBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
-    main_stat_reg = std::make_shared<common::StatisticsRegistry>();
     // generate a random redo ProjectedRow to Insert
     redo_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
 
-  void TearDown(const benchmark::State &state) final {
-    main_stat_reg->Shutdown(false);
-    delete[] redo_buffer_;
-  }
+  void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout
   const uint16_t num_columns_ = 2;

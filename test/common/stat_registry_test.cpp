@@ -1,3 +1,4 @@
+#include "common/stat_registry.h"
 #include <algorithm>
 #include <functional>
 #include <random>
@@ -5,7 +6,6 @@
 #include <vector>
 #include "common/json.h"
 #include "common/macros.h"
-#include "common/stat_registry.h"
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -129,8 +129,8 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   cc2.IncNumHit();
 
   terrier::common::json json = terrier::common::json::parse(reg.DumpStats());
-  EXPECT_EQ(json["CacheCounter"]["Counters"]["num_failure"], 1);
-  EXPECT_EQ(json["Cache"]["CacheCounter"]["Counters"]["num_hit"], 1);
+  EXPECT_EQ(json["CacheCounter"]["Counters"]["NumFailure"], 1);
+  EXPECT_EQ(json["Cache"]["CacheCounter"]["Counters"]["NumHit"], 1);
 
   reg.Shutdown(false);
 }
