@@ -4,7 +4,7 @@
 #include "common/json.h"
 #include "common/performance_counter.h"
 #include "gtest/gtest.h"
-#include "util/multi_threaded_test_util.h"
+#include "util/random_test_util.h"
 
 namespace terrier {
 
@@ -33,7 +33,6 @@ DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
 
 DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
 
-
 /**
  * Helper class for testing the four attributes of a CacheCounter.
  */
@@ -57,14 +56,46 @@ class CacheCounterTestObject {
 
   std::vector<double> work_probs = std::vector<double>(8, 0.125);
   std::vector<std::function<void()>> workloads = {
-      [&] {cc->IncNumInsert(); num_insert++; Equal();},
-      [&] {cc->IncNumHit(); num_hit++; Equal();},
-      [&] {cc->IncNumFailure(); num_failure++; Equal();},
-      [&] {cc->IncNumUser(); num_user++; Equal();},
-      [&] {cc->DecNumInsert(); num_insert--; Equal();},
-      [&] {cc->DecNumHit(); num_hit--; Equal();},
-      [&] {cc->DecNumFailure(); num_failure--; Equal();},
-      [&] {cc->DecNumUser(); num_user--; Equal();},
+      [&] {
+        cc->IncNumInsert();
+        num_insert++;
+        Equal();
+      },
+      [&] {
+        cc->IncNumHit();
+        num_hit++;
+        Equal();
+      },
+      [&] {
+        cc->IncNumFailure();
+        num_failure++;
+        Equal();
+      },
+      [&] {
+        cc->IncNumUser();
+        num_user++;
+        Equal();
+      },
+      [&] {
+        cc->DecNumInsert();
+        num_insert--;
+        Equal();
+      },
+      [&] {
+        cc->DecNumHit();
+        num_hit--;
+        Equal();
+      },
+      [&] {
+        cc->DecNumFailure();
+        num_failure--;
+        Equal();
+      },
+      [&] {
+        cc->DecNumUser();
+        num_user--;
+        Equal();
+      },
   };
 
  public:
@@ -93,7 +124,7 @@ class CacheCounterTestObject {
    * @param num_operations number of operations to run
    */
   void RandomOperation(std::default_random_engine generator, uint32_t num_operations) {
-    MultiThreadedTestUtil::InvokeWorkloadWithDistribution(workloads, work_probs, &generator, num_operations);
+    RandomTestUtil::InvokeWorkloadWithDistribution(workloads, work_probs, &generator, num_operations);
   }
 };
 

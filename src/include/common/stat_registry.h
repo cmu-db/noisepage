@@ -41,8 +41,8 @@ class StatisticsRegistry {
   json *FindModule(const std::vector<std::string> &module_path, bool create_if_missing) {
     json *node = root_registry_;
     for (const auto &mod : module_path) {
-      PELOTON_ASSERT(mod != RESERVED_PC_PTR_STRING, "We reserve that name for pointers.");
-      PELOTON_ASSERT(mod != RESERVED_PC_REGISTRANT_PTR, "We reserve that name for the registering class.");
+      TERRIER_ASSERT(mod != RESERVED_PC_PTR_STRING, "We reserve that name for pointers.");
+      TERRIER_ASSERT(mod != RESERVED_PC_REGISTRANT_PTR, "We reserve that name for the registering class.");
       if (create_if_missing) {
         node->emplace(mod, "{}"_json);
       }

@@ -7,7 +7,6 @@
 #include "common/macros.h"
 #include "common/stat_registry.h"
 #include "gtest/gtest.h"
-#include "util/multi_threaded_test_util.h"
 
 namespace terrier {
 
