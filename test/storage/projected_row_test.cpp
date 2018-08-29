@@ -27,7 +27,7 @@ TEST_F(ProjectedRowTests, Nulls) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
@@ -35,12 +35,13 @@ TEST_F(ProjectedRowTests, Nulls) {
 
     // generator a binary vector and set nulls according to binary vector. For null attributes, we set value to be 0.
     std::bernoulli_distribution coin(null_ratio_(generator_));
-    std::vector<bool> null_cols(update->NumColumns());
+    std::unordered_map<col_id_t, bool> null_cols;
     for (uint16_t i = 0; i < update->NumColumns(); i++) {
-      null_cols[i] = coin(generator_);
-      if (null_cols[i]) {
+      col_id_t col_id(i);
+      null_cols[col_id] = coin(generator_);
+      if (null_cols[col_id]) {
         byte *val_ptr = update->AccessForceNotNull(i);
-        storage::StorageUtil::WriteBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), 0, val_ptr);
+        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id + 1), 0, val_ptr);
         update->SetNull(i);
       } else {
         update->SetNotNull(i);
@@ -48,11 +49,12 @@ TEST_F(ProjectedRowTests, Nulls) {
     }
     // check correctness
     for (uint16_t i = 0; i < update->NumColumns(); i++) {
+      col_id_t col_id(i);
       byte *addr = update->AccessWithNullCheck(i);
-      if (null_cols[i]) {
+      if (null_cols[col_id]) {
         EXPECT_EQ(addr, nullptr);
         byte *val_ptr = update->AccessForceNotNull(i);
-        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), val_ptr));
+        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), val_ptr));
       } else {
         EXPECT_FALSE(addr == nullptr);
       }
@@ -70,7 +72,7 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
@@ -102,7 +104,7 @@ TEST_F(ProjectedRowTests, MemorySafety) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
@@ -131,7 +133,7 @@ TEST_F(ProjectedRowTests, Alignment) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
