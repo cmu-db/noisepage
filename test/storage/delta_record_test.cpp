@@ -15,7 +15,7 @@ struct DeltaRecordTests : public TerrierTest {
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{10, 10};
 
  protected:
   void SetUp() override {
