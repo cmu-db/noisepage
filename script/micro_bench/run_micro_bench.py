@@ -9,9 +9,133 @@ From the directory in which this script resides
 ./run_micro_bench.py
 """
 
+import json
 import os
 import subprocess
 import sys
+import xml.etree.ElementTree as ElementTree
+
+class GBResult(object):
+    """Holds single test result """
+    def __init__(self, result_dict):
+        """result_dict: single test dict, from json Google Benchmark <file>.json
+        """
+        
+        # sample input below
+        """                                                                     
+        "name": "DataTableBenchmark/SimpleInsert/real_time",                    
+        "iterations": 5,                                                        
+        "real_time": 1.2099044392001815e+03,                                    
+        "cpu_time": 1.2098839266000000e+03,                                     
+        "time_unit": "ms",                                                      
+        "items_per_second": 8.2651155545892473e+06                              
+        """
+
+        self.attrs = set()
+        for k, v in result_dict.items():
+            setattr(self, k, v)
+            self.attrs.add(k)
+        self._process_name()
+        return
+
+    def _process_name(self):
+        """Split name into components"""
+        parts = self.name.split("/")
+        self.suite_name = parts[0]
+        self.attrs.add("suite_name")
+
+        self.test_name = parts[1]
+        self.attrs.add("test_name")
+
+        if len(parts) == 3:
+            self.time_type = parts[2]
+            self.attrs.add("time_type")
+        return
+
+    def __str__(self):
+        st = ""
+        for k in self.attrs:
+            st = st + "{} : {}\n".format(k, getattr(self,k))
+        return st
+
+class GBenchToJUnit(object):
+    """Convert a Google Benchmark output file (json) into Junit output file format (xml)
+    """
+    def __init__(self, input_file, output_file):
+        self.input_file = input_file
+        self.output_file = output_file
+
+        testsuite_dict = self.read_gb_results(self.input_file)
+        self.write_output(self.output_file, testsuite_dict)
+        return
+
+    def read_gb_results(self, input_file):
+        # errors                                                                
+        # failures                                                              
+        # name (of suite)?                                                      
+        # skipped                                                               
+        # tests (count)                                                         
+        # timestamp                                                             
+        # time (duration)                                                       
+
+        # for each testcase                                                     
+        # classname = suitname?                                                 
+        # name = of test                                                        
+        # time or perf measure?                                                 
+
+        testcases = []
+        test_suite = { "testcases" : testcases }
+
+        # read the results file                                                 
+        with open(input_file) as rf:
+            gb_data = json.load(rf)
+
+        # convert to internal, intermediate form                                
+        bench_list = gb_data["benchmarks"]
+        for bench in bench_list:
+            # bench_name = bench["name"]                                        
+            one_test_dict = GBResult(bench)
+            testcases.append(one_test_dict)
+
+        # pull out the suite_name from the first testcase                       
+        assert(len(testcases) > 0)
+        test_suite["name"] = testcases[0].suite_name
+
+        self._annotate_test_suite(test_suite)
+        # returns a dictionary                                                  
+        return test_suite
+
+    def _annotate_test_suite(self, suite):
+        suite["errors"] = "0"
+        suite["failures"] = "0"
+        suite["skipped"] = "0"
+        suite["tests"] = str(len(suite["testcases"]))
+
+        return
+    
+    def write_output(self, output_file, testsuite_dict):
+        tree = ElementTree.ElementTree()
+
+        test_suite_el = ElementTree.Element("testsuite")
+        tree._setroot(test_suite_el)
+
+        # add attributes to root, testsuite element                             
+        for el_name in ["errors",
+                        "failures",
+                        "skipped",
+                        "tests",
+                        "name"]:
+            test_suite_el.set(el_name, testsuite_dict[el_name])
+
+        # add tests                                                             
+        for test in testsuite_dict["testcases"]:
+            test_el = ElementTree.SubElement(test_suite_el,"testcase")
+            test_el.set("classname", getattr(test, "suite_name"))
+            test_el.set("name", getattr(test,"test_name"))
+            test_el.set("time", str(getattr(test, "items_per_second")))
+
+        tree.write(self.output_file, xml_declaration=True, encoding='utf8')
+        return
 
 class RunMicroBenchmarks(object):
     """ Run micro benchmarks. Output is to json files for post processing.
@@ -59,6 +183,10 @@ class RunMicroBenchmarks(object):
                                   shell=True,
                                   stdout=sys.stdout,
                                   stderr=sys.stderr)
+
+        # convert json results file to xml
+        xml_output_file = "{}_out.xml".format(benchmark_name)
+        gb_to_ju = GBenchToJUnit(output_file, xml_output_file)
         
         # return the process exit code
         return ret_val
