@@ -23,9 +23,6 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
                     static_cast<uint64_t>(last_unlinked_));
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
-  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_to_deallocate_.size(): {}",
-                    txns_to_deallocate_.size());
-  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_to_unlink_.size(): {}", txns_to_unlink_.size());
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
@@ -37,11 +34,11 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
     // We are now safe to deallocate these txns because no one should hold a reference to them anymore
-    txns_processed = static_cast<uint32_t>(txns_to_deallocate_.size());
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
-      txns_to_deallocate_.pop();
+      txns_to_deallocate_.pop_front();
       delete txn;
+      txns_processed++;
     }
   }
 
@@ -53,14 +50,12 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
-  transaction::TransactionQueue from_txn_manager = txn_manager_->CompletedTransactionsForGC();
-  STORAGE_LOG_TRACE("GarbageCollector::ProcessUnlinkQueue(): from_txn_manager.size(): {}", from_txn_manager.size());
-  // Append to our local unlink queue
-  while (!from_txn_manager.empty()) {
-    txn = from_txn_manager.front();
-    from_txn_manager.pop();
-    txns_to_unlink_.push(txn);
+  transaction::TransactionQueue completed_txns = txn_manager_->CompletedTransactionsForGC();
+  if (!completed_txns.empty()) {
+    // Append to our local unlink queue
+    txns_to_unlink_.splice_after(txns_to_unlink_.cbefore_begin(), std::move(completed_txns));
   }
+  TERRIER_ASSERT(completed_txns.empty(), "Queue from TransactionManager should now be empty.");
 
   uint32_t txns_processed = 0;
   transaction::TransactionQueue requeue;
@@ -68,7 +63,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
-    txns_to_unlink_.pop();
+    txns_to_unlink_.pop_front();
     if (txn->GetUndoBuffer().Empty()) {
       // this is a read-only transaction so this is safe to immediately delete
       delete txn;
@@ -76,7 +71,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
-      txns_to_deallocate_.push(txn);
+      txns_to_deallocate_.push_front(txn);
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
@@ -84,17 +79,17 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       for (auto &undo_record : undos) {
         UnlinkUndoRecord(txn, undo_record);
       }
-      txns_to_deallocate_.push(txn);
+      txns_to_deallocate_.push_front(txn);
       txns_processed++;
     } else {
       // this is a committed txn that is still visible, requeue for next GC run
-      requeue.push(txn);
+      requeue.push_front(txn);
     }
   }
+
   // requeue any txns that we were still visible to running transactions
   if (!requeue.empty()) {
-    STORAGE_LOG_TRACE("GarbageCollector::ProcessUnlinkQueue(): requeue.size(): {}", requeue.size());
-    txns_to_unlink_ = requeue;
+    txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
   }
 
   return txns_processed;

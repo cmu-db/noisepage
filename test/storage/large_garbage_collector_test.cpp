@@ -1,3 +1,4 @@
+#include <chrono>
 #include <vector>
 #include "gtest/gtest.h"
 #include "storage/garbage_collector.h"
@@ -44,27 +45,37 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 5;
   const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
+  const uint32_t initial_table_size = 1000000;
   const uint32_t txn_length = 10;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 100;
-  const std::vector<double> update_select_ratio = {0.3, 0.7};
+  const uint32_t num_txns = 1000000;
+  const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  double unlink_time = 0.0;
+  double deallocation_time = 0.0;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                      &buffer_pool_, &generator_, true, true);
-    StartGC(tested.GetTxnManager(), 10);
-    for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
-      auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
-      paused_ = true;
-      tested.CheckReadsCorrect(&result.first);
-      for (auto w : result.first) delete w;
-      for (auto w : result.second) delete w;
-      paused_ = false;
-    }
-    EndGC();
+                                      &buffer_pool_, &generator_, true, false);
+    tested.SimulateOltp(num_txns, num_concurrent_txns);
+
+    gc_ = new storage::GarbageCollector(tested.GetTxnManager());
+    auto start = std::chrono::high_resolution_clock::now();
+    auto gc_result = gc_->PerformGarbageCollection();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << gc_result.second << " txns unlinked in " << elapsed_seconds.count() << " seconds" << std::endl;
+    unlink_time += elapsed_seconds.count();
+
+    start = std::chrono::high_resolution_clock::now();
+    gc_result = gc_->PerformGarbageCollection();
+    end = std::chrono::high_resolution_clock::now();
+    elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << gc_result.first << " txns deallocated in " << elapsed_seconds.count() << " seconds" << std::endl;
+    deallocation_time += elapsed_seconds.count();
   }
+
+  std::cout << "mean unlink time: " << unlink_time / num_iterations << " seconds" << std::endl;
+  std::cout << "mean deallocation time: " << deallocation_time / num_iterations << " seconds" << std::endl;
 }
 }  // namespace terrier
