@@ -10,7 +10,7 @@
 // We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
 // be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
 // and thus blocks are free to handout the slot.) Generally this will just be the version vector.
-#define PRESENCE_COLUMN_ID 0
+#define PRESENCE_COLUMN_ID col_id_t(0)
 
 namespace terrier::storage {
 /**
@@ -38,8 +38,8 @@ class TupleAccessStrategy {
      * @param layout the layout of this block
      * @return a pointer to the start of the column. (use as an array)
      */
-    byte *ColumnStart(const BlockLayout &layout, const uint16_t col) {
-      return StorageUtil::AlignedPtr(layout.AttrSize(col),
+    byte *ColumnStart(const BlockLayout &layout, const col_id_t col_id) {
+      return StorageUtil::AlignedPtr(layout.AttrSize(col_id),
                                      varlen_contents_ + common::RawBitmap::SizeInBytes(layout.NumSlots()));
     }
 
@@ -85,8 +85,8 @@ class TupleAccessStrategy {
      * @param offset offset representing the column
      * @return the miniblock for the column at the given offset.
      */
-    MiniBlock *Column(uint16_t offset) {
-      byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[offset];
+    MiniBlock *Column(const col_id_t col_id) {
+      byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[!col_id];
       return reinterpret_cast<MiniBlock *>(head);
     }
 
@@ -138,66 +138,66 @@ class TupleAccessStrategy {
   /* Vectorized Access */
   /**
    * @param block block to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    * @return pointer to the bitmap of the specified column on the given block
    */
-  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const uint16_t col) const {
-    return reinterpret_cast<Block *>(block)->Column(col)->PresenceBitmap();
+  common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
+    return reinterpret_cast<Block *>(block)->Column(col_id)->PresenceBitmap();
   }
 
   /**
    * @param block block to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    * @return pointer to the start of the column
    */
-  byte *ColumnStart(RawBlock *block, const uint16_t col) const {
-    return reinterpret_cast<Block *>(block)->Column(col)->ColumnStart(layout_, col);
+  byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
+    return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
   }
 
   /**
    * @param slot tuple slot to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
-  byte *AccessWithNullCheck(const TupleSlot slot, const uint16_t col) const {
-    if (!ColumnNullBitmap(slot.GetBlock(), col)->Test(slot.GetOffset())) return nullptr;
-    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
+  byte *AccessWithNullCheck(const TupleSlot slot, const col_id_t col_id) const {
+    if (!ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset())) return nullptr;
+    return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
 
   /**
    * @param slot tuple slot to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    * @return a pointer to the attribute, or garbage if attribute is null.
    * @warning currently this should only be used by the DataTable when updating VersionPtrs on known-present tuples
    */
-  byte *AccessWithoutNullCheck(const TupleSlot slot, const uint16_t col) const {
-    TERRIER_ASSERT(col == PRESENCE_COLUMN_ID,
+  byte *AccessWithoutNullCheck(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(col_id == PRESENCE_COLUMN_ID,
                    "Currently this should only be called on the presence column by the DataTable.");
-    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
+    return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
 
   /**
    * Returns a pointer to the attribute. If the attribute is null, set null to
    * false.
    * @param slot tuple slot to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    * @return a pointer to the attribute.
    */
-  byte *AccessForceNotNull(const TupleSlot slot, const uint16_t col) const {
-    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col);
+  byte *AccessForceNotNull(const TupleSlot slot, const col_id_t col_id) const {
+    common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col_id);
     if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
-    return ColumnStart(slot.GetBlock(), col) + layout_.AttrSize(col) * slot.GetOffset();
+    return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
 
   /**
    * Set an attribute null. If called on the primary key column (0), this is
    * considered freeing.
    * @param slot tuple slot to access
-   * @param col offset representing the column
+   * @param col_id id of the column
    */
-  void SetNull(const TupleSlot slot, const uint16_t col) const {
-    if (ColumnNullBitmap(slot.GetBlock(), col)->Flip(slot.GetOffset(), true)  // Noop if already null
-        && col == PRESENCE_COLUMN_ID)
+  void SetNull(const TupleSlot slot, const col_id_t col_id) const {
+    if (ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), true)  // Noop if already null
+        && col_id == PRESENCE_COLUMN_ID)
       slot.GetBlock()->num_records_--;
   }
 

@@ -12,8 +12,8 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   for (uint16_t i = 0; i < layout_.NumCols(); i++) {
     column_offsets_[i] = acc_offset;
     uint32_t column_size =
-        layout_.AttrSize(i) * layout_.NumSlots()  // content
-        + StorageUtil::PadUpToSize(layout_.AttrSize(i),
+        layout_.AttrSize(col_id_t(i)) * layout_.NumSlots()  // content
+        + StorageUtil::PadUpToSize(layout_.AttrSize(col_id_t(i)),
                                    common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
   }
@@ -30,7 +30,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
   result->NumAttrs(layout_) = layout_.NumCols();
 
-  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(i);
+  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
 
   result->Column(PRESENCE_COLUMN_ID)->PresenceBitmap()->UnsafeClear(layout_.NumSlots());
 }

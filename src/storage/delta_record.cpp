@@ -16,7 +16,7 @@ ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRo
 
 // TODO(Tianyu): I don't think we can reasonably fit these into a cache line?
 ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLayout &layout,
-                                                 std::vector<uint16_t> col_ids)
+                                                 std::vector<col_id_t> col_ids)
     : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
   TERRIER_ASSERT(col_ids.size() < layout.NumCols(),

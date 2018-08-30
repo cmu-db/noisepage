@@ -58,14 +58,14 @@ class PACKED ProjectedRow {
   uint16_t NumColumns() const { return num_cols_; }
 
   /**
-   * @return pointer to the start of the uint16_t array of column ids
+   * @return pointer to the start of the array of column ids
    */
-  uint16_t *ColumnIds() { return reinterpret_cast<uint16_t *>(varlen_contents_); }
+  col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
 
   /**
-   * @return pointer to the start of the uint16_t array of column ids
+   * @return pointer to the start of the array of column ids
    */
-  const uint16_t *ColumnIds() const { return reinterpret_cast<const uint16_t *>(varlen_contents_); }
+  const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
 
   /**
    * Access a single attribute within the ProjectedRow with a check of the null bitmap first for nullable types
@@ -161,7 +161,7 @@ class ProjectedRowInitializer {
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
    */
-  ProjectedRowInitializer(const BlockLayout &layout, std::vector<uint16_t> col_ids);
+  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer
@@ -183,11 +183,11 @@ class ProjectedRowInitializer {
   /**
    * @return column ids at the given offset in the projection list
    */
-  uint16_t ColId(uint16_t i) const { return col_ids_.at(i); }
+  col_id_t ColId(uint16_t i) const { return col_ids_.at(i); }
 
  private:
   uint32_t size_ = 0;
-  std::vector<uint16_t> col_ids_;
+  std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
 

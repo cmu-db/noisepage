@@ -15,7 +15,7 @@ namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
-#define PRIMARY_KEY_COLUMN_ID 1
+#define PRIMARY_KEY_COLUMN_ID col_id_t(1)
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
