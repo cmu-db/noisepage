@@ -73,7 +73,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
-      // this is a committed txn that is no visible to any running txns. Proceed with unlinking its UndoRecords
+      // this is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
       UndoBuffer &undos = txn->GetUndoBuffer();
       for (auto &undo_record : undos) {
         UnlinkUndoRecord(txn, undo_record);
