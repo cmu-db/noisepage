@@ -1,5 +1,5 @@
-#include <memory>
 #include "loggers/main_logger.h"
+#include <memory>
 
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;
 std::shared_ptr<spdlog::logger> main_logger;
