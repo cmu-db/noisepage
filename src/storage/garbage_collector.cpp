@@ -55,7 +55,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     // Append to our local unlink queue
     txns_to_unlink_.splice_after(txns_to_unlink_.cbefore_begin(), std::move(completed_txns));
   }
-  TERRIER_ASSERT(completed_txns.empty(), "Queue from TransactionManager should now be empty.");
 
   uint32_t txns_processed = 0;
   transaction::TransactionQueue requeue;
