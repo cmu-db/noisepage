@@ -132,7 +132,8 @@ class GBenchToJUnit(object):
             test_el = ElementTree.SubElement(test_suite_el,"testcase")
             test_el.set("classname", getattr(test, "suite_name"))
             test_el.set("name", getattr(test,"test_name"))
-            test_el.set("time", str(getattr(test, "items_per_second")))
+            test_el.set("time", str(getattr(test, "real_time")))
+            test_el.set("items_per_second", str(getattr(test, "items_per_second")))
 
         tree.write(self.output_file, xml_declaration=True, encoding='utf8')
         return
