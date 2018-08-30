@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <utility>
-#include "common/rw_latch.h"
+#include "common/shared_latch.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
@@ -77,7 +77,7 @@ class TransactionManager {
   std::atomic<timestamp_t> time_{timestamp_t(0)};
 
   // TODO(Tianyu): This is the famed HyPer Latch. We will need to re-evaluate performance later.
-  common::ReaderWriterLatch commit_latch_;
+  common::SharedLatch commit_latch_;
 
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   mutable common::SpinLatch table_latch_;

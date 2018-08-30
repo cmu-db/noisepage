@@ -3,7 +3,7 @@
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
   timestamp_t start_time = time_++;
   // TODO(Tianyu):
   // Maybe embed this into the data structure, or use an object pool?
@@ -19,7 +19,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 }
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
-  common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
+  common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
