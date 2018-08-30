@@ -19,6 +19,8 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
   common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
 
   // Put a pointer on the the reuse queue
+  // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
+  // NOLINTNEXTLINE
   uint32_t *reused_ptr = tested.Get();
   // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
   // NOLINTNEXTLINE
