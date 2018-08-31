@@ -28,9 +28,9 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  TERRIER_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
+  TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
-  if (gc_enabled_) completed_txns_.push(txn);
+  if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
   return commit_time;
 }
@@ -43,8 +43,8 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  TERRIER_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
-  if (gc_enabled_) completed_txns_.push(txn);
+  TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
+  if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
 }
 
