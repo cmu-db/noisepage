@@ -12,8 +12,6 @@ DataTable::DataTable(BlockStore *const store,
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
-  NewBlock(nullptr);
-  TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
 void DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
@@ -81,7 +79,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   TupleSlot result;
   while (true) {
     RawBlock *block = insertion_head_.load();
-    if (accessor_.Allocate(block, &result)) break;
+    if (block != nullptr && accessor_.Allocate(block, &result)) break;
     NewBlock(block);
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0

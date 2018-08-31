@@ -95,7 +95,8 @@ class DataTable {
   // deleted tuples and recycle slots
   std::vector<RawBlock *> blocks_;
   common::SpinLatch blocks_latch_;
-  // to avoid having to grab a latch every time we insert
+  // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
+  // only happen when blocks are full, thus we can afford to be optimistic
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
   // Atomically read out the version pointer value.
