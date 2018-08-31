@@ -40,11 +40,12 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{num_inserts_};
+  storage::BlockStore block_store_{1000, 1000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
 
   // Insert buffer pointers
   byte *redo_buffer_;
@@ -56,7 +57,7 @@ class DataTableBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    storage::DataTable table(&block_store_, layout_);
+    storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     // We can use dummy timestamps here since we're not invoking concurrency control
     transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
@@ -73,7 +74,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   TestThreadPool thread_pool;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    storage::DataTable table(&block_store_, layout_);
+    storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);

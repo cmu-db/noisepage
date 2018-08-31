@@ -16,7 +16,7 @@ class GarbageCollectorDataTableTestObject {
  public:
   template <class Random>
   GarbageCollectorDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_) {}
+      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_, layout_version_t(0)) {}
 
   ~GarbageCollectorDataTableTestObject() {
     for (auto ptr : loose_pointers_) delete[] ptr;
@@ -36,7 +36,7 @@ class GarbageCollectorDataTableTestObject {
 
   template <class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
@@ -74,10 +74,10 @@ class GarbageCollectorDataTableTestObject {
 };
 
 struct GarbageCollectorTests : public ::terrier::TerrierTest {
-  storage::BlockStore block_store_{100};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
+  storage::BlockStore block_store_{100, 100};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
-  const uint32_t num_iterations_ = 5;
+  const uint32_t num_iterations_ = 100;
   const uint16_t max_columns_ = 100;
 };
 

@@ -67,7 +67,7 @@ struct BlockLayout {
   /**
    * attribute size at given col_id.
    */
-  uint8_t AttrSize(uint16_t col_id) const { return attr_sizes_.at(col_id); }
+  uint8_t AttrSize(col_id_t col_id) const { return attr_sizes_.at(!col_id); }
 
   /**
    * Tuple size.

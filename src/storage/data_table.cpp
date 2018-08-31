@@ -1,17 +1,15 @@
 #include "storage/data_table.h"
 #include <unordered_map>
-
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-
-DataTable::DataTable(BlockStore *const store, const BlockLayout &layout) : block_store_(store), accessor_(layout) {
-  TERRIER_ASSERT(layout.AttrSize(0) == 8, "First column must have size 8 for the version chain.");
+DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
+    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+  TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
+                 "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
-  NewBlock(nullptr);
-  TERRIER_ASSERT(insertion_head_ != nullptr, "Insertion head should not be null after creating new block.");
 }
 
 void DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
@@ -81,7 +79,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   TupleSlot result;
   while (true) {
     RawBlock *block = insertion_head_.load();
-    if (accessor_.Allocate(block, &result)) break;
+    if (block != nullptr && accessor_.Allocate(block, &result)) break;
     NewBlock(block);
   }
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
@@ -135,18 +133,13 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 }
 
 void DataTable::NewBlock(RawBlock *expected_val) {
-  // TODO(Tianyu): This shouldn't be performance-critical. So maybe use a latch instead of a cmpxchg?
-  // This will eliminate retries, which could potentially be an expensive allocate (this is somewhat mitigated
-  // by the object pool reuse)
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  // Want to stop early if another thread is already getting a new block
+  if (expected_val != insertion_head_) return;
   RawBlock *new_block = block_store_->Get();
-  accessor_.InitializeRawBlock(new_block, layout_version_t(0));
-  if (insertion_head_.compare_exchange_strong(expected_val, new_block))
-    blocks_.PushBack(new_block);
-  else
-    // If the compare and exchange failed, another thread might have already allocated a new block
-    // We should release this new block and return. The caller would presumably try again on the new
-    // block.
-    block_store_->Release(new_block);
+  accessor_.InitializeRawBlock(new_block, layout_version_);
+  blocks_.push_back(new_block);
+  insertion_head_ = new_block;
   data_table_counter_.IncNumNewBlock();
 }
 }  // namespace terrier::storage

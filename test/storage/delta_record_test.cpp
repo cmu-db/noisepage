@@ -15,7 +15,7 @@ struct DeltaRecordTests : public TerrierTest {
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{10, 10};
 
  protected:
   void SetUp() override {
@@ -47,14 +47,14 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
       // get data table
-      storage::DataTable data_table(&block_store_, layout);
+      storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
       // get tuple slot
       storage::TupleSlot slot;
       EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
       // compute the size of the buffer
-      const std::vector<uint16_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+      const std::vector<col_id_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
       storage::ProjectedRowInitializer initializer(layout, col_ids);
       timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
@@ -84,7 +84,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
     auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
@@ -92,7 +92,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // projected row
 
     // get data table
-    storage::DataTable data_table(&block_store_, layout);
+    storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
     // get tuple slot
     storage::TupleSlot slot;

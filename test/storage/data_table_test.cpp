@@ -17,7 +17,7 @@ class RandomDataTableTestObject {
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
-        table_(block_store, layout_),
+        table_(block_store, layout_, layout_version_t(0)),
         null_bias_(null_bias) {}
 
   ~RandomDataTableTestObject() {
@@ -54,7 +54,7 @@ class RandomDataTableTestObject {
     TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate a random redo ProjectedRow to Update
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
@@ -126,8 +126,8 @@ class RandomDataTableTestObject {
 };
 
 struct DataTableTests : public TerrierTest {
-  storage::BlockStore block_store_{100};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
+  storage::BlockStore block_store_{100, 100};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -148,7 +148,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
     EXPECT_EQ(num_inserts, tested.InsertedTuples().size());
 
-    std::vector<uint16_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    std::vector<col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (const auto &inserted_tuple : tested.InsertedTuples()) {
       storage::ProjectedRow *stored = tested.SelectIntoBuffer(inserted_tuple, timestamp_t(1), &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, timestamp_t(1));
@@ -179,7 +179,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
     std::vector<byte *> select_buffers(num_updates + 1);
 
     uint32_t num_versions = num_updates + 1;
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     for (uint32_t i = 0; i < num_versions; i++) {
       const storage::ProjectedRow *reference_version = tested.GetReferenceVersionedTuple(tuple, timestamp_t(i));
       storage::ProjectedRow *stored_version = tested.SelectIntoBuffer(tuple, timestamp_t(i), &buffer_pool_);
@@ -207,7 +207,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     // second transaction attempts to write, should fail
     EXPECT_FALSE(tested.RandomlyUpdateTuple(timestamp_t(1), tuple, &generator_, &buffer_pool_));
 
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, timestamp_t(UINT64_MAX), &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, timestamp_t(UINT64_MAX));
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));

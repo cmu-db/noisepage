@@ -17,7 +17,7 @@ struct StorageUtilTests : public TerrierTest {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{1, 1};
 
  protected:
   void SetUp() override {
@@ -60,14 +60,14 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
     auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
-      uint8_t attr_size = layout.AttrSize(static_cast<uint16_t>(i + 1));
+      uint8_t attr_size = layout.AttrSize(col_id_t(static_cast<uint16_t>(i + 1)));
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -104,8 +104,9 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
-    for (uint16_t col = 0; col < layout.NumCols(); ++col) {
-      uint8_t attr_size = layout.AttrSize(col);
+    for (uint16_t i = 0; i < layout.NumCols(); ++i) {
+      col_id_t col_id(i);
+      uint8_t attr_size = layout.AttrSize(col_id);
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -113,13 +114,13 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
         from = new byte[attr_size];
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
-      storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col);
+      storage::StorageUtil::CopyWithNullCheck(from, tested, slot, col_id);
 
       if (is_null) {
-        EXPECT_EQ(tested.AccessWithNullCheck(slot, col), nullptr);
+        EXPECT_EQ(tested.AccessWithNullCheck(slot, col_id), nullptr);
       } else {
         EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
-                  storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col)));
+                  storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col_id)));
         delete[] from;
       }
     }
@@ -136,7 +137,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // the old row
-    std::vector<uint16_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
@@ -144,17 +145,17 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // store the values as a reference
     std::vector<std::pair<byte *, uint64_t>> copy;
-    for (uint16_t col = 0; col < old->NumColumns(); ++col) {
-      byte *ptr = old->AccessWithNullCheck(col);
+    for (uint16_t i = 0; i < old->NumColumns(); ++i) {
+      col_id_t col_id(i);
+      byte *ptr = old->AccessWithNullCheck(i);
       if (ptr != nullptr)
-        copy.emplace_back(
-            std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(static_cast<uint16_t>(col + 1)), ptr)));
+        copy.emplace_back(std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), ptr)));
       else
         copy.emplace_back(std::make_pair(ptr, 0));
     }
 
     // the delta change to apply
-    std::vector<uint16_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+    std::vector<col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
     storage::ProjectedRowInitializer rand_initializer(layout, rand_col_ids);
     auto *delta_buffer = common::AllocationUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
     storage::ProjectedRow *delta = rand_initializer.InitializeRow(delta_buffer);
@@ -164,8 +165,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     storage::StorageUtil::ApplyDelta(layout, *delta, old);
     // check changes has been applied
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumCols(); ++delta_col_offset) {
-      uint16_t col = rand_initializer.ColId(delta_col_offset);
-      auto old_col_offset = static_cast<uint16_t>(col - 1);  // since all columns were in the old one
+      col_id_t col = rand_initializer.ColId(delta_col_offset);
+      auto old_col_offset = static_cast<uint16_t>(!col - 1);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
       byte *old_val_ptr = old->AccessWithNullCheck(old_col_offset);
       if (delta_val_ptr == nullptr) {
@@ -178,14 +179,14 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     }
 
     // check whether other cols have been polluted
-    std::unordered_set<uint16_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
+    std::unordered_set<col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
       if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(static_cast<uint16_t>(i + 1)), ptr),
-                    copy[i].second);
+          col_id_t col_id(static_cast<uint16_t>(i + 1));
+          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), ptr), copy[i].second);
         }
       }
     }
