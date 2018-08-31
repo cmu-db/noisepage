@@ -15,7 +15,7 @@ class MVCCDataTableTestObject {
  public:
   template <class Random>
   MVCCDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_) {}
+      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_, layout_version_t(0)) {}
 
   ~MVCCDataTableTestObject() {
     for (auto ptr : loose_pointers_) delete[] ptr;

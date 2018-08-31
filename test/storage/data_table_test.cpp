@@ -17,7 +17,7 @@ class RandomDataTableTestObject {
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
-        table_(block_store, layout_),
+        table_(block_store, layout_, layout_version_t(0)),
         null_bias_(null_bias) {}
 
   ~RandomDataTableTestObject() {
