@@ -31,7 +31,7 @@ class DataTable {
    *
    * @param store the Block store to use.
    * @param layout the initial layout of this DataTable.
-   * @param layout the layout version of this DataTable
+   * @param layout_version the layout version of this DataTable
    */
   DataTable(BlockStore *store, const BlockLayout &layout, layout_version_t layout_version);
 
