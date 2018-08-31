@@ -56,23 +56,11 @@ class PerformanceCounter {
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName) std::atomic<MemberType> MemberName{0};
 
 /**
- * This macro defines an IncMemberName() function which increments MemberName.
- */
-#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  void Inc##MemberName() { ++MemberName; }
-
-/**
- * This macro defines a DecMemberName() function which decrements MemberName.
- */
-#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  void Dec##MemberName() { --MemberName; }
-
-/**
- * This macro defines a Get_MemberName() function which returns MemberName.
+ * This macro defines a GetMemberName() function which returns a reference to MemberName.
  * If performance counters are disabled, it always returns 0.
  */
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  MemberType Get##MemberName() { return MemberName.load(); }
+  std::atomic<MemberType> &Get##MemberName() { return MemberName; }
 
 /*
  * Performance counter functions.
@@ -101,10 +89,6 @@ class PerformanceCounter {
 #define PC_FN_ZERO(MemberType, MemberName) MemberName.store(0);
 #else
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
-#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  void Inc##MemberName() { ((void)0); }
-#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  void Dec##MemberName() { ((void)0); }
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
   MemberType Get##MemberName() { return 0; }
 #define PC_FN_JSON_FROM(MemberType, MemberName)
@@ -145,11 +129,10 @@ class PerformanceCounter {
  *      #define DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
  * will make the following code valid:
  *      NetworkCounter nc;
- *      nc.IncRequestsReceived();
- *      nc.DecConnectionsOpened();
+ *      nc.GetRequestsReceived(); // returns the std::atomic<uint64_t>
  *
- * In general, every declared member XYZ has IncXYZ(), DecXYZ(), GetXYZ() defined
- * to increment, decrement and get the value accordingly.
+ * In general, every declared member XYZ has GetXYZ() defined
+ * to access the underlying std::atomic.
  * We need a function call so that we can compile this out in release mode.
  *
  * Note that every class member is wrapped in std::atomic.
@@ -161,8 +144,6 @@ class PerformanceCounter {
     MemberList(PC_HELPER_DEFINE_MEMBERS);                                                      \
                                                                                                \
    public:                                                                                     \
-    MemberList(PC_HELPER_DEFINE_INCREMENT);                                                    \
-    MemberList(PC_HELPER_DEFINE_DECREMENT);                                                    \
     MemberList(PC_HELPER_DEFINE_GET);                                                          \
                                                                                                \
     std::string GetName() override { return name; }                                            \

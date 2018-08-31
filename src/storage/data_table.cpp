@@ -43,7 +43,7 @@ void DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
     version_ptr = version_ptr->Next();
   }
-  data_table_counter_.IncNumSelect();
+  data_table_counter_.GetNumSelect()++;
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
@@ -66,7 +66,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
 
-  data_table_counter_.IncNumUpdate();
+  data_table_counter_.GetNumUpdate()++;
   return true;
 }
 
@@ -99,7 +99,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
 
-  data_table_counter_.IncNumInsert();
+  data_table_counter_.GetNumInsert()++;
   return result;
 }
 
@@ -140,6 +140,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   accessor_.InitializeRawBlock(new_block, layout_version_);
   blocks_.push_back(new_block);
   insertion_head_ = new_block;
-  data_table_counter_.IncNumNewBlock();
+  data_table_counter_.GetNumNewBlock()++;
 }
 }  // namespace terrier::storage
