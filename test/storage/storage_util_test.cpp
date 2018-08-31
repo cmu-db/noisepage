@@ -17,7 +17,7 @@ struct StorageUtilTests : public TerrierTest {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{1, 1};
 
  protected:
   void SetUp() override {

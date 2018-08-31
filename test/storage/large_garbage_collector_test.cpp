@@ -21,8 +21,8 @@ class LargeGCTests : public TerrierTest {
     delete gc_;
   }
 
-  storage::BlockStore block_store_{1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000};
+  storage::BlockStore block_store_{1000, 1000};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000, 1000};
   std::default_random_engine generator_;
   volatile bool run_gc_ = false;
   volatile bool paused_ = false;

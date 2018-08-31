@@ -31,14 +31,16 @@ class DataTable {
    *
    * @param store the Block store to use.
    * @param layout the initial layout of this DataTable.
+   * @param layout_version the layout version of this DataTable
    */
-  DataTable(BlockStore *store, const BlockLayout &layout);
+  DataTable(BlockStore *store, const BlockLayout &layout, layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks.
    */
   ~DataTable() {
-    for (auto it = blocks_.Begin(); it != blocks_.End(); ++it) block_store_->Release(*it);
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    for (RawBlock *block : blocks_) block_store_->Release(block);
   }
 
   /**
@@ -80,21 +82,21 @@ class DataTable {
   friend class transaction::TransactionManager;
 
   BlockStore *const block_store_;
-  // TODO(Tianyu): this is here for when we support concurrent schema, for now we only have one per DataTable
-  // common::ConcurrentMap<layout_version_t, TupleAccessStrategy> layouts_;
-  // layout_version_t curr_layout_version_{0};
-  // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
-  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
-  // deleted tuples and recycle slots
-
-  // TODO(Matt): remove this single TAS when using concurrent schema
+  const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
+
   // for performance in generating initializer for inserts
   // TODO(Tianyu): I suppose we can use this for deletes too?
   const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(),
                                                                     {PRIMARY_KEY_COLUMN_ID}};
 
-  common::ConcurrentVector<RawBlock *> blocks_;
+  // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
+  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
+  // deleted tuples and recycle slots
+  std::vector<RawBlock *> blocks_;
+  common::SpinLatch blocks_latch_;
+  // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
+  // only happen when blocks are full, thus we can afford to be optimistic
   std::atomic<RawBlock *> insertion_head_ = nullptr;
 
   // Atomically read out the version pointer value.
