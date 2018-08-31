@@ -64,6 +64,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make -j4'
                         sh 'cd build && make runbenchmark -j4'
                         sh 'cd script/micro_bench && ./run_micro_bench.py'
+			archiveArtifacts 'script/micro_bench/*.json'
+                        junit 'script/micro_bench/*.xml'
                     }
                 }
             }

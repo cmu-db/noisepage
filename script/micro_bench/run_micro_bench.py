@@ -332,6 +332,7 @@ class GBenchToJUnit(object):
         for bench in bench_list:
             # bench_name = bench["name"]
             one_test_dict = GBBenchResult(bench)
+
             testcases.append(one_test_dict)
 
         # pull out the suite_name from the first testcase                       
@@ -372,7 +373,6 @@ class GBenchToJUnit(object):
             test_el.set("time", str(getattr(test, "real_time")))
             # not in schema
             # test_el.set("items_per_second", str(getattr(test, "items_per_second")))
-
         tree.write(self.output_file, xml_declaration=True, encoding='utf8')
         return
 
