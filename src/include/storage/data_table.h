@@ -82,7 +82,7 @@ class DataTable {
   friend class transaction::TransactionManager;
 
   BlockStore *const block_store_;
-  layout_version_t layout_version_;
+  const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
 
   // for performance in generating initializer for inserts
