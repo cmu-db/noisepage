@@ -125,8 +125,8 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   reg.Register({}, &cc, this);
   reg.Register({"Cache"}, &cc2, this);
 
-  cc.IncNumFailure();
-  cc2.IncNumHit();
+  cc.GetNumFailure()++;
+  cc2.GetNumHit()++;
 
   terrier::common::json json = terrier::common::json::parse(reg.DumpStats());
   EXPECT_EQ(json["CacheCounter"]["Counters"]["NumFailure"], 1);

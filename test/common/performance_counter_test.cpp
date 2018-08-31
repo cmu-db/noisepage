@@ -57,42 +57,42 @@ class CacheCounterTestObject {
   std::vector<double> work_probs = std::vector<double>(8, 0.125);
   std::vector<std::function<void()>> workloads = {
       [&] {
-        cc->IncNumInsert();
+        cc->GetNumInsert()++;
         num_insert++;
         Equal();
       },
       [&] {
-        cc->IncNumHit();
+        cc->GetNumHit()++;
         num_hit++;
         Equal();
       },
       [&] {
-        cc->IncNumFailure();
+        cc->GetNumFailure()++;
         num_failure++;
         Equal();
       },
       [&] {
-        cc->IncNumUser();
+        cc->GetNumUser()++;
         num_user++;
         Equal();
       },
       [&] {
-        cc->DecNumInsert();
+        cc->GetNumInsert()--;
         num_insert--;
         Equal();
       },
       [&] {
-        cc->DecNumHit();
+        cc->GetNumHit()--;
         num_hit--;
         Equal();
       },
       [&] {
-        cc->DecNumFailure();
+        cc->GetNumFailure()--;
         num_failure--;
         Equal();
       },
       [&] {
-        cc->DecNumUser();
+        cc->GetNumUser()--;
         num_user--;
         Equal();
       },

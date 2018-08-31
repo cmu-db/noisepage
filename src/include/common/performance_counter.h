@@ -90,7 +90,7 @@ class PerformanceCounter {
 #else
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  MemberType Get##MemberName() { return 0; }
+  std::atomic<MemberType> Get##MemberName() { return 0; }
 #define PC_FN_JSON_FROM(MemberType, MemberName)
 #define PC_FN_JSON_TO(MemberType, MemberName)
 #define PC_FN_ZERO(MemberType, MemberName)
