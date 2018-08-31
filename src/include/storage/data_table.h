@@ -103,7 +103,7 @@ class DataTable {
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Atomically write the version pointer value. Should only be used by Insert where there is guaranteed to be no
-  // contention;
+  // contention
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Checks for Snapshot Isolation conflicts, used by Update
