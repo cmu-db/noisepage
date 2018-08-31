@@ -55,7 +55,7 @@ class DataTableBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    storage::DataTable table(&block_store_, layout_);
+    storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     // We can use dummy timestamps here since we're not invoking concurrency control
     transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
@@ -72,7 +72,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   TestThreadPool thread_pool;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    storage::DataTable table(&block_store_, layout_);
+    storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
@@ -84,8 +84,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->Repetitions(5)->UseRealTime();
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->Repetitions(5)->UseRealTime();
 
 }  // namespace terrier

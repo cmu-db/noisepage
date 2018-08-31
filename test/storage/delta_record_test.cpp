@@ -47,7 +47,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
       // get data table
-      storage::DataTable data_table(&block_store_, layout);
+      storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
       // get tuple slot
       storage::TupleSlot slot;
@@ -92,7 +92,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // projected row
 
     // get data table
-    storage::DataTable data_table(&block_store_, layout);
+    storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
     // get tuple slot
     storage::TupleSlot slot;
