@@ -90,6 +90,7 @@ install_linux() {
       clang-tidy-6.0 \
       cmake \
       doxygen \
+      doxygen-latex \
       git \
       g++-7 \
       libboost-filesystem-dev \
