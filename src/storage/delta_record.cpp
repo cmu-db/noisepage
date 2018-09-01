@@ -31,8 +31,8 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   size_ = sizeof(ProjectedRow);  // size and num_col size
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
-  // space needed to store value offsets, we pad up so that bitmaps start 64-bit aligned
-  size_ = StorageUtil::PadUpToSize(sizeof(uint64_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t)));
+  // space needed to store value offsets, we don't need to pad as we're using a regular non-concurrent bitmap
+  size_ = size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t));
   // space needed to store the bitmap, padded up to the size of the first value in this projected row
   size_ = StorageUtil::PadUpToSize(layout.AttrSize(col_ids_[0]),
                                    size_ + common::RawBitmap::SizeInBytes(static_cast<uint32_t>(col_ids_.size())));
