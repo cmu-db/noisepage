@@ -46,6 +46,10 @@ class TransactionContext {
    */
   storage::UndoBuffer &GetUndoBuffer() { return undo_buffer_; }
 
+  storage::RedoBuffer &GetRedoBuffer() {
+    return redo_buffer_;
+  }
+
   /**
    * Reserve space on this transaction's undo buffer for a record to log the update given
    * @param table pointer to the updated DataTable object
@@ -78,7 +82,7 @@ class TransactionContext {
   storage::RedoRecord *StageWrite(execution::SqlTable *table,
                                   tuple_id_t tuple_id,
                                   const storage::ProjectedRowInitializer &initializer) {
-    uint32_t size = storage::RedoRecord::Size(initializer);
+    uint32_t size = storage::RedoRecord::SizeInBytes(initializer);
     auto *result = reinterpret_cast<storage::RedoRecord *>(redo_buffer_.NewEntry(size));
     storage::RedoRecord::Initialize(result, start_time_, table, tuple_id, initializer);
     return result;

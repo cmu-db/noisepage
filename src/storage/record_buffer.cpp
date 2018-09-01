@@ -1,7 +1,7 @@
 #include "storage/record_buffer.h"
 #include "storage/log_manager.h"
 namespace terrier::storage {
-byte *UndoBuffer::NewEntry(const uint32_t size)  {
+byte *UndoBuffer::NewEntry(const uint32_t size) {
   if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
     // we are out of space in the buffer. Get a new buffer segment.
     BufferSegment *new_segment = buffer_pool_->Get();
@@ -23,6 +23,11 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
   TERRIER_ASSERT(buffer_seg_->HasBytesLeft(size),
                  "Staged write does not fit into redo buffer (even after a fresh one is requested)");
   return buffer_seg_->Reserve(size);
+}
+
+void RedoBuffer::Flush() {
+  log_manager_->AddBufferToFlushQueue(buffer_seg_);
+  buffer_seg_ = nullptr;
 }
 
 }  // namespace terrier::storage

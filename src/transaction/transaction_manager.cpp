@@ -10,7 +10,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, nullptr);
+  auto *result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
   table_latch_.Lock();
   auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime(), result);
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
@@ -30,6 +30,11 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
   TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
+  // TODO(Tianyu): Refactor
+  byte *commit_record = txn->GetRedoBuffer().NewEntry(sizeof(storage::CommitRecord));
+  storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time);
+  txn->GetRedoBuffer().Flush();
+  // end refactor
   if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
   return commit_time;

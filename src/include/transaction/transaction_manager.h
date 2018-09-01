@@ -9,6 +9,7 @@
 #include "storage/record_buffer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "storage/log_manager.h"
 
 namespace terrier::transaction {
 /**
@@ -24,8 +25,9 @@ class TransactionManager {
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
-  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled)
-      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
+  // TODO(Tianyu): Remove this default argument
+  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled, storage::LogManager *log_manager = nullptr)
+      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**
    * Begins a transaction.
@@ -85,6 +87,7 @@ class TransactionManager {
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
+  storage::LogManager *log_manager_;
 
   void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
 };

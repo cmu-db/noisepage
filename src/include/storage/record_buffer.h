@@ -70,54 +70,30 @@ class IterableBufferSegment {
  public:
   class Iterator {
    public:
-    /**
-     * @return reference to the underlying UndoRecord
-     */
     RecordType &operator*() const {
       return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
     }
 
-    /**
-     * @return pointer to the underlying UndoRecord
-     */
     RecordType *operator->() const {
       return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
     }
 
-    /**
-     * prefix-increment
-     * @return self-reference
-     */
     Iterator &operator++() {
       RecordType &me = this->operator*();
       segment_offset_ += me.Size();
       return *this;
     }
 
-    /**
-     * postfix-increment
-     * @return iterator equal to this iterator before increment
-     */
     const Iterator operator++(int) {
       Iterator copy = *this;
       operator++();
       return copy;
     }
 
-    /**
-     * Equality test
-     * @param other iterator to compare to
-     * @return if this is equal to other
-     */
     bool operator==(const Iterator &other) const {
       return segment_offset_ == other.segment_offset_ && segment_ == other.segment_;
     }
 
-    /**
-     * Inequality test
-     * @param other iterator to compare to
-     * @return if this is not equal to other
-     */
     bool operator!=(const Iterator &other) const { return !(*this == other); }
 
    private:
@@ -295,6 +271,8 @@ class RedoBuffer {
   explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
 
   byte *NewEntry(uint32_t size);
+  
+  void Flush();
 
  private:
   LogManager *log_manager_;

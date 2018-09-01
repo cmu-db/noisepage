@@ -6,17 +6,19 @@ class SqlTable;
 
 namespace terrier::storage {
 class LogManager;
+class RecoveredLog;
 
 // NOLINTNEXTLINE
 BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT)
 
 class LogRecord {
  public:
-  virtual LogRecordType RecordType() const = 0;
-  virtual uint32_t Size() const = 0;
-  virtual void SerializeToLog(LogManager *manager) const = 0;
+  LogRecordType RecordType() const { return type_; }
+  uint32_t Size() const { return size_; }
   timestamp_t TxnBegin() const { return txn_begin_; }
  protected:
+  LogRecordType type_;
+  uint32_t size_;
   timestamp_t txn_begin_;
 };
 
@@ -26,15 +28,7 @@ class RedoRecord : public LogRecord {
   DISALLOW_COPY_AND_MOVE(RedoRecord)
   ~RedoRecord() = delete;
 
-  LogRecordType RecordType() const override {
-    return LogRecordType::REDO;
-  }
-
-  /**
-   * @return size of this RedoRecord in memory, in bytes.
-   */
-  uint32_t Size() const override { return static_cast<uint32_t>(sizeof(RedoRecord) + Delta()->Size()); }
-
+  void SerializeToLog(LogManager *manager) const;
 
   execution::SqlTable *SqlTable() const {
     uintptr_t ptr_value = *reinterpret_cast<const uintptr_t *>(varlen_contents_);
@@ -63,13 +57,15 @@ class RedoRecord : public LogRecord {
    * @param initializer initializer to use for the embedded ProjectedRow
    * @return number of bytes for this UndoRecord
    */
-  static uint32_t Size(const ProjectedRowInitializer &initializer) {
+  static uint32_t SizeInBytes(const ProjectedRowInitializer &initializer) {
     return static_cast<uint32_t>(sizeof(RedoRecord)) + initializer.ProjectedRowSize();
   }
 
   static RedoRecord *Initialize(void *head, timestamp_t txn_begin, execution::SqlTable *table, tuple_id_t tuple_id,
                                 const ProjectedRowInitializer &initializer) {
     auto* result = reinterpret_cast<RedoRecord *>(head);
+    result->type_ = LogRecordType::REDO;
+    result->size_ = static_cast<uint32_t>(sizeof(RedoRecord) + initializer.ProjectedRowSize());
     result->txn_begin_ = txn_begin;
     result->table_ = table;
     result->tuple_id_ = tuple_id;
@@ -80,7 +76,8 @@ class RedoRecord : public LogRecord {
  private:
   // TODO(Tianyu): We will eventually need to consult the SqlTable to determine how to serialize a given column
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
-  // and the reader still have access to the layout on recovery and can deserialize.
+  // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
+  // just taking an oid.
   execution::SqlTable *table_;
   tuple_id_t tuple_id_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
@@ -88,24 +85,30 @@ class RedoRecord : public LogRecord {
   uint64_t varlen_contents_[0];
 };
 
+// TODO(Tianyu): I don't think this has any effect on correctness, but for consistency's sake
 static_assert(sizeof(RedoRecord) % 8 == 0,
-              "a projected row inside the redo record needs to be aligned to 8 bytes"
-              "to ensure true atomicity");
+              "a projected row inside the redo record needs to be aligned to 8 bytes");
 
 class CommitRecord : public LogRecord {
  public:
-  LogRecordType RecordType() const override {
+  LogRecordType RecordType() const {
     return LogRecordType::COMMIT;
   }
 
-  /**
-   * @return size of this RedoRecord in memory, in bytes.
-   */
-  uint32_t Size() const override { return static_cast<uint32_t>(sizeof(CommitRecord)); }
+  void SerializeToLog(LogManager *manager) const;
 
-  timestamp_t CommitTime() const { return commit_time_; }
+  timestamp_t CommitTime() const { return txn_commit_; }
+
+  static CommitRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
+    auto* result = reinterpret_cast<CommitRecord *>(head);
+    result->type_ = LogRecordType::COMMIT;
+    result->size_ = static_cast<uint32_t>(sizeof(CommitRecord));
+    result->txn_begin_ = txn_begin;
+    result->txn_commit_ = txn_commit;
+    return result;
+  }
 
  private:
-  timestamp_t commit_time_;
+  timestamp_t txn_commit_;
 };
 }  // terrier::storage
