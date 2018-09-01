@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "better_enums/enum.h"
 #include "common/macros.h"
 
 namespace terrier::common {

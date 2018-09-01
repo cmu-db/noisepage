@@ -1,6 +1,6 @@
 #include "storage/storage_util.h"
 #include <unordered_map>
-#include "storage/delta_record.h"
+#include "storage/undo_record.h"
 #include "storage/tuple_access_strategy.h"
 
 namespace terrier::storage {

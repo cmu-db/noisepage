@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
-#include "storage/delta_record.h"
+#include "storage/undo_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 

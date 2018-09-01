@@ -3,7 +3,7 @@
 #include "common/constants.h"
 #include "common/object_pool.h"
 #include "common/typedefs.h"
-#include "storage/delta_record.h"
+#include "storage/undo_record.h"
 
 namespace terrier::storage {
 
@@ -21,7 +21,7 @@ class BufferSegment {
    * @param size the amount of bytes to check for
    * @return Whether this segment have enough space left for size many bytes
    */
-  bool HasBytesLeft(const uint32_t size) const { return end_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
+  bool HasBytesLeft(const uint32_t size) const { return size_ + size <= common::Constants::BUFFER_SEGMENT_SIZE; }
 
   /**
    * Reserve space for a delta record of given size to be written in this segment. The segment must have
@@ -32,8 +32,8 @@ class BufferSegment {
    */
   byte *Reserve(const uint32_t size) {
     TERRIER_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
-    auto *result = bytes_ + end_;
-    end_ += size;
+    auto *result = bytes_ + size_;
+    size_ += size;
     return result;
   }
 
@@ -43,8 +43,16 @@ class BufferSegment {
    * @return self pointer for chaining
    */
   BufferSegment *Reset() {
-    end_ = 0;
+    size_ = 0;
     return this;
+  }
+
+  char *WritableHead() {
+    return reinterpret_cast<char *>(bytes_);
+  }
+
+  uint32_t Size() const {
+    return size_;
   }
 
  private:
@@ -54,7 +62,7 @@ class BufferSegment {
   friend class UndoBuffer;
 
   byte bytes_[common::Constants::BUFFER_SEGMENT_SIZE];
-  uint32_t end_ = 0;
+  uint32_t size_ = 0;
 };
 
 template<class RecordType>
@@ -65,14 +73,14 @@ class IterableBufferSegment {
     /**
      * @return reference to the underlying UndoRecord
      */
-    UndoRecord &operator*() const {
+    RecordType &operator*() const {
       return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
     }
 
     /**
      * @return pointer to the underlying UndoRecord
      */
-    UndoRecord *operator->() const {
+    RecordType *operator->() const {
       return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
     }
 
@@ -81,7 +89,7 @@ class IterableBufferSegment {
      * @return self-reference
      */
     Iterator &operator++() {
-      UndoRecord &me = this->operator*();
+      RecordType &me = this->operator*();
       segment_offset_ += me.Size();
       return *this;
     }
@@ -126,7 +134,7 @@ class IterableBufferSegment {
   }
 
   Iterator end() {
-    return {segment_, segment_->end_};
+    return {segment_, segment_->size_};
   }
 
  private:
@@ -136,7 +144,9 @@ class IterableBufferSegment {
 class RecordBufferSegmentAllocator {
  public:
   BufferSegment *New() {
-    return reinterpret_cast<BufferSegment *>(common::AllocationUtil::AllocateAligned(sizeof(BufferSegment)));
+    auto *result = new BufferSegment;
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
+    return result;
   }
 
   void Reuse(BufferSegment *const reused) {
@@ -195,7 +205,7 @@ class UndoBuffer {
     Iterator &operator++() {
       UndoRecord &me = this->operator*();
       segment_offset_ += me.Size();
-      if (segment_offset_ == (*curr_segment_)->end_) {
+      if (segment_offset_ == (*curr_segment_)->size_) {
         // need to advance into the next segment
         ++curr_segment_;
         segment_offset_ = 0;

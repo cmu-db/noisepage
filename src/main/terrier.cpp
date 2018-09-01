@@ -24,9 +24,6 @@ int main() {
   LOG_INFO("woof!");
   std::cout << "hello world!" << std::endl;
 
-  std::fstream f("test.txt", std::ios::binary | std::ios::in | std::ios::app | std::ios::out);
-  f.close();
-
   // shutdown loggers
   spdlog::shutdown();
 }

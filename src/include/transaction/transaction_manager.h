@@ -5,7 +5,7 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
-#include "storage/delta_record.h"
+#include "storage/undo_record.h"
 #include "storage/record_buffer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
