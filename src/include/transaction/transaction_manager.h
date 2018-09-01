@@ -24,7 +24,7 @@ class TransactionManager {
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
-  explicit TransactionManager(common::ObjectPool<storage::BufferSegment> *const buffer_pool, const bool gc_enabled)
+  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
 
   /**
@@ -71,7 +71,7 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
-  common::ObjectPool<storage::BufferSegment> *buffer_pool_;
+  storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
   std::atomic<timestamp_t> time_{timestamp_t(0)};

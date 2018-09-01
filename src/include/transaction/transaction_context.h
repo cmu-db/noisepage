@@ -21,8 +21,9 @@ class TransactionContext {
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     common::ObjectPool<storage::BufferSegment> *const buffer_pool)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool) {}
+                     storage::RecordBufferSegmentPool *const buffer_pool,
+                     storage::LogManager *log_manager)
+      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager) {}
 
   /**
    * @return start time of this transaction
@@ -54,8 +55,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     const uint32_t size = storage::UndoRecord::Size(redo);
-    storage::UndoRecord *result = undo_buffer_.NewEntry(size);
-    return storage::UndoRecord::InitializeRecord(result, txn_id_.load(), slot, table, redo);
+    return storage::UndoRecord::Initialize(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
   }
 
   /**
@@ -67,13 +67,26 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRowInitializer &insert_record_initializer) {
-    storage::UndoRecord *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(insert_record_initializer));
+    byte *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(insert_record_initializer));
     return storage::UndoRecord::Initialize(result, txn_id_.load(), slot, table, insert_record_initializer);
+  }
+
+  // TODO(Tianyu): this sort of implies that we will need to take in an oid for undo as well,
+  // if we stick with the data table / sql table separation.
+  // (Or at least if we stick with it and put index in sql table.)
+  storage::RedoRecord *StageWrite(execution::SqlTable *table,
+                                  tuple_id_t tuple_id,
+                                  const storage::ProjectedRowInitializer &initializer) {
+    uint32_t size = storage::RedoRecord::Size(initializer);
+    auto *result = reinterpret_cast<storage::RedoRecord *>(redo_buffer_.NewEntry(size));
+    storage::RedoRecord::Initialize(result, start_time_, table, tuple_id, initializer);
+    return result;
   }
 
  private:
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;
+  storage::RedoBuffer redo_buffer_;
 };
 }  // namespace terrier::transaction

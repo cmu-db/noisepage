@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -22,6 +23,9 @@ int main() {
   // log init now complete
   LOG_INFO("woof!");
   std::cout << "hello world!" << std::endl;
+
+  std::fstream f("test.txt", std::ios::binary | std::ios::in | std::ios::app | std::ios::out);
+  f.close();
 
   // shutdown loggers
   spdlog::shutdown();

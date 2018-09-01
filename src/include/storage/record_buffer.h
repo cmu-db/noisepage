@@ -11,7 +11,7 @@ namespace terrier::storage {
  * An UndoBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
  * of its memory usage.
  *
- * This class should not be used by itself. @see UndoBuffer.
+ * This class should not be used by itself. @see UndoBuffer, @see RedoBuffer
  *
  * Not thread-safe.
  */
@@ -39,14 +39,116 @@ class BufferSegment {
 
   /**
    * Clears the buffer segment.
+   *
+   * @return self pointer for chaining
    */
-  void Reset() { end_ = 0; }
+  BufferSegment *Reset() {
+    end_ = 0;
+    return this;
+  }
 
  private:
+  template<class RecordType>
+  friend class IterableBufferSegment;
+
   friend class UndoBuffer;
+
   byte bytes_[common::Constants::BUFFER_SEGMENT_SIZE];
   uint32_t end_ = 0;
 };
+
+template<class RecordType>
+class IterableBufferSegment {
+ public:
+  class Iterator {
+   public:
+    /**
+     * @return reference to the underlying UndoRecord
+     */
+    UndoRecord &operator*() const {
+      return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
+    }
+
+    /**
+     * @return pointer to the underlying UndoRecord
+     */
+    UndoRecord *operator->() const {
+      return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
+    }
+
+    /**
+     * prefix-increment
+     * @return self-reference
+     */
+    Iterator &operator++() {
+      UndoRecord &me = this->operator*();
+      segment_offset_ += me.Size();
+      return *this;
+    }
+
+    /**
+     * postfix-increment
+     * @return iterator equal to this iterator before increment
+     */
+    const Iterator operator++(int) {
+      Iterator copy = *this;
+      operator++();
+      return copy;
+    }
+
+    /**
+     * Equality test
+     * @param other iterator to compare to
+     * @return if this is equal to other
+     */
+    bool operator==(const Iterator &other) const {
+      return segment_offset_ == other.segment_offset_ && segment_ == other.segment_;
+    }
+
+    /**
+     * Inequality test
+     * @param other iterator to compare to
+     * @return if this is not equal to other
+     */
+    bool operator!=(const Iterator &other) const { return !(*this == other); }
+
+   private:
+    friend class IterableBufferSegment;
+    Iterator(BufferSegment *segment, uint32_t segment_offset) : segment_(segment), segment_offset_(segment_offset) {}
+    BufferSegment *segment_;
+    uint32_t segment_offset_;
+  };
+
+  explicit IterableBufferSegment(BufferSegment *segment) : segment_(segment) {}
+
+  Iterator begin() {
+    return {segment_, 0};
+  }
+
+  Iterator end() {
+    return {segment_, segment_->end_};
+  }
+
+ private:
+  BufferSegment *segment_;
+};
+
+class RecordBufferSegmentAllocator {
+ public:
+  BufferSegment *New() {
+    return reinterpret_cast<BufferSegment *>(common::AllocationUtil::AllocateAligned(sizeof(BufferSegment)));
+  }
+
+  void Reuse(BufferSegment *const reused) {
+    reused->Reset();
+  }
+
+  void Delete(BufferSegment *const ptr) {
+    delete[] reinterpret_cast<byte *>(ptr);
+  }
+};
+
+using RecordBufferSegmentPool = common::ObjectPool<BufferSegment, RecordBufferSegmentAllocator>;
 
 // TODO(Tianyu): Not thread-safe. We can probably just allocate thread-local buffers (or segments) if we ever want
 // multiple workers on the same transaction.
@@ -140,7 +242,7 @@ class UndoBuffer {
    * Constructs a new undo buffer, drawing its segments from the given buffer pool.
    * @param buffer_pool buffer pool to draw segments from
    */
-  explicit UndoBuffer(common::ObjectPool<BufferSegment> *buffer_pool) : buffer_pool_(buffer_pool) {}
+  explicit UndoBuffer(RecordBufferSegmentPool *buffer_pool) : buffer_pool_(buffer_pool) {}
 
   /**
    * Destructs this buffer, releases all its segments back to the buffer pool it draws from.
@@ -169,19 +271,23 @@ class UndoBuffer {
    * @param size the size of the undo record to allocate
    * @return a new undo record with at least the given size reserved
    */
-  UndoRecord *NewEntry(const uint32_t size) {
-    if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
-      // we are out of space in the buffer. Get a new buffer segment.
-      BufferSegment *new_segment = buffer_pool_->Get();
-      TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
-      new_segment->Reset();
-      buffers_.push_back(new_segment);
-    }
-    return reinterpret_cast<UndoRecord *>(buffers_.back()->Reserve(size));
-  }
+  byte *NewEntry(uint32_t size);
 
  private:
-  common::ObjectPool<BufferSegment> *buffer_pool_;
+  RecordBufferSegmentPool *buffer_pool_;
   std::vector<BufferSegment *> buffers_;
+};
+
+class LogManager;  // forward declaration
+
+class RedoBuffer {
+ public:
+  explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
+
+  byte *NewEntry(uint32_t size);
+
+ private:
+  LogManager *log_manager_;
+  BufferSegment *buffer_seg_ = nullptr;
 };
 }  // namespace terrier::storage

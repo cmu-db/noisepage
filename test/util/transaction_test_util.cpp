@@ -78,7 +78,7 @@ void RandomWorkloadTransaction::Finish() {
 LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
                                                        uint32_t txn_length, std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
-                                                       common::ObjectPool<storage::BufferSegment> *buffer_pool,
+                                                       storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
                                                        bool bookkeeping)
     : txn_length_(txn_length),

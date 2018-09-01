@@ -6,7 +6,7 @@ namespace terrier {
 class LargeTransactionTests : public TerrierTest {
  public:
   storage::BlockStore block_store_{1000, 1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000, 1000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000, 1000};
   std::default_random_engine generator_;
 };
 
