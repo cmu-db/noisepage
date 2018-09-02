@@ -35,6 +35,7 @@ class CacheCounterTestObject {
   std::atomic<uint16_t> num_failure{0};
   std::atomic<uint8_t> num_user{0};
   CacheCounter *cc;
+  std::uniform_int_distribution<uint8_t> rng;
 
   /**
    * Calls the gtest EXPECT_EQ function for all the relevant variables.
@@ -52,7 +53,7 @@ class CacheCounterTestObject {
    * It will check that it remains consistent with the CacheCounter;
    * if you modify the CacheCounter, make sure you tell it.
    */
-  explicit CacheCounterTestObject(CacheCounter *cc) : cc(cc) {}
+  explicit CacheCounterTestObject(CacheCounter *cc) : cc(cc), rng(1, 255) {}
 
   /**
    * Zeroes the cache counter, automatically checking that all the state remains consistent.
@@ -72,7 +73,6 @@ class CacheCounterTestObject {
    * @param num_operations number of operations to run
    */
   void RandomOperation(std::default_random_engine generator, uint32_t num_operations) {
-    std::uniform_int_distribution<uint8_t> rng(0, 255);
     uint8_t num = rng(generator);
 
     std::vector<std::function<void()>> workloads = {
@@ -192,7 +192,7 @@ TEST(PerformanceCounterTests, GTEST_DEBUG_ONLY(SerializationTest)) {
     // assert the state is not the same
     json_new = cc.ToJson();
     EXPECT_EQ(json_new, cc.ToJson());
-    EXPECT_NE(json_old, json_new);
+    EXPECT_FALSE(json_old == json_new);
     // restore cc from the old state
     cc.FromJson(json_old);
     // assert the state is the same now
