@@ -94,7 +94,7 @@ class LogManager {
     for (LogRecord &record : IterableBufferSegment<LogRecord>(redo_buffer)) {
       switch (record.RecordType()) {
         case LogRecordType::REDO:
-          SerializeRecord(reinterpret_cast<RedoRecord &>(record));
+          SerializeRecord(reinterpret_cast<RedoRecordBody &>(record));
           break;
         case LogRecordType::COMMIT:
           SerializeRecord(reinterpret_cast<CommitRecord &>(record));

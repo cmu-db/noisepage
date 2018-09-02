@@ -4,7 +4,7 @@
 
 namespace terrier::storage {
 
-void RedoRecord::SerializeToLog(LogManager *manager) const {
+void RedoRecordBody::SerializeToLog(LogManager *manager) const {
   manager->WriteValue(LogRecordType::REDO);
   manager->WriteValue(txn_begin_);
   manager->WriteValue(table_->TableOid());

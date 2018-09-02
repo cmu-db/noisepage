@@ -76,15 +76,15 @@ class TransactionContext {
     return storage::UndoRecord::Initialize(result, txn_id_.load(), slot, table, insert_record_initializer);
   }
 
-  // TODO(Tianyu): this sort of implies that we will need to take in an oid for undo as well,
+  // TODO(Tianyu): this sort of implies that we will need to take in a SqlTable pointer for undo as well,
   // if we stick with the data table / sql table separation.
   // (Or at least if we stick with it and put index in sql table.)
-  storage::RedoRecord *StageWrite(execution::SqlTable *table,
+  storage::RedoRecordBody *StageWrite(execution::SqlTable *table,
                                   tuple_id_t tuple_id,
                                   const storage::ProjectedRowInitializer &initializer) {
-    uint32_t size = storage::RedoRecord::SizeInBytes(initializer);
-    auto *result = reinterpret_cast<storage::RedoRecord *>(redo_buffer_.NewEntry(size));
-    storage::RedoRecord::Initialize(result, start_time_, table, tuple_id, initializer);
+    uint32_t size = storage::RedoRecordBody::Size(initializer);
+    auto *result = reinterpret_cast<storage::RedoRecordBody *>(redo_buffer_.NewEntry(size));
+    storage::RedoRecordBody::Initialize(result, start_time_, table, tuple_id, initializer);
     return result;
   }
 
