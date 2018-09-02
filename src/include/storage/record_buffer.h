@@ -115,7 +115,7 @@ class RecordBufferSegmentAllocator {
 
   void Reuse(BufferSegment *const reused) { reused->Reset(); }
 
-  void Delete(BufferSegment *const ptr) { delete[] reinterpret_cast<byte *>(ptr); }
+  void Delete(BufferSegment *const ptr) { delete ptr; }
 };
 
 using RecordBufferSegmentPool = common::ObjectPool<BufferSegment, RecordBufferSegmentAllocator>;
