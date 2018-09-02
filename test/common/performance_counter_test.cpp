@@ -137,9 +137,9 @@ class CacheCounterTestObject {
           Equal();
         },
     };
-    std::vector<double> work_probs = std::vector<double>(workloads.size(), 1.0 / workloads.size());
+    std::vector<double> probs = std::vector<double>(workloads.size(), 1.0 / static_cast<double>(workloads.size()));
 
-    RandomTestUtil::InvokeWorkloadWithDistribution(workloads, work_probs, &generator, num_operations);
+    RandomTestUtil::InvokeWorkloadWithDistribution(workloads, probs, &generator, num_operations);
   }
 };
 
