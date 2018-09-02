@@ -41,7 +41,7 @@ class TransactionManager {
    * @param txn the transaction to commit
    * @param callback callback function that the transaction manager will execute as soon as all log records of the
    *                 given transaction is flushed out. Needless to say, short callbacks that delegates work
-   *                 to a different thread is preferrable.
+   *                 to a different thread is preferable.
    * @return commit timestamp of this transaction
    */
   timestamp_t Commit(TransactionContext *txn, const std::function<void()> &callback);
