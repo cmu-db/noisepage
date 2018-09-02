@@ -72,7 +72,7 @@ void RandomWorkloadTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, [] {});
 }
 
 LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
@@ -194,7 +194,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
-  txn_manager_.Commit(initial_txn_);
+  txn_manager_.Commit(initial_txn_, [] {});
   // cleanup if not keeping track of all the inserts.
   if (!bookkeeping_) delete[] redo_buffer;
 }

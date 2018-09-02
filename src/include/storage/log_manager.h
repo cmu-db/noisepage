@@ -1,13 +1,15 @@
 #pragma once
 #include <fstream>
-#include <unordered_map>
 #include <functional>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
-#include "common/container/concurrent_queue.h"
-#include "storage/record_buffer.h"
-#include "storage/log_record.h"
 #include "execution/sql_table.h"
+#include "storage/log_record.h"
+#include "storage/record_buffer.h"
 
 namespace terrier::storage {
 class LogManager {
@@ -23,13 +25,9 @@ class LogManager {
   }
 
   // The following should only be called on worked threads
-  BufferSegment *NewLogBuffer() {
-    return buffer_pool_->Get();
-  }
+  BufferSegment *NewLogBuffer() { return buffer_pool_->Get(); }
 
-  void AddBufferToFlushQueue(BufferSegment *buffer) {
-    flush_queue_.Enqueue(buffer);
-  }
+  void AddBufferToFlushQueue(BufferSegment *buffer) { flush_queue_.Enqueue(buffer); }
 
   void RegisterTransactionFlushedCallback(timestamp_t txn_begin, const std::function<void()> &callback) {
     common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
@@ -43,8 +41,7 @@ class LogManager {
     while (flush_queue_.Dequeue(&buffer)) {
       for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
         SerializeRecord(record);
-        if (record.RecordType() == +LogRecordType::COMMIT)
-          commits_in_buffer_.push_back(record.TxnBegin());
+        if (record.RecordType() == +LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
       }
     }
   }
@@ -53,13 +50,13 @@ class LogManager {
     out_.write(flush_buffer_->WritableHead(), flush_buffer_->Size());
     out_.flush();
     common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
-//    for (timestamp_t txn : commits_in_buffer_) {
-//      auto it = callbacks_.find(txn);
-//       TODO(Tianyu): Is this too strict?
-//      TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
-//      it->second();
-//      callbacks_.erase(it);
-//    }
+    for (timestamp_t txn : commits_in_buffer_) {
+      auto it = callbacks_.find(txn);
+      // TODO(Tianyu): Is this too strict?
+      TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
+      it->second();
+      callbacks_.erase(it);
+    }
     commits_in_buffer_.clear();
     flush_buffer_->Reset();
   }
@@ -89,7 +86,8 @@ class LogManager {
         // TODO(Tianyu): Inline varlen or other things, figure out representation.
         Write(record_body->Delta(), record_body->Delta()->Size());
         break;
-      } case LogRecordType::COMMIT:
+      }
+      case LogRecordType::COMMIT:
         WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
     }
   }
@@ -108,7 +106,7 @@ class LogManager {
     TERRIER_MEMCPY(flush_buffer_->Reserve(size), data, size);
   }
 
-  template<class T>
+  template <class T>
   void WriteValue(const T &val) {
     Write(&val, sizeof(T));
   }

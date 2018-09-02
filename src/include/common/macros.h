@@ -120,9 +120,9 @@ namespace terrier::common {
   DISALLOW_MOVE(cname);
 
 // TODO(Tianyu): Document
-#define HEAP_REINTERPRETAION_ONLY(cname)  \
-  cname() = delete;                     \
-  DISALLOW_COPY_AND_MOVE(cname)         \
+#define HEAP_REINTERPRETAION_ONLY(cname) \
+  cname() = delete;                      \
+  DISALLOW_COPY_AND_MOVE(cname)          \
   ~cname() = delete;
 
 //===----------------------------------------------------------------------===//

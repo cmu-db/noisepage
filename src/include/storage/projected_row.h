@@ -1,7 +1,8 @@
 #pragma once
+#include <vector>
+#include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/typedefs.h"
-#include "common/container/bitmap.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -187,4 +188,4 @@ class ProjectedRowInitializer {
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
-}  // terrier::storage
+}  // namespace terrier::storage

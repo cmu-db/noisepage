@@ -1,8 +1,8 @@
-#include "util/storage_test_util.h"
+#include "execution/sql_table.h"
 #include "storage/data_table.h"
 #include "storage/log_manager.h"
 #include "transaction/transaction_manager.h"
-#include "execution/sql_table.h"
+#include "util/storage_test_util.h"
 
 namespace terrier {
 // NOLINTNEXTLINE
@@ -22,7 +22,7 @@ TEST(LogTest, SimpleLogTest) {
   auto *redo = txn->StageWrite(&fake_table, tuple_id_t(0), initializer);
   StorageTestUtil::PopulateRandomRow(redo->Delta(), layout, 0, &engine);
   table.Insert(txn, *redo->Delta());
-  txn_manager.Commit(txn);
+  txn_manager.Commit(txn, [] {});
   log_manager.Process();
   log_manager.Flush();
 }

@@ -140,5 +140,4 @@ static_assert(sizeof(UndoRecord) % 8 == 0,
               "a projected row inside the undo record needs to be aligned to 8 bytes"
               "to ensure true atomicity");
 
-
 }  // namespace terrier::storage

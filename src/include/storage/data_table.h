@@ -2,9 +2,9 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
-#include "storage/undo_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -74,7 +74,6 @@ class DataTable {
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
-
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains

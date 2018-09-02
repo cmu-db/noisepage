@@ -5,11 +5,11 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
-#include "storage/undo_record.h"
+#include "storage/log_manager.h"
 #include "storage/record_buffer.h"
+#include "storage/undo_record.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "storage/log_manager.h"
 
 namespace terrier::transaction {
 /**
@@ -26,8 +26,7 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
   // TODO(Tianyu): Remove this default argument
-  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool,
-                              const bool gc_enabled,
+  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
                               storage::LogManager *log_manager)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
@@ -40,9 +39,12 @@ class TransactionManager {
   /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
+   * @param callback callback function that the transaction manager will execute as soon as all log records of the
+   *                 given transaction is flushed out. Needless to say, short callbacks that delegates work
+   *                 to a different thread is preferrable.
    * @return commit timestamp of this transaction
    */
-  timestamp_t Commit(TransactionContext *txn);
+  timestamp_t Commit(TransactionContext *txn, const std::function<void()> &callback);
 
   /**
    * Aborts a transaction, rolling back its changes (if any).

@@ -9,8 +9,7 @@ class LogManager;
 class RecoveredLog;
 
 // NOLINTNEXTLINE
-BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT
-)
+BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT)
 
 class LogRecord {
  public:
@@ -20,13 +19,13 @@ class LogRecord {
   uint32_t Size() const { return size_; }
   timestamp_t TxnBegin() const { return txn_begin_; }
 
-  template<class UnderlyingType>
+  template <class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
   }
 
-  template<class UnderlyingType>
+  template <class UnderlyingType>
   const UnderlyingType *GetUnderlyingRecordBodyAs() const {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
@@ -39,6 +38,7 @@ class LogRecord {
     result->txn_begin_ = txn_begin;
     return result;
   }
+
  protected:
   /* Header common to all log records */
   LogRecordType type_;
@@ -50,8 +50,7 @@ class LogRecord {
 };
 
 // TODO(Tianyu): I don't think this has any effect on correctness, but for consistency's sake
-static_assert(sizeof(LogRecord) % 8 == 0,
-              "a projected row inside the log record needs to be aligned to 8 bytes");
+static_assert(sizeof(LogRecord) % 8 == 0, "a projected row inside the log record needs to be aligned to 8 bytes");
 
 class RedoRecord {
  public:
@@ -62,9 +61,7 @@ class RedoRecord {
     return reinterpret_cast<execution::SqlTable *>(ptr_value);
   }
 
-  tuple_id_t TupleId() const {
-    return tuple_id_;
-  }
+  tuple_id_t TupleId() const { return tuple_id_; }
 
   ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
 
@@ -76,16 +73,9 @@ class RedoRecord {
     return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(RedoRecord) + initializer.ProjectedRowSize());
   }
 
-  static LogRecord *Initialize(void *head,
-                               timestamp_t txn_begin,
-                               execution::SqlTable *table,
-                               tuple_id_t tuple_id,
+  static LogRecord *Initialize(void *head, timestamp_t txn_begin, execution::SqlTable *table, tuple_id_t tuple_id,
                                const ProjectedRowInitializer &initializer) {
-
-    LogRecord *result = LogRecord::InitializeHeader(head,
-                                                    LogRecordType::REDO,
-                                                    Size(initializer),
-                                                    txn_begin);
+    LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->table_ = table;
     body->tuple_id_ = tuple_id;
@@ -106,8 +96,7 @@ class RedoRecord {
 };
 
 // TODO(Tianyu): Same here
-static_assert(sizeof(RedoRecord) % 8 == 0,
-              "a projected row inside the redo record needs to be aligned to 8 bytes");
+static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo record needs to be aligned to 8 bytes");
 
 class CommitRecord {
  public:
@@ -115,21 +104,18 @@ class CommitRecord {
 
   static constexpr LogRecordType RecordType() { return LogRecordType::COMMIT; }
 
-  static uint32_t Size() {
-    return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(CommitRecord));
-  }
+  static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(CommitRecord)); }
 
   static LogRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
-    auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT,
-                                               Size(),
-                                               txn_begin);
+    auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
     return result;
   }
 
   timestamp_t CommitTime() const { return txn_commit_; }
+
  private:
   timestamp_t txn_commit_;
 };
-}  // terrier::storage
+}  // namespace terrier::storage

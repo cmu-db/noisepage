@@ -18,7 +18,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
+timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std::function<void()> &callback) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
@@ -36,12 +36,13 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
     // sees this record.
     byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time);
-    // TODO(Tianyu): Add callback here? Probably has to be before we flush
+    log_manager_->RegisterTransactionFlushedCallback(txn->StartTime(), callback);
     txn->redo_buffer_.Flush();
   }
-
   if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
+  // TODO(Tianyu): Is this the right thing to do?
+  if (log_manager_ == LOGGING_DISABLED) callback();
   return commit_time;
 }
 

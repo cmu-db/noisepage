@@ -7,10 +7,10 @@
 #include <vector>
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
-#include "storage/undo_record.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
 

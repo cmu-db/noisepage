@@ -47,16 +47,12 @@ class BufferSegment {
     return this;
   }
 
-  char *WritableHead() {
-    return reinterpret_cast<char *>(bytes_);
-  }
+  char *WritableHead() { return reinterpret_cast<char *>(bytes_); }
 
-  uint32_t Size() const {
-    return size_;
-  }
+  uint32_t Size() const { return size_; }
 
  private:
-  template<class RecordType>
+  template <class RecordType>
   friend class IterableBufferSegment;
 
   friend class UndoBuffer;
@@ -65,18 +61,14 @@ class BufferSegment {
   uint32_t size_ = 0;
 };
 
-template<class RecordType>
+template <class RecordType>
 class IterableBufferSegment {
  public:
   class Iterator {
    public:
-    RecordType &operator*() const {
-      return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
-    }
+    RecordType &operator*() const { return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
 
-    RecordType *operator->() const {
-      return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_);
-    }
+    RecordType *operator->() const { return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
 
     Iterator &operator++() {
       RecordType &me = this->operator*();
@@ -105,13 +97,9 @@ class IterableBufferSegment {
 
   explicit IterableBufferSegment(BufferSegment *segment) : segment_(segment) {}
 
-  Iterator begin() {
-    return {segment_, 0};
-  }
+  Iterator begin() { return {segment_, 0}; }
 
-  Iterator end() {
-    return {segment_, segment_->size_};
-  }
+  Iterator end() { return {segment_, segment_->size_}; }
 
  private:
   BufferSegment *segment_;
@@ -125,13 +113,9 @@ class RecordBufferSegmentAllocator {
     return result;
   }
 
-  void Reuse(BufferSegment *const reused) {
-    reused->Reset();
-  }
+  void Reuse(BufferSegment *const reused) { reused->Reset(); }
 
-  void Delete(BufferSegment *const ptr) {
-    delete[] reinterpret_cast<byte *>(ptr);
-  }
+  void Delete(BufferSegment *const ptr) { delete[] reinterpret_cast<byte *>(ptr); }
 };
 
 using RecordBufferSegmentPool = common::ObjectPool<BufferSegment, RecordBufferSegmentAllocator>;
@@ -275,9 +259,7 @@ class RedoBuffer {
   // TODO(Tianyu): Maybe need a better name?
   void Flush();
 
-  bool LoggingDisabled() const {
-    return log_manager_ == LOGGING_DISABLED;
-  }
+  bool LoggingDisabled() const { return log_manager_ == LOGGING_DISABLED; }
 
  private:
   LogManager *const log_manager_;

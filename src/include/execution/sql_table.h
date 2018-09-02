@@ -4,8 +4,6 @@
 namespace terrier::execution {
 class SqlTable {
  public:
-  oid_t TableOid() const {
-    return oid_t(0);
-  }
+  oid_t TableOid() const { return oid_t(0); }
 };
-}  // namespace terrier execution
+}  // namespace terrier::execution

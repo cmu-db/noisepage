@@ -1,5 +1,5 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"

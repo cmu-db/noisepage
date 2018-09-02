@@ -13,7 +13,7 @@ namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
-  template<class Random>
+  template <class Random>
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
@@ -26,7 +26,7 @@ class RandomDataTableTestObject {
     delete[] select_buffer_;
   }
 
-  template<class Random>
+  template <class Random>
   storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator,
                                        storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
@@ -47,7 +47,7 @@ class RandomDataTableTestObject {
   }
 
   // be sure to only update tuple incrementally (cannot go back in time)
-  template<class Random>
+  template <class Random>
   bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
