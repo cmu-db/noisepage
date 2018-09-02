@@ -74,14 +74,14 @@ class PerformanceCounter {
  * If performance counters are disabled, it should do nothing.
  */
 #define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
-  void Increment##MemberName(MemberType x) { return MemberName.store(MemberName.load() + x); }
+  void Increment##MemberName(MemberType x) { return MemberName.store(static_cast<MemberType>(MemberName.load() + x)); }
 
 /**
  * This macro defines a DecrementMemberName(MemberType x) function which decrements the value of MemberName by x.
  * If performance counters are disabled, it should do nothing.
  */
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
-  void Decrement##MemberName(MemberType x) { return MemberName.store(MemberName.load() - x); }
+  void Decrement##MemberName(MemberType x) { return MemberName.store(static_cast<MemberType>(MemberName.load() - x)); }
 
 /*
  * Performance counter functions.
