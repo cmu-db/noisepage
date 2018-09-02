@@ -44,6 +44,7 @@ class RawConcurrentBitmap {
   static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
     auto *result = new uint8_t[num_bytes];
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
     TERRIER_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
@@ -106,6 +107,8 @@ class RawConcurrentBitmap {
     if (start_pos >= bitmap_num_bits) {
       return false;
     }
+
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(bits_) % sizeof(uint64_t) == 0, "bits_ should be 64-bit aligned.");
 
     const uint32_t num_bytes = RawBitmap::SizeInBytes(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;                           // current byte position
