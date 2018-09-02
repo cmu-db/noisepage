@@ -43,6 +43,7 @@ class LogManager {
         SerializeRecord(record);
         if (record.RecordType() == +LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
       }
+      buffer_pool_->Release(buffer);
     }
   }
 
@@ -69,7 +70,7 @@ class LogManager {
   common::ConcurrentQueue<BufferSegment *> flush_queue_;
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   common::SpinLatch callbacks_latch_;
-  std::unordered_map<timestamp_t, const std::function<void()> &> callbacks_;
+  std::unordered_map<timestamp_t, std::function<void()>> callbacks_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<timestamp_t> commits_in_buffer_;
@@ -81,7 +82,8 @@ class LogManager {
     switch (record.RecordType()) {
       case LogRecordType::REDO: {
         auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-        WriteValue(record_body->SqlTable()->TableOid());
+//        WriteValue(record_body->SqlTable()->TableOid());
+        WriteValue(oid_t(0));
         WriteValue(record_body->TupleId());
         // TODO(Tianyu): Inline varlen or other things, figure out representation.
         Write(record_body->Delta(), record_body->Delta()->Size());

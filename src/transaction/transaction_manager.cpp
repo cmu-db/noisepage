@@ -30,7 +30,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std:
   TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
 
-  if (log_manager_ != LOGGING_DISABLED) {
+  if (log_manager_ != LOGGING_DISABLED && !txn->undo_buffer_.Empty()) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
