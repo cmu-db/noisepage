@@ -13,10 +13,10 @@ namespace terrier {
 // clang-format off
 /**
  * A simple dummy cache object with four differently typed attributes:
- *   uint64_t num_insert
- *   uint32_t num_hit
- *   uint16_t num_failure
- *   uint8_t num_user
+ *   uint64_t NumInsert
+ *   uint32_t NumHit
+ *   uint16_t NumFailure
+ *   uint8_t NumUser
  */
 #define CACHE_MEMBERS(f) \
   f(uint64_t, NumInsert) \
@@ -29,7 +29,7 @@ DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
 
 /**
  * A simple dummy network object
- *   uint64_t num_request
+ *   uint64_t NumRequest
  */
 #define NETWORK_MEMBERS(f) f(uint64_t, NumRequest)
 
@@ -125,8 +125,8 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DumpTest)) {
   reg.Register({}, &cc, this);
   reg.Register({"Cache"}, &cc2, this);
 
-  cc.GetNumFailure()++;
-  cc2.GetNumHit()++;
+  cc.IncrementNumFailure(1);
+  cc2.IncrementNumHit(1);
 
   terrier::common::json json = terrier::common::json::parse(reg.DumpStats());
   EXPECT_EQ(json["CacheCounter"]["Counters"]["NumFailure"], 1);

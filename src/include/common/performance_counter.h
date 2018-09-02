@@ -56,11 +56,32 @@ class PerformanceCounter {
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName) std::atomic<MemberType> MemberName{0};
 
 /**
- * This macro defines a GetMemberName() function which returns a reference to MemberName.
+ * This macro defines a GetMemberName() function which returns the value of MemberName.
  * If performance counters are disabled, it always returns 0.
  */
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
-  std::atomic<MemberType> &Get##MemberName() { return MemberName; }
+  MemberType Get##MemberName() { return MemberName.load(); }
+
+/**
+ * This macro defines a SetMemberName(MemberType x) function which sets the value of MemberName to x.
+ * If performance counters are disabled, it should do nothing.
+ */
+#define PC_HELPER_DEFINE_SET(MemberType, MemberName) \
+  void Set##MemberName(MemberType x) { return MemberName.store(x); }
+
+/**
+ * This macro defines an IncrementMemberName(MemberType x) function which increments the value of MemberName by x.
+ * If performance counters are disabled, it should do nothing.
+ */
+#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
+  void Increment##MemberName(MemberType x) { return MemberName.store(MemberName.load() + x); }
+
+/**
+ * This macro defines a DecrementMemberName(MemberType x) function which decrements the value of MemberName by x.
+ * If performance counters are disabled, it should do nothing.
+ */
+#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
+  void Decrement##MemberName(MemberType x) { return MemberName.store(MemberName.load() - x); }
 
 /*
  * Performance counter functions.
@@ -91,6 +112,12 @@ class PerformanceCounter {
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
   std::atomic<MemberType> Get##MemberName() { return 0; }
+#define PC_HELPER_DEFINE_SET(MemberType, MemberName) \
+  void Set##MemberName(MemberType x) {}
+#define PC_HELPER_DEFINE_INCREMENT(MemberType, MemberName) \
+  void Increment##MemberName(MemberType x) {}
+#define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
+  void Decrement##MemberName(MemberType x) {}
 #define PC_FN_JSON_FROM(MemberType, MemberName)
 #define PC_FN_JSON_TO(MemberType, MemberName)
 #define PC_FN_ZERO(MemberType, MemberName)
@@ -145,6 +172,9 @@ class PerformanceCounter {
                                                                                                \
    public:                                                                                     \
     MemberList(PC_HELPER_DEFINE_GET);                                                          \
+    MemberList(PC_HELPER_DEFINE_SET);                                                          \
+    MemberList(PC_HELPER_DEFINE_INCREMENT);                                                    \
+    MemberList(PC_HELPER_DEFINE_DECREMENT);                                                    \
                                                                                                \
     std::string GetName() override { return name; }                                            \
     void SetName(const std::string &name) override { this->name = name; }                      \

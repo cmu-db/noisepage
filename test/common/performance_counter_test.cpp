@@ -11,10 +11,10 @@ namespace terrier {
 // clang-format off
 /**
  * A simple dummy cache object with four differently typed attributes:
- *   uint64_t num_insert
- *   uint32_t num_hit
- *   uint16_t num_failure
- *   uint8_t num_user
+ *   uint64_t NumInsert
+ *   uint32_t NumHit
+ *   uint16_t NumFailure
+ *   uint8_t NumUser
  */
 #define CACHE_MEMBERS(f) \
   f(uint64_t, NumInsert) \
@@ -24,14 +24,6 @@ namespace terrier {
 // clang-format on
 
 DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
-
-/**
- * A simple dummy network object
- *   uint64_t num_requests
- */
-#define NETWORK_MEMBERS(f) f(uint64_t, num_requests)
-
-DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
 
 /**
  * Helper class for testing the four attributes of a CacheCounter.
@@ -53,50 +45,6 @@ class CacheCounterTestObject {
     EXPECT_EQ(cc->GetNumFailure(), num_failure);
     EXPECT_EQ(cc->GetNumUser(), num_user);
   }
-
-  std::vector<double> work_probs = std::vector<double>(8, 0.125);
-  std::vector<std::function<void()>> workloads = {
-      [&] {
-        cc->GetNumInsert()++;
-        num_insert++;
-        Equal();
-      },
-      [&] {
-        cc->GetNumHit()++;
-        num_hit++;
-        Equal();
-      },
-      [&] {
-        cc->GetNumFailure()++;
-        num_failure++;
-        Equal();
-      },
-      [&] {
-        cc->GetNumUser()++;
-        num_user++;
-        Equal();
-      },
-      [&] {
-        cc->GetNumInsert()--;
-        num_insert--;
-        Equal();
-      },
-      [&] {
-        cc->GetNumHit()--;
-        num_hit--;
-        Equal();
-      },
-      [&] {
-        cc->GetNumFailure()--;
-        num_failure--;
-        Equal();
-      },
-      [&] {
-        cc->GetNumUser()--;
-        num_user--;
-        Equal();
-      },
-  };
 
  public:
   /**
@@ -124,6 +72,73 @@ class CacheCounterTestObject {
    * @param num_operations number of operations to run
    */
   void RandomOperation(std::default_random_engine generator, uint32_t num_operations) {
+    std::uniform_int_distribution<uint8_t> rng(0, 255);
+    uint8_t num = rng(generator);
+
+    std::vector<std::function<void()>> workloads = {
+        [&] {
+          cc->IncrementNumInsert(num);
+          num_insert += num;
+          Equal();
+        },
+        [&] {
+          cc->IncrementNumHit(num);
+          num_hit += num;
+          Equal();
+        },
+        [&] {
+          cc->IncrementNumFailure(num);
+          num_failure += num;
+          Equal();
+        },
+        [&] {
+          cc->IncrementNumUser(num);
+          num_user += num;
+          Equal();
+        },
+        [&] {
+          cc->DecrementNumInsert(num);
+          num_insert -= num;
+          Equal();
+        },
+        [&] {
+          cc->DecrementNumHit(num);
+          num_hit -= num;
+          Equal();
+        },
+        [&] {
+          cc->DecrementNumFailure(num);
+          num_failure -= num;
+          Equal();
+        },
+        [&] {
+          cc->DecrementNumUser(num);
+          num_user -= num;
+          Equal();
+        },
+        [&] {
+          cc->SetNumInsert(num);
+          num_insert = num;
+          Equal();
+        },
+        [&] {
+          cc->SetNumHit(num);
+          num_hit = num;
+          Equal();
+        },
+        [&] {
+          cc->SetNumFailure(num);
+          num_failure = num;
+          Equal();
+        },
+        [&] {
+          cc->SetNumUser(num);
+          num_user = num;
+          Equal();
+        },
+    };
+    std::vector<double> work_probs = std::vector<double>(workloads.size(), 1.0 / workloads.size());
+
     RandomTestUtil::InvokeWorkloadWithDistribution(workloads, work_probs, &generator, num_operations);
   }
 };
