@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/typedefs.h"
 
@@ -43,7 +44,7 @@ class RawConcurrentBitmap {
    */
   static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
-    auto *result = new uint8_t[num_bytes];
+    auto *result = AllocationUtil::AllocateAligned(num_bytes);
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
     TERRIER_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
