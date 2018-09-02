@@ -28,7 +28,7 @@ class TransactionManager {
   // TODO(Tianyu): Remove this default argument
   explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool,
                               const bool gc_enabled,
-                              storage::LogManager *log_manager = LOGGING_DISABLED)
+                              storage::LogManager *log_manager)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**

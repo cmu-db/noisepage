@@ -86,7 +86,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
       generator_(generator),
       layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
       table_(block_store, layout_, layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on),
+      txn_manager_(buffer_pool, gc_on, LOGGING_DISABLED),
       gc_on_(gc_on),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
