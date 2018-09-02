@@ -6,7 +6,8 @@
 #include "common/typedefs.h"
 #include "common/container/concurrent_queue.h"
 #include "storage/record_buffer.h"
-#include "log_record.h"
+#include "storage/log_record.h"
+#include "execution/sql_table.h"
 
 namespace terrier::storage {
 class LogManager {
@@ -30,7 +31,7 @@ class LogManager {
     flush_queue_.Enqueue(buffer);
   }
 
-  void OnTransactionFlushed(timestamp_t txn_begin, const std::function<void()> &callback) {
+  void RegisterTransactionFlushedCallback(timestamp_t txn_begin, const std::function<void()> &callback) {
     common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
     auto ret UNUSED_ATTRIBUTE = callbacks_.emplace(txn_begin, callback);
     TERRIER_ASSERT(ret.second, "Insertion failed, callback is already registered for given transaction");
@@ -38,27 +39,14 @@ class LogManager {
 
   // The following should only be called by flushing thread
   void Process() {
-    BufferSegment *next;
-    while (flush_queue_.Dequeue(&next)) SerializeSegment(next);
-  }
-
-  void Write(const void *data, uint32_t size) {
-    if (!flush_buffer_->HasBytesLeft(size)) {
-      Flush();
-      if (!flush_buffer_->HasBytesLeft(size)) {
-        // This write is too large to fit into a buffer, we need to write directly without a buffer,
-        // but no flush is necessary since the commit records are always small enough to be buffered
-        out_.write(reinterpret_cast<const char *>(data), size);
-        return;
+    BufferSegment *buffer;
+    while (flush_queue_.Dequeue(&buffer)) {
+      for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
+        SerializeRecord(record);
+        if (record.RecordType() == +LogRecordType::COMMIT)
+          commits_in_buffer_.push_back(record.TxnBegin());
       }
     }
-    // Write can be buffered
-    TERRIER_MEMCPY(flush_buffer_->Reserve(size), data, size);
-  }
-
-  template<class T>
-  void WriteValue(const T &val) {
-    Write(&val, sizeof(T));
   }
 
   void Flush() {
@@ -90,23 +78,39 @@ class LogManager {
   std::vector<timestamp_t> commits_in_buffer_;
   BufferSegment *flush_buffer_;
 
-  void SerializeSegment(BufferSegment *redo_buffer) {
-    for (LogRecord &record : IterableBufferSegment<LogRecord>(redo_buffer)) {
-      switch (record.RecordType()) {
-        case LogRecordType::REDO:
-          SerializeRecord(reinterpret_cast<RedoRecordBody &>(record));
-          break;
-        case LogRecordType::COMMIT:
-          SerializeRecord(reinterpret_cast<CommitRecord &>(record));
-          commits_in_buffer_.push_back(record.TxnBegin());
-      }
+  void SerializeRecord(const LogRecord &record) {
+    WriteValue(record.RecordType());
+    WriteValue(record.TxnBegin());
+    switch (record.RecordType()) {
+      case LogRecordType::REDO: {
+        auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
+        WriteValue(record_body->SqlTable()->TableOid());
+        WriteValue(record_body->TupleId());
+        // TODO(Tianyu): Inline varlen or other things, figure out representation.
+        Write(record_body->Delta(), record_body->Delta()->Size());
+        break;
+      } case LogRecordType::COMMIT:
+        WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
     }
   }
 
-  template <class RecordType>
-  void SerializeRecord(const RecordType &record) {
-    WriteValue(record.Size());
-    record.SerializeToLog(this);
+  void Write(const void *data, uint32_t size) {
+    if (!flush_buffer_->HasBytesLeft(size)) {
+      Flush();
+      if (!flush_buffer_->HasBytesLeft(size)) {
+        // This write is too large to fit into a buffer, we need to write directly without a buffer,
+        // but no flush is necessary since the commit records are always small enough to be buffered
+        out_.write(reinterpret_cast<const char *>(data), size);
+        return;
+      }
+    }
+    // Write can be buffered
+    TERRIER_MEMCPY(flush_buffer_->Reserve(size), data, size);
+  }
+
+  template<class T>
+  void WriteValue(const T &val) {
+    Write(&val, sizeof(T));
   }
 };
 }  // namespace terrier::storage

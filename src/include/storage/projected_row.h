@@ -32,10 +32,7 @@ namespace terrier::storage {
 // and then initializing using the static factory provided.
 class PACKED ProjectedRow {
  public:
-  // A ProjectedRow should only be reinterpreted from raw bytes on the heap
-  ProjectedRow() = delete;
-  DISALLOW_COPY_AND_MOVE(ProjectedRow)
-  ~ProjectedRow() = delete;
+  HEAP_REINTERPRETAION_ONLY(ProjectedRow)
 
   /**
    * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the

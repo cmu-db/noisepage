@@ -19,7 +19,7 @@ TEST(LogTest, SimpleLogTest) {
 
   const storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
 
-  auto redo = txn->StageWrite(&fake_table, tuple_id_t(0), initializer);
+  auto *redo = txn->StageWrite(&fake_table, tuple_id_t(0), initializer);
   StorageTestUtil::PopulateRandomRow(redo->Delta(), layout, 0, &engine);
   table.Insert(txn, *redo->Delta());
   txn_manager.Commit(txn);

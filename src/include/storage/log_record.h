@@ -9,11 +9,12 @@ class LogManager;
 class RecoveredLog;
 
 // NOLINTNEXTLINE
-BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT)
+BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT
+)
 
 class LogRecord {
  public:
-  HEAP_ONLY(LogRecord)
+  HEAP_REINTERPRETAION_ONLY(LogRecord)
 
   LogRecordType RecordType() const { return type_; }
   uint32_t Size() const { return size_; }
@@ -21,7 +22,14 @@ class LogRecord {
 
   template<class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
+    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
+  }
+
+  template<class UnderlyingType>
+  const UnderlyingType *GetUnderlyingRecordBodyAs() const {
+    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
+    return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
   }
 
   static LogRecord *InitializeHeader(void *head, LogRecordType type, uint32_t size, timestamp_t txn_begin) {
@@ -45,9 +53,9 @@ class LogRecord {
 static_assert(sizeof(LogRecord) % 8 == 0,
               "a projected row inside the log record needs to be aligned to 8 bytes");
 
-class RedoRecordBody {
+class RedoRecord {
  public:
-  HEAP_ONLY(RedoRecordBody)
+  HEAP_REINTERPRETAION_ONLY(RedoRecord)
 
   execution::SqlTable *SqlTable() const {
     uintptr_t ptr_value = *reinterpret_cast<const uintptr_t *>(varlen_contents_);
@@ -62,22 +70,26 @@ class RedoRecordBody {
 
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
+  static constexpr LogRecordType RecordType() { return LogRecordType::REDO; }
+
   static uint32_t Size(const ProjectedRowInitializer &initializer) {
-    return static_cast<uint32_t>(sizeof(RedoRecordBody)) + initializer.ProjectedRowSize();
+    return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(RedoRecord) + initializer.ProjectedRowSize());
   }
 
-  static LogRecord *Initialize(void *head, timestamp_t txn_begin, execution::SqlTable *table, tuple_id_t tuple_id,
+  static LogRecord *Initialize(void *head,
+                               timestamp_t txn_begin,
+                               execution::SqlTable *table,
+                               tuple_id_t tuple_id,
                                const ProjectedRowInitializer &initializer) {
 
     LogRecord *result = LogRecord::InitializeHeader(head,
                                                     LogRecordType::REDO,
-                                                    static_cast<uint32_t>(sizeof(RedoRecordBody)
-                                                        + initializer.ProjectedRowSize()),
+                                                    Size(initializer),
                                                     txn_begin);
-    auto *body = result->GetUnderlyingRecordBodyAs<RedoRecordBody>();
+    auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->table_ = table;
     body->tuple_id_ = tuple_id;
-    initializer.InitializeRow(body->varlen_contents_);
+    initializer.InitializeRow(body->Delta());
     return result;
   }
 
@@ -94,32 +106,29 @@ class RedoRecordBody {
 };
 
 // TODO(Tianyu): Same here
-static_assert(sizeof(RedoRecordBody) % 8 == 0,
+static_assert(sizeof(RedoRecord) % 8 == 0,
               "a projected row inside the redo record needs to be aligned to 8 bytes");
 
-class CommitRecordBody {
+class CommitRecord {
  public:
-  HEAP_ONLY(CommitRecordBody)
-};
-class CommitRecord : public LogRecord {
- public:
-  LogRecordType RecordType() const {
-    return LogRecordType::COMMIT;
+  HEAP_REINTERPRETAION_ONLY(CommitRecord)
+
+  static constexpr LogRecordType RecordType() { return LogRecordType::COMMIT; }
+
+  static uint32_t Size() {
+    return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(CommitRecord));
   }
 
-  void SerializeToLog(LogManager *manager) const;
-
-  timestamp_t CommitTime() const { return txn_commit_; }
-
-  static CommitRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
-    auto *result = reinterpret_cast<CommitRecord *>(head);
-    result->type_ = LogRecordType::COMMIT;
-    result->size_ = static_cast<uint32_t>(sizeof(CommitRecord));
-    result->txn_begin_ = txn_begin;
-    result->txn_commit_ = txn_commit;
+  static LogRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
+    auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT,
+                                               Size(),
+                                               txn_begin);
+    auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
+    body->txn_commit_ = txn_commit;
     return result;
   }
 
+  timestamp_t CommitTime() const { return txn_commit_; }
  private:
   timestamp_t txn_commit_;
 };

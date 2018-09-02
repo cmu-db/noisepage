@@ -13,7 +13,7 @@ namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
-  template <class Random>
+  template<class Random>
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
@@ -26,7 +26,7 @@ class RandomDataTableTestObject {
     delete[] select_buffer_;
   }
 
-  template <class Random>
+  template<class Random>
   storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator,
                                        storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
@@ -36,7 +36,7 @@ class RandomDataTableTestObject {
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, nullptr);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
     loose_txns_.push_back(txn);
 
     storage::TupleSlot slot = table_.Insert(txn, *redo);
@@ -47,7 +47,7 @@ class RandomDataTableTestObject {
   }
 
   // be sure to only update tuple incrementally (cannot go back in time)
-  template <class Random>
+  template<class Random>
   bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
@@ -61,7 +61,7 @@ class RandomDataTableTestObject {
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, nullptr);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
     loose_txns_.push_back(txn);
 
     bool result = table_.Update(txn, slot, *update);
@@ -101,7 +101,7 @@ class RandomDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(const storage::TupleSlot slot, const timestamp_t timestamp,
                                           storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a txn with an UndoRecord to populate on Insert
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, nullptr);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
     loose_txns_.push_back(txn);
 
     // generate a redo ProjectedRow for Select

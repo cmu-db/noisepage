@@ -8,6 +8,11 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transaction/transaction_util.h"
+
+namespace terrier::storage {
+class GarbageCollector;
+}
 
 namespace terrier::transaction {
 /**
@@ -24,7 +29,10 @@ class TransactionContext {
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
                      storage::RecordBufferSegmentPool *const buffer_pool,
                      storage::LogManager *log_manager)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager) {}
+      : start_time_(start),
+        txn_id_(txn_id),
+        undo_buffer_(buffer_pool),
+        redo_buffer_(log_manager) {}
 
   /**
    * @return start time of this transaction
@@ -40,15 +48,6 @@ class TransactionContext {
    * @return id of this transaction
    */
   std::atomic<timestamp_t> &TxnId() { return txn_id_; }
-
-  /**
-   * @return the undo buffer of this transaction
-   */
-  storage::UndoBuffer &GetUndoBuffer() { return undo_buffer_; }
-
-  storage::RedoBuffer &GetRedoBuffer() {
-    return redo_buffer_;
-  }
 
   /**
    * Reserve space on this transaction's undo buffer for a record to log the update given
@@ -79,16 +78,20 @@ class TransactionContext {
   // TODO(Tianyu): this sort of implies that we will need to take in a SqlTable pointer for undo as well,
   // if we stick with the data table / sql table separation.
   // (Or at least if we stick with it and put index in sql table.)
-  storage::RedoRecordBody *StageWrite(execution::SqlTable *table,
+  storage::RedoRecord *StageWrite(execution::SqlTable *table,
                                   tuple_id_t tuple_id,
                                   const storage::ProjectedRowInitializer &initializer) {
-    uint32_t size = storage::RedoRecordBody::Size(initializer);
-    auto *result = reinterpret_cast<storage::RedoRecordBody *>(redo_buffer_.NewEntry(size));
-    storage::RedoRecordBody::Initialize(result, start_time_, table, tuple_id, initializer);
-    return result;
+    // TODO(Tianyu): Is failing the right thing to do?
+    TERRIER_ASSERT(!redo_buffer_.LoggingDisabled(), "Cannot stage a write if logging is disabled");
+    uint32_t size = storage::RedoRecord::Size(initializer);
+    auto *log_record = storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size),
+                                                       start_time_, table, tuple_id, initializer);
+    return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 
  private:
+  friend class storage::GarbageCollector;
+  friend class TransactionManager;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;

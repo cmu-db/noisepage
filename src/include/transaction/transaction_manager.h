@@ -26,7 +26,9 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    */
   // TODO(Tianyu): Remove this default argument
-  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled, storage::LogManager *log_manager = nullptr)
+  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool,
+                              const bool gc_enabled,
+                              storage::LogManager *log_manager = LOGGING_DISABLED)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**
@@ -87,7 +89,7 @@ class TransactionManager {
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
-  storage::LogManager *log_manager_;
+  storage::LogManager *const log_manager_;
 
   void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
 };

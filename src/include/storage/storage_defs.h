@@ -12,6 +12,7 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+#define LOGGING_DISABLED nullptr
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy

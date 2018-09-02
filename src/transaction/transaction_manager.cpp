@@ -23,18 +23,23 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
-  storage::UndoBuffer &undos = txn->GetUndoBuffer();
-  for (auto &it : undos) it.Timestamp().store(commit_time);
+  for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
   TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
-  // TODO(Tianyu): Refactor
-  byte *commit_record = txn->GetRedoBuffer().NewEntry(sizeof(storage::CommitRecord));
-  storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time);
-  txn->GetRedoBuffer().Flush();
-  // end refactor
+
+  if (log_manager_ != LOGGING_DISABLED) {
+    // At this point the commit has already happened for the rest of the system.
+    // Here we will manually add a commit record and flush the buffer to ensure the logger
+    // sees this record.
+    byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
+    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time);
+    // TODO(Tianyu): Add callback here? Probably has to be before we flush
+    txn->redo_buffer_.Flush();
+  }
+
   if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
   return commit_time;
@@ -42,9 +47,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
 
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no latch required on undo since all operations are transaction-local
-  storage::UndoBuffer &undos = txn->GetUndoBuffer();
   timestamp_t txn_id = txn->TxnId().load();  // will not change
-  for (auto &it : undos) Rollback(txn_id, it);
+  for (auto &it : txn->undo_buffer_) Rollback(txn_id, it);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);

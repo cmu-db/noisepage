@@ -12,9 +12,7 @@ class DataTable;
  */
 class UndoRecord {
  public:
-  UndoRecord() = delete;
-  DISALLOW_COPY_AND_MOVE(UndoRecord)
-  ~UndoRecord() = delete;
+  HEAP_REINTERPRETAION_ONLY(UndoRecord)
 
   /**
    * @return Pointer to the next element in the version chain

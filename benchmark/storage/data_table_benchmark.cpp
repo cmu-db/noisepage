@@ -57,7 +57,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     // We can use dummy timestamps here since we're not invoking concurrency control
-    transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, nullptr);
+    transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, LOGGING_DISABLED);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
       table.Insert(&txn, *redo_);
     }
@@ -75,7 +75,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
     storage::DataTable table(&block_store_, layout_, layout_version_t(0));
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
-      transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, nullptr);
+      transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, LOGGING_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
     thread_pool.RunThreadsUntilFinish(num_threads_, workload);

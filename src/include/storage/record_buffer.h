@@ -271,11 +271,16 @@ class RedoBuffer {
   explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
 
   byte *NewEntry(uint32_t size);
-  
+
+  // TODO(Tianyu): Maybe need a better name?
   void Flush();
 
+  bool LoggingDisabled() const {
+    return log_manager_ == LOGGING_DISABLED;
+  }
+
  private:
-  LogManager *log_manager_;
+  LogManager *const log_manager_;
   BufferSegment *buffer_seg_ = nullptr;
 };
 }  // namespace terrier::storage
