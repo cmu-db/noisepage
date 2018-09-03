@@ -84,6 +84,8 @@ class RedoRecord {
   }
 
  private:
+  // TODO(Tianyu): Remove hack
+  friend class RecoveredLog;
   // TODO(Tianyu): We will eventually need to consult the SqlTable to determine how to serialize a given column
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
   // and the reader still have access to the layout on recovery and can deserialize. This is why we are not

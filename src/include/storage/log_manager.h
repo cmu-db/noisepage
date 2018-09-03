@@ -77,11 +77,13 @@ class LogManager {
   BufferSegment *flush_buffer_;
 
   void SerializeRecord(const LogRecord &record) {
+    WriteValue(record.Size());
     WriteValue(record.RecordType());
     WriteValue(record.TxnBegin());
     switch (record.RecordType()) {
       case LogRecordType::REDO: {
         auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
+        // TODO(Tianyu): This SQL Table idea is turning out to be stupid
 //        WriteValue(record_body->SqlTable()->TableOid());
         WriteValue(oid_t(0));
         WriteValue(record_body->TupleId());
