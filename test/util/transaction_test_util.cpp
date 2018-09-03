@@ -33,6 +33,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
+
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   if (test_object_->bookkeeping_) {
     auto it = updates_.find(updated);
@@ -44,6 +45,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
     }
     updates_[updated] = update;
   }
+  auto *record = txn_->StageWrite(nullptr, *reinterpret_cast<tuple_id_t *>(&updated), initializer);
+  TERRIER_MEMCPY(record->Delta(), update, update->Size());
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
 }
@@ -80,13 +83,14 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping)
+                                                       bool bookkeeping,
+                                                       storage::LogManager *log_manager)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
       layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
       table_(block_store, layout_, layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on, LOGGING_DISABLED),
+      txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
@@ -192,6 +196,8 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
                                                : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
+    auto *record = initial_txn_->StageWrite(nullptr, *reinterpret_cast<tuple_id_t *>(&inserted), row_initializer_);
+    TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
   txn_manager_.Commit(initial_txn_, [] {});

@@ -108,7 +108,7 @@ class LargeTransactionTestObject {
   LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
                              std::vector<double> update_select_ratio, storage::BlockStore *block_store,
                              storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping);
+                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager = LOGGING_DISABLED);
 
   /**
    * Destructs a LargeTransactionTestObject
@@ -168,9 +168,9 @@ class LargeTransactionTestObject {
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_, bookkeeping_;
+
   // tuple content is meaningless if bookkeeping is off.
   std::vector<TupleEntry> last_checked_version_;
-
   // so we don't have to calculate these over and over again
   storage::ProjectedRowInitializer row_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
 };
