@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/typedefs.h"
 
@@ -24,7 +25,9 @@ namespace terrier::common {
  * discipline to ensure safe access.
  *
  * For easy initialization in tests and such, use the static Allocate and
- * Deallocate methods
+ * Deallocate methods.
+ *
+ * We require RawConcurrentBitmap to be always aligned to 64-bits on byte 0.
  */
 class RawConcurrentBitmap {
  public:
@@ -41,7 +44,8 @@ class RawConcurrentBitmap {
    */
   static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
-    auto *result = new uint8_t[num_bytes];
+    auto *result = AllocationUtil::AllocateAligned(num_bytes);
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
     TERRIER_MEMSET(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
@@ -93,6 +97,7 @@ class RawConcurrentBitmap {
    * We search beginning from start_pos, but will wrap around to the beginning
    * if we can't find an unset bit, so every bit in the bitmap will be tried once.
    * Note that this result is immediately stale.
+   * Furthermore, this function assumes byte 0 is aligned to 64 bits.
    * @param bitmap_num_bits number of bits in the bitmap.
    * @param start_pos start searching from this bit location.
    * @param[out] out_pos the position of the first unset bit will be written here, if it exists.
@@ -103,6 +108,8 @@ class RawConcurrentBitmap {
     if (start_pos >= bitmap_num_bits) {
       return false;
     }
+
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(bits_) % sizeof(uint64_t) == 0, "bits_ should be 64-bit aligned.");
 
     const uint32_t num_bytes = RawBitmap::SizeInBytes(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;                           // current byte position
