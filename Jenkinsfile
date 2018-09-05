@@ -52,11 +52,7 @@ pipeline {
                 }
 
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Release/benchmark)') {
-                    agent {
-                        docker { 
-                            image 'ubuntu:bionic'
-                        }
-                    }
+                    agent { label 'benchmark' }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get install -q -y curl'
