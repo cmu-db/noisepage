@@ -658,13 +658,13 @@ class ReferenceValue(object):
         return ret_obj
 
     @classmethod
-    def config(cls, key, config, gbrp):
+    def config(cls, key, config):
         """ Return a ReferenceValue constructed from configuration
             data
         """
         ret_obj = cls()
         ret_obj.key = key
-        ret_obj.num_results = gbrp.get_num_items()
+        ret_obj.num_results = 0
         ret_obj.tolerance = config.startup_tolerance
         ret_obj.reference_type = "config"
         return ret_obj
@@ -715,7 +715,7 @@ class ReferenceValueProvider(object):
             if n_actual >= n_desired:
                 return ReferenceValue.historical(key, self.config, gbrp)
 
-        return ReferenceValue.config(key, self.config, gbrp)
+        return ReferenceValue.config(key, self.config)
 
 if __name__ == "__main__":
 
