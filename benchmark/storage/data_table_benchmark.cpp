@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -25,6 +26,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
+
   void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout

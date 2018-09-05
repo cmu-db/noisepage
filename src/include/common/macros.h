@@ -139,4 +139,13 @@ namespace terrier::common {
 #define TERRIER_FALLTHROUGH
 #endif
 
+//===----------------------------------------------------------------------===//
+// Google Test ONLY
+//===----------------------------------------------------------------------===//
+#ifdef NDEBUG
+#define GTEST_DEBUG_ONLY(TestName) DISABLED_##TestName
+#else
+#define GTEST_DEBUG_ONLY(TestName) TestName
+#endif
+
 }  // namespace terrier::common
