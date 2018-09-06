@@ -6,36 +6,36 @@
 namespace terrier::common {
 
 /**
- * A cheap and easy RW latch, currently wraps tbb::reader_writer_lock. From Intel's docs:
+ * A cheap and easy shared (reader-writer) latch, currently wraps tbb::reader_writer_lock. From Intel's docs:
  *
  * A reader_writer_lock is scalable and nonrecursive. The implementation handles lock requests on a first-come
  * first-serve basis except that writers have preference over readers. Waiting threads busy wait, which can degrade
  * system performance if the wait is long. However, if the wait is typically short, a reader_writer_lock can provide
  * performance competitive with other mutexes.
  */
-class ReaderWriterLatch {
+class SharedLatch {
  public:
   /**
-   * Acquire write lock on mutex.
+   * Acquire exclusive lock on mutex.
    */
-  void Lock() { latch_.lock(); }
+  void LockExclusive() { latch_.lock(); }
 
   /**
-   * Acquire read lock on mutex.
+   * Acquire shared lock on mutex.
    */
-  void LockRead() { latch_.lock_read(); }
+  void LockShared() { latch_.lock_read(); }
 
   /**
-   * Try to acquire write lock on mutex.
+   * Try to acquire exclusive lock on mutex.
    * @return true if lock acquired, false otherwise.
    */
-  bool TryLock() { return latch_.try_lock(); }
+  bool TryExclusiveLock() { return latch_.try_lock(); }
 
   /**
-   * Try to acquire read lock on mutex.
+   * Try to acquire shared lock on mutex.
    * @return true if lock acquired, false otherwise.
    */
-  bool TryLockRead() { return latch_.try_lock_read(); }
+  bool TryLockShared() { return latch_.try_lock_read(); }
 
   /**
    * Release lock.
@@ -45,41 +45,42 @@ class ReaderWriterLatch {
   /**
    * Scoped read latch that guarantees releasing the latch when destructed.
    */
-  class ScopedReaderLatch {
+  class ScopedSharedLatch {
    public:
-    ScopedReaderLatch() = delete;
+    ScopedSharedLatch() = delete;
     /**
      * Acquire write lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedReaderLatch(ReaderWriterLatch *rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockRead(); }
+    explicit ScopedSharedLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockShared(); }
     /**
      * Release write lock (if acquired).
      */
-    ~ScopedReaderLatch() { rw_latch_->Unlock(); }
-    DISALLOW_COPY_AND_MOVE(ScopedReaderLatch)
+    ~ScopedSharedLatch() { rw_latch_->Unlock(); }
+    DISALLOW_COPY_AND_MOVE(ScopedSharedLatch)
+
    private:
-    ReaderWriterLatch *const rw_latch_;
+    SharedLatch *const rw_latch_;
   };
 
   /**
    * Scoped write latch that guarantees releasing the latch when destructed.
    */
-  class ScopedWriterLatch {
+  class ScopedExclusiveLatch {
    public:
-    ScopedWriterLatch() = delete;
+    ScopedExclusiveLatch() = delete;
     /**
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedWriterLatch(ReaderWriterLatch *rw_latch) : rw_latch_(rw_latch) { rw_latch_->Lock(); }
+    explicit ScopedExclusiveLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockExclusive(); }
     /**
      * Release read lock (if acquired).
      */
-    ~ScopedWriterLatch() { rw_latch_->Unlock(); }
-    DISALLOW_COPY_AND_MOVE(ScopedWriterLatch)
+    ~ScopedExclusiveLatch() { rw_latch_->Unlock(); }
+    DISALLOW_COPY_AND_MOVE(ScopedExclusiveLatch)
    private:
-    ReaderWriterLatch *const rw_latch_;
+    SharedLatch *const rw_latch_;
   };
 
  private:

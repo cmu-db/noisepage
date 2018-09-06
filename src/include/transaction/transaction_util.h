@@ -16,7 +16,11 @@ class TransactionUtil {
    * @param b other timestamp
    * @return true if a is newer than b, false otherwise
    */
-  static bool NewerThan(const timestamp_t a, const timestamp_t b) { return (!a) > (!b); }
+  static bool NewerThan(const timestamp_t a, const timestamp_t b) {
+    // TODO(Tianyu): This is not very necessary now that I have defined comparison between strong typedefed
+    // values. I am leaving this here because we might want to handle wrap-arounds in the future.
+    return a > b;
+  }
 
   /**
    * Determine if a timestamp represents a committed transaction

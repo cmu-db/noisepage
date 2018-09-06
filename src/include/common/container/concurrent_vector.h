@@ -7,6 +7,7 @@ namespace terrier::common {
  * A concurrent implementation of a vector.
  * @tparam T type of element in the vector.
  * @tparam Alloc allocator to be used.
+ * @warning Consider the non-trivial overhead associated with a concurrent data structure before defaulting to its use.
  */
 template <typename T, class Alloc = tbb::cache_aligned_allocator<T>>
 class ConcurrentVector {

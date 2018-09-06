@@ -1,8 +1,9 @@
-#include <vector>
 #include "storage/varlen_pool.h"
-#include "util/multi_threaded_test_util.h"
-#include "util/storage_test_util.h"
+#include <vector>
 #include "gtest/gtest.h"
+#include "util/random_test_util.h"
+#include "util/storage_test_util.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -34,7 +35,8 @@ void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
 // expected value, and no overlapping)
 // NOLINTNEXTLINE
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
-  const uint32_t repeat = 100, num_threads = 8;
+  TestThreadPool thread_pool;
+  const uint32_t repeat = 100, num_threads = TestThreadPool::HardwareConcurrency();
   for (uint32_t i = 0; i < repeat; i++) {
     storage::VarlenPool pool;
     std::vector<std::vector<storage::VarlenEntry *>> entries(num_threads);
@@ -52,7 +54,7 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       auto free = [&] {
         if (!entries[thread_id].empty()) {
-          auto pos = MultiThreadedTestUtil::UniformRandomElement(&(entries[thread_id]), &generator);
+          auto pos = RandomTestUtil::UniformRandomElement(&(entries[thread_id]), &generator);
           // Check size field as expected
           EXPECT_EQ(sizes[thread_id][pos - entries[thread_id].begin()], (*pos)->size_);
           // clean up
@@ -62,35 +64,28 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
         }
       };
 
-      MultiThreadedTestUtil::InvokeWorkloadWithDistribution({free, allocate},
-                                               {0.2, 0.8},
-                                               &generator,
-                                               100);
+      RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate}, {0.2, 0.8}, &generator, 100);
     };
 
-     MultiThreadedTestUtil::RunThreadsUntilFinish(num_threads, workload);
+    thread_pool.RunThreadsUntilFinish(num_threads, workload);
 
     // Concat all the entries we have
     std::vector<storage::VarlenEntry *> all_entries;
     for (auto &thread_entries : entries)
-      for (auto *entry : thread_entries)
-        all_entries.push_back(entry);
+      for (auto *entry : thread_entries) all_entries.push_back(entry);
 
     std::vector<uint32_t> all_sizes;
     for (auto &thread_sizes : sizes)
-      for (auto &size : thread_sizes)
-        all_sizes.push_back(size);
+      for (auto &size : thread_sizes) all_sizes.push_back(size);
 
     // Check size field as expected, and no overlapping memory regions
     for (uint32_t j = 0; j < all_entries.size(); j++) {
       EXPECT_EQ(all_sizes[j], all_entries[j]->size_);
       for (auto *entry : all_entries)
-        if (entry != all_entries[j])
-          CheckNotOverlapping(entry, all_entries[j]);
+        if (entry != all_entries[j]) CheckNotOverlapping(entry, all_entries[j]);
     }
 
-    for (auto *entry : all_entries)
-      pool.Free(entry);
+    for (auto *entry : all_entries) pool.Free(entry);
   }
 }
 

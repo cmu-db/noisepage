@@ -3,9 +3,9 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "storage/data_table.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "util/storage_test_util.h"
-#include "storage/storage_defs.h"
 #include "util/test_harness.h"
 
 namespace terrier {
@@ -13,19 +13,6 @@ namespace terrier {
 struct ProjectedRowTests : public TerrierTest {
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
-  std::vector<byte *> loose_pointers_;
-
- protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-  }
-
-  void TearDown() override {
-    for (auto entry : loose_pointers_) {
-      delete[] entry;
-    }
-    TerrierTest::TearDown();
-  }
 };
 
 // Generates a random table layout and a random table layout. Coin flip bias for an attribute being null and set the
@@ -37,41 +24,72 @@ TEST_F(ProjectedRowTests, Nulls) {
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
-    storage::ProjectedRow *update =
-        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout);
+    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    storage::ProjectedRowInitializer initializer(layout, update_col_ids);
+    auto *update_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout, null_ratio_(generator_), &generator_);
-    loose_pointers_.push_back(update_buffer);
-
 
     // generator a binary vector and set nulls according to binary vector. For null attributes, we set value to be 0.
     std::bernoulli_distribution coin(null_ratio_(generator_));
-    std::vector<bool> null_cols(update->NumColumns());
-    for (uint16_t  i = 0; i < update->NumColumns(); i++) {
-      null_cols[i] = coin(generator_);
-      if (null_cols[i]) {
-        byte * val_ptr = update->AccessForceNotNull(i);
-        storage::StorageUtil::WriteBytes(layout.attr_sizes_[i+1], 0, val_ptr);
+    std::unordered_map<col_id_t, bool> null_cols;
+    for (uint16_t i = 0; i < update->NumColumns(); i++) {
+      col_id_t col_id(i);
+      null_cols[col_id] = coin(generator_);
+      if (null_cols[col_id]) {
+        byte *val_ptr = update->AccessForceNotNull(i);
+        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id + 1), 0, val_ptr);
         update->SetNull(i);
-    } else {
+      } else {
         update->SetNotNull(i);
       }
     }
     // check correctness
     for (uint16_t i = 0; i < update->NumColumns(); i++) {
-      byte * addr = update->AccessWithNullCheck(i);
-      if (null_cols[i]) {
+      col_id_t col_id(i);
+      byte *addr = update->AccessWithNullCheck(i);
+      if (null_cols[col_id]) {
         EXPECT_EQ(addr, nullptr);
-        byte * val_ptr = update->AccessForceNotNull(i);
-        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.attr_sizes_[i+1], val_ptr));
+        byte *val_ptr = update->AccessForceNotNull(i);
+        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), val_ptr));
       } else {
         EXPECT_FALSE(addr == nullptr);
       }
     }
+    delete[] update_buffer;
+  }
+}
+
+// This tests checks that the copy function works as intended
+// NOLINTNEXTLINE
+TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
+  const uint32_t num_iterations = 50;
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    // get a random table layout
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+
+    // generate a random projectedRow
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
+
+    auto *copy = common::AllocationUtil::AllocateAligned(row->Size());
+    auto *copied_row = storage::ProjectedRow::CopyProjectedRowLayout(copy, *row);
+
+    EXPECT_EQ(copied_row->NumColumns(), row->NumColumns());
+    for (uint16_t i = 0; i < row->NumColumns(); i++) {
+      EXPECT_EQ(row->ColumnIds()[i], copied_row->ColumnIds()[i]);
+      uintptr_t offset = reinterpret_cast<uintptr_t>(row->AccessForceNotNull(i)) - reinterpret_cast<uintptr_t>(row);
+      uintptr_t copied_offset =
+          reinterpret_cast<uintptr_t>(copied_row->AccessForceNotNull(i)) - reinterpret_cast<uintptr_t>(copied_row);
+      EXPECT_EQ(offset, copied_offset);
+    }
+    delete[] buffer;
+    delete[] copy;
   }
 }
 
@@ -79,31 +97,49 @@ TEST_F(ProjectedRowTests, Nulls) {
 // that the header, the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
 // NOLINTNEXTLINE
-TEST_F(ProjectedRowTests, MemorySafety){
-  const uint32_t num_iterations = 500;
+TEST_F(ProjectedRowTests, MemorySafety) {
+  const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<uint16_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    auto *update_buffer = new byte[storage::ProjectedRow::Size(layout, update_col_ids)];
-    storage::ProjectedRow *update =
-        storage::ProjectedRow::InitializeProjectedRow(update_buffer, update_col_ids, layout);
-    loose_pointers_.push_back(update_buffer);
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
-    EXPECT_EQ(layout.num_cols_ -1, update->NumColumns());
-    void *lower_bound = update->ColumnIds();
-    void *upper_bound = update + update->Size();
-    // check the first value is in bound
-    StorageTestUtil::CheckInBounds(update->AccessForceNotNull(0), lower_bound, upper_bound);
+    EXPECT_EQ(layout.NumCols() - 1, row->NumColumns());
+    void *upper_bound = reinterpret_cast<byte *>(row) + row->Size();
     // check the rest values memory addresses don't overlapping previous addresses.
-    for (uint16_t col = 1; col < update->NumColumns(); col++) {
-      lower_bound = StorageTestUtil::IncrementByBytes(update->AccessForceNotNull(static_cast<uint16_t >(col - 1)),
-                                                      layout.attr_sizes_[col]);
+    for (uint16_t i = 1; i < row->NumColumns(); i++) {
+      void *lower_bound = StorageTestUtil::IncrementByBytes(row->AccessForceNotNull(static_cast<uint16_t>(i - 1)),
+                                                            layout.AttrSize(row->ColumnIds()[i - 1]));
+      // Check that the previous address is within allocated bounds
+      StorageTestUtil::CheckInBounds(lower_bound, row, upper_bound);
       // check if the value address is in bound
-      StorageTestUtil::CheckInBounds(update->AccessForceNotNull(col), lower_bound, upper_bound);
+      StorageTestUtil::CheckInBounds(row->AccessForceNotNull(i), lower_bound, upper_bound);
     }
+    delete[] buffer;
+  }
+}
+
+// This test checks that all the fields within projected row is aligned
+// NOLINTNEXTLINE
+TEST_F(ProjectedRowTests, Alignment) {
+  const uint32_t num_iterations = 50;
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    // get a random table layout
+    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+
+    // generate a random projectedRow
+    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row = initializer.InitializeRow(buffer);
+    for (uint16_t i = 0; i < row->NumColumns(); i++)
+      StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i), layout.AttrSize(row->ColumnIds()[i]));
+    delete[] buffer;
   }
 }
 }  // namespace terrier

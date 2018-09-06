@@ -16,7 +16,6 @@ RUN apt-get -y update && \
       g++-7 \
       libboost-filesystem-dev \
       libjemalloc-dev \
-      libjsoncpp-dev \
       libtbb-dev \
       libz-dev \
       llvm-6.0

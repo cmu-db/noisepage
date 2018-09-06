@@ -1,18 +1,16 @@
 #pragma once
+
 #include <functional>
 #include <random>
-#include <thread>  // NOLINT
 #include <vector>
-#include "common/container/concurrent_vector.h"
-#include "common/object_pool.h"
-#include "gtest/gtest.h"
+#include "common/macros.h"
 
 namespace terrier {
 /**
- * Static utility class for common code for multi-threaded tests.
+ * Utility class for random element selection
  */
-struct MultiThreadedTestUtil {
-  MultiThreadedTestUtil() = delete;
+class RandomTestUtil {
+ public:
   /**
    * Selects an element from the supplied vector uniformly at random, using the
    * given random generator.
@@ -24,7 +22,7 @@ struct MultiThreadedTestUtil {
    * @return iterator to a randomly selected element
    */
   template <typename T, typename Random>
-  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *generator) {
+  static typename std::vector<T>::iterator UniformRandomElement(std::vector<T> *elems, Random *const generator) {
     return elems->begin() + std::uniform_int_distribution(0, static_cast<int>(elems->size() - 1))(*generator);
   }
 
@@ -39,25 +37,9 @@ struct MultiThreadedTestUtil {
    * @return const iterator to a randomly selected element
    */
   template <class T, class Random>
-  static typename std::vector<T>::const_iterator UniformRandomElement(const std::vector<T> &elems, Random *generator) {
+  static typename std::vector<T>::const_iterator UniformRandomElement(const std::vector<T> &elems,
+                                                                      Random *const generator) {
     return elems.cbegin() + std::uniform_int_distribution(0, static_cast<int>(elems.size() - 1))(*generator);
-  }
-
-  /**
-   * Spawn up the specified number of threads with the workload and join them before
-   * returning. This can be done repeatedly if desired.
-   *
-   * @param num_threads number of threads to spawn up
-   * @param workload the task the thread should run
-   * @param repeat the number of times this should be done.
-   */
-  static void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload,
-                                    uint32_t repeat = 1) {
-    for (uint32_t i = 0; i < repeat; i++) {
-      std::vector<std::thread> threads;
-      for (uint32_t j = 0; j < num_threads; j++) threads.emplace_back([j, &workload] { workload(j); });
-      for (auto &thread : threads) thread.join();
-    }
   }
 
   /**
@@ -77,7 +59,7 @@ struct MultiThreadedTestUtil {
   static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
                                              std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {
-    PELOTON_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
+    TERRIER_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");
     std::discrete_distribution dist(probabilities.begin(), probabilities.end());
     for (uint32_t i = 0; i < repeat; i++) workloads[dist(*generator)]();
   }
