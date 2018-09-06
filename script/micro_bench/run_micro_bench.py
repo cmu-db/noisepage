@@ -18,7 +18,7 @@ import sys
 import urllib
 import xml.etree.ElementTree as ElementTree
 
-from text_table import TextTable
+from types import (ListType, StringType)
 
 class TestConfig(object):
     """ Configuration for run_micro_bench """
@@ -28,19 +28,20 @@ class TestConfig(object):
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
-        self.min_ref_values = 2
+        self.min_ref_values = 10
 
         # percentage difference permissible, if using historical data
         # i.e. if min_ref_values are available
-        self.ref_tolerance = 50
+        self.ref_tolerance = 10
 
-        # if fewer than min_ref_values are available, no-op
-        self.startup_tolerance = 0
+        # if fewer than min_ref_values are available
+        self.lax_tolerance = 30
 
         # reference data from
-        self.project = "terrier"
+        self.project = "terrier_nightly"
+        self.branch = "master"
 
-        # temporarily from, for testing
+        # temporarily, until the above is set up
         self.project = "pa_terrier"
         self.branch = "micro_bench"
         return
@@ -62,6 +63,158 @@ class TestConfig(object):
     def get_ref_project(self):
         """ return: project name containing benchmark reference data """
         return self.project
+
+class TextTable(object):
+    """ Print out data as text, in a formatted table """
+    def __init__(self):
+        """ Initialization """
+        self.rows = []
+        # Columns to print, each item is a dictinary
+        self.columns = []
+        return
+
+    def add_row(self, item):
+        """ item - dictionary or object with attributes
+        """
+        self.rows.append(item)
+        return
+
+    def add_column(self, column, heading=None, col_format=None,
+                   right_justify=False):
+        """ Add single column (by name), to be printed
+            column : dictionary key of column
+            heading: heading to print for column. If not specified,
+                     uses the column key
+            format: optional format for column
+            right_justify: overrides default format justification
+        """
+        col_dict = {}
+        col_dict['name'] = column
+        if col_format:
+            col_dict['format'] = col_format
+        if heading:
+            col_dict['heading'] = heading
+        if right_justify:
+            col_dict['right_justify'] = True
+        self.columns.append(col_dict)
+        return
+
+    def sort(self, sort_spec):
+        """Sort, single field or list of fields"""
+        # remember the field name, and sort prior to output
+        self.sort_key = sort_spec
+        return
+
+    def _width(self, row, col):
+        return self._width_dict(row, col)
+
+    def _col_str(self, row, col):
+        return self._col_str_dict(row, col)
+
+    def _col_str_dict(self, row, col):
+        """ Return printable field (dictionary) """
+        field = col['name']
+        if not row.has_key(field):
+            return u""
+        if col.has_key('format'):
+            return col['format'] % row[field]
+        return u"{}".format(row[field])
+
+    def _width_dict(self, *width_args):
+        """ Return width of field (dictionary) """
+        return len(self._col_str_dict(*width_args))
+
+    def _col_widths(self):
+        """ Compute column widths"""
+        # set initial col. widths
+        for col in self.columns:
+            max_width = 0
+            hkey = 'heading'
+            if col.has_key(hkey):
+                # use the heading
+                max_width = len(col[hkey])
+            else:
+                # use the field name (or attribute)
+
+                max_width = len(col['name'])
+            col['max_width'] = max_width
+
+        # now set max column widths
+        for col in self.columns:
+            for row in self.rows:
+                width = self._width(row, col)
+                # print "width of %s is %d" % (col['name'], width)
+                if width > col['max_width']:
+                    col['max_width'] = width
+
+    def _sort_key_list(self):
+        """ produce a list for the sort key """
+        key_list = []
+        if isinstance(self.sort_key, StringType):
+            key_list.append(self.sort_key)
+        elif isinstance(self.sort_key, ListType):
+            key_list = self.sort_key
+        return key_list
+
+    def _decorated_row(self, row):
+        key_list = self._sort_key_list()
+
+        ret_val = []
+        for key in key_list:
+            ret_val.append(row[key])
+        ret_val.append(row)
+        return ret_val
+
+    def _undecorated_row(self, row):
+        return row[-1]
+
+    def __str__(self):
+        """ printable table """
+        if hasattr(self, 'sort_key'):
+            # decorate
+            temp_rows = []
+            for row in self.rows:
+                temp_rows.append(self._decorated_row(row))
+            temp_rows.sort()
+
+            self.rows = []
+            for row in temp_rows:
+                self.rows.append(self._undecorated_row(row))
+
+        self._col_widths()
+
+        # headings
+        ret_str = u""
+        for col in self.columns:
+            hkey = 'heading'
+            if col.has_key(hkey):
+                col_heading = col[hkey]
+            else:
+                col_heading = col['name']
+            ret_str = ret_str +  u"%-*s " % (col['max_width'],
+                                             col_heading)
+        ret_str = ret_str + u"\n"
+
+        for col in self.columns:
+            for i in range(col['max_width']):
+                ret_str = ret_str + "-"
+            ret_str = ret_str + "|"
+        ret_str = ret_str + u"\n"
+
+        for row in self.rows:
+            for col in self.columns:
+                rjkey = 'right_justify'
+                if col.has_key(rjkey) and col[rjkey]:
+                    format_st = u"%*s "
+                else:
+                    format_st = u"%-*s "
+                ret_str = ret_str +  format_st % (
+                    col['max_width'], self._col_str(row, col))
+
+            # Remove any excess padding for the last column
+            ret_str = ret_str.rstrip()
+            ret_str = ret_str + u"\n"
+        return ret_str
 
 class Artifact(object):
     """ A Jenkins build artifact, as visible from the web api """
@@ -545,7 +698,10 @@ class Jenkins(object):
         """
         url = "{}/job/{}/job/{}".format(self.base_url, project, branch)
         python_url = "{}/api/python".format(url)
-        data = eval(urllib.urlopen(python_url).read())
+        try:
+            data = eval(urllib.urlopen(python_url).read())
+        except:
+            return []
 
         # Return a list of build dictionaries. These appear to be by
         # descending build number
@@ -626,11 +782,9 @@ class ReferenceValue(object):
     def set_pass_fail(self):
         """ Set pass/fail for this result """
         if self.reference_type == "config":
-            # for the moment, pass if we don't have enough historical
-            # data
+            # pass if we have no historical data
             self.result = True
-
-        elif self.reference_type == "history":
+        elif self.reference_type in ["history", "lax"]:
             assert self.ref_ips
             ips_low, ips_high = self._get_ips_range()
             self.result = (ips_low <= self.ips) and (self.ips <= ips_high)
@@ -658,6 +812,23 @@ class ReferenceValue(object):
         return ret_obj
 
     @classmethod
+    def lax(cls, in_key, config, gbrp):
+        """ Return a ReferenceValue constructed from historical
+            benchmark data, where fewer historical results are available
+            than required. Checks are therefore less strict.
+        """
+        key = (gbrp.get_suite_name(), gbrp.get_test_name())
+        assert key == in_key
+        ret_obj = cls()
+        ret_obj.key = key
+        ret_obj.num_results = gbrp.get_num_items()
+        ret_obj.time = gbrp.get_mean_time()
+        ret_obj.ref_ips = gbrp.get_mean_items_per_second()
+        ret_obj.tolerance = config.lax_tolerance
+        ret_obj.reference_type = "lax"
+        return ret_obj
+
+    @classmethod
     def config(cls, key, config):
         """ Return a ReferenceValue constructed from configuration
             data
@@ -665,7 +836,7 @@ class ReferenceValue(object):
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = 0
-        ret_obj.tolerance = config.startup_tolerance
+        ret_obj.tolerance = 0
         ret_obj.reference_type = "config"
         return ret_obj
 
@@ -713,8 +884,13 @@ class ReferenceValueProvider(object):
             n_actual = gbrp.get_num_items()
 
             if n_actual >= n_desired:
+                # normal
                 return ReferenceValue.historical(key, self.config, gbrp)
+            else:
+                # relaxed
+                return ReferenceValue.lax(key, self.config, gbrp)
 
+        # no checking
         return ReferenceValue.config(key, self.config)
 
 if __name__ == "__main__":
@@ -733,7 +909,7 @@ if __name__ == "__main__":
                         default=False,
                         help="enable debug output")
 
-    res = parser.parse_args()
+    args = parser.parse_args()
 
     test_config = TestConfig()
     run_bench = RunMicroBenchmarks()
@@ -747,17 +923,14 @@ if __name__ == "__main__":
                           test_config.get_ref_branch(),
                           status_filter="SUCCESS")
 
-    # filter down to successful builds
-    # builds = [build for build in builds if build.get_result() == "SUCCESS"]
-
     for build in builds:
-        if res.verbose:
+        if args.verbose:
             print "build {}, status {}".format(build.get_number(),
                                                build.get_result())
         artifacts = build.get_artifacts()
         for artifact in artifacts:
             artifact_filename = artifact.get_filename()
-            if res.verbose:
+            if args.verbose:
                 print "artifact: {}".format(artifact_filename)
 
             ap.add_artifact_file(artifact.get_data())
@@ -811,10 +984,10 @@ if __name__ == "__main__":
     # benchmark key, value, reference, tolerance, reference type, pass
     # add difference
     tt.add_column("pass", "RES.")
-    tt.add_column("value", format="%01.4g")
-    tt.add_column("reference", format="%01.4g")
+    tt.add_column("value", col_format="%01.4g")
+    tt.add_column("reference", col_format="%01.4g")
     tt.add_column("tolerance", "% tol.")
-    tt.add_column("p_diff", format="%+3d")
+    tt.add_column("p_diff", col_format="%+3d")
     # add # ref values
     # hist, cfg
     tt.add_column("reference_type", "ref type")
