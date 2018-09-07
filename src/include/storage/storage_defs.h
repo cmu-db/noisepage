@@ -43,16 +43,15 @@ struct BlockLayout {
    * attr_sizes, as the constructor applies optimizations based on sizes. It is up to the caller to then
    * associate these "column ids" with the right upper level concepts.
    *
-   * @param num_attrs number of attributes.
    * @param attr_sizes vector of attribute sizes.
    */
-  BlockLayout(const uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
-      : num_cols_(num_attrs),
+  explicit BlockLayout(std::vector<uint8_t> attr_sizes)
+      : num_cols_(attr_sizes.size()),
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(ComputeHeaderSize()),
         num_slots_(ComputeNumSlots()) {
-    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
+    TERRIER_ASSERT(num_cols_ > 0 && num_cols_ <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
     TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
     // sort the attributes when laying out memory to minimize impact of padding
@@ -94,7 +93,6 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() const {
-    TERRIER_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
