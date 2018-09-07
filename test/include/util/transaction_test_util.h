@@ -159,6 +159,8 @@ class LargeTransactionTestObject {
 
   void UpdateLastCheckedVersion(const TableSnapshot &snapshot);
 
+  storage::ProjectedRow *Redo(const storage::ProjectedRowInitializer &initializer);
+
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
@@ -167,7 +169,7 @@ class LargeTransactionTestObject {
   storage::DataTable table_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
-  bool gc_on_, bookkeeping_;
+  bool gc_on_, wal_on_, bookkeeping_;
 
   // tuple content is meaningless if bookkeeping is off.
   std::vector<TupleEntry> last_checked_version_;

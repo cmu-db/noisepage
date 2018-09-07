@@ -45,8 +45,11 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
     }
     updates_[updated] = update;
   }
-  auto *record = txn_->StageWrite(nullptr, updated, initializer);
-  TERRIER_MEMCPY(record->Delta(), update, update->Size());
+  // TODO(Tianyu): Hardly efficient, but will do for testing.
+  if (test_object_->wal_on_) {
+    auto *record = txn_->StageWrite(nullptr, updated, initializer);
+    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+  }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
 }
@@ -91,6 +94,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
       table_(block_store, layout_, layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
+      wal_on_(log_manager != LOGGING_DISABLED),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
@@ -195,8 +199,11 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
                                                : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
-    auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
-    TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+    // TODO(Tianyu): Hardly efficient, but will do for testing.
+    if (wal_on_) {
+      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
+      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+    }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
   txn_manager_.Commit(initial_txn_, [] {});
