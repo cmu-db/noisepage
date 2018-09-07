@@ -13,11 +13,13 @@ namespace terrier::storage {
 #define BUFFER_SIZE (1 << 12)
 // TODO(Tianyu): Apparently, c++ fstream is considered slow and inefficient. Additionally, we
 // need control over when and what to flush as the log manager. Thus, we need to write our
-// own wrapper around lower level I/O functions.
+// own wrapper around lower level I/O functions. I could be wrong, and in that case we should
+// revert to using STL.
 /**
  * Handles buffered writes to the write ahead log, and provides control over flushing.
  */
 class BufferedLogWriter {
+  // TODO(Tianyu): Checksum
  public:
   /**
    * Instantiates a new BufferedLogWriter to write to the specified log file.
@@ -25,7 +27,8 @@ class BufferedLogWriter {
    * @param log_file_path path to the the log file to write to. New entries are appended to the end of the file if the
    * file already exists; otherwise, a file is created.
    */
-  explicit BufferedLogWriter(const char *log_file_path) : out_(open(log_file_path, O_WRONLY | O_APPEND | O_CREAT)) {
+  explicit BufferedLogWriter(const char *log_file_path)
+      : out_(open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {
     if (out_ == -1) throw std::runtime_error("Opening of log file failed with errno " + std::to_string(errno));
   }
 
@@ -60,6 +63,7 @@ class BufferedLogWriter {
   void BufferWrite(const void *data, uint32_t size) {
     TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
     TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
+    buffer_size_ += size;
   }
 
   /**

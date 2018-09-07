@@ -159,8 +159,6 @@ class LargeTransactionTestObject {
 
   void UpdateLastCheckedVersion(const TableSnapshot &snapshot);
 
-  storage::ProjectedRow *Redo(const storage::ProjectedRowInitializer &initializer);
-
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;
   std::vector<double> update_select_ratio_;
