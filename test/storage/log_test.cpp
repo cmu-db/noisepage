@@ -69,11 +69,11 @@ TEST_F(WriteAheadLoggingTests, SerializationTest) {
 
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  LargeTransactionTestObject tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, true,
+  LargeTransactionTestObject tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, false,
                                     &log_manager_);
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
-  auto result = tested.SimulateOltp(100, 4);
+  tested.SimulateOltp(100, 4);
   EndGC();
   EndLogging();
 

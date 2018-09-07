@@ -325,10 +325,15 @@ class RedoBuffer {
 
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
-   * can be written to this redo buffe after the function returns.
+   * can be written to this redo buffer after the function returns.
    */
-  // TODO(Tianyu): Maybe need a better name?
   void Finish();
+
+  /**
+   * Discards the content of the redo buffer. No further entries can be written to this redo buffe after the
+   * function returns.
+   */
+  void Discard();
 
   /**
    * @return whether logging is disabled for this object.

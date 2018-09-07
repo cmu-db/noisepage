@@ -30,4 +30,8 @@ void RedoBuffer::Finish() {
   buffer_seg_ = nullptr;
 }
 
+void RedoBuffer::Discard() {
+  log_manager_->DiscardBuffer(buffer_seg_);
+  buffer_seg_ = nullptr;
+}
 }  // namespace terrier::storage
