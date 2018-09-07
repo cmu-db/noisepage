@@ -74,7 +74,7 @@ struct StorageTestUtil {
     attr_sizes[0] = 8;
     for (uint16_t i = 1; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
-    return {attr_sizes};
+    return storage::BlockLayout(attr_sizes);
   }
 
   // Fill the given location with the specified amount of random bytes, using the
