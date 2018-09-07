@@ -25,7 +25,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
   return buffer_seg_->Reserve(size);
 }
 
-void RedoBuffer::Flush() {
+void RedoBuffer::Finish() {
   log_manager_->AddBufferToFlushQueue(buffer_seg_);
   buffer_seg_ = nullptr;
 }

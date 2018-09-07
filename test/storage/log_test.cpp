@@ -8,7 +8,7 @@
 #include "util/transaction_test_util.h"
 
 namespace terrier {
-class LargeLoggingTests : public TerrierTest {
+class WriteAheadLoggingTests : public TerrierTest {
  public:
   void StartLogging(uint32_t log_period_milli) {
     logging_ = true;
@@ -63,14 +63,20 @@ class LargeLoggingTests : public TerrierTest {
   }
 };
 
+TEST_F(WriteAheadLoggingTests, SerializationTest) {
+
+}
+
 // NOLINTNEXTLINE
-TEST_F(LargeLoggingTests, LargeLogTest) {
-  LargeTransactionTestObject tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, false,
+TEST_F(WriteAheadLoggingTests, LargeLogTest) {
+  LargeTransactionTestObject tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, true,
                                     &log_manager_);
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
-  tested.SimulateOltp(100, 4);
+  auto result = tested.SimulateOltp(100, 4);
   EndGC();
   EndLogging();
+
+  // TODO(Tianyu): Read shit back in?
 }
 }  // namespace terrier

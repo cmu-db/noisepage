@@ -47,10 +47,6 @@ class BufferSegment {
     return this;
   }
 
-  char *WritableHead() { return reinterpret_cast<char *>(bytes_); }
-
-  uint32_t Size() const { return size_; }
-
  private:
   template <class RecordType>
   friend class IterableBufferSegment;
@@ -61,31 +57,63 @@ class BufferSegment {
   uint32_t size_ = 0;
 };
 
+/**
+ * A thin wrapper around a buffer segment to allow iteration through its contents as the given template type
+ * @tparam RecordType records are treated as this type when iterating. Must expose an instance method Size() that
+ *                    gives the size of the record in memory in bytes
+ */
 template <class RecordType>
 class IterableBufferSegment {
  public:
+  /**
+   * Iterator for iterating through the records in the buffer
+   */
   class Iterator {
    public:
+    /**
+     * @return reference to the underlying record
+     */
     RecordType &operator*() const { return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
 
+    /**
+     * @return pointer to the underlying record
+     */
     RecordType *operator->() const { return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
 
+    /**
+     * prefix increment
+     * @return self-reference
+     */
     Iterator &operator++() {
       RecordType &me = this->operator*();
       segment_offset_ += me.Size();
       return *this;
     }
 
+    /**
+     * postfix increment
+     * @return iterator that is equal to this before increment
+     */
     const Iterator operator++(int) {
       Iterator copy = *this;
       operator++();
       return copy;
     }
 
+    /**
+     * equality check
+     * @param other the other iterator to compare to
+     * @return if the two iterators point to the same underlying record
+     */
     bool operator==(const Iterator &other) const {
       return segment_offset_ == other.segment_offset_ && segment_ == other.segment_;
     }
 
+    /**
+     * inequality check
+     * @param other the other iterator to comapre to
+     * @return if the two iterators point to different underlying records
+     */
     bool operator!=(const Iterator &other) const { return !(*this == other); }
 
    private:
@@ -95,29 +123,57 @@ class IterableBufferSegment {
     uint32_t segment_offset_;
   };
 
+  /**
+   * Instantiates an IterableBufferSegment as a wrapper around a buffer segment
+   * @param segment
+   */
   explicit IterableBufferSegment(BufferSegment *segment) : segment_(segment) {}
 
+  /**
+   * @return iterator to the first element
+   */
   Iterator begin() { return {segment_, 0}; }
 
+  /**
+   * @return iterator to the second element
+   */
   Iterator end() { return {segment_, segment_->size_}; }
 
  private:
   BufferSegment *segment_;
 };
 
+/**
+ * Custom allocator used for the object pool of buffer segments
+ */
 class RecordBufferSegmentAllocator {
  public:
+  /**
+   * Allocates a new BufferSegment
+   * @return a new buffer segment
+   */
   BufferSegment *New() {
     auto *result = new BufferSegment;
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
     return result;
   }
 
+  /**
+   * Resets the given buffer segment for use
+   * @param reused the buffer to reuse
+   */
   void Reuse(BufferSegment *const reused) { reused->Reset(); }
 
+  /**
+   * Delete the given buffer segment and frees the memory
+   * @param ptr the buffer to delete
+   */
   void Delete(BufferSegment *const ptr) { delete ptr; }
 };
 
+/**
+ * Type alias for an object pool handing out buffer segments
+ */
 using RecordBufferSegmentPool = common::ObjectPool<BufferSegment, RecordBufferSegmentAllocator>;
 
 // TODO(Tianyu): Not thread-safe. We can probably just allocate thread-local buffers (or segments) if we ever want
@@ -250,15 +306,33 @@ class UndoBuffer {
 
 class LogManager;  // forward declaration
 
+/**
+ * A RedoBuffer is a fixed-sized buffer to hold RedoRecords.
+ *
+ * Not thread-safe
+ */
 class RedoBuffer {
  public:
   explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
 
+  /**
+   * Reserve a redo record with the given size. The returned pointer is guaranteed to be valid until NewEntry is called
+   * again, or when the buffer is explicitly flushed by the call Finish().
+   * @param size the size of the redo record to allocate
+   * @return a new redo record with at least the given size reserved
+   */
   byte *NewEntry(uint32_t size);
 
+  /**
+   * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
+   * can be written to this redo buffe after the function returns.
+   */
   // TODO(Tianyu): Maybe need a better name?
-  void Flush();
+  void Finish();
 
+  /**
+   * @return whether logging is disabled for this object.
+   */
   bool LoggingDisabled() const { return log_manager_ == LOGGING_DISABLED; }
 
  private:
