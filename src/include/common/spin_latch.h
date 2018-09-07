@@ -37,7 +37,6 @@ class SpinLatch {
    */
   class ScopedSpinLatch {
    public:
-    ScopedSpinLatch() = delete;
     /**
      * Acquire lock on SpinLatch.
      * @param latch pointer to SpinLatch to acquire

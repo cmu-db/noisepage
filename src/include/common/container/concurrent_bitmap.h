@@ -28,10 +28,7 @@ namespace terrier::common {
  */
 class RawConcurrentBitmap {
  public:
-  // Always reinterpret_cast from raw memory.
-  RawConcurrentBitmap() = delete;
-  ~RawConcurrentBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawConcurrentBitmap)
+  MEM_REINTERPRETAION_ONLY(RawConcurrentBitmap)
 
   /**
    * Allocates a new RawConcurrentBitmap of size num_bits. Up to the caller to call
