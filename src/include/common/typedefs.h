@@ -9,7 +9,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "better_enums/enum.h"
 #include "common/macros.h"
 
 namespace terrier::common {
@@ -216,7 +215,6 @@ STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(oid_t, uint32_t);
-STRONG_TYPEDEF(tuple_id_t, uint64_t);
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.

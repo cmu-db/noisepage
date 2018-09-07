@@ -45,7 +45,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
     }
     updates_[updated] = update;
   }
-  auto *record = txn_->StageWrite(nullptr, *reinterpret_cast<tuple_id_t *>(&updated), initializer);
+  auto *record = txn_->StageWrite(nullptr, updated, initializer);
   TERRIER_MEMCPY(record->Delta(), update, update->Size());
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -83,8 +83,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping,
-                                                       storage::LogManager *log_manager)
+                                                       bool bookkeeping, storage::LogManager *log_manager)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
@@ -196,7 +195,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
                                                : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
-    auto *record = initial_txn_->StageWrite(nullptr, *reinterpret_cast<tuple_id_t *>(&inserted), row_initializer_);
+    auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
     TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }

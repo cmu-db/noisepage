@@ -43,6 +43,9 @@ class DataTable {
     for (RawBlock *block : blocks_) block_store_->Release(block);
   }
 
+  // TODO(Tianyu): Implement
+  oid_t TableOid() const { return oid_t{0}; }
+
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.
    *

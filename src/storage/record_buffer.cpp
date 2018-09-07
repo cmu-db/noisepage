@@ -1,5 +1,5 @@
 #include "storage/record_buffer.h"
-#include "storage/log_manager.h"
+#include "storage/write_ahead_log/log_manager.h"
 namespace terrier::storage {
 byte *UndoBuffer::NewEntry(const uint32_t size) {
   if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {

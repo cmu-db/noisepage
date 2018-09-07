@@ -3,11 +3,11 @@
 #include "common/object_pool.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
-#include "storage/log_record.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
@@ -74,13 +74,13 @@ class TransactionContext {
   // TODO(Tianyu): this sort of implies that we will need to take in a SqlTable pointer for undo as well,
   // if we stick with the data table / sql table separation.
   // (Or at least if we stick with it and put index in sql table.)
-  storage::RedoRecord *StageWrite(execution::SqlTable *table, tuple_id_t tuple_id,
+  storage::RedoRecord *StageWrite(storage::DataTable *table, storage::TupleSlot slot,
                                   const storage::ProjectedRowInitializer &initializer) {
     // TODO(Tianyu): Is failing the right thing to do?
     TERRIER_ASSERT(!redo_buffer_.LoggingDisabled(), "Cannot stage a write if logging is disabled");
     uint32_t size = storage::RedoRecord::Size(initializer);
     auto *log_record =
-        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, tuple_id, initializer);
+        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 

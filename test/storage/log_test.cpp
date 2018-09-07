@@ -1,12 +1,11 @@
-#include "execution/sql_table.h"
+#include "gtest/gtest.h"
 #include "storage/data_table.h"
-#include "storage/log_manager.h"
+#include "storage/garbage_collector.h"
+#include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
-#include "storage/garbage_collector.h"
-#include "gtest/gtest.h"
 
 namespace terrier {
 class LargeLoggingTests : public TerrierTest {
@@ -66,8 +65,8 @@ class LargeLoggingTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(LargeLoggingTests, LargeLogTest) {
-  LargeTransactionTestObject
-      tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, false, &log_manager_);
+  LargeTransactionTestObject tested(5, 100, 5, {0.3, 0.7}, &block_store_, &pool_, &generator_, true, false,
+                                    &log_manager_);
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   tested.SimulateOltp(100, 4);

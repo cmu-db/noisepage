@@ -1,36 +1,67 @@
 #pragma once
+#include "storage/data_table.h"
 #include "storage/projected_row.h"
-namespace terrier::execution {
-class SqlTable;
-}  // namespace terrier::execution
 
 namespace terrier::storage {
-class LogManager;
-class RecoveredLog;
+/**
+ * Types of LogRecords
+ */
+enum class LogRecordType : uint8_t { REDO = 1, COMMIT };
 
-// NOLINTNEXTLINE
-BETTER_ENUM(LogRecordType, uint8_t, REDO = 1, COMMIT)
-
+/**
+ * Encapsulates information common to all log records in memory (i.e. a header). Note that the disk representation of
+ * log records can be different. Depending on the type of this LogRecord the underlying body can be
+ * obtained with the @see GetUnderlyingRecordBodyAs method.
+ */
 class LogRecord {
  public:
-  HEAP_REINTERPRETAION_ONLY(LogRecord)
+  MEM_REINTERPRETAION_ONLY(LogRecord)
 
+  /**
+   * @return type of this LogRecord
+   */
   LogRecordType RecordType() const { return type_; }
+  /**
+   * @return size of the whole record (header + body)
+   */
   uint32_t Size() const { return size_; }
+  /**
+   * @return begin timestamp of the transaction that generated this log record
+   */
   timestamp_t TxnBegin() const { return txn_begin_; }
 
+  /**
+   * Get the underlying record body as a certain type, determined from RecordType().
+   * @tparam UnderlyingType type of the underlying record body, This must be equal to the return
+   *                        value of the RecordType() call
+   * @return pointer to the underlying record body
+   */
   template <class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
   }
 
+  /**
+   * Get the underlying record body as a certain type, determined from RecordType().
+   * @tparam UnderlyingType type of the underlying record body, This must be equal to the return
+   *                        value of the RecordType() call
+   * @return const pointer to the underlying record body
+   */
   template <class UnderlyingType>
   const UnderlyingType *GetUnderlyingRecordBodyAs() const {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
   }
 
+  /**
+   * Initialize the header of a LogRecord using the given parameters
+   * @param head pointer location to initialize, this is also the returned address (reinterpreted)
+   * @param type type of the underlying record
+   * @param size size of the entire record, in memory, in bytes
+   * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @return pointer to the start of the initialized record header
+   */
   static LogRecord *InitializeHeader(void *head, LogRecordType type, uint32_t size, timestamp_t txn_begin) {
     auto *result = reinterpret_cast<LogRecord *>(head);
     result->type_ = type;
@@ -39,7 +70,7 @@ class LogRecord {
     return result;
   }
 
- protected:
+ private:
   /* Header common to all log records */
   LogRecordType type_;
   uint32_t size_;
@@ -52,46 +83,76 @@ class LogRecord {
 // TODO(Tianyu): I don't think this has any effect on correctness, but for consistency's sake
 static_assert(sizeof(LogRecord) % 8 == 0, "a projected row inside the log record needs to be aligned to 8 bytes");
 
+/**
+ * Record body of a Redo. The header is stored in the LogRecord class that would presumably return this
+ * object.
+ */
 class RedoRecord {
  public:
-  HEAP_REINTERPRETAION_ONLY(RedoRecord)
+  MEM_REINTERPRETAION_ONLY(RedoRecord)
 
-  execution::SqlTable *SqlTable() const {
+  /**
+   * @return pointer to the DataTable that this Redo is concerned with
+   */
+  DataTable *GetDataTable() const {
     uintptr_t ptr_value = *reinterpret_cast<const uintptr_t *>(varlen_contents_);
-    return reinterpret_cast<execution::SqlTable *>(ptr_value);
+    return reinterpret_cast<DataTable *>(ptr_value);
   }
 
-  tuple_id_t TupleId() const { return tuple_id_; }
+  /**
+   * @return the tuple slot changed by this redo record
+   */
+  TupleSlot GetTupleSlot() const { return tuple_slot_; }
 
+  /**
+   * @return inlined delta that (was/is to be) applied to the tuple in the table
+   */
   ProjectedRow *Delta() { return reinterpret_cast<ProjectedRow *>(varlen_contents_); }
 
+  /**
+   * @return const inlined delta that (was/is to be) applied to the tuple in the table
+   */
   const ProjectedRow *Delta() const { return reinterpret_cast<const ProjectedRow *>(varlen_contents_); }
 
+  /**
+   * @return type of record this type of body holds
+   */
   static constexpr LogRecordType RecordType() { return LogRecordType::REDO; }
 
+  /**
+   * @return Size of the entire record of this type, in bytes, in memory, if the underlying Delta is to have the same
+   * structure as described by the given initializer.
+   */
   static uint32_t Size(const ProjectedRowInitializer &initializer) {
     return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(RedoRecord) + initializer.ProjectedRowSize());
   }
 
-  static LogRecord *Initialize(void *head, timestamp_t txn_begin, execution::SqlTable *table, tuple_id_t tuple_id,
+  /**
+   * Initialize an entire LogRecord (header included) to have an underlying redo record, using the parameters supplied
+   * @param head pointer location to initialize, this is also the returned address (reinterpreted)
+   * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @param table the DataTable that this Redo is concerned with
+   * @param tuple_slot the tuple slot changed by this redo record
+   * @param initializer the initializer to use for the underlying
+   * @return
+   */
+  static LogRecord *Initialize(void *head, timestamp_t txn_begin, DataTable *table, TupleSlot tuple_slot,
                                const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->table_ = table;
-    body->tuple_id_ = tuple_id;
+    body->tuple_slot_ = tuple_slot;
     initializer.InitializeRow(body->Delta());
     return result;
   }
 
  private:
-  // TODO(Tianyu): Remove hack
-  friend class RecoveredLog;
-  // TODO(Tianyu): We will eventually need to consult the SqlTable to determine how to serialize a given column
+  // TODO(Tianyu): We will eventually need to consult the DataTable to determine how to serialize a given column
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
   // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
   // just taking an oid.
-  execution::SqlTable *table_;
-  tuple_id_t tuple_id_;
+  DataTable *table_;
+  TupleSlot tuple_slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
   uint64_t varlen_contents_[0];
@@ -102,7 +163,7 @@ static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo reco
 
 class CommitRecord {
  public:
-  HEAP_REINTERPRETAION_ONLY(CommitRecord)
+  MEM_REINTERPRETAION_ONLY(CommitRecord)
 
   static constexpr LogRecordType RecordType() { return LogRecordType::COMMIT; }
 

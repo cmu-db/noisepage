@@ -33,7 +33,7 @@ namespace terrier::storage {
 // and then initializing using the static factory provided.
 class PACKED ProjectedRow {
  public:
-  HEAP_REINTERPRETAION_ONLY(ProjectedRow)
+  MEM_REINTERPRETAION_ONLY(ProjectedRow)
 
   /**
    * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
