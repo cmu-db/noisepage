@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
   state.SetItemsProcessed(state.iterations() * layout_.NumSlots() * num_blocks_);
 }
 
-BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
 
