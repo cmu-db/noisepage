@@ -46,7 +46,7 @@ struct BlockLayout {
    * @param attr_sizes vector of attribute sizes.
    */
   explicit BlockLayout(std::vector<uint8_t> attr_sizes)
-      : num_cols_(attr_sizes.size()),
+      : num_cols_(static_cast<uint16_t>(attr_sizes.size())),
         attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(ComputeHeaderSize()),
