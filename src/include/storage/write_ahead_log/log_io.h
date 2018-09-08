@@ -69,7 +69,7 @@ struct PosixIoWrappers {
    *         read. (i.e. there aren't enough bytes left in the file to read out nbyte many)
    */
   static uint32_t ReadFully(int fd, void *buf, size_t nbyte) {
-    uint32_t bytes_read = 0;
+    ssize_t bytes_read = 0;
     while (bytes_read < nbyte) {
       ssize_t ret = read(fd, reinterpret_cast<char *>(buf) + bytes_read, nbyte - bytes_read);
       if (ret == -1) {
@@ -79,7 +79,7 @@ struct PosixIoWrappers {
       if (ret == 0) break;  // no more bytes left in the file
       bytes_read += ret;
     }
-    return bytes_read;
+    return static_cast<uint32_t>(bytes_read);
   }
 
   /**
@@ -92,7 +92,7 @@ struct PosixIoWrappers {
    */
   static void WriteFully(int fd, const void *buf, size_t nbyte) {
     ssize_t written = 0;
-    while (written < nbyte) {
+    while (static_cast<size_t>(written) < nbyte) {
       ssize_t ret = write(fd, reinterpret_cast<const char *>(buf) + written, nbyte - written);
       if (ret == -1) {
         if (errno == EINTR) continue;
@@ -188,6 +188,11 @@ class BufferedLogReader {
   explicit BufferedLogReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
 
   /**
+   * @return if there are contents left in the write ahead log
+   */
+  bool HasMore() { return filled_size_ >= read_head_ || in_ != -1; }
+
+  /**
    * Read the specified number of bytes into the target location from the write ahead log. The method reads as many as
    * possible if there are not enough bytes in the log and returns false.
    *
@@ -212,11 +217,6 @@ class BufferedLogReader {
     }
     return true;
   }
-
-  /**
-   * @return if there are contents left in the write ahead log
-   */
-  bool HasMore() { return filled_size_ >= read_head_ || in_ != -1; }
 
  private:
   int in_;  // or -1 if no more bytes

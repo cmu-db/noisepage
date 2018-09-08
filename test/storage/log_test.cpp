@@ -7,6 +7,8 @@
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 
+#define LOG_FILE_NAME "test.txt"
+
 namespace terrier {
 class WriteAheadLoggingTests : public TerrierTest {
  public:
@@ -39,7 +41,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{1000, 100};
   storage::BlockStore block_store_{100, 100};
-  storage::LogManager log_manager_{"test.txt", &pool_};
+  storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
   std::thread log_thread_;
   bool logging_;
   volatile bool run_gc_ = false;
@@ -71,7 +73,5 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   tested.SimulateOltp(100, 4);
   EndGC();
   EndLogging();
-
-  // TODO(Tianyu): Read shit back in?
 }
 }  // namespace terrier
