@@ -72,9 +72,14 @@ class TransactionContext {
     return storage::UndoRecord::Initialize(result, txn_id_.load(), slot, table, insert_record_initializer);
   }
 
-  // TODO(Tianyu): this sort of implies that we will need to take in a SqlTable pointer for undo as well,
-  // if we stick with the data table / sql table separation.
-  // (Or at least if we stick with it and put index in sql table.)
+  /**
+   * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
+   * The change can either be copied into this space, or written in the space and then used to change the DataTable.
+   * @param table the DataTable that this record changes
+   * @param slot the slot that this record changes
+   * @param initializer the initializer to use for the underlying record
+   * @return pointer to the initialized redo record.
+   */
   storage::RedoRecord *StageWrite(storage::DataTable *table, storage::TupleSlot slot,
                                   const storage::ProjectedRowInitializer &initializer) {
     // TODO(Tianyu): Is failing the right thing to do?

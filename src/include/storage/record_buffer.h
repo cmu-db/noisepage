@@ -313,6 +313,10 @@ class LogManager;  // forward declaration
  */
 class RedoBuffer {
  public:
+  /**
+   * Initializes a new RedoBuffer, working with the given LogManager
+   * @param log_manager the log manager this redo buffer talks to, or nullptr if logging is disabled
+   */
   explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
 
   /**
