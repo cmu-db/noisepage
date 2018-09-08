@@ -46,12 +46,11 @@ struct BlockLayout {
    * @param attr_sizes vector of attribute sizes.
    */
   explicit BlockLayout(std::vector<uint8_t> attr_sizes)
-      : num_cols_(static_cast<uint16_t>(attr_sizes.size())),
-        attr_sizes_(std::move(attr_sizes)),
+      : attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(ComputeHeaderSize()),
         num_slots_(ComputeNumSlots()) {
-    TERRIER_ASSERT(num_cols_ > 0 && num_cols_ <= common::Constants::MAX_COL,
+    TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
     TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
     // sort the attributes when laying out memory to minimize impact of padding
@@ -61,7 +60,7 @@ struct BlockLayout {
   /**
    * Number of columns.
    */
-  const uint16_t NumCols() const { return num_cols_; }
+  const uint16_t NumCols() const { return static_cast<uint16_t>(attr_sizes_.size()); }
 
   /**
    * attribute size at given col_id.
@@ -84,7 +83,6 @@ struct BlockLayout {
   const uint32_t NumSlots() const { return num_slots_; }
 
  private:
-  const uint16_t num_cols_;
   std::vector<uint8_t> attr_sizes_;
   // Cached values so that we don't have to iterate through attr_sizes_ every time.
   const uint32_t tuple_size_;
@@ -100,7 +98,7 @@ struct BlockLayout {
 
   uint32_t ComputeHeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+                                 + NumCols() * sizeof(uint32_t) + sizeof(uint16_t) + NumCols() * sizeof(uint8_t));
   }
 
   uint32_t ComputeNumSlots() const {
@@ -111,7 +109,7 @@ struct BlockLayout {
     // this later, because I don't feel like thinking about this now.
     // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
     // up to the size of 1 tuple, so this can probably change to be more optimistic,
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumCols()) - 2;
   }
 };
 
