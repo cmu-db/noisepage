@@ -44,6 +44,9 @@ class DataTable {
   }
 
   // TODO(Tianyu): Implement
+  /**
+   * @return table oid of this data table
+   */
   oid_t TableOid() const { return oid_t{0}; }
 
   /**

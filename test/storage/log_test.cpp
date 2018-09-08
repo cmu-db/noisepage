@@ -18,8 +18,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   void EndLogging() {
     logging_ = false;
     log_thread_.join();
-    log_manager_.Process();
-    log_manager_.Flush();
+    log_manager_.Shutdown();
   }
 
   void StartGC(transaction::TransactionManager *txn_manager, uint32_t gc_period_milli) {

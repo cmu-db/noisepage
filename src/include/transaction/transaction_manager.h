@@ -24,10 +24,10 @@ class TransactionManager {
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
+   * @param log_manager the log manager in the system, or nullptr if logging is turned off.
    */
-  // TODO(Tianyu): Remove this default argument
-  explicit TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
-                              storage::LogManager *log_manager)
+  TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
+                     storage::LogManager *log_manager)
       : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**

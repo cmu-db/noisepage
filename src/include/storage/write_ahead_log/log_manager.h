@@ -29,6 +29,15 @@ class LogManager {
       : out_(log_file_path), buffer_pool_(buffer_pool) {}
 
   /**
+   * Must be called when no other threads are doing work
+   */
+  void Shutdown() {
+    Process();
+    Flush();
+    out_.Close();
+  }
+
+  /**
    * Requests a new log buffer for redo buffers, drawn from the LogManager's object pool. This method can be called
    * safely from concurrent execution threads.
    *
@@ -52,9 +61,7 @@ class LogManager {
    * the method returns.  THis method can be called safely from concurrent execution threads.
    * @param buffer the log buffer to discard
    */
-  void DiscardBuffer(BufferSegment *buffer) {
-    buffer_pool_->Release(buffer);
-  }
+  void DiscardBuffer(BufferSegment *buffer) { buffer_pool_->Release(buffer); }
 
   /**
    * Register a callback for the committed transaction beginning at the given time, such that the callback will be
@@ -144,7 +151,7 @@ class LogManager {
     if (!out_.CanBuffer(size)) {
       // This write is too large to fit into a buffer, we need to write directly without a buffer,
       // but no flush is necessary since the commit records are always small enough to be buffered
-      out_.WriteUnsyncedFully(data, size);
+      out_.WriteUnsynced(data, size);
       return;
     }
     // Write can be buffered

@@ -134,7 +134,7 @@ class RedoRecord {
    * @param table the DataTable that this Redo is concerned with
    * @param tuple_slot the tuple slot changed by this redo record
    * @param initializer the initializer to use for the underlying
-   * @return
+   * @return pointer to the initialized log record, always equal in value to the given head
    */
   static LogRecord *Initialize(void *head, timestamp_t txn_begin, DataTable *table, TupleSlot tuple_slot,
                                const ProjectedRowInitializer &initializer) {
@@ -161,14 +161,33 @@ class RedoRecord {
 // TODO(Tianyu): Same here
 static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo record needs to be aligned to 8 bytes");
 
+/**
+ * Record body of a Commit. The header is stored in the LogRecord class that would presumably return this
+ * object.
+ */
 class CommitRecord {
  public:
   MEM_REINTERPRETAION_ONLY(CommitRecord)
 
+  /**
+   * @return type of record this type of body holds
+   */
   static constexpr LogRecordType RecordType() { return LogRecordType::COMMIT; }
 
+  /**
+   * @return Size of the entire record of this type, in bytes, in memory.
+   */
   static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(CommitRecord)); }
 
+  /**
+   * Initialize an entire LogRecord (header included) to have an underlying commit record, using the parameters
+   * supplied.
+   *
+   * @param head pointer location to initialize, this is also the returned address (reinterpreted)
+   * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @param txn_commit the commit timestamp of the transaction that generated this log record
+   * @return pointer to the initialized log record, always equal in value to the given head
+   */
   static LogRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
@@ -176,6 +195,9 @@ class CommitRecord {
     return result;
   }
 
+  /**
+   * @return the commit time of the transaction that generated this log record
+   */
   timestamp_t CommitTime() const { return txn_commit_; }
 
  private:
