@@ -27,9 +27,8 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout_
-  const uint16_t num_columns_ = 2;
   const uint8_t column_size_ = 8;
-  const storage::BlockLayout layout_{num_columns_, {column_size_, column_size_}};
+  const storage::BlockLayout layout_{{column_size_, column_size_}};
 
   // Tuple properties
   const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
