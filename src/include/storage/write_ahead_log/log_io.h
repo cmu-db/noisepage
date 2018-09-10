@@ -183,7 +183,7 @@ class BufferedLogReader {
     TERRIER_ASSERT(ret, "Reading of value failed");
     return result;
   }
-  
+
 
  private:
   int in_;  // or -1 if closed

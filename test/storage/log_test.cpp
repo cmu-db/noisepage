@@ -143,5 +143,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // TODO(Tianyu): You will need to account for read-only transactions once we stop logging them out.
   EXPECT_TRUE(txns_map.empty());  // all transactions should have been logged out
   unlink(LOG_FILE_NAME);
+  for (auto *txn : result.first) delete txn;
+  for (auto *txn : result.second) delete txn;
 }
 }  // namespace terrier
