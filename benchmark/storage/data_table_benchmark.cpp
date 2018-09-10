@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -25,12 +26,12 @@ class DataTableBenchmark : public benchmark::Fixture {
     redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
   }
+
   void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout
-  const uint16_t num_columns_ = 2;
   const uint8_t column_size_ = 8;
-  const storage::BlockLayout layout_{num_columns_, {column_size_, column_size_}};
+  const storage::BlockLayout layout_{{column_size_, column_size_}};
 
   // Tuple properties
   const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
@@ -84,7 +85,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
 
