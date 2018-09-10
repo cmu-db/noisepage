@@ -1,18 +1,6 @@
 #include "storage/write_ahead_log/log_io.h"
 #include <algorithm>
 namespace terrier::storage {
-template <class... Args>
-int PosixIoWrappers::Open(const char *path, int oflag, Args... args) {
-  while (true) {
-    int ret = open(path, oflag, args...);
-    if (ret == -1) {
-      if (errno == EINTR) continue;
-      throw std::runtime_error("Failed to open file with errno " + std::to_string(errno));
-    }
-    return ret;
-  }
-}
-
 void PosixIoWrappers::Close(int fd) {
   while (true) {
     int ret = close(fd);

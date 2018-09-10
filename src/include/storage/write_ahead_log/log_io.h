@@ -30,7 +30,16 @@ struct PosixIoWrappers {
    * @return a non-negative interger that is the file descriptor if the opened file.
    */
   template <class... Args>
-  static int Open(const char *path, int oflag, Args... args);
+  static int Open(const char *path, int oflag, Args... args)  {
+    while (true) {
+      int ret = open(path, oflag, args...);
+      if (ret == -1) {
+        if (errno == EINTR) continue;
+        throw std::runtime_error("Failed to open file with errno " + std::to_string(errno));
+      }
+      return ret;
+    }
+  }
   /**
    * Wrapper around posix close call
    * @param fd posix filedes arg
