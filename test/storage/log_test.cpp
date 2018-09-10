@@ -60,7 +60,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto delta_size = in->ReadValue<uint32_t>();
     byte *dest =
         reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
-    in->Read(dest, delta_size - sizeof(uint32_t));
+    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
     return result;
   }
 

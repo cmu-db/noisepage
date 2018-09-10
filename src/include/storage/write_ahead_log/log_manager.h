@@ -85,32 +85,13 @@ class LogManager {
    * the performance consequences of calling flush too frequently) This method should only be called from a dedicated
    * logging thread.
    */
-  void Process() {
-    BufferSegment *buffer;
-    while (flush_queue_.Dequeue(&buffer)) {
-      for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
-        SerializeRecord(record);
-        if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
-      }
-      buffer_pool_->Release(buffer);
-    }
-  }
+  void Process();
 
   /**
    * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
    * transactions are also invoked when possible. This method should only be called from a dedicated logging thread.
    */
-  void Flush() {
-    out_.Flush();
-    common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
-    for (timestamp_t txn : commits_in_buffer_) {
-      auto it = callbacks_.find(txn);
-      TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
-      it->second();
-      callbacks_.erase(it);
-    }
-    commits_in_buffer_.clear();
-  }
+  void Flush();
 
  private:
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
@@ -128,35 +109,9 @@ class LogManager {
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<timestamp_t> commits_in_buffer_;
 
-  void SerializeRecord(const LogRecord &record) {
-    WriteValue(record.Size());
-    WriteValue(record.RecordType());
-    WriteValue(record.TxnBegin());
-    switch (record.RecordType()) {
-      case LogRecordType::REDO: {
-        auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-        WriteValue(record_body->GetDataTable()->TableOid());
-        WriteValue(record_body->GetTupleSlot());
-        // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
-        Write(record_body->Delta(), record_body->Delta()->Size());
-        break;
-      }
-      case LogRecordType::COMMIT:
-        WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
-    }
-  }
+  void SerializeRecord(const LogRecord &record);
 
-  void Write(const void *data, uint32_t size) {
-    if (!out_.CanBuffer(size)) Flush();
-    if (!out_.CanBuffer(size)) {
-      // This write is too large to fit into a buffer, we need to write directly without a buffer,
-      // but no flush is necessary since the commit records are always small enough to be buffered
-      out_.WriteUnsynced(data, size);
-      return;
-    }
-    // Write can be buffered
-    out_.BufferWrite(data, size);
-  }
+  void Write(const void *data, uint32_t size);
 
   template <class T>
   void WriteValue(const T &val) {

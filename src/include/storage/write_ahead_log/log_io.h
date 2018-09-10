@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
-#include <algorithm>
 #include <cerrno>
 #include <string>
 #include "common/macros.h"
@@ -31,32 +30,13 @@ struct PosixIoWrappers {
    * @return a non-negative interger that is the file descriptor if the opened file.
    */
   template <class... Args>
-  static int Open(const char *path, int oflag, Args... args) {
-    while (true) {
-      int ret = open(path, oflag, args...);
-      if (ret == -1) {
-        if (errno == EINTR) continue;
-        throw std::runtime_error("Failed to open file with errno " + std::to_string(errno));
-      }
-      return ret;
-    }
-  }
-
+  static int Open(const char *path, int oflag, Args... args);
   /**
    * Wrapper around posix close call
    * @param fd posix filedes arg
    * @throws runtime_error if the underlying posix call failed
    */
-  static void Close(int fd) {
-    while (true) {
-      int ret = close(fd);
-      if (ret == -1) {
-        if (errno == EINTR) continue;
-        throw std::runtime_error("Failed to close file with errno " + std::to_string(errno));
-      }
-      return;
-    }
-  }
+  static void Close(int fd);
 
   /**
    * Wrapper around the posix read call, where a single function call will always read the specified amount of bytes
@@ -68,19 +48,7 @@ struct PosixIoWrappers {
    * @return nbyte if the read is successful, or the number of bytes actually read if eof is read before nbytes are
    *         read. (i.e. there aren't enough bytes left in the file to read out nbyte many)
    */
-  static uint32_t ReadFully(int fd, void *buf, size_t nbyte) {
-    ssize_t bytes_read = 0;
-    while (bytes_read < static_cast<ssize_t>(nbyte)) {
-      ssize_t ret = read(fd, reinterpret_cast<char *>(buf) + bytes_read, static_cast<ssize_t>(nbyte) - bytes_read);
-      if (ret == -1) {
-        if (errno == EINTR) continue;
-        throw std::runtime_error("Read failed with errno " + std::to_string(errno));
-      }
-      if (ret == 0) break;  // no more bytes left in the file
-      bytes_read += ret;
-    }
-    return static_cast<uint32_t>(bytes_read);
-  }
+  static uint32_t ReadFully(int fd, void *buf, size_t nbyte);
 
   /**
    * Wrapper around the posix write call, where a single function call will always write the entire buffer out.
@@ -90,17 +58,7 @@ struct PosixIoWrappers {
    * @param nbyte posix nbyte arg
    * @throws runtime_error if the underlying posix call failed
    */
-  static void WriteFully(int fd, const void *buf, size_t nbyte) {
-    ssize_t written = 0;
-    while (static_cast<size_t>(written) < nbyte) {
-      ssize_t ret = write(fd, reinterpret_cast<const char *>(buf) + written, nbyte - written);
-      if (ret == -1) {
-        if (errno == EINTR) continue;
-        throw std::runtime_error("Write to log file failed with errno " + std::to_string(errno));
-      }
-      written += ret;
-    }
-  }
+  static void WriteFully(int fd, const void *buf, size_t nbyte);
 };
 // TODO(Tianyu): Apparently, c++ fstream is considered slow and inefficient. Additionally, we
 // need control over when and what to flush as the log manager. Thus, we need to write our
@@ -190,45 +148,30 @@ class BufferedLogReader {
   /**
    * @return if there are contents left in the write ahead log
    */
-  bool HasMore() { return filled_size_ > read_head_ || has_more_in_file_; }
+  bool HasMore() { return filled_size_ > read_head_ || in_ != -1; }
 
   /**
    * Read the specified number of bytes into the target location from the write ahead log. The method reads as many as
-   * possible if there are not enough bytes in the log and returns false.
+   * possible if there are not enough bytes in the log and returns false. The underlying log file fd is automatically
+   * closed when all remaining bytes are buffered.
    *
    * @param dest pointer location to read into
    * @param size number of bytes to read
    * @return whether the log has the given number of bytes left
    */
-  bool Read(void *dest, uint32_t size) {
-    if (read_head_ + size <= filled_size_) {
-      // bytes to read are already buffered.
-      ReadFromBuffer(dest, size);
-      return true;
-    }
-    // Not enough left in the buffer.
-    uint32_t bytes_read_ = 0;
-    while (bytes_read_ < size) {
-      if (!HasMore()) return false;
-      uint32_t read_size = std::min(size - bytes_read_, filled_size_ - read_head_);
-      if (read_size == 0) RefillBuffer();  // when all contents in the buffer is fully read
-      ReadFromBuffer(reinterpret_cast<char *>(dest) + bytes_read_, read_size);
-      bytes_read_ += read_size;
-    }
-    return true;
-  }
+  bool Read(void *dest, uint32_t size);
 
+  /**
+   * Read a value of the specified type from the log. An exception is thrown if the log file does not
+   * have enough bytes left for a well formed value
+   * @tparam T type of value to read
+   * @return the value read
+   */
   template <class T>
-  T ReadValue() {
-    T result;
-    bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
-    TERRIER_ASSERT(ret, "Reading of value failed");
-    return result;
-  }
+  T ReadValue();
 
  private:
-  int in_;
-  bool has_more_in_file_ = true;
+  int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;
   char buffer_[BUFFER_SIZE];
 
@@ -238,12 +181,6 @@ class BufferedLogReader {
     read_head_ += size;
   }
 
-  void RefillBuffer() {
-    TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
-    if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
-    read_head_ = 0;
-    filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, BUFFER_SIZE);
-    if (filled_size_ < BUFFER_SIZE) has_more_in_file_ = false;
-  }
+  void RefillBuffer();
 };
 }  // namespace terrier::storage
