@@ -70,8 +70,8 @@ struct PosixIoWrappers {
    */
   static uint32_t ReadFully(int fd, void *buf, size_t nbyte) {
     ssize_t bytes_read = 0;
-    while (bytes_read < nbyte) {
-      ssize_t ret = read(fd, reinterpret_cast<char *>(buf) + bytes_read, nbyte - bytes_read);
+    while (bytes_read < static_cast<ssize_t>(nbyte)) {
+      ssize_t ret = read(fd, reinterpret_cast<char *>(buf) + bytes_read, static_cast<ssize_t>(nbyte) - bytes_read);
       if (ret == -1) {
         if (errno == EINTR) continue;
         throw std::runtime_error("Read failed with errno " + std::to_string(errno));
