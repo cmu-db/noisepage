@@ -100,7 +100,7 @@ class DataTable {
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
   std::vector<RawBlock *> blocks_;
-  mutable common::SpinLatch blocks_latch_;
+  common::SpinLatch blocks_latch_;
   // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
   // only happen when blocks are full, thus we can afford to be optimistic
   std::atomic<RawBlock *> insertion_head_ = nullptr;
