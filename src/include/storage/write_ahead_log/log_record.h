@@ -104,6 +104,8 @@ class RedoRecord {
    */
   TupleSlot GetTupleSlot() const { return tuple_slot_; }
 
+  // TODO(Tianyu): Potentially need a setter for Inserts, because we know the TupleSlot after insert
+
   /**
    * @return inlined delta that (was/is to be) applied to the tuple in the table
    */
@@ -143,6 +145,25 @@ class RedoRecord {
     body->table_ = table;
     body->tuple_slot_ = tuple_slot;
     initializer.InitializeRow(body->Delta());
+    return result;
+  }
+
+  /**
+   * TODO(Tianyu): Remove this as we clean up serialization
+   * Hacky back door for BufferedLogReader
+   * @param head
+   * @param size
+   * @param txn_begin
+   * @param table
+   * @param tuple_slot
+   * @return
+   */
+  static LogRecord *PartialInitialize(void *head, uint32_t size, timestamp_t txn_begin, DataTable *table,
+                                      TupleSlot tuple_slot) {
+    LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
+    auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
+    body->table_ = table;
+    body->tuple_slot_ = tuple_slot;
     return result;
   }
 

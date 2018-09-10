@@ -132,6 +132,11 @@ struct StorageTestUtil {
     return col_ids;
   }
 
+  template <class Random>
+  static storage::ProjectedRowInitializer RandomInitializer(const storage::BlockLayout &layout, Random *generator) {
+    return {layout, ProjectionListRandomColumns(layout, generator)};
+  }
+
   static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *const one,
                                   const storage::ProjectedRow *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;

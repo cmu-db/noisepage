@@ -24,13 +24,15 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std:
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
+  // TODO(Tianyu): Realistically, I think the exclusive latch can be released here
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
   TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
 
-  if (log_manager_ != LOGGING_DISABLED && !txn->undo_buffer_.Empty()) {
+  // TODO(Tianyu): We also don't need to log out read-only transactions
+  if (log_manager_ != LOGGING_DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.

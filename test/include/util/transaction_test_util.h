@@ -71,6 +71,15 @@ class RandomWorkloadTransaction {
    */
   void Finish();
 
+  timestamp_t BeginTimestamp() const { return start_time_; }
+
+  timestamp_t CommitTimestamp() const {
+    if (aborted_) return timestamp_t(static_cast<uint64_t>(-1));
+    return commit_time_;
+  }
+
+  std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *Updates() { return &updates_; }
+
  private:
   friend class LargeTransactionTestObject;
   LargeTransactionTestObject *test_object_;
@@ -130,6 +139,11 @@ class LargeTransactionTestObject {
    * will need to be freed manually.), or empty otherwise.
    */
   SimulationResult SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
+
+  /**
+   * @return layout of the randomly generated table
+   */
+  const storage::BlockLayout &Layout() const { return layout_; }
 
   /**
    * Checks the correctness of reads in the committed transactions. No committed transaction should have read some

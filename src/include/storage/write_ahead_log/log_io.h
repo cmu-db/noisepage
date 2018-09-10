@@ -4,9 +4,9 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include <algorithm>
 #include <cerrno>
 #include <string>
-#include <algorithm>
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 
@@ -190,7 +190,7 @@ class BufferedLogReader {
   /**
    * @return if there are contents left in the write ahead log
    */
-  bool HasMore() { return filled_size_ >= read_head_ || in_ != -1; }
+  bool HasMore() { return filled_size_ > read_head_ || has_more_in_file_; }
 
   /**
    * Read the specified number of bytes into the target location from the write ahead log. The method reads as many as
@@ -218,8 +218,17 @@ class BufferedLogReader {
     return true;
   }
 
+  template <class T>
+  T ReadValue() {
+    T result;
+    bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
+    TERRIER_ASSERT(ret, "Reading of value failed");
+    return result;
+  }
+
  private:
-  int in_;  // or -1 if no more bytes
+  int in_;
+  bool has_more_in_file_ = true;
   uint32_t read_head_ = 0, filled_size_ = 0;
   char buffer_[BUFFER_SIZE];
 
@@ -233,8 +242,8 @@ class BufferedLogReader {
     TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
     if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
     read_head_ = 0;
-    filled_size_ -= read_head_;
-    filled_size_ += PosixIoWrappers::ReadFully(in_, buffer_ + filled_size_, BUFFER_SIZE - filled_size_);
+    filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, BUFFER_SIZE);
+    if (filled_size_ < BUFFER_SIZE) has_more_in_file_ = false;
   }
 };
 }  // namespace terrier::storage

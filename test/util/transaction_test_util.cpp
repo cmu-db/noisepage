@@ -101,7 +101,6 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
 }
 
 LargeTransactionTestObject::~LargeTransactionTestObject() {
-  if (!gc_on_) delete initial_txn_;
   if (bookkeeping_) {
     for (auto &tuple : last_checked_version_) delete[] reinterpret_cast<byte *>(tuple.second);
   }
