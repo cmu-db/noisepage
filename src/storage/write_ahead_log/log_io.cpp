@@ -56,14 +56,6 @@ bool BufferedLogReader::Read(void *dest, uint32_t size) {
   return true;
 }
 
-template <class T>
-T BufferedLogReader::ReadValue() {
-  T result;
-  bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
-  TERRIER_ASSERT(ret, "Reading of value failed");
-  return result;
-}
-
 void BufferedLogReader::RefillBuffer() {
   TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
   if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
