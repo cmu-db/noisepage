@@ -316,6 +316,7 @@ class RedoBuffer {
   /**
    * Initializes a new RedoBuffer, working with the given LogManager
    * @param log_manager the log manager this redo buffer talks to, or nullptr if logging is disabled
+   * @param buffer_pool The buffer pool to draw buffer segments from. Must be the same buffer pool the log manager uses.
    */
   explicit RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
       : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
