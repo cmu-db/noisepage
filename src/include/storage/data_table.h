@@ -59,7 +59,7 @@ class DataTable {
   /**
    * @return table oid of this data table
    */
-  oid_t TableOid() const { return oid_t{0}; }
+  table_oid_t TableOid() const { return table_oid_t{0}; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.

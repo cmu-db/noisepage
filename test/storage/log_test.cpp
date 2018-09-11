@@ -50,7 +50,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
-    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<oid_t>();
+    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
     auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
                                                          // TODO(Tianyu): Hacky as hell
