@@ -14,11 +14,11 @@ byte *UndoBuffer::NewEntry(const uint32_t size) {
 byte *RedoBuffer::NewEntry(const uint32_t size) {
   if (buffer_seg_ == nullptr) {
     // this is the first write
-    buffer_seg_ = log_manager_->NewLogBuffer();
+    buffer_seg_ = buffer_pool_->Get();
   } else if (!buffer_seg_->HasBytesLeft(size)) {
     // old log buffer is full
-    log_manager_->AddBufferToFlushQueue(buffer_seg_);
-    buffer_seg_ = log_manager_->NewLogBuffer();
+    if (log_manager_ != LOGGING_DISABLED) log_manager_->AddBufferToFlushQueue(buffer_seg_);
+    buffer_seg_ = buffer_pool_->Get();
   }
   TERRIER_ASSERT(buffer_seg_->HasBytesLeft(size),
                  "Staged write does not fit into redo buffer (even after a fresh one is requested)");
@@ -26,12 +26,11 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
 }
 
 void RedoBuffer::Finish() {
-  log_manager_->AddBufferToFlushQueue(buffer_seg_);
-  buffer_seg_ = nullptr;
+  if (log_manager_ != LOGGING_DISABLED)
+    log_manager_->AddBufferToFlushQueue(buffer_seg_);
+  else
+    buffer_pool_->Release(buffer_seg_);
 }
 
-void RedoBuffer::Discard() {
-  log_manager_->DiscardBuffer(buffer_seg_);
-  buffer_seg_ = nullptr;
-}
+void RedoBuffer::Discard() { buffer_pool_->Release(buffer_seg_); }
 }  // namespace terrier::storage

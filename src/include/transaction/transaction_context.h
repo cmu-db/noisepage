@@ -21,7 +21,9 @@ namespace terrier::transaction {
 class TransactionContext {
  public:
   /**
-   * Constructs a new transaction context
+   * Constructs a new transaction context. Beware that the buffer pool given must be the same one the log manager uses,
+   * if logging is enabled.
+   * // TODO(Tianyu): We can terrier assert the above condition, but I need to go figure out friends.
    * @param start the start timestamp of the transaction
    * @param txn_id the id of the transaction, should be larger than all start time and commit time
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
@@ -29,7 +31,7 @@ class TransactionContext {
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *log_manager)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager) {}
+      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   /**
    * @return start time of this transaction
@@ -82,8 +84,6 @@ class TransactionContext {
    */
   storage::RedoRecord *StageWrite(storage::DataTable *table, storage::TupleSlot slot,
                                   const storage::ProjectedRowInitializer &initializer) {
-    // TODO(Tianyu): Is failing the right thing to do?
-    TERRIER_ASSERT(!redo_buffer_.LoggingDisabled(), "Cannot stage a write if logging is disabled");
     uint32_t size = storage::RedoRecord::Size(initializer);
     auto *log_record =
         storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot, initializer);

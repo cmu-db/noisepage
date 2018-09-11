@@ -30,7 +30,7 @@ struct PosixIoWrappers {
    * @return a non-negative interger that is the file descriptor if the opened file.
    */
   template <class... Args>
-  static int Open(const char *path, int oflag, Args... args)  {
+  static int Open(const char *path, int oflag, Args... args) {
     while (true) {
       int ret = open(path, oflag, args...);
       if (ret == -1) {
@@ -177,13 +177,12 @@ class BufferedLogReader {
    * @return the value read
    */
   template <class T>
-  T ReadValue()  {
+  T ReadValue() {
     T result;
     bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
     TERRIER_ASSERT(ret, "Reading of value failed");
     return result;
   }
-
 
  private:
   int in_;  // or -1 if closed

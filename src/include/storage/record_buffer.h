@@ -317,7 +317,8 @@ class RedoBuffer {
    * Initializes a new RedoBuffer, working with the given LogManager
    * @param log_manager the log manager this redo buffer talks to, or nullptr if logging is disabled
    */
-  explicit RedoBuffer(LogManager *log_manager) : log_manager_(log_manager) {}
+  explicit RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
+      : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
 
   /**
    * Reserve a redo record with the given size. The returned pointer is guaranteed to be valid until NewEntry is called
@@ -339,13 +340,9 @@ class RedoBuffer {
    */
   void Discard();
 
-  /**
-   * @return whether logging is disabled for this object.
-   */
-  bool LoggingDisabled() const { return log_manager_ == LOGGING_DISABLED; }
-
  private:
   LogManager *const log_manager_;
+  RecordBufferSegmentPool *const buffer_pool_;
   BufferSegment *buffer_seg_ = nullptr;
 };
 }  // namespace terrier::storage
