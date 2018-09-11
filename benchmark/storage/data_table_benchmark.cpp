@@ -98,7 +98,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SequentialRead)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, layout_version_t(0));
-  // populate read_table by inserting tuples
+  // Populate read_table by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
   std::vector<storage::TupleSlot> read_order;
@@ -121,13 +121,14 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SequentialRead)(benchmark::State &state) 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, layout_version_t(0));
-  // populate read_table_ by inserting tuples
+  // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
+  // Create random reads
   std::shuffle(read_order.begin(), read_order.end(), generator_);
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -141,7 +142,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
-// Read the num_reads_ of tuples in a random order from a DataTable concurrently in num_thread_ threads
+// Read the num_reads_ of tuples in a random order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &state) {
   TestThreadPool thread_pool;
@@ -153,7 +154,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
-  // Generate random reads for each threads
+  // Generate random reads for each thread
   std::vector<std::vector<storage::TupleSlot>> read_orders;
   for (uint32_t i = 0; i < num_threads_; i++) {
     std::shuffle(read_order.begin(), read_order.end(), generator_);
