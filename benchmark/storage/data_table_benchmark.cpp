@@ -29,9 +29,25 @@ class DataTableBenchmark : public benchmark::Fixture {
     // generate a ProjectedRow buffer to Read
     read_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     read_ = initializer_.InitializeRow(read_buffer_);
+
+    // generate a vector of ProjectedRow buffers for concurrent reads
+    for (uint32_t i = 0; i < num_threads_; ++i) {
+      // Create read buffer
+      byte *read_buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
+      storage::ProjectedRow *read = initializer_.InitializeRow(read_buffer);
+      read_buffers_.emplace_back(read_buffer);
+      reads_.emplace_back(read);
+    }
   }
 
-  void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
+  void TearDown(const benchmark::State &state) final {
+    delete[] redo_buffer_;
+    delete[] read_buffer_;
+    for (uint32_t i = 0; i < num_threads_; ++i) delete[] read_buffers_[i];
+    // google benchmark might run benchmark several iterations. We need to clear vectors.
+    read_buffers_.clear();
+    reads_.clear();
+  }
 
   // Tuple layout
   const uint8_t column_size_ = 8;
@@ -55,9 +71,13 @@ class DataTableBenchmark : public benchmark::Fixture {
   byte *redo_buffer_;
   storage::ProjectedRow *redo_;
 
-  // Read buffer Pointers;
+  // Read buffer pointers;
   byte *read_buffer_;
   storage::ProjectedRow *read_;
+
+  // Read buffers pointers for concurrent reads
+  std::vector<byte *> read_buffers_;
+  std::vector<storage::ProjectedRow *> reads_;
 };
 
 // Insert the num_inserts_ of tuples into a DataTable in a single thread
@@ -151,27 +171,20 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
   // Generate random read orders and read buffer for each thread
-  std::vector<std::vector<storage::TupleSlot>> read_orders;
-  std::vector<byte *> read_buffers;
-  std::vector<storage::ProjectedRow *> reads;
-
-  for (uint32_t i = 0; i < num_threads_; i++) {
+  std::shuffle(read_order.begin(), read_order.end(), generator_);
+  std::uniform_int_distribution<uint32_t> rand_start(0, static_cast<uint32_t>(read_order.size() - 1));
+  std::vector<uint32_t> rand_read_offsets;
+  for (uint32_t i = 0; i < num_threads_; ++i) {
     // Create random reads
-    std::shuffle(read_order.begin(), read_order.end(), generator_);
-    read_orders.emplace_back(
-        std::vector<storage::TupleSlot>(read_order.begin(), read_order.begin() + (num_reads_ / num_threads_)));
-    // Create read buffer
-    byte *read_buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
-    storage::ProjectedRow *read = initializer_.InitializeRow(read_buffer);
-    read_buffers.emplace_back(read_buffer);
-    reads.emplace_back(read);
+    rand_read_offsets.emplace_back(rand_start(generator_));
   }
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_);
-      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++) read_table.Select(&txn, read_orders[id][i], reads[id]);
+      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)
+        read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
     thread_pool.RunThreadsUntilFinish(num_threads_, workload);
   }
