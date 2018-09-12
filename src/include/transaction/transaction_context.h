@@ -30,7 +30,7 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *log_manager)
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   /**
@@ -82,7 +82,7 @@ class TransactionContext {
    * @param initializer the initializer to use for the underlying record
    * @return pointer to the initialized redo record.
    */
-  storage::RedoRecord *StageWrite(storage::DataTable *table, storage::TupleSlot slot,
+  storage::RedoRecord *StageWrite(storage::DataTable *const table, const storage::TupleSlot slot,
                                   const storage::ProjectedRowInitializer &initializer) {
     uint32_t size = storage::RedoRecord::Size(initializer);
     auto *log_record =
