@@ -87,8 +87,8 @@ class UndoRecord {
    * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *Initialize(byte *const head, const timestamp_t timestamp, const TupleSlot slot, DataTable *const table,
-                                const ProjectedRowInitializer &initializer) {
+  static UndoRecord *Initialize(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+                                DataTable *const table, const ProjectedRowInitializer &initializer) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
     result->next_ = nullptr;
@@ -112,8 +112,8 @@ class UndoRecord {
    * @param redo the redo changes to be applied
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *Initialize(byte *const head, const timestamp_t timestamp, const TupleSlot slot, DataTable *const table,
-                                const storage::ProjectedRow &redo) {
+  static UndoRecord *Initialize(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+                                DataTable *const table, const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
     result->next_ = nullptr;
