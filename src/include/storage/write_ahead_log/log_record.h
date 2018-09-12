@@ -62,7 +62,7 @@ class LogRecord {
    * @param txn_begin begin timestamp of the transaction that generated this log record
    * @return pointer to the start of the initialized record header
    */
-  static LogRecord *InitializeHeader(void *head, LogRecordType type, uint32_t size, timestamp_t txn_begin) {
+  static LogRecord *InitializeHeader(byte *const head, const LogRecordType type, const uint32_t size, const timestamp_t txn_begin) {
     auto *result = reinterpret_cast<LogRecord *>(head);
     result->type_ = type;
     result->size_ = size;
@@ -138,7 +138,7 @@ class RedoRecord {
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(void *head, timestamp_t txn_begin, DataTable *table, TupleSlot tuple_slot,
+  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table, const TupleSlot tuple_slot,
                                const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
@@ -158,7 +158,7 @@ class RedoRecord {
    * @param tuple_slot
    * @return
    */
-  static LogRecord *PartialInitialize(void *head, uint32_t size, timestamp_t txn_begin, DataTable *table,
+  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const timestamp_t txn_begin, DataTable *const table,
                                       TupleSlot tuple_slot) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
@@ -209,7 +209,7 @@ class CommitRecord {
    * @param txn_commit the commit timestamp of the transaction that generated this log record
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(void *head, timestamp_t txn_begin, timestamp_t txn_commit) {
+  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
