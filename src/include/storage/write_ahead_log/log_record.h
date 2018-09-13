@@ -62,7 +62,8 @@ class LogRecord {
    * @param txn_begin begin timestamp of the transaction that generated this log record
    * @return pointer to the start of the initialized record header
    */
-  static LogRecord *InitializeHeader(byte *const head, const LogRecordType type, const uint32_t size, const timestamp_t txn_begin) {
+  static LogRecord *InitializeHeader(byte *const head, const LogRecordType type, const uint32_t size,
+                                     const timestamp_t txn_begin) {
     auto *result = reinterpret_cast<LogRecord *>(head);
     result->type_ = type;
     result->size_ = size;
@@ -138,8 +139,8 @@ class RedoRecord {
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table, const TupleSlot tuple_slot,
-                               const ProjectedRowInitializer &initializer) {
+  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table,
+                               const TupleSlot tuple_slot, const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->table_ = table;
@@ -158,8 +159,8 @@ class RedoRecord {
    * @param tuple_slot
    * @return
    */
-  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const timestamp_t txn_begin, DataTable *const table,
-                                      TupleSlot tuple_slot) {
+  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const timestamp_t txn_begin,
+                                      DataTable *const table, TupleSlot tuple_slot) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     body->table_ = table;
