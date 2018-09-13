@@ -449,8 +449,26 @@ class GBBenchResult(object):
         time_attr = getattr(self, "time_type", "cpu_time")
         return getattr(self, time_attr)
 
+    def get_time_secs(self):
+        """ Return execution time, normalized to seconds """
+
+        divisor_dict = { "ms" : 10**3,
+                         "us" : 10**6,
+                         "ns" : 10**9 }
+        tv = self.get_time()
+        time_unit = self.get_time_unit()
+        divisor = divisor_dict[time_unit]
+        tv = float(tv)/divisor
+        return tv
+
     def get_time_unit(self):
-        """ Get execution time unit(s) """
+        """ Get execution time unit(s) 
+            One of
+            unit,  multiplier
+            ms     1e3
+            us     1e6
+            ns     1e9
+        """
         return self.time_unit
 
     def get_items_per_second(self):
@@ -615,10 +633,11 @@ class GBenchToJUnit(object):
         # add tests
         for test in testsuite_dict["testcases"]:
             test_el = ElementTree.SubElement(test_suite_el, "testcase")
-            test_el.set("classname", getattr(test, "suite_name"))
-            test_el.set("name", getattr(test, "test_name"))
+            test_el.set("classname", test.get_suite_name())
+            test_el.set("name", test.get_test_name())
+
             # set time based on real_time or cpu_time
-            test_el.set("time", str(getattr(test, "real_time")))
+            test_el.set("time", str(test.get_time_secs()))
 
         tree.write(self.output_file, xml_declaration=True, encoding='utf8')
         return
