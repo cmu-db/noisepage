@@ -38,7 +38,7 @@ class TestConfig(object):
         self.ref_tolerance = 10
 
         # if fewer than min_ref_values are available
-        self.lax_tolerance = 30
+        self.lax_tolerance = 100
 
         # minimum run time for the benchmark, seconds
         self.min_time = 10
@@ -994,7 +994,6 @@ if __name__ == "__main__":
 
             ap.add_artifact_file(artifact.get_data())
 
-        print ""
         # Determine if we have enough history. Stop collecting
         # information if we do
         if ap.have_min_history(test_config.get_min_ref_values()):
@@ -1053,6 +1052,7 @@ if __name__ == "__main__":
     tt.add_column("num_results", "nres")
     tt.add_column("suite")
     tt.add_column("test")
+    print ""
     print tt
 
     print "Exit code = ", ret
