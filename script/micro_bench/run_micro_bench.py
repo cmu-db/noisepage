@@ -38,7 +38,7 @@ class TestConfig(object):
         self.ref_tolerance = 10
 
         # if fewer than min_ref_values are available
-        self.lax_tolerance = 30
+        self.lax_tolerance = 100
 
         # minimum run time for the benchmark, seconds
         self.min_time = 10
