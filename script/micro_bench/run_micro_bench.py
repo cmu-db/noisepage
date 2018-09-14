@@ -33,14 +33,14 @@ class TestConfig(object):
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
-        self.min_ref_values = 20
+        self.min_ref_values = 10
 
         # percentage difference permissible, if using historical data
         # i.e. if min_ref_values are available
         self.ref_tolerance = 10
 
         # if fewer than min_ref_values are available
-        self.lax_tolerance = 100
+        self.lax_tolerance = 30
 
         # minimum run time for the benchmark, seconds
         self.min_time = 10
