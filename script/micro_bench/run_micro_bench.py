@@ -10,16 +10,18 @@ From the directory in which this script resides
 """
 
 import argparse
-import cpu_lib
 import json
 import os
 import pprint
 import subprocess
 import sys
 import urllib
+
 import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
+
+import cpu_lib
 
 class TestConfig(object):
     """ Configuration for run_micro_bench.
@@ -452,9 +454,9 @@ class GBBenchResult(object):
     def get_time_secs(self):
         """ Return execution time, normalized to seconds """
 
-        divisor_dict = { "ms" : 10**3,
-                         "us" : 10**6,
-                         "ns" : 10**9 }
+        divisor_dict = {"ms" : 10**3,
+                        "us" : 10**6,
+                        "ns" : 10**9}
         tv = self.get_time()
         time_unit = self.get_time_unit()
         divisor = divisor_dict[time_unit]
@@ -462,7 +464,7 @@ class GBBenchResult(object):
         return tv
 
     def get_time_unit(self):
-        """ Get execution time unit(s) 
+        """ Get execution time unit(s)
             One of
             unit,  multiplier
             ms     1e3
@@ -709,10 +711,10 @@ class RunMicroBenchmarks(object):
     def _taskset_cmd(self, cmd, num_cpus):
         """ modify cmd to be via taskset """
         cpu_a = cpu_lib.CPUAllocator()
-        assert(num_cpus)
+        assert num_cpus
         # use high numbered cpus
         cpu_list = cpu_a.get_n_cpus(num_cpus, low=False)
-        
+
         new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_list)), cmd)
         return new_cmd
 
