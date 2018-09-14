@@ -16,12 +16,17 @@ import pprint
 import subprocess
 import sys
 import urllib
+
 import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
 
+import cpu_lib
+
 class TestConfig(object):
-    """ Configuration for run_micro_bench """
+    """ Configuration for run_micro_bench.
+        All information is read-only.
+    """
     def __init__(self):
         # benchmark executables to run
         self.benchmark_list = ["data_table_benchmark",
@@ -36,6 +41,9 @@ class TestConfig(object):
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
+
+        # minimum run time for the benchmark, seconds
+        self.min_time = 10
 
         # reference data from
         self.project = "terrier_nightly"
@@ -443,8 +451,26 @@ class GBBenchResult(object):
         time_attr = getattr(self, "time_type", "cpu_time")
         return getattr(self, time_attr)
 
+    def get_time_secs(self):
+        """ Return execution time, normalized to seconds """
+
+        divisor_dict = {"ms" : 10**3,
+                        "us" : 10**6,
+                        "ns" : 10**9}
+        tv = self.get_time()
+        time_unit = self.get_time_unit()
+        divisor = divisor_dict[time_unit]
+        tv = float(tv)/divisor
+        return tv
+
     def get_time_unit(self):
-        """ Get execution time unit(s) """
+        """ Get execution time unit(s)
+            One of
+            unit,  multiplier
+            ms     1e3
+            us     1e6
+            ns     1e9
+        """
         return self.time_unit
 
     def get_items_per_second(self):
@@ -609,10 +635,11 @@ class GBenchToJUnit(object):
         # add tests
         for test in testsuite_dict["testcases"]:
             test_el = ElementTree.SubElement(test_suite_el, "testcase")
-            test_el.set("classname", getattr(test, "suite_name"))
-            test_el.set("name", getattr(test, "test_name"))
+            test_el.set("classname", test.get_suite_name())
+            test_el.set("name", test.get_test_name())
+
             # set time based on real_time or cpu_time
-            test_el.set("time", str(getattr(test, "real_time")))
+            test_el.set("time", str(test.get_time_secs()))
 
         tree.write(self.output_file, xml_declaration=True, encoding='utf8')
         return
@@ -664,6 +691,11 @@ class RunMicroBenchmarks(object):
                          self.min_time,
                          output_file)
 
+        # use all the cpus from the highest numbered numa node
+        cpu_id_list = self._get_single_numa_cpu_list()
+        cmd = self._taskset_cmd_by_cpu_id_list(cmd, cpu_id_list)
+        print "cmd = ", cmd
+
         ret_val = subprocess.call([cmd],
                                   shell=True,
                                   stdout=sys.stdout,
@@ -675,6 +707,35 @@ class RunMicroBenchmarks(object):
 
         # return the process exit code
         return ret_val
+
+    def _taskset_cmd(self, cmd, num_cpus):
+        """ modify cmd to be via taskset """
+        cpu_a = cpu_lib.CPUAllocator()
+        assert num_cpus
+        # use high numbered cpus
+        cpu_list = cpu_a.get_n_cpus(num_cpus, low=False)
+
+        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_list)), cmd)
+        return new_cmd
+
+    def _taskset_cmd_by_cpu_id_list(self, cmd, cpu_id_list):
+        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_id_list)),
+                                            cmd)
+        return new_cmd
+
+    def _get_single_numa_cpu_list(self):
+        cpu_a = cpu_lib.CPUAllocator()
+        # get the highest number numa node
+        numa_id = cpu_a.get_numa_ids()[-1]
+        numa_obj = cpu_a.get_numa_by_id(numa_id)
+        cpu_obj_list = numa_obj.get_cpu_list()
+
+        cpu_id_list = []
+        for cpu in cpu_obj_list:
+            if not cpu.is_free():
+                continue
+            cpu_id_list.append(cpu.get_cpu_id())
+        return cpu_id_list
 
 class Jenkins(object):
     """ Wrapper for Jenkins web api """
@@ -935,7 +996,6 @@ if __name__ == "__main__":
 
             ap.add_artifact_file(artifact.get_data())
 
-        print ""
         # Determine if we have enough history. Stop collecting
         # information if we do
         if ap.have_min_history(test_config.get_min_ref_values()):
@@ -994,6 +1054,7 @@ if __name__ == "__main__":
     tt.add_column("num_results", "nres")
     tt.add_column("suite")
     tt.add_column("test")
+    print ""
     print tt
 
     print "Exit code = ", ret
