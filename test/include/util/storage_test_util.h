@@ -69,12 +69,12 @@ struct StorageTestUtil {
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
     TERRIER_ASSERT(max_cols > 1, "There should be at least 2 cols (first is version).");
     // We probably won't allow tables with fewer than 2 columns
-    uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(2, max_cols)(*generator);
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(2, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
     for (uint16_t i = 1; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
-    return {num_attrs, attr_sizes};
+    return storage::BlockLayout(attr_sizes);
   }
 
   // Fill the given location with the specified amount of random bytes, using the
