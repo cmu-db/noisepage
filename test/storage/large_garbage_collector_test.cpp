@@ -67,4 +67,31 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
     EndGC();
   }
 }
+
+// This test is similar to the previous one, but with a higher ration of updates
+// and longer transactions leading to more aborts.
+TEST_F(LargeGCTests, HighAbortRateWithGC) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 2;
+  const uint32_t initial_table_size = 1000;
+  const uint32_t txn_length = 40;
+  const uint32_t num_txns = 1000;
+  const uint32_t batch_size = 200;
+  const std::vector<double> update_select_ratio = {0.7, 0.3};
+  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
+                                      &buffer_pool_, &generator_, true, true);
+    StartGC(tested.GetTxnManager(), 10);
+    for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
+      auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
+      paused_ = true;
+      tested.CheckReadsCorrect(&result.first);
+      for (auto w : result.first) delete w;
+      for (auto w : result.second) delete w;
+      paused_ = false;
+    }
+    EndGC();
+  }
+}
 }  // namespace terrier
