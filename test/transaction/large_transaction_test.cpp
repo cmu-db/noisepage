@@ -55,7 +55,7 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
 TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
   const uint32_t txn_length = 40;
   const std::vector<double> update_select_ratio = {0.7, 0.3};
-  const uint32_t num_concurrent_txns = 2*TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                       &buffer_pool_, &generator_, false, true);

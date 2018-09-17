@@ -68,7 +68,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   }
 }
 
-// This test is similar to the previous one, but with a higher ration of updates
+// This test is similar to the previous one, but with a higher ratio of updates
 // and longer transactions leading to more aborts.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateWithGC) {
@@ -96,7 +96,7 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
 TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   const uint32_t txn_length = 40;
   const std::vector<double> update_select_ratio = {0.7, 0.3};
-  const uint32_t num_concurrent_txns = 2*TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                       &buffer_pool_, &generator_, true, true);
@@ -113,7 +113,7 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   }
 }
 
-// This test attempts simulate a TPC-C-like scenario.
+// This test attempts to simulate a TPC-C-like scenario.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, TPCCWithGC) {
   const uint32_t txn_length = 5;
@@ -140,7 +140,7 @@ TEST_F(LargeGCTests, TPCCWithGC) {
 TEST_F(LargeGCTests, TPCCHighThreadWithGC) {
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
-  const uint32_t num_concurrent_txns = 2*TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                       &buffer_pool_, &generator_, true, true);
