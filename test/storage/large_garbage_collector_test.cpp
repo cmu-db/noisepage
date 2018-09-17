@@ -142,7 +142,6 @@ TEST_F(LargeGCTests, TPCCWithGC) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       paused_ = true;
       tested.CheckReadsCorrect(&result.first);
-      using namespace std;
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
       paused_ = false;
@@ -170,7 +169,6 @@ TEST_F(LargeGCTests, TPCCHighThreadWithGC) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
       paused_ = true;
       tested.CheckReadsCorrect(&result.first);
-      using namespace std;
       for (auto w : result.first) delete w;
       for (auto w : result.second) delete w;
       paused_ = false;
