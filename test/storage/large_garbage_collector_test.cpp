@@ -21,6 +21,11 @@ class LargeGCTests : public TerrierTest {
     delete gc_;
   }
 
+  const uint32_t num_iterations = 100;
+  const uint16_t max_columns = 20;
+  const uint32_t initial_table_size = 1000;
+  const uint32_t num_txns = 100;
+  const uint32_t batch_size = 100;
   storage::BlockStore block_store_{1000, 1000};
   common::ObjectPool<storage::BufferSegment> buffer_pool_{1000, 1000};
   std::default_random_engine generator_;
@@ -44,12 +49,7 @@ class LargeGCTests : public TerrierTest {
 // to make sure they are the same.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
-  const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 10;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 100;
   const std::vector<double> update_select_ratio = {0.3, 0.7};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -72,12 +72,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
 // and longer transactions leading to more aborts.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateWithGC) {
-  const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 40;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 200;
   const std::vector<double> update_select_ratio = {0.7, 0.3};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -99,12 +94,7 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
 // This test duplicates the previous one with a higher number of thread swapouts.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
-  const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 40;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 200;
   const std::vector<double> update_select_ratio = {0.7, 0.3};
   const uint32_t num_concurrent_txns = 2*TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -126,12 +116,7 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
 // This test attempts simulate a TPC-C-like scenario.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, TPCCWithGC) {
-  const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 5;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 100;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
@@ -153,12 +138,7 @@ TEST_F(LargeGCTests, TPCCWithGC) {
 // This test duplicates the previous one with a higher number of thread swapouts.
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, TPCCHighThreadWithGC) {
-  const uint32_t num_iterations = 10;
-  const uint16_t max_columns = 2;
-  const uint32_t initial_table_size = 1000;
   const uint32_t txn_length = 5;
-  const uint32_t num_txns = 1000;
-  const uint32_t batch_size = 100;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 2*TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
