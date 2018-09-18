@@ -96,5 +96,4 @@ TEST_F(LargeTransactionTests, TPCCHighThread) {
     for (auto w : result.second) delete w;
   }
 }
-
 }  // namespace terrier
