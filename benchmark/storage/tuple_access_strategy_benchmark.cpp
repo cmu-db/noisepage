@@ -27,9 +27,8 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final { delete[] redo_buffer_; }
 
   // Tuple layout_
-  const uint16_t num_columns_ = 2;
   const uint8_t column_size_ = 8;
-  const storage::BlockLayout layout_{num_columns_, {column_size_, column_size_}};
+  const storage::BlockLayout layout_{{column_size_, column_size_}};
 
   // Tuple properties
   const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
@@ -38,10 +37,11 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
   const uint32_t num_blocks_ = num_inserts_ / layout_.NumSlots();
+  const uint64_t block_store_reuse_limit_ = num_blocks_;
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{num_blocks_};
+  storage::BlockStore block_store_{num_blocks_, block_store_reuse_limit_};
 
   std::vector<storage::RawBlock *> raw_blocks_;
   // Insert buffer pointers
@@ -111,7 +111,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
   state.SetItemsProcessed(state.iterations() * layout_.NumSlots() * num_blocks_);
 }
 
-BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
 

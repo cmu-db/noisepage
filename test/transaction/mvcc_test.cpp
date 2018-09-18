@@ -15,7 +15,7 @@ class MVCCDataTableTestObject {
  public:
   template <class Random>
   MVCCDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_) {}
+      : layout_(StorageTestUtil::RandomLayout(max_col, generator)), table_(block_store, layout_, layout_version_t(0)) {}
 
   ~MVCCDataTableTestObject() {
     for (auto ptr : loose_pointers_) delete[] ptr;
@@ -77,8 +77,8 @@ class MVCCDataTableTestObject {
 
 class MVCCTests : public ::terrier::TerrierTest {
  public:
-  storage::BlockStore block_store_{100};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
+  storage::BlockStore block_store_{100, 100};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   const uint32_t num_iterations_ = 100;
   const uint16_t max_columns_ = 100;

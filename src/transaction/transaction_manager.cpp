@@ -3,7 +3,7 @@
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  common::ReaderWriterLatch::ScopedReaderLatch guard(&commit_latch_);
+  common::SharedLatch::ScopedSharedLatch guard(&commit_latch_);
   timestamp_t start_time = time_++;
   // TODO(Tianyu):
   // Maybe embed this into the data structure, or use an object pool?
@@ -19,7 +19,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 }
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
-  common::ReaderWriterLatch::ScopedWriterLatch guard(&commit_latch_);
+  common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
   const timestamp_t commit_time = time_++;
   // Flip all timestamps to be committed
@@ -28,9 +28,9 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  TERRIER_ASSERT(result == 1, "committed transaction did not exist in global transactions table");
+  TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
   txn->TxnId().store(commit_time);
-  if (gc_enabled_) completed_txns_.push(txn);
+  if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
   return commit_time;
 }
@@ -43,8 +43,8 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-  TERRIER_ASSERT(ret == 1, "aborted transaction did not exist in global transactions table");
-  if (gc_enabled_) completed_txns_.push(txn);
+  TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
+  if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
 }
 

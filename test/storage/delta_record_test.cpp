@@ -15,7 +15,7 @@ struct DeltaRecordTests : public TerrierTest {
   std::uniform_int_distribution<uint64_t> timestamp_dist_{0, ULONG_MAX};
 
   storage::RawBlock *raw_block_ = nullptr;
-  storage::BlockStore block_store_{1};
+  storage::BlockStore block_store_{10, 10};
 
  protected:
   void SetUp() override {
@@ -47,7 +47,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
       // get data table
-      storage::DataTable data_table(&block_store_, layout);
+      storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
       // get tuple slot
       storage::TupleSlot slot;
@@ -92,7 +92,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // projected row
 
     // get data table
-    storage::DataTable data_table(&block_store_, layout);
+    storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
 
     // get tuple slot
     storage::TupleSlot slot;

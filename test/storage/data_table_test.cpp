@@ -17,7 +17,7 @@ class RandomDataTableTestObject {
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
-        table_(block_store, layout_),
+        table_(block_store, layout_, layout_version_t(0)),
         null_bias_(null_bias) {}
 
   ~RandomDataTableTestObject() {
@@ -126,8 +126,8 @@ class RandomDataTableTestObject {
 };
 
 struct DataTableTests : public TerrierTest {
-  storage::BlockStore block_store_{100};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000};
+  storage::BlockStore block_store_{100, 100};
+  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
