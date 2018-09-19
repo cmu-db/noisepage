@@ -69,8 +69,7 @@ struct PosixIoWrappers {
    */
   static void WriteFully(int fd, const void *buf, size_t nbyte);
 };
-// TODO(Tianyu): Apparently, c++ fstream is considered slow and inefficient. Additionally, we
-// need control over when and what to flush as the log manager. Thus, we need to write our
+// TODO(Tianyu):  we need control over when and what to flush as the log manager. Thus, we need to write our
 // own wrapper around lower level I/O functions. I could be wrong, and in that case we should
 // revert to using STL.
 /**

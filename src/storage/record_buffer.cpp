@@ -4,7 +4,7 @@ namespace terrier::storage {
 byte *UndoBuffer::NewEntry(const uint32_t size) {
   if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
     // we are out of space in the buffer. Get a new buffer segment.
-    BufferSegment *new_segment = buffer_pool_->Get();
+    RecordBufferSegment *new_segment = buffer_pool_->Get();
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
     buffers_.push_back(new_segment);
   }

@@ -151,7 +151,9 @@ class RedoRecord {
 
   /**
    * TODO(Tianyu): Remove this as we clean up serialization
-   * Hacky back door for BufferedLogReader
+   * Hacky back door for BufferedLogReader. Essentially, the current implementation dumps memory content straight out
+   * to disk, which we then read directly back into the projected row. After the serialization format is decided, write
+   * a real factory method for recovery.
    * @param head
    * @param size
    * @param txn_begin

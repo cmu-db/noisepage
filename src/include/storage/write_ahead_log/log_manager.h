@@ -1,10 +1,10 @@
 #pragma once
 
 #include <functional>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/record_buffer.h"
@@ -45,7 +45,10 @@ class LogManager {
    *
    * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(BufferSegment *buffer) { flush_queue_.Enqueue(buffer); }
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer) {
+    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+    flush_queue_.push(buffer);
+  }
 
   /**
    * Register a callback for the committed transaction beginning at the given time, such that the callback will be
@@ -58,7 +61,7 @@ class LogManager {
    *                 on resources.
    */
   void RegisterTransactionFlushedCallback(timestamp_t txn_begin, const std::function<void()> &callback) {
-    common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
     auto ret UNUSED_ATTRIBUTE = callbacks_.emplace(txn_begin, callback);
     TERRIER_ASSERT(ret.second, "Insertion failed, callback is already registered for given transaction");
   }
@@ -83,11 +86,11 @@ class LogManager {
   BufferedLogWriter out_;
   RecordBufferSegmentPool *buffer_pool_;
 
-  // These need to be thread-safe since various execution threads will modify these
-  common::ConcurrentQueue<BufferSegment *> flush_queue_;
-
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
-  common::SpinLatch callbacks_latch_;
+  common::SpinLatch log_manager_latch_;
+  // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
+  // optimization we applied to the GC queue.
+  std::queue<RecordBufferSegment *> flush_queue_;
   std::unordered_map<timestamp_t, std::function<void()>> callbacks_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread

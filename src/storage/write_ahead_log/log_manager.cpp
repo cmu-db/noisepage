@@ -2,19 +2,22 @@
 
 namespace terrier::storage {
 void LogManager::Process() {
-  BufferSegment *buffer;
-  while (flush_queue_.Dequeue(&buffer)) {
+  while (true) {
+    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+    if (flush_queue_.empty()) return;
+    RecordBufferSegment *buffer = flush_queue_.front();
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
       if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
     }
     buffer_pool_->Release(buffer);
+    flush_queue_.pop();
   }
 }
 
 void LogManager::Flush() {
   out_.Flush();
-  common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
   for (timestamp_t txn : commits_in_buffer_) {
     auto it = callbacks_.find(txn);
     TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");

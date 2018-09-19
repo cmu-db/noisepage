@@ -8,14 +8,14 @@
 namespace terrier::storage {
 
 /**
- * An UndoBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
+ * A RecordBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
  * of its memory usage.
  *
  * This class should not be used by itself. @see UndoBuffer, @see RedoBuffer
  *
  * Not thread-safe.
  */
-class BufferSegment {
+class RecordBufferSegment {
  public:
   /**
    * @param size the amount of bytes to check for
@@ -42,7 +42,7 @@ class BufferSegment {
    *
    * @return self pointer for chaining
    */
-  BufferSegment *Reset() {
+  RecordBufferSegment *Reset() {
     size_ = 0;
     return this;
   }
@@ -118,8 +118,9 @@ class IterableBufferSegment {
 
    private:
     friend class IterableBufferSegment;
-    Iterator(BufferSegment *segment, uint32_t segment_offset) : segment_(segment), segment_offset_(segment_offset) {}
-    BufferSegment *segment_;
+    Iterator(RecordBufferSegment *segment, uint32_t segment_offset)
+        : segment_(segment), segment_offset_(segment_offset) {}
+    RecordBufferSegment *segment_;
     uint32_t segment_offset_;
   };
 
@@ -127,7 +128,7 @@ class IterableBufferSegment {
    * Instantiates an IterableBufferSegment as a wrapper around a buffer segment
    * @param segment
    */
-  explicit IterableBufferSegment(BufferSegment *segment) : segment_(segment) {}
+  explicit IterableBufferSegment(RecordBufferSegment *segment) : segment_(segment) {}
 
   /**
    * @return iterator to the first element
@@ -140,7 +141,7 @@ class IterableBufferSegment {
   Iterator end() { return {segment_, segment_->size_}; }
 
  private:
-  BufferSegment *segment_;
+  RecordBufferSegment *segment_;
 };
 
 /**
@@ -152,8 +153,8 @@ class RecordBufferSegmentAllocator {
    * Allocates a new BufferSegment
    * @return a new buffer segment
    */
-  BufferSegment *New() {
-    auto *result = new BufferSegment;
+  RecordBufferSegment *New() {
+    auto *result = new RecordBufferSegment;
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
     return result;
   }
@@ -162,19 +163,19 @@ class RecordBufferSegmentAllocator {
    * Resets the given buffer segment for use
    * @param reused the buffer to reuse
    */
-  void Reuse(BufferSegment *const reused) { reused->Reset(); }
+  void Reuse(RecordBufferSegment *const reused) { reused->Reset(); }
 
   /**
    * Delete the given buffer segment and frees the memory
    * @param ptr the buffer to delete
    */
-  void Delete(BufferSegment *const ptr) { delete ptr; }
+  void Delete(RecordBufferSegment *const ptr) { delete ptr; }
 };
 
 /**
  * Type alias for an object pool handing out buffer segments
  */
-using RecordBufferSegmentPool = common::ObjectPool<BufferSegment, RecordBufferSegmentAllocator>;
+using RecordBufferSegmentPool = common::ObjectPool<RecordBufferSegment, RecordBufferSegmentAllocator>;
 
 // TODO(Tianyu): Not thread-safe. We can probably just allocate thread-local buffers (or segments) if we ever want
 // multiple workers on the same transaction.
@@ -258,9 +259,9 @@ class UndoBuffer {
 
    private:
     friend class UndoBuffer;
-    Iterator(std::vector<BufferSegment *>::iterator curr_segment, uint32_t segment_offset)
+    Iterator(std::vector<RecordBufferSegment *>::iterator curr_segment, uint32_t segment_offset)
         : curr_segment_(curr_segment), segment_offset_(segment_offset) {}
-    std::vector<BufferSegment *>::iterator curr_segment_;
+    std::vector<RecordBufferSegment *>::iterator curr_segment_;
     uint32_t segment_offset_;
   };
 
@@ -301,7 +302,7 @@ class UndoBuffer {
 
  private:
   RecordBufferSegmentPool *buffer_pool_;
-  std::vector<BufferSegment *> buffers_;
+  std::vector<RecordBufferSegment *> buffers_;
 };
 
 class LogManager;  // forward declaration
@@ -322,8 +323,8 @@ class RedoBuffer {
       : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
 
   /**
-   * Reserve a redo record with the given size. The returned pointer is guaranteed to be valid until NewEntry is called
-   * again, or when the buffer is explicitly flushed by the call Finish().
+   * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
+   * is called again, or when the buffer is explicitly flushed by the call Finish().
    * @param size the size of the redo record to allocate
    * @return a new redo record with at least the given size reserved
    */
@@ -344,6 +345,6 @@ class RedoBuffer {
  private:
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
-  BufferSegment *buffer_seg_ = nullptr;
+  RecordBufferSegment *buffer_seg_ = nullptr;
 };
 }  // namespace terrier::storage
