@@ -21,7 +21,7 @@ class LargeGCTests : public TerrierTest {
     delete gc_;
   }
 
-  const uint32_t num_iterations = 100;
+  const uint32_t num_iterations = 10;
   const uint16_t max_columns = 20;
   const uint32_t initial_table_size = 1000;
   const uint32_t num_txns = 1000;
