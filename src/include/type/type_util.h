@@ -2,8 +2,6 @@
 
 namespace terrier::type {
 
-#define VARLEN 0
-
 /**
  * Static utility class for common functions in type
  */
@@ -35,7 +33,7 @@ class TypeUtil {
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
       case TypeId::ARRAY:
-        return VARLEN;
+        return 0;
       default:
         break;
     }
