@@ -21,7 +21,7 @@ class LargeTransactionTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWrite) {
   const uint32_t txn_length = 10;
-  const std::vector<double> update_select_ratio = {0.4, 0.6};
+  const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -37,7 +37,7 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
   const uint32_t txn_length = 10;
-  const std::vector<double> update_select_ratio = {0.4, 0.6};
+  const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -86,7 +86,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, HighAbortRate) {
   const uint32_t txn_length = 40;
-  const std::vector<double> update_select_ratio = {0.7, 0.3};
+  const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -102,7 +102,7 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
 // NOLINTNEXTLINE
 TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
   const uint32_t txn_length = 40;
-  const std::vector<double> update_select_ratio = {0.7, 0.3};
+  const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,

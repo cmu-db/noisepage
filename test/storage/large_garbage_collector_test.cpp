@@ -21,7 +21,7 @@ class LargeGCTests : public TerrierTest {
     delete gc_;
   }
 
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
   const uint32_t initial_table_size = 1000;
   const uint32_t num_txns = 1000;
@@ -52,7 +52,7 @@ class LargeGCTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const uint32_t txn_length = 10;
-  const std::vector<double> update_select_ratio = {0.4, 0.6};
+  const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -74,7 +74,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
   const uint32_t txn_length = 10;
-  const std::vector<double> update_select_ratio = {0.4, 0.6};
+  const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -141,7 +141,7 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateWithGC) {
   const uint32_t txn_length = 40;
-  const std::vector<double> update_select_ratio = {0.7, 0.3};
+  const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
@@ -163,7 +163,7 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
 // NOLINTNEXTLINE
 TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
   const uint32_t txn_length = 40;
-  const std::vector<double> update_select_ratio = {0.7, 0.3};
+  const std::vector<double> update_select_ratio = {0.8, 0.2};
   const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
