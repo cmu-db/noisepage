@@ -1,7 +1,7 @@
 #include "storage/storage_util.h"
 #include <unordered_map>
-#include "storage/delta_record.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 
 namespace terrier::storage {
 void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *const pos) {

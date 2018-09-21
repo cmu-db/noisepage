@@ -63,7 +63,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    if (txn->GetUndoBuffer().Empty()) {
+    if (txn->undo_buffer_.Empty()) {
       // this is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
@@ -74,8 +74,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // this is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
-      UndoBuffer &undos = txn->GetUndoBuffer();
-      for (auto &undo_record : undos) {
+      for (auto &undo_record : txn->undo_buffer_) {
         UnlinkUndoRecord(txn, undo_record);
       }
       txns_to_deallocate_.push_front(txn);

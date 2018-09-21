@@ -10,7 +10,7 @@ class LargeTransactionTests : public TerrierTest {
   const uint32_t initial_table_size = 1000;
   const uint32_t num_txns = 1000;
   storage::BlockStore block_store_{1000, 1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
 };
 

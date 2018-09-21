@@ -11,9 +11,11 @@ namespace terrier {
 class FakeTransaction {
  public:
   FakeTransaction(const storage::BlockLayout &layout, storage::DataTable *table, const double null_bias,
-                  const timestamp_t start_time, const timestamp_t txn_id,
-                  common::ObjectPool<storage::BufferSegment> *buffer_pool)
-      : layout_(layout), table_(table), null_bias_(null_bias), txn_(start_time, txn_id, buffer_pool) {}
+                  const timestamp_t start_time, const timestamp_t txn_id, storage::RecordBufferSegmentPool *buffer_pool)
+      : layout_(layout),
+        table_(table),
+        null_bias_(null_bias),
+        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED) {}
 
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_) delete[] ptr;
@@ -72,7 +74,7 @@ class FakeTransaction {
 
 struct DataTableConcurrentTests : public TerrierTest {
   storage::BlockStore block_store_{100, 100};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{10000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
