@@ -3,9 +3,9 @@
 #include <vector>
 #include "common/container/concurrent_vector.h"
 #include "common/performance_counter.h"
-#include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -54,6 +54,12 @@ class DataTable {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     for (RawBlock *block : blocks_) block_store_->Release(block);
   }
+
+  // TODO(Tianyu): Implement
+  /**
+   * @return table oid of this data table
+   */
+  table_oid_t TableOid() const { return table_oid_t{0}; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.

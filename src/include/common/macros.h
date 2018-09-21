@@ -119,6 +119,21 @@ namespace terrier::common {
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
 
+/**
+ * Used to mark a class as only obtainable from reinterpreting a chunk of memory initialized as byte array or a buffer.
+ *
+ * Such classes typically have variable-length objects, that the c++ compiler cannot initialize or lay out correctly as
+ * local variables. Thus we will have to keep track of the memory space and take care to only refer to these objects
+ * with pointers.
+ *
+ * Typically classes marked with these will expose static factory methods that calculate the size of an object in memory
+ * given some parameters and an Initialize method to construct a valid object from pointer to a chunk of memory
+ */
+#define MEM_REINTERPRETAION_ONLY(cname) \
+  cname() = delete;                     \
+  DISALLOW_COPY_AND_MOVE(cname)         \
+  ~cname() = delete;
+
 //===----------------------------------------------------------------------===//
 // LLVM version checking macros
 //===----------------------------------------------------------------------===//

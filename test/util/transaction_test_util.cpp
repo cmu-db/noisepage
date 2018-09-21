@@ -33,6 +33,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
+
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   if (test_object_->bookkeeping_) {
     auto it = updates_.find(updated);
@@ -43,6 +44,11 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
       return;
     }
     updates_[updated] = update;
+  }
+  // TODO(Tianyu): Hardly efficient, but will do for testing.
+  if (test_object_->wal_on_) {
+    auto *record = txn_->StageWrite(nullptr, updated, initializer);
+    TERRIER_MEMCPY(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -72,22 +78,23 @@ void RandomWorkloadTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, [] {});
 }
 
 LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
                                                        uint32_t txn_length, std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
-                                                       common::ObjectPool<storage::BufferSegment> *buffer_pool,
+                                                       storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping)
+                                                       bool bookkeeping, storage::LogManager *log_manager)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
       layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
       table_(block_store, layout_, layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on),
+      txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
+      wal_on_(log_manager != LOGGING_DISABLED),
       bookkeeping_(bookkeeping) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
@@ -192,9 +199,14 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
                                                : reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
+    // TODO(Tianyu): Hardly efficient, but will do for testing.
+    if (wal_on_) {
+      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
+      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+    }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
-  txn_manager_.Commit(initial_txn_);
+  txn_manager_.Commit(initial_txn_, [] {});
   // cleanup if not keeping track of all the inserts.
   if (!bookkeeping_) delete[] redo_buffer;
 }

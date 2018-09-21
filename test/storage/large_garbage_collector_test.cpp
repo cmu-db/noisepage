@@ -27,7 +27,7 @@ class LargeGCTests : public TerrierTest {
   const uint32_t num_txns = 1000;
   const uint32_t batch_size = 100;
   storage::BlockStore block_store_{1000, 1000};
-  common::ObjectPool<storage::BufferSegment> buffer_pool_{1000, 1000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000, 1000};
   std::default_random_engine generator_;
   volatile bool run_gc_ = false;
   volatile bool paused_ = false;
