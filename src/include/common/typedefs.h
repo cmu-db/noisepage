@@ -67,7 +67,7 @@ class StrongTypeAlias {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
  public:
-  StrongTypeAlias() : val_() {}
+  StrongTypeAlias() = default;
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
