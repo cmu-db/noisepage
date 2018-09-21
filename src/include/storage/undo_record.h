@@ -36,6 +36,13 @@ class UndoRecord {
 
   /**
    * @return the DataTable this UndoRecord points to
+   * @warning this can be nullptr if it was never installed in a version chain, or unlinked by GC
+   */
+  DataTable *&Table() { return table_; }
+
+  /**
+   * @return the DataTable this UndoRecord points to
+   * @warning this can be nullptr if it was never installed in a version chain, or unlinked by GC
    */
   DataTable *Table() const { return table_; }
 
