@@ -45,13 +45,12 @@ class TestConfig(object):
         # minimum run time for the benchmark, seconds
         self.min_time = 10
 
-        # reference data from
-        self.project = "terrier_nightly"
-        self.branch = "master"
-
-        # temporarily, until the above is set up
-        self.project = "pa_terrier"
-        self.branch = "micro_bench"
+        # Pull reference benchmark runs from this ordered list
+        # of sources. Stop if the history requirements are met.
+        self.ref_data_sources = [{"project" : "terrier-nightly"},
+                                 {"project" :  "pa_terrier",
+                                  "branch" : "micro_bench"},
+                                ]
         return
 
     def get_benchmark_list(self):
@@ -304,9 +303,10 @@ class ArtifactProcessor(object):
     """ Compute summary stats from Google Benchmark results.
         Provide access by (suite_name, test_name)
     """
-    def __init__(self):
+    def __init__(self, required_num_items=None):
         # key = (suite_name, test_name)
         self.results = {}
+        self.required_num_items = required_num_items
         return
 
     def add_artifact_file(self, data):
@@ -330,25 +330,26 @@ class ArtifactProcessor(object):
                 gbr_p = GBBenchResultProcessor()
                 self.results[key] = gbr_p
 
-            gbr_p.add_gbresult(bench_result)
+            if (self.required_num_items and
+                    (gbr_p.get_num_items() < self.required_num_items)):
+                gbr_p.add_gbresult(bench_result)
         return
 
-    def have_min_history(self, required_num_items):
+    def have_min_history(self):
         """ Check if we have accumulated enough results
             required_num_items : minimum number of results required
             return:
                 True: have them
                 False: need more
         """
-        ret_val = True
         keys = self.results.keys()
         for key in keys:
             suite_name, test_name = key
             result = self.get_result(suite_name, test_name)
-            if result.get_num_items() < required_num_items:
-                ret_val = False
-                break
-        return ret_val
+            if (self.required_num_items and
+                    (result.get_num_items() < required_num_items)):
+                return False
+        return True
 
     def get_result(self, suite_name, test_name):
         """ Return a GBBenchResultProcessor, that can supply
@@ -671,8 +672,8 @@ class RunMicroBenchmarks(object):
             bench_ret_val = self.run_single_benchmark(benchmark_name)
             if bench_ret_val:
                 if self.verbose:
-                    print "{} terminated with {}".format(benchmark_name,
-                                                         bench_ret_val)
+                    print("{} terminated with {}".format(benchmark_name,
+                                                         bench_ret_val))
                 ret_val = bench_ret_val
 
         # return fail, if any of the benchmarks failed to run or complete
@@ -694,7 +695,7 @@ class RunMicroBenchmarks(object):
         # use all the cpus from the highest numbered numa node
         cpu_id_list = self._get_single_numa_cpu_list()
         cmd = self._taskset_cmd_by_cpu_id_list(cmd, cpu_id_list)
-        print "cmd = ", cmd
+        print("cmd = {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
                                   shell=True,
@@ -749,15 +750,17 @@ class Jenkins(object):
 
         Parameters:
         project : string
-            Name of project, e.g. Peloton
+            Name of project, e.g. Peloton. Required.
         branch : string
-            Branch desired
+            May be None.
         status_filter:
             if provided, filter results
 
         Returns a list of Build objects
         """
-        url = "{}/job/{}/job/{}".format(self.base_url, project, branch)
+        url = "{}/job/{}".format(self.base_url, project)
+        if branch:
+            url = "{}/job/{}".format(url, branch)
         python_url = "{}/api/python".format(url)
         try:
             data = eval(urllib.urlopen(python_url).read())
@@ -977,28 +980,38 @@ if __name__ == "__main__":
     ret = run_bench.run_all_benchmarks()
 
     # need <n> benchmark results to compare against
-    ap = ArtifactProcessor()
+    ap = ArtifactProcessor(test_config.get_min_ref_values())
     h = Jenkins()
 
-    builds = h.get_builds(test_config.get_ref_project(),
-                          test_config.get_ref_branch(),
-                          status_filter="SUCCESS")
+    data_src_list = test_config.ref_data_sources
+    more = True
+    for repo_dict in data_src_list:
+        project = repo_dict.get("project")
+        branch = repo_dict.get("branch")
+        builds = h.get_builds(project, branch, status_filter="SUCCESS")
 
-    for build in builds:
-        if args.verbose:
-            print "build {}, status {}".format(build.get_number(),
-                                               build.get_result())
-        artifacts = build.get_artifacts()
-        for artifact in artifacts:
-            artifact_filename = artifact.get_filename()
+        for build in builds:
             if args.verbose:
-                print "artifact: {}".format(artifact_filename)
+                print("({}, {}), build {}, status {}".format(project,
+                                                             branch,
+                                                             build.get_number(),
+                                                             build.get_result()))
 
-            ap.add_artifact_file(artifact.get_data())
+            artifacts = build.get_artifacts()
+            for artifact in artifacts:
+                artifact_filename = artifact.get_filename()
+                if args.verbose:
+                    print("artifact: {}".format(artifact_filename))
 
-        # Determine if we have enough history. Stop collecting
-        # information if we do
-        if ap.have_min_history(test_config.get_min_ref_values()):
+                ap.add_artifact_file(artifact.get_data())
+
+            # Determine if we have enough history. Stop collecting
+            # information if we do
+            if ap.have_min_history():
+                more = False
+                break
+
+        if more is False:
             break
 
     """
@@ -1054,9 +1067,8 @@ if __name__ == "__main__":
     tt.add_column("num_results", "nres")
     tt.add_column("suite")
     tt.add_column("test")
-    print ""
-    print tt
+    print("")
+    print(tt)
 
-    print "Exit code = ", ret
+    print("Exit code = {}".format(ret))
     sys.exit(ret)
-
