@@ -53,7 +53,12 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
-  if (HasConflict(version_ptr, txn)) return false;
+  if (HasConflict(version_ptr, txn)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
+  }
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
@@ -62,7 +67,12 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
   // At this point, either tuple write lock is ownable, or the current transaction already owns this slot.
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) return false;
+  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
+  }
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
 

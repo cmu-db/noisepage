@@ -79,10 +79,15 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
 
 void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoRecord &record) const {
   storage::DataTable *const table = record.Table();
+  if (table == nullptr) {
+    // This UndoRecord was never installed in the version chain, so we can skip it
+    return;
+  }
   const storage::TupleSlot slot = record.Slot();
   storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
   // We do not hold the lock. Should just return
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() != txn_id) return;
+  TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn_id,
+                 "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
   // Re-apply the before image
   for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
     storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
