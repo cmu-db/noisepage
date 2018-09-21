@@ -125,8 +125,9 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
   }
 }
 
-// Insert a tuples and commit. Next transaction tries to update 1 tuple, verify that GC doesn't unlink or free the
-// Insert txn's context until safe to do so NOLINTNEXTLINE
+// Insert a tuple and commit. Next transaction tries to update that tuple (takes write lock), verify that GC doesn't
+// unlink or free the Insert txn's context until safe to do so
+// NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, WriteWriteConflictRequeue) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
