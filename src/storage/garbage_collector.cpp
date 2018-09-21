@@ -64,35 +64,38 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
     if (txn->undo_buffer_.Empty()) {
-      // this is a read-only transaction so this is safe to immediately delete
+      // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
     } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
-      // this is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
+      // This is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
-      // this is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
+      // This is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
 
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
         all_unlinked = all_unlinked && UnlinkUndoRecord(txn, &undo_record);
       }
       if (all_unlinked) {
+        // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
         txns_to_deallocate_.push_front(txn);
         txns_processed++;
       } else {
-        // we didn't unlink all of the UndoRecords, requeue for next GC run
+        // We didn't unlink all of the UndoRecords (UnlinkUndoRecord returned false due to a write-write conflict),
+        // requeue txn for next GC run. Unlinked UndoRecords will be skipped on the next time around since we use the
+        // table pointer of an UndoRecord as the internal marker of being unlinked or not
         requeue.push_front(txn);
       }
     } else {
-      // this is a committed txn that is still visible, requeue for next GC run
+      // This is a committed txn that is still visible, requeue for next GC run
       requeue.push_front(txn);
     }
   }
 
-  // requeue any txns that we were still visible to running transactions
+  // Requeue any txns that we were still visible to running transactions
   if (!requeue.empty()) {
     txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
   }
@@ -106,7 +109,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
                  "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
   if (table == nullptr) {
-    // This UndoRecord has already been unlinked
+    // This UndoRecord has already been unlinked, so we can skip it
     return true;
   }
   const TupleSlot slot = undo_record->Slot();
@@ -119,6 +122,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
     // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
     if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
+      // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
       undo_record->Table() = nullptr;
       return true;
     }
@@ -130,7 +134,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   UndoRecord *curr = version_ptr;
   UndoRecord *next;
 
-  // traverse until we find the UndoRecord that we want to unlink
+  // Traverse until we find the UndoRecord that we want to unlink
   while (true) {
     next = curr->Next();
     TERRIER_ASSERT(next != nullptr, "record to unlink is not found");
@@ -138,15 +142,18 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
     curr = next;
   }
 
-  // we're in position with next being the UndoRecord to be unlinked
+  // We're in position with next being the UndoRecord to be unlinked, check if curr is committed to avoid contending
+  // with interleaved aborts. This is essentially applying first writer wins to the GC's logic.
   if (transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
-    // update the next pointer to unlink the UndoRecord
+    // Update the next pointer to unlink the UndoRecord
     curr->Next().store(next->Next().load());
-    // mark the UndoRecord as unlinked by setting its table pointer to nullptr
+    // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
     undo_record->Table() = nullptr;
     return true;
   }
 
+  // We did not successfully unlink this UndoRecord (due to the curr UndoRecord that we wanted to update to unlink our
+  // target UndoRecord not yet being committed)
   return false;
 }
 
