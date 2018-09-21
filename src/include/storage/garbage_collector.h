@@ -56,8 +56,9 @@ class GarbageCollector {
    * a while loop to handle contention from running transactions (basically restart the process if needed).
    * @param txn pointer to the transaction that created this UndoRecord
    * @param undo_record UndoRecord to be unlinked
+   * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
    */
-  void UnlinkUndoRecord(transaction::TransactionContext *txn, const UndoRecord &undo_record) const;
+  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
