@@ -1,5 +1,7 @@
 
 #pragma once
+
+#include <memory>
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"

@@ -12,6 +12,7 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+#define LOGGING_DISABLED nullptr
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
@@ -43,16 +44,14 @@ struct BlockLayout {
    * attr_sizes, as the constructor applies optimizations based on sizes. It is up to the caller to then
    * associate these "column ids" with the right upper level concepts.
    *
-   * @param num_attrs number of attributes.
    * @param attr_sizes vector of attribute sizes.
    */
-  BlockLayout(const uint16_t num_attrs, std::vector<uint8_t> attr_sizes)
-      : num_cols_(num_attrs),
-        attr_sizes_(std::move(attr_sizes)),
+  explicit BlockLayout(std::vector<uint8_t> attr_sizes)
+      : attr_sizes_(std::move(attr_sizes)),
         tuple_size_(ComputeTupleSize()),
         header_size_(ComputeHeaderSize()),
         num_slots_(ComputeNumSlots()) {
-    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= common::Constants::MAX_COL,
+    TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
                    "number of columns must be between 1 and 32767");
     TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
     // sort the attributes when laying out memory to minimize impact of padding
@@ -62,7 +61,7 @@ struct BlockLayout {
   /**
    * Number of columns.
    */
-  const uint16_t NumCols() const { return num_cols_; }
+  const uint16_t NumCols() const { return static_cast<uint16_t>(attr_sizes_.size()); }
 
   /**
    * attribute size at given col_id.
@@ -85,7 +84,6 @@ struct BlockLayout {
   const uint32_t NumSlots() const { return num_slots_; }
 
  private:
-  const uint16_t num_cols_;
   std::vector<uint8_t> attr_sizes_;
   // Cached values so that we don't have to iterate through attr_sizes_ every time.
   const uint32_t tuple_size_;
@@ -94,7 +92,6 @@ struct BlockLayout {
 
  private:
   uint32_t ComputeTupleSize() const {
-    TERRIER_ASSERT(num_cols_ == attr_sizes_.size(), "Number of attributes does not match number of attribute sizes.");
     uint32_t result = 0;
     for (auto size : attr_sizes_) result += size;
     return result;
@@ -102,7 +99,7 @@ struct BlockLayout {
 
   uint32_t ComputeHeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + num_cols_ * sizeof(uint32_t) + sizeof(uint16_t) + num_cols_ * sizeof(uint8_t));
+                                 + NumCols() * sizeof(uint32_t) + sizeof(uint16_t) + NumCols() * sizeof(uint8_t));
   }
 
   uint32_t ComputeNumSlots() const {
@@ -113,7 +110,7 @@ struct BlockLayout {
     // this later, because I don't feel like thinking about this now.
     // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
     // up to the size of 1 tuple, so this can probably change to be more optimistic,
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + num_cols_) - 2;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumCols()) - 2;
   }
 };
 

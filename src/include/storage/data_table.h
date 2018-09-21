@@ -2,9 +2,10 @@
 #include <unordered_map>
 #include <vector>
 #include "common/container/concurrent_vector.h"
-#include "storage/delta_record.h"
+#include "common/performance_counter.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -16,6 +17,17 @@ namespace terrier::storage {
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
 #define PRIMARY_KEY_COLUMN_ID col_id_t(1)
+
+// clang-format off
+#define DataTableCounterMembers(f) \
+  f(uint64_t, NumSelect) \
+  f(uint64_t, NumUpdate) \
+  f(uint64_t, NumInsert) \
+  f(uint64_t, NumNewBlock)
+// clang-format on
+DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
+#undef DataTableCounterMembers
+
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
@@ -42,6 +54,12 @@ class DataTable {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     for (RawBlock *block : blocks_) block_store_->Release(block);
   }
+
+  // TODO(Tianyu): Implement
+  /**
+   * @return table oid of this data table
+   */
+  table_oid_t TableOid() const { return table_oid_t{0}; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp.
@@ -75,6 +93,12 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  /**
+   * Return a pointer to the performance counter for the data table.
+   * @return pointer to the performance counter
+   */
+  DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
+
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
@@ -98,6 +122,7 @@ class DataTable {
   // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
   // only happen when blocks are full, thus we can afford to be optimistic
   std::atomic<RawBlock *> insertion_head_ = nullptr;
+  mutable DataTableCounter data_table_counter_;
 
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;

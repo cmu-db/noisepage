@@ -52,17 +52,16 @@ pipeline {
                 }
 
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Release/benchmark)') {
-                    agent {
-                        docker { 
-                            image 'ubuntu:bionic'
-                        }
-                    }
+                    agent { label 'benchmark' }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make -j4'
                         sh 'cd build && make runbenchmark -j4'
+                        sh 'cd script/micro_bench && ./run_micro_bench.py'
+			archiveArtifacts 'script/micro_bench/*.json'
+                        junit 'script/micro_bench/*.xml'
                     }
                 }
             }
