@@ -47,7 +47,6 @@ class SharedLatch {
    */
   class ScopedSharedLatch {
    public:
-    ScopedSharedLatch() = delete;
     /**
      * Acquire write lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
@@ -68,7 +67,6 @@ class SharedLatch {
    */
   class ScopedExclusiveLatch {
    public:
-    ScopedExclusiveLatch() = delete;
     /**
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
