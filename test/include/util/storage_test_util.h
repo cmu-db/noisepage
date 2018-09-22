@@ -181,8 +181,8 @@ struct StorageTestUtil {
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+    for (uint16_t col = 2; col < layout.NumCols(); col++) {
+      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 2));
       if (val_ptr == nullptr) {
         tested.SetNull(slot, col_id_t(col));
       } else {
@@ -197,8 +197,8 @@ struct StorageTestUtil {
   // Check that the written tuple is the same as the expected one
   static void CheckTupleEqual(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+    for (uint16_t col = 2; col < layout.NumCols(); col++) {
+      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 2));
       byte *col_slot = tested.AccessWithNullCheck(slot, col_id_t(col));
       if (val_ptr != nullptr) {
         // Read the value
