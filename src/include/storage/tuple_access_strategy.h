@@ -194,6 +194,16 @@ class TupleAccessStrategy {
   }
 
   /**
+   * Get an attribute's null value
+   * @param slot tuple slot to access
+   * @param col_id id of the column
+   * @return true if null, false otherwise
+   */
+  bool GetNull(const TupleSlot slot, const col_id_t col_id) const {
+    return ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset());
+  }
+
+  /**
    * Allocates a slot for a new tuple, writing to the given reference.
    * @param block block to allocate a slot in.
    * @param[out] slot tuple to write to.

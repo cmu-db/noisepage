@@ -118,6 +118,11 @@ class PACKED ProjectedRow {
     Bitmap().Set(offset, true);
   }
 
+  bool GetNull(const uint16_t offset) const {
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    return Bitmap().Test(offset);
+  }
+
  private:
   friend class ProjectedRowInitializer;
   uint32_t size_;

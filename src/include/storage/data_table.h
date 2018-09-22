@@ -68,7 +68,7 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    */
-  void Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
+  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to the given
@@ -134,7 +134,11 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Checks for Snapshot Isolation conflicts, used by Update
-  bool HasConflict(UndoRecord *version_ptr, transaction::TransactionContext *txn) const;
+  bool HasConflict(UndoRecord *version_ptr, const transaction::TransactionContext *txn) const;
+
+  bool LogicallyDeleted(const terrier::storage::ProjectedRow &delta) const;
+
+  bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,

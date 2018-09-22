@@ -11,16 +11,21 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 1 for logical delete.");
-  TERRIER_ASSERT(layout.NumCols() > 2, "First column is reserved for version info, second column is reserved for logical delete.");
+  TERRIER_ASSERT(layout.NumCols() > 2,
+                 "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
-void DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
+bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
-                 "The output buffer never returns the version pointer or logical delete columns, so it should have fewer attributes.");
+                 "The output buffer never returns the version pointer or logical delete columns, so it should have "
+                 "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
+  data_table_counter_.IncrementNumSelect(1);
+
   UndoRecord *version_ptr;
+  bool visible;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
     // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
@@ -31,33 +36,39 @@ void DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
+    visible = Visible(slot, accessor_);
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) return;
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
+    return visible;
+  }
 
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr &&
+  while (visible && version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+    visible = visible && !LogicallyDeleted(*(version_ptr->Delta()));
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
     version_ptr = version_ptr->Next();
   }
-  data_table_counter_.IncrementNumSelect(1);
+
+  return visible;
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
-                 "The input buffer never changes the version pointer or logical delete columns, so it should have fewer attributes.");
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have "
+                 "fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
 
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
   // write lock on the tuple.
-  if (HasConflict(version_ptr, txn)) {
+  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
     // TransactionManager's Rollback() and GC's Unlink logic
     undo->Table() = nullptr;
@@ -86,7 +97,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
-                 "The input buffer never changes the version pointer or logical delete columns, so it should have fewer attributes.");
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have "
+                 "fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
 
   // Attempt to allocate a new tuple from the block we are working on right now.
@@ -132,21 +144,32 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
-bool DataTable::HasConflict(UndoRecord *const version_ptr, transaction::TransactionContext *const txn) const {
+bool DataTable::LogicallyDeleted(const terrier::storage::ProjectedRow &delta) const {
+  for (uint16_t i = 0; i < delta.NumColumns(); i++) {
+    if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
+      return delta.GetNull(i);
+    }
+  }
+  return false;
+}
+
+bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
+  return !accessor.GetNull(slot, PRESENCE_COLUMN_ID) && accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
+}
+
+bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::TransactionContext *const txn) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const timestamp_t version_timestamp = version_ptr->Timestamp().load();
   const timestamp_t txn_id = txn->TxnId().load();
   const timestamp_t start_time = txn->StartTime();
-  return (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id)
-         // Someone else owns this tuple, write-write-conflict
-         || (transaction::TransactionUtil::Committed(version_timestamp) &&
-             transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
-  // Someone else already committed an update to this tuple while we were running, we can't update this under SI
+  const bool owned_by_other_txn =
+      (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
+  const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
+                                       transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
+  return owned_by_other_txn || newer_committed_version;
 }
 
-bool DataTable::Delete(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot) {
-  return true;
-}
+bool DataTable::Delete(terrier::transaction::TransactionContext *txn, const TupleSlot slot) { return true; }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor,
                                          UndoRecord *expected, UndoRecord *const desired) {

@@ -73,8 +73,8 @@ void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, co
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
 }
 
-void StorageUtil::ApplyDelta(const terrier::storage::BlockLayout &layout, const terrier::storage::ProjectedRow &delta,
-                             terrier::storage::ProjectedRow *buffer) {
+void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta,
+                             ProjectedRow *const buffer) {
   // the projection list in delta and buffer have to be sorted in the same way for this to work,
   // which should be guaranteed if both are constructed correctly using ProjectedRowInitializer,
   // (or copied from a valid ProjectedRow)
