@@ -11,7 +11,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 1 for logical delete.");
-  TERRIER_ASSERT(layout.NumCols() > 2,
+  TERRIER_ASSERT(layout.NumCols() > NUMBER_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
@@ -59,7 +59,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
+  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumCols() - NUMBER_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer or logical delete columns, so it should have "
                  "fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
@@ -89,17 +89,19 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     return false;
   }
   // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
+  for (uint16_t i = 0; i < redo.NumColumns(); i++){
+    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID, "Input buffer should not change the version pointer column!");
+    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID, "Input buffer should not change the logical delete column!");
+    StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
+  }
 
   data_table_counter_.IncrementNumUpdate(1);
   return true;
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
-                 "The input buffer never changes the version pointer or logical delete columns, so it should have "
-                 "fewer attributes.");
-  TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
+  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumCols() - NUMBER_RESERVED_COLUMNS,
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have exactly 2 fewer attributes than the DataTable's layout.");
 
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
@@ -126,8 +128,13 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // At this point, a sequential scan can see this tuple, but will follow the version chain to see a logically deleted
   // version
 
+  accessor_.AccessForceNotNull(result, LOGICAL_DELETE_COLUMN_ID);
   // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
+  for (uint16_t i = 0; i < redo.NumColumns(); i++){
+    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID, "Insert buffer should not change the version pointer column!");
+    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID, "Insert buffer should not change the logical delete column!");
+    StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
+  }
 
   data_table_counter_.IncrementNumInsert(1);
   return result;
@@ -147,14 +154,16 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
 bool DataTable::LogicallyDeleted(const terrier::storage::ProjectedRow &delta) const {
   for (uint16_t i = 0; i < delta.NumColumns(); i++) {
     if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
-      return delta.GetNull(i);
+      return !delta.GetNull(i);
     }
   }
   return false;
 }
 
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  return !accessor.GetNull(slot, PRESENCE_COLUMN_ID) && accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
+  const bool present = accessor.GetNull(slot, PRESENCE_COLUMN_ID);
+  const bool deleted = !accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
+  return present && !deleted;
 }
 
 bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::TransactionContext *const txn) const {

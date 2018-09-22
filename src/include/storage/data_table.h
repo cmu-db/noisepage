@@ -17,6 +17,7 @@ namespace terrier::storage {
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
 #define LOGICAL_DELETE_COLUMN_ID col_id_t(1)
+#define NUMBER_RESERVED_COLUMNS 2
 
 // clang-format off
 #define DataTableCounterMembers(f) \
