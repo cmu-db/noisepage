@@ -49,8 +49,10 @@ void DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
-  // We never bother deallocating this entry, which is why we need to remember to check on abort
-  // whether the transaction actually holds a write lock
+  TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have fewer attributes.");
+  TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
+
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
@@ -83,6 +85,10 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
+  TERRIER_ASSERT(redo.NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have fewer attributes.");
+  TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
+
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
   // inserts could have already created a new block, we need to use compare and swap
