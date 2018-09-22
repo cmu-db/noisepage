@@ -9,13 +9,15 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
     : block_store_(store), layout_version_(layout_version), accessor_(layout) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
-  TERRIER_ASSERT(layout.NumCols() > 1, "First column is reserved for version info.");
+  TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 1,
+                 "Second column should have size 1 for logical delete.");
+  TERRIER_ASSERT(layout.NumCols() > 2, "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
 void DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols(),
-                 "The output buffer never returns the version pointer, so it should have fewer attributes.");
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
+                 "The output buffer never returns the version pointer or logical delete columns, so it should have fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
   UndoRecord *version_ptr;
@@ -134,6 +136,10 @@ bool DataTable::HasConflict(UndoRecord *const version_ptr, transaction::Transact
          || (transaction::TransactionUtil::Committed(version_timestamp) &&
              transaction::TransactionUtil::NewerThan(version_timestamp, start_time));
   // Someone else already committed an update to this tuple while we were running, we can't update this under SI
+}
+
+bool DataTable::Delete(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot) {
+  return true;
 }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor,

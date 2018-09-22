@@ -16,7 +16,7 @@ namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
-#define PRIMARY_KEY_COLUMN_ID col_id_t(1)
+#define LOGICAL_DELETE_COLUMN_ID col_id_t(1)
 
 // clang-format off
 #define DataTableCounterMembers(f) \
@@ -93,6 +93,8 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  bool Delete(transaction::TransactionContext *txn, TupleSlot slot);
+
   /**
    * Return a pointer to the performance counter for the data table.
    * @return pointer to the performance counter
@@ -112,7 +114,7 @@ class DataTable {
   // for performance in generating initializer for inserts
   // TODO(Tianyu): I suppose we can use this for deletes too?
   const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(),
-                                                                    {PRIMARY_KEY_COLUMN_ID}};
+                                                                    {LOGICAL_DELETE_COLUMN_ID}};
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
