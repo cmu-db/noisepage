@@ -89,9 +89,11 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     return false;
   }
   // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++){
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID, "Input buffer should not change the version pointer column!");
-    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID, "Input buffer should not change the logical delete column!");
+  for (uint16_t i = 0; i < redo.NumColumns(); i++) {
+    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                   "Input buffer should not change the version pointer column!");
+    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
+                   "Input buffer should not change the logical delete column!");
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
 
@@ -101,7 +103,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumCols() - NUMBER_RESERVED_COLUMNS,
-                 "The input buffer never changes the version pointer or logical delete columns, so it should have exactly 2 fewer attributes than the DataTable's layout.");
+                 "The input buffer never changes the version pointer or logical delete columns, so it should have "
+                 "exactly 2 fewer attributes than the DataTable's layout.");
 
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
@@ -130,9 +133,11 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
   accessor_.AccessForceNotNull(result, LOGICAL_DELETE_COLUMN_ID);
   // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++){
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID, "Insert buffer should not change the version pointer column!");
-    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID, "Insert buffer should not change the logical delete column!");
+  for (uint16_t i = 0; i < redo.NumColumns(); i++) {
+    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                   "Insert buffer should not change the version pointer column!");
+    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
+                   "Insert buffer should not change the logical delete column!");
     StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
   }
 
