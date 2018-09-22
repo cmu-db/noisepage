@@ -134,6 +134,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
+    TERRIER_ASSERT(!col_id < layout_.NumCols(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(col_id)->PresenceBitmap();
   }
 
@@ -143,6 +144,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
+    TERRIER_ASSERT(!col_id < layout_.NumCols(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
   }
 
@@ -152,6 +154,7 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
   byte *AccessWithNullCheck(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     if (!ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset())) return nullptr;
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
@@ -163,6 +166,7 @@ class TupleAccessStrategy {
    * @warning currently this should only be used by the DataTable when updating VersionPtrs on known-present tuples
    */
   byte *AccessWithoutNullCheck(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     TERRIER_ASSERT(col_id == PRESENCE_COLUMN_ID,
                    "Currently this should only be called on the presence column by the DataTable.");
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
@@ -176,6 +180,7 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute.
    */
   byte *AccessForceNotNull(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col_id);
     if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
@@ -188,6 +193,7 @@ class TupleAccessStrategy {
    * @param col_id id of the column
    */
   void SetNull(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     if (ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), true)  // Noop if already null
         && col_id == PRESENCE_COLUMN_ID)
       slot.GetBlock()->num_records_--;
@@ -200,6 +206,7 @@ class TupleAccessStrategy {
    * @return true if null, false otherwise
    */
   bool GetNull(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     return ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset());
   }
 
