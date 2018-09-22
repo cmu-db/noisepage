@@ -630,6 +630,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
+    EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn1, [] {});
 
