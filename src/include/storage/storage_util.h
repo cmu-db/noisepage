@@ -121,13 +121,11 @@ class StorageUtil {
     return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
 
-  enum class DeleteModification : uint8_t { NONE = 0, INSERT, DELETE };
-
   /**
    * Inspects a ProjectedRow's contents for a modification on the logical delete column
    * @param delta delta to be inspected
-   * @return true if delta represents a delete, false otherwise
+   * @return INSERT if delta represents an insert, DELETE if delta represents a delete, NONE otherwise
    */
-  static DeleteModification DeltaModifiesDelete(const terrier::storage::ProjectedRow &delta);
+  static LogicalDeleteModificationType DeltaModifiesLogicalDelete(const ProjectedRow &delta);
 };
 }  // namespace terrier::storage

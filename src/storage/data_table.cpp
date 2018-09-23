@@ -52,7 +52,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
-    return Visible(slot, accessor_);
+    return visible;
   }
 
   // Apply deltas until we reconstruct a version safe for us to read
@@ -60,17 +60,20 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    auto modifies_logical_delete_column = StorageUtil::DeltaModifiesDelete(*(version_ptr->Delta()));
-    if (modifies_logical_delete_column == StorageUtil::DeleteModification::NONE) {
+    auto modifies_logical_delete_column = StorageUtil::DeltaModifiesLogicalDelete(*(version_ptr->Delta()));
+    if (modifies_logical_delete_column == LogicalDeleteModificationType::NONE) {
+      // Normal delta to be applied. Does not modify the logical delete column.
       StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-      version_ptr = version_ptr->Next();
-    } else if (modifies_logical_delete_column == StorageUtil::DeleteModification::INSERT) {
+    } else if (modifies_logical_delete_column == LogicalDeleteModificationType::INSERT) {
+      // Applying the undo of an INSERT makes the tuple invisible to this txn.
       visible = false;
-      version_ptr = version_ptr->Next();
     } else {
+      // Applying the undo of a DELETE makes the tuple visible to this txn.
       visible = true;
-      version_ptr = version_ptr->Next();
     }
+    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
+    // the chain than an insert.
+    version_ptr = version_ptr->Next();
   }
 
   return visible;
@@ -165,6 +168,8 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   // TODO(Matt): if logging is enabled, stage a write?
+  // This will mean Deletes get counted as a Delete and an Update in stats
+  data_table_counter_.IncrementNumDelete(1);
   return Update(txn, slot, *(reinterpret_cast<ProjectedRow *>(delete_record)));
 }
 

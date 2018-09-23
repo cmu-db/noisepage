@@ -19,6 +19,7 @@ namespace terrier::storage {
   f(uint64_t, NumSelect) \
   f(uint64_t, NumUpdate) \
   f(uint64_t, NumInsert) \
+  f(uint64_t, NumDelete) \
   f(uint64_t, NumNewBlock)
 // clang-format on
 DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)

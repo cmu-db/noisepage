@@ -227,6 +227,12 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
+
+/**
+ * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
+ * TODO(Matt): could be used by the GC for recycling
+ */
+enum class LogicalDeleteModificationType : uint8_t { NONE = 0, INSERT, DELETE };
 }  // namespace terrier::storage
 
 namespace std {

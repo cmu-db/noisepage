@@ -100,16 +100,16 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
   }
 }
 
-StorageUtil::DeleteModification StorageUtil::DeltaModifiesDelete(const terrier::storage::ProjectedRow &delta) {
+LogicalDeleteModificationType StorageUtil::DeltaModifiesLogicalDelete(const terrier::storage::ProjectedRow &delta) {
   for (uint16_t i = 0; i < delta.NumColumns(); i++) {
     if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
       if (delta.GetNull(i)) {
-        return StorageUtil::DeleteModification::INSERT;
+        return LogicalDeleteModificationType::INSERT;
       }
-      return StorageUtil::DeleteModification::DELETE;
+      return LogicalDeleteModificationType::DELETE;
     }
   }
-  return StorageUtil::DeleteModification::NONE;
+  return LogicalDeleteModificationType::NONE;
 }
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
