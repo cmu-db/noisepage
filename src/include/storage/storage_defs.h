@@ -61,7 +61,7 @@ struct BlockLayout {
   /**
    * Number of columns.
    */
-  const uint16_t NumCols() const { return static_cast<uint16_t>(attr_sizes_.size()); }
+  const uint16_t NumColumns() const { return static_cast<uint16_t>(attr_sizes_.size()); }
 
   /**
    * attribute size at given col_id.
@@ -99,7 +99,7 @@ struct BlockLayout {
 
   uint32_t ComputeHeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + NumCols() * sizeof(uint32_t) + sizeof(uint16_t) + NumCols() * sizeof(uint8_t));
+                                 + NumColumns() * sizeof(uint32_t) + sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
   }
 
   uint32_t ComputeNumSlots() const {
@@ -110,7 +110,7 @@ struct BlockLayout {
     // this later, because I don't feel like thinking about this now.
     // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
     // up to the size of 1 tuple, so this can probably change to be more optimistic,
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumCols()) - 2;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumColumns()) - 2;
   }
 };
 

@@ -104,7 +104,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
-    for (uint16_t i = 0; i < layout.NumCols(); ++i) {
+    for (uint16_t i = 0; i < layout.NumColumns(); ++i) {
       col_id_t col_id(i);
       uint8_t attr_size = layout.AttrSize(col_id);
       byte *from = nullptr;
@@ -164,7 +164,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // apply delta
     storage::StorageUtil::ApplyDelta(layout, *delta, old);
     // check changes has been applied
-    for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumCols(); ++delta_col_offset) {
+    for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumColumns(); ++delta_col_offset) {
       col_id_t col = rand_initializer.ColId(delta_col_offset);
       auto old_col_offset = static_cast<uint16_t>(!col - 2);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);

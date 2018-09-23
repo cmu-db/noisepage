@@ -11,13 +11,13 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 1 for logical delete.");
-  TERRIER_ASSERT(layout.NumCols() > NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(layout.NumColumns() > NUMBER_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
 bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
                        ProjectedRow *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumCols() - 1,
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumColumns() - 1,
                  "The output buffer never returns the version pointer or logical delete columns, so it should have "
                  "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
@@ -59,7 +59,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumCols() - NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUMBER_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer or logical delete columns, so it should have "
                  "fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
@@ -100,7 +100,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumCols() - NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUMBER_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer or logical delete columns, so it should have "
                  "exactly 2 fewer attributes than the DataTable's layout.");
 

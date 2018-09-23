@@ -181,7 +181,7 @@ class ProjectedRowInitializer {
   /**
    * @return number of columns in the projection list
    */
-  uint16_t NumCols() const { return static_cast<uint16_t>(col_ids_.size()); }
+  uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
 
   /**
    * @return column ids at the given offset in the projection list

@@ -97,7 +97,7 @@ class TupleAccessStrategy {
      * @return reference to num_attrs. Use as a member.
      */
     uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumCols());
+      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumColumns());
     }
 
     /**
@@ -134,7 +134,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT(!col_id < layout_.NumCols(), "Column out of bounds!");
+    TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(col_id)->PresenceBitmap();
   }
 
@@ -144,7 +144,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT(!col_id < layout_.NumCols(), "Column out of bounds!");
+    TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
   }
 

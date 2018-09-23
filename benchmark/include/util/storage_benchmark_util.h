@@ -19,7 +19,7 @@ struct TupleAccessStrategyBenchmarkUtil {
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy *tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
-    for (uint16_t i = 1; i < layout.NumCols(); i++) {
+    for (uint16_t i = 1; i < layout.NumColumns(); i++) {
       col_id_t col_id(i);
       const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(i - 1));
       if (val_ptr == nullptr) {

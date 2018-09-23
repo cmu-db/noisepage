@@ -109,7 +109,7 @@ TEST_F(ProjectedRowTests, MemorySafety) {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
-    EXPECT_EQ(layout.NumCols() - 2, row->NumColumns());
+    EXPECT_EQ(layout.NumColumns() - 2, row->NumColumns());
     void *upper_bound = reinterpret_cast<byte *>(row) + row->Size();
     // check the rest values memory addresses don't overlapping previous addresses.
     for (uint16_t i = 1; i < row->NumColumns(); i++) {
