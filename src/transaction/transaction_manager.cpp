@@ -39,8 +39,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std:
     byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time);
     log_manager_->RegisterTransactionFlushedCallback(txn->StartTime(), callback);
-    txn->redo_buffer_.Finish();
   }
+  txn->redo_buffer_.Finish();
   if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
   // TODO(Tianyu): Is this the right thing to do?
