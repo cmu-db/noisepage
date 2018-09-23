@@ -15,7 +15,7 @@ enum class LogRecordType : uint8_t { REDO = 1, COMMIT };
  */
 class LogRecord {
  public:
-  MEM_REINTERPRETAION_ONLY(LogRecord)
+  MEM_REINTERPRETATION_ONLY(LogRecord)
 
   /**
    * @return type of this LogRecord
@@ -90,7 +90,7 @@ static_assert(sizeof(LogRecord) % 8 == 0, "a projected row inside the log record
  */
 class RedoRecord {
  public:
-  MEM_REINTERPRETAION_ONLY(RedoRecord)
+  MEM_REINTERPRETATION_ONLY(RedoRecord)
 
   /**
    * @return pointer to the DataTable that this Redo is concerned with
@@ -191,7 +191,7 @@ static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo reco
  */
 class CommitRecord {
  public:
-  MEM_REINTERPRETAION_ONLY(CommitRecord)
+  MEM_REINTERPRETATION_ONLY(CommitRecord)
 
   /**
    * @return type of record this type of body holds

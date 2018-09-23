@@ -33,7 +33,7 @@ namespace terrier::common {
  */
 class RawBitmap {
  public:
-  MEM_REINTERPRETAION_ONLY(RawBitmap)
+  MEM_REINTERPRETATION_ONLY(RawBitmap)
 
   /**
    * @param n number of elements in the bitmap

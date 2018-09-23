@@ -129,7 +129,7 @@ namespace terrier::common {
  * Typically classes marked with these will expose static factory methods that calculate the size of an object in memory
  * given some parameters and an Initialize method to construct a valid object from pointer to a chunk of memory
  */
-#define MEM_REINTERPRETAION_ONLY(cname) \
+#define MEM_REINTERPRETATION_ONLY(cname) \
   cname() = delete;                     \
   DISALLOW_COPY_AND_MOVE(cname)         \
   ~cname() = delete;
