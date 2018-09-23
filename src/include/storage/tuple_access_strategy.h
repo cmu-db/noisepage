@@ -22,7 +22,7 @@ class TupleAccessStrategy {
    * Warning, 0 means null
    */
   struct MiniBlock {
-    MEM_REINTERPRETAION_ONLY(MiniBlock)
+    MEM_REINTERPRETATION_ONLY(MiniBlock)
     /**
      * @param layout the layout of this block
      * @return a pointer to the start of the column. (use as an array)
@@ -66,7 +66,7 @@ class TupleAccessStrategy {
      * A block is always reinterpreted from a raw piece of memory
      * and should never be initialized, copied, moved, or on the stack.
      */
-    MEM_REINTERPRETAION_ONLY(Block)
+    MEM_REINTERPRETATION_ONLY(Block)
 
     /**
      * @param offset offset representing the column

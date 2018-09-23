@@ -31,7 +31,7 @@ namespace terrier::common {
  */
 class RawConcurrentBitmap {
  public:
-  MEM_REINTERPRETAION_ONLY(RawConcurrentBitmap)
+  MEM_REINTERPRETATION_ONLY(RawConcurrentBitmap)
 
   /**
    * Allocates a new RawConcurrentBitmap of size num_bits. Up to the caller to call
