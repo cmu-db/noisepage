@@ -17,7 +17,10 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
     buffer_seg_ = buffer_pool_->Get();
   } else if (!buffer_seg_->HasBytesLeft(size)) {
     // old log buffer is full
-    if (log_manager_ != LOGGING_DISABLED) log_manager_->AddBufferToFlushQueue(buffer_seg_);
+    if (log_manager_ != LOGGING_DISABLED)
+      log_manager_->AddBufferToFlushQueue(buffer_seg_);
+    else
+      buffer_pool_->Release(buffer_seg_);
     buffer_seg_ = buffer_pool_->Get();
   }
   TERRIER_ASSERT(buffer_seg_->HasBytesLeft(size),
@@ -26,6 +29,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
 }
 
 void RedoBuffer::Finish() {
+  if (buffer_seg_ == nullptr) return;
   if (log_manager_ != LOGGING_DISABLED)
     log_manager_->AddBufferToFlushQueue(buffer_seg_);
   else
