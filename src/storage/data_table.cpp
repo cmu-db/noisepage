@@ -15,7 +15,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
-                 "Second column should have size 1 for logical delete.");
+                 "Second column should have size 8 for logical delete.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
   ProjectedRow *const redo = insert_record_initializer_.InitializeRow(delete_record);
@@ -38,8 +38,13 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
     // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
-    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++)
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Output buffer should not read the version pointer column.");
+      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
+                     "Output buffer should not read the logical delete column.");
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+    }
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
@@ -110,7 +115,11 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Input buffer should not change the version pointer column!");
+                   "Input buffer should not change the version pointer column.");
+    TERRIER_ASSERT(
+        redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID || (redo.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID &&
+                                                            &redo == reinterpret_cast<ProjectedRow *>(delete_record)),
+        "Input buffer can only change the logical delete column if the buffer came from this DataTable.");
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
 
@@ -154,9 +163,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Insert buffer should not change the version pointer column!");
+                   "Insert buffer should not change the version pointer column.");
     TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
-                   "Insert buffer should not change the logical delete column!");
+                   "Insert buffer should not change the logical delete column.");
     StorageUtil::CopyAttrFromProjection(accessor_, result, redo, i);
   }
 

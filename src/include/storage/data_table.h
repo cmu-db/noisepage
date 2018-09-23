@@ -34,10 +34,10 @@ class DataTable {
  public:
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
-   * of its storage blocks.
+   * of its storage blocks. The first 2 columns must be size 8 and are effectively hidden from upper levels.
    *
    * @param store the Block store to use.
-   * @param layout the initial layout of this DataTable.
+   * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
   DataTable(BlockStore *store, const BlockLayout &layout, layout_version_t layout_version);
@@ -63,6 +63,7 @@ class DataTable {
    * @param txn the calling transaction
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
@@ -70,29 +71,30 @@ class DataTable {
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
    * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
    * process. Update will only happen if there is no write-write conflict and tuple is visible, otherwise, this is
-   * equivalent to a noop and false is returned,
+   * equivalent to a noop and false is returned. If return is false, undo's table pointer is nullptr (used in Abort and
+   * GC)
    *
    * @param txn the calling transaction
    * @param slot the slot of the tuple to update.
-   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. Should
+   * not reference column ids 0 or 1. Can only reference column id 1 if the redo originated in the DataTable
    * @return true if successful, false otherwise
    */
   bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
 
   /**
    * Inserts a tuple, as given in the redo, and update the version chain the link to the given
-   * delta record. The slot allocated for the tuple and returned.
+   * delta record. The slot allocated for the tuple is returned.
    *
    * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple
-   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location in indexes and
+   * @param redo after-image of the inserted tuple. Should not reference column ids 0 or 1
+   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
   /**
-   * Deletes the given TupleSlot. A RedoRecord is staged within the transaction for this operation, and the rest of the
-   * behavior follows Update's behavior.
+   * Deletes the given TupleSlot. The rest of the behavior follows Update's behavior.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
@@ -116,8 +118,8 @@ class DataTable {
   const TupleAccessStrategy accessor_;
 
   // for performance in generating initializer for inserts
-  // TODO(Tianyu): I suppose we can use this for deletes too?
   const storage::ProjectedRowInitializer insert_record_initializer_;
+  // used as the redo ProjectedRow for deletes
   byte *delete_record;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
