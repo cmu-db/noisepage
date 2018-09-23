@@ -48,9 +48,9 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // Apply deltas until we reconstruct a version safe for us to read
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (visible && version_ptr != nullptr &&
+  while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    visible = visible && !LogicallyDeleted(*(version_ptr->Delta()));
+    visible = !LogicallyDeleted(*(version_ptr->Delta()));
     StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
     version_ptr = version_ptr->Next();
   }
