@@ -48,6 +48,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
+    // TODO(Matt): might not need to read visible in the loop (move after?) but not sure without large random tests
     visible = Visible(slot, accessor_);
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
