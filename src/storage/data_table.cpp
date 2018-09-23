@@ -11,7 +11,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 1 for logical delete.");
-  TERRIER_ASSERT(layout.NumColumns() > NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
@@ -59,7 +59,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer or logical delete columns, so it should have "
                  "fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should return at least one attribute.");
@@ -100,7 +100,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUMBER_RESERVED_COLUMNS,
+  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer or logical delete columns, so it should have "
                  "exactly 2 fewer attributes than the DataTable's layout.");
 
@@ -129,7 +129,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // At this point, a sequential scan can see this tuple, but will follow the version chain to see a logically deleted
   // version
 
+  // Set the logically deleted bit to not null
   accessor_.AccessForceNotNull(result, LOGICAL_DELETE_COLUMN_ID);
+
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,

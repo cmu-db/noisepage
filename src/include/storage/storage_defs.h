@@ -12,7 +12,21 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+// Logging:
 #define LOGGING_DISABLED nullptr
+
+// We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
+// be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
+// and thus blocks are free to handout the slot.) Generally this will just be the version vector.
+// This is primarily to be used in the TAS layer
+#define PRESENCE_COLUMN_ID col_id_t(0)
+
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+// This is primarily to be used in the DataTable layer, even though it's the same as defined above.
+#define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
+#define LOGICAL_DELETE_COLUMN_ID col_id_t(1)
+#define NUM_RESERVED_COLUMNS 2
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy

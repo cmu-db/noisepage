@@ -7,11 +7,6 @@
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
-// We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
-// be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
-// and thus blocks are free to handout the slot.) Generally this will just be the version vector.
-#define PRESENCE_COLUMN_ID col_id_t(0)
-
 namespace terrier::storage {
 /**
  * Code for accessing data within a block. This code is eventually compiled and

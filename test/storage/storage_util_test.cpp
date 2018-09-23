@@ -149,7 +149,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
       col_id_t col_id(i);
       byte *ptr = old->AccessWithNullCheck(i);
       if (ptr != nullptr)
-        copy.emplace_back(std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 2), ptr)));
+        copy.emplace_back(
+            std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + NUM_RESERVED_COLUMNS), ptr)));
       else
         copy.emplace_back(std::make_pair(ptr, 0));
     }
@@ -166,7 +167,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // check changes has been applied
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumColumns(); ++delta_col_offset) {
       col_id_t col = rand_initializer.ColId(delta_col_offset);
-      auto old_col_offset = static_cast<uint16_t>(!col - 2);  // since all columns were in the old one
+      auto old_col_offset =
+          static_cast<uint16_t>(!col - NUM_RESERVED_COLUMNS);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
       byte *old_val_ptr = old->AccessWithNullCheck(old_col_offset);
       if (delta_val_ptr == nullptr) {
@@ -185,7 +187,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          col_id_t col_id(static_cast<uint16_t>(i + 2));
+          col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
           EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), ptr), copy[i].second);
         }
       }
