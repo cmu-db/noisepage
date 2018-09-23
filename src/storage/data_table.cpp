@@ -18,7 +18,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "Second column should have size 1 for logical delete.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  auto *redo = insert_record_initializer_.InitializeRow(delete_record);
+  ProjectedRow *const redo = insert_record_initializer_.InitializeRow(delete_record);
   redo->SetNull(0);
   TERRIER_ASSERT(redo->NumColumns() == 1, "Redo record should only change the logical delete column!");
   TERRIER_ASSERT(redo->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
@@ -156,7 +156,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-  // TODO(Matt): if logging is enabled, stage a write
+  // TODO(Matt): if logging is enabled, stage a write?
   return Update(txn, slot, *(reinterpret_cast<ProjectedRow *>(delete_record)));
 }
 
