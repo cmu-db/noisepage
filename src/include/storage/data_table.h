@@ -47,7 +47,7 @@ class DataTable {
   ~DataTable() {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     for (RawBlock *block : blocks_) block_store_->Release(block);
-    delete delete_record;
+    delete[] delete_record;
   }
 
   // TODO(Tianyu): Implement
