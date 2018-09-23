@@ -82,6 +82,10 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
     col_id_t delta_col_id = delta.ColumnIds()[delta_i], buffer_col_id = buffer->ColumnIds()[buffer_i];
     if (delta_col_id == buffer_col_id) {
       // Should apply changes
+      TERRIER_ASSERT(delta_col_id != PRESENCE_COLUMN_ID,
+                     "Output buffer should never return the version vector column.");
+      TERRIER_ASSERT(delta_col_id != LOGICAL_DELETE_COLUMN_ID,
+                     "Output buffer should never return the logical delete column.");
       uint8_t attr_size = layout.AttrSize(delta_col_id);
       StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(delta_i), buffer, attr_size, buffer_i);
       delta_i++;
@@ -94,6 +98,15 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
       delta_i++;
     }
   }
+}
+
+bool StorageUtil::DeltaContainsDelete(const terrier::storage::ProjectedRow &delta) {
+  for (uint16_t i = 0; i < delta.NumColumns(); i++) {
+    if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
+      return delta.GetNull(i);
+    }
+  }
+  return false;
 }
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {

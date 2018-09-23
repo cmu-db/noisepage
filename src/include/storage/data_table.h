@@ -139,8 +139,6 @@ class DataTable {
   // Checks for Snapshot Isolation conflicts, used by Update
   bool HasConflict(UndoRecord *version_ptr, const transaction::TransactionContext *txn) const;
 
-  bool LogicallyDeleted(const terrier::storage::ProjectedRow &delta) const;
-
   bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
