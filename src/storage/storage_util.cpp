@@ -105,9 +105,8 @@ StorageUtil::DeleteModification StorageUtil::DeltaModifiesDelete(const terrier::
     if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
       if (delta.GetNull(i)) {
         return StorageUtil::DeleteModification::INSERT;
-      } else {
-        return StorageUtil::DeleteModification::DELETE;
       }
+      return StorageUtil::DeleteModification::DELETE;
     }
   }
   return StorageUtil::DeleteModification::NONE;
