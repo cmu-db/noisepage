@@ -4,7 +4,6 @@
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
-#include "util/storage_benchmark_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_thread_pool.h"
 
@@ -65,7 +64,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       for (uint32_t j = 0; j < layout_.NumSlots(); j++) {
         storage::TupleSlot slot;
         tested.Allocate(raw_block, &slot);
-        TupleAccessStrategyBenchmarkUtil::InsertTuple(*redo_, &tested, layout_, slot);
+        StorageTestUtil::InsertTuple(*redo_, tested, layout_, slot);
       }
     }
     // return all of the used blocks to the BlockStore
@@ -96,7 +95,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
         for (uint32_t j = 0; j < layout_.NumSlots() / num_threads_; j++) {
           storage::TupleSlot slot;
           tested.Allocate(raw_block, &slot);
-          TupleAccessStrategyBenchmarkUtil::InsertTuple(*redo_, &tested, layout_, slot);
+          StorageTestUtil::InsertTuple(*redo_, tested, layout_, slot);
         }
       };
 
