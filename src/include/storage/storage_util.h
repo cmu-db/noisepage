@@ -123,9 +123,10 @@ class StorageUtil {
 
   /**
    * Inspects a ProjectedRow's contents for a modification on the logical delete column
+   * @warning This should be used for a ProjectedRow from an UndoRecords since the logic is backwards for a RedoRecord
    * @param delta delta to be inspected
-   * @return INSERT if delta represents an insert, DELETE if delta represents a delete, NONE otherwise
+   * @return INSERT if delta represents an insert, DELETE if delta represents a delete, UPDATE otherwise
    */
-  static LogicalDeleteModificationType DeltaModifiesLogicalDelete(const ProjectedRow &delta);
+  static DeltaType CheckUndoDeltaType(const ProjectedRow &delta);
 };
 }  // namespace terrier::storage

@@ -20,9 +20,6 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
   ProjectedRow *const redo = insert_record_initializer_.InitializeRow(delete_record);
   redo->SetNull(0);
-  TERRIER_ASSERT(redo->NumColumns() == 1, "Redo record should only change the logical delete column!");
-  TERRIER_ASSERT(redo->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
-                 "Redo record should only change the logical delete column!");
 }
 
 bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
@@ -60,14 +57,15 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    auto modifies_logical_delete_column = StorageUtil::DeltaModifiesLogicalDelete(*(version_ptr->Delta()));
-    if (modifies_logical_delete_column == LogicalDeleteModificationType::NONE) {
+    auto delta_type = StorageUtil::CheckUndoDeltaType(*(version_ptr->Delta()));
+    if (delta_type == DeltaType::UPDATE) {
       // Normal delta to be applied. Does not modify the logical delete column.
       StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-    } else if (modifies_logical_delete_column == LogicalDeleteModificationType::INSERT) {
+    } else if (delta_type == DeltaType::INSERT) {
       // Applying the undo of an INSERT makes the tuple invisible to this txn.
       visible = false;
     } else {
+      TERRIER_ASSERT(delta_type == DeltaType::DELETE, "DeltaType must be DELETE if it's not UPDATE or INSERT.");
       // Applying the undo of a DELETE makes the tuple visible to this txn.
       visible = true;
     }
@@ -196,8 +194,8 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
  * @return true if slot is visible, false otherwise
  */
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  const bool present = !accessor.GetNull(slot, PRESENCE_COLUMN_ID);
-  const bool not_deleted = !accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
+  const bool present = !accessor.IsNull(slot, PRESENCE_COLUMN_ID);
+  const bool not_deleted = !accessor.IsNull(slot, LOGICAL_DELETE_COLUMN_ID);
   return present && not_deleted;
 }
 
