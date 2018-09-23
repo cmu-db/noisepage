@@ -47,6 +47,7 @@ class DataTable {
   ~DataTable() {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     for (RawBlock *block : blocks_) block_store_->Release(block);
+    delete delete_record;
   }
 
   // TODO(Tianyu): Implement
@@ -115,8 +116,8 @@ class DataTable {
 
   // for performance in generating initializer for inserts
   // TODO(Tianyu): I suppose we can use this for deletes too?
-  const storage::ProjectedRowInitializer insert_record_initializer_{accessor_.GetBlockLayout(),
-                                                                    {LOGICAL_DELETE_COLUMN_ID}};
+  const storage::ProjectedRowInitializer insert_record_initializer_;
+  byte *delete_record;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle

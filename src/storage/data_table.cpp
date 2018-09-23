@@ -1,18 +1,28 @@
 #include "storage/data_table.h"
 #include <unordered_map>
+#include "common/allocator.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+    : block_store_(store),
+      layout_version_(layout_version),
+      accessor_(layout),
+      insert_record_initializer_(accessor_.GetBlockLayout(), {LOGICAL_DELETE_COLUMN_ID}),
+      delete_record(common::AllocationUtil::AllocateAligned(insert_record_initializer_.ProjectedRowSize())) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 1 for logical delete.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
+  auto *redo = insert_record_initializer_.InitializeRow(delete_record);
+  redo->SetNull(0);
+  TERRIER_ASSERT(redo->NumColumns() == 1, "Redo record should only change the logical delete column!");
+  TERRIER_ASSERT(redo->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
+                 "Redo record should only change the logical delete column!");
 }
 
 bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
@@ -146,12 +156,8 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-  // Create a redo
-  const RedoRecord *const redo = txn->StageWrite(this, slot, insert_record_initializer_);
-  TERRIER_ASSERT(redo->Delta()->NumColumns() == 1, "Redo record should only change the logical delete column!");
-  TERRIER_ASSERT(redo->Delta()->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
-                 "Redo record should only change the logical delete column!");
-  return Update(txn, slot, *(redo->Delta()));
+  // TODO(Matt): if logging is enabled, stage a write
+  return Update(txn, slot, *(reinterpret_cast<ProjectedRow *>(delete_record)));
 }
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
