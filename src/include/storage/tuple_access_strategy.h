@@ -207,7 +207,7 @@ class TupleAccessStrategy {
    */
   bool GetNull(const TupleSlot slot, const col_id_t col_id) const {
     TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
-    return ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset());
+    return !ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset());
   }
 
   /**

@@ -118,9 +118,14 @@ class PACKED ProjectedRow {
     Bitmap().Set(offset, true);
   }
 
+  /**
+   * Check if the attribute in the ProjectedRow is null
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return true if null, false otherwise
+   */
   bool GetNull(const uint16_t offset) const {
     TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
-    return Bitmap().Test(offset);
+    return !Bitmap().Test(offset);
   }
 
  private:

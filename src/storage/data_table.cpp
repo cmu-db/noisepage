@@ -166,15 +166,15 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
 bool DataTable::LogicallyDeleted(const terrier::storage::ProjectedRow &delta) const {
   for (uint16_t i = 0; i < delta.NumColumns(); i++) {
     if (delta.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID) {
-      return !delta.GetNull(i);
+      return delta.GetNull(i);
     }
   }
   return false;
 }
 
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  const bool present = accessor.GetNull(slot, PRESENCE_COLUMN_ID);
-  const bool deleted = !accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
+  const bool present = !accessor.GetNull(slot, PRESENCE_COLUMN_ID);
+  const bool deleted = accessor.GetNull(slot, LOGICAL_DELETE_COLUMN_ID);
   return present && !deleted;
 }
 

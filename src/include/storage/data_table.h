@@ -36,8 +36,6 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
  */
 class DataTable {
  public:
-  // TODO(Tianyu): Consider taking in some other info (like schema) to avoid copying layout. BlockLayout shouldn't
-  // really exist above the storage layer
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks.
@@ -72,14 +70,15 @@ class DataTable {
   bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
-   * Update the tuple according to the redo buffer given, and update the version chain to link to the given
-   * undo record. The undo record is populated with a before-image of the tuple in the process. Update will only
-   * happen if there is no write-write conflict, otherwise, this is equivalent to a noop and false is returned,
+   * Update the tuple according to the redo buffer given, and update the version chain to link to an
+   * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
+   * process. Update will only happen if there is no write-write conflict and tuple is visible, otherwise, this is
+   * equivalent to a noop and false is returned,
    *
    * @param txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
-   * @return whether the update is successful.
+   * @return true if successful, false otherwise
    */
   bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
 
@@ -94,6 +93,13 @@ class DataTable {
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
+  /**
+   * Deletes the given TupleSlot. A RedoRecord is staged within the transaction for this operation, and the rest of the
+   * behavior follows Update's behavior.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to delete
+   * @return true if successful, false otherwise
+   */
   bool Delete(transaction::TransactionContext *txn, TupleSlot slot);
 
   /**
