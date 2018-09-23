@@ -89,13 +89,6 @@ class StorageUtil {
   static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
 
   /**
-   * Inspects a ProjectedRow's contents for a modification on the logical delete column
-   * @param delta delta to be inspected
-   * @return true if delta represents a delete, false otherwise
-   */
-  static bool DeltaContainsDelete(const terrier::storage::ProjectedRow &delta);
-
-  /**
    * Given an address offset, aligns it to the word_size
    * @param word_size size in bytes to align offset to
    * @param offset address to be aligned
@@ -127,5 +120,14 @@ class StorageUtil {
   static A *AlignedPtr(const void *ptr) {
     return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
+
+  enum class DeleteModification : uint8_t { NONE = 0, INSERT, DELETE };
+
+  /**
+   * Inspects a ProjectedRow's contents for a modification on the logical delete column
+   * @param delta delta to be inspected
+   * @return true if delta represents a delete, false otherwise
+   */
+  static DeleteModification DeltaModifiesDelete(const terrier::storage::ProjectedRow &delta);
 };
 }  // namespace terrier::storage

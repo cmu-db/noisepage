@@ -60,9 +60,17 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    visible = !StorageUtil::DeltaContainsDelete(*(version_ptr->Delta()));
-    StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-    version_ptr = version_ptr->Next();
+    auto modifies_logical_delete_column = StorageUtil::DeltaModifiesDelete(*(version_ptr->Delta()));
+    if (modifies_logical_delete_column == StorageUtil::DeleteModification::NONE) {
+      StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
+      version_ptr = version_ptr->Next();
+    } else if (modifies_logical_delete_column == StorageUtil::DeleteModification::INSERT) {
+      visible = false;
+      version_ptr = version_ptr->Next();
+    } else {
+      visible = true;
+      version_ptr = version_ptr->Next();
+    }
   }
 
   return visible;
