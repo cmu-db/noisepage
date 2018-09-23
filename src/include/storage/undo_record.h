@@ -12,7 +12,7 @@ class DataTable;
  */
 class UndoRecord {
  public:
-  MEM_REINTERPRETAION_ONLY(UndoRecord)
+  MEM_REINTERPRETATION_ONLY(UndoRecord)
 
   /**
    * @return Pointer to the next element in the version chain
