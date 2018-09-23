@@ -92,8 +92,6 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Input buffer should not change the version pointer column!");
-    TERRIER_ASSERT(redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
-                   "Input buffer should not change the logical delete column!");
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
 
@@ -145,6 +143,15 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   return result;
 }
 
+bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+  // Create a redo
+  const RedoRecord *const redo = txn->StageWrite(this, slot, insert_record_initializer_);
+  TERRIER_ASSERT(redo->Delta()->NumColumns() == 1, "Redo record should only change the logical delete column!");
+  TERRIER_ASSERT(redo->Delta()->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
+                 "Redo record should only change the logical delete column!");
+  return Update(txn, slot, *(redo->Delta()));
+}
+
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
@@ -182,8 +189,6 @@ bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::Tr
                                        transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
   return owned_by_other_txn || newer_committed_version;
 }
-
-bool DataTable::Delete(terrier::transaction::TransactionContext *txn, const TupleSlot slot) { return true; }
 
 bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor,
                                          UndoRecord *expected, UndoRecord *const desired) {
