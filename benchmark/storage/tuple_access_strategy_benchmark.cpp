@@ -28,7 +28,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 
   // Tuple layout_
   const uint8_t column_size_ = 8;
-  const storage::BlockLayout layout_{{column_size_, column_size_}};
+  const storage::BlockLayout layout_{{column_size_, column_size_, column_size_, column_size_}};
 
   // Tuple properties
   const storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
