@@ -35,6 +35,4 @@ void RedoBuffer::Finish() {
   else
     buffer_pool_->Release(buffer_seg_);
 }
-
-void RedoBuffer::Discard() { buffer_pool_->Release(buffer_seg_); }
 }  // namespace terrier::storage

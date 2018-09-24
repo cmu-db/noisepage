@@ -56,7 +56,7 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
   TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
-  if (log_manager_ != LOGGING_DISABLED) txn->redo_buffer_.Discard();
+  txn->redo_buffer_.Finish();
   if (gc_enabled_) completed_txns_.push_front(txn);
   table_latch_.Unlock();
 }

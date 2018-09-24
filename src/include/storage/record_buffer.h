@@ -336,12 +336,6 @@ class RedoBuffer {
    */
   void Finish();
 
-  /**
-   * Discards the content of the redo buffer. No further entries can be written to this redo buffe after the
-   * function returns.
-   */
-  void Discard();
-
  private:
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
