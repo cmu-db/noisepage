@@ -33,10 +33,7 @@ namespace terrier::common {
  */
 class RawBitmap {
  public:
-  // Always reinterpret_cast from raw memory.
-  RawBitmap() = delete;
-  ~RawBitmap() = delete;
-  DISALLOW_COPY_AND_MOVE(RawBitmap)
+  MEM_REINTERPRETATION_ONLY(RawBitmap)
 
   /**
    * @param n number of elements in the bitmap

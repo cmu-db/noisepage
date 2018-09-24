@@ -7,10 +7,10 @@
 #include <vector>
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
-#include "storage/delta_record.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
 
@@ -130,6 +130,11 @@ struct StorageTestUtil {
     col_ids.resize(num_cols);
 
     return col_ids;
+  }
+
+  template <class Random>
+  static storage::ProjectedRowInitializer RandomInitializer(const storage::BlockLayout &layout, Random *generator) {
+    return {layout, ProjectionListRandomColumns(layout, generator)};
   }
 
   static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *const one,

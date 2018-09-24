@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 #include "common/typedefs.h"
-#include "storage/delta_record.h"
 #include "storage/storage_util.h"
+#include "storage/undo_record.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 #include "util/test_thread_pool.h"

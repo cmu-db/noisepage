@@ -5,8 +5,9 @@
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
 #include "storage/data_table.h"
-#include "storage/delta_record.h"
 #include "storage/record_buffer.h"
+#include "storage/undo_record.h"
+#include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
@@ -23,9 +24,11 @@ class TransactionManager {
    * buffers.
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
+   * @param log_manager the log manager in the system, or nullptr if logging is turned off.
    */
-  explicit TransactionManager(common::ObjectPool<storage::BufferSegment> *const buffer_pool, const bool gc_enabled)
-      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled) {}
+  TransactionManager(storage::RecordBufferSegmentPool *const buffer_pool, const bool gc_enabled,
+                     storage::LogManager *log_manager)
+      : buffer_pool_(buffer_pool), gc_enabled_(gc_enabled), log_manager_(log_manager) {}
 
   /**
    * Begins a transaction.
@@ -36,9 +39,12 @@ class TransactionManager {
   /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
+   * @param callback callback function that the transaction manager will execute as soon as all log records of the
+   *                 given transaction is flushed out. Needless to say, short callbacks that delegates work
+   *                 to a different thread is preferable.
    * @return commit timestamp of this transaction
    */
-  timestamp_t Commit(TransactionContext *txn);
+  timestamp_t Commit(TransactionContext *txn, const std::function<void()> &callback);
 
   /**
    * Aborts a transaction, rolling back its changes (if any).
@@ -71,7 +77,7 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
-  common::ObjectPool<storage::BufferSegment> *buffer_pool_;
+  storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.
   std::atomic<timestamp_t> time_{timestamp_t(0)};
@@ -85,6 +91,7 @@ class TransactionManager {
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
+  storage::LogManager *const log_manager_;
 
   void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
 };
