@@ -184,6 +184,45 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   return Update(txn, slot, *(reinterpret_cast<ProjectedRow *>(delete_record)));
 }
 
+bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {
+  UndoRecord *version_ptr;
+  bool visible;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Here we will need to check that the version pointer did not change during our read. If it did, the content
+    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
+    // we will have to loop around to avoid a dirty read.
+    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
+    visible = Visible(slot, accessor_);
+  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+
+  // Nullptr in version chain means no version visible to any transaction alive at this point.
+  // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
+    return visible;
+  }
+
+  // Inspect deltas so we can determine visibility
+  while (version_ptr != nullptr &&
+         transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn.StartTime())) {
+    // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
+    // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
+    const DeltaRecordType undo_type = StorageUtil::CheckUndoRecordType(*version_ptr);
+    if (undo_type == DeltaRecordType::INSERT) {
+      // Applying the undo of an INSERT makes the tuple invisible to this txn.
+      visible = false;
+    } else if (undo_type == DeltaRecordType::DELETE) {
+      // Applying the undo of a DELETE makes the tuple visible to this txn.
+      visible = true;
+    }
+    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
+    // the chain than an insert.
+    version_ptr = version_ptr->Next();
+  }
+
+  return visible;
+}
+
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->load();
