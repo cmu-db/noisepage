@@ -10,16 +10,13 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
     : block_store_(store),
       layout_version_(layout_version),
       accessor_(layout),
-      insert_record_initializer_(accessor_.GetBlockLayout(), {LOGICAL_DELETE_COLUMN_ID}),
-      delete_record(common::AllocationUtil::AllocateAligned(insert_record_initializer_.ProjectedRowSize())) {
+      insert_record_initializer_(accessor_.GetBlockLayout(), {LOGICAL_DELETE_COLUMN_ID}) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.AttrSize(LOGICAL_DELETE_COLUMN_ID) == 8,
                  "Second column should have size 8 for logical delete.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  ProjectedRow *const redo = insert_record_initializer_.InitializeRow(delete_record);
-  redo->SetNull(0);
 }
 
 bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
@@ -120,10 +117,9 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Input buffer should not change the version pointer column.");
-    TERRIER_ASSERT(
-        redo.ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID || (redo.ColumnIds()[i] == LOGICAL_DELETE_COLUMN_ID &&
-                                                            &redo == reinterpret_cast<ProjectedRow *>(delete_record)),
-        "Input buffer can only change the logical delete column if the buffer came from this DataTable.");
+    // TODO(Matt): It would be nice to check that a ProjectedRow that modifies the logical delete column only originated
+    // from the DataTable calling Update() within Delete(), rather than an outside soure modifying this column, but
+    // that's difficult with this implementation
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
 
@@ -178,10 +174,14 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-  // TODO(Matt): if logging is enabled, stage a write?
   // This will mean Deletes get counted as a Delete and an Update in stats
   data_table_counter_.IncrementNumDelete(1);
-  return Update(txn, slot, *(reinterpret_cast<ProjectedRow *>(delete_record)));
+  // Create a redo
+  const RedoRecord *const redo = txn->StageWrite(this, slot, insert_record_initializer_);
+  TERRIER_ASSERT(redo->Delta()->NumColumns() == 1, "Redo record should only change the logical delete column!");
+  TERRIER_ASSERT(redo->Delta()->ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID,
+                 "Redo record should only change the logical delete column!");
+  return Update(txn, slot, *(redo->Delta()));
 }
 
 bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {

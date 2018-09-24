@@ -48,7 +48,6 @@ class DataTable {
   ~DataTable() {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     for (RawBlock *block : blocks_) block_store_->Release(block);
-    delete[] delete_record;
   }
 
   // TODO(Tianyu): Implement
@@ -94,7 +93,8 @@ class DataTable {
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
   /**
-   * Deletes the given TupleSlot. The rest of the behavior follows Update's behavior.
+   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * The rest of the behavior follows Update's behavior.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
@@ -102,7 +102,9 @@ class DataTable {
   bool Delete(transaction::TransactionContext *txn, TupleSlot slot);
 
   /**
-   * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic (follow a version chain if present) without the materialization. If the logic of Select changes, this should change with it and vice versa.
+   * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
+   * (follow a version chain if present) without the materialization. If the logic of Select changes, this should change
+   * with it and vice versa.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to check visibility on
    * @return true if tuple is visible to this txn, false otherwise
@@ -127,8 +129,6 @@ class DataTable {
 
   // for performance in generating initializer for inserts
   const storage::ProjectedRowInitializer insert_record_initializer_;
-  // used as the redo ProjectedRow for deletes
-  byte *delete_record;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
