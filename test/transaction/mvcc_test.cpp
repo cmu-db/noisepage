@@ -1215,4 +1215,133 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
   }
 }
 
+//    Txn #0 | Txn #1 |
+//    -----------------
+//    BEGIN  |        |
+//    R(X)   |        |
+//    W(X)   |        |
+//    R(X)   |        |
+//    R(X)   |        |
+//    COMMIT |        |
+//           | BEGIN  |
+//           | R(X)   |
+//           | COMMIT |
+//
+// Txn #0 should read the original version, then after delete fail to read or update the tuple
+// Txn #1 should read the deleted version (fail to select)
+// NOLINTNEXTLINE
+TEST_F(MVCCTests, SimpleDelete1) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn, [] {});
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+
+    tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_FALSE(tested.select_result_);
+
+    update = tested.GenerateRandomUpdate(&generator_);
+    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+
+    txn_manager.Commit(txn0, [] {});
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    tested.SelectIntoBuffer(txn1, slot);
+    EXPECT_FALSE(tested.select_result_);
+    txn_manager.Commit(txn1, [] {});
+  }
+}
+
+//    Txn #0 | Txn #1 |
+//    -----------------
+//    BEGIN  |        |
+//    R(X)   |        |
+//    W(X)   |        |
+//    R(X)   |        |
+//    R(X)   |        |
+//    ABORT  |        |
+//           | BEGIN  |
+//           | R(X)   |
+//           | COMMIT |
+//
+// Txn #0 should read the original version, then after delete fail to read or update the tuple
+// Txn #1 should read the original version
+// NOLINTNEXTLINE
+TEST_F(MVCCTests, SimpleDelete2) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+
+    // insert the tuple to be Updated later
+    auto *txn = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn);
+    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    txn_manager.Commit(txn, [] {});
+
+    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+
+    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
+
+    select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
+
+    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+
+    tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_FALSE(tested.select_result_);
+
+    update = tested.GenerateRandomUpdate(&generator_);
+    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+
+    txn_manager.Abort(txn0);
+
+    auto *txn1 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn1);
+
+    select_tuple = tested.SelectIntoBuffer(txn1, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+    txn_manager.Commit(txn1, [] {});
+  }
+}
+
 }  // namespace terrier

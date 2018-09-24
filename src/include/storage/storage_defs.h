@@ -232,7 +232,7 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  * TODO(Matt): could be used by the GC for recycling
  */
-enum class DeltaType : uint8_t { UPDATE = 0, INSERT, DELETE };
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 }  // namespace terrier::storage
 
 namespace std {

@@ -48,7 +48,7 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
-    // TODO(Matt): might not need to read visible in the loop (move after?) but not sure without large random tests
+    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
     visible = Visible(slot, accessor_);
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
@@ -63,15 +63,18 @@ bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSl
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
          transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    auto delta_type = StorageUtil::CheckUndoDeltaType(*(version_ptr->Delta()));
-    if (delta_type == DeltaType::UPDATE) {
+    // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
+    // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
+    const DeltaRecordType undo_type = StorageUtil::CheckUndoRecordType(*version_ptr);
+    if (undo_type == DeltaRecordType::UPDATE) {
       // Normal delta to be applied. Does not modify the logical delete column.
       StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-    } else if (delta_type == DeltaType::INSERT) {
+    } else if (undo_type == DeltaRecordType::INSERT) {
       // Applying the undo of an INSERT makes the tuple invisible to this txn.
       visible = false;
     } else {
-      TERRIER_ASSERT(delta_type == DeltaType::DELETE, "DeltaType must be DELETE if it's not UPDATE or INSERT.");
+      TERRIER_ASSERT(undo_type == DeltaRecordType::DELETE,
+                     "DeltaRecordType must be DELETE if it's not UPDATE or INSERT.");
       // Applying the undo of a DELETE makes the tuple visible to this txn.
       visible = true;
     }

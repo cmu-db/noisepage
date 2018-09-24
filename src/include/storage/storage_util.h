@@ -7,6 +7,7 @@
 namespace terrier::storage {
 class ProjectedRow;
 class TupleAccessStrategy;
+class UndoRecord;
 /**
  * Static utility class for common functions in storage
  */
@@ -122,11 +123,11 @@ class StorageUtil {
   }
 
   /**
-   * Inspects a ProjectedRow's contents for a modification on the logical delete column
-   * @warning This should be used for a ProjectedRow from an UndoRecords since the logic is backwards for a RedoRecord
-   * @param delta delta to be inspected
-   * @return INSERT if delta represents an insert, DELETE if delta represents a delete, UPDATE otherwise
+   * Inspects an UndoRecord's ProjectedRow contents for a modification on the logical delete column
+   * @param undo UndoRecord to be inspected
+   * @return INSERT if UndoRecord's ProjectedRow represents an insert, DELETE if delta represents a delete, UPDATE
+   * otherwise
    */
-  static DeltaType CheckUndoDeltaType(const ProjectedRow &delta);
+  static DeltaRecordType CheckUndoRecordType(const UndoRecord &undo);
 };
 }  // namespace terrier::storage
