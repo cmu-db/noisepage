@@ -10,6 +10,7 @@ From the directory in which this script resides
 """
 
 import argparse
+import datetime
 import json
 import os
 import pprint
@@ -47,10 +48,16 @@ class TestConfig(object):
 
         # Pull reference benchmark runs from this ordered list
         # of sources. Stop if the history requirements are met.
-        self.ref_data_sources = [{"project" : "terrier-nightly"},
-                                 {"project" :  "pa_terrier",
-                                  "branch" : "micro_bench"},
-                                ]
+        self.ref_data_sources = [
+            {"project" : "terrier-nightly",
+             "min_build" : 12,
+            },
+
+            {"project" :  "pa_terrier",
+             "branch" : "micro_bench",
+             "min_build" :  19,
+            },
+        ]
         return
 
     def get_benchmark_list(self):
@@ -330,9 +337,11 @@ class ArtifactProcessor(object):
                 gbr_p = GBBenchResultProcessor()
                 self.results[key] = gbr_p
 
-            if (self.required_num_items and
-                    (gbr_p.get_num_items() < self.required_num_items)):
-                gbr_p.add_gbresult(bench_result)
+            if self.required_num_items:
+                if gbr_p.get_num_items() < self.required_num_items:
+                    gbr_p.add_gbresult(bench_result, gbr.get_datetime())
+            else:
+                gbr_p.add_gbresult(bench_result, gbr.get_datetime())
         return
 
     def have_min_history(self):
@@ -346,8 +355,9 @@ class ArtifactProcessor(object):
         for key in keys:
             suite_name, test_name = key
             result = self.get_result(suite_name, test_name)
-            if (self.required_num_items and
-                    (result.get_num_items() < required_num_items)):
+            if not self.required_num_items:
+                return False
+            elif result.get_num_items() < self.required_num_items:
                 return False
         return True
 
@@ -391,6 +401,11 @@ class GBFileResult(object):
             key = (result_obj.get_suite_name(), result_obj.get_test_name())
             self.benchmarks_dict[key] = result_obj
         return
+
+    def get_datetime(self):
+        """ Return when the result was generated as a datetime """
+        date_str = self.data['context']['date']
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
 
     def get_keys(self):
         """ Returns all result keys """
@@ -437,6 +452,11 @@ class GBBenchResult(object):
             self.attrs.add("time_type")
         return
 
+    def add_timestamp(self, timestamp):
+        """ timestamp: as a datetime """
+        self.timestamp = timestamp
+        return
+
     def get_suite_name(self):
         """ Return test suite name """
         return self.suite_name
@@ -474,6 +494,9 @@ class GBBenchResult(object):
         """
         return self.time_unit
 
+    def get_timestamp(self):
+        return self.timestamp
+
     def get_items_per_second(self):
         """ A performance measure, items per second """
         return self.items_per_second
@@ -500,9 +523,11 @@ class GBBenchResultProcessor(object):
 
         self.sum_time = 0.0
         self.sum_items_per_second = 0.0
+
+        self.gbresults = []
         return
 
-    def add_gbresult(self, gb_result):
+    def add_gbresult(self, gb_result, timestamp=None):
         """ add a result, ensuring we have a valid input, consistent
             with results being accumulated
         """
@@ -528,7 +553,27 @@ class GBBenchResultProcessor(object):
         self.sum_time += gb_result.get_time()
         self.sum_items_per_second += gb_result.get_items_per_second()
         self.num_results += 1
+
+        # save gb_result along with timestamp
+        # TODO - possible do this externally, one time
+        gb_result.add_timestamp(timestamp)
+        self.gbresults.append(gb_result)
         return
+
+    def get_items_per_second_series(self):
+        """ Returns (items_per_second series, datetime series) """
+        ts_series = []
+        ips_series = []
+
+        temp_list =[]
+        for gbr in self.gbresults:
+            temp_list.append((gbr.get_timestamp(), gbr))
+        # sort into time order
+        temp_list.sort()
+        for ts, gbr in temp_list:
+            ts_series.append(ts)
+            ips_series.append(gbr.get_items_per_second())
+        return (ips_series, ts_series)
 
     def get_mean_time(self):
         """ Return mean cpu or elapsed time.
@@ -744,7 +789,7 @@ class Jenkins(object):
         self.base_url = base_url
         return
 
-    def get_builds(self, project, branch, status_filter=None):
+    def get_builds(self, project, branch, status_filter=None, min_build=None):
         """
         Get the list of builds for the specified project/branch
 
@@ -758,6 +803,7 @@ class Jenkins(object):
 
         Returns a list of Build objects
         """
+
         url = "{}/job/{}".format(self.base_url, project)
         if branch:
             url = "{}/job/{}".format(url, branch)
@@ -786,6 +832,12 @@ class Jenkins(object):
             ret_list = [build
                         for build in ret_list
                         if build.get_result() == status_filter]
+
+        if min_build:
+            ret_list = [build
+                        for build in ret_list
+                        if build.get_number() >= min_build]
+
         return ret_list
 
     def debug_print(self, data):
@@ -988,7 +1040,11 @@ if __name__ == "__main__":
     for repo_dict in data_src_list:
         project = repo_dict.get("project")
         branch = repo_dict.get("branch")
-        builds = h.get_builds(project, branch, status_filter="SUCCESS")
+        min_build = repo_dict.get("min_build")
+
+        kwargs = {"min_build" : min_build,
+                  "status_filter" : "SUCCESS" }
+        builds = h.get_builds(project, branch, **kwargs)
 
         for build in builds:
             if args.verbose:
@@ -996,7 +1052,6 @@ if __name__ == "__main__":
                                                              branch,
                                                              build.get_number(),
                                                              build.get_result()))
-
             artifacts = build.get_artifacts()
             for artifact in artifacts:
                 artifact_filename = artifact.get_filename()
