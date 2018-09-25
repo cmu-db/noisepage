@@ -12,3 +12,5 @@ add_dependencies(test_util gtest)
 add_subdirectory(common)
 add_subdirectory(storage)
 add_subdirectory(transaction)
+add_subdirectory(index)
+

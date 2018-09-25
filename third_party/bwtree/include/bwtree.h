@@ -46,9 +46,9 @@
 //#define BWTREE_PELOTON
 
 // Hacks to make bwtree compile in terrier
-#define LOG_TRACE(...) ((void)0)
-#define LOG_DEBUG(...) ((void)0)
-#define LOG_ERROR(...) ((void)0)
+#define PELOTON_LOG_TRACE(...) ((void)0)
+#define PELOTON_LOG_DEBUG(...) ((void)0)
+#define PELOTON_LOG_ERROR(...) ((void)0)
 #define PELOTON_ASSERT(expr) ((void)0)
 #define PELOTON_FALLTHROUGH [[fallthrough]]
 
@@ -310,7 +310,7 @@ class BwTreeBase {
    * This function must be called when the garbage pool is empty
    */
   void DestroyThreadLocal() {
-    LOG_TRACE("Destroy %lu thread local slots", thread_num);
+    PELOTON_LOG_TRACE("Destroy %lu thread local slots", thread_num);
 
     // There must already be metadata allocated
     PELOTON_ASSERT(original_p != nullptr);
@@ -334,7 +334,7 @@ class BwTreeBase {
    * This function uses thread_num to initialize number of threads
    */
   void PrepareThreadLocal() {
-    LOG_TRACE("Preparing %lu thread local slots", thread_num);
+    PELOTON_LOG_TRACE("Preparing %lu thread local slots", thread_num);
 
     // This is the unaligned base address
     // We allocate one more element than requested as the buffer
@@ -394,7 +394,7 @@ class BwTreeBase {
     // Frees all metadata
     DestroyThreadLocal();
 
-    LOG_TRACE("Finished destroying class BwTreeBase");
+    PELOTON_LOG_TRACE("Finished destroying class BwTreeBase");
 
     return;
   }
@@ -2475,21 +2475,21 @@ class BwTree : public BwTreeBase {
 
         // Epoch Manager that does garbage collection
         epoch_manager{this} {
-    LOG_TRACE(
+    PELOTON_LOG_TRACE(
         "Bw-Tree Constructor called. "
         "Setting up execution environment...");
 
     InitMappingTable();
     InitNodeLayout();
 
-    LOG_TRACE("sizeof(NodeMetaData) = %lu is the overhead for each node",
+    PELOTON_LOG_TRACE("sizeof(NodeMetaData) = %lu is the overhead for each node",
               sizeof(NodeMetaData));
-    LOG_TRACE("sizeof(KeyType) = %lu is the size of key", sizeof(KeyType));
+    PELOTON_LOG_TRACE("sizeof(KeyType) = %lu is the size of key", sizeof(KeyType));
 
     // We could choose not to start GC thread inside the BwTree
     // in that case GC must be done by calling the interface
     if (start_gc_thread == true) {
-      LOG_TRACE("Starting epoch manager thread...");
+      PELOTON_LOG_TRACE("Starting epoch manager thread...");
       epoch_manager.StartThread();
     }
 
@@ -2504,8 +2504,8 @@ class BwTree : public BwTreeBase {
    * has been called before we free the whole tree
    */
   ~BwTree() {
-    LOG_TRACE("Next node ID at exit: %" PRIu64 "", next_unused_node_id.load());
-    LOG_TRACE("Destructor: Free tree nodes");
+    PELOTON_LOG_TRACE("Next node ID at exit: %" PRIu64 "", next_unused_node_id.load());
+    PELOTON_LOG_TRACE("Destructor: Free tree nodes");
 
     // Clear all garbage nodes awaiting cleaning
     // First of all it should set all last active epoch counter to -1
@@ -2515,7 +2515,7 @@ class BwTree : public BwTreeBase {
     size_t node_count = FreeNodeByNodeID(root_id.load());
 
     (void)node_count;
-    LOG_TRACE("Freed %lu tree nodes", node_count);
+    PELOTON_LOG_TRACE("Freed %lu tree nodes", node_count);
 
     return;
   }
@@ -2554,7 +2554,7 @@ class BwTree : public BwTreeBase {
    * the new number of threads we want to support here for doing experiments
    */
   void UpdateThreadLocal(size_t p_thread_num) {
-    LOG_TRACE("Updating thread-local array to length %lu......", p_thread_num);
+    PELOTON_LOG_TRACE("Updating thread-local array to length %lu......", p_thread_num);
 
     // 1. Frees all pending memory chunks
     // 2. Frees the thread local array
@@ -2769,7 +2769,7 @@ class BwTree : public BwTreeBase {
           // they are supposed to be removed as part of any operation on
           // the tree (i.e. they could not be left behind once a operation
           // has been finished)
-          LOG_DEBUG("Unknown node type: %d", (int)type);
+          PELOTON_LOG_DEBUG("Unknown node type: %d", (int)type);
 
           PELOTON_ASSERT(false);
           return 0;
@@ -2787,7 +2787,7 @@ class BwTree : public BwTreeBase {
    * to guide the first operation to the right place
    */
   void InitNodeLayout() {
-    LOG_TRACE("Initializing node layout for root and first page...");
+    PELOTON_LOG_TRACE("Initializing node layout for root and first page...");
 
     root_id = GetNextNodeID();
     PELOTON_ASSERT(root_id == 1UL);
@@ -2832,7 +2832,7 @@ class BwTree : public BwTreeBase {
 
     root_node_p->PushBack(first_sep);
 
-    LOG_TRACE("root id = %" PRIu64 "; first leaf id = %" PRIu64 "", root_id.load(),
+    PELOTON_LOG_TRACE("root id = %" PRIu64 "; first leaf id = %" PRIu64 "", root_id.load(),
               first_leaf_id);
 
     InstallNewNode(root_id, root_node_p);
@@ -2882,14 +2882,14 @@ class BwTree : public BwTreeBase {
     // The upper level functions should either catch this exception
     // and then use another index instead, or simply kill the system
     if(mapping_table == (void *)-1) {
-      LOG_ERROR("Failed to initialize mapping table");
+      PELOTON_LOG_ERROR("Failed to initialize mapping table");
       throw std::runtime_error("mmap() failed to initialize mapping table for Bw-Tree");
     }
 
-    LOG_TRACE("Mapping table allocated via mmap()");
+    PELOTON_LOG_TRACE("Mapping table allocated via mmap()");
 
-    LOG_TRACE("Initializing mapping table.... size = %lu", MAPPING_TABLE_SIZE);
-    LOG_TRACE("Fast initialization: Do not set to zero");
+    PELOTON_LOG_TRACE("Initializing mapping table.... size = %lu", MAPPING_TABLE_SIZE);
+    PELOTON_LOG_TRACE("Fast initialization: Do not set to zero");
 
     return;
   }
@@ -3044,7 +3044,7 @@ class BwTree : public BwTreeBase {
       goto abort_traverse;
     }
 
-    LOG_TRACE("Successfully loading root node ID");
+    PELOTON_LOG_TRACE("Successfully loading root node ID");
 
     while (1) {
       NodeID child_node_id = NavigateInnerNode(context_p);
@@ -3052,7 +3052,7 @@ class BwTree : public BwTreeBase {
       // Navigate could abort since it might go to another NodeID
       // if there is a split delta and the key is >= split key
       if (context_p->abort_flag == true) {
-        LOG_TRACE("Navigate Inner Node abort. ABORT");
+        PELOTON_LOG_TRACE("Navigate Inner Node abort. ABORT");
 
         // If NavigateInnerNode() aborts then it retrns INVALID_NODE_ID
         // as a double check
@@ -3070,7 +3070,7 @@ class BwTree : public BwTreeBase {
       LoadNodeID(child_node_id, context_p);
 
       if (context_p->abort_flag == true) {
-        LOG_TRACE("LoadNodeID aborted. ABORT");
+        PELOTON_LOG_TRACE("LoadNodeID aborted. ABORT");
 
         goto abort_traverse;
       }
@@ -3079,7 +3079,7 @@ class BwTree : public BwTreeBase {
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
 
       if (snapshot_p->IsLeaf() == true) {
-        LOG_TRACE("The next node is a leaf");
+        PELOTON_LOG_TRACE("The next node is a leaf");
 
         break;
       }
@@ -3101,7 +3101,7 @@ class BwTree : public BwTreeBase {
     }
 
     if (context_p->abort_flag == true) {
-      LOG_TRACE(
+      PELOTON_LOG_TRACE(
           "NavigateLeafNode() or NavigateSiblingChain()"
           " aborts. ABORT");
 
@@ -3110,7 +3110,7 @@ class BwTree : public BwTreeBase {
 
 #ifdef BWTREE_DEBUG
 
-    LOG_TRACE("Found leaf node. Abort count = %d, level = %d",
+    PELOTON_LOG_TRACE("Found leaf node. Abort count = %d, level = %d",
               context_p->abort_counter, context_p->current_level);
 
 #endif
@@ -3180,7 +3180,7 @@ class BwTree : public BwTreeBase {
       // posted later and by the consolidated version of the node
       if ((node_p->GetNextNodeID() != INVALID_NODE_ID) &&
           (KeyCmpGreaterEqual(context_p->search_key, node_p->GetHighKey()))) {
-        LOG_TRACE(
+        PELOTON_LOG_TRACE(
             "Bounds checking failed (id = %" PRIu64 ") - "
             "Go right.",
             snapshot_p->node_id);
@@ -3188,7 +3188,7 @@ class BwTree : public BwTreeBase {
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
 
         if (context_p->abort_flag == true) {
-          LOG_TRACE("JumpToNodeID aborts(). ABORT");
+          PELOTON_LOG_TRACE("JumpToNodeID aborts(). ABORT");
 
           return;
         }
@@ -3215,14 +3215,14 @@ class BwTree : public BwTreeBase {
       const BaseNode *node_p = snapshot_p->node_p;
       if ((node_p->GetNextNodeID() != INVALID_NODE_ID) &&
           (KeyCmpGreater(context_p->search_key, node_p->GetHighKey()))) {
-        LOG_TRACE(
+        PELOTON_LOG_TRACE(
             "Bounds checking for BI failed (id = %" PRIu64 ") - "
             "Go right.",
             snapshot_p->node_id);
 
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
         if (context_p->abort_flag == true) {
-          LOG_TRACE("JumpToNodeID() aborts for BI. ABORT");
+          PELOTON_LOG_TRACE("JumpToNodeID() aborts for BI. ABORT");
           return;
         }
       } else {
@@ -3359,7 +3359,7 @@ class BwTree : public BwTreeBase {
     // it has reached a leaf node
     PELOTON_ASSERT(snapshot_p->node_id != INVALID_NODE_ID);
 
-    LOG_TRACE("Navigating inner node delta chain...");
+    PELOTON_LOG_TRACE("Navigating inner node delta chain...");
 
     // Always start with the first element
     const KeyNodeIDPair *start_p =
@@ -3382,7 +3382,7 @@ class BwTree : public BwTreeBase {
           NodeID target_id =
               LocateSeparatorByKey(search_key, inner_node_p, start_p, end_p);
 
-          LOG_TRACE("Found child in inner node; child ID = %" PRIu64 "", target_id);
+          PELOTON_LOG_TRACE("Found child in inner node; child ID = %" PRIu64 "", target_id);
 
           return target_id;
         }  // case InnerType
@@ -3400,7 +3400,7 @@ class BwTree : public BwTreeBase {
           if (KeyCmpGreaterEqual(search_key, insert_item.first)) {
             if ((next_item.second == INVALID_NODE_ID) ||
                 (KeyCmpLess(search_key, next_item.first))) {
-              LOG_TRACE("Find target ID = %" PRIu64 " in insert delta",
+              PELOTON_LOG_TRACE("Find target ID = %" PRIu64 " in insert delta",
                         insert_item.second);
 
               return insert_item.second;
@@ -3437,7 +3437,7 @@ class BwTree : public BwTreeBase {
             // then +Inf
             if ((next_item.second == INVALID_NODE_ID) ||
                 (KeyCmpLess(search_key, next_item.first))) {
-              LOG_TRACE("Find target ID = %" PRIu64 " in delete delta",
+              PELOTON_LOG_TRACE("Find target ID = %" PRIu64 " in delete delta",
                         prev_item.second);
 
               return prev_item.second;
@@ -3469,12 +3469,12 @@ class BwTree : public BwTreeBase {
           // high key does not need to be updated
           // Since we still could not know the high key
           if (KeyCmpGreaterEqual(search_key, merge_key)) {
-            LOG_TRACE("Take merge right branch (ID = %" PRIu64 ")",
+            PELOTON_LOG_TRACE("Take merge right branch (ID = %" PRIu64 ")",
                       snapshot_p->node_id);
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take merge left branch (ID = %" PRIu64 ")", snapshot_p->node_id);
+            PELOTON_LOG_TRACE("Take merge left branch (ID = %" PRIu64 ")", snapshot_p->node_id);
 
             node_p = merge_node_p->child_node_p;
           }
@@ -3492,7 +3492,7 @@ class BwTree : public BwTreeBase {
           continue;
         }  // InnerMergeType
         default: {
-          LOG_TRACE("ERROR: Unknown node type = %d", static_cast<int>(type));
+          PELOTON_LOG_TRACE("ERROR: Unknown node type = %d", static_cast<int>(type));
 
           PELOTON_ASSERT(false);
         }
@@ -3530,7 +3530,7 @@ class BwTree : public BwTreeBase {
 
     PELOTON_ASSERT(snapshot_p->IsLeaf() == false);
     PELOTON_ASSERT(snapshot_p->node_p != nullptr);
-    LOG_TRACE("Navigating inner node delta chain for BI...");
+    PELOTON_LOG_TRACE("Navigating inner node delta chain for BI...");
 
     while (1) {
       NodeType type = node_p->GetType();
@@ -3540,7 +3540,7 @@ class BwTree : public BwTreeBase {
           NodeID target_id = LocateSeparatorByKeyBI(
               search_key, static_cast<const InnerNode *>(node_p));
 
-          LOG_TRACE("Found child in inner node (BI); child ID = %" PRIu64 "",
+          PELOTON_LOG_TRACE("Found child in inner node (BI); child ID = %" PRIu64 "",
                     target_id);
 
           return target_id;
@@ -3558,7 +3558,7 @@ class BwTree : public BwTreeBase {
             // *********************************************
 
             if (KeyCmpGreater(search_key, insert_item.first)) {
-              LOG_TRACE("Find target ID = %" PRIu64 " in insert delta (BI)",
+              PELOTON_LOG_TRACE("Find target ID = %" PRIu64 " in insert delta (BI)",
                         insert_item.second);
 
               return insert_item.second;
@@ -3584,7 +3584,7 @@ class BwTree : public BwTreeBase {
               (KeyCmpGreater(search_key, prev_item.first))) {
             if ((next_item.second == INVALID_NODE_ID) ||
                 (KeyCmpLess(search_key, next_item.first))) {
-              LOG_TRACE("Find target ID = %" PRIu64 " in delete delta (BI)",
+              PELOTON_LOG_TRACE("Find target ID = %" PRIu64 " in delete delta (BI)",
                         prev_item.second);
 
               return prev_item.second;
@@ -3610,12 +3610,12 @@ class BwTree : public BwTreeBase {
           // ************************************************
 
           if (KeyCmpGreater(search_key, merge_key)) {
-            LOG_TRACE("Take merge right branch (ID = %" PRIu64 ") for BI",
+            PELOTON_LOG_TRACE("Take merge right branch (ID = %" PRIu64 ") for BI",
                       snapshot_p->node_id);
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take merge left branch (ID = %" PRIu64 ") for BI",
+            PELOTON_LOG_TRACE("Take merge left branch (ID = %" PRIu64 ") for BI",
                       snapshot_p->node_id);
 
             node_p = merge_node_p->child_node_p;
@@ -3624,7 +3624,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerMergeType
         default: {
-          LOG_ERROR("ERROR: Unknown or unsupported node type = %d",
+          PELOTON_LOG_ERROR("ERROR: Unknown or unsupported node type = %d",
                     static_cast<int>(type));
 
           PELOTON_ASSERT(false);
@@ -3878,7 +3878,7 @@ class BwTree : public BwTreeBase {
           return;
         }  // case InnerType
         case NodeType::InnerRemoveType: {
-          LOG_ERROR("ERROR: InnerRemoveNode not allowed");
+          PELOTON_LOG_ERROR("ERROR: InnerRemoveNode not allowed");
 
           PELOTON_ASSERT(false);
           return;
@@ -3944,7 +3944,7 @@ class BwTree : public BwTreeBase {
           return;
         }  // case InnerMergeType
         default: {
-          LOG_ERROR("ERROR: Unknown inner node type = %d",
+          PELOTON_LOG_ERROR("ERROR: Unknown inner node type = %d",
                     static_cast<int>(type));
 
           PELOTON_ASSERT(false);
@@ -4124,13 +4124,13 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafDeleteType
         case NodeType::LeafRemoveType: {
-          LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
+          PELOTON_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
           PELOTON_ASSERT(false);
           PELOTON_FALLTHROUGH;
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
-          LOG_TRACE("Observed a merge node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a merge node on leaf delta chain");
 
           const LeafMergeNode *merge_node_p =
               static_cast<const LeafMergeNode *>(node_p);
@@ -4138,11 +4138,11 @@ class BwTree : public BwTreeBase {
           // Decide which side we should choose
           // Using >= for separator key
           if (KeyCmpGreaterEqual(search_key, merge_node_p->delete_item.first)) {
-            LOG_TRACE("Take leaf merge right branch");
+            PELOTON_LOG_TRACE("Take leaf merge right branch");
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take leaf merge left branch");
+            PELOTON_LOG_TRACE("Take leaf merge left branch");
 
             node_p = merge_node_p->child_node_p;
           }
@@ -4150,7 +4150,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafMergeType
         case NodeType::LeafSplitType: {
-          LOG_TRACE("Observed a split node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a split node on leaf delta chain");
 
           const LeafSplitNode *split_node_p =
               static_cast<const LeafSplitNode *>(node_p);
@@ -4163,7 +4163,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafSplitType
         default: {
-          LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
+          PELOTON_LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
                     static_cast<int>(node_p->GetType()));
 
           PELOTON_ASSERT(false);
@@ -4304,13 +4304,13 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafDeleteType
         case NodeType::LeafRemoveType: {
-          LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
+          PELOTON_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
           PELOTON_ASSERT(false);
           PELOTON_FALLTHROUGH;
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
-          LOG_TRACE("Observed a merge node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a merge node on leaf delta chain");
 
           const LeafMergeNode *merge_node_p =
               static_cast<const LeafMergeNode *>(node_p);
@@ -4318,11 +4318,11 @@ class BwTree : public BwTreeBase {
           // Decide which side we should choose
           // Using >= for separator key
           if (KeyCmpGreaterEqual(search_key, merge_node_p->delete_item.first)) {
-            LOG_TRACE("Take leaf merge right branch");
+            PELOTON_LOG_TRACE("Take leaf merge right branch");
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take leaf merge left branch");
+            PELOTON_LOG_TRACE("Take leaf merge left branch");
 
             node_p = merge_node_p->child_node_p;
           }
@@ -4330,7 +4330,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafMergeType
         case NodeType::LeafSplitType: {
-          LOG_TRACE("Observed a split node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a split node on leaf delta chain");
 
           const LeafSplitNode *split_node_p =
               static_cast<const LeafSplitNode *>(node_p);
@@ -4340,7 +4340,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafSplitType
         default: {
-          LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
+          PELOTON_LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
                     static_cast<int>(node_p->GetType()));
 
           PELOTON_ASSERT(false);
@@ -4494,23 +4494,23 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafDeleteType
         case NodeType::LeafRemoveType: {
-          LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
+          PELOTON_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
           PELOTON_ASSERT(false);
           PELOTON_FALLTHROUGH;
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
-          LOG_TRACE("Observed a merge node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a merge node on leaf delta chain");
 
           const LeafMergeNode *merge_node_p =
               static_cast<const LeafMergeNode *>(node_p);
 
           if (KeyCmpGreaterEqual(search_key, merge_node_p->delete_item.first)) {
-            LOG_TRACE("Take leaf merge right branch");
+            PELOTON_LOG_TRACE("Take leaf merge right branch");
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take leaf merge left branch");
+            PELOTON_LOG_TRACE("Take leaf merge left branch");
 
             node_p = merge_node_p->child_node_p;
           }
@@ -4518,7 +4518,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafMergeType
         case NodeType::LeafSplitType: {
-          LOG_TRACE("Observed a split node on leaf delta chain");
+          PELOTON_LOG_TRACE("Observed a split node on leaf delta chain");
 
           const LeafSplitNode *split_node_p =
               static_cast<const LeafSplitNode *>(node_p);
@@ -4528,7 +4528,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafSplitType
         default: {
-          LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
+          PELOTON_LOG_ERROR("ERROR: Unknown leaf delta node type: %d",
                     static_cast<int>(node_p->GetType()));
 
           PELOTON_ASSERT(false);
@@ -4816,7 +4816,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafDeleteType
         case NodeType::LeafRemoveType: {
-          LOG_ERROR("ERROR: LeafRemoveNode not allowed");
+          PELOTON_LOG_ERROR("ERROR: LeafRemoveNode not allowed");
 
           PELOTON_ASSERT(false);
           PELOTON_FALLTHROUGH;
@@ -4843,7 +4843,7 @@ class BwTree : public BwTreeBase {
           return;
         }  // case LeafMergeType
         default: {
-          LOG_ERROR("ERROR: Unknown node type: %d", static_cast<int>(type));
+          PELOTON_LOG_ERROR("ERROR: Unknown node type: %d", static_cast<int>(type));
 
           PELOTON_ASSERT(false);
         }  // default
@@ -4933,7 +4933,7 @@ class BwTree : public BwTreeBase {
    * decisions
    */
   void JumpToLeftSibling(Context *context_p) {
-    LOG_TRACE("Jumping to the left sibling");
+    PELOTON_LOG_TRACE("Jumping to the left sibling");
 
 #ifdef BWTREE_DEBUG
     PELOTON_ASSERT(context_p->HasParentNode());
@@ -4950,7 +4950,7 @@ class BwTree : public BwTreeBase {
     // its left sibling before we take the snapshot of its previou left child
     // then this no longer holds
     if (IsOnLeftMostChild(context_p)) {
-      LOG_TRACE(
+      PELOTON_LOG_TRACE(
           "Observed a remove node on left most child."
           "  Parent node must have been merged. ABORT");
 
@@ -4980,7 +4980,7 @@ class BwTree : public BwTreeBase {
     // the split was consolidated), which means also that we
     // could not find a sep item on the parent node
     if (parent_snapshot_p->node_p != GetNode(parent_snapshot_p->node_id)) {
-      LOG_TRACE(
+      PELOTON_LOG_TRACE(
           "Inconsistent parent node snapshot and "
           "current parent node. ABORT");
 
@@ -4997,7 +4997,7 @@ class BwTree : public BwTreeBase {
     JumpToNodeID(left_sibling_id, context_p);
 
     if (context_p->abort_flag == true) {
-      LOG_TRACE("JumpToLeftSibling()'s call to JumpToNodeID() ABORT");
+      PELOTON_LOG_TRACE("JumpToLeftSibling()'s call to JumpToNodeID() ABORT");
 
       return;
     }
@@ -5013,7 +5013,7 @@ class BwTree : public BwTreeBase {
     // In the latter case simply aborting seems to be a bad idea
     // but if it is the second case then aborting is beneficial
     if (removed_node_id != snapshot_p->node_p->GetNextNodeID()) {
-      LOG_TRACE(
+      PELOTON_LOG_TRACE(
           "Left sibling's next node ID does not match removed NodeID."
           " ABORT");
 
@@ -5037,7 +5037,7 @@ class BwTree : public BwTreeBase {
   void TakeNodeSnapshot(NodeID node_id, Context *context_p) {
     const BaseNode *node_p = GetNode(node_id);
 
-    LOG_TRACE("Is leaf node? - %d", node_p->IsOnLeafDeltaChain());
+    PELOTON_LOG_TRACE("Is leaf node? - %d", node_p->IsOnLeafDeltaChain());
 
 #ifdef BWTREE_DEBUG
 
@@ -5122,7 +5122,7 @@ class BwTree : public BwTreeBase {
    * (3) Check current_level == 0 to determine whether we are on a root node
    */
   void LoadNodeID(NodeID node_id, Context *context_p) {
-    LOG_TRACE("Loading NodeID = %" PRIu64 "", node_id);
+    PELOTON_LOG_TRACE("Loading NodeID = %" PRIu64 "", node_id);
 
     // This pushes a new snapshot into stack
     TakeNodeSnapshot(node_id, context_p);
@@ -5155,7 +5155,7 @@ class BwTree : public BwTreeBase {
    * we need to check whether the target node is the left most child
    */
   void JumpToNodeID(NodeID node_id, Context *context_p) {
-    LOG_TRACE("Jumping to node ID = %" PRIu64 "", node_id);
+    PELOTON_LOG_TRACE("Jumping to node ID = %" PRIu64 "", node_id);
 
     // This updates the current snapshot in the stack
     UpdateNodeSnapshot(node_id, context_p);
@@ -5194,7 +5194,7 @@ class BwTree : public BwTreeBase {
   before_switch:
     switch (snapshot_p->node_p->GetType()) {
       case NodeType::InnerAbortType: {
-        LOG_TRACE("Observed Inner Abort Node; Continue");
+        PELOTON_LOG_TRACE("Observed Inner Abort Node; Continue");
 
         snapshot_p->node_p =
             (static_cast<const DeltaNode *>(snapshot_p->node_p))->child_node_p;
@@ -5203,7 +5203,7 @@ class BwTree : public BwTreeBase {
       }
       case NodeType::LeafRemoveType:
       case NodeType::InnerRemoveType: {
-        LOG_TRACE("Observed remove node; abort");
+        PELOTON_LOG_TRACE("Observed remove node; abort");
 
         // Since remove node is just a temporary measure, and if
         // a thread proceeds to do its own job it must finish the remove
@@ -5232,7 +5232,7 @@ class BwTree : public BwTreeBase {
                                             Context *context_p) {
     const BaseNode *node_p = GetNode(node_id);
 
-    LOG_TRACE("Is leaf node (RO)? - %d", node_p->IsOnLeafDeltaChain());
+    PELOTON_LOG_TRACE("Is leaf node (RO)? - %d", node_p->IsOnLeafDeltaChain());
 
 #ifdef BWTREE_DEBUG
 
@@ -5260,7 +5260,7 @@ class BwTree : public BwTreeBase {
    * so we still need to check abort flag after this function returns
    */
   inline void LoadNodeIDReadOptimized(NodeID node_id, Context *context_p) {
-    LOG_TRACE("Loading NodeID (RO) = %" PRIu64 "", node_id);
+    PELOTON_LOG_TRACE("Loading NodeID (RO) = %" PRIu64 "", node_id);
 
     // This pushes a new snapshot into stack
     TakeNodeSnapshotReadOptimized(node_id, context_p);
@@ -5292,31 +5292,31 @@ class BwTree : public BwTreeBase {
       goto abort_traverse;
     }
 
-    LOG_TRACE("Successfully loading root node ID for BI");
+    PELOTON_LOG_TRACE("Successfully loading root node ID for BI");
 
     while (1) {
       NodeID child_node_id = NavigateInnerNodeBI(context_p);
       if (context_p->abort_flag == true) {
-        LOG_TRACE("Navigate Inner Node abort (BI). ABORT");
+        PELOTON_LOG_TRACE("Navigate Inner Node abort (BI). ABORT");
         PELOTON_ASSERT(child_node_id == INVALID_NODE_ID);
         goto abort_traverse;
       }
 
       LoadNodeID(child_node_id, context_p);
       if (context_p->abort_flag == true) {
-        LOG_TRACE("LoadNodeID aborted (BI). ABORT");
+        PELOTON_LOG_TRACE("LoadNodeID aborted (BI). ABORT");
         goto abort_traverse;
       }
 
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
       if (snapshot_p->IsLeaf() == true) {
-        LOG_TRACE("The next node is a leaf (BI)");
+        PELOTON_LOG_TRACE("The next node is a leaf (BI)");
 
         // After reaching leaf level just traverse the sibling chain
         // and stop before the search key
         NavigateSiblingChainBI(context_p);
         if (context_p->abort_flag == true) {
-          LOG_TRACE("NavigateSiblingChainBI() inside TraverseBI() aborts");
+          PELOTON_LOG_TRACE("NavigateSiblingChainBI() inside TraverseBI() aborts");
 
           goto abort_traverse;
         }
@@ -5354,12 +5354,12 @@ class BwTree : public BwTreeBase {
     LoadNodeIDReadOptimized(child_node_id, context_p);
 
     if (context_p->abort_flag == true) {
-      LOG_TRACE("LoadNodeID aborted on loading root (RO)");
+      PELOTON_LOG_TRACE("LoadNodeID aborted on loading root (RO)");
 
       goto abort_traverse;
     }
 
-    LOG_TRACE("Successfully loading root node ID (RO)");
+    PELOTON_LOG_TRACE("Successfully loading root node ID (RO)");
 
     while (1) {
       child_node_id = NavigateInnerNode(context_p);
@@ -5367,7 +5367,7 @@ class BwTree : public BwTreeBase {
       // Navigate could abort since it might go to another NodeID
       // if there is a split delta and the key is >= split key
       if (context_p->abort_flag == true) {
-        LOG_TRACE("Navigate Inner Node abort (RO)");
+        PELOTON_LOG_TRACE("Navigate Inner Node abort (RO)");
 
         // If NavigateInnerNode() aborts then it retrns INVALID_NODE_ID
         // as a double check
@@ -5387,7 +5387,7 @@ class BwTree : public BwTreeBase {
       LoadNodeIDReadOptimized(child_node_id, context_p);
 
       if (context_p->abort_flag == true) {
-        LOG_TRACE("LoadNodeID aborted (RO). ABORT");
+        PELOTON_LOG_TRACE("LoadNodeID aborted (RO). ABORT");
 
         goto abort_traverse;
       }
@@ -5396,19 +5396,19 @@ class BwTree : public BwTreeBase {
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
 
       if (snapshot_p->IsLeaf() == true) {
-        LOG_TRACE("The next node is a leaf (RO)");
+        PELOTON_LOG_TRACE("The next node is a leaf (RO)");
 
         NavigateLeafNode(context_p, *value_list_p);
 
         if (context_p->abort_flag == true) {
-          LOG_TRACE("NavigateLeafNode aborts (RO). ABORT");
+          PELOTON_LOG_TRACE("NavigateLeafNode aborts (RO). ABORT");
 
           goto abort_traverse;
         }
 
 #ifdef BWTREE_DEBUG
 
-        LOG_TRACE("Found leaf node (RO). Abort count = %d, level = %d",
+        PELOTON_LOG_TRACE("Found leaf node (RO). Abort count = %d, level = %d",
                   context_p->abort_counter, context_p->current_level);
 
 #endif
@@ -5476,7 +5476,7 @@ class BwTree : public BwTreeBase {
                                     parent_snapshot_p->node_p);
 
     if (ret == true) {
-      LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS succeeds",
+      PELOTON_LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS succeeds",
                 GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
 
       // Update parent node pointer to reflect the fact that it has been
@@ -5487,7 +5487,7 @@ class BwTree : public BwTreeBase {
 
       return true;
     } else {
-      LOG_TRACE(
+      PELOTON_LOG_TRACE(
           "Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS failed. "
           "ABORT",
           GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
@@ -5541,7 +5541,7 @@ class BwTree : public BwTreeBase {
     // and also recycle the deleted NodeID since now no new thread
     // could access that NodeID until it is reused
     if (ret == true) {
-      LOG_TRACE("Index term delete delta installed, ID = %" PRIu64 "; ABORT",
+      PELOTON_LOG_TRACE("Index term delete delta installed, ID = %" PRIu64 "; ABORT",
                 parent_snapshot_p->node_id);
 
       // The deleted node ID must resolve to a RemoveNode of either
@@ -5572,7 +5572,7 @@ class BwTree : public BwTreeBase {
 
       return true;
     } else {
-      LOG_TRACE("Index term delete delta install failed. ABORT");
+      PELOTON_LOG_TRACE("Index term delete delta install failed. ABORT");
 
       // DO NOT FORGET TO DELETE THIS
       delete_node_p->~InnerDeleteNode();
@@ -5615,7 +5615,7 @@ class BwTree : public BwTreeBase {
   before_switch:
     switch (snapshot_p->node_p->GetType()) {
       case NodeType::InnerAbortType: {
-        LOG_TRACE("Observed Inner Abort Node; ABORT");
+        PELOTON_LOG_TRACE("Observed Inner Abort Node; ABORT");
 
         // This is an optimization - when seeing an ABORT
         // node, we continue but set the physical pointer to be ABORT's
@@ -5628,7 +5628,7 @@ class BwTree : public BwTreeBase {
       }
       case NodeType::LeafRemoveType:
       case NodeType::InnerRemoveType: {
-        LOG_TRACE("Helping along remove node...");
+        PELOTON_LOG_TRACE("Helping along remove node...");
 
         // The right branch for merging is the child node under remove node
         const BaseNode *merge_right_branch =
@@ -5643,7 +5643,7 @@ class BwTree : public BwTreeBase {
 
         // If this aborts then we propagate this to the state machine driver
         if (context_p->abort_flag == true) {
-          LOG_TRACE("Jump to left sibling in Remove help along ABORT");
+          PELOTON_LOG_TRACE("Jump to left sibling in Remove help along ABORT");
 
           // Here we are uncertain about the current status (it might have
           // jumped and observed an inconsistent next node ID, or it has not
@@ -5681,7 +5681,7 @@ class BwTree : public BwTreeBase {
 
         // If CAS fails just abort and return
         if (ret == true) {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Merge delta CAS succeeds. "
               "Continue to finish merge SMO");
 
@@ -5691,7 +5691,7 @@ class BwTree : public BwTreeBase {
           // after this point
           // Also snapshot_p has been to left_snapshot_p above
         } else {
-          LOG_TRACE("Merge delta CAS fails. ABORT");
+          PELOTON_LOG_TRACE("Merge delta CAS fails. ABORT");
 
           context_p->abort_flag = true;
 
@@ -5705,7 +5705,7 @@ class BwTree : public BwTreeBase {
       }  // case Inner/LeafRemoveType
       case NodeType::InnerMergeType:
       case NodeType::LeafMergeType: {
-        LOG_TRACE("Helping along merge delta");
+        PELOTON_LOG_TRACE("Helping along merge delta");
 
         // First consolidate parent node and find the left/right
         // sep pair plus left node ID
@@ -5745,7 +5745,7 @@ class BwTree : public BwTreeBase {
           delete_item_p = &merge_node_p->delete_item;
           right_merge_p = merge_node_p->right_merge_p;
         } else {
-          LOG_ERROR("ERROR: Illegal node type: %d", static_cast<int>(type));
+          PELOTON_LOG_ERROR("ERROR: Illegal node type: %d", static_cast<int>(type));
 
           PELOTON_ASSERT(false);
         }  // If on type of merge node
@@ -5785,7 +5785,7 @@ class BwTree : public BwTreeBase {
       }  // case Inner/LeafMergeNode
       case NodeType::InnerSplitType:
       case NodeType::LeafSplitType: {
-        LOG_TRACE("Helping along split node");
+        PELOTON_LOG_TRACE("Helping along split node");
 
         // These two will be stored inside InnerInsertNode
         // The insert item is just the split item inside InnerSplitNode
@@ -5824,7 +5824,7 @@ class BwTree : public BwTreeBase {
           /***********************************************************
            * Root splits (don't have to consolidate parent node)
            ***********************************************************/
-          LOG_TRACE("Root splits!");
+          PELOTON_LOG_TRACE("Root splits!");
 
           // Allocate a new node ID for the newly created node
           // If CAS fails we need to free the root ID
@@ -5874,7 +5874,7 @@ class BwTree : public BwTreeBase {
           bool ret = InstallRootNode(snapshot_p->node_id, new_root_id);
 
           if (ret == true) {
-            LOG_TRACE("Install root CAS succeeds");
+            PELOTON_LOG_TRACE("Install root CAS succeeds");
 
             // After installing new root we abort in order to load
             // the new root
@@ -5882,7 +5882,7 @@ class BwTree : public BwTreeBase {
 
             return;
           } else {
-            LOG_TRACE("Install root CAS failed. ABORT");
+            PELOTON_LOG_TRACE("Install root CAS failed. ABORT");
 
             // We need to make a new remove node and send it into EpochManager
             // for recycling the NodeID
@@ -5928,7 +5928,7 @@ class BwTree : public BwTreeBase {
           if ((parent_snapshot_p->node_p->GetNextNodeID() != INVALID_NODE_ID) &&
               (KeyCmpGreaterEqual(insert_item_p->first,
                                   parent_snapshot_p->node_p->GetHighKey()))) {
-            LOG_TRACE(
+            PELOTON_LOG_TRACE(
                 "Bounds check failed on parent node"
                 " - item key >= high key");
 
@@ -6166,7 +6166,7 @@ class BwTree : public BwTreeBase {
 
       // Perform corresponding action based on node size
       if (node_size >= LEAF_NODE_SIZE_UPPER_THRESHOLD) {
-        LOG_TRACE("Node size >= leaf upper threshold. Split");
+        PELOTON_LOG_TRACE("Node size >= leaf upper threshold. Split");
 
         // Note: This function takes this as argument since it will
         // do key comparison
@@ -6182,7 +6182,7 @@ class BwTree : public BwTreeBase {
         // since all threads will try to split the leaf node when traversing
         // to it (not for reader threads)
         if (new_leaf_node_p == nullptr) {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "LeafNode size exceeds overhead, "
               "but could not find split point");
 
@@ -6215,7 +6215,7 @@ class BwTree : public BwTreeBase {
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
         if (ret == true) {
-          LOG_TRACE("Leaf split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds. ABORT",
+          PELOTON_LOG_TRACE("Leaf split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds. ABORT",
                     node_id, new_node_id);
 
           // TODO: WE ABORT HERE TO AVOID THIS THREAD POSTING ANYTHING
@@ -6225,7 +6225,7 @@ class BwTree : public BwTreeBase {
 
           return;
         } else {
-          LOG_TRACE("Leaf split delta CAS fails");
+          PELOTON_LOG_TRACE("Leaf split delta CAS fails");
 
           // Need to use the epoch manager to recycle NodeID
           // Note that this node must not be created on new_leaf_node_p
@@ -6250,14 +6250,14 @@ class BwTree : public BwTreeBase {
         // This might yield a false positive of left child
         // but correctness is not affected - sometimes the merge is delayed
         if (IsOnLeftMostChild(context_p) == true) {
-          LOG_TRACE("Left most leaf node cannot be removed");
+          PELOTON_LOG_TRACE("Left most leaf node cannot be removed");
 
           return;
         }
 
         // After this point we decide to remove leaf node
 
-        LOG_TRACE("Node size <= leaf lower threshold. Remove");
+        PELOTON_LOG_TRACE("Node size <= leaf lower threshold. Remove");
 
         // Install an abort node on parent
         const BaseNode *abort_node_p;
@@ -6270,9 +6270,9 @@ class BwTree : public BwTreeBase {
         // If we could not block the parent then the parent has changed
         // (splitted, etc.)
         if (abort_node_ret == true) {
-          LOG_TRACE("Blocked parent node (current node is leaf)");
+          PELOTON_LOG_TRACE("Blocked parent node (current node is leaf)");
         } else {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Unable to block parent node "
               "(current node is leaf). ABORT");
 
@@ -6287,7 +6287,7 @@ class BwTree : public BwTreeBase {
 
         bool ret = InstallNodeToReplace(node_id, remove_node_p, node_p);
         if (ret == true) {
-          LOG_TRACE("LeafRemoveNode CAS succeeds. ABORT.");
+          PELOTON_LOG_TRACE("LeafRemoveNode CAS succeeds. ABORT.");
 
           context_p->abort_flag = true;
 
@@ -6295,7 +6295,7 @@ class BwTree : public BwTreeBase {
 
           return;
         } else {
-          LOG_TRACE("LeafRemoveNode CAS failed");
+          PELOTON_LOG_TRACE("LeafRemoveNode CAS failed");
 
           delete remove_node_p;
 
@@ -6312,7 +6312,7 @@ class BwTree : public BwTreeBase {
       size_t node_size = inner_node_p->GetSize();
 
       if (node_size >= INNER_NODE_SIZE_UPPER_THRESHOLD) {
-        LOG_TRACE("Node size >= inner upper threshold. Split");
+        PELOTON_LOG_TRACE("Node size >= inner upper threshold. Split");
 
         const InnerNode *new_inner_node_p = inner_node_p->GetSplitSibling();
 
@@ -6340,7 +6340,7 @@ class BwTree : public BwTreeBase {
         // If the type is remove then we just continue without abort
         // If we abort then it might introduce deadlock
         if (split_key_child_node_p->IsRemoveNode()) {
-          LOG_TRACE("Found a removed node on split key child. CONTINUE ");
+          PELOTON_LOG_TRACE("Found a removed node on split key child. CONTINUE ");
 
           // Put the new inner node into GC chain
           // Although it is not entirely necessary it is good for us to
@@ -6363,7 +6363,7 @@ class BwTree : public BwTreeBase {
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
         if (ret == true) {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Inner split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds."
               " ABORT",
               node_id, new_node_id);
@@ -6373,7 +6373,7 @@ class BwTree : public BwTreeBase {
 
           return;
         } else {
-          LOG_TRACE("Inner split delta CAS fails");
+          PELOTON_LOG_TRACE("Inner split delta CAS fails");
 
           // Use the epoch manager to recycle NodeID in single threaded
           // environment
@@ -6393,7 +6393,7 @@ class BwTree : public BwTreeBase {
         }  // if CAS fails
       } else if (node_size <= INNER_NODE_SIZE_LOWER_THRESHOLD) {
         if (context_p->IsOnRootNode() == true) {
-          LOG_TRACE("Root underflow - let it be");
+          PELOTON_LOG_TRACE("Root underflow - let it be");
 
           return;
         }
@@ -6405,14 +6405,14 @@ class BwTree : public BwTreeBase {
 
         // We could not remove leftmost node
         if (IsOnLeftMostChild(context_p) == true) {
-          LOG_TRACE("Left most inner node cannot be removed");
+          PELOTON_LOG_TRACE("Left most inner node cannot be removed");
 
           return;
         }
 
         // After this point we decide to remove
 
-        LOG_TRACE("Node size <= inner lower threshold. Remove");
+        PELOTON_LOG_TRACE("Node size <= inner lower threshold. Remove");
 
         // Then we abort its parent node
         // These two are used to hold abort node and its previous child
@@ -6426,9 +6426,9 @@ class BwTree : public BwTreeBase {
         // If we could not block the parent then the parent has changed
         // (splitted, etc.)
         if (abort_node_ret == true) {
-          LOG_TRACE("Blocked parent node (current node is inner)");
+          PELOTON_LOG_TRACE("Blocked parent node (current node is inner)");
         } else {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Unable to block parent node "
               "(current node is inner). ABORT");
 
@@ -6443,7 +6443,7 @@ class BwTree : public BwTreeBase {
 
         bool ret = InstallNodeToReplace(node_id, remove_node_p, node_p);
         if (ret == true) {
-          LOG_TRACE("InnerRemoveNode CAS succeeds. ABORT");
+          PELOTON_LOG_TRACE("InnerRemoveNode CAS succeeds. ABORT");
 
           // We abort after installing a node remove delta
           context_p->abort_flag = true;
@@ -6455,7 +6455,7 @@ class BwTree : public BwTreeBase {
 
           return;
         } else {
-          LOG_TRACE("InnerRemoveNode CAS failed");
+          PELOTON_LOG_TRACE("InnerRemoveNode CAS failed");
 
           delete remove_node_p;
 
@@ -6482,7 +6482,7 @@ class BwTree : public BwTreeBase {
    */
   void RemoveAbortOnParent(NodeID parent_node_id, const BaseNode *abort_node_p,
                            const BaseNode *abort_child_node_p) {
-    LOG_TRACE("Remove abort on parent node");
+    PELOTON_LOG_TRACE("Remove abort on parent node");
 
     // We switch back to the child node (so it is the target)
     bool ret =
@@ -6544,13 +6544,13 @@ class BwTree : public BwTreeBase {
         InstallNodeToReplace(parent_node_id, abort_node_p, parent_node_p);
 
     if (ret == true) {
-      LOG_TRACE("Inner Abort node CAS succeeds");
+      PELOTON_LOG_TRACE("Inner Abort node CAS succeeds");
 
       // Copy the new node to caller since after posting remove delta we will
       // remove this abort node to enable accessing again
       *abort_node_p_p = abort_node_p;
     } else {
-      LOG_TRACE("Inner Abort node CAS failed");
+      PELOTON_LOG_TRACE("Inner Abort node CAS failed");
 
       delete abort_node_p;
     }
@@ -6692,7 +6692,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerMergeNode
         default: {
-          LOG_DEBUG("Unknown InnerNode type: %d", (int)node_p->GetType());
+          PELOTON_LOG_DEBUG("Unknown InnerNode type: %d", (int)node_p->GetType());
 
           PELOTON_ASSERT(false);
           return nullptr;
@@ -6897,7 +6897,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case InnerSplitType
         case NodeType::InnerMergeType: {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Found merge node. "
               "Need consolidation to find left sibling");
 
@@ -6939,7 +6939,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerMergeType
         default: {
-          LOG_ERROR("ERROR: Unknown node type = %d", static_cast<int>(type));
+          PELOTON_LOG_ERROR("ERROR: Unknown node type = %d", static_cast<int>(type));
 
           PELOTON_ASSERT(false);
         }
@@ -7025,7 +7025,7 @@ class BwTree : public BwTreeBase {
    * should be set true. By default we allow non-unique key
    */
   bool Insert(const KeyType &key, const ValueType &value, bool unique_key=false) {
-    LOG_TRACE("Insert called");
+    PELOTON_LOG_TRACE("Insert called");
 
 #ifdef BWTREE_DEBUG
     insert_op_count.fetch_add(1);
@@ -7061,13 +7061,13 @@ class BwTree : public BwTreeBase {
 
       bool ret = InstallNodeToReplace(node_id, insert_node_p, node_p);
       if (ret == true) {
-        LOG_TRACE("Leaf Insert delta CAS succeed");
+        PELOTON_LOG_TRACE("Leaf Insert delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
       } else {
-        LOG_TRACE("Leaf insert delta CAS failed");
+        PELOTON_LOG_TRACE("Leaf insert delta CAS failed");
 
 #ifdef BWTREE_DEBUG
 
@@ -7091,7 +7091,7 @@ class BwTree : public BwTreeBase {
 #endif
 
       // We reach here only because CAS failed
-      LOG_TRACE("Retry installing leaf insert delta from the root");
+      PELOTON_LOG_TRACE("Retry installing leaf insert delta from the root");
     }
 
     epoch_manager.LeaveEpoch(epoch_node_p);
@@ -7116,7 +7116,7 @@ class BwTree : public BwTreeBase {
   bool ConditionalInsert(const KeyType &key, const ValueType &value,
                          std::function<bool(const void *)> predicate,
                          bool *predicate_satisfied) {
-    LOG_TRACE("Insert (cond.) called");
+    PELOTON_LOG_TRACE("Insert (cond.) called");
 
 #ifdef BWTREE_DEBUG
     insert_op_count.fetch_add(1);
@@ -7166,13 +7166,13 @@ class BwTree : public BwTreeBase {
 
       bool ret = InstallNodeToReplace(node_id, insert_node_p, node_p);
       if (ret == true) {
-        LOG_TRACE("Leaf Insert (cond.) delta CAS succeed");
+        PELOTON_LOG_TRACE("Leaf Insert (cond.) delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
       } else {
-        LOG_TRACE("Leaf insert (cond.) delta CAS failed");
+        PELOTON_LOG_TRACE("Leaf insert (cond.) delta CAS failed");
 
 #ifdef BWTREE_DEBUG
 
@@ -7189,7 +7189,7 @@ class BwTree : public BwTreeBase {
 
 #endif
 
-      LOG_TRACE("Retry installing leaf insert (cond.) delta from the root");
+      PELOTON_LOG_TRACE("Retry installing leaf insert (cond.) delta from the root");
     }
 
     epoch_manager.LeaveEpoch(epoch_node_p);
@@ -7208,7 +7208,7 @@ class BwTree : public BwTreeBase {
    * This functions shares a same structure with the Insert() one
    */
   bool Delete(const KeyType &key, const ValueType &value) {
-    LOG_TRACE("Delete called");
+    PELOTON_LOG_TRACE("Delete called");
 
 #ifdef BWTREE_DEBUG
     delete_op_count.fetch_add(1);
@@ -7241,13 +7241,13 @@ class BwTree : public BwTreeBase {
 
       bool ret = InstallNodeToReplace(node_id, delete_node_p, node_p);
       if (ret == true) {
-        LOG_TRACE("Leaf Delete delta CAS succeed");
+        PELOTON_LOG_TRACE("Leaf Delete delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
       } else {
-        LOG_TRACE("Leaf Delete delta CAS failed");
+        PELOTON_LOG_TRACE("Leaf Delete delta CAS failed");
 
         delete_node_p->~LeafDeleteNode();
 
@@ -7265,7 +7265,7 @@ class BwTree : public BwTreeBase {
 #endif
 
       // We reach here only because CAS failed
-      LOG_TRACE("Retry installing leaf delete delta from the root");
+      PELOTON_LOG_TRACE("Retry installing leaf delete delta from the root");
     }
 
     epoch_manager.LeaveEpoch(epoch_node_p);
@@ -7283,7 +7283,7 @@ class BwTree : public BwTreeBase {
    * is empty or not
    */
   void GetValue(const KeyType &search_key, std::vector<ValueType> &value_list) {
-    LOG_TRACE("GetValue()");
+    PELOTON_LOG_TRACE("GetValue()");
 
     EpochNode *epoch_node_p = epoch_manager.JoinEpoch();
 
@@ -7303,7 +7303,7 @@ class BwTree : public BwTreeBase {
    * remove this method
    */
   ValueSet GetValue(const KeyType &search_key) {
-    LOG_TRACE("GetValue()");
+    PELOTON_LOG_TRACE("GetValue()");
 
     EpochNode *epoch_node_p = epoch_manager.JoinEpoch();
 
@@ -7578,21 +7578,21 @@ class BwTree : public BwTreeBase {
       //
       // If the external thread calls ThreadFunc() then it is safe
       if (thread_p != nullptr) {
-        LOG_TRACE("Waiting for thread");
+        PELOTON_LOG_TRACE("Waiting for thread");
 
         thread_p->join();
 
         // Free memory
         delete thread_p;
 
-        LOG_TRACE("Thread stops");
+        PELOTON_LOG_TRACE("Thread stops");
       }
 
       // So that in the following function the comparison
       // would always fail, until we have cleaned all epoch nodes
       current_epoch_p = nullptr;
 
-      LOG_TRACE("Clearing the epoch in ~EpochManager() ...");
+      PELOTON_LOG_TRACE("Clearing the epoch in ~EpochManager() ...");
 
       // If all threads has exited then all thread counts are
       // 0, and therefore this should proceed way to the end
@@ -7602,32 +7602,32 @@ class BwTree : public BwTreeBase {
       // measure just force cleaning all epoches no matter whether they
       // are cleared or not
       if (head_epoch_p != nullptr) {
-        LOG_DEBUG("ERROR: After cleanup there is still epoch left");
-        LOG_DEBUG("%s", peloton::GETINFO_THICK_LINE.c_str());
-        LOG_DEBUG("DUMP");
+        PELOTON_LOG_DEBUG("ERROR: After cleanup there is still epoch left");
+        PELOTON_LOG_DEBUG("%s", peloton::GETINFO_THICK_LINE.c_str());
+        PELOTON_LOG_DEBUG("DUMP");
 
         for (EpochNode *epoch_node_p = head_epoch_p; epoch_node_p != nullptr;
              epoch_node_p = epoch_node_p->next_p) {
-          LOG_DEBUG("Active thread count: %d",
+          PELOTON_LOG_DEBUG("Active thread count: %d",
                     epoch_node_p->active_thread_count.load());
           epoch_node_p->active_thread_count = 0;
         }
 
-        LOG_DEBUG("RETRY CLEANING...");
+        PELOTON_LOG_DEBUG("RETRY CLEANING...");
         ClearEpoch();
       }
 
       PELOTON_ASSERT(head_epoch_p == nullptr);
-      LOG_TRACE("Garbage Collector has finished freeing all garbage nodes");
+      PELOTON_LOG_TRACE("Garbage Collector has finished freeing all garbage nodes");
 
 #ifdef BWTREE_DEBUG
-      LOG_TRACE("Stat: Freed %" PRIu64 " nodes and %" PRIu64 " NodeID by epoch manager",
+      PELOTON_LOG_TRACE("Stat: Freed %" PRIu64 " nodes and %" PRIu64 " NodeID by epoch manager",
                 freed_count, freed_id_count);
 
-      LOG_TRACE("      Epoch created = %" PRIu64 "; epoch freed = %" PRIu64 "", epoch_created,
+      PELOTON_LOG_TRACE("      Epoch created = %" PRIu64 "; epoch freed = %" PRIu64 "", epoch_created,
                 epoch_freed);
 
-      LOG_TRACE("      Epoch join = %" PRIu64 "; epoch leave = %" PRIu64 "", epoch_join.load(),
+      PELOTON_LOG_TRACE("      Epoch join = %" PRIu64 "; epoch leave = %" PRIu64 "", epoch_join.load(),
                 epoch_leave.load());
 #endif
 
@@ -7640,9 +7640,9 @@ class BwTree : public BwTreeBase {
       // an error log entry
       // Otherwise just trace log
       if(munmap_ret != 0) {
-        LOG_ERROR("munmap() returns with %d", munmap_ret);
+        PELOTON_LOG_ERROR("munmap() returns with %d", munmap_ret);
       } else {
-        LOG_TRACE("Mapping table is unmapped for Bw-Tree");
+        PELOTON_LOG_TRACE("Mapping table is unmapped for Bw-Tree");
       }
       
       return;
@@ -7654,7 +7654,7 @@ class BwTree : public BwTreeBase {
      * This functions does not have to consider race conditions
      */
     void CreateNewEpoch() {
-      LOG_TRACE("Creating new epoch...");
+      PELOTON_LOG_TRACE("Creating new epoch...");
 
       EpochNode *epoch_node_p = new EpochNode{};
 
@@ -7715,7 +7715,7 @@ class BwTree : public BwTreeBase {
         if (ret == true) {
           break;
         } else {
-          LOG_TRACE("Add garbage node CAS failed. Retry");
+          PELOTON_LOG_TRACE("Add garbage node CAS failed. Retry");
         }
       }  // while 1
 
@@ -8002,7 +8002,7 @@ class BwTree : public BwTreeBase {
             return;
           default:
             // This does not include INNER ABORT node
-            LOG_ERROR("Unknown node type: %d", (int)type);
+            PELOTON_LOG_ERROR("Unknown node type: %d", (int)type);
 
             PELOTON_ASSERT(false);
             return;
@@ -8022,12 +8022,12 @@ class BwTree : public BwTreeBase {
      * only called by the cleaner thread
      */
     void ClearEpoch() {
-      LOG_TRACE("Start to clear epoch");
+      PELOTON_LOG_TRACE("Start to clear epoch");
 
       while (1) {
         // Even if current_epoch_p is nullptr, this should work
         if (head_epoch_p == current_epoch_p) {
-          LOG_TRACE("Current epoch is head epoch. Do not clean");
+          PELOTON_LOG_TRACE("Current epoch is head epoch. Do not clean");
 
           break;
         }
@@ -8040,7 +8040,7 @@ class BwTree : public BwTreeBase {
         // If we have seen an epoch whose count is not zero then all
         // epochs after that are protected and we stop
         if (active_thread_count != 0) {
-          LOG_TRACE("Head epoch is not empty. Return");
+          PELOTON_LOG_TRACE("Head epoch is not empty. Return");
 
           break;
         }
@@ -8051,7 +8051,7 @@ class BwTree : public BwTreeBase {
         // since last epoch counter testing.
 
         if (head_epoch_p->active_thread_count.fetch_sub(MAX_THREAD_COUNT) > 0) {
-          LOG_TRACE(
+          PELOTON_LOG_TRACE(
               "Some thread sneaks in after we have decided"
               " to clean. Return");
 
@@ -8126,7 +8126,7 @@ class BwTree : public BwTreeBase {
         std::this_thread::sleep_for(duration);
       }
 
-      LOG_TRACE("exit flag is true; thread return");
+      PELOTON_LOG_TRACE("exit flag is true; thread return");
 
       return;
     }
