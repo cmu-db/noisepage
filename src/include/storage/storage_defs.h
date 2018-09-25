@@ -140,7 +140,7 @@ class TupleSlot {
    * @return ptr to the head of the block
    */
   RawBlock *GetBlock() const {
-    // Get the first 11 bytes as the ptr
+    // Get the first 44 bits as the ptr
     return reinterpret_cast<RawBlock *>(bytes_ & ~(static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1));
   }
 
@@ -174,6 +174,8 @@ class TupleSlot {
   friend std::ostream &operator<<(std::ostream &os, const TupleSlot &slot) {
     return os << "block: " << slot.GetBlock() << ", offset: " << slot.GetOffset();
   }
+
+  static TupleSlot INVALID;
 
  private:
   friend struct std::hash<TupleSlot>;

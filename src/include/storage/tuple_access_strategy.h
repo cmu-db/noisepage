@@ -46,7 +46,7 @@ class TupleAccessStrategy {
 
     // Because where the other fields start will depend on the specific layout,
     // reinterpreting the rest as bytes is the best we can do without LLVM.
-    byte varlen_contents_[0]{};
+    byte varlen_contents_[0];
   };
 
   /**
