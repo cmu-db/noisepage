@@ -12,22 +12,23 @@ namespace terrier::storage {
  * for continuous column access like PAX. However, a ProjectedRow is almost always externally coupled to a known
  * tuple slot, so it is more compact in layout than MaterializedColumns, which has to also store the
  * TupleSlot information for each tuple.
- * ---------------------------------------------------------------------
- * | size | num_tuples | num_cols | col_id1 | col_id2 |      ...       |
- * ---------------------------------------------------------------------
- * | val1_offset | val2_offset | ... | TupleSlot_1 | TupleSlot_2 | ... |
- * ---------------------------------------------------------------------
- * | null-bitmap, col_id1 | val1, col_id1 | val2, col_id1 |    ...     |
- * ---------------------------------------------------------------------
- * | null-bitmap, col_id1 | val1, col_id2 | val2, col_id2 |    ...     |
- * ---------------------------------------------------------------------
- * | ...                                                               |
- * ---------------------------------------------------------------------
+ * -----------------------------------------------------------------------
+ * | size | max_tuples | num_tuples | num_cols | col_id1 | col_id2 | ... |
+ * -----------------------------------------------------------------------
+ * | val1_offset | val2_offset | ... | TupleSlot_1 | TupleSlot_2 |  ...  |
+ * -----------------------------------------------------------------------
+ * | null-bitmap, col_id1 | val1, col_id1 | val2, col_id1 |      ...     |
+ * -----------------------------------------------------------------------
+ * | null-bitmap, col_id1 | val1, col_id2 | val2, col_id2 |      ...     |
+ * -----------------------------------------------------------------------
+ * |                                ...                                  |
+ * -----------------------------------------------------------------------
  */
 class PACKED MaterializedColumns {
  public:
   MEM_REINTERPRETATION_ONLY(MaterializedColumns)
   uint32_t Size() const { return size_; }
+  uint32_t MaxTuples() const { return max_tuples_; }
   uint32_t NumTuples() const { return num_tuples_; }
   uint16_t NumColumns() const { return num_cols_; }
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
@@ -54,6 +55,8 @@ class PACKED MaterializedColumns {
  private:
   friend class MaterializedColumnsInitializer;
   uint32_t size_;
+  // TODO(Tianyu): Do I need to store this or will the caller always have access to the initializer?
+  uint32_t max_tuples_;
   uint32_t num_tuples_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
@@ -62,6 +65,8 @@ class PACKED MaterializedColumns {
   const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
 };
 
+// TODO(Tianyu): The argument for separate initializer/container class is less strong here than for
+// ProjectedRow. We are putting this here anyway for now for the sake of consistency.
 class MaterializedColumnsInitializer {
  public:
   // TODO(Tianyu): num tuples or size in bytes?
@@ -71,7 +76,7 @@ class MaterializedColumnsInitializer {
 
   uint32_t MaterializedColumnsSize() const { return size_; }
 
-  uint32_t NumTuples() const { return num_tuples_; }
+  uint32_t MaxTuples() const { return max_tuples_; }
 
   uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
 
@@ -79,7 +84,7 @@ class MaterializedColumnsInitializer {
 
  private:
   uint32_t size_ = 0;
-  uint32_t num_tuples_;
+  uint32_t max_tuples_;
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };

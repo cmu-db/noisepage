@@ -1,11 +1,12 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "common/container/concurrent_vector.h"
+#include <list>
 #include "common/performance_counter.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "storage/materialized_columns.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -32,6 +33,15 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
  */
 class DataTable {
  public:
+  class SequentialScanContext {
+    // TODO(Tianyu): I don't think this needs to expose any operations?
+    friend class DataTable;
+    SequentialScanContext(std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
+        : block_(std::move(block)), offset_in_block_(offset_in_block) {}
+    // TODO(Tianyu): Not really safe when we start removing blocks. See comment in definition of blocks_
+    std::list<RawBlock *>::const_iterator block_;
+    uint32_t offset_in_block_;
+  };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks. The first 2 columns must be size 8 and are effectively hidden from upper levels.
@@ -66,6 +76,16 @@ class DataTable {
    */
   bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
+  bool Scan(transaction::TransactionContext *txn,
+            SequentialScanContext *context,
+            MaterializedColumns *out_buffer) const;
+
+  SequentialScanContext TableStart() const {
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    return {blocks_.cbegin(), 0};
+  }
+
+  // TODO(Tianyu): Do we really need a table end?
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
    * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
@@ -133,8 +153,13 @@ class DataTable {
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
-  std::vector<RawBlock *> blocks_;
-  common::SpinLatch blocks_latch_;
+  // TODO(Tianyu): Now that we are switching to a linked list, there probably isn't a reason for it
+  // to be latched. Could just easily write a lock-free one if there's performance gain(probably not). vector->list has
+  // negligible difference in insert performance (within margin of error) when benchmarked.
+  // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
+  // might be on it
+  std::list<RawBlock *> blocks_;
+  mutable common::SpinLatch blocks_latch_;
   // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
   // only happen when blocks are full, thus we can afford to be optimistic
   std::atomic<RawBlock *> insertion_head_ = nullptr;
