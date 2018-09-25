@@ -43,7 +43,14 @@
  *                  We strive to make BwTree a standalone and independent
  *                  module that can be plugged-and-played in any situation
  */
-#define BWTREE_PELOTON
+//#define BWTREE_PELOTON
+
+// Hacks to make bwtree compile in terrier
+#define LOG_TRACE(...) ((void)0)
+#define LOG_DEBUG(...) ((void)0)
+#define LOG_ERROR(...) ((void)0)
+#define PELOTON_ASSERT(expr) ((void)0)
+#define PELOTON_FALLTHROUGH [[fallthrough]]
 
 /*
  * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
@@ -2876,7 +2883,7 @@ class BwTree : public BwTreeBase {
     // and then use another index instead, or simply kill the system
     if(mapping_table == (void *)-1) {
       LOG_ERROR("Failed to initialize mapping table");
-      throw IndexException("mmap() failed to initialize mapping table for Bw-Tree");
+      throw std::runtime_error("mmap() failed to initialize mapping table for Bw-Tree");
     }
 
     LOG_TRACE("Mapping table allocated via mmap()");
