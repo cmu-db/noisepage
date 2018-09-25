@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace terrier::type {
 /**
  * All of our possible SQL types
