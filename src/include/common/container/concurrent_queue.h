@@ -26,10 +26,10 @@ class ConcurrentQueue {
   bool Empty() { return queue_.empty(); }
 
   /**
-   * Puts the element at the tail of the queue by using the move constructor
-   * @param elem movable reference to element
+   * Puts the element at the tail of the queue
+   * @param elem the element to enqueue
    */
-  void Enqueue(T &&elem) { queue_.push(elem); }
+  void Enqueue(T elem) { queue_.push(elem); }
 
   /**
    * If value is available, remove the element at the head of the queue and assign

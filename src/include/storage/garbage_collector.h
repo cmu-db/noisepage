@@ -52,12 +52,16 @@ class GarbageCollector {
   uint32_t ProcessUnlinkQueue();
 
   /**
-   * Given a UndoRecord that has been deemed safe to unlink by the GC, removes it from the version chain. This requires
-   * a while loop to handle contention from running transactions (basically restart the process if needed).
+   * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
+   * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
+   * version chain to be updated in order to unlink the target UndoRecord is not yet committed, we will fail and
+   * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
+   * is either committed or aborted.
    * @param txn pointer to the transaction that created this UndoRecord
    * @param undo_record UndoRecord to be unlinked
+   * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
    */
-  void UnlinkUndoRecord(transaction::TransactionContext *txn, const UndoRecord &undo_record) const;
+  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
