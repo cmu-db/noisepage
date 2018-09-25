@@ -7,6 +7,7 @@
 namespace terrier::storage {
 class ProjectedRow;
 class TupleAccessStrategy;
+class UndoRecord;
 /**
  * Static utility class for common functions in storage
  */
@@ -120,5 +121,13 @@ class StorageUtil {
   static A *AlignedPtr(const void *ptr) {
     return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
+
+  /**
+   * Inspects an UndoRecord's ProjectedRow contents for a modification on the logical delete column
+   * @param undo UndoRecord to be inspected
+   * @return INSERT if UndoRecord's ProjectedRow represents an insert, DELETE if delta represents a delete, UPDATE
+   * otherwise
+   */
+  static DeltaRecordType CheckUndoRecordType(const UndoRecord &undo);
 };
 }  // namespace terrier::storage
