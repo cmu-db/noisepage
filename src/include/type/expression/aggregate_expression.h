@@ -16,7 +16,7 @@ class AggregateExpression : public AbstractExpression {
   /**
    * Instantiates a new aggregate expression.
    * @param type type of aggregate expression
-   * @param children children to be added
+   * @param child child to be added
    */
   explicit AggregateExpression(ExpressionType type, AbstractExpression *child)
       : AbstractExpression(type, TypeId::INVALID, child) {}
