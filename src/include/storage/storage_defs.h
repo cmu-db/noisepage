@@ -12,7 +12,21 @@
 #include "common/typedefs.h"
 
 namespace terrier::storage {
+// Logging:
 #define LOGGING_DISABLED nullptr
+
+// We will always designate column to denote "presence" of a tuple, so that its null bitmap will effectively
+// be the presence bit for tuples in this block. (i.e. a tuple is not considered valid with this column set to null,
+// and thus blocks are free to handout the slot.) Generally this will just be the version vector.
+// This is primarily to be used in the TAS layer
+#define PRESENCE_COLUMN_ID col_id_t(0)
+
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+// This is primarily to be used in the DataTable layer, even though it's the same as defined above.
+#define VERSION_POINTER_COLUMN_ID PRESENCE_COLUMN_ID
+#define LOGICAL_DELETE_COLUMN_ID col_id_t(1)
+#define NUM_RESERVED_COLUMNS 2
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
@@ -61,7 +75,7 @@ struct BlockLayout {
   /**
    * Number of columns.
    */
-  const uint16_t NumCols() const { return static_cast<uint16_t>(attr_sizes_.size()); }
+  const uint16_t NumColumns() const { return static_cast<uint16_t>(attr_sizes_.size()); }
 
   /**
    * attribute size at given col_id.
@@ -99,7 +113,7 @@ struct BlockLayout {
 
   uint32_t ComputeHeaderSize() const {
     return static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                                 + NumCols() * sizeof(uint32_t) + sizeof(uint16_t) + NumCols() * sizeof(uint8_t));
+                                 + NumColumns() * sizeof(uint32_t) + sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
   }
 
   uint32_t ComputeNumSlots() const {
@@ -110,7 +124,7 @@ struct BlockLayout {
     // this later, because I don't feel like thinking about this now.
     // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
     // up to the size of 1 tuple, so this can probably change to be more optimistic,
-    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumCols()) - 2;
+    return 8 * (common::Constants::BLOCK_SIZE - header_size_) / (8 * tuple_size_ + NumColumns()) - 2;
   }
 };
 
@@ -215,6 +229,12 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
+
+/**
+ * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
+ * TODO(Matt): could be used by the GC for recycling
+ */
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 }  // namespace terrier::storage
 
 namespace std {

@@ -28,13 +28,11 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
   return buffer_seg_->Reserve(size);
 }
 
-void RedoBuffer::Finish() {
+void RedoBuffer::Finalize(bool committed) {
   if (buffer_seg_ == nullptr) return;
-  if (log_manager_ != LOGGING_DISABLED)
+  if (log_manager_ != LOGGING_DISABLED && committed)
     log_manager_->AddBufferToFlushQueue(buffer_seg_);
   else
     buffer_pool_->Release(buffer_seg_);
 }
-
-void RedoBuffer::Discard() { buffer_pool_->Release(buffer_seg_); }
 }  // namespace terrier::storage

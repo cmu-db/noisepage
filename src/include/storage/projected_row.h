@@ -119,6 +119,16 @@ class PACKED ProjectedRow {
     Bitmap().Set(offset, true);
   }
 
+  /**
+   * Check if the attribute in the ProjectedRow is null
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return true if null, false otherwise
+   */
+  bool IsNull(const uint16_t offset) const {
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    return !Bitmap().Test(offset);
+  }
+
  private:
   friend class ProjectedRowInitializer;
   uint32_t size_;
@@ -177,7 +187,7 @@ class ProjectedRowInitializer {
   /**
    * @return number of columns in the projection list
    */
-  uint16_t NumCols() const { return static_cast<uint16_t>(col_ids_.size()); }
+  uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
 
   /**
    * @return column ids at the given offset in the projection list
