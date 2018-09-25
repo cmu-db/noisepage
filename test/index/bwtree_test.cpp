@@ -1,6 +1,6 @@
 #include <functional>
 
-#include "bwtree/include/bwtree.h"
+#include "bwtree/bwtree.h"
 #include "util/test_harness.h"
 namespace terrier {
 using TEST_TYPE = char;
