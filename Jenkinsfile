@@ -15,6 +15,7 @@ pipeline {
                     environment {
                         PATH="/usr/local/opt/llvm/bin:$PATH"
                         ASAN_OPTIONS="detect_container_overflow=0"
+                        LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
                     }
                     steps {
                         sh 'echo y | ./script/installation/packages.sh'
@@ -60,6 +61,7 @@ pipeline {
                     environment {
                         PATH="/usr/local/opt/llvm/bin:$PATH"
                         ASAN_OPTIONS="detect_container_overflow=0"
+                        LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
                     }
                     steps {
                         sh 'echo y | ./script/installation/packages.sh'
@@ -91,7 +93,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production .. && make -j4'
                         sh 'cd build && make runbenchmark -j4'
                         sh 'cd script/micro_bench && ./run_micro_bench.py'
-			archiveArtifacts 'script/micro_bench/*.json'
+                        archiveArtifacts 'script/micro_bench/*.json'
                         junit 'script/micro_bench/*.xml'
                     }
                 }
