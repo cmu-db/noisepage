@@ -1,5 +1,11 @@
 pipeline {
     agent none
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '30'))
+    }
+    triggers {
+        GenericTrigger(causeString: 'Travis builds succeeded', token: '5331146c7f6f99b995e8')
+    }
     stages {
         stage('Build') {
             parallel {
@@ -20,7 +26,7 @@ pipeline {
 
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Debug/ASAN)') {
                     agent {
-                        docker { 
+                        docker {
                             image 'ubuntu:bionic'
                             args '--cap-add sys_ptrace'
                         }
@@ -35,7 +41,7 @@ pipeline {
 
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Debug/Coverage)') {
                     agent {
-                        docker { 
+                        docker {
                             image 'ubuntu:bionic'
                             args '--cap-add sys_ptrace'
                         }
@@ -65,7 +71,7 @@ pipeline {
 
                 stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Release/unittest)') {
                     agent {
-                        docker { 
+                        docker {
                             image 'ubuntu:bionic'
                         }
                     }
