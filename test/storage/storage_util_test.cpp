@@ -1,4 +1,5 @@
 #include "storage/storage_util.h"
+#include <algorithm>
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -19,6 +20,8 @@ struct StorageUtilTests : public TerrierTest {
   storage::RawBlock *raw_block_ = nullptr;
   storage::BlockStore block_store_{1, 1};
 
+  const uint32_t num_iterations_ = 100;
+
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
@@ -34,8 +37,7 @@ struct StorageUtilTests : public TerrierTest {
 // Write a value to a position, read from the same position and compare results. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ReadWriteBytes) {
-  uint32_t num_iterations = 50;
-  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // generate a random val
     std::vector<uint8_t> valid_sizes{1, 2, 4, 8};
     std::uniform_int_distribution<uint8_t> idx(0, static_cast<uint8_t>(valid_sizes.size() - 1));
@@ -54,8 +56,7 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
 // row and compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
-  uint32_t num_iterations = 50;
-  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
@@ -93,8 +94,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 // compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
-  uint32_t num_iterations = 50;
-  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
@@ -131,8 +131,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 // Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ApplyDelta) {
-  uint32_t num_iterations = 50;
-  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
@@ -195,6 +194,47 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     delete[] delta_buffer;
     delete[] old_buffer;
+  }
+}
+
+// Verifies that we properly generate both a valid BlockLayout and a valid mapping from col_oid to col_id for a given
+// random Schema
+// NOLINTNEXTLINE
+TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; iteration++) {
+    uint16_t max_columns = 1000;
+    const catalog::Schema schema = StorageTestUtil::RandomSchema(max_columns - NUM_RESERVED_COLUMNS, &generator_);
+    const auto layout_and_col_map = storage::StorageUtil::BlockLayoutFromSchema(schema);
+    const storage::BlockLayout layout = layout_and_col_map.first;
+    const std::unordered_map<col_oid_t, col_id_t> column_map = layout_and_col_map.second;
+
+    // BlockLayout should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
+    // about the storage layer's reserved columns
+    EXPECT_EQ(layout.NumColumns(), schema.GetColumns().size() + NUM_RESERVED_COLUMNS);
+    // column_map should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
+    // about the storage layer's reserved columns
+    EXPECT_EQ(layout.NumColumns(), column_map.size() + NUM_RESERVED_COLUMNS);
+
+    // Verify that the BlockLayout's columns are sorted by attribute size in descending order
+    for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
+      EXPECT_GE(layout.AttrSize(col_id_t(i)), layout.AttrSize(col_id_t(i + 1)));
+    }
+
+    // Verify the contents of the column_map
+    for (const auto &i : column_map) {
+      const col_oid_t col_oid = i.first;
+      const col_id_t col_id = i.second;
+
+      // Column id should not map to either of the reserved columns
+      EXPECT_NE(col_id, col_id_t(0));
+      EXPECT_NE(col_id, col_id_t(1));
+      // Find the Column in the Schema corresponding to the current oid
+      auto schema_column =
+          std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),
+                       [&](const catalog::Schema::Column &col) -> bool { return col.GetOid() == col_oid; });
+      // The attribute size in the schema should match the attribute size in the BlockLayout
+      EXPECT_EQ(schema_column->GetAttrSize(), layout.AttrSize(col_id));
+    }
   }
 }
 

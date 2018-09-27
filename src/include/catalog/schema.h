@@ -72,10 +72,6 @@ class Schema {
      * @return internal unique identifier for this column
      */
     col_oid_t GetOid() const { return oid_; }
-    /**
-     * @return id used at the storage layer for identifying this column in a layout
-     */
-    col_id_t GetId() const { return id_; }
 
    private:
     const std::string name_;
@@ -84,7 +80,6 @@ class Schema {
     const bool nullable_;
     bool inlined_;
     const col_oid_t oid_;
-    col_id_t id_;
     // TODO(Matt): default value would go here
     // Value default_;
   };

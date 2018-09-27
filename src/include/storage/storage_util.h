@@ -1,8 +1,12 @@
 #pragma once
-#include <unordered_map>
+#include <utility>
 #include "common/macros.h"
 #include "common/typedefs.h"
 #include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}
 
 namespace terrier::storage {
 class ProjectedRow;
@@ -129,5 +133,13 @@ class StorageUtil {
    * otherwise
    */
   static DeltaRecordType CheckUndoRecordType(const UndoRecord &undo);
+
+  /**
+   * Given a schema, returns both a BlockLayout for the storage layer, and a mapping between each column's oid and the
+   * corresponding column id in the storage layer/BlockLayout
+   * @param schema Schema to generate a BlockLayout from. Columns should all have unique oids
+   * @return pair of BlockLayout and a map between col_oid_t and col_id
+   */
+  static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
 };
 }  // namespace terrier::storage
