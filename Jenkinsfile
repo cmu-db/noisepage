@@ -10,7 +10,7 @@ pipeline {
         stage('Build') {
             parallel {
 
-                stage('macOS 10.13/Apple LLVM version 9.1.0 (Debug/ASAN)') {
+                stage('macOS 10.13/Apple clang-902.0.39.2/llvm-6.0.1 (Debug/ASAN)') {
                     agent { label 'macos' }
                     environment {
                         PATH="/usr/local/opt/llvm/bin:$PATH"
@@ -56,7 +56,7 @@ pipeline {
                     }
                 }
 
-                stage('macOS 10.13/Apple LLVM version 9.1.0 (Release/unittest)') {
+                stage('macOS 10.13/Apple clang-902.0.39.2/llvm-6.0.1 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         PATH="/usr/local/opt/llvm/bin:$PATH"
