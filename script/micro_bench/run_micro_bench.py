@@ -31,6 +31,7 @@ class TestConfig(object):
     def __init__(self):
         # benchmark executables to run
         self.benchmark_list = ["data_table_benchmark",
+                               "garbage_collector_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
@@ -697,6 +698,7 @@ class RunMicroBenchmarks(object):
     def __init__(self, verbose=False, debug=False):
         # list of benchmarks to run
         self.benchmark_list = ["data_table_benchmark",
+                               "garbage_collector_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
