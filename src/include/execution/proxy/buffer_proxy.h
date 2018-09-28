@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime/buffer.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Buffer) {
   // Member Variables
@@ -33,5 +33,5 @@ PROXY(Buffer) {
 
 TYPE_BUILDER(Buffer, util::Buffer);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

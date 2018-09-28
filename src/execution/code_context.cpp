@@ -27,8 +27,8 @@
 #include "common/logger.h"
 #include "settings/settings_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /// Atomic plan ID counter
 static std::atomic<uint64_t> kIdCounter{0};
@@ -406,5 +406,5 @@ std::string CodeContext::GetIR() const {
   return module_str;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

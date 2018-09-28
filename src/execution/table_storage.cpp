@@ -19,8 +19,8 @@
 #include "execution/type/type.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void TableStorage::StoreValues(CodeGen &codegen, llvm::Value *tuple_ptr,
                                const std::vector<codegen::Value> &values,
@@ -70,5 +70,5 @@ void TableStorage::StoreValues(CodeGen &codegen, llvm::Value *tuple_ptr,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -13,8 +13,8 @@
 #include "execution/counting_consumer.h"
 #include "execution/compilation_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void CountingConsumer::Prepare(codegen::CompilationContext &ctx) {
   // Be sure to call our parent
@@ -50,5 +50,5 @@ llvm::Value *CountingConsumer::GetCounterState(
   return query_state.LoadStateValue(codegen, counter_state_id_);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

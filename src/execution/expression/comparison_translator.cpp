@@ -15,8 +15,8 @@
 
 #include "expression/comparison_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ComparisonTranslator::ComparisonTranslator(
@@ -66,5 +66,5 @@ codegen::Value ComparisonTranslator::DeriveValue(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

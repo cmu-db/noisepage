@@ -14,8 +14,8 @@
 
 #include "execution/compilation_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ConsumerContext::ConsumerContext(CompilationContext &compilation_context,
@@ -80,5 +80,5 @@ QueryState &ConsumerContext::GetQueryState() const {
   return compilation_context_.GetQueryState();
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

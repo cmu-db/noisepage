@@ -17,13 +17,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/updateable_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class AggregatePlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // The translator for a hash-based group-by operator.
@@ -189,5 +189,5 @@ class HashGroupByTranslator : public OperatorTranslator {
   Aggregation aggregation_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

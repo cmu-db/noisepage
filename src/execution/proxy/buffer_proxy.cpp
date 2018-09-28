@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/proxy/type_builder.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Buffer, "peloton::Buffer", buffer_start, buffer_pos, buffer_end);
 
@@ -25,5 +25,5 @@ DEFINE_METHOD(peloton::codegen::util, Buffer, Destroy);
 DEFINE_METHOD(peloton::codegen::util, Buffer, Append);
 DEFINE_METHOD(peloton::codegen::util, Buffer, Reset);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -16,8 +16,8 @@
 #include "execution/proxy/pool_proxy.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // StrWithLen struct
 DEFINE_TYPE(StrWithLen, "peloton::StrWithLen", str, length);
@@ -35,5 +35,5 @@ DEFINE_METHOD(peloton::function, StringFunctions, CompareStrings);
 DEFINE_METHOD(peloton::function, StringFunctions, WriteString);
 DEFINE_METHOD(peloton::function, StringFunctions, InputString);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

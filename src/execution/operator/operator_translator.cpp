@@ -14,8 +14,8 @@
 
 #include "execution/compilation_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 OperatorTranslator::OperatorTranslator(const planner::AbstractPlan &plan,
                                        CompilationContext &context,
@@ -63,5 +63,5 @@ void OperatorTranslator::Consume(ConsumerContext &context,
   });
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -17,8 +17,8 @@
 
 #include "executor/executor_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 /**
@@ -172,5 +172,5 @@ class Sorter {
 };
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

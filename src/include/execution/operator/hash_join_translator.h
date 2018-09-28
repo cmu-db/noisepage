@@ -19,13 +19,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/updateable_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class HashJoinPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // The translator for a hash-join operator
@@ -131,5 +131,5 @@ class HashJoinTranslator : public OperatorTranslator {
   bool needs_output_vector_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

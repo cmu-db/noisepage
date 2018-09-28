@@ -18,8 +18,8 @@
 #include "execution/type/type_system.h"
 #include "execution/type/sql_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 Value::Value() : Value(type::Type{peloton::type::TypeId::INVALID, false}) {}
 
@@ -306,5 +306,5 @@ Value Value::CallBinaryOp(CodeGen &codegen, OperatorId op_id,
   return binary_op->Eval(codegen, casted_left, casted_right, ctx);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

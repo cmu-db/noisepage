@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/query_parameters.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(QueryParameters) {
   /// We don't need access to internal fields, so use an opaque byte array
@@ -41,5 +41,5 @@ PROXY(QueryParameters) {
 
 TYPE_BUILDER(QueryParameters, codegen::QueryParameters);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

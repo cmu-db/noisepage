@@ -14,8 +14,8 @@
 
 #include <functional>
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 //===----------------------------------------------------------------------===//
@@ -361,5 +361,5 @@ bool OAHashTable::Probe(uint64_t hash, const Key &key,
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

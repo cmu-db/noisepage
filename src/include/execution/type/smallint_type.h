@@ -16,8 +16,8 @@
 #include "execution/type/type_system.h"
 #include "common/singleton.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 class SmallInt : public SqlType, public Singleton<SmallInt> {
@@ -52,5 +52,5 @@ class SmallInt : public SqlType, public Singleton<SmallInt> {
 };
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

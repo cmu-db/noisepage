@@ -17,13 +17,13 @@
 #include "execution/query_state.h"
 #include "execution/row_batch.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 // Forward declare
 class CompilationContext;
@@ -132,5 +132,5 @@ class OperatorTranslator {
   Pipeline &pipeline_;
 };
 
-}  // namespace peloton
-}  // namespace codegen
+}  // namespace terrier::execution
+

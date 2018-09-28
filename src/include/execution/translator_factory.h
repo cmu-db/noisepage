@@ -15,7 +15,7 @@
 #include <memory>
 #include <unordered_map>
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class AbstractExpression;
@@ -25,7 +25,7 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 // Forward declare these guys so CompilationContext can include this file
 class CompilationContext;
@@ -50,5 +50,5 @@ class TranslatorFactory {
       CompilationContext &context) const;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

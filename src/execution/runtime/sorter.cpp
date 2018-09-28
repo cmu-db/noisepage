@@ -19,8 +19,8 @@
 #include "common/timer.h"
 #include "threadpool/mono_queue_pool.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 Sorter::Sorter(::peloton::type::AbstractPool &memory, ComparisonFunction func,
@@ -340,5 +340,5 @@ void Sorter::TransferMemoryBlocks(Sorter &target) {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

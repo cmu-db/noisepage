@@ -16,8 +16,8 @@
 #include "execution/proxy/type_builder.h"
 #include "function/date_functions.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Utility functions
 DEFINE_METHOD(peloton::function, DateFunctions, Now);
@@ -25,5 +25,5 @@ DEFINE_METHOD(peloton::function, DateFunctions, Now);
 // Input functions
 DEFINE_METHOD(peloton::function, DateFunctions, InputDate);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

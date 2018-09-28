@@ -17,8 +17,8 @@
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 const std::string Hash::kHashMethodStrings[4] = {"Crc32", "Murmur3", "CityHash",
                                                  "Multiplicative"};
@@ -238,5 +238,5 @@ llvm::Value *Hash::ComputeMurmur3Hash(
   return hash;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,13 +14,13 @@
 
 #include "execution/proxy/proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(TransactionRuntime) {
   DECLARE_METHOD(PerformVectorizedRead);
   DECLARE_METHOD(PerformVisibilityCheck);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

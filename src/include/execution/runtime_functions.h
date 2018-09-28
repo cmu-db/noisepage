@@ -17,7 +17,7 @@
 #include "common/internal_types.h"
 #include "executor/executor_context.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace storage {
 class DataTable;
@@ -31,7 +31,7 @@ namespace expression {
 class AbstractExpression;
 }  // namespace storage
 
-namespace codegen {
+
 //===----------------------------------------------------------------------===//
 // Various common functions that are called from compiled query plans
 //===----------------------------------------------------------------------===//
@@ -125,5 +125,5 @@ class RuntimeFunctions {
   static void ThrowInvalidInputStringException();
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

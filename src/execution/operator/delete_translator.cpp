@@ -18,8 +18,8 @@
 #include "planner/delete_plan.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DeleteTranslator::DeleteTranslator(const planner::DeletePlan &delete_plan,
                                    CompilationContext &context,
@@ -68,5 +68,5 @@ void DeleteTranslator::Consume(ConsumerContext &, RowBatch::Row &row) const {
                {deleter, row.GetTileGroupID(), row.GetTID(codegen)});
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

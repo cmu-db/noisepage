@@ -16,8 +16,8 @@
 #include "execution/type/type.h"
 #include "common/internal_types.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Mapping of SQL value types to LLVM types. This class helps us generate code
@@ -144,5 +144,5 @@ class Value {
   llvm::Value *null_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -19,8 +19,8 @@
 #include "execution/lang/vectorized_loop.h"
 #include "execution/type/integer_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 std::atomic<bool> HashGroupByTranslator::kUsePrefetch{false};
 
@@ -421,5 +421,5 @@ llvm::Value *HashGroupByTranslator::ConsumerInsert::GetValueSize(
   return codegen.Const32(aggregation_.GetAggregatesStorageSize());
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

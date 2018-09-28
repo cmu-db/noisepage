@@ -16,8 +16,8 @@
 #include "execution/tile_group.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // An interface for clients to scan a data table. Various callback hooks are
@@ -46,5 +46,5 @@ class ScanCallback {
                                llvm::Value *tile_group_ptr) = 0;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

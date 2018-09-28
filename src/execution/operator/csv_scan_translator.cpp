@@ -23,8 +23,8 @@
 #include "execution/vector.h"
 #include "planner/csv_scan_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 CSVScanTranslator::CSVScanTranslator(const planner::CSVScanPlan &scan,
                                      CompilationContext &context,
@@ -303,5 +303,5 @@ void CSVScanTranslator::TearDownQueryState() {
   GetCodeGen().Call(CSVScannerProxy::Destroy, {scanner_ptr});
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

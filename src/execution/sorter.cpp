@@ -17,8 +17,8 @@
 #include "execution/lang/vectorized_loop.h"
 #include "execution/vector.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 Sorter::Sorter() {
   // This constructor shouldn't generally be used at all, but there are
@@ -200,5 +200,5 @@ codegen::Value Sorter::SorterAccess::Row::LoadColumn(CodeGen &codegen,
   return access_.LoadRowValue(codegen, *this, column_index);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

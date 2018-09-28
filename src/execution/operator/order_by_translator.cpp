@@ -20,8 +20,8 @@
 #include "common/logger.h"
 #include "planner/order_by_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -392,5 +392,5 @@ void OrderByTranslator::TearDownPipelineState(PipelineContext &pipeline_ctx) {
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

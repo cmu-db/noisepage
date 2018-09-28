@@ -16,8 +16,8 @@
 #include "storage/zone_map_manager.h"
 #include "type/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(PredicateInfo) {
   DECLARE_MEMBER(0, int, col_id);
@@ -36,5 +36,5 @@ PROXY(ZoneMapManager) {
 TYPE_BUILDER(PredicateInfo, storage::PredicateInfo);
 TYPE_BUILDER(ZoneMapManager, storage::ZoneMapManager);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

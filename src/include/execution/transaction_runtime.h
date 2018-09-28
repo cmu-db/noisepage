@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace concurrency {
 class TransactionContext;
@@ -34,7 +34,7 @@ namespace type {
 class Value;
 }  // namespace type
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // This class contains common runtime functions needed during query execution.
@@ -71,5 +71,5 @@ class TransactionRuntime {
                              uint32_t tuple_offset);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

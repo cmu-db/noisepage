@@ -16,8 +16,8 @@
 #include "common/logger.h"
 #include "planner/projection_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlan &plan,
                                            CompilationContext &context,
@@ -83,5 +83,5 @@ void ProjectionTranslator::AddNonTrivialAttributes(
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

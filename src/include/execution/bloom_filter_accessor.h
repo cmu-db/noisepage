@@ -17,8 +17,8 @@
 #include "execution/codegen.h"
 #include "execution/hash.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Codegen Accessor to Bloom Filter
@@ -57,5 +57,5 @@ class BloomFilterAccessor {
                  llvm::Value *&byte_ptr) const;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

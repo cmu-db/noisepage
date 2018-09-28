@@ -16,8 +16,8 @@
 #include "common/logger.h"
 #include "common/timer.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 CompilationContext::CompilationContext(CodeContext &code,
@@ -240,5 +240,5 @@ AuxiliaryProducerFunction CompilationContext::DeclareAuxiliaryProducer(
   return AuxiliaryProducerFunction(declaration);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

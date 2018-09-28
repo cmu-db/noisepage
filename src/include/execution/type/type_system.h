@@ -22,8 +22,8 @@ namespace llvm {
 class Value;
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class CodeGen;
 class QueryState;
@@ -468,5 +468,5 @@ class TypeSystem {
 };
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

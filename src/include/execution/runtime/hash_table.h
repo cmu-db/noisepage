@@ -16,13 +16,13 @@
 
 #include "executor/executor_context.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace type {
 class AbstractPool;
 }  // namespace type
 
-namespace codegen {
+
 namespace util {
 
 /**
@@ -344,5 +344,5 @@ bool HashTable::TypedProbe(uint64_t hash, const Key &key,
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

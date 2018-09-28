@@ -17,8 +17,8 @@
 #include "execution/codegen.h"
 #include "execution/hash.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 class BloomFilter {
@@ -61,5 +61,5 @@ class BloomFilter {
 };
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

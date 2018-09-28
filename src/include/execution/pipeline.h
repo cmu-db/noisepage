@@ -23,8 +23,8 @@ class Type;
 class Value;
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class CodeGen;
 class CompilationContext;
@@ -256,5 +256,5 @@ class Pipeline {
   Parallelism parallelism_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

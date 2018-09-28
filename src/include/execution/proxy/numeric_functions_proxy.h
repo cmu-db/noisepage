@@ -14,8 +14,8 @@
 
 #include "execution/proxy/proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(NumericFunctions) {
   // Utility functions
@@ -33,5 +33,5 @@ PROXY(NumericFunctions) {
   DECLARE_METHOD(InputDecimal);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -16,8 +16,8 @@
 #include "common/logger.h"
 #include "planner/aggregate_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 GlobalGroupByTranslator::GlobalGroupByTranslator(
     const planner::AggregatePlan &plan, CompilationContext &context,
@@ -133,5 +133,5 @@ void GlobalGroupByTranslator::TearDownQueryState() {
   aggregation_.TearDownQueryState(GetCodeGen());
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

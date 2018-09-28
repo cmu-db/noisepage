@@ -20,8 +20,8 @@
 #include "common/exception.h"
 #include "type/limits.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -196,5 +196,5 @@ llvm::Function *Varbinary::GetOutputFunction(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

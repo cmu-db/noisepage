@@ -16,13 +16,13 @@
 #include "execution/row_batch.h"
 #include "execution/value.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class AbstractExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 // Forward declare
 class CompilationContext;
@@ -63,5 +63,5 @@ class ExpressionTranslator {
   const expression::AbstractExpression &expression_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

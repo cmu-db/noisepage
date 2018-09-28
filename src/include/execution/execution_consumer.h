@@ -16,8 +16,8 @@
 #include "execution/parameter_cache.h"
 #include "execution/query_parameters_map.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /**
  * This is the main abstract class for consumers of query executions.
@@ -72,5 +72,5 @@ class ExecutionConsumer {
   QueryState::Id executor_ctx_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

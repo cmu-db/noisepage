@@ -16,8 +16,8 @@
 #include "execution/type/type_system.h"
 #include "common/singleton.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 class Array : public SqlType, public Singleton<Array> {
@@ -52,5 +52,5 @@ class Array : public SqlType, public Singleton<Array> {
 };
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

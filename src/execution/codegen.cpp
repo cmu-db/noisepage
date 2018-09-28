@@ -21,8 +21,8 @@
 
 #include "execution/function_builder.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 CodeGen::CodeGen(CodeContext &code_context) : code_context_(code_context) {}
 
@@ -396,5 +396,5 @@ void CppProxyMember::Store(CodeGen &codegen, llvm::Value *obj_ptr,
   codegen->CreateStore(val, addr);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

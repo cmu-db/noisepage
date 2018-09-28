@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "storage/tuple.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Tuple) {
   DECLARE_MEMBER(0, char[sizeof(storage::Tuple)], opaque);
@@ -25,5 +25,5 @@ PROXY(Tuple) {
 
 TYPE_BUILDER(Tuple, storage::Tuple);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "storage/storage_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(StorageManager) {
   /// The data members of storage::StorageManager
@@ -31,5 +31,5 @@ PROXY(StorageManager) {
 
 TYPE_BUILDER(StorageManager, storage::StorageManager);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

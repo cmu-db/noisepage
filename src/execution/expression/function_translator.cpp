@@ -18,8 +18,8 @@
 #include "expression/function_expression.h"
 #include "udf/udf_handler.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 FunctionTranslator::FunctionTranslator(
     const expression::FunctionExpression &func_expr,
@@ -110,5 +110,5 @@ codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

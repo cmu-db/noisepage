@@ -21,8 +21,8 @@ class Type;
 class Function;
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Forward declare
 class CodeGen;
@@ -75,5 +75,5 @@ class SqlType {
 };
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

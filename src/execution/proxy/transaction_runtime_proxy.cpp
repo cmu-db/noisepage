@@ -18,11 +18,11 @@
 #include "execution/proxy/tile_group_proxy.h"
 #include "execution/proxy/value_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_METHOD(peloton::codegen, TransactionRuntime, PerformVectorizedRead);
 DEFINE_METHOD(peloton::codegen, TransactionRuntime, PerformVisibilityCheck);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

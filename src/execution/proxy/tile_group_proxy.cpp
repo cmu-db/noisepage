@@ -12,13 +12,13 @@
 
 #include "execution/proxy/tile_group_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(TileGroup, "peloton::storage::TileGroup", opaque);
 
 DEFINE_METHOD(peloton::storage, TileGroup, GetNextTupleSlot);
 DEFINE_METHOD(peloton::storage, TileGroup, GetTileGroupId);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

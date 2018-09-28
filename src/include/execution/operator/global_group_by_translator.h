@@ -16,13 +16,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/pipeline.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class AggregatePlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A global group-by is when only a single (global) group is produced as output.
@@ -84,5 +84,5 @@ class GlobalGroupByTranslator : public OperatorTranslator {
   QueryState::Id mat_buffer_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

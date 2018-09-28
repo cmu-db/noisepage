@@ -12,8 +12,8 @@
 
 #include "execution/vector.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // The default vector size is 1024 elements
 std::atomic<uint32_t> Vector::kDefaultVectorSize{1024};
@@ -41,5 +41,5 @@ llvm::Value *Vector::GetValue(CodeGen &codegen, llvm::Value *index) const {
   return codegen->CreateLoad(GetPtrToValue(codegen, index));
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

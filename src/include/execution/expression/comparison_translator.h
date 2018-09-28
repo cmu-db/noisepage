@@ -15,13 +15,13 @@
 #include "execution/compilation_context.h"
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class ComparisonExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A translator of comparison expressions.
@@ -37,5 +37,5 @@ class ComparisonTranslator : public ExpressionTranslator {
                              RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

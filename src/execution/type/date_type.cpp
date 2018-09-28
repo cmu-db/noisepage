@@ -22,8 +22,8 @@
 #include "type/timestamp_type.h"
 #include "type/limits.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -200,5 +200,5 @@ llvm::Function *Date::GetOutputFunction(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

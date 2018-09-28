@@ -18,8 +18,8 @@
 #include "execution/type/sql_type.h"
 #include "runtime/math_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Add the given type to the storage format. We return the index that this value
@@ -338,5 +338,5 @@ void UpdateableStorage::NullBitmap::WriteBack(CodeGen &codegen) {
   std::fill(dirty_.begin(), dirty_.end(), false);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

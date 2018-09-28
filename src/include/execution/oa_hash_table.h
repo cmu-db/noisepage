@@ -21,8 +21,8 @@
 #include "execution/vector.h"
 #include "planner/attribute_info.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Our interface to the open-addressing hash-table data structure.
@@ -183,5 +183,5 @@ class OAHashTable : public HashTable {
   uint64_t value_size_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

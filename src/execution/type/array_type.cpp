@@ -15,8 +15,8 @@
 #include "execution/value.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -98,5 +98,5 @@ llvm::Function *Array::GetOutputFunction(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

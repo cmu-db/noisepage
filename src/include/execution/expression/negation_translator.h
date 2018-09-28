@@ -14,13 +14,13 @@
 
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class OperatorUnaryMinusExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 class NegationTranslator : public ExpressionTranslator {
  public:
@@ -32,5 +32,5 @@ class NegationTranslator : public ExpressionTranslator {
   Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

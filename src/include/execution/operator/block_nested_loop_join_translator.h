@@ -18,13 +18,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/sorter.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class NestedLoopJoinPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // The translator for a block-wise nested loop join
@@ -75,5 +75,5 @@ class BlockNestedLoopJoinTranslator : public OperatorTranslator {
   AuxiliaryProducerFunction join_buffer_func_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -18,8 +18,8 @@
 #include "planner/projection_plan.h"
 #include "planner/seq_scan_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 QueryCompiler::QueryCompiler() : next_id_(0) {}
@@ -141,5 +141,5 @@ bool QueryCompiler::IsExpressionSupported(
   return true;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

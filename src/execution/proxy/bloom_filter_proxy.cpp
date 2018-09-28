@@ -12,8 +12,8 @@
 
 #include "execution/proxy/bloom_filter_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(BloomFilter, "peloton::BloomFilter", num_hash_funcs, bytes,
             num_bits, num_misses, num_probes);
@@ -21,5 +21,5 @@ DEFINE_TYPE(BloomFilter, "peloton::BloomFilter", num_hash_funcs, bytes,
 DEFINE_METHOD(peloton::codegen::util, BloomFilter, Init);
 DEFINE_METHOD(peloton::codegen::util, BloomFilter, Destroy);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

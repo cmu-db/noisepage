@@ -15,8 +15,8 @@
 #include "execution/codegen.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Utility class to help compute/codegen the hash of values
@@ -57,5 +57,5 @@ class Hash {
       const std::vector<Hash::Varlen> &varlens);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

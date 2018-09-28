@@ -14,8 +14,8 @@
 
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace lang {
 
 VectorizedLoop::VectorizedLoop(CodeGen &codegen, llvm::Value *num_elements,
@@ -74,5 +74,5 @@ void VectorizedLoop::CollectFinalLoopVariables(
 }
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

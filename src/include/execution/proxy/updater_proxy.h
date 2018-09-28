@@ -15,8 +15,8 @@
 #include "execution/updater.h"
 #include "execution/proxy/proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Updater) {
   /// We don't need access to internal fields, so use an opaque byte array
@@ -35,5 +35,5 @@ PROXY(Updater) {
 
 TYPE_BUILDER(Updater, codegen::Updater);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

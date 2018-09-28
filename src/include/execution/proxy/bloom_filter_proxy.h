@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime/bloom_filter.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(BloomFilter) {
   // Member Variables
@@ -35,5 +35,5 @@ PROXY(BloomFilter) {
 
 TYPE_BUILDER(BloomFilter, util::BloomFilter);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

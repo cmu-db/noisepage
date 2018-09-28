@@ -19,8 +19,8 @@
 #include "planner/update_plan.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 UpdateTranslator::UpdateTranslator(const planner::UpdatePlan &update_plan,
                                    CompilationContext &context,
@@ -155,5 +155,5 @@ void UpdateTranslator::TearDownQueryState() {
   GetCodeGen().Call(UpdaterProxy::TearDown, {updater});
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

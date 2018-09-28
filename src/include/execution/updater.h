@@ -15,7 +15,7 @@
 #include "common/item_pointer.h"
 #include "common/internal_types.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace concurrency {
 class TransactionContext;
@@ -34,7 +34,7 @@ namespace type {
 class AbstractPool;
 }  // namespace concurrency
 
-namespace codegen {
+
 // This class handles updating tuples from generated code. This avoids
 // passing along information through translators, and is intialized once
 // through its Init() outside the main loop
@@ -113,5 +113,5 @@ class Updater {
   DISALLOW_COPY_AND_MOVE(Updater);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

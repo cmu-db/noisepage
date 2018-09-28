@@ -17,8 +17,8 @@
 #include "execution/codegen.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace lang {
 
 //===----------------------------------------------------------------------===//
@@ -70,5 +70,5 @@ class Loop {
 };
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

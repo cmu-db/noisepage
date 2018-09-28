@@ -16,8 +16,8 @@
 #include "execution/compact_storage.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 namespace lang {
 class If;
@@ -141,5 +141,5 @@ class UpdateableStorage {
   llvm::Type *null_bitmap_type_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -15,8 +15,8 @@
 #include "common/platform.h"
 #include "type/abstract_pool.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 static const uint32_t kDefaultNumElements = 256;
@@ -320,5 +320,5 @@ void HashTable::Resize() {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

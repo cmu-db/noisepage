@@ -13,8 +13,8 @@
 #include "execution/query_state.h"
 #include "execution/vector.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 QueryState::QueryState() : constructed_type_(nullptr) {}
@@ -91,5 +91,5 @@ llvm::Type *QueryState::GetType() const {
   return constructed_type_;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

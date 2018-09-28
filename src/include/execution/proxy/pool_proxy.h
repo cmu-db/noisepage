@@ -16,8 +16,8 @@
 #include "type/abstract_pool.h"
 #include "type/ephemeral_pool.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(AbstractPool) {
   DECLARE_MEMBER(0, char[sizeof(peloton::type::AbstractPool)], opaque);
@@ -32,5 +32,5 @@ PROXY(EphemeralPool) {
 TYPE_BUILDER(AbstractPool, peloton::type::AbstractPool);
 TYPE_BUILDER(EphemeralPool, peloton::type::EphemeralPool);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

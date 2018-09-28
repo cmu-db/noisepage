@@ -17,8 +17,8 @@
 #include "execution/value.h"
 #include "execution/type/boolean_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace lang {
 
 //===----------------------------------------------------------------------===//
@@ -108,5 +108,5 @@ llvm::Value *If::BuildPHI(llvm::Value *v1, llvm::Value *v2) {
 }
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -21,8 +21,8 @@
 #include "planner/nested_loop_join_plan.h"
 #include "settings/settings_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -282,5 +282,5 @@ void BlockNestedLoopJoinTranslator::FindMatchesForRow(
   buffer_.Iterate(GetCodeGen(), LoadStatePtr(buffer_id_), callback);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

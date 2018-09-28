@@ -14,8 +14,8 @@
 
 #include "execution/proxy/proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(TimestampFunctions) {
   // Proxy everything in function::DateFunctions
@@ -23,5 +23,5 @@ PROXY(TimestampFunctions) {
   DECLARE_METHOD(DatePart);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

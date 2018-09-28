@@ -17,8 +17,8 @@
 #include "execution/runtime/csv_scanner.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(CSVScannerColumn) {
   DECLARE_MEMBER(0, type::Type, type);
@@ -46,5 +46,5 @@ PROXY(CSVScanner) {
 TYPE_BUILDER(CSVScanner, codegen::util::CSVScanner);
 TYPE_BUILDER(CSVScannerColumn, codegen::util::CSVScanner::Column);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

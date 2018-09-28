@@ -13,8 +13,8 @@
 #include "execution/interpreter/bytecode_interpreter.h"
 #include "execution/interpreter/bytecode_function.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace interpreter {
 
 /** This is the actual dispatch code: It lookups the destination handler address
@@ -186,5 +186,5 @@ uintptr_t BytecodeInterpreter::AllocateMemory(size_t number_bytes) {
 }
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

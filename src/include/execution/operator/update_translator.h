@@ -18,13 +18,13 @@
 #include "execution/query_state.h"
 #include "execution/table_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class UpdatePlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 class UpdateTranslator : public OperatorTranslator {
  public:
@@ -54,5 +54,5 @@ class UpdateTranslator : public OperatorTranslator {
   codegen::TableStorage table_storage_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -19,13 +19,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/updateable_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class HashPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // The translator for a hash-based distinct operator.
@@ -97,5 +97,5 @@ class HashTranslator : public OperatorTranslator {
   OAHashTable hash_table_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

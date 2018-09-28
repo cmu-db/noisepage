@@ -15,11 +15,11 @@
 #include "execution/codegen.h"
 #include "function/timestamp_functions.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_METHOD(peloton::function, TimestampFunctions, DateTrunc);
 DEFINE_METHOD(peloton::function, TimestampFunctions, DatePart);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

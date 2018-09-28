@@ -29,8 +29,8 @@ class FunctionPassManager;
 }  // namespace legacy
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class FunctionBuilder;
 
@@ -191,5 +191,5 @@ class CodeContext {
   bool is_verified_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

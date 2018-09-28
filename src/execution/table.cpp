@@ -20,8 +20,8 @@
 #include "execution/proxy/zone_map_proxy.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 Table::Table(storage::DataTable &table)
@@ -133,5 +133,5 @@ void Table::GenerateScan(CodeGen &codegen, llvm::Value *table_ptr,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

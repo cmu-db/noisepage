@@ -14,8 +14,8 @@
 
 #include "expression/parameter.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class QueryParametersMap {
  public:
@@ -57,5 +57,5 @@ class QueryParametersMap {
   std::vector<expression::Parameter> parameters_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

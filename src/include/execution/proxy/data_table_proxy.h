@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(DataTable) {
   /// We don't need access to internal fields, so use an opaque byte array
@@ -29,5 +29,5 @@ PROXY(DataTable) {
 
 TYPE_BUILDER(DataTable, storage::DataTable);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

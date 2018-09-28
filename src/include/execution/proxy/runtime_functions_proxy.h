@@ -18,8 +18,8 @@
 #include "execution/runtime_functions.h"
 #include "expression/abstract_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(ColumnLayoutInfo) {
   DECLARE_MEMBER(0, char *, col_start_ptr);
@@ -54,5 +54,5 @@ TYPE_BUILDER(ColumnLayoutInfo, codegen::RuntimeFunctions::ColumnLayoutInfo);
 TYPE_BUILDER(AbstractExpression, expression::AbstractExpression);
 TYPE_BUILDER(Type, codegen::type::Type);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

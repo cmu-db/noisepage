@@ -17,8 +17,8 @@
 #include "execution/codegen.h"
 #include "execution/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // A vector of fixed size holding elements of a homogeneous type
@@ -67,5 +67,5 @@ class Vector {
   llvm::Value *num_elements_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

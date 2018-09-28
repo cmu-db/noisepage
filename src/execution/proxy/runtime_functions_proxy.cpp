@@ -17,8 +17,8 @@
 #include "execution/proxy/tile_group_proxy.h"
 #include "execution/proxy/zone_map_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(ColumnLayoutInfo, "peloton::ColumnLayoutInfo", col_start_ptr,
             stride, columnar);
@@ -38,5 +38,5 @@ DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ExecutePerState);
 DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ThrowDivideByZeroException);
 DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ThrowOverflowException);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -17,13 +17,13 @@
 #include "execution/tile_group.h"
 #include "type/value.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace storage {
 class DataTable;
 }  // namespace storage
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // This class the main entry point for any code generation that requires
@@ -67,5 +67,5 @@ class Table {
   TileGroup tile_group_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

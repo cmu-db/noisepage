@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "type/varlen_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Varlen) {
   DECLARE_MEMBER(0, uint32_t, length);
@@ -24,5 +24,5 @@ PROXY(Varlen) {
   DECLARE_TYPE;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

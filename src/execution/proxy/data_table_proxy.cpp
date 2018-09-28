@@ -12,12 +12,12 @@
 
 #include "execution/proxy/data_table_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(DataTable, "storage::DataTable", opaque);
 
 DEFINE_METHOD(peloton::storage, DataTable, GetTileGroupCount);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

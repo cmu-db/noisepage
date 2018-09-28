@@ -18,8 +18,8 @@
 #include "execution/type/sql_type.h"
 #include "execution/type/type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void ParameterCache::Populate(CodeGen &codegen,
                               llvm::Value *query_parameters_ptr) {
@@ -106,5 +106,5 @@ codegen::Value ParameterCache::DeriveParameterValue(
   return Value{type::Type{type_id, is_nullable}, val, len, is_null};
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

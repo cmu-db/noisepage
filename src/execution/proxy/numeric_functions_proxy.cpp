@@ -16,8 +16,8 @@
 #include "execution/proxy/type_builder.h"
 #include "function/numeric_functions.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Utility functions
 DEFINE_METHOD(peloton::function, NumericFunctions, Abs);
@@ -33,5 +33,5 @@ DEFINE_METHOD(peloton::function, NumericFunctions, InputInteger);
 DEFINE_METHOD(peloton::function, NumericFunctions, InputBigInt);
 DEFINE_METHOD(peloton::function, NumericFunctions, InputDecimal);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -21,8 +21,8 @@
 #include "storage/storage_manager.h"
 #include "settings/settings_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 Query::Query(const planner::AbstractPlan &query_plan)
@@ -250,5 +250,5 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

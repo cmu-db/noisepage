@@ -19,8 +19,8 @@
 #include "common/singleton.h"
 #include "planner/abstract_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Query cache implementation that maps an AbstractPlan with a CodeGen query
 // using LRU eviction policy. The cache is implemented as a singleton.
@@ -80,5 +80,5 @@ class QueryCache : public Singleton<QueryCache> {
   size_t capacity_ = 0;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

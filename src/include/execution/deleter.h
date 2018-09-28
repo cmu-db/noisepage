@@ -16,7 +16,7 @@
 
 #include "common/macros.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace concurrency {
 class TransactionContext;
@@ -30,7 +30,7 @@ namespace storage {
 class DataTable;
 }  // namespace storage
 
-namespace codegen {
+
 
 // This class handles deletion of tuples from generated code. It mainly exists
 // to avoid passing along table information through translators. Instead, this
@@ -62,5 +62,5 @@ class Deleter {
   DISALLOW_COPY_AND_MOVE(Deleter);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

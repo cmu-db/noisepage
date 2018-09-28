@@ -16,8 +16,8 @@
 
 #include "execution/type/sql_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // TODO: Only load/store values if it's not NULL
 
@@ -272,5 +272,5 @@ llvm::Value *CompactStorage::LoadValues(
       codegen->CreateBitCast(area_start, codegen.CharPtrType()), storage_size_);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

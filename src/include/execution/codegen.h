@@ -18,8 +18,8 @@
 #include "execution/code_context.h"
 #include "execution/type/type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Forward declare
 class CodeGen;
@@ -203,5 +203,5 @@ class CodeGen {
   CodeContext &code_context_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

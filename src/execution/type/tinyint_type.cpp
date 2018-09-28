@@ -23,8 +23,8 @@
 #include "type/limits.h"
 #include "runtime/string_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -611,5 +611,5 @@ llvm::Function *TinyInt::GetOutputFunction(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -15,9 +15,7 @@
 #include "execution/codegen.h"
 #include "execution/function_builder.h"
 
-namespace peloton {
-namespace codegen {
-
+namespace terrier::execution {
 class AuxiliaryProducerFunction {
  public:
   // Constructor
@@ -52,5 +50,5 @@ inline llvm::Value *AuxiliaryProducerFunction::Call(CodeGen &codegen) const {
   return codegen.CallFunc(function_, {query_state_ptr});
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

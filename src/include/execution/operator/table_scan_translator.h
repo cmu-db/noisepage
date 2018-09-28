@@ -18,7 +18,7 @@
 #include "execution/scan_callback.h"
 #include "execution/table.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class SeqScanPlan;
@@ -28,7 +28,7 @@ namespace storage {
 class DataTable;
 }  // namespace storage
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A translator for sequential table scans
@@ -76,5 +76,5 @@ class TableScanTranslator : public OperatorTranslator {
   codegen::Table table_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

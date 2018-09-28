@@ -14,8 +14,8 @@
 #include "execution/expression/parameter_translator.h"
 #include "expression/parameter_value_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ParameterTranslator::ParameterTranslator(
@@ -31,5 +31,5 @@ codegen::Value ParameterTranslator::DeriveValue(
   return parameter_cache.GetValue(&expr);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

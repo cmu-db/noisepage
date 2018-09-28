@@ -54,8 +54,8 @@
 #include "planner/seq_scan_plan.h"
 #include "planner/update_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // Create a translator for the given operator
@@ -227,5 +227,5 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(
   return std::unique_ptr<ExpressionTranslator>{translator};
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

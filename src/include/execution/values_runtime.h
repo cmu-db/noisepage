@@ -14,13 +14,13 @@
 
 #include <cstdint>
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace type {
 class AbstractPool;
 }  // namespace type
 
-namespace codegen {
+
 
 namespace type {
 class Type;
@@ -61,5 +61,5 @@ class ValuesRuntime {
                               uint32_t len);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

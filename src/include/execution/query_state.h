@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // This class captures all the state that a query plans' operators need. During
@@ -93,5 +93,5 @@ class QueryState {
   llvm::Type *constructed_type_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

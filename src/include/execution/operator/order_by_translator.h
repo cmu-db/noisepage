@@ -17,13 +17,13 @@
 #include "execution/sorter.h"
 #include "execution/updateable_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class OrderByPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 /**
  * Translator for sorting/order-by operators.
@@ -81,5 +81,5 @@ class OrderByTranslator : public OperatorTranslator {
   std::vector<SortKeyInfo> sort_key_info_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

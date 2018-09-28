@@ -35,8 +35,8 @@ class CallInst;
 class ExtractValueInst;
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+runtime/
+
 
 class CodeContext;
 
@@ -466,5 +466,5 @@ class NotSupportedException : public std::runtime_error {
 };
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

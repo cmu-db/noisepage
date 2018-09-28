@@ -17,8 +17,8 @@
 #include "planner/update_plan.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 Query* QueryCache::Find(const std::shared_ptr<planner::AbstractPlan> &key) {
   cache_lock_.ReadLock();
@@ -102,5 +102,5 @@ oid_t QueryCache::GetOidFromPlan(const planner::AbstractPlan &plan) const {
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton 
+
+}  // namespace terrier::execution

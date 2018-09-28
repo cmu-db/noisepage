@@ -20,8 +20,8 @@
 #include "type/value_factory.h"
 #include "type/value_peeker.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -99,5 +99,5 @@ void ValuesRuntime::OutputVarbinary(char *values, uint32_t idx, const char *ptr,
            peloton::type::ValueFactory::GetVarbinaryValue(bin_ptr, len, false));
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

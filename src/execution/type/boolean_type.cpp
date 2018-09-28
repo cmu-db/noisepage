@@ -20,8 +20,8 @@
 #include "common/exception.h"
 #include "type/limits.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -357,5 +357,5 @@ llvm::Value *Boolean::Reify(CodeGen &codegen, const Value &bool_val) const {
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

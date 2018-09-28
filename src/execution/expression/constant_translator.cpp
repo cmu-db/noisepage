@@ -14,8 +14,8 @@
 #include "execution/expression/constant_translator.h"
 #include "expression/constant_value_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ConstantTranslator::ConstantTranslator(
@@ -31,5 +31,5 @@ codegen::Value ConstantTranslator::DeriveValue(
   return parameter_cache.GetValue(&expr);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

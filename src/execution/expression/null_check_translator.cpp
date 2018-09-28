@@ -16,8 +16,8 @@
 #include "execution/type/type_system.h"
 #include "expression/operator_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 NullCheckTranslator::NullCheckTranslator(
@@ -43,5 +43,5 @@ Value NullCheckTranslator::DeriveValue(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

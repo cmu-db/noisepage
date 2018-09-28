@@ -24,8 +24,8 @@
 #include "common/internal_types.h"
 #include "type/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void Updater::Init(storage::DataTable *table,
                    executor::ExecutorContext *executor_context,
@@ -194,5 +194,5 @@ void Updater::TearDown() {
   delete statement_write_set_;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

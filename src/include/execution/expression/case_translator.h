@@ -14,13 +14,13 @@
 
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class CaseExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 /// A translator for CASE expressions.
 class CaseTranslator : public ExpressionTranslator {
@@ -32,5 +32,5 @@ class CaseTranslator : public ExpressionTranslator {
                              RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

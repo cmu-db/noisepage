@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime/oa_hash_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(KeyValueList) {
   DECLARE_MEMBER(0, int32_t, capacity);
@@ -52,5 +52,5 @@ TYPE_BUILDER(KeyValueList, util::OAHashTable::KeyValueList);
 TYPE_BUILDER(OAHashEntry, util::OAHashTable::HashEntry);
 TYPE_BUILDER(OAHashTable, util::OAHashTable);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

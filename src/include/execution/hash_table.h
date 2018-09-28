@@ -17,8 +17,8 @@
 #include "execution/value.h"
 #include "execution/vector.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /**
  * The main hash table access class for util::HashTable.
@@ -236,5 +236,5 @@ class HashTable {
   CompactStorage key_storage_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

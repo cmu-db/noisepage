@@ -19,8 +19,8 @@
 #include "execution/proxy/pool_proxy.h"
 #include "executor/executor_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(ThreadStates) {
   DECLARE_MEMBER(0, peloton::type::EphemeralPool *, pool);
@@ -47,5 +47,5 @@ PROXY(ExecutorContext) {
 TYPE_BUILDER(ThreadStates, executor::ExecutorContext::ThreadStates);
 TYPE_BUILDER(ExecutorContext, executor::ExecutorContext);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

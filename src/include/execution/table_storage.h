@@ -14,13 +14,13 @@
 
 #include "execution/codegen.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace catalog {
 class Schema;
 }  // namespace catalog
 
-namespace codegen {
+
 class Value;
 //===----------------------------------------------------------------------===//
 // This class the main entry point for any code generation that requires
@@ -39,5 +39,5 @@ class TableStorage {
   catalog::Schema &schema_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

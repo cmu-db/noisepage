@@ -46,8 +46,8 @@
 #include "storage/zone_map_manager.h"
 #include "execution/runtime/buffer.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace interpreter {
 
 /**
@@ -1256,5 +1256,5 @@ class BytecodeInterpreter {
 };
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

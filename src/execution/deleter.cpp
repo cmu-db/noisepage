@@ -17,8 +17,8 @@
 #include "executor/executor_context.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 Deleter::Deleter(storage::DataTable *table,
                  executor::ExecutorContext *executor_context)
@@ -112,5 +112,5 @@ void Deleter::Delete(uint32_t tile_group_id, uint32_t tuple_offset) {
   executor_context_->num_processed++;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

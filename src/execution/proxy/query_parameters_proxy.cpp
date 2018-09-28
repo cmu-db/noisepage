@@ -15,8 +15,8 @@
 #include "execution/proxy/data_table_proxy.h"
 #include "execution/proxy/transaction_context_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(QueryParameters, "codegen::QueryParameters", opaque);
 
@@ -34,5 +34,5 @@ DEFINE_METHOD(peloton::codegen, QueryParameters, GetVarbinaryVal);
 DEFINE_METHOD(peloton::codegen, QueryParameters, GetVarbinaryLen);
 DEFINE_METHOD(peloton::codegen, QueryParameters, IsNull);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

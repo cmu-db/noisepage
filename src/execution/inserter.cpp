@@ -21,8 +21,8 @@
 #include "storage/tile_group.h"
 #include "storage/tile.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void Inserter::Init(storage::DataTable *table,
                     executor::ExecutorContext *executor_context) {
@@ -71,5 +71,5 @@ void Inserter::TearDown() {
   tile_.reset();
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

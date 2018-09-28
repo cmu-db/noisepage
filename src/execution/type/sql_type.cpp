@@ -26,8 +26,8 @@
 #include "execution/type/varchar_type.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 class Invalid : public SqlType, public Singleton<Invalid> {
@@ -104,5 +104,5 @@ const SqlType &SqlType::LookupType(peloton::type::TypeId type_id) {
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

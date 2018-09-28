@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/values_runtime.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(ValuesRuntime) {
   DECLARE_METHOD(OutputBoolean);
@@ -31,5 +31,5 @@ PROXY(ValuesRuntime) {
   DECLARE_METHOD(OutputVarbinary);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -18,13 +18,13 @@
 #include "expression/parameter.h"
 #include "type/type.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class AbstractExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A parameter cache which stores the parameterized values for codegen runtime
@@ -60,5 +60,5 @@ class ParameterCache {
   std::vector<codegen::Value> values_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

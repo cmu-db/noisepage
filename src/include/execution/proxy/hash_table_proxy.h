@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime/hash_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /// The proxy for HashTable::Entry
 PROXY(Entry) {
@@ -51,5 +51,5 @@ PROXY(HashTable) {
 TYPE_BUILDER(Entry, util::HashTable::Entry);
 TYPE_BUILDER(HashTable, util::HashTable);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

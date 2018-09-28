@@ -14,8 +14,8 @@
 
 #include "execution/proxy/executor_context_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // We need to manually define the type because it is recursive
 llvm::Type *EntryProxy::GetType(CodeGen &codegen) {
@@ -52,5 +52,5 @@ DEFINE_METHOD(peloton::codegen::util, HashTable, ReserveLazy);
 DEFINE_METHOD(peloton::codegen::util, HashTable, MergeLazyUnfinished);
 DEFINE_METHOD(peloton::codegen::util, HashTable, Destroy);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

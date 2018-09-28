@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/deleter.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Deleter) {
   /// We don't need access to internal fields, so use an opaque byte array
@@ -30,5 +30,5 @@ PROXY(Deleter) {
 
 TYPE_BUILDER(Deleter, codegen::Deleter);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

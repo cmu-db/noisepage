@@ -19,8 +19,8 @@
 #include "type/abstract_pool.h"
 #include "runtime/string_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 CSVScanner::CSVScanner(peloton::type::AbstractPool &pool,
@@ -371,5 +371,5 @@ void CSVScanner::ProduceCSV(char *line) {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

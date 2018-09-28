@@ -17,8 +17,8 @@
 #include "execution/type/sql_type.h"
 #include "expression/case_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 CaseTranslator::CaseTranslator(const expression::CaseExpression &expression,
                                CompilationContext &context)
@@ -74,5 +74,5 @@ codegen::Value CaseTranslator::DeriveValue(CodeGen &codegen,
   return codegen::Value::BuildPHI(codegen, branch_vals);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

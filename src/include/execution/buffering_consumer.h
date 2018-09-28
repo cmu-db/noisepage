@@ -20,13 +20,13 @@
 #include "execution/value.h"
 #include "common/container_tuple.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class BindingContext;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A wrapped class for output tuples
@@ -93,5 +93,5 @@ class BufferingConsumer : public ExecutionConsumer {
   QueryState::Id consumer_state_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

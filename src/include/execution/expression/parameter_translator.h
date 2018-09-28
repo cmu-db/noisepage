@@ -14,13 +14,13 @@
 
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class ParameterValueExpression;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A parameter expression translator just produces the LLVM value version of the
@@ -36,5 +36,5 @@ class ParameterTranslator : public ExpressionTranslator {
                              RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

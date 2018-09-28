@@ -19,13 +19,13 @@
 #include "execution/query_parameters_map.h"
 #include "execution/execution_consumer.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class AbstractPlan;
 }  // namespace plan
 
-namespace codegen {
+
 
 // The primary interface to JIT compile queries
 class QueryCompiler {
@@ -70,5 +70,5 @@ class QueryCompiler {
   std::atomic<uint64_t> next_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

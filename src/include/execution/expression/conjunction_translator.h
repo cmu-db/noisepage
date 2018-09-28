@@ -15,13 +15,13 @@
 #include "execution/compilation_context.h"
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class ConjunctionExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A translator for conjunction expressions
@@ -37,5 +37,5 @@ class ConjunctionTranslator : public ExpressionTranslator {
                              RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

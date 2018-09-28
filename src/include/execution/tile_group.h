@@ -15,13 +15,13 @@
 #include "execution/codegen.h"
 #include "execution/value.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace catalog {
 class Schema;
 }  // namespace catalog
 
-namespace codegen {
+
 
 class ScanCallback;
 
@@ -158,5 +158,5 @@ class TileGroup {
   const catalog::Schema &schema_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

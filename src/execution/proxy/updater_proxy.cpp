@@ -20,8 +20,8 @@
 #include "execution/proxy/value_proxy.h"
 #include "execution/proxy/pool_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Updater, "codegen::Updater", opaque);
 
@@ -33,5 +33,5 @@ DEFINE_METHOD(peloton::codegen, Updater, Update);
 DEFINE_METHOD(peloton::codegen, Updater, UpdatePK);
 DEFINE_METHOD(peloton::codegen, Updater, TearDown);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

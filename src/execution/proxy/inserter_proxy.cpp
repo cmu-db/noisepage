@@ -18,8 +18,8 @@
 #include "execution/proxy/tuple_proxy.h"
 #include "execution/proxy/pool_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Inserter, "codegen::Inserter", opaque);
 
@@ -29,5 +29,5 @@ DEFINE_METHOD(peloton::codegen, Inserter, GetPool);
 DEFINE_METHOD(peloton::codegen, Inserter, Insert);
 DEFINE_METHOD(peloton::codegen, Inserter, TearDown);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

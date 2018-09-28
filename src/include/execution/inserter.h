@@ -16,7 +16,7 @@
 #include "execution/consumer_context.h"
 #include "common/item_pointer.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace concurrency {
 class TransactionContext;
@@ -37,7 +37,7 @@ class AbstractPool;
 class EphemeralPool;
 }  // namespace type
 
-namespace codegen {
+
 // This class handles insertion of tuples from generated code. This avoids
 // passing along information through translators, and is intialized once
 // through its Init() outside the main loop
@@ -76,5 +76,5 @@ class Inserter {
   DISALLOW_COPY_AND_MOVE(Inserter);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

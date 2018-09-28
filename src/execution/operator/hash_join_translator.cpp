@@ -20,8 +20,8 @@
 #include "expression/tuple_value_expression.h"
 #include "planner/hash_join_plan.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 std::atomic<bool> HashJoinTranslator::kUsePrefetch{false};
 
@@ -579,5 +579,5 @@ void HashJoinTranslator::ProbeRight::ProcessEntry(
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

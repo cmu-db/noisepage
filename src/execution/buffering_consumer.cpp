@@ -19,8 +19,8 @@
 #include "execution/type/sql_type.h"
 #include "planner/binding_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // WRAPPED TUPLE
@@ -167,5 +167,5 @@ const std::vector<WrappedTuple> &BufferingConsumer::GetOutputTuples() const {
   return buffer_.output;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -18,8 +18,8 @@
 #include "type/type_id.h"
 #include "type/value_peeker.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class QueryParameters {
  public:
@@ -134,5 +134,5 @@ class QueryParameters {
   std::vector<peloton::type::Value> parameters_values_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

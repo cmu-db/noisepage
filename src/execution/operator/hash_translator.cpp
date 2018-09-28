@@ -19,8 +19,8 @@
 #include "execution/type/integer_type.h"
 #include "common/logger.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // HASH TRANSLATOR
@@ -140,5 +140,5 @@ llvm::Value *HashTranslator::ConsumerInsert::GetValueSize(
   return codegen.Const32(0);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

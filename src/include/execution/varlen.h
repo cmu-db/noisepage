@@ -17,8 +17,8 @@
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "execution/proxy/varlen_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class Varlen {
  public:
@@ -67,5 +67,5 @@ class Varlen {
   }
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

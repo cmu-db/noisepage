@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "type/value.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Value) {
   DECLARE_MEMBER(0, char[sizeof(peloton::type::Value)], opaque);
@@ -25,5 +25,5 @@ PROXY(Value) {
 
 TYPE_BUILDER(Value, peloton::type::Value);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "storage/tile_group.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(TileGroup) {
   DECLARE_MEMBER(0, char[sizeof(storage::TileGroup)], opaque);
@@ -28,5 +28,5 @@ PROXY(TileGroup) {
 
 TYPE_BUILDER(TileGroup, storage::TileGroup);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -18,8 +18,8 @@
 #include "execution/codegen.h"
 #include "execution/proxy/type_builder.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /// This file contains several macros that help in creating proxies to C++
 /// classes.
@@ -269,5 +269,5 @@ struct MemFn<R (*)(Args..., ...), T, F> {
   };                                                                   \
   }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

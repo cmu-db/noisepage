@@ -12,8 +12,8 @@
 
 #include "execution/proxy/oa_hash_table_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 /// KeyValueList
 DEFINE_TYPE(KeyValueList, "peloton::OAKeyValueList", capacity, size);
@@ -30,5 +30,5 @@ DEFINE_METHOD(peloton::codegen::util, OAHashTable, Init);
 DEFINE_METHOD(peloton::codegen::util, OAHashTable, StoreTuple);
 DEFINE_METHOD(peloton::codegen::util, OAHashTable, Destroy);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

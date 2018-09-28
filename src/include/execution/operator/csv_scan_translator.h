@@ -14,18 +14,18 @@
 
 #include "execution/operator/operator_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class CSVScanPlan;
 }  // namespace planner
 
-namespace codegen {
+
 class CompilationContext;
 class Pipeline;
-}  // namespace codegen
 
-namespace codegen {
+
+
 
 //===----------------------------------------------------------------------===//
 // A translator for CSV file scans
@@ -61,5 +61,5 @@ class CSVScanTranslator : public OperatorTranslator {
   llvm::Function *consumer_func_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

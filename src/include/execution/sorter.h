@@ -16,8 +16,8 @@
 
 #include "execution/updateable_storage.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // This class simplifies interaction with a codegen::runtime::Sorter instance from
@@ -163,5 +163,5 @@ class Sorter {
   UpdateableStorage storage_format_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

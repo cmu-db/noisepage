@@ -27,7 +27,7 @@
 #include "execution/query_state.h"
 #include "execution/translator_factory.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class AbstractExpression;
@@ -37,7 +37,7 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 /**
  * All the state for the current compilation unit (i.e., one query). This state
@@ -149,5 +149,5 @@ class CompilationContext {
       auxiliary_producers_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

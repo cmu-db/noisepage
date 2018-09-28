@@ -17,7 +17,7 @@
 #include "execution/query_parameters.h"
 #include "execution/query_state.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace executor {
 class ExecutorContext;
@@ -28,7 +28,7 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 class ExecutionConsumer;
 
@@ -146,5 +146,5 @@ class Query {
   bool is_compiled_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,8 +14,8 @@
 
 #include "expression/conjunction_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ConjunctionTranslator::ConjunctionTranslator(
@@ -44,5 +44,5 @@ codegen::Value ConjunctionTranslator::DeriveValue(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

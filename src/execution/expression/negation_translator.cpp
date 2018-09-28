@@ -15,8 +15,8 @@
 #include "execution/type/type_system.h"
 #include "expression/operator_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 NegationTranslator::NegationTranslator(
@@ -34,5 +34,5 @@ Value NegationTranslator::DeriveValue(CodeGen &codegen,
   return child_value.CallUnaryOp(codegen, OperatorId::Negation);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,8 +14,8 @@
 
 #include "execution/lang/loop.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace lang {
 
 //===----------------------------------------------------------------------===//
@@ -78,5 +78,5 @@ class VectorizedLoop {
 };
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

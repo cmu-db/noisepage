@@ -12,8 +12,8 @@
 
 #include "execution/lang/loop.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace lang {
 
 // Constructor
@@ -94,5 +94,5 @@ void Loop::CollectFinalLoopVariables(std::vector<llvm::Value *> &loop_vals) {
 }
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

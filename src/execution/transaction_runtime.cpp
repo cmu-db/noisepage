@@ -19,8 +19,8 @@
 #include "executor/executor_context.h"
 #include "storage/tile_group.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 uint32_t TransactionRuntime::PerformVisibilityCheck(
     concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
@@ -122,5 +122,5 @@ void TransactionRuntime::YieldOwnership(concurrency::TransactionContext &txn,
   txn_manager.SetTransactionResult(&txn, ResultType::FAILURE);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

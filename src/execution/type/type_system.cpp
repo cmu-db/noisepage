@@ -19,8 +19,8 @@
 #include "common/exception.h"
 #include "runtime/string_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -530,5 +530,5 @@ const TypeSystem::NaryOperator *TypeSystem::GetNaryOperator(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -17,8 +17,8 @@
 #include "execution/codegen.h"
 #include "execution/updateable_storage.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class BufferAccessor {
  public:
@@ -51,5 +51,5 @@ class BufferAccessor {
   UpdateableStorage storage_format_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

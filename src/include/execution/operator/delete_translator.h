@@ -15,13 +15,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/table.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class DeletePlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // The translator for a delete operator
@@ -49,5 +49,5 @@ class DeleteTranslator : public OperatorTranslator {
   QueryState::Id deleter_state_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

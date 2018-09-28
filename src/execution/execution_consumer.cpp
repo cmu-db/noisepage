@@ -15,8 +15,8 @@
 #include "execution/compilation_context.h"
 #include "execution/proxy/executor_context_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ExecutionConsumer::ExecutionConsumer() : executor_ctx_type_(nullptr) {}
 
@@ -87,5 +87,5 @@ llvm::Value *ExecutionConsumer::GetThreadStatesPtr(
                                              0, 5, "threadStatesPtr");
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,8 +14,8 @@
 
 #include <cstdint>
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 /**
@@ -67,5 +67,5 @@ class Buffer {
 };
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

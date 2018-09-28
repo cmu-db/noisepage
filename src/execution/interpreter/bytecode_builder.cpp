@@ -19,8 +19,8 @@
 #include "common/exception.h"
 #include "runtime/math_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace interpreter {
 
 BytecodeBuilder::BytecodeBuilder(const CodeContext &code_context,
@@ -1881,5 +1881,5 @@ void BytecodeBuilder::TranslateExtractValue(
 }
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

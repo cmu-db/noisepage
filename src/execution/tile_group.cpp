@@ -23,8 +23,8 @@
 #include "execution/lang/vectorized_loop.h"
 #include "execution/type/boolean_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // TileGroup constructor
 TileGroup::TileGroup(const catalog::Schema &schema) : schema_(schema) {}
@@ -207,5 +207,5 @@ TileGroup::TileGroupAccess::Row TileGroup::TileGroupAccess::GetRow(
   return TileGroup::TileGroupAccess::Row{tile_group_, layout_, tid};
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -15,8 +15,8 @@
 #include "common/logger.h"
 #include "common/platform.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 // This is an estimation about how many tuples there are in the hash table when
@@ -443,5 +443,5 @@ void OAHashTable::Iterator::NextEntry() {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

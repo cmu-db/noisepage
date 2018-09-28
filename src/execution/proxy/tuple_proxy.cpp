@@ -12,10 +12,10 @@
 
 #include "execution/proxy/tuple_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Tuple, "storage::Tuple", opaque);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

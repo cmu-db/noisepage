@@ -18,8 +18,8 @@
 #include "common/timer.h"
 #include "storage/backend_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 Buffer::Buffer()
@@ -96,5 +96,5 @@ void Buffer::MakeRoomForBytes(uint64_t num_bytes) {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

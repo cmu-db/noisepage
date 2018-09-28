@@ -19,8 +19,8 @@
 #include "planner/insert_plan.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 InsertTranslator::InsertTranslator(const planner::InsertPlan &insert_plan,
                                    CompilationContext &context,
@@ -132,5 +132,5 @@ void InsertTranslator::TearDownQueryState() {
   GetCodeGen().Call(InserterProxy::TearDown, {inserter});
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,8 +14,8 @@
 
 #include "execution/type/sql_type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 Type::Type(peloton::type::TypeId type_id, bool _nullable)
@@ -62,5 +62,5 @@ Type Type::AsNonNullable() const {
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

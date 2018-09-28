@@ -15,8 +15,8 @@
 #include "execution/proxy/executor_context_proxy.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(CSVScanner, "runtime::CSVScanner", opaque1, cols, opaque2);
 
@@ -27,5 +27,5 @@ DEFINE_METHOD(peloton::codegen::util, CSVScanner, Init);
 DEFINE_METHOD(peloton::codegen::util, CSVScanner, Destroy);
 DEFINE_METHOD(peloton::codegen::util, CSVScanner, Produce);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

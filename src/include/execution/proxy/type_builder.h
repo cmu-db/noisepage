@@ -14,8 +14,8 @@
 
 #include "execution/codegen.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace proxy {
 
 /// This class contains LLVM llvm::Type* builders for the most common C++ types
@@ -143,5 +143,5 @@ struct TypeBuilder<R (T::*)(Args...) const>
     : public TypeBuilder<R (T::*)(Args...)> {};
 
 }  // namespace proxy
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

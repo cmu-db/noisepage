@@ -18,8 +18,8 @@
 #include "execution/value.h"
 #include "execution/type/type.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // This class enables the compact storage of a given set of types into a
@@ -87,5 +87,5 @@ class CompactStorage {
   uint32_t storage_size_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

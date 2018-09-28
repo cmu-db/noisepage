@@ -16,8 +16,8 @@
 #include "expression/abstract_expression.h"
 #include "expression/expression_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ExpressionTranslator::ExpressionTranslator(
     const expression::AbstractExpression &expression, CompilationContext &ctx)
@@ -34,5 +34,5 @@ llvm::Value *ExpressionTranslator::GetExecutorContextPtr() const {
   return context_.GetExecutionConsumer().GetExecutorContextPtr(context_);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

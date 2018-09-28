@@ -15,8 +15,8 @@
 #include "execution/lang/loop.h"
 #include "execution/proxy/buffer_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 BufferAccessor::BufferAccessor() = default;
 
@@ -92,5 +92,5 @@ llvm::Value *BufferAccessor::NumTuples(CodeGen &codegen,
   return codegen->CreateTrunc(diff, codegen.Int32Type());
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -16,8 +16,8 @@
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "execution/proxy/pool_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_METHOD(peloton::codegen, ValuesRuntime, OutputBoolean);
 DEFINE_METHOD(peloton::codegen, ValuesRuntime, OutputTinyInt);
@@ -30,5 +30,5 @@ DEFINE_METHOD(peloton::codegen, ValuesRuntime, OutputDecimal);
 DEFINE_METHOD(peloton::codegen, ValuesRuntime, OutputVarchar);
 DEFINE_METHOD(peloton::codegen, ValuesRuntime, OutputVarbinary);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

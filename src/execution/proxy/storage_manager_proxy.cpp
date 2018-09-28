@@ -14,8 +14,8 @@
 
 #include "execution/proxy/data_table_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Define the proxy type with the single opaque member field
 DEFINE_TYPE(StorageManager, "storage::StorageManager", opaque);
@@ -23,5 +23,5 @@ DEFINE_TYPE(StorageManager, "storage::StorageManager", opaque);
 // Define a method that proxies storage::StorageManager::GetTableWithOid()
 DEFINE_METHOD(peloton::storage, StorageManager, GetTableWithOid);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

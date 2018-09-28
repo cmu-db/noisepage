@@ -12,10 +12,10 @@
 
 #include "execution/proxy/target_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Target, "peloton::Target", opaque);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

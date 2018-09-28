@@ -18,7 +18,7 @@
 #include "execution/type/type.h"
 #include "runtime/file.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace executor {
 class ExecutorContext;
@@ -28,7 +28,7 @@ namespace type {
 class AbstractPool;
 }  // namespace type
 
-namespace codegen {
+
 namespace util {
 
 /**
@@ -212,5 +212,5 @@ class CSVScanner {
 };
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

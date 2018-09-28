@@ -17,13 +17,13 @@
 #include "execution/codegen.h"
 #include "execution/value.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 struct AttributeInfo;
 }  // namespace planner
 
-namespace codegen {
+
 
 class CompilationContext;
 class Vector;
@@ -285,5 +285,5 @@ class RowBatch {
   DISALLOW_COPY_AND_MOVE(RowBatch);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

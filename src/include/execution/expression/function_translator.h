@@ -16,13 +16,13 @@
 #include "execution/expression/expression_translator.h"
 #include "type/type.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class FunctionExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 /// A translator for function expressions.
 class FunctionTranslator : public ExpressionTranslator {
@@ -34,5 +34,5 @@ class FunctionTranslator : public ExpressionTranslator {
                              RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

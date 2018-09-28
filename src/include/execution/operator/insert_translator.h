@@ -17,13 +17,13 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/table_storage.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class InsertPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 /**
  * @brief There are 4 different flavors of INSERT.
@@ -75,5 +75,5 @@ class InsertTranslator : public OperatorTranslator {
   codegen::TableStorage table_storage_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

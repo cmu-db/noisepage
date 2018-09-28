@@ -17,8 +17,8 @@
 #include "type/type_id.h"
 #include "common/hash_util.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 class SqlType;
@@ -95,5 +95,5 @@ struct TypeEquality {
 };
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

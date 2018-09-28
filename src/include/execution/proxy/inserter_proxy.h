@@ -15,8 +15,8 @@
 #include "execution/inserter.h"
 #include "execution/proxy/proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Inserter) {
 
@@ -32,5 +32,5 @@ PROXY(Inserter) {
 
 TYPE_BUILDER(Inserter, codegen::Inserter);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

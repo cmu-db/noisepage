@@ -19,8 +19,8 @@
 
 #define OPTIMAL_NUM_HASH_FUNC 0
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace util {
 
 //===----------------------------------------------------------------------===//
@@ -77,5 +77,5 @@ void BloomFilter::Destroy() {
 }
 
 }  // namespace runtime
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

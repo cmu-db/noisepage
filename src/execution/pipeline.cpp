@@ -21,8 +21,8 @@
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "settings/settings_manager.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 namespace {
 
@@ -629,5 +629,5 @@ std::string Pipeline::GetInfo() const {
   return result;
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -14,8 +14,8 @@
 
 #include "execution/code_context.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 //
@@ -151,5 +151,5 @@ class FunctionBuilder {
   std::unordered_map<std::string, llvm::Value *> cached_vars_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

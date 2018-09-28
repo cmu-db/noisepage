@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "function/string_functions.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(StringFunctions) {
   // Proxy everything in function::StringFunctions
@@ -42,5 +42,5 @@ PROXY(StrWithLen) {
 
 TYPE_BUILDER(StrWithLen, peloton::function::StringFunctions::StrWithLen);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

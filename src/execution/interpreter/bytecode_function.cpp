@@ -45,8 +45,8 @@
 #include "storage/zone_map_manager.h"
 #include "execution/runtime/buffer.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace interpreter {
 
 /**
@@ -298,5 +298,5 @@ std::string BytecodeFunction::Dump(const Instruction *instruction) const {
 }
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

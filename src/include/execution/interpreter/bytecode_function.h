@@ -26,8 +26,8 @@ namespace llvm {
 class Instruction;
 }  // namespace llvm
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class CodeContext;
 
@@ -355,5 +355,5 @@ class BytecodeFunction {
 };
 
 }  // namespace interpreter
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

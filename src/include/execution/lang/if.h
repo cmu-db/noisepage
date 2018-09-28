@@ -14,8 +14,8 @@
 
 #include "execution/codegen.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 class Value;
 
@@ -65,5 +65,5 @@ class If {
 };
 
 }  // namespace lang
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

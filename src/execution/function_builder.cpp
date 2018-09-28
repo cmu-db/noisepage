@@ -15,8 +15,8 @@
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 namespace {
 
@@ -280,5 +280,5 @@ llvm::Value *FunctionBuilder::GetOrCacheVariable(
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

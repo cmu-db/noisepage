@@ -15,8 +15,8 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime/sorter.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Sorter) {
   // clang-format off
@@ -46,5 +46,5 @@ PROXY(Sorter) {
 
 TYPE_BUILDER(Sorter, util::Sorter);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -25,8 +25,8 @@
 #include "execution/vector.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 namespace type {
 
 namespace {
@@ -608,5 +608,5 @@ llvm::Function *Varchar::GetOutputFunction(
 }
 
 }  // namespace type
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

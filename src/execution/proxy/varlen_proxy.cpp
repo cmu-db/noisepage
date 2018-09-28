@@ -12,10 +12,10 @@
 
 #include "execution/proxy/varlen_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(Varlen, "peloton::Varlen", length, ptr);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

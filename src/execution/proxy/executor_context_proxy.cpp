@@ -13,8 +13,8 @@
 #include "execution/proxy/executor_context_proxy.h"
 #include "execution/proxy/transaction_context_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // ThreadStates
 DEFINE_TYPE(ThreadStates, "executor::ThreadStates", pool, num_threads,
@@ -27,5 +27,5 @@ DEFINE_METHOD(peloton::executor::ExecutorContext, ThreadStates, Allocate);
 DEFINE_TYPE(ExecutorContext, "executor::ExecutorContext", num_processed, txn,
             params, storage_manager, pool, thread_states);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

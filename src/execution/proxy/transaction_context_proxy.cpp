@@ -12,10 +12,10 @@
 
 #include "execution/proxy/transaction_context_proxy.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 DEFINE_TYPE(TransactionContext, "concurrency::TransactionContext", opaque);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

@@ -19,8 +19,8 @@
 #include <cmath>
 #include <vector>
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 void BloomFilterAccessor::Init(CodeGen &codegen, llvm::Value *bloom_filter,
                                uint64_t estimated_num_tuples) const {
@@ -175,5 +175,5 @@ llvm::Value *BloomFilterAccessor::LoadBloomFilterField(
       bloom_filter_type, bloom_filter, 0, field_id));
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

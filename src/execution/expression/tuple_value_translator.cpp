@@ -14,8 +14,8 @@
 
 #include "expression/tuple_value_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 TupleValueTranslator::TupleValueTranslator(
@@ -32,5 +32,5 @@ codegen::Value TupleValueTranslator::DeriveValue(CodeGen &codegen,
   return row.DeriveValue(codegen, tve_expr.GetAttributeRef());
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

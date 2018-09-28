@@ -28,8 +28,8 @@
 #include "storage/tile_group.h"
 #include "threadpool/mono_queue_pool.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 uint64_t RuntimeFunctions::HashMurmur3(const char *buf, uint64_t length,
                                        uint64_t seed) {
@@ -259,5 +259,5 @@ void RuntimeFunctions::ThrowInvalidInputStringException() {
   throw std::runtime_error("ERROR: invalid input string");
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

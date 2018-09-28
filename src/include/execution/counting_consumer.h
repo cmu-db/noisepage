@@ -14,8 +14,8 @@
 
 #include "execution/execution_consumer.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 //===----------------------------------------------------------------------===//
 // A consumer that just counts the number of results
@@ -47,5 +47,5 @@ class CountingConsumer : public codegen::ExecutionConsumer {
   codegen::QueryState::Id counter_state_id_;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

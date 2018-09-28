@@ -14,13 +14,13 @@
 
 #include "execution/expression/expression_translator.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace expression {
 class TupleValueExpression;
 }  // namespace expression
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A translator for expressions that access a specific attribute in a tuple
@@ -35,5 +35,5 @@ class TupleValueTranslator : public ExpressionTranslator {
   Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

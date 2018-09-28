@@ -14,8 +14,8 @@
 
 #include "expression/operator_expression.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // Constructor
 ArithmeticTranslator::ArithmeticTranslator(
@@ -51,5 +51,5 @@ codegen::Value ArithmeticTranslator::DeriveValue(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

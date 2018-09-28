@@ -18,8 +18,8 @@
 #include "execution/lang/loop.h"
 #include "common/exception.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 HashTable::HashTable() {
   // This constructor shouldn't generally be used at all, but there are
@@ -268,5 +268,5 @@ void HashTable::VectorizedIterate(
       "Vectorized iteration over hash-tables not supported yet"};
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

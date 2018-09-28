@@ -16,8 +16,8 @@
 #include "common/internal_types.h"
 #include "planner/project_info.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 PROXY(Target) {
   DECLARE_MEMBER(0, char[sizeof(peloton::Target)], opaque);
@@ -26,5 +26,5 @@ PROXY(Target) {
 
 TYPE_BUILDER(Target, peloton::Target);
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

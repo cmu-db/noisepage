@@ -23,8 +23,8 @@
 #include "common/logger.h"
 #include "planner/attribute_info.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // An anonymous namespace to construct some function adapters
 namespace {
@@ -373,5 +373,5 @@ llvm::Value *RowBatch::GetPhysicalPosition(CodeGen &codegen,
   }
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

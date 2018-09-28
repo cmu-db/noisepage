@@ -15,14 +15,14 @@
 #include "execution/operator/operator_translator.h"
 #include "execution/pipeline.h"
 
-namespace peloton {
+namespace terrier::execution {
 
 namespace planner {
 class ProjectInfo;
 class ProjectionPlan;
 }  // namespace planner
 
-namespace codegen {
+
 
 //===----------------------------------------------------------------------===//
 // A translator for projections.
@@ -57,5 +57,5 @@ class ProjectionTranslator : public OperatorTranslator {
       std::vector<RowBatch::ExpressionAccess> &accessors);
 };
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

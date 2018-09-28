@@ -23,8 +23,8 @@
 #include "planner/seq_scan_plan.h"
 #include "storage/data_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -400,5 +400,5 @@ void TableScanTranslator::ScanConsumer::PerformReads(
   selection_vector.SetNumElements(out_idx);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution

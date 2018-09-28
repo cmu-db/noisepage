@@ -23,8 +23,8 @@
 #include "execution/type/integer_type.h"
 #include "execution/runtime/oa_hash_table.h"
 
-namespace peloton {
-namespace codegen {
+namespace terrier::execution {
+
 
 // The global default prefetch distance
 uint32_t OAHashTable::kDefaultGroupPrefetchSize = 10;
@@ -743,5 +743,5 @@ llvm::Value *OAHashTable::OAHashTableAccess::BucketValue(
   return hash_table_.AdvancePointer(codegen, key_ptr, key_size);
 }
 
-}  // namespace codegen
-}  // namespace peloton
+
+}  // namespace terrier::execution
