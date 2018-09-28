@@ -13,7 +13,6 @@ pipeline {
                 stage('macOS 10.13/Apple clang-902.0.39.2/llvm-6.0.1 (Debug/ASAN)') {
                     agent { label 'macos' }
                     environment {
-                        PATH="/usr/local/opt/llvm/bin:$PATH"
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
                     }
@@ -59,7 +58,6 @@ pipeline {
                 stage('macOS 10.13/Apple clang-902.0.39.2/llvm-6.0.1 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
-                        PATH="/usr/local/opt/llvm/bin:$PATH"
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
                     }
