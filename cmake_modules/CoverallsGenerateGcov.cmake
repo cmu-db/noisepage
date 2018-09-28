@@ -230,7 +230,7 @@ endforeach()
 
 # TODO: Enable setting these
 set(JSON_SERVICE_NAME "jenkins-ci")
-set(JSON_SERVICE_JOB_ID $ENV{BUILD_TAG})
+set(JSON_SERVICE_JOB_ID $ENV{BUILD_NUMBER})
 
 set(JSON_TEMPLATE
 "{
