@@ -1,0 +1,79 @@
+//===----------------------------------------------------------------------===//
+//
+//                         Peloton
+//
+// insert_translator.h
+//
+// Identification: src/include/execution/operator/insert_translator.h
+//
+// Copyright (c) 2015-17, Carnegie Mellon University Database Group
+//
+//===----------------------------------------------------------------------===//
+
+#pragma once
+
+#include "execution/compilation_context.h"
+#include "execution/consumer_context.h"
+#include "execution/operator/operator_translator.h"
+#include "execution/table_storage.h"
+
+namespace peloton {
+
+namespace planner {
+class InsertPlan;
+}  // namespace planner
+
+namespace codegen {
+
+/**
+ * @brief There are 4 different flavors of INSERT.
+ *
+ * - INSERT INTO TABLE_NAME
+ *   VALUES (value1,value2,value3,...valueN);
+ *
+ * - INSERT INTO TABLE_NAME (column1, column2, column3,...columnN)
+ *   VALUES (value1, value2, value3,...valueN);
+ *
+ * - INSERT INTO TABLE_NAME
+ *   VALUES (val1-a,val2-a,...valN-a), (val1-b, val2-b, ...valN-b), ...
+ *          (val1-M,val2-M,...valN-M);
+ *
+ * - INSERT INTO first_table_name [(column1, column2, ... columnN)]
+ *     SELECT column1, column2, ...columnN
+ *     FROM second_table_name
+ *     [WHERE condition];
+ */
+class InsertTranslator : public OperatorTranslator {
+ public:
+  // Constructor.
+  InsertTranslator(const planner::InsertPlan &insert_plan,
+                   CompilationContext &context, Pipeline &pipeline);
+
+  // Codegen any initialization work
+  void InitializeQueryState() override;
+
+  // Define any helper function for this translator needs
+  void DefineAuxiliaryFunctions() override {}
+
+  // Codegen produce
+  void Produce() const override;
+
+  // Codegen consuming a row tuple from child operators
+  void Consume(ConsumerContext &context, RowBatch::Row &row) const override;
+
+  // Codegen any cleanup work
+  void TearDownQueryState() override;
+
+ private:
+  const planner::InsertPlan &GetInsertPlan() const;
+
+ private:
+  // The ID used to retrieve the Insert instance
+  QueryState::Id inserter_state_id_;
+
+  // Storage access
+  codegen::TableStorage table_storage_;
+};
+
+}  // namespace codegen
+}  // namespace peloton
