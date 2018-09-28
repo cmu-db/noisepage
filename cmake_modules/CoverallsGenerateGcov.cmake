@@ -229,13 +229,17 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 endforeach()
 
 # TODO: Enable setting these
-set(JSON_SERVICE_NAME "travis-ci")
-set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
+set(JSON_SERVICE_NAME "jenkins")
+set(JSON_SERVICE_NUMBER $ENV{BUILD_NUMBER})
+set(JSON_SERVICE_BRANCH $ENV{GIT_BRANCH})
+set(JSON_SERVICE_PULL_REQUEST $ENV{ghprbPullId})
 
 set(JSON_TEMPLATE
 "{
   \"service_name\": \"\@JSON_SERVICE_NAME\@\",
-  \"service_job_id\": \"\@JSON_SERVICE_JOB_ID\@\",
+  \"service_number\": \"\@JSON_SERVICE_NUMBER\@\",
+  \"service_branch\": \"\@JSON_SERVICE_BRANCH\@\",
+  \"service_pull_request\": \"\@JSON_SERVICE_PULL_REQUEST\@\",
   \"source_files\": \@JSON_GCOV_FILES\@
 }"
 )
