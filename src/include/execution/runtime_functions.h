@@ -29,8 +29,7 @@ struct PredicateInfo;
 
 namespace expression {
 class AbstractExpression;
-}  // namespace storage
-
+}  // namespace expression
 
 //===----------------------------------------------------------------------===//
 // Various common functions that are called from compiled query plans
@@ -46,11 +45,9 @@ class RuntimeFunctions {
 
   // Get the tile group with the given index from the table.  We can't use
   // the version in DataTable because we need to strip off the shared_ptr
-  static storage::TileGroup *GetTileGroup(storage::DataTable *table,
-                                          uint64_t tile_group_index);
+  static storage::TileGroup *GetTileGroup(storage::DataTable *table, uint64_t tile_group_index);
 
-  static void FillPredicateArray(const expression::AbstractExpression *expr,
-                                 storage::PredicateInfo *predicate_array);
+  static void FillPredicateArray(const expression::AbstractExpression *expr, storage::PredicateInfo *predicate_array);
 
   // This struct represents the layout (or configuration) of a column in a
   // tile group. A configuration is characterized by two properties: its
@@ -75,9 +72,8 @@ class RuntimeFunctions {
    * @param num_cols The number of columns in the list. This should match the
    * number of column in the table.
    */
-  static void GetTileGroupLayout(const storage::TileGroup *tile_group,
-                                 ColumnLayoutInfo *infos, uint32_t num_cols);
-  
+  static void GetTileGroupLayout(const storage::TileGroup *tile_group, ColumnLayoutInfo *infos, uint32_t num_cols);
+
   /**
    * Execute a parallel scan over the given table in the given database.
    *
@@ -89,9 +85,8 @@ class RuntimeFunctions {
    * @param func The callback function that is provided a range of tile groups
    * to scan.
    */
-  static void ExecuteTableScan(
-      void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-      uint32_t db_oid, uint32_t table_oid, void *func);
+  static void ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+                               uint32_t db_oid, uint32_t table_oid, void *func);
   //      void (*scanner)(void *, void *, uint64_t, uint64_t));
 
   /**
@@ -102,9 +97,8 @@ class RuntimeFunctions {
    * @param thread_states The set of all thread states.
    * @param work_func Callback function called for each thread state.
    */
-  static void ExecutePerState(
-      void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-      void (*work_func)(void *, void *));
+  static void ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+                              void (*work_func)(void *, void *));
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -124,6 +118,5 @@ class RuntimeFunctions {
 
   static void ThrowInvalidInputStringException();
 };
-
 
 }  // namespace terrier::execution

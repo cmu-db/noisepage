@@ -18,8 +18,8 @@
 
 #include "common/exception.h"
 #include "common/logger.h"
-#include "common/timer.h"
 #include "common/synchronization/count_down_latch.h"
+#include "common/timer.h"
 #include "expression/abstract_expression.h"
 #include "storage/data_table.h"
 #include "storage/layout.h"
@@ -30,27 +30,22 @@
 
 namespace terrier::execution {
 
-
-uint64_t RuntimeFunctions::HashMurmur3(const char *buf, uint64_t length,
-                                       uint64_t seed) {
-  return MurmurHash3_x86_32(buf, static_cast<uint32_t>(length),
-                            static_cast<uint32_t>(seed));
+uint64_t RuntimeFunctions::HashMurmur3(const char *buf, uint64_t length, uint64_t seed) {
+  return MurmurHash3_x86_32(buf, static_cast<uint32_t>(length), static_cast<uint32_t>(seed));
 }
 
-#define CRC32(op, crc, type, buf, len)                   \
-  do {                                                   \
-    for (; (len) >= sizeof(type);                        \
-         (len) -= sizeof(type), (buf) += sizeof(type)) { \
-      (crc) = op((crc), *(type *)buf);                   \
-    }                                                    \
+#define CRC32(op, crc, type, buf, len)                                            \
+  do {                                                                            \
+    for (; (len) >= sizeof(type); (len) -= sizeof(type), (buf) += sizeof(type)) { \
+      (crc) = op((crc), *(type *)buf);                                            \
+    }                                                                             \
   } while (0)
 
 //===----------------------------------------------------------------------===//
 // Calculate the CRC64 checksum over the given buffer of the provided length
 // using the provided CRC as the initial/running CRC value
 //===----------------------------------------------------------------------===//
-uint64_t RuntimeFunctions::HashCrc64(const char *buf, uint64_t length,
-                                     uint64_t crc) {
+uint64_t RuntimeFunctions::HashCrc64(const char *buf, uint64_t length, uint64_t crc) {
   // If the string is empty, return the CRC calculated so far
   if (length == 0) {
     return crc;
@@ -75,8 +70,7 @@ uint64_t RuntimeFunctions::HashCrc64(const char *buf, uint64_t length,
 // TODO: DataTable::GetTileGroup() returns a std::shared_ptr<> that we strip
 //       off. This means we could be touching free'd data. This must be fixed.
 //===----------------------------------------------------------------------===//
-storage::TileGroup *RuntimeFunctions::GetTileGroup(storage::DataTable *table,
-                                                   uint64_t tile_group_index) {
+storage::TileGroup *RuntimeFunctions::GetTileGroup(storage::DataTable *table, uint64_t tile_group_index) {
   auto tile_group = table->GetTileGroup(tile_group_index);
   return tile_group.get();
 }
@@ -86,19 +80,16 @@ storage::TileGroup *RuntimeFunctions::GetTileGroup(storage::DataTable *table,
 // Predicates are converted into an array of struct.
 // Each struct contains the column id, operator id and predicate value.
 //===----------------------------------------------------------------------===//
-void RuntimeFunctions::FillPredicateArray(
-    const expression::AbstractExpression *expr,
-    storage::PredicateInfo *predicate_array) {
+void RuntimeFunctions::FillPredicateArray(const expression::AbstractExpression *expr,
+                                          storage::PredicateInfo *predicate_array) {
   const std::vector<storage::PredicateInfo> *parsed_predicates;
   parsed_predicates = expr->GetParsedPredicates();
   size_t num_preds = parsed_predicates->size();
   size_t i;
   for (i = 0; i < num_preds; i++) {
     predicate_array[i].col_id = (*parsed_predicates)[i].col_id;
-    predicate_array[i].comparison_operator =
-        (*parsed_predicates)[i].comparison_operator;
-    predicate_array[i].predicate_value =
-        (*parsed_predicates)[i].predicate_value;
+    predicate_array[i].comparison_operator = (*parsed_predicates)[i].comparison_operator;
+    predicate_array[i].predicate_value = (*parsed_predicates)[i].predicate_value;
   }
   auto temp_expr = (expression::AbstractExpression *)expr;
   temp_expr->ClearParsedPredicates();
@@ -110,8 +101,7 @@ void RuntimeFunctions::FillPredicateArray(
 // where the first value of the column can be found, and the amount of bytes
 // to skip over to find successive values of the column.
 //===----------------------------------------------------------------------===//
-void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group,
-                                          ColumnLayoutInfo *infos,
+void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group, ColumnLayoutInfo *infos,
                                           UNUSED_ATTRIBUTE uint32_t num_cols) {
   const auto &layout = tile_group->GetLayout();
   UNUSED_ATTRIBUTE oid_t last_col_idx = INVALID_OID;
@@ -130,24 +120,20 @@ void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group,
       oid_t tile_col_offset = column_entry.second;
       // Ensure that the col_idx is within the num_cols range
       PELOTON_ASSERT(col_idx < num_cols);
-      infos[col_idx].column =
-          tile->GetTupleLocation(0) + tile_schema->GetOffset(tile_col_offset);
+      infos[col_idx].column = tile->GetTupleLocation(0) + tile_schema->GetOffset(tile_col_offset);
       infos[col_idx].stride = tile_schema->GetLength();
       infos[col_idx].is_columnar = tile_schema->GetColumnCount() == 1;
       last_col_idx = col_idx;
-      LOG_TRACE("Col [%u] start: %p, stride: %u, columnar: %s", col_idx,
-                infos[col_idx].column, infos[col_idx].stride,
+      LOG_TRACE("Col [%u] start: %p, stride: %u, columnar: %s", col_idx, infos[col_idx].column, infos[col_idx].stride,
                 infos[col_idx].is_columnar ? "true" : "false");
     }
   }
   // Ensure that ColumnLayoutInfo for each column has been populated.
-  PELOTON_ASSERT((last_col_idx != INVALID_OID) &&
-                 (last_col_idx == (num_cols - 1)));
+  PELOTON_ASSERT((last_col_idx != INVALID_OID) && (last_col_idx == (num_cols - 1)));
 }
 
-void RuntimeFunctions::ExecuteTableScan(
-    void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-    uint32_t db_oid, uint32_t table_oid, void *func) {
+void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+                                        uint32_t db_oid, uint32_t table_oid, void *func) {
   //    void (*scanner)(void *, void *, uint64_t, uint64_t)) {
   using ScanFunc = void (*)(void *, void *, uint64_t, uint64_t);
   auto *scanner = reinterpret_cast<ScanFunc>(func);
@@ -175,12 +161,9 @@ void RuntimeFunctions::ExecuteTableScan(
   for (uint32_t task_id = 0; task_id < num_tasks; task_id++) {
     bool last_task = (task_id == num_tasks - 1);
     auto tilegroup_start = task_id * num_tilegroups_per_task;
-    auto tilegroup_stop =
-        last_task ? num_tilegroups : tilegroup_start + num_tilegroups_per_task;
-    auto work = [&query_state, &thread_states, &scanner, &latch, task_id,
-                 tilegroup_start, tilegroup_stop]() {
-      LOG_DEBUG("Task-%u scanning tile groups [%u-%u)", task_id,
-                tilegroup_start, tilegroup_stop);
+    auto tilegroup_stop = last_task ? num_tilegroups : tilegroup_start + num_tilegroups_per_task;
+    auto work = [&query_state, &thread_states, &scanner, &latch, task_id, tilegroup_start, tilegroup_stop]() {
+      LOG_DEBUG("Task-%u scanning tile groups [%u-%u)", task_id, tilegroup_start, tilegroup_stop);
 
       // Time this
       Timer<std::milli> timer;
@@ -197,8 +180,7 @@ void RuntimeFunctions::ExecuteTableScan(
 
       // Log stuff
       timer.Stop();
-      LOG_DEBUG("Task-%u done scanning (%.2lf ms) ...", task_id,
-                timer.GetDuration());
+      LOG_DEBUG("Task-%u done scanning (%.2lf ms) ...", task_id, timer.GetDuration());
     };
     worker_pool.SubmitTask(work);
   }
@@ -208,9 +190,8 @@ void RuntimeFunctions::ExecuteTableScan(
   latch.Await(0);
 }
 
-void RuntimeFunctions::ExecutePerState(
-    void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-    void (*work_func)(void *, void *)) {
+void RuntimeFunctions::ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+                                       void (*work_func)(void *, void *)) {
   // The worker pool
   auto &worker_pool = threadpool::MonoQueuePool::GetExecutionInstance();
 
@@ -220,44 +201,35 @@ void RuntimeFunctions::ExecutePerState(
 
   // Loop over states
   for (uint32_t tid = 0; tid < num_tasks; tid++) {
-    worker_pool.SubmitTask(
-        [&query_state, &work_func, &thread_states, &latch, tid]() {
-          LOG_DEBUG("Processing thread state %u ...", tid);
+    worker_pool.SubmitTask([&query_state, &work_func, &thread_states, &latch, tid]() {
+      LOG_DEBUG("Processing thread state %u ...", tid);
 
-          // Time this
-          Timer<std::milli> timer;
-          timer.Start();
+      // Time this
+      Timer<std::milli> timer;
+      timer.Start();
 
-          // Pull out the thread state
-          auto *thread_state = thread_states.AccessThreadState(tid);
+      // Pull out the thread state
+      auto *thread_state = thread_states.AccessThreadState(tid);
 
-          // Invoke work function on this thread state
-          work_func(query_state, thread_state);
+      // Invoke work function on this thread state
+      work_func(query_state, thread_state);
 
-          // Count down the latch
-          latch.CountDown();
+      // Count down the latch
+      latch.CountDown();
 
-          timer.Stop();
-          LOG_DEBUG("Finished processing thread state %u (%.2lf ms) ...", tid,
-                    timer.GetDuration());
-        });
+      timer.Stop();
+      LOG_DEBUG("Finished processing thread state %u (%.2lf ms) ...", tid, timer.GetDuration());
+    });
   }
 
   // Wait for all tasks to complete
   latch.Await(0);
 }
 
-void RuntimeFunctions::ThrowDivideByZeroException() {
-  throw DivideByZeroException("ERROR: division by zero");
-}
+void RuntimeFunctions::ThrowDivideByZeroException() { throw DivideByZeroException("ERROR: division by zero"); }
 
-void RuntimeFunctions::ThrowOverflowException() {
-  throw std::overflow_error("ERROR: overflow");
-}
+void RuntimeFunctions::ThrowOverflowException() { throw std::overflow_error("ERROR: overflow"); }
 
-void RuntimeFunctions::ThrowInvalidInputStringException() {
-  throw std::runtime_error("ERROR: invalid input string");
-}
-
+void RuntimeFunctions::ThrowInvalidInputStringException() { throw std::runtime_error("ERROR: invalid input string"); }
 
 }  // namespace terrier::execution

@@ -17,12 +17,8 @@ namespace terrier::execution {
 namespace lang {
 
 // Constructor
-Loop::Loop(CodeGen &cg, llvm::Value *start_condition,
-           const std::vector<Loop::LoopVariable> &loop_vars)
-    : cg_(cg),
-      fn_(cg_->GetInsertBlock()->getParent()),
-      pre_loop_bb_(cg_->GetInsertBlock()),
-      last_loop_bb_(nullptr) {
+Loop::Loop(CodeGen &cg, llvm::Value *start_condition, const std::vector<Loop::LoopVariable> &loop_vars)
+    : cg_(cg), fn_(cg_->GetInsertBlock()->getParent()), pre_loop_bb_(cg_->GetInsertBlock()), last_loop_bb_(nullptr) {
   // Create the loop block and the end block (outside loop)
   loop_bb_ = llvm::BasicBlock::Create(cg_.GetContext(), "loop", fn_);
   end_bb_ = llvm::BasicBlock::Create(cg_.GetContext(), "afterLoop");
@@ -52,15 +48,13 @@ void Loop::Break() {
   // Create a new basic block right after breaked block
   // Since no other block will be branching into this block, it will be
   // optimized away. This is the expected behavior for code after break
-  llvm::BasicBlock *break_bb =
-      llvm::BasicBlock::Create(cg_.GetContext(), "afterBreak", fn_);
+  llvm::BasicBlock *break_bb = llvm::BasicBlock::Create(cg_.GetContext(), "afterBreak", fn_);
   cg_->SetInsertPoint(break_bb);
 }
 
 // Function to mark the end of the loop. It ties up all the PHI nodes with
 // their new values.
-void Loop::LoopEnd(llvm::Value *end_condition,
-                   const std::vector<llvm::Value *> &next) {
+void Loop::LoopEnd(llvm::Value *end_condition, const std::vector<llvm::Value *> &next) {
   // We have the ending BB, use that to add incoming to each PHI loop
   // variable
   auto *loop_end_bb = cg_->GetInsertBlock();
@@ -81,9 +75,7 @@ void Loop::LoopEnd(llvm::Value *end_condition,
 void Loop::CollectFinalLoopVariables(std::vector<llvm::Value *> &loop_vals) {
   PELOTON_ASSERT(last_loop_bb_ != nullptr);
   for (auto *phi_node : phi_nodes_) {
-    llvm::PHINode *end_phi =
-        cg_->CreatePHI(phi_node->getType(), 2 + break_bbs_.size(),
-                       phi_node->getName() + ".Phi");
+    llvm::PHINode *end_phi = cg_->CreatePHI(phi_node->getType(), 2 + break_bbs_.size(), phi_node->getName() + ".Phi");
     end_phi->addIncoming(phi_node->getIncomingValue(0), pre_loop_bb_);
     end_phi->addIncoming(phi_node->getIncomingValue(1), last_loop_bb_);
     for (auto &break_bb : break_bbs_) {

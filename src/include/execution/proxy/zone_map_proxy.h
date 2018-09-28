@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(PredicateInfo) {
   DECLARE_MEMBER(0, int, col_id);
   DECLARE_MEMBER(1, int, comparison_operator);
@@ -35,6 +34,5 @@ PROXY(ZoneMapManager) {
 
 TYPE_BUILDER(PredicateInfo, storage::PredicateInfo);
 TYPE_BUILDER(ZoneMapManager, storage::ZoneMapManager);
-
 
 }  // namespace terrier::execution

@@ -20,17 +20,12 @@ namespace expression {
 class OperatorUnaryMinusExpression;
 }  // namespace expression
 
-
-
 class NegationTranslator : public ExpressionTranslator {
  public:
   // Constructor
-  NegationTranslator(
-      const expression::OperatorUnaryMinusExpression &unary_minus_expression,
-      CompilationContext &ctx);
+  NegationTranslator(const expression::OperatorUnaryMinusExpression &unary_minus_expression, CompilationContext &ctx);
 
   Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

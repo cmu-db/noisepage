@@ -10,9 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/query_compiler.h"
 #include "common/harness.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/query_compiler.h"
 #include "planner/nested_loop_join_plan.h"
 #include "planner/seq_scan_plan.h"
 
@@ -43,49 +43,33 @@ class BlockNestedLoopJoinTranslatorTest : public PelotonCodeGenTest {
 
   oid_t RightTableId() const { return test_table_oids[1]; }
 
-  storage::DataTable &GetLeftTable() const {
-    return GetTestTable(LeftTableId());
-  }
+  storage::DataTable &GetLeftTable() const { return GetTestTable(LeftTableId()); }
 
-  storage::DataTable &GetRightTable() const {
-    return GetTestTable(RightTableId());
-  }
+  storage::DataTable &GetRightTable() const { return GetTestTable(RightTableId()); }
 
-  void PerformTest(ExpressionPtr &&predicate,
-                   const std::vector<oid_t> &left_join_cols,
-                   const std::vector<oid_t> &right_join_cols,
-                   std::vector<codegen::WrappedTuple> &results);
+  void PerformTest(ExpressionPtr &&predicate, const std::vector<oid_t> &left_join_cols,
+                   const std::vector<oid_t> &right_join_cols, std::vector<codegen::WrappedTuple> &results);
 
   type::Value GetCol(const AbstractTuple &t, JoinOutputColPos p);
 };
 
-void BlockNestedLoopJoinTranslatorTest::PerformTest(
-    ExpressionPtr &&predicate, const std::vector<oid_t> &left_join_cols,
-    const std::vector<oid_t> &right_join_cols,
-    std::vector<codegen::WrappedTuple> &results) {
+void BlockNestedLoopJoinTranslatorTest::PerformTest(ExpressionPtr &&predicate, const std::vector<oid_t> &left_join_cols,
+                                                    const std::vector<oid_t> &right_join_cols,
+                                                    std::vector<codegen::WrappedTuple> &results) {
   // Output all columns
-  DirectMapList direct_map_list = {{0, std::make_pair(0, 0)},
-                                   {1, std::make_pair(0, 1)},
-                                   {2, std::make_pair(0, 2)},
-                                   {3, std::make_pair(1, 0)},
-                                   {4, std::make_pair(1, 1)},
-                                   {5, std::make_pair(1, 2)}};
-  std::unique_ptr<planner::ProjectInfo> projection{
-      new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
+  DirectMapList direct_map_list = {{0, std::make_pair(0, 0)}, {1, std::make_pair(0, 1)}, {2, std::make_pair(0, 2)},
+                                   {3, std::make_pair(1, 0)}, {4, std::make_pair(1, 1)}, {5, std::make_pair(1, 2)}};
+  std::unique_ptr<planner::ProjectInfo> projection{new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
 
   // Output schema
   auto schema = std::shared_ptr<const catalog::Schema>(new catalog::Schema(
-      {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(0),
-       GetTestColumn(1), GetTestColumn(2)}));
+      {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(0), GetTestColumn(1), GetTestColumn(2)}));
 
-  PlanPtr nlj_plan{new planner::NestedLoopJoinPlan(
-      JoinType::INNER, std::move(predicate), std::move(projection), schema,
-      left_join_cols, right_join_cols)};
+  PlanPtr nlj_plan{new planner::NestedLoopJoinPlan(JoinType::INNER, std::move(predicate), std::move(projection), schema,
+                                                   left_join_cols, right_join_cols)};
 
-  PlanPtr left_scan{
-      new planner::SeqScanPlan(&GetLeftTable(), nullptr, {0, 1, 2})};
-  PlanPtr right_scan{
-      new planner::SeqScanPlan(&GetRightTable(), nullptr, {0, 1, 2})};
+  PlanPtr left_scan{new planner::SeqScanPlan(&GetLeftTable(), nullptr, {0, 1, 2})};
+  PlanPtr right_scan{new planner::SeqScanPlan(&GetRightTable(), nullptr, {0, 1, 2})};
 
   nlj_plan->AddChild(std::move(left_scan));
   nlj_plan->AddChild(std::move(right_scan));
@@ -104,8 +88,7 @@ void BlockNestedLoopJoinTranslatorTest::PerformTest(
   results = buffer.GetOutputTuples();
 }
 
-type::Value BlockNestedLoopJoinTranslatorTest::GetCol(const AbstractTuple &t,
-                                                      JoinOutputColPos p) {
+type::Value BlockNestedLoopJoinTranslatorTest::GetCol(const AbstractTuple &t, JoinOutputColPos p) {
   return t.GetValue(static_cast<oid_t>(p));
 }
 
@@ -118,8 +101,7 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
-    auto left_a_eq_right_a =
-        CmpEqExpr(std::move(left_a_col), std::move(right_a_col));
+    auto left_a_eq_right_a = CmpEqExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_a), {0}, {0}, results);
@@ -140,8 +122,7 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_b_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 1);
-    auto left_a_eq_right_b =
-        CmpEqExpr(std::move(left_a_col), std::move(right_b_col));
+    auto left_a_eq_right_b = CmpEqExpr(std::move(left_a_col), std::move(right_b_col));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_b), {0}, {1}, results);
@@ -159,10 +140,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_b_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 1);
     auto b_col_minus_1 =
-        OpExpr(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER,
-               std::move(right_b_col), ConstIntExpr(1));
-    auto left_a_eq_right_b =
-        CmpEqExpr(std::move(left_a_col), std::move(b_col_minus_1));
+        OpExpr(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, std::move(right_b_col), ConstIntExpr(1));
+    auto left_a_eq_right_b = CmpEqExpr(std::move(left_a_col), std::move(b_col_minus_1));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_b), {0}, {1}, results);
@@ -184,8 +163,7 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
-    auto left_a_eq_right_a =
-        CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
+    auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_a), {0}, {1}, results);
@@ -215,8 +193,7 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
-    auto left_a_eq_right_a =
-        CmpLteExpr(std::move(left_a_col), std::move(right_a_col));
+    auto left_a_eq_right_a = CmpLteExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_a), {0}, {1}, results);
@@ -246,12 +223,10 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto left_b_col = ColRefExpr(type::TypeId::INTEGER, left_side, 1);
     auto left_a_pl_b =
-        OpExpr(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER,
-               std::move(left_a_col), std::move(left_b_col));
+        OpExpr(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, std::move(left_a_col), std::move(left_b_col));
 
     auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
-    auto left_a_eq_right_a =
-        CmpGtExpr(std::move(left_a_pl_b), std::move(right_a_col));
+    auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_pl_b), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
     PerformTest(std::move(left_a_eq_right_a), {0, 1}, {0}, results);

@@ -17,8 +17,7 @@
 
 namespace terrier::execution {
 
-
-DEFINE_TYPE(QueryParameters, "codegen::QueryParameters", opaque);
+DEFINE_TYPE(QueryParameters, "QueryParameters", opaque);
 
 DEFINE_METHOD(peloton::codegen, QueryParameters, GetBoolean);
 DEFINE_METHOD(peloton::codegen, QueryParameters, GetTinyInt);
@@ -33,6 +32,5 @@ DEFINE_METHOD(peloton::codegen, QueryParameters, GetVarcharLen);
 DEFINE_METHOD(peloton::codegen, QueryParameters, GetVarbinaryVal);
 DEFINE_METHOD(peloton::codegen, QueryParameters, GetVarbinaryLen);
 DEFINE_METHOD(peloton::codegen, QueryParameters, IsNull);
-
 
 }  // namespace terrier::execution

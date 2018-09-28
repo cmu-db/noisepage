@@ -14,21 +14,17 @@
 
 #include "llvm/IR/Intrinsics.h"
 
-#include "execution/proxy/runtime_functions_proxy.h"
 #include "common/exception.h"
+#include "execution/proxy/runtime_functions_proxy.h"
 
 namespace terrier::execution {
 
-
-const std::string Hash::kHashMethodStrings[4] = {"Crc32", "Murmur3", "CityHash",
-                                                 "Multiplicative"};
+const std::string Hash::kHashMethodStrings[4] = {"Crc32", "Murmur3", "CityHash", "Multiplicative"};
 
 //===----------------------------------------------------------------------===//
 // Generate the code to compute the hash of all the given values
 //===----------------------------------------------------------------------===//
-llvm::Value *Hash::HashValues(CodeGen &codegen,
-                              const std::vector<codegen::Value> &vals,
-                              Hash::HashMethod method) {
+llvm::Value *Hash::HashValues(CodeGen &codegen, const std::vector<Value> &vals, Hash::HashMethod method) {
   // The first thing we do is separate all input values into different lists
   // that each hold inputs of one type. For our purposes, we split inputs into
   // lists holding byte-types, short-types, integer-types, long-types and
@@ -65,31 +61,24 @@ llvm::Value *Hash::HashValues(CodeGen &codegen,
   // Collect all single-byte values into 4-byte values
   uint32_t index;
   for (index = 0; index + 4 < bytes.size(); index += 4) {
-    llvm::Value *first = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index], int64), codegen.Const32(24));
-    llvm::Value *second = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index + 1], int64), codegen.Const32(16));
-    llvm::Value *third = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index + 2], int64), codegen.Const32(8));
+    llvm::Value *first = codegen->CreateShl(codegen->CreateSExt(bytes[index], int64), codegen.Const32(24));
+    llvm::Value *second = codegen->CreateShl(codegen->CreateSExt(bytes[index + 1], int64), codegen.Const32(16));
+    llvm::Value *third = codegen->CreateShl(codegen->CreateSExt(bytes[index + 2], int64), codegen.Const32(8));
     llvm::Value *four = codegen->CreateSExt(bytes[index + 3], int64);
     llvm::Value *or1 = codegen->CreateOr(first, second);
     llvm::Value *or2 = codegen->CreateOr(or1, third);
     computed.push_back(codegen->CreateOr(or2, four));
   }
   for (; index + 3 < bytes.size(); index += 3) {
-    llvm::Value *first = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index], int64), codegen.Const32(16));
-    llvm::Value *second = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index + 1], int64), codegen.Const32(8));
+    llvm::Value *first = codegen->CreateShl(codegen->CreateSExt(bytes[index], int64), codegen.Const32(16));
+    llvm::Value *second = codegen->CreateShl(codegen->CreateSExt(bytes[index + 1], int64), codegen.Const32(8));
     llvm::Value *third = codegen->CreateSExt(bytes[index + 2], int64);
     llvm::Value *or1 = codegen->CreateOr(first, second);
     computed.push_back(codegen->CreateOr(or1, third));
   }
   for (; index + 2 < bytes.size(); index += 2) {
-    llvm::Value *first = codegen->CreateShl(
-        codegen->CreateSExt(bytes[index], int64), codegen.Const32(8));
-    computed.push_back(
-        codegen->CreateOr(first, codegen->CreateSExt(bytes[index + 1], int64)));
+    llvm::Value *first = codegen->CreateShl(codegen->CreateSExt(bytes[index], int64), codegen.Const32(8));
+    computed.push_back(codegen->CreateOr(first, codegen->CreateSExt(bytes[index + 1], int64)));
   }
   for (; index < bytes.size(); index++) {
     computed.push_back(codegen->CreateSExt(bytes[index], int64));
@@ -97,8 +86,7 @@ llvm::Value *Hash::HashValues(CodeGen &codegen,
 
   // Collect all the 2-byte values into 4-byte values
   for (index = 0; index + 2 < shorts.size(); index += 2) {
-    llvm::Value *first = codegen->CreateShl(
-        codegen->CreateSExt(shorts[index], int64), codegen.Const32(16));
+    llvm::Value *first = codegen->CreateShl(codegen->CreateSExt(shorts[index], int64), codegen.Const32(16));
     llvm::Value *second = codegen->CreateSExt(shorts[index + 1], int64);
     computed.push_back(codegen->CreateOr(first, second));
   }
@@ -108,10 +96,8 @@ llvm::Value *Hash::HashValues(CodeGen &codegen,
 
   // Collect all 4-byte values
   for (index = 0; index + 2 < ints.size(); index += 2) {
-    llvm::Value *first = codegen->CreateShl(
-        codegen->CreateSExt(ints[index], int64), codegen.Const64(32));
-    longs.push_back(
-        codegen->CreateOr(first, codegen->CreateSExt(ints[index + 1], int64)));
+    llvm::Value *first = codegen->CreateShl(codegen->CreateSExt(ints[index], int64), codegen.Const64(32));
+    longs.push_back(codegen->CreateOr(first, codegen->CreateSExt(ints[index + 1], int64)));
   }
   for (; index < ints.size(); index++) {
     longs.push_back(codegen->CreateSExt(ints[index], int64));
@@ -119,10 +105,8 @@ llvm::Value *Hash::HashValues(CodeGen &codegen,
 
   // Collect the residuals
   for (index = 0; index + 2 < computed.size(); index += 2) {
-    llvm::Value *first =
-        codegen->CreateShl(computed[index], codegen.Const64(32));
-    longs.push_back(codegen->CreateOr(
-        first, codegen->CreateSExt(computed[index + 1], int64)));
+    llvm::Value *first = codegen->CreateShl(computed[index], codegen.Const64(32));
+    longs.push_back(codegen->CreateOr(first, codegen->CreateSExt(computed[index + 1], int64)));
   }
   for (; index < computed.size(); index++) {
     longs.push_back(computed[index]);
@@ -136,16 +120,14 @@ llvm::Value *Hash::HashValues(CodeGen &codegen,
     case Hash::HashMethod::Murmur3:
       return ComputeMurmur3Hash(codegen, longs, varlens);
     default:
-      throw Exception{"We currently don't support hash method: " +
-                      kHashMethodStrings[static_cast<uint32_t>(method)]};
+      throw Exception{"We currently don't support hash method: " + kHashMethodStrings[static_cast<uint32_t>(method)]};
   }
 }
 
 //===----------------------------------------------------------------------===//
 // Generate the calculation of a CRC64 hash for the given values
 //===----------------------------------------------------------------------===//
-llvm::Value *Hash::ComputeCRC32Hash(CodeGen &codegen,
-                                    const std::vector<llvm::Value *> &numerics,
+llvm::Value *Hash::ComputeCRC32Hash(CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
                                     const std::vector<Hash::Varlen> &varlens) {
   // The CRC32 generator polynomial
   static constexpr uint32_t kCrc32Generator = 0x04C11DB7;
@@ -154,8 +136,8 @@ llvm::Value *Hash::ComputeCRC32Hash(CodeGen &codegen,
   llvm::Value *crc_high = codegen.Const64(kCrc32Generator);
 
   // Hash the numerics
-  llvm::Function *crc32_func = llvm::Intrinsic::getDeclaration(
-      &codegen.GetModule(), llvm::Intrinsic::x86_sse42_crc32_64_64);
+  llvm::Function *crc32_func =
+      llvm::Intrinsic::getDeclaration(&codegen.GetModule(), llvm::Intrinsic::x86_sse42_crc32_64_64);
   PELOTON_ASSERT(crc32_func != nullptr);
   for (auto *val : numerics) {
     crc_low = codegen.CallFunc(crc32_func, {crc_low, val});
@@ -169,8 +151,7 @@ llvm::Value *Hash::ComputeCRC32Hash(CodeGen &codegen,
   // Now hash the strings
   for (auto &varlen : varlens) {
     llvm::Value *len = codegen->CreateZExt(varlen.len, codegen.Int64Type());
-    crc =
-        codegen.Call(RuntimeFunctionsProxy::HashCrc64, {varlen.val, len, crc});
+    crc = codegen.Call(RuntimeFunctionsProxy::HashCrc64, {varlen.val, len, crc});
   }
 
   ///
@@ -179,9 +160,8 @@ llvm::Value *Hash::ComputeCRC32Hash(CodeGen &codegen,
 
 // Here we compute the hash of all the numerics and the varlen buffers into a
 // single value
-llvm::Value *Hash::ComputeMurmur3Hash(
-    CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
-    const std::vector<Hash::Varlen> &varlens) {
+llvm::Value *Hash::ComputeMurmur3Hash(CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
+                                      const std::vector<Hash::Varlen> &varlens) {
   // The magic constants used in Murmur3's final 64-bit avalanche mix
   static constexpr uint64_t kMurmur3C1 = 0xff51afd7ed558ccdLLU;
   static constexpr uint64_t kMurmur3C2 = 0xc4ceb9fe1a85ec53LLU;
@@ -237,6 +217,5 @@ llvm::Value *Hash::ComputeMurmur3Hash(
 
   return hash;
 }
-
 
 }  // namespace terrier::execution

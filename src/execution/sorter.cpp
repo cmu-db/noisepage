@@ -13,12 +13,11 @@
 #include "execution/sorter.h"
 
 #include "execution/lang/loop.h"
-#include "execution/proxy/sorter_proxy.h"
 #include "execution/lang/vectorized_loop.h"
+#include "execution/proxy/sorter_proxy.h"
 #include "execution/vector.h"
 
 namespace terrier::execution {
-
 
 Sorter::Sorter() {
   // This constructor shouldn't generally be used at all, but there are
@@ -34,16 +33,13 @@ Sorter::Sorter(CodeGen &codegen, const std::vector<type::Type> &row_desc) {
   storage_format_.Finalize(codegen);
 }
 
-void Sorter::Init(CodeGen &codegen, llvm::Value *sorter_ptr,
-                  llvm::Value *executor_ctx,
+void Sorter::Init(CodeGen &codegen, llvm::Value *sorter_ptr, llvm::Value *executor_ctx,
                   llvm::Value *comparison_func) const {
   auto *tuple_size = codegen.Const32(storage_format_.GetStorageSize());
-  codegen.Call(SorterProxy::Init,
-               {sorter_ptr, executor_ctx, comparison_func, tuple_size});
+  codegen.Call(SorterProxy::Init, {sorter_ptr, executor_ctx, comparison_func, tuple_size});
 }
 
-void Sorter::Append(CodeGen &codegen, llvm::Value *sorter_ptr,
-                    const std::vector<codegen::Value> &tuple) const {
+void Sorter::Append(CodeGen &codegen, llvm::Value *sorter_ptr, const std::vector<Value> &tuple) const {
   // First, call Sorter::StoreInputTuple() to get a handle to a contiguous
   // chunk of free space large enough to materialize a single tuple.
   auto *space = codegen.Call(SorterProxy::StoreInputTuple, {sorter_ptr});
@@ -51,42 +47,34 @@ void Sorter::Append(CodeGen &codegen, llvm::Value *sorter_ptr,
   // Now, individually store the attributes of the tuple into the free space
   UpdateableStorage::NullBitmap null_bitmap(codegen, storage_format_, space);
   for (uint32_t col_id = 0; col_id < tuple.size(); col_id++) {
-    storage_format_.SetValue(codegen, space, col_id, tuple[col_id],
-                             null_bitmap);
+    storage_format_.SetValue(codegen, space, col_id, tuple[col_id], null_bitmap);
   }
   null_bitmap.WriteBack(codegen);
 }
 
-void Sorter::Sort(CodeGen &codegen, llvm::Value *sorter_ptr) const {
-  codegen.Call(SorterProxy::Sort, {sorter_ptr});
-}
+void Sorter::Sort(CodeGen &codegen, llvm::Value *sorter_ptr) const { codegen.Call(SorterProxy::Sort, {sorter_ptr}); }
 
-void Sorter::SortParallel(CodeGen &codegen, llvm::Value *sorter_ptr,
-                          llvm::Value *thread_states,
+void Sorter::SortParallel(CodeGen &codegen, llvm::Value *sorter_ptr, llvm::Value *thread_states,
                           uint32_t sorter_offset) const {
   auto *offset = codegen.Const32(sorter_offset);
   codegen.Call(SorterProxy::SortParallel, {sorter_ptr, thread_states, offset});
 }
 
-void Sorter::Iterate(CodeGen &codegen, llvm::Value *sorter_ptr,
-                     Sorter::IterateCallback &callback) const {
+void Sorter::Iterate(CodeGen &codegen, llvm::Value *sorter_ptr, Sorter::IterateCallback &callback) const {
   struct TaatIterateCallback : VectorizedIterateCallback {
     const UpdateableStorage &storage;
     Sorter::IterateCallback &callback;
 
-    TaatIterateCallback(const UpdateableStorage &s, Sorter::IterateCallback &c)
-        : storage(s), callback(c) {}
+    TaatIterateCallback(const UpdateableStorage &s, Sorter::IterateCallback &c) : storage(s), callback(c) {}
 
-    void ProcessEntries(CodeGen &codegen, llvm::Value *start_index,
-                        llvm::Value *end_index, SorterAccess &access) const {
-      lang::Loop loop{codegen,
-                      codegen->CreateICmpULT(start_index, end_index),
-                      {{"start", start_index}}};
+    void ProcessEntries(CodeGen &codegen, llvm::Value *start_index, llvm::Value *end_index,
+                        SorterAccess &access) const {
+      lang::Loop loop{codegen, codegen->CreateICmpULT(start_index, end_index), {{"start", start_index}}};
       {
         llvm::Value *curr_index = loop.GetLoopVar(0);
 
         // Parse the row
-        std::vector<codegen::Value> vals;
+        std::vector<Value> vals;
         auto &row = access.GetRow(curr_index);
         for (uint32_t i = 0; i < storage.GetNumElements(); i++) {
           vals.emplace_back(row.LoadColumn(codegen, i));
@@ -96,8 +84,7 @@ void Sorter::Iterate(CodeGen &codegen, llvm::Value *sorter_ptr,
         callback.ProcessEntry(codegen, vals);
 
         curr_index = codegen->CreateAdd(curr_index, codegen.Const32(1));
-        loop.LoopEnd(codegen->CreateICmpULT(curr_index, end_index),
-                     {curr_index});
+        loop.LoopEnd(codegen->CreateICmpULT(curr_index, end_index), {curr_index});
       }
     }
   };
@@ -108,9 +95,8 @@ void Sorter::Iterate(CodeGen &codegen, llvm::Value *sorter_ptr,
 }
 
 // Iterate over the tuples in the sorter in batches/vectors of the given size
-void Sorter::VectorizedIterate(
-    CodeGen &codegen, llvm::Value *sorter_ptr, uint32_t vector_size,
-    Sorter::VectorizedIterateCallback &callback) const {
+void Sorter::VectorizedIterate(CodeGen &codegen, llvm::Value *sorter_ptr, uint32_t vector_size,
+                               Sorter::VectorizedIterateCallback &callback) const {
   llvm::Value *start_pos = codegen.Load(SorterProxy::tuples_start, sorter_ptr);
   llvm::Value *num_tuples = NumTuples(codegen, sorter_ptr);
   num_tuples = codegen->CreateTrunc(num_tuples, codegen.Int32Type());
@@ -123,8 +109,7 @@ void Sorter::VectorizedIterate(
     SorterAccess sorter_access(*this, start_pos);
 
     // Issue the callback
-    callback.ProcessEntries(codegen, curr_range.start, curr_range.end,
-                            sorter_access);
+    callback.ProcessEntries(codegen, curr_range.start, curr_range.end, sorter_access);
 
     // That's it
     loop.LoopEnd(codegen, {});
@@ -135,8 +120,7 @@ void Sorter::Destroy(CodeGen &codegen, llvm::Value *sorter_ptr) const {
   codegen.Call(SorterProxy::Destroy, {sorter_ptr});
 }
 
-llvm::Value *Sorter::NumTuples(CodeGen &codegen,
-                               llvm::Value *sorter_ptr) const {
+llvm::Value *Sorter::NumTuples(CodeGen &codegen, llvm::Value *sorter_ptr) const {
   // Pull out start and end (char **)
   auto *start = codegen.Load(SorterProxy::tuples_start, sorter_ptr);
   auto *end = codegen.Load(SorterProxy::tuples_end, sorter_ptr);
@@ -170,20 +154,16 @@ Sorter::SorterAccess::Row &Sorter::SorterAccess::GetRow(llvm::Value *row_idx) {
   return iter->second;
 }
 
-codegen::Value Sorter::SorterAccess::LoadRowValue(
-    CodeGen &codegen, Sorter::SorterAccess::Row &row,
-    uint32_t column_index) const {
+Value Sorter::SorterAccess::LoadRowValue(CodeGen &codegen, Sorter::SorterAccess::Row &row,
+                                                  uint32_t column_index) const {
   if (row.row_pos_ == nullptr) {
-    auto *addr = codegen->CreateInBoundsGEP(codegen.CharPtrType(), start_pos_,
-                                            row.row_idx_);
+    auto *addr = codegen->CreateInBoundsGEP(codegen.CharPtrType(), start_pos_, row.row_idx_);
     row.row_pos_ = codegen->CreateLoad(addr);
   }
 
   const auto &storage_format = sorter_.GetStorageFormat();
-  UpdateableStorage::NullBitmap null_bitmap(codegen, storage_format,
-                                            row.row_pos_);
-  return storage_format.GetValue(codegen, row.row_pos_, column_index,
-                                 null_bitmap);
+  UpdateableStorage::NullBitmap null_bitmap(codegen, storage_format, row.row_pos_);
+  return storage_format.GetValue(codegen, row.row_pos_, column_index, null_bitmap);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -195,10 +175,8 @@ codegen::Value Sorter::SorterAccess::LoadRowValue(
 Sorter::SorterAccess::Row::Row(SorterAccess &access, llvm::Value *row_index)
     : access_(access), row_idx_(row_index), row_pos_(nullptr) {}
 
-codegen::Value Sorter::SorterAccess::Row::LoadColumn(CodeGen &codegen,
-                                                     uint32_t column_index) {
+Value Sorter::SorterAccess::Row::LoadColumn(CodeGen &codegen, uint32_t column_index) {
   return access_.LoadRowValue(codegen, *this, column_index);
 }
-
 
 }  // namespace terrier::execution

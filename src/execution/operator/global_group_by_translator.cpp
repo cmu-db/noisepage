@@ -12,16 +12,14 @@
 
 #include "execution/operator/global_group_by_translator.h"
 
-#include "execution/compilation_context.h"
 #include "common/logger.h"
+#include "execution/compilation_context.h"
 #include "planner/aggregate_plan.h"
 
 namespace terrier::execution {
 
-
-GlobalGroupByTranslator::GlobalGroupByTranslator(
-    const planner::AggregatePlan &plan, CompilationContext &context,
-    Pipeline &pipeline)
+GlobalGroupByTranslator::GlobalGroupByTranslator(const planner::AggregatePlan &plan, CompilationContext &context,
+                                                 Pipeline &pipeline)
     : OperatorTranslator(plan, context, pipeline),
       child_pipeline_(this, Pipeline::Parallelism::Serial),
       aggregation_(context.GetQueryState()) {
@@ -48,9 +46,7 @@ GlobalGroupByTranslator::GlobalGroupByTranslator(
   PELOTON_ASSERT(aggregate_storage->isStructTy());
 
   auto *mat_buffer_type = llvm::StructType::create(
-      codegen.GetContext(),
-      llvm::cast<llvm::StructType>(aggregate_storage)->elements(), "Buffer",
-      true);
+      codegen.GetContext(), llvm::cast<llvm::StructType>(aggregate_storage)->elements(), "Buffer", true);
 
   // Allocate state in the function argument for our materialization buffer
   QueryState &query_state = context.GetQueryState();
@@ -60,33 +56,27 @@ GlobalGroupByTranslator::GlobalGroupByTranslator(
 }
 
 // Initialize the hash table instance
-void GlobalGroupByTranslator::InitializeQueryState() {
-  aggregation_.InitializeQueryState(GetCodeGen());
-}
+void GlobalGroupByTranslator::InitializeQueryState() { aggregation_.InitializeQueryState(GetCodeGen()); }
 
 void GlobalGroupByTranslator::Produce() const {
   // Initialize aggregation for global aggregation
-  aggregation_.CreateInitialGlobalValues(GetCodeGen(),
-                                         LoadStatePtr(mat_buffer_id_));
+  aggregation_.CreateInitialGlobalValues(GetCodeGen(), LoadStatePtr(mat_buffer_id_));
 
   // Let the child produce tuples that we'll aggregate
   GetCompilationContext().Produce(*GetPlan().GetChild(0));
 
   auto producer = [this](ConsumerContext &ctx) {
     CodeGen &codegen = GetCodeGen();
-    auto *raw_vec =
-        codegen.AllocateBuffer(codegen.Int32Type(), 1, "globalGbSelVector");
+    auto *raw_vec = codegen.AllocateBuffer(codegen.Int32Type(), 1, "globalGbSelVector");
     Vector selection_vector{raw_vec, 1, codegen.Int32Type()};
     selection_vector.SetValue(codegen, codegen.Const32(0), codegen.Const32(0));
 
     // Create a row-batch of one row, place all the attributes into the row
-    RowBatch batch{GetCompilationContext(), codegen.Const32(0),
-                   codegen.Const32(1), selection_vector, false};
+    RowBatch batch{GetCompilationContext(), codegen.Const32(0), codegen.Const32(1), selection_vector, false};
 
     // Deserialize the finalized aggregate attribute values from the buffer
-    std::vector<codegen::Value> aggregate_vals;
-    aggregation_.FinalizeValues(GetCodeGen(), LoadStatePtr(mat_buffer_id_),
-                                aggregate_vals);
+    std::vector<Value> aggregate_vals;
+    aggregation_.FinalizeValues(GetCodeGen(), LoadStatePtr(mat_buffer_id_), aggregate_vals);
 
     // Collect accessors for each aggregate
     const auto &plan = GetPlanAs<planner::AggregatePlan>();
@@ -109,13 +99,12 @@ void GlobalGroupByTranslator::Produce() const {
   GetPipeline().RunSerial(producer);
 }
 
-void GlobalGroupByTranslator::Consume(ConsumerContext &,
-                                      RowBatch::Row &row) const {
+void GlobalGroupByTranslator::Consume(ConsumerContext &, RowBatch::Row &row) const {
   // Get the updates to advance the aggregates
   const auto &plan = GetPlanAs<planner::AggregatePlan>();
 
   auto &aggregates = plan.GetUniqueAggTerms();
-  std::vector<codegen::Value> vals{aggregates.size()};
+  std::vector<Value> vals{aggregates.size()};
   for (uint32_t i = 0; i < aggregates.size(); i++) {
     const auto &agg_term = aggregates[i];
     if (agg_term.expression != nullptr) {
@@ -129,9 +118,6 @@ void GlobalGroupByTranslator::Consume(ConsumerContext &,
 }
 
 // Cleanup by destroying the aggregation hash-table
-void GlobalGroupByTranslator::TearDownQueryState() {
-  aggregation_.TearDownQueryState(GetCodeGen());
-}
-
+void GlobalGroupByTranslator::TearDownQueryState() { aggregation_.TearDownQueryState(GetCodeGen()); }
 
 }  // namespace terrier::execution

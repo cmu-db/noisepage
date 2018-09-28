@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(KeyValueList) {
   DECLARE_MEMBER(0, int32_t, capacity);
   DECLARE_MEMBER(1, int32_t, size);
@@ -51,6 +50,5 @@ PROXY(OAHashTable) {
 TYPE_BUILDER(KeyValueList, util::OAHashTable::KeyValueList);
 TYPE_BUILDER(OAHashEntry, util::OAHashTable::HashEntry);
 TYPE_BUILDER(OAHashTable, util::OAHashTable);
-
 
 }  // namespace terrier::execution

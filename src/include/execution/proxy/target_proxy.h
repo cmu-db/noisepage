@@ -12,12 +12,11 @@
 
 #pragma once
 
-#include "execution/proxy/proxy.h"
 #include "common/internal_types.h"
+#include "execution/proxy/proxy.h"
 #include "planner/project_info.h"
 
 namespace terrier::execution {
-
 
 PROXY(Target) {
   DECLARE_MEMBER(0, char[sizeof(peloton::Target)], opaque);
@@ -25,6 +24,5 @@ PROXY(Target) {
 };
 
 TYPE_BUILDER(Target, peloton::Target);
-
 
 }  // namespace terrier::execution

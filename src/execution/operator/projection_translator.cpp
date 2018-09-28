@@ -12,15 +12,13 @@
 
 #include "execution/operator/projection_translator.h"
 
-#include "execution/compilation_context.h"
 #include "common/logger.h"
+#include "execution/compilation_context.h"
 #include "planner/projection_plan.h"
 
 namespace terrier::execution {
 
-
-ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlan &plan,
-                                           CompilationContext &context,
+ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlan &plan, CompilationContext &context,
                                            Pipeline &pipeline)
     : OperatorTranslator(plan, context, pipeline) {
   // Prepare translator for our child
@@ -32,12 +30,9 @@ ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlan &plan,
   PrepareProjection(context, *projection_info);
 }
 
-void ProjectionTranslator::Produce() const {
-  GetCompilationContext().Produce(*GetPlan().GetChild(0));
-}
+void ProjectionTranslator::Produce() const { GetCompilationContext().Produce(*GetPlan().GetChild(0)); }
 
-void ProjectionTranslator::Consume(ConsumerContext &context,
-                                   RowBatch::Row &row) const {
+void ProjectionTranslator::Consume(ConsumerContext &context, RowBatch::Row &row) const {
   // Add attribute accessors for all non-trivial (i.e. derived) attributes
   const auto &plan = GetPlanAs<planner::ProjectionPlan>();
   std::vector<RowBatch::ExpressionAccess> accessors;
@@ -47,8 +42,7 @@ void ProjectionTranslator::Consume(ConsumerContext &context,
   context.Consume(row);
 }
 
-void ProjectionTranslator::PrepareProjection(
-    CompilationContext &context, const planner::ProjectInfo &projection_info) {
+void ProjectionTranslator::PrepareProjection(CompilationContext &context, const planner::ProjectInfo &projection_info) {
   // If the projection is non-trivial, we need to prepare translators for every
   // target expression
   if (projection_info.IsNonTrivial()) {
@@ -60,9 +54,8 @@ void ProjectionTranslator::PrepareProjection(
   }
 }
 
-void ProjectionTranslator::AddNonTrivialAttributes(
-    RowBatch &row_batch, const planner::ProjectInfo &projection_info,
-    std::vector<RowBatch::ExpressionAccess> &accessors) {
+void ProjectionTranslator::AddNonTrivialAttributes(RowBatch &row_batch, const planner::ProjectInfo &projection_info,
+                                                   std::vector<RowBatch::ExpressionAccess> &accessors) {
   // If the projection is non-trivial, we need to add attribute accessors for
   // all targets
   if (projection_info.IsNonTrivial()) {
@@ -76,12 +69,10 @@ void ProjectionTranslator::AddNonTrivialAttributes(
     // Add each accessor to the batch
     for (uint32_t i = 0; i < target_list.size(); i++) {
       const auto &attribute_info = target_list[i].second.attribute_info;
-      LOG_DEBUG("Adding attribute '%s' (%p) to batch",
-                attribute_info.name.c_str(), &attribute_info);
+      LOG_DEBUG("Adding attribute '%s' (%p) to batch", attribute_info.name.c_str(), &attribute_info);
       row_batch.AddAttribute(&attribute_info, &accessors[i]);
     }
   }
 }
-
 
 }  // namespace terrier::execution

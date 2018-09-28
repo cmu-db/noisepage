@@ -32,7 +32,7 @@ class Buffer {
   ~Buffer();
 
   static void Init(Buffer &buffer);
-  
+
   static void Destroy(Buffer &buffer);
 
   char *Append(uint32_t num_bytes);
@@ -66,6 +66,6 @@ class Buffer {
   char *buffer_end_;
 };
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

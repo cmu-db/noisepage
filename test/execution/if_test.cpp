@@ -39,8 +39,7 @@ TEST_F(IfTest, TestIfOnly) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder func{
-      code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder func{code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     llvm::Value *param_a = func.GetArgumentByName("a");
 
@@ -95,13 +94,11 @@ TEST_F(IfTest, TestIfInsideLoop) {
   // We call f(10) and so five "Hello"'s should print out. It's a pretty shitty
   // test, but it's a quick check to see if BB insertions work.
 
-  codegen::FunctionBuilder func{
-      code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder func{code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     llvm::Value *param_a = func.GetArgumentByName("a");
-    codegen::lang::Loop loop{cg,
-                             cg->CreateICmpULT(cg.Const32(0), param_a),
-                             {{"i", cg.Const32(0)}, {"x", cg.Const32(0)}}};
+    codegen::lang::Loop loop{
+        cg, cg->CreateICmpULT(cg.Const32(0), param_a), {{"i", cg.Const32(0)}, {"x", cg.Const32(0)}}};
     {
       llvm::Value *i = loop.GetLoopVar(0);
       llvm::Value *x = loop.GetLoopVar(1);
@@ -109,8 +106,7 @@ TEST_F(IfTest, TestIfInsideLoop) {
       auto *divisible_by_two = cg->CreateURem(i, cg.Const32(2));
 
       llvm::Value *new_x = nullptr;
-      codegen::lang::If pred{cg,
-                             cg->CreateICmpEQ(cg.Const32(0), divisible_by_two)};
+      codegen::lang::If pred{cg, cg->CreateICmpEQ(cg.Const32(0), divisible_by_two)};
       {
         // i is divisible by 2
         new_x = cg->CreateAdd(x, cg.Const32(1));
@@ -151,12 +147,10 @@ TEST_F(IfTest, BreakTest) {
   //   return i;
   //
   //
-  codegen::FunctionBuilder func{
-      code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder func{code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     llvm::Value *param_a = func.GetArgumentByName("a");
-    codegen::lang::Loop loop{
-        cg, cg->CreateICmpSLT(cg.Const32(0), param_a), {{"i", cg.Const32(0)}}};
+    codegen::lang::Loop loop{cg, cg->CreateICmpSLT(cg.Const32(0), param_a), {{"i", cg.Const32(0)}}};
     {
       llvm::Value *i = loop.GetLoopVar(0);
 
@@ -203,8 +197,7 @@ TEST_F(IfTest, ComplexNestedIf) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder func{
-      code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder func{code_context, func_name, cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     llvm::Value *param_a = func.GetArgumentByName("a");
 

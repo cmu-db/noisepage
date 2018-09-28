@@ -23,8 +23,7 @@ namespace terrier::execution {
 
 namespace util {
 
-Sorter::Sorter(::peloton::type::AbstractPool &memory, ComparisonFunction func,
-               uint32_t tuple_size)
+Sorter::Sorter(::peloton::type::AbstractPool &memory, ComparisonFunction func, uint32_t tuple_size)
     : memory_(memory),
       cmp_func_(func),
       tuple_size_(tuple_size),
@@ -49,12 +48,11 @@ Sorter::~Sorter() {
   tuples_start_ = tuples_end_ = nullptr;
   next_alloc_size_ = 0;
 
-  LOG_DEBUG("Cleaned up %zu tuples from %zu blocks of memory (%.2lf KB)",
-            tuples_.size(), blocks_.size(), total_alloc / 1024.0);
+  LOG_DEBUG("Cleaned up %zu tuples from %zu blocks of memory (%.2lf KB)", tuples_.size(), blocks_.size(),
+            total_alloc / 1024.0);
 }
 
-void Sorter::Init(Sorter &sorter, executor::ExecutorContext &exec_ctx,
-                  ComparisonFunction func, uint32_t tuple_size) {
+void Sorter::Init(Sorter &sorter, executor::ExecutorContext &exec_ctx, ComparisonFunction func, uint32_t tuple_size) {
   new (&sorter) Sorter(*exec_ctx.GetPool(), func, tuple_size);
 }
 
@@ -97,8 +95,7 @@ void Sorter::Sort() {
 
   timer.Stop();
 
-  LOG_DEBUG("Sorted %zu tuples in %.2f ms", tuples_.size(),
-            timer.GetDuration());
+  LOG_DEBUG("Sorted %zu tuples in %.2f ms", tuples_.size(), timer.GetDuration());
 }
 
 namespace {
@@ -110,8 +107,7 @@ struct MergeWork {
   std::vector<InputRange> input_ranges;
   char **destination = nullptr;
 
-  MergeWork(std::vector<InputRange> &&inputs, char **dest)
-      : input_ranges(std::move(inputs)), destination(dest) {}
+  MergeWork(std::vector<InputRange> &&inputs, char **dest) : input_ranges(std::move(inputs)), destination(dest) {}
 };
 
 }  // namespace
@@ -126,17 +122,14 @@ struct MergeWork {
 // N splitter keys. For each splitter key, we find all input ranges and output
 // positions and construct a merge package. Merge packages are independent
 // pieces of work that are issued in parallel across a set of worker threads.
-void Sorter::SortParallel(
-    const executor::ExecutorContext::ThreadStates &thread_states,
-    uint32_t sorter_offset) {
+void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset) {
   // Collect all sorter instances
   uint64_t num_tuples = 0;
   std::vector<Sorter *> sorters;
-  thread_states.ForEach<Sorter>(sorter_offset,
-                                [&num_tuples, &sorters](Sorter *sorter) {
-                                  sorters.push_back(sorter);
-                                  num_tuples += sorter->NumTuples();
-                                });
+  thread_states.ForEach<Sorter>(sorter_offset, [&num_tuples, &sorters](Sorter *sorter) {
+    sorters.push_back(sorter);
+    num_tuples += sorter->NumTuples();
+  });
 
   // The worker pool we use to execute parallel work
   auto &work_pool = threadpool::MonoQueuePool::GetExecutionInstance();
@@ -229,8 +222,7 @@ void Sorter::SortParallel(
         // Get the [start,end) range in the current sorter such that
         // start <= splitter < end
         Sorter *sorter = sorters[sorter_idx];
-        char **start =
-            (idx == 0 ? sorter->tuples_.data() : next_start[sorter_idx]);
+        char **start = (idx == 0 ? sorter->tuples_.data() : next_start[sorter_idx]);
         char **end = sorter->tuples_.data() + sorter->tuples_.size();
         if (idx < splitters.size() - 1) {
           end = std::upper_bound(start, end, splitter, comp);
@@ -263,16 +255,13 @@ void Sorter::SortParallel(
   //////////////////////////////////////////////////////////////////
   {
     common::synchronization::CountDownLatch latch{merge_work.size()};
-    auto heap_cmp =
-        [this](const MergeWork::InputRange &l, const MergeWork::InputRange &r) {
-          return !(cmp_func_(*l.first, *r.first) < 0);
-        };
+    auto heap_cmp = [this](const MergeWork::InputRange &l, const MergeWork::InputRange &r) {
+      return !(cmp_func_(*l.first, *r.first) < 0);
+    };
     for (auto &work : merge_work) {
       work_pool.SubmitTask([&work, &latch, &heap_cmp] {
-        std::priority_queue<MergeWork::InputRange,
-                            std::vector<MergeWork::InputRange>,
-                            decltype(heap_cmp)> heap(heap_cmp,
-                                                     work.input_ranges);
+        std::priority_queue<MergeWork::InputRange, std::vector<MergeWork::InputRange>, decltype(heap_cmp)> heap(
+            heap_cmp, work.input_ranges);
         char **dest = work.destination;
         while (!heap.empty()) {
           auto top = heap.top();
@@ -308,8 +297,7 @@ void Sorter::SortParallel(
 }
 
 void Sorter::MakeRoomForNewTuple() {
-  bool has_room =
-      (buffer_pos_ != nullptr && buffer_pos_ + tuple_size_ < buffer_end_);
+  bool has_room = (buffer_pos_ != nullptr && buffer_pos_ + tuple_size_ < buffer_end_);
   if (has_room) {
     return;
   }
@@ -339,6 +327,6 @@ void Sorter::TransferMemoryBlocks(Sorter &target) {
   blocks_.clear();
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

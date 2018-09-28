@@ -12,12 +12,11 @@
 
 #pragma once
 
+#include "common/internal_types.h"
 #include "execution/codegen.h"
 #include "execution/type/type.h"
-#include "common/internal_types.h"
 
 namespace terrier::execution {
-
 
 //===----------------------------------------------------------------------===//
 // Mapping of SQL value types to LLVM types. This class helps us generate code
@@ -28,8 +27,8 @@ class Value {
  public:
   // Constructor that provides the type and the value
   Value();
-  Value(const type::Type &type, llvm::Value *value = nullptr,
-        llvm::Value *length = nullptr, llvm::Value *is_null = nullptr);
+  Value(const type::Type &type, llvm::Value *value = nullptr, llvm::Value *length = nullptr,
+        llvm::Value *is_null = nullptr);
 
   //===--------------------------------------------------------------------===//
   // Accessors
@@ -63,8 +62,7 @@ class Value {
   Value CompareGt(CodeGen &codegen, const Value &other) const;
   Value CompareGte(CodeGen &codegen, const Value &other) const;
 
-  static Value TestEquality(CodeGen &codegen, const std::vector<Value> &lhs,
-                            const std::vector<Value> &rhs);
+  static Value TestEquality(CodeGen &codegen, const std::vector<Value> &lhs, const std::vector<Value> &rhs);
 
   // Perform a comparison used for sorting. We need a stable and transitive
   // sorting comparison function here. The function returns:
@@ -77,16 +75,11 @@ class Value {
   // Mathematical functions
   //===--------------------------------------------------------------------===//
 
-  Value Add(CodeGen &codegen, const Value &other,
-            const OnError on_error = OnError::Exception) const;
-  Value Sub(CodeGen &codegen, const Value &other,
-            const OnError on_error = OnError::Exception) const;
-  Value Mul(CodeGen &codegen, const Value &other,
-            const OnError on_error = OnError::Exception) const;
-  Value Div(CodeGen &codegen, const Value &other,
-            const OnError on_error = OnError::Exception) const;
-  Value Mod(CodeGen &codegen, const Value &other,
-            const OnError on_error = OnError::Exception) const;
+  Value Add(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
+  Value Sub(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
+  Value Mul(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
+  Value Div(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
+  Value Mod(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
   Value Min(CodeGen &codegen, const Value &other) const;
   Value Max(CodeGen &codegen, const Value &other) const;
 
@@ -99,28 +92,22 @@ class Value {
 
   // Build a PHI node that combines all the given values (from their basic
   // blocks) into a single value
-  static Value BuildPHI(
-      CodeGen &codegen,
-      const std::vector<std::pair<Value, llvm::BasicBlock *>> &vals);
+  static Value BuildPHI(CodeGen &codegen, const std::vector<std::pair<Value, llvm::BasicBlock *>> &vals);
 
   // Invoke generic unary and binary functions with a given ID
   Value CallUnaryOp(CodeGen &codegen, OperatorId op_id) const;
-  Value CallBinaryOp(CodeGen &codegen, OperatorId op_id, const Value &other,
-                     OnError on_error) const;
+  Value CallBinaryOp(CodeGen &codegen, OperatorId op_id, const Value &other, OnError on_error) const;
 
   //===--------------------------------------------------------------------===//
   // Materialization helpers
   //===--------------------------------------------------------------------===//
 
   // Return the a representation of this value suitable for materialization
-  void ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val,
-                                llvm::Value *&len, llvm::Value *&null) const;
+  void ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val, llvm::Value *&len, llvm::Value *&null) const;
 
   // Return a value that can be constructed from the provided type and value
   // registers
-  static Value ValueFromMaterialization(const type::Type &type,
-                                        llvm::Value *val, llvm::Value *len,
-                                        llvm::Value *null);
+  static Value ValueFromMaterialization(const type::Type &type, llvm::Value *val, llvm::Value *len, llvm::Value *null);
 
  private:
   friend class Hash;
@@ -143,6 +130,5 @@ class Value {
   // NULL indicator (if any)
   llvm::Value *null_;
 };
-
 
 }  // namespace terrier::execution

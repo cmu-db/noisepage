@@ -28,8 +28,7 @@ uint32_t OAHashTable::kDefaultInitialSize = 8 * 1024;
 // The default capacity of key-value (overflow) lists when we create them
 uint32_t OAHashTable::kInitialKVListCapacity = 8;
 
-OAHashTable::OAHashTable(uint64_t key_size, uint64_t value_size,
-                         uint64_t estimated_num_entries)
+OAHashTable::OAHashTable(uint64_t key_size, uint64_t value_size, uint64_t estimated_num_entries)
     : buckets_(nullptr),
       num_buckets_(NextPowerOf2(estimated_num_entries)),
       bucket_mask_(num_buckets_ - 1),
@@ -73,8 +72,7 @@ OAHashTable::~OAHashTable() {
   free(buckets_);
 }
 
-void OAHashTable::Init(OAHashTable &table, uint64_t key_size,
-                       uint64_t value_size, uint64_t estimated_num_entries) {
+void OAHashTable::Init(OAHashTable &table, uint64_t key_size, uint64_t value_size, uint64_t estimated_num_entries) {
   new (&table) OAHashTable(key_size, value_size, estimated_num_entries);
 }
 
@@ -136,8 +134,7 @@ char *OAHashTable::StoreToKeyValueList(KeyValueList **kv_list_p_p) {
     *kv_list_p_p = kv_list_p;
   }
 
-  return reinterpret_cast<char *>(reinterpret_cast<uint64_t>(kv_list_p) +
-                                  current_length);
+  return reinterpret_cast<char *>(reinterpret_cast<uint64_t>(kv_list_p) + current_length);
 }
 
 //===----------------------------------------------------------------------===//
@@ -150,8 +147,7 @@ char *OAHashTable::StoreToKeyValueList(KeyValueList **kv_list_p_p) {
 OAHashTable::HashEntry *OAHashTable::FindNextFreeEntry(uint64_t hash_value) {
   uint64_t index = hash_value & bucket_mask_;
 
-  uint64_t current_entry_int =
-      reinterpret_cast<uint64_t>(buckets_) + index * entry_size_;
+  uint64_t current_entry_int = reinterpret_cast<uint64_t>(buckets_) + index * entry_size_;
 
   // Must find one since we maintain load factor <= 50
   while (true) {
@@ -227,8 +223,8 @@ char *OAHashTable::StoreTuple(HashEntry *entry, uint64_t hash) {
   // we allocate one.
   if (!entry->HasKeyValueList()) {
     // Allocate a chunk that contains kv list header and several value slots
-    entry->kv_list = static_cast<KeyValueList *>(malloc(
-        GetCurrentKeyValueListSize(OAHashTable::kInitialKVListCapacity)));
+    entry->kv_list =
+        static_cast<KeyValueList *>(malloc(GetCurrentKeyValueListSize(OAHashTable::kInitialKVListCapacity)));
 
     PELOTON_ASSERT(entry->kv_list != nullptr);
     PELOTON_ASSERT(entry->HasKeyValueList());
@@ -287,8 +283,7 @@ void OAHashTable::Resize(HashEntry **entry_p_p) {
   // Make it an assertion to prevent potential bugs
   PELOTON_ASSERT(NeedsResize());
 
-  LOG_DEBUG("Resizing hash-table from %llu buckets to %llu",
-            (unsigned long long)num_buckets_,
+  LOG_DEBUG("Resizing hash-table from %llu buckets to %llu", (unsigned long long)num_buckets_,
             (unsigned long long)num_buckets_ << 1);
 
   // Double the size of the array
@@ -320,8 +315,7 @@ void OAHashTable::Resize(HashEntry **entry_p_p) {
 
   while (processed_count < num_valid_buckets_) {
     // This is meaningless - just to make compiler happy
-    HashEntry *current_entry =
-        reinterpret_cast<HashEntry *>(current_entry_char_p);
+    HashEntry *current_entry = reinterpret_cast<HashEntry *>(current_entry_char_p);
 
     // Ignore entries that are not occupied by a valid hash key and value
     if (!current_entry->IsFree()) {
@@ -379,8 +373,7 @@ OAHashTable::Iterator OAHashTable::end() { return Iterator(*this, false); }
 // ITERATOR STUFF
 //===----------------------------------------------------------------------===//
 
-OAHashTable::Iterator::Iterator(OAHashTable &table, bool begin)
-    : table_(table) {
+OAHashTable::Iterator::Iterator(OAHashTable &table, bool begin) : table_(table) {
   // If we're not creating an Iterator that starts at the beginning, don't
   // initialize anything
   if (!begin) {
@@ -403,8 +396,7 @@ OAHashTable::Iterator &OAHashTable::Iterator::operator++() {
   }
 
   curr_bucket_++;
-  curr_ = reinterpret_cast<HashEntry *>(reinterpret_cast<uint64_t>(curr_) +
-                                        table_.entry_size_);
+  curr_ = reinterpret_cast<HashEntry *>(reinterpret_cast<uint64_t>(curr_) + table_.entry_size_);
   NextEntry();
 
   return *this;
@@ -429,8 +421,7 @@ const char *OAHashTable::Iterator::Value() {
 void OAHashTable::Iterator::NextEntry() {
   while (curr_bucket_ < table_.NumBuckets() && curr_->IsFree()) {
     curr_bucket_++;
-    curr_ = reinterpret_cast<HashEntry *>(reinterpret_cast<uint64_t>(curr_) +
-                                          table_.entry_size_);
+    curr_ = reinterpret_cast<HashEntry *>(reinterpret_cast<uint64_t>(curr_) + table_.entry_size_);
   }
 
   if (curr_bucket_ < table_.NumBuckets()) {
@@ -442,6 +433,6 @@ void OAHashTable::Iterator::NextEntry() {
   }
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

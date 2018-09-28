@@ -17,13 +17,11 @@
 
 namespace terrier::execution {
 
-
 PROXY(Value) {
   DECLARE_MEMBER(0, char[sizeof(peloton::type::Value)], opaque);
   DECLARE_TYPE;
 };
 
 TYPE_BUILDER(Value, peloton::type::Value);
-
 
 }  // namespace terrier::execution

@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 // Utility class to help compute/codegen the hash of values
 //===----------------------------------------------------------------------===//
@@ -42,20 +41,16 @@ class Hash {
   static const std::string kHashMethodStrings[4];
 
   // Given a collection of values, produce a single hash value
-  static llvm::Value *HashValues(
-      CodeGen &codegen, const std::vector<codegen::Value> &vals,
-      Hash::HashMethod method = Hash::HashMethod::Crc32);
+  static llvm::Value *HashValues(CodeGen &codegen, const std::vector<Value> &vals,
+                                 Hash::HashMethod method = Hash::HashMethod::Crc32);
 
  private:
   // Generate the calculation of a CRC64 hash for the given values
-  static llvm::Value *ComputeCRC32Hash(
-      CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
-      const std::vector<Hash::Varlen> &buffers);
+  static llvm::Value *ComputeCRC32Hash(CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
+                                       const std::vector<Hash::Varlen> &buffers);
 
-  static llvm::Value *ComputeMurmur3Hash(
-      CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
-      const std::vector<Hash::Varlen> &varlens);
+  static llvm::Value *ComputeMurmur3Hash(CodeGen &codegen, const std::vector<llvm::Value *> &numerics,
+                                         const std::vector<Hash::Varlen> &varlens);
 };
-
 
 }  // namespace terrier::execution

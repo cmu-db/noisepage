@@ -40,8 +40,7 @@ class Sorter {
   static constexpr uint64_t kInitialBufferSize = 4 * 1024;
 
  public:
-  using ComparisonFunction = int (*)(const char *left_tuple,
-                                     const char *right_tuple);
+  using ComparisonFunction = int (*)(const char *left_tuple, const char *right_tuple);
 
   /**
    * Constructor to create and setup this sorter instance.
@@ -56,8 +55,7 @@ class Sorter {
    * this sorter
    * @param tuple_size The size of the tuples stored in this sorter
    */
-  Sorter(::peloton::type::AbstractPool &memory, ComparisonFunction func,
-         uint32_t tuple_size);
+  Sorter(::peloton::type::AbstractPool &memory, ComparisonFunction func, uint32_t tuple_size);
 
   /**
    * Destructor. This destructor cleans up returns all memory it has allocated
@@ -75,8 +73,7 @@ class Sorter {
    * @param func The comparison function used during sort
    * @param tuple_size The size of the tuple in bytes
    */
-  static void Init(Sorter &sorter, executor::ExecutorContext &ctx,
-                   ComparisonFunction func, uint32_t tuple_size);
+  static void Init(Sorter &sorter, executor::ExecutorContext &ctx, ComparisonFunction func, uint32_t tuple_size);
 
   /**
    * Cleans up all resources maintained by the given sorter instance. This
@@ -110,9 +107,7 @@ class Sorter {
    * @param sorter_offset The offset in each thread state where the sorters are
    * stored.
    */
-  void SortParallel(
-      const executor::ExecutorContext::ThreadStates &thread_states,
-      uint32_t sorter_offset);
+  void SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -171,6 +166,6 @@ class Sorter {
   std::vector<std::pair<void *, uint64_t>> blocks_;
 };
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

@@ -18,9 +18,8 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
-// This class simplifies interaction with a codegen::runtime::Sorter instance from
+// This class simplifies interaction with a runtime::Sorter instance from
 // generated code.
 //===----------------------------------------------------------------------===//
 class Sorter {
@@ -34,14 +33,12 @@ class Sorter {
   /**
    * @brief Initialize the given sorter instance with the comparison function
    */
-  void Init(CodeGen &codegen, llvm::Value *sorter_ptr,
-            llvm::Value *executor_ctx, llvm::Value *comparison_func) const;
+  void Init(CodeGen &codegen, llvm::Value *sorter_ptr, llvm::Value *executor_ctx, llvm::Value *comparison_func) const;
 
   /**
    * @brief Append the given tuple into the sorter instance
    */
-  void Append(CodeGen &codegen, llvm::Value *sorter_ptr,
-              const std::vector<codegen::Value> &tuple) const;
+  void Append(CodeGen &codegen, llvm::Value *sorter_ptr, const std::vector<Value> &tuple) const;
 
   /**
    * @brief Sort all the data that has been inserted into the sorter instance
@@ -52,20 +49,18 @@ class Sorter {
    * @brief Perform a parallel sort of all materialized runs stored in the
    * provided thread states
    */
-  void SortParallel(CodeGen &codegen, llvm::Value *sorter_ptr,
-                    llvm::Value *thread_states, uint32_t sorter_offset) const;
+  void SortParallel(CodeGen &codegen, llvm::Value *sorter_ptr, llvm::Value *thread_states,
+                    uint32_t sorter_offset) const;
 
   /**
    * @brief Iterate over tuples stored in this sorter tuple-at-a-time
    */
-  void Iterate(CodeGen &codegen, llvm::Value *sorter_ptr,
-               IterateCallback &callback) const;
+  void Iterate(CodeGen &codegen, llvm::Value *sorter_ptr, IterateCallback &callback) const;
 
   /**
    * @brief Iterate over tuples in this sorter batch-at-a-time
    */
-  void VectorizedIterate(CodeGen &codegen, llvm::Value *sorter_ptr,
-                         uint32_t vector_size,
+  void VectorizedIterate(CodeGen &codegen, llvm::Value *sorter_ptr, uint32_t vector_size,
                          VectorizedIterateCallback &callback) const;
 
   /**
@@ -98,7 +93,7 @@ class Sorter {
     class Row {
      public:
       // Load a column at the given index in the row
-      codegen::Value LoadColumn(CodeGen &codegen, uint32_t column_index);
+      Value LoadColumn(CodeGen &codegen, uint32_t column_index);
 
      private:
       friend class SorterAccess;
@@ -119,8 +114,7 @@ class Sorter {
 
    private:
     // Load the column with the provided index in the provided row
-    codegen::Value LoadRowValue(CodeGen &codegen, Row &row,
-                                uint32_t column_index) const;
+    Value LoadRowValue(CodeGen &codegen, Row &row, uint32_t column_index) const;
 
    private:
     // The physical data format
@@ -139,8 +133,7 @@ class Sorter {
     virtual ~IterateCallback() = default;
 
     // Process the range of rows between the given start and end indices
-    virtual void ProcessEntry(
-        CodeGen &codegen, const std::vector<codegen::Value> &vals) const = 0;
+    virtual void ProcessEntry(CodeGen &codegen, const std::vector<Value> &vals) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -152,8 +145,7 @@ class Sorter {
     virtual ~VectorizedIterateCallback() = default;
 
     // Process the range of rows between the given start and end indices
-    virtual void ProcessEntries(CodeGen &codegen, llvm::Value *start_index,
-                                llvm::Value *end_index,
+    virtual void ProcessEntries(CodeGen &codegen, llvm::Value *start_index, llvm::Value *end_index,
                                 SorterAccess &access) const = 0;
   };
 
@@ -162,6 +154,5 @@ class Sorter {
   // TODO: Change to CompactStorage?
   UpdateableStorage storage_format_;
 };
-
 
 }  // namespace terrier::execution

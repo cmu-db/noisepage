@@ -12,10 +12,10 @@
 
 #include "execution/testing_codegen_util.h"
 
-#include "execution/query_compiler.h"
 #include "common/harness.h"
 #include "common/statement.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/query_compiler.h"
 #include "executor/create_executor.h"
 #include "executor/update_executor.h"
 #include "expression/expression_util.h"
@@ -24,8 +24,8 @@
 #include "parser/sql_statement.h"
 #include "planner/abstract_plan.h"
 #include "planner/create_plan.h"
-#include "planner/seq_scan_plan.h"
 #include "planner/plan_util.h"
+#include "planner/seq_scan_plan.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace peloton {
@@ -56,26 +56,23 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstant) {
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
   // Get the scan plan without a predicate with four columns
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), nullptr, {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), nullptr, {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{0,
-            planner::DerivedAttribute{
-                expression::ExpressionUtil::ConstantValueFactory(
-                    type::ValueFactory::GetIntegerValue(1))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{1, {0, 1}}, {2, {0, 2}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{0, planner::DerivedAttribute{expression::ExpressionUtil::ConstantValueFactory(
+               type::ValueFactory::GetIntegerValue(1))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{1, {0, 1}}, {2, {0, 2}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId1()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId1()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -97,8 +94,8 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstant) {
   EXPECT_EQ(NumRowsInTestTable() * 2, table->GetTupleCount());
 
   // Setup the scan plan node
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_1(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), nullptr, {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_1(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), nullptr, {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -113,23 +110,14 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstant) {
   // Check that we got all the results
   auto &results_1 = buffer_1.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(1)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(1)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(2)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(
-                                     type::ValueFactory::GetVarcharValue("3")));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(1)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(91)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(92)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_1[9].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("93")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(2)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("3")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(91)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(92)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[9].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("93")));
 }
 
 TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantAndPredicate) {
@@ -143,30 +131,26 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantAndPredicate) {
   // Pre-condition
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
-  ExpressionPtr b_eq_41 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
+  ExpressionPtr b_eq_41 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
 
   // Get the scan plan without a predicate with four columns
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{1,
-            planner::DerivedAttribute{
-                expression::ExpressionUtil::ConstantValueFactory(
-                    type::ValueFactory::GetIntegerValue(49))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{0, {0, 0}}, {2, {0, 2}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{1, planner::DerivedAttribute{expression::ExpressionUtil::ConstantValueFactory(
+               type::ValueFactory::GetIntegerValue(49))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{0, {0, 0}}, {2, {0, 2}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId2()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId2()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -188,10 +172,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantAndPredicate) {
   EXPECT_EQ(NumRowsInTestTable() + 1, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr b_eq_49 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(49));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), b_eq_49.release(), {0, 1, 2, 3}));
+  ExpressionPtr b_eq_49 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(49));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), b_eq_49.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -206,15 +189,10 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantAndPredicate) {
   // Check that we got all the results
   auto &results_1 = buffer_1.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(40)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(49)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(42)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_1[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("43")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(40)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(49)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(42)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("43")));
 }
 
 TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpression) {
@@ -228,37 +206,31 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpression) {
   // Pre-condition
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
-  ExpressionPtr b_eq_41 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
+  ExpressionPtr b_eq_41 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
 
   // Get the scan plan without a predicate with four columns
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  auto c_val_9 = new expression::ConstantValueExpression(
-      type::ValueFactory::GetIntegerValue(9));
-  auto tuple_val_expr = expression::ExpressionUtil::TupleValueFactory(
-      type::TypeId::INTEGER, 0, 0);
-  expression::AbstractExpression *op_expr =
-      expression::ExpressionUtil::OperatorFactory(ExpressionType::OPERATOR_PLUS,
-                                                  type::TypeId::INTEGER,
-                                                  tuple_val_expr, c_val_9);
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{1, planner::DerivedAttribute{op_expr}}},
-          // expression::ExpressionUtil::ConstantValueFactory(
-          //   type::ValueFactory::GetIntegerValue(49))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{0, {0, 0}}, {2, {0, 2}}, {3, {0, 3}}}));
+  auto c_val_9 = new expression::ConstantValueExpression(type::ValueFactory::GetIntegerValue(9));
+  auto tuple_val_expr = expression::ExpressionUtil::TupleValueFactory(type::TypeId::INTEGER, 0, 0);
+  expression::AbstractExpression *op_expr = expression::ExpressionUtil::OperatorFactory(
+      ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, tuple_val_expr, c_val_9);
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{1, planner::DerivedAttribute{op_expr}}},
+      // expression::ExpressionUtil::ConstantValueFactory(
+      //   type::ValueFactory::GetIntegerValue(49))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{0, {0, 0}}, {2, {0, 2}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId2()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId2()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -280,10 +252,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpression) {
   EXPECT_EQ(NumRowsInTestTable() + 1, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr b_eq_49 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(49));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), b_eq_49.release(), {0, 1, 2, 3}));
+  ExpressionPtr b_eq_49 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(49));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), b_eq_49.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -298,15 +269,10 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpression) {
   // Check that we got all the results
   auto &results_1 = buffer_1.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(40)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(49)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(42)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_1[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("43")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(40)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(49)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(42)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("43")));
 }
 
 TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpressionComplex) {
@@ -320,47 +286,36 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpressionComplex) {
   // Pre-condition
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
-  ExpressionPtr b_eq_41 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
+  ExpressionPtr b_eq_41 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(41));
 
   // Get the scan plan without a predicate with four columns
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), b_eq_41.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
-  auto c_val_1 = new expression::ConstantValueExpression(
-      type::ValueFactory::GetIntegerValue(1));
-  auto tuple_val_expr = expression::ExpressionUtil::TupleValueFactory(
-      type::TypeId::INTEGER, 0, 0);
-  expression::AbstractExpression *op_expr =
-      expression::ExpressionUtil::OperatorFactory(ExpressionType::OPERATOR_PLUS,
-                                                  type::TypeId::INTEGER,
-                                                  tuple_val_expr, c_val_1);
+  auto c_val_1 = new expression::ConstantValueExpression(type::ValueFactory::GetIntegerValue(1));
+  auto tuple_val_expr = expression::ExpressionUtil::TupleValueFactory(type::TypeId::INTEGER, 0, 0);
+  expression::AbstractExpression *op_expr = expression::ExpressionUtil::OperatorFactory(
+      ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, tuple_val_expr, c_val_1);
 
-  auto tuple_val_expr_1 = expression::ExpressionUtil::TupleValueFactory(
-      type::TypeId::INTEGER, 0, 0);
-  auto tuple_val_expr_2 = expression::ExpressionUtil::TupleValueFactory(
-      type::TypeId::INTEGER, 0, 1);
-  expression::AbstractExpression *op_expr_2 =
-      expression::ExpressionUtil::OperatorFactory(
-          ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER,
-          tuple_val_expr_1, tuple_val_expr_2);
+  auto tuple_val_expr_1 = expression::ExpressionUtil::TupleValueFactory(type::TypeId::INTEGER, 0, 0);
+  auto tuple_val_expr_2 = expression::ExpressionUtil::TupleValueFactory(type::TypeId::INTEGER, 0, 1);
+  expression::AbstractExpression *op_expr_2 = expression::ExpressionUtil::OperatorFactory(
+      ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, tuple_val_expr_1, tuple_val_expr_2);
 
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{0, planner::DerivedAttribute{op_expr}},
-           {1, planner::DerivedAttribute{op_expr_2}}},
-          // expression::ExpressionUtil::ConstantValueFactory(
-          //   type::ValueFactory::GetIntegerValue(49))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{2, {0, 2}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{0, planner::DerivedAttribute{op_expr}}, {1, planner::DerivedAttribute{op_expr_2}}},
+      // expression::ExpressionUtil::ConstantValueFactory(
+      //   type::ValueFactory::GetIntegerValue(49))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{2, {0, 2}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId2()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId2()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -382,10 +337,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpressionComplex) {
   EXPECT_EQ(NumRowsInTestTable() + 1, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr a_eq_41 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(41));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), a_eq_41.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_41 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(41));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), a_eq_41.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -400,15 +354,10 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAnOperatorExpressionComplex) {
   // Check that we got all the results
   auto &results_1 = buffer_1.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(41)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(81)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(42)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_1[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("43")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(41)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(81)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(42)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("43")));
 }
 
 TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantPrimary) {
@@ -422,30 +371,26 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantPrimary) {
   // Pre-condition
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
-  ExpressionPtr a_eq_10 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  ExpressionPtr a_eq_10 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
 
   // Get the scan plan without a predicate with four columns
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId5()), a_eq_10.release(), {0, 1, 2, 3}));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId5()), a_eq_10.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{0,
-            planner::DerivedAttribute{
-                expression::ExpressionUtil::ConstantValueFactory(
-                    type::ValueFactory::GetIntegerValue(1))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{1, {0, 1}}, {2, {0, 2}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{0, planner::DerivedAttribute{expression::ExpressionUtil::ConstantValueFactory(
+               type::ValueFactory::GetIntegerValue(1))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{1, {0, 1}}, {2, {0, 2}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId5()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId5()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -467,10 +412,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantPrimary) {
   EXPECT_EQ(NumRowsInTestTable() + 2, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr a_eq_1 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(1));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_5(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId5()), a_eq_1.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_1 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(1));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_5(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId5()), a_eq_1.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -485,15 +429,10 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithAConstantPrimary) {
   // Check that we got all the results
   auto &results_5 = buffer_5.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(1)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(11)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(12)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_5[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("13")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(11)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(12)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_5[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("13")));
 }
 
 TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
@@ -508,28 +447,24 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
   EXPECT_EQ(NumRowsInTestTable(), table->GetTupleCount());
 
   // Get the scan plan without a predicate with four columns
-  ExpressionPtr a_eq_10 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), a_eq_10.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_10 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), a_eq_10.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  std::unique_ptr<const planner::ProjectInfo> project_info(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{2,
-            planner::DerivedAttribute{
-                expression::ExpressionUtil::ConstantValueFactory(
-                    type::ValueFactory::GetDecimalValue(2.0))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{0, {0, 0}}, {1, {0, 1}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{2, planner::DerivedAttribute{expression::ExpressionUtil::ConstantValueFactory(
+               type::ValueFactory::GetDecimalValue(2.0))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{0, {0, 0}}, {1, {0, 1}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan(new planner::UpdatePlan(
-      &GetTestTable(TestTableId1()), std::move(project_info)));
+  std::unique_ptr<planner::UpdatePlan> update_plan(
+      new planner::UpdatePlan(&GetTestTable(TestTableId1()), std::move(project_info)));
 
   // Add the scan to the update plan
   update_plan->AddChild(std::move(scan_plan));
@@ -551,10 +486,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
   EXPECT_EQ(NumRowsInTestTable() + 1, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr a_eq_10_1 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_1(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), a_eq_10_1.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_10_1 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_1(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), a_eq_10_1.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_1;
@@ -569,39 +503,30 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
   // Check that we got all the results
   auto &results_1 = buffer_1.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(10)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(11)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(2)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_1[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("13")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(10)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(11)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(2)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("13")));
 
   // Get the scan plan without a predicate with four columns
-  ExpressionPtr a_eq_10_2 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), a_eq_10_2.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_10_2 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_2(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), a_eq_10_2.release(), {0, 1, 2, 3}));
 
   // Transform using a projection
   // Column 0 of the updated tuple will have constant value 1
-  std::unique_ptr<const planner::ProjectInfo> project_info_2(
-      new planner::ProjectInfo(
-          // Target List : [(oid_t, planner::DerivedAttribute)]
-          // Specify columns that are transformed.
-          {{2,
-            planner::DerivedAttribute{
-                expression::ExpressionUtil::ConstantValueFactory(
-                    type::ValueFactory::GetIntegerValue(3))}}},
-          // Direct Map List : [(oid_t, (oid_t, oid_t))]
-          // Specify columns that are directly pulled from the original tuple.
-          {{0, {0, 0}}, {1, {0, 1}}, {3, {0, 3}}}));
+  std::unique_ptr<const planner::ProjectInfo> project_info_2(new planner::ProjectInfo(
+      // Target List : [(oid_t, planner::DerivedAttribute)]
+      // Specify columns that are transformed.
+      {{2, planner::DerivedAttribute{expression::ExpressionUtil::ConstantValueFactory(
+               type::ValueFactory::GetIntegerValue(3))}}},
+      // Direct Map List : [(oid_t, (oid_t, oid_t))]
+      // Specify columns that are directly pulled from the original tuple.
+      {{0, {0, 0}}, {1, {0, 1}}, {3, {0, 3}}}));
 
   // Embed the transformation to build up an update plan.
-  std::unique_ptr<planner::UpdatePlan> update_plan_2(new planner::UpdatePlan(
-      &GetTestTable(TestTableId1()), std::move(project_info_2)));
+  std::unique_ptr<planner::UpdatePlan> update_plan_2(
+      new planner::UpdatePlan(&GetTestTable(TestTableId1()), std::move(project_info_2)));
 
   // Add the scan to the update plan
   update_plan_2->AddChild(std::move(scan_plan_2));
@@ -623,10 +548,9 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
   EXPECT_EQ(NumRowsInTestTable() + 2, table->GetTupleCount());
 
   // Setup the scan plan node
-  ExpressionPtr a_eq_10_3 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
-  std::unique_ptr<planner::SeqScanPlan> scan_plan_3(new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), a_eq_10_3.release(), {0, 1, 2, 3}));
+  ExpressionPtr a_eq_10_3 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  std::unique_ptr<planner::SeqScanPlan> scan_plan_3(
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), a_eq_10_3.release(), {0, 1, 2, 3}));
 
   // Do binding
   planner::BindingContext context_3;
@@ -640,15 +564,10 @@ TEST_F(UpdateTranslatorTest, UpdateColumnsWithCast) {
   // Check that we got all the results
   auto &results_3 = buffer_3.GetOutputTuples();
 
-  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(10)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(11)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(2).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(3)));
-  EXPECT_EQ(CmpBool::CmpTrue,
-            results_3[0].GetValue(3).CompareEquals(
-                type::ValueFactory::GetVarcharValue("13")));
+  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(10)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(11)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(2).CompareEquals(type::ValueFactory::GetIntegerValue(3)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_3[0].GetValue(3).CompareEquals(type::ValueFactory::GetVarcharValue("13")));
 }
 
 }  // namespace test

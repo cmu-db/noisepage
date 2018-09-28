@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 // Utility functions
 DEFINE_METHOD(peloton::function, NumericFunctions, Abs);
 DEFINE_METHOD(peloton::function, NumericFunctions, Floor);
@@ -32,6 +31,5 @@ DEFINE_METHOD(peloton::function, NumericFunctions, InputSmallInt);
 DEFINE_METHOD(peloton::function, NumericFunctions, InputInteger);
 DEFINE_METHOD(peloton::function, NumericFunctions, InputBigInt);
 DEFINE_METHOD(peloton::function, NumericFunctions, InputDecimal);
-
 
 }  // namespace terrier::execution

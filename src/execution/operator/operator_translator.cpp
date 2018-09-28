@@ -16,17 +16,13 @@
 
 namespace terrier::execution {
 
-
-OperatorTranslator::OperatorTranslator(const planner::AbstractPlan &plan,
-                                       CompilationContext &context,
+OperatorTranslator::OperatorTranslator(const planner::AbstractPlan &plan, CompilationContext &context,
                                        Pipeline &pipeline)
     : plan_(plan), context_(context), pipeline_(pipeline) {
   pipeline.Add(this, Pipeline::Parallelism::Flexible);
 }
 
-CodeGen &OperatorTranslator::GetCodeGen() const {
-  return context_.GetCodeGen();
-}
+CodeGen &OperatorTranslator::GetCodeGen() const { return context_.GetCodeGen(); }
 
 llvm::Value *OperatorTranslator::GetExecutorContextPtr() const {
   return context_.GetExecutionConsumer().GetExecutorContextPtr(context_);
@@ -44,24 +40,18 @@ llvm::Value *OperatorTranslator::GetThreadStatesPtr() const {
   return context_.GetExecutionConsumer().GetThreadStatesPtr(context_);
 }
 
-llvm::Value *OperatorTranslator::LoadStatePtr(
-    const QueryState::Id &state_id) const {
+llvm::Value *OperatorTranslator::LoadStatePtr(const QueryState::Id &state_id) const {
   QueryState &query_state = context_.GetQueryState();
   return query_state.LoadStatePtr(GetCodeGen(), state_id);
 }
 
-llvm::Value *OperatorTranslator::LoadStateValue(
-    const QueryState::Id &state_id) const {
+llvm::Value *OperatorTranslator::LoadStateValue(const QueryState::Id &state_id) const {
   QueryState &query_state = context_.GetQueryState();
   return query_state.LoadStateValue(GetCodeGen(), state_id);
 }
 
-void OperatorTranslator::Consume(ConsumerContext &context,
-                                 RowBatch &batch) const {
-  batch.Iterate(GetCodeGen(), [this, &context](RowBatch::Row &row) {
-    Consume(context, row);
-  });
+void OperatorTranslator::Consume(ConsumerContext &context, RowBatch &batch) const {
+  batch.Iterate(GetCodeGen(), [this, &context](RowBatch::Row &row) { Consume(context, row); });
 }
-
 
 }  // namespace terrier::execution

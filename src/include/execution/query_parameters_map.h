@@ -16,7 +16,6 @@
 
 namespace terrier::execution {
 
-
 class QueryParametersMap {
  public:
   QueryParametersMap() = default;
@@ -24,8 +23,7 @@ class QueryParametersMap {
   DISALLOW_COPY(QueryParametersMap);
 
   QueryParametersMap(QueryParametersMap &&other)
-      : map_(std::move(other.map_)),
-        parameters_(std::move(other.parameters_)) {}
+      : map_(std::move(other.map_)), parameters_(std::move(other.parameters_)) {}
 
   QueryParametersMap &operator=(QueryParametersMap &&other) noexcept {
     map_ = std::move(other.map_);
@@ -33,8 +31,7 @@ class QueryParametersMap {
     return *this;
   }
 
-  void Insert(expression::Parameter parameter,
-              expression::AbstractExpression *expression) {
+  void Insert(expression::Parameter parameter, expression::AbstractExpression *expression) {
     parameters_.push_back(parameter);
     map_[expression] = parameters_.size() - 1;
   }
@@ -45,9 +42,7 @@ class QueryParametersMap {
     return param->second;
   }
 
-  const std::vector<expression::Parameter> &GetParameters() const {
-    return parameters_;
-  }
+  const std::vector<expression::Parameter> &GetParameters() const { return parameters_; }
 
  private:
   // Parameter map
@@ -56,6 +51,5 @@ class QueryParametersMap {
   // Parameter meta information
   std::vector<expression::Parameter> parameters_;
 };
-
 
 }  // namespace terrier::execution

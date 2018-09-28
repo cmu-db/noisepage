@@ -12,15 +12,15 @@
 
 #include "execution/type/decimal_type.h"
 
+#include "common/exception.h"
 #include "execution/lang/if.h"
 #include "execution/proxy/numeric_functions_proxy.h"
 #include "execution/proxy/values_runtime_proxy.h"
 #include "execution/type/boolean_type.h"
 #include "execution/type/integer_type.h"
 #include "execution/value.h"
-#include "common/exception.h"
-#include "type/limits.h"
 #include "runtime/string_util.h"
+#include "type/limits.h"
 
 namespace terrier::execution {
 
@@ -37,17 +37,16 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct CastDecimal : public TypeSystem::CastHandleNull {
-  bool SupportsTypes(const type::Type &from_type,
-                     const type::Type &to_type) const override {
+  bool SupportsTypes(const type::Type &from_type, const type::Type &to_type) const override {
     if (from_type.GetSqlType() != Decimal::Instance()) {
       return false;
     }
     switch (to_type.type_id) {
-      case peloton::type::TypeId::BOOLEAN:
-      case peloton::type::TypeId::TINYINT:
-      case peloton::type::TypeId::SMALLINT:
-      case peloton::type::TypeId::INTEGER:
-      case peloton::type::TypeId::BIGINT:
+      case type::TypeId::BOOLEAN:
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT:
         return true;
       default:
         return false;
@@ -55,8 +54,7 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
   }
 
   // Cast the given decimal value into the provided type
-  Value Impl(CodeGen &codegen, const Value &value,
-             const type::Type &to_type) const override {
+  Value Impl(CodeGen &codegen, const Value &value, const type::Type &to_type) const override {
     PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
     PELOTON_ASSERT(!to_type.nullable);
 
@@ -65,19 +63,18 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
 
     llvm::Value *result = nullptr;
     switch (to_type.type_id) {
-      case peloton::type::TypeId::BOOLEAN:
-      case peloton::type::TypeId::TINYINT:
-      case peloton::type::TypeId::SMALLINT:
-      case peloton::type::TypeId::INTEGER:
-      case peloton::type::TypeId::BIGINT: {
+      case type::TypeId::BOOLEAN:
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT: {
         result = codegen->CreateFPToSI(value.GetValue(), val_type);
         break;
       }
       default: {
-        throw NotImplementedException{
-            StringUtil::Format("Cannot cast %s to %s",
-                               TypeIdToString(value.GetType().type_id).c_str(),
-                               TypeIdToString(to_type.type_id).c_str())};
+        throw NotImplementedException{StringUtil::Format("Cannot cast %s to %s",
+                                                         TypeIdToString(value.GetType().type_id).c_str(),
+                                                         TypeIdToString(to_type.type_id).c_str())};
       }
     }
 
@@ -96,55 +93,45 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
 
 // Comparison
 struct CompareDecimal : public TypeSystem::SimpleComparisonHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
     return left_type == Decimal::Instance() && left_type == right_type;
   }
 
-  Value CompareLtImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpULT(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareLteImpl(CodeGen &codegen, const Value &left,
-                       const Value &right) const override {
+  Value CompareLteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpULE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareEqImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareEqImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpUEQ(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareNeImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareNeImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpUNE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareGtImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareGtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpUGT(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareGteImpl(CodeGen &codegen, const Value &left,
-                       const Value &right) const override {
+  Value CompareGteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateFCmpUGE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareForSortImpl(CodeGen &codegen, const Value &left,
-                           const Value &right) const override {
+  Value CompareForSortImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     // For integer comparisons, just subtract left from right and cast the
     // result to a 32-bit value
     llvm::Value *diff = codegen->CreateFSub(left.GetValue(), right.GetValue());
-    return Value{Integer::Instance(),
-                 codegen->CreateFPToSI(diff, codegen.Int32Type()), nullptr,
-                 nullptr};
+    return Value{Integer::Instance(), codegen->CreateFPToSI(diff, codegen.Int32Type()), nullptr, nullptr};
   }
 };
 
@@ -156,22 +143,16 @@ struct CompareDecimal : public TypeSystem::SimpleComparisonHandleNull {
 
 // Negation
 struct Negate : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsType(val.GetType()));
 
     llvm::Value *overflow_bit = nullptr;
-    llvm::Value *result = codegen.CallSubWithOverflow(
-        codegen.ConstDouble(0.0), val.GetValue(), overflow_bit);
+    llvm::Value *result = codegen.CallSubWithOverflow(codegen.ConstDouble(0.0), val.GetValue(), overflow_bit);
 
     codegen.ThrowIfOverflow(overflow_bit);
 
@@ -182,74 +163,51 @@ struct Negate : public TypeSystem::UnaryOperatorHandleNull {
 
 // Abs
 struct Abs : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
-    llvm::Value *raw_ret =
-        codegen.Call(NumericFunctionsProxy::Abs, {val.GetValue()});
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
+    llvm::Value *raw_ret = codegen.Call(NumericFunctionsProxy::Abs, {val.GetValue()});
     return Value{Decimal::Instance(), raw_ret};
   }
 };
 
 // Floor
 struct Floor : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
-    llvm::Value *raw_ret =
-        codegen.Call(NumericFunctionsProxy::Floor, {val.GetValue()});
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
+    llvm::Value *raw_ret = codegen.Call(NumericFunctionsProxy::Floor, {val.GetValue()});
     return Value{Decimal::Instance(), raw_ret};
   }
 };
 
 // Round
 struct Round : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Decimal::Instance();
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Decimal::Instance(); }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
-    llvm::Value *raw_ret =
-        codegen.Call(NumericFunctionsProxy::Round, {val.GetValue()});
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
+    llvm::Value *raw_ret = codegen.Call(NumericFunctionsProxy::Round, {val.GetValue()});
     return Value{Decimal::Instance(), raw_ret};
   }
 };
 
 // Ceiling
 struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsType(val.GetType()));
 
     auto *result = codegen.Call(NumericFunctionsProxy::Ceil, {val.GetValue()});
@@ -260,18 +218,13 @@ struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
 
 // Sqrt
 struct Sqrt : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == Decimal::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == Decimal::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Decimal::Instance();
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Decimal::Instance(); }
 
  protected:
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     auto *raw_ret = codegen.Sqrt(val.GetValue());
     return Value{Decimal::Instance(), raw_ret};
   }
@@ -285,20 +238,16 @@ struct Sqrt : public TypeSystem::UnaryOperatorHandleNull {
 
 // Addition
 struct Add : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == Decimal::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == Decimal::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{Decimal::Instance()};
   }
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
     auto *raw_val = codegen->CreateFAdd(left.GetValue(), right.GetValue());
     return Value{Decimal::Instance(), raw_val, nullptr, nullptr};
@@ -307,20 +256,16 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
 
 // Subtraction
 struct Sub : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == Decimal::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == Decimal::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{Decimal::Instance()};
   }
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
     auto *raw_val = codegen->CreateFSub(left.GetValue(), right.GetValue());
     return Value{Decimal::Instance(), raw_val, nullptr, nullptr};
@@ -329,20 +274,16 @@ struct Sub : public TypeSystem::BinaryOperatorHandleNull {
 
 // Multiplication
 struct Mul : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == Decimal::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == Decimal::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{Decimal::Instance()};
   }
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
     auto *raw_val = codegen->CreateFMul(left.GetValue(), right.GetValue());
     return Value{Decimal::Instance(), raw_val, nullptr, nullptr};
@@ -351,14 +292,11 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
 
 // Division
 struct Div : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == Decimal::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == Decimal::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{Decimal::Instance()};
   }
 
@@ -367,8 +305,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
     PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
 
     // First, check if the divisor is zero
-    llvm::Value *div0 =
-        codegen->CreateFCmpUEQ(right.GetValue(), codegen.ConstDouble(0.0));
+    llvm::Value *div0 = codegen->CreateFCmpUEQ(right.GetValue(), codegen.ConstDouble(0.0));
 
     // Check if the caller cares about division-by-zero errors
 
@@ -408,14 +345,11 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
 // Modulo
 struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == Decimal::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == Decimal::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{Decimal::Instance()};
   }
 
@@ -424,8 +358,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
     PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
 
     // First, check if the divisor is zero
-    llvm::Value *div0 =
-        codegen->CreateFCmpUEQ(right.GetValue(), codegen.ConstDouble(0.0));
+    llvm::Value *div0 = codegen->CreateFCmpUEQ(right.GetValue(), codegen.ConstDouble(0.0));
 
     // Check if the caller cares about division-by-zero errors
 
@@ -470,19 +403,18 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<peloton::type::TypeId> kImplicitCastingTable = {
-    peloton::type::TypeId::DECIMAL};
+std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casting rules
 CastDecimal kCastDecimal;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::BOOLEAN, kCastDecimal},
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::TINYINT, kCastDecimal},
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::SMALLINT, kCastDecimal},
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::INTEGER, kCastDecimal},
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::BIGINT, kCastDecimal},
-    {peloton::type::TypeId::DECIMAL, peloton::type::TypeId::DECIMAL, kCastDecimal}};
+    {type::TypeId::DECIMAL, type::TypeId::BOOLEAN, kCastDecimal},
+    {type::TypeId::DECIMAL, type::TypeId::TINYINT, kCastDecimal},
+    {type::TypeId::DECIMAL, type::TypeId::SMALLINT, kCastDecimal},
+    {type::TypeId::DECIMAL, type::TypeId::INTEGER, kCastDecimal},
+    {type::TypeId::DECIMAL, type::TypeId::BIGINT, kCastDecimal},
+    {type::TypeId::DECIMAL, type::TypeId::DECIMAL, kCastDecimal}};
 // clang-format on
 
 // Comparison operations
@@ -496,13 +428,9 @@ Floor kFloorOp;
 Round kRound;
 Ceil kCeilOp;
 Sqrt kSqrt;
-std::vector<TypeSystem::UnaryOpInfo> kUnaryOperatorTable = {
-    {OperatorId::Negation, kNegOp},
-    {OperatorId::Abs, kAbsOp},
-    {OperatorId::Floor, kFloorOp},
-    {OperatorId::Round, kRound},
-    {OperatorId::Ceil, kCeilOp},
-    {OperatorId::Sqrt, kSqrt}};
+std::vector<TypeSystem::UnaryOpInfo> kUnaryOperatorTable = {{OperatorId::Negation, kNegOp}, {OperatorId::Abs, kAbsOp},
+                                                            {OperatorId::Floor, kFloorOp},  {OperatorId::Round, kRound},
+                                                            {OperatorId::Ceil, kCeilOp},    {OperatorId::Sqrt, kSqrt}};
 
 // Binary operations
 Add kAddOp;
@@ -510,12 +438,11 @@ Sub kSubOp;
 Mul kMulOp;
 Div kDivOp;
 Modulo kModuloOp;
-std::vector<TypeSystem::BinaryOpInfo> kBinaryOperatorTable = {
-    {OperatorId::Add, kAddOp},
-    {OperatorId::Sub, kSubOp},
-    {OperatorId::Mul, kMulOp},
-    {OperatorId::Div, kDivOp},
-    {OperatorId::Mod, kModuloOp}};
+std::vector<TypeSystem::BinaryOpInfo> kBinaryOperatorTable = {{OperatorId::Add, kAddOp},
+                                                              {OperatorId::Sub, kSubOp},
+                                                              {OperatorId::Mul, kMulOp},
+                                                              {OperatorId::Div, kDivOp},
+                                                              {OperatorId::Mod, kModuloOp}};
 
 // Nary operations
 std::vector<TypeSystem::NaryOpInfo> kNaryOperatorTable = {};
@@ -532,10 +459,9 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Decimal::Decimal()
-    : SqlType(peloton::type::TypeId::DECIMAL),
-      type_system_(kImplicitCastingTable, kExplicitCastingTable,
-                   kComparisonTable, kUnaryOperatorTable, kBinaryOperatorTable,
-                   kNaryOperatorTable, kNoArgOperatorTable) {}
+    : SqlType(type::TypeId::DECIMAL),
+      type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
+                   kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 
 Value Decimal::GetMinValue(CodeGen &codegen) const {
   auto *raw_val = codegen.ConstDouble(peloton::type::PELOTON_DECIMAL_MIN);
@@ -552,20 +478,17 @@ Value Decimal::GetNullValue(CodeGen &codegen) const {
   return Value{Type{TypeId(), true}, raw_val, nullptr, codegen.ConstBool(true)};
 }
 
-void Decimal::GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type,
-                                        llvm::Type *&len_type) const {
+void Decimal::GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type, llvm::Type *&len_type) const {
   val_type = codegen.DoubleType();
   len_type = nullptr;
 }
 
-llvm::Function *Decimal::GetInputFunction(
-    CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *Decimal::GetInputFunction(CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   // TODO: We should be using the precision/scale in the output function
   return NumericFunctionsProxy::InputDecimal.GetFunction(codegen);
 }
 
-llvm::Function *Decimal::GetOutputFunction(
-    CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *Decimal::GetOutputFunction(CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   // TODO: We should be using the precision/scale in the output function
   return ValuesRuntimeProxy::OutputDecimal.GetFunction(codegen);
 }

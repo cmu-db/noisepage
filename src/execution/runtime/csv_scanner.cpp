@@ -16,18 +16,16 @@
 
 #include "common/exception.h"
 #include "executor/executor_context.h"
-#include "type/abstract_pool.h"
 #include "runtime/string_util.h"
+#include "type/abstract_pool.h"
 
 namespace terrier::execution {
 
 namespace util {
 
-CSVScanner::CSVScanner(peloton::type::AbstractPool &pool,
-                       const std::string &file_path,
-                       const codegen::type::Type *col_types, uint32_t num_cols,
-                       CSVScanner::Callback func, void *opaque_state,
-                       char delimiter, char quote, char escape)
+CSVScanner::CSVScanner(peloton::type::AbstractPool &pool, const std::string &file_path,
+                       const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func,
+                       void *opaque_state, char delimiter, char quote, char escape)
     : memory_(pool),
       file_path_(file_path),
       file_(),
@@ -73,16 +71,12 @@ CSVScanner::~CSVScanner() {
   }
 }
 
-void CSVScanner::Init(CSVScanner &scanner,
-                      executor::ExecutorContext &executor_context,
-                      const char *file_path,
-                      const codegen::type::Type *col_types, uint32_t num_cols,
-                      CSVScanner::Callback func, void *opaque_state,
-                      char delimiter, char quote, char escape) {
+void CSVScanner::Init(CSVScanner &scanner, executor::ExecutorContext &executor_context, const char *file_path,
+                      const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func,
+                      void *opaque_state, char delimiter, char quote, char escape) {
   // Forward to constructor
-  new (&scanner)
-      CSVScanner(*executor_context.GetPool(), file_path, col_types, num_cols,
-                 func, opaque_state, delimiter, quote, escape);
+  new (&scanner) CSVScanner(*executor_context.GetPool(), file_path, col_types, num_cols, func, opaque_state, delimiter,
+                            quote, escape);
 }
 
 void CSVScanner::Destroy(CSVScanner &scanner) {
@@ -105,11 +99,9 @@ void CSVScanner::Initialize() {
   boost::filesystem::path path(file_path_);
 
   if (!boost::filesystem::exists(path)) {
-    throw ExecutorException(StringUtil::Format("input path '%s' does not exist",
-                                               file_path_.c_str()));
+    throw ExecutorException(StringUtil::Format("input path '%s' does not exist", file_path_.c_str()));
   } else if (!boost::filesystem::is_regular_file(file_path_)) {
-    auto msg =
-        StringUtil::Format("unable to read file '%s'", file_path_.c_str());
+    auto msg = StringUtil::Format("unable to read file '%s'", file_path_.c_str());
     throw ExecutorException(msg);
   }
 
@@ -151,9 +143,8 @@ void CSVScanner::AppendToLineBuffer(const char *data, uint32_t len) {
   if (line_len_ + len > line_maxlen_) {
     // Check if we can even allocate any more bytes
     if (static_cast<uint64_t>(len) > kMaxAllocSize - line_len_) {
-      const auto msg = StringUtil::Format(
-          "Line %u in file '%s' exceeds maximum line length: %lu",
-          line_number_ + 1, file_path_.c_str(), kMaxAllocSize);
+      const auto msg = StringUtil::Format("Line %u in file '%s' exceeds maximum line length: %lu", line_number_ + 1,
+                                          file_path_.c_str(), kMaxAllocSize);
       throw Exception(msg);
     }
 
@@ -215,8 +206,7 @@ char *CSVScanner::NextLine() {
       // all the data in the read-buffer (i.e., [buffer_begin_, buffer_end_] to
       // the line-buffer.
       if (buffer_pos_ < curr_buffer_pos) {
-        AppendToLineBuffer(buffer_ + buffer_pos_,
-                           curr_buffer_pos - buffer_pos_);
+        AppendToLineBuffer(buffer_ + buffer_pos_, curr_buffer_pos - buffer_pos_);
         buffer_pos_ = curr_buffer_pos;
       }
 
@@ -322,8 +312,7 @@ void CSVScanner::ProduceCSV(char *line) {
           // If we see the end of the line *within* a quoted section, throw
           // error
           if (c == '\0') {
-            throw Exception(StringUtil::Format(
-                "unterminated CSV quoted field at %u", col_idx));
+            throw Exception(StringUtil::Format("unterminated CSV quoted field at %u", col_idx));
           }
 
           // If we see an escape character within a quoted section, we need to
@@ -352,9 +341,7 @@ void CSVScanner::ProduceCSV(char *line) {
     // If we've reached the of the line, but haven't setup all the columns, then
     // we're missing data for the remaining columns and should throw an error.
     if (*iter == '\0' && col_idx != (num_cols_ - 1)) {
-      throw Exception(
-          StringUtil::Format("missing data for column %u on line %u",
-                             (col_idx + 2), line_number_));
+      throw Exception(StringUtil::Format("missing data for column %u on line %u", (col_idx + 2), line_number_));
     }
 
     // Let's setup the columns
@@ -370,6 +357,6 @@ void CSVScanner::ProduceCSV(char *line) {
   func_(opaque_state_);
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(StorageManager) {
   /// The data members of storage::StorageManager
   /// Note: For now, we don't need access to individual fields.  Instead, we
@@ -30,6 +29,5 @@ PROXY(StorageManager) {
 };
 
 TYPE_BUILDER(StorageManager, storage::StorageManager);
-
 
 }  // namespace terrier::execution

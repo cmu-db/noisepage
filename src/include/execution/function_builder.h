@@ -16,7 +16,6 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 //
 // A function declaration defines the signature of the function. A declaration
@@ -38,22 +37,19 @@ class FunctionDeclaration {
   struct ArgumentInfo {
     std::string name;
     llvm::Type *type;
-    ArgumentInfo(std::string _name, llvm::Type *_type)
-        : name(std::move(_name)), type(_type) {}
+    ArgumentInfo(std::string _name, llvm::Type *_type) : name(std::move(_name)), type(_type) {}
   };
 
   /// Constructor
-  FunctionDeclaration(CodeContext &cc, const std::string &name,
-                      Visibility visibility, llvm::Type *ret_type,
+  FunctionDeclaration(CodeContext &cc, const std::string &name, Visibility visibility, llvm::Type *ret_type,
                       const std::vector<ArgumentInfo> &args);
 
   /// Get the raw LLVM function declaration
   llvm::Function *GetDeclaredFunction() const { return func_decl_; }
 
   /// Construct a FunctionDeclaration given a signature
-  static FunctionDeclaration MakeDeclaration(
-      CodeContext &cc, const std::string &name, Visibility visibility,
-      llvm::Type *ret_type, const std::vector<ArgumentInfo> &args);
+  static FunctionDeclaration MakeDeclaration(CodeContext &cc, const std::string &name, Visibility visibility,
+                                             llvm::Type *ret_type, const std::vector<ArgumentInfo> &args);
 
  private:
   // The name of the function
@@ -108,8 +104,7 @@ class FunctionBuilder {
   /// Return the function we created
   llvm::Function *GetFunction() const { return func_; }
 
-  llvm::Value *GetOrCacheVariable(const std::string &name,
-                                  const std::function<llvm::Value *()> &func);
+  llvm::Value *GetOrCacheVariable(const std::string &name, const std::function<llvm::Value *()> &func);
 
  private:
   // Get the first basic block in this function
@@ -150,6 +145,5 @@ class FunctionBuilder {
   // Cached variables
   std::unordered_map<std::string, llvm::Value *> cached_vars_;
 };
-
 
 }  // namespace terrier::execution

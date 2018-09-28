@@ -18,18 +18,15 @@ namespace terrier::execution {
 
 namespace lang {
 
-VectorizedLoop::VectorizedLoop(CodeGen &codegen, llvm::Value *num_elements,
-                               uint32_t vector_size,
+VectorizedLoop::VectorizedLoop(CodeGen &codegen, llvm::Value *num_elements, uint32_t vector_size,
                                const std::vector<Loop::LoopVariable> &loop_vars)
-    : num_elements_(
-          codegen->CreateZExtOrBitCast(num_elements, codegen.Int32Type())),
+    : num_elements_(codegen->CreateZExtOrBitCast(num_elements, codegen.Int32Type())),
       loop_(InitLoop(codegen, num_elements_, loop_vars)),
       ended_(false),
       vector_size_(vector_size) {
   start_ = loop_.GetLoopVar(0);
   end_ = codegen->CreateAdd(start_, codegen.Const32(vector_size_));
-  end_ = codegen->CreateSelect(codegen->CreateICmpULT(num_elements_, end_),
-                               num_elements_, end_);
+  end_ = codegen->CreateSelect(codegen->CreateICmpULT(num_elements_, end_), num_elements_, end_);
 }
 
 VectorizedLoop::~VectorizedLoop() {
@@ -38,19 +35,15 @@ VectorizedLoop::~VectorizedLoop() {
   }
 }
 
-VectorizedLoop::Range VectorizedLoop::GetCurrentRange() const {
-  return {start_, end_};
-}
+VectorizedLoop::Range VectorizedLoop::GetCurrentRange() const { return {start_, end_}; }
 
 llvm::Value *VectorizedLoop::GetLoopVar(uint32_t index) const {
   // Need to add one because we inserted a hidden loop variable to track start
   return loop_.GetLoopVar(index + 1);
 }
 
-void VectorizedLoop::LoopEnd(CodeGen &codegen,
-                             const std::vector<llvm::Value *> &loop_vars) {
-  llvm::Value *next_start =
-      codegen->CreateAdd(start_, codegen.Const32(vector_size_));
+void VectorizedLoop::LoopEnd(CodeGen &codegen, const std::vector<llvm::Value *> &loop_vars) {
+  llvm::Value *next_start = codegen->CreateAdd(start_, codegen.Const32(vector_size_));
   std::vector<llvm::Value *> next = {next_start};
   next.insert(next.end(), loop_vars.begin(), loop_vars.end());
   loop_.LoopEnd(codegen->CreateICmpULT(next_start, num_elements_), next);
@@ -67,8 +60,7 @@ Loop VectorizedLoop::InitLoop(CodeGen &codegen, llvm::Value *num_elements,
   return Loop{codegen, loop_cond, all_loop_vars};
 }
 
-void VectorizedLoop::CollectFinalLoopVariables(
-    std::vector<llvm::Value *> &loop_vals) {
+void VectorizedLoop::CollectFinalLoopVariables(std::vector<llvm::Value *> &loop_vals) {
   loop_.CollectFinalLoopVariables(loop_vals);
   loop_vals.erase(loop_vals.begin());
 }

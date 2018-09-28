@@ -18,13 +18,9 @@
 
 namespace terrier::execution {
 
-
-ExpressionTranslator::ExpressionTranslator(
-    const expression::AbstractExpression &expression, CompilationContext &ctx)
+ExpressionTranslator::ExpressionTranslator(const expression::AbstractExpression &expression, CompilationContext &ctx)
     : context_(ctx), expression_(expression) {
-  if (expression::ExpressionUtil::IsAggregateExpression(
-          expression.GetExpressionType()))
-    return;
+  if (expression::ExpressionUtil::IsAggregateExpression(expression.GetExpressionType())) return;
   for (uint32_t i = 0; i < expression_.GetChildrenSize(); i++) {
     ctx.Prepare(*expression_.GetChild(i));
   }
@@ -33,6 +29,5 @@ ExpressionTranslator::ExpressionTranslator(
 llvm::Value *ExpressionTranslator::GetExecutorContextPtr() const {
   return context_.GetExecutionConsumer().GetExecutorContextPtr(context_);
 }
-
 
 }  // namespace terrier::execution

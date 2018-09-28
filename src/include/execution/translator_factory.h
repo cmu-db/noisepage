@@ -25,8 +25,6 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-
-
 // Forward declare these guys so CompilationContext can include this file
 class CompilationContext;
 class ExpressionTranslator;
@@ -40,15 +38,12 @@ class Pipeline;
 class TranslatorFactory {
  public:
   // Return a new unique translator for the given operator
-  virtual std::unique_ptr<OperatorTranslator> CreateTranslator(
-      const planner::AbstractPlan &plan, CompilationContext &context,
-      Pipeline &pipeline) const;
+  virtual std::unique_ptr<OperatorTranslator> CreateTranslator(const planner::AbstractPlan &plan,
+                                                               CompilationContext &context, Pipeline &pipeline) const;
 
   // Return a new unique translator for the given expression
-  virtual std::unique_ptr<ExpressionTranslator> CreateTranslator(
-      const expression::AbstractExpression &exp,
-      CompilationContext &context) const;
+  virtual std::unique_ptr<ExpressionTranslator> CreateTranslator(const expression::AbstractExpression &exp,
+                                                                 CompilationContext &context) const;
 };
-
 
 }  // namespace terrier::execution

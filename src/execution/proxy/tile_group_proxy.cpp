@@ -14,11 +14,9 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(TileGroup, "peloton::storage::TileGroup", opaque);
 
 DEFINE_METHOD(peloton::storage, TileGroup, GetNextTupleSlot);
 DEFINE_METHOD(peloton::storage, TileGroup, GetTileGroupId);
-
 
 }  // namespace terrier::execution

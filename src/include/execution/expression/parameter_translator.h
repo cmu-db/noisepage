@@ -18,9 +18,7 @@ namespace terrier::execution {
 
 namespace expression {
 class ParameterValueExpression;
-}  // namespace planner
-
-
+}  // namespace expression
 
 //===----------------------------------------------------------------------===//
 // A parameter expression translator just produces the LLVM value version of the
@@ -28,13 +26,10 @@ class ParameterValueExpression;
 //===----------------------------------------------------------------------===//
 class ParameterTranslator : public ExpressionTranslator {
  public:
-  ParameterTranslator(const expression::ParameterValueExpression &exp,
-                      CompilationContext &ctx);
+  ParameterTranslator(const expression::ParameterValueExpression &exp, CompilationContext &ctx);
 
   // Produce the value that is the result of codegen-ing the expression
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

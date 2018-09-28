@@ -12,9 +12,9 @@
 
 #pragma once
 
+#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
-#include "common/singleton.h"
 
 namespace terrier::execution {
 
@@ -32,14 +32,11 @@ class Boolean : public SqlType, public Singleton<Boolean> {
 
   llvm::Value *CheckNull(CodeGen &codegen, llvm::Value *bool_ptr) const;
 
-  void GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type,
-                                 llvm::Type *&len_type) const override;
+  void GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type, llvm::Type *&len_type) const override;
 
-  llvm::Function *GetInputFunction(CodeGen &codegen,
-                                   const Type &type) const override;
+  llvm::Function *GetInputFunction(CodeGen &codegen, const Type &type) const override;
 
-  llvm::Function *GetOutputFunction(CodeGen &codegen,
-                                    const Type &type) const override;
+  llvm::Function *GetOutputFunction(CodeGen &codegen, const Type &type) const override;
 
   const TypeSystem &GetTypeSystem() const override { return type_system_; }
 
@@ -55,7 +52,7 @@ class Boolean : public SqlType, public Singleton<Boolean> {
   // | true  | true   |
   // +-------+--------+
   //
-  llvm::Value *Reify(CodeGen &codegen, const codegen::Value &bool_val) const;
+  llvm::Value *Reify(CodeGen &codegen, const Value &bool_val) const;
 
  private:
   friend class Singleton<Boolean>;

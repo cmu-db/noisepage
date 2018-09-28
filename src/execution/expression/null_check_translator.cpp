@@ -18,16 +18,13 @@
 
 namespace terrier::execution {
 
-
 // Constructor
-NullCheckTranslator::NullCheckTranslator(
-    const expression::OperatorExpression &null_check, CompilationContext &ctx)
+NullCheckTranslator::NullCheckTranslator(const expression::OperatorExpression &null_check, CompilationContext &ctx)
     : ExpressionTranslator(null_check, ctx) {
   PELOTON_ASSERT(null_check.GetChildrenSize() == 1);
 }
 
-Value NullCheckTranslator::DeriveValue(CodeGen &codegen,
-                                       RowBatch::Row &row) const {
+Value NullCheckTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
   const auto &null_check = GetExpressionAs<expression::OperatorExpression>();
   Value val = row.DeriveValue(codegen, *null_check.GetChild(0));
   switch (null_check.GetExpressionType()) {
@@ -36,12 +33,10 @@ Value NullCheckTranslator::DeriveValue(CodeGen &codegen,
     case ExpressionType::OPERATOR_IS_NOT_NULL:
       return Value{type::Boolean::Instance(), val.IsNotNull(codegen)};
     default: {
-      throw Exception(
-          "NullCheck expression has invalid ExpressionType: " +
-          ExpressionTypeToString(null_check.GetExpressionType()));
+      throw Exception("NullCheck expression has invalid ExpressionType: " +
+                      ExpressionTypeToString(null_check.GetExpressionType()));
     }
   }
 }
-
 
 }  // namespace terrier::execution

@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(BloomFilter) {
   // Member Variables
   DECLARE_MEMBER(0, uint64_t, num_hash_funcs);
@@ -34,6 +33,5 @@ PROXY(BloomFilter) {
 };
 
 TYPE_BUILDER(BloomFilter, util::BloomFilter);
-
 
 }  // namespace terrier::execution

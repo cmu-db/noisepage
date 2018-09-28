@@ -60,6 +60,6 @@ class BloomFilter {
   uint64_t num_probes_;
 };
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

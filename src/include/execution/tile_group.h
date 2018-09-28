@@ -21,14 +21,12 @@ namespace catalog {
 class Schema;
 }  // namespace catalog
 
-
-
 class ScanCallback;
 
 //===----------------------------------------------------------------------===//
-// Like codegen::Table, this class is the main entry point for code generation
+// Like Table, this class is the main entry point for code generation
 // for tile groups. An instance of this class should exist for each instance of
-// codegen::Table (in fact, this should be a member variable).  The schema of
+// Table (in fact, this should be a member variable).  The schema of
 // the tile group is that of the whole table. We abstract away the fact that
 // each _individual_ tile group by have a different layout.
 //===----------------------------------------------------------------------===//
@@ -41,8 +39,7 @@ class TileGroup {
   DISALLOW_COPY_AND_MOVE(TileGroup);
 
   // Generate code that performs a sequential scan over the provided tile group
-  void GenerateTidScan(CodeGen &codegen, llvm::Value *tile_group_ptr,
-                       llvm::Value *column_layouts, uint32_t batch_size,
+  void GenerateTidScan(CodeGen &codegen, llvm::Value *tile_group_ptr, llvm::Value *column_layouts, uint32_t batch_size,
                        ScanCallback &consumer) const;
 
   llvm::Value *GetNumTuples(CodeGen &codegen, llvm::Value *tile_group) const;
@@ -89,13 +86,11 @@ class TileGroup {
   };
   */
 
-  std::vector<TileGroup::ColumnLayout> GetColumnLayouts(
-      CodeGen &codegen, llvm::Value *tile_group_ptr,
-      llvm::Value *column_layout_infos) const;
+  std::vector<TileGroup::ColumnLayout> GetColumnLayouts(CodeGen &codegen, llvm::Value *tile_group_ptr,
+                                                        llvm::Value *column_layout_infos) const;
 
   // Access a given column for the row with the given tid
-  codegen::Value LoadColumn(CodeGen &codegen, llvm::Value *tid,
-                            const TileGroup::ColumnLayout &layout) const;
+  Value LoadColumn(CodeGen &codegen, llvm::Value *tid, const TileGroup::ColumnLayout &layout) const;
 
  public:
   //===--------------------------------------------------------------------===//
@@ -105,8 +100,7 @@ class TileGroup {
   class TileGroupAccess {
    public:
     // Constructor
-    TileGroupAccess(const TileGroup &tile_group,
-                    const std::vector<ColumnLayout> &tile_group_layout);
+    TileGroupAccess(const TileGroup &tile_group, const std::vector<ColumnLayout> &tile_group_layout);
 
     //===------------------------------------------------------------------===//
     // A row in this tile group
@@ -114,11 +108,10 @@ class TileGroup {
     class Row {
      public:
       // Constructor
-      Row(const TileGroup &tile_group,
-          const std::vector<ColumnLayout> &tile_group_layout, llvm::Value *tid);
+      Row(const TileGroup &tile_group, const std::vector<ColumnLayout> &tile_group_layout, llvm::Value *tid);
 
       // Load the column at the given index
-      codegen::Value LoadColumn(CodeGen &codegen, uint32_t col_idx) const;
+      Value LoadColumn(CodeGen &codegen, uint32_t col_idx) const;
 
       llvm::Value *GetTID() const { return tid_; }
 
@@ -140,9 +133,7 @@ class TileGroup {
 
     const TileGroup &GetTileGroup() const { return tile_group_; }
 
-    const ColumnLayout &GetLayout(uint32_t col_idx) const {
-      return layout_[col_idx];
-    }
+    const ColumnLayout &GetLayout(uint32_t col_idx) const { return layout_[col_idx]; }
 
    private:
     // The tile group
@@ -157,6 +148,5 @@ class TileGroup {
   // level, we do not care.
   const catalog::Schema &schema_;
 };
-
 
 }  // namespace terrier::execution

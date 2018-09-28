@@ -15,11 +15,11 @@
 #include <boost/filesystem.hpp>
 
 #include "catalog/table_catalog.h"
+#include "concurrency/transaction_manager_factory.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "execution/proxy/value_proxy.h"
 #include "execution/proxy/values_runtime_proxy.h"
 #include "execution/query_cache.h"
-#include "concurrency/transaction_manager_factory.h"
 #include "executor/executor_context.h"
 #include "executor/plan_executor.h"
 #include "expression/comparison_expression.h"
@@ -37,8 +37,7 @@ TempFileHandle::~TempFileHandle() { boost::filesystem::remove(name); }
 // PELOTON CODEGEN TEST
 //===----------------------------------------------------------------------===//
 
-PelotonCodeGenTest::PelotonCodeGenTest(oid_t tuples_per_tilegroup,
-                                       peloton::LayoutType layout_type) {
+PelotonCodeGenTest::PelotonCodeGenTest(oid_t tuples_per_tilegroup, peloton::LayoutType layout_type) {
   auto *catalog = catalog::Catalog::GetInstance();
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto txn = txn_manager.BeginTransaction();
@@ -65,92 +64,59 @@ PelotonCodeGenTest::~PelotonCodeGenTest() {
 
 catalog::Column PelotonCodeGenTest::GetTestColumn(uint32_t col_id) const {
   PELOTON_ASSERT(col_id < 4);
-  static const uint64_t int_size =
-      type::Type::GetTypeSize(type::TypeId::INTEGER);
-  static const uint64_t dec_size =
-      type::Type::GetTypeSize(type::TypeId::DECIMAL);
+  static const uint64_t int_size = type::Type::GetTypeSize(type::TypeId::INTEGER);
+  static const uint64_t dec_size = type::Type::GetTypeSize(type::TypeId::DECIMAL);
 
   bool is_inlined = true;
   if (col_id == 0) {
-    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_A",
-                           is_inlined};
+    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_A", is_inlined};
   } else if (col_id == 1) {
-    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_B",
-                           is_inlined};
+    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_B", is_inlined};
   } else if (col_id == 2) {
-    return catalog::Column{type::TypeId::DECIMAL, dec_size, "COL_C",
-                           is_inlined};
+    return catalog::Column{type::TypeId::DECIMAL, dec_size, "COL_C", is_inlined};
   } else {
     return catalog::Column{type::TypeId::VARCHAR, 25, "COL_D", !is_inlined};
   }
 }
 
 // Create the test schema for all the tables
-std::unique_ptr<catalog::Schema> PelotonCodeGenTest::CreateTestSchema(
-    bool add_primary) const {
+std::unique_ptr<catalog::Schema> PelotonCodeGenTest::CreateTestSchema(bool add_primary) const {
   // Create the columns
-  std::vector<catalog::Column> cols = {GetTestColumn(0), GetTestColumn(1),
-                                       GetTestColumn(2), GetTestColumn(3)};
+  std::vector<catalog::Column> cols = {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(3)};
 
   // Add NOT NULL constraints on COL_A, COL_C, COL_D
-  cols[0].AddConstraint(
-      catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
+  cols[0].AddConstraint(catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
   if (add_primary) {
-    cols[0].AddConstraint(
-        catalog::Constraint{ConstraintType::PRIMARY, "con_primary"});
+    cols[0].AddConstraint(catalog::Constraint{ConstraintType::PRIMARY, "con_primary"});
   }
-  cols[2].AddConstraint(
-      catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
-  cols[3].AddConstraint(
-      catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
+  cols[2].AddConstraint(catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
+  cols[3].AddConstraint(catalog::Constraint{ConstraintType::NOTNULL, "not_null"});
 
   // Return the schema
   return std::unique_ptr<catalog::Schema>{new catalog::Schema(cols)};
 }
 
 // Create all the test tables, but don't load any data
-void PelotonCodeGenTest::CreateTestTables(concurrency::TransactionContext *txn,
-                                          oid_t tuples_per_tilegroup,
+void PelotonCodeGenTest::CreateTestTables(concurrency::TransactionContext *txn, oid_t tuples_per_tilegroup,
                                           peloton::LayoutType layout_type) {
   auto *catalog = catalog::Catalog::GetInstance();
   for (int i = 0; i < 4; i++) {
     auto table_schema = CreateTestSchema();
-    catalog->CreateTable(txn,
-                         test_db_name,
-                         DEFAULT_SCHEMA_NAME,
-                         std::move(table_schema),
-                         test_table_names[i],
-                         false,
-                         tuples_per_tilegroup,
-                         layout_type);
-    test_table_oids.push_back(catalog
-                                  ->GetTableCatalogEntry(txn,
-                                                         test_db_name,
-                                                         DEFAULT_SCHEMA_NAME,
-                                                         test_table_names[i])
-                                  ->GetTableOid());
+    catalog->CreateTable(txn, test_db_name, DEFAULT_SCHEMA_NAME, std::move(table_schema), test_table_names[i], false,
+                         tuples_per_tilegroup, layout_type);
+    test_table_oids.push_back(
+        catalog->GetTableCatalogEntry(txn, test_db_name, DEFAULT_SCHEMA_NAME, test_table_names[i])->GetTableOid());
   }
   for (int i = 4; i < 5; i++) {
     auto table_schema = CreateTestSchema(true);
-    catalog->CreateTable(txn,
-                         test_db_name,
-                         DEFAULT_SCHEMA_NAME,
-                         std::move(table_schema),
-                         test_table_names[i],
-                         false,
-                         tuples_per_tilegroup,
-                         layout_type);
-    test_table_oids.push_back(catalog
-                                  ->GetTableCatalogEntry(txn,
-                                                         test_db_name,
-                                                         DEFAULT_SCHEMA_NAME,
-                                                         test_table_names[i])
-                                  ->GetTableOid());
+    catalog->CreateTable(txn, test_db_name, DEFAULT_SCHEMA_NAME, std::move(table_schema), test_table_names[i], false,
+                         tuples_per_tilegroup, layout_type);
+    test_table_oids.push_back(
+        catalog->GetTableCatalogEntry(txn, test_db_name, DEFAULT_SCHEMA_NAME, test_table_names[i])->GetTableOid());
   }
 }
 
-void PelotonCodeGenTest::LoadTestTable(oid_t table_id, uint32_t num_rows,
-                                       bool insert_nulls) {
+void PelotonCodeGenTest::LoadTestTable(oid_t table_id, uint32_t num_rows, bool insert_nulls) {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto *txn = txn_manager.BeginTransaction();
 
@@ -158,9 +124,7 @@ void PelotonCodeGenTest::LoadTestTable(oid_t table_id, uint32_t num_rows,
   auto *table_schema = test_table.GetSchema();
   size_t curr_size = test_table.GetTupleCount();
 
-  auto col_val = [](uint32_t tuple_id, uint32_t col_id) {
-    return 10 * tuple_id + col_id;
-  };
+  auto col_val = [](uint32_t tuple_id, uint32_t col_id) { return 10 * tuple_id + col_id; };
 
   const bool allocate = true;
   auto testing_pool = TestingHarness::GetInstance().GetTestingPool();
@@ -178,13 +142,11 @@ void PelotonCodeGenTest::LoadTestTable(oid_t table_id, uint32_t num_rows,
     tuple.SetValue(2, type::ValueFactory::GetDecimalValue(col_val(rowid, 2)));
 
     // In case of random, make sure this column has duplicated values
-    auto string_value =
-        type::ValueFactory::GetVarcharValue(std::to_string(col_val(rowid, 3)));
+    auto string_value = type::ValueFactory::GetVarcharValue(std::to_string(col_val(rowid, 3)));
     tuple.SetValue(3, string_value, testing_pool);
 
     ItemPointer *index_entry_ptr = nullptr;
-    ItemPointer tuple_slot_id =
-        test_table.InsertTuple(&tuple, txn, &index_entry_ptr);
+    ItemPointer tuple_slot_id = test_table.InsertTuple(&tuple, txn, &index_entry_ptr);
     PELOTON_ASSERT(tuple_slot_id.block != INVALID_OID);
     PELOTON_ASSERT(tuple_slot_id.offset != INVALID_OID);
 
@@ -195,9 +157,9 @@ void PelotonCodeGenTest::LoadTestTable(oid_t table_id, uint32_t num_rows,
   txn_manager.CommitTransaction(txn);
 }
 
-void PelotonCodeGenTest::CreateAndLoadTableWithLayout(
-    peloton::LayoutType layout_type, uint32_t tuples_per_tilegroup,
-    uint32_t tile_group_count, uint32_t column_count, bool is_inlined) {
+void PelotonCodeGenTest::CreateAndLoadTableWithLayout(peloton::LayoutType layout_type, uint32_t tuples_per_tilegroup,
+                                                      uint32_t tile_group_count, uint32_t column_count,
+                                                      bool is_inlined) {
   uint32_t tuple_count = tuples_per_tilegroup * tile_group_count;
   /////////////////////////////////////////////////////////
   // Define the schema.
@@ -206,15 +168,13 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr <= column_count; col_itr++) {
-    auto column = catalog::Column(
-        type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
-        "FIELD" + std::to_string(col_itr), is_inlined);
+    auto column = catalog::Column(type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
+                                  "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);
   }
 
-  std::unique_ptr<catalog::Schema> table_schema =
-      std::unique_ptr<catalog::Schema>(new catalog::Schema(columns));
+  std::unique_ptr<catalog::Schema> table_schema = std::unique_ptr<catalog::Schema>(new catalog::Schema(columns));
   std::string table_name("LAYOUT_TABLE");
 
   /////////////////////////////////////////////////////////
@@ -228,19 +188,10 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(
   auto txn = txn_manager.BeginTransaction();
 
   // Insert table in catalog
-  catalog->CreateTable(txn,
-                       test_db_name,
-                       DEFAULT_SCHEMA_NAME,
-                       std::move(table_schema),
-                       table_name,
-                       is_catalog,
-                       tuples_per_tilegroup,
-                       layout_type);
+  catalog->CreateTable(txn, test_db_name, DEFAULT_SCHEMA_NAME, std::move(table_schema), table_name, is_catalog,
+                       tuples_per_tilegroup, layout_type);
   // Get table reference
-  layout_table = catalog->GetTableWithName(txn,
-                                           test_db_name,
-                                           DEFAULT_SCHEMA_NAME,
-                                           table_name);
+  layout_table = catalog->GetTableWithName(txn, test_db_name, DEFAULT_SCHEMA_NAME, table_name);
   txn_manager.EndTransaction(txn);
 
   /////////////////////////////////////////////////////////
@@ -264,8 +215,7 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(
     }
 
     ItemPointer *index_entry_ptr = nullptr;
-    ItemPointer tuple_slot_id =
-        layout_table->InsertTuple(&tuple, txn, &index_entry_ptr);
+    ItemPointer tuple_slot_id = layout_table->InsertTuple(&tuple, txn, &index_entry_ptr);
 
     EXPECT_TRUE(tuple_slot_id.block != INVALID_OID);
     EXPECT_TRUE(tuple_slot_id.offset != INVALID_OID);
@@ -276,8 +226,8 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(
   txn_manager.CommitTransaction(txn);
 }
 
-PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecute(
-    planner::AbstractPlan &plan, codegen::ExecutionConsumer &consumer) {
+PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecute(planner::AbstractPlan &plan,
+                                                                       codegen::ExecutionConsumer &consumer) {
   codegen::QueryParameters parameters(plan, {});
 
   // Start a transaction.
@@ -286,8 +236,8 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecute(
 
   // Compile the query.
   CodeGenStats stats;
-  auto query = codegen::QueryCompiler().Compile(
-      plan, parameters.GetQueryParametersMap(), consumer, &stats.compile_stats);
+  auto query =
+      codegen::QueryCompiler().Compile(plan, parameters.GetQueryParametersMap(), consumer, &stats.compile_stats);
 
   // Executor context
   executor::ExecutorContext exec_ctx{txn, std::move(parameters)};
@@ -304,16 +254,15 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecute(
   return stats;
 }
 
-PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecuteCache(
-    std::shared_ptr<planner::AbstractPlan> plan,
-    codegen::ExecutionConsumer &consumer, bool &cached,
-    std::vector<type::Value> params) {
+PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecuteCache(std::shared_ptr<planner::AbstractPlan> plan,
+                                                                            codegen::ExecutionConsumer &consumer,
+                                                                            bool &cached,
+                                                                            std::vector<type::Value> params) {
   // Start a transaction
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto *txn = txn_manager.BeginTransaction();
 
-  executor::ExecutorContext exec_ctx{txn,
-                                     codegen::QueryParameters(*plan, params)};
+  executor::ExecutorContext exec_ctx{txn, codegen::QueryParameters(*plan, params)};
 
   // Compile
   CodeGenStats stats;
@@ -321,8 +270,7 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecuteCache(
   cached = (query != nullptr);
   if (query == nullptr) {
     codegen::QueryCompiler compiler;
-    auto compiled_query = compiler.Compile(
-        *plan, exec_ctx.GetParams().GetQueryParametersMap(), consumer);
+    auto compiled_query = compiler.Compile(*plan, exec_ctx.GetParams().GetQueryParametersMap(), consumer);
     compiled_query->Compile();
     query = compiled_query.get();
     codegen::QueryCache::Instance().Add(plan, std::move(compiled_query));
@@ -338,70 +286,50 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecuteCache(
 }
 
 ExpressionPtr PelotonCodeGenTest::ConstIntExpr(int64_t val) {
-  auto *expr = new expression::ConstantValueExpression(
-      type::ValueFactory::GetIntegerValue(val));
+  auto *expr = new expression::ConstantValueExpression(type::ValueFactory::GetIntegerValue(val));
   return ExpressionPtr{expr};
 }
 
 ExpressionPtr PelotonCodeGenTest::ConstDecimalExpr(double val) {
-  auto *expr = new expression::ConstantValueExpression(
-      type::ValueFactory::GetDecimalValue(val));
+  auto *expr = new expression::ConstantValueExpression(type::ValueFactory::GetDecimalValue(val));
   return ExpressionPtr{expr};
 }
 
-ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type,
-                                             uint32_t col_id) {
+ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type, uint32_t col_id) {
   auto *expr = new expression::TupleValueExpression(type, 0, col_id);
   return ExpressionPtr{expr};
 }
 
-ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type, bool left,
-                                             uint32_t col_id) {
-  return ExpressionPtr{
-      new expression::TupleValueExpression(type, !left, col_id)};
+ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type, bool left, uint32_t col_id) {
+  return ExpressionPtr{new expression::TupleValueExpression(type, !left, col_id)};
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpExpr(ExpressionType cmp_type,
-                                          ExpressionPtr &&left,
-                                          ExpressionPtr &&right) {
-  auto *expr = new expression::ComparisonExpression(cmp_type, left.release(),
-                                                    right.release());
+ExpressionPtr PelotonCodeGenTest::CmpExpr(ExpressionType cmp_type, ExpressionPtr &&left, ExpressionPtr &&right) {
+  auto *expr = new expression::ComparisonExpression(cmp_type, left.release(), right.release());
   return ExpressionPtr{expr};
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpLtExpr(ExpressionPtr &&left,
-                                            ExpressionPtr &&right) {
-  return CmpExpr(ExpressionType::COMPARE_LESSTHAN, std::move(left),
-                 std::move(right));
+ExpressionPtr PelotonCodeGenTest::CmpLtExpr(ExpressionPtr &&left, ExpressionPtr &&right) {
+  return CmpExpr(ExpressionType::COMPARE_LESSTHAN, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpLteExpr(ExpressionPtr &&left,
-                                             ExpressionPtr &&right) {
-  return CmpExpr(ExpressionType::COMPARE_LESSTHANOREQUALTO, std::move(left),
-                 std::move(right));
+ExpressionPtr PelotonCodeGenTest::CmpLteExpr(ExpressionPtr &&left, ExpressionPtr &&right) {
+  return CmpExpr(ExpressionType::COMPARE_LESSTHANOREQUALTO, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpGtExpr(ExpressionPtr &&left,
-                                            ExpressionPtr &&right) {
-  return CmpExpr(ExpressionType::COMPARE_GREATERTHAN, std::move(left),
-                 std::move(right));
+ExpressionPtr PelotonCodeGenTest::CmpGtExpr(ExpressionPtr &&left, ExpressionPtr &&right) {
+  return CmpExpr(ExpressionType::COMPARE_GREATERTHAN, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpGteExpr(ExpressionPtr &&left,
-                                             ExpressionPtr &&right) {
-  return CmpExpr(ExpressionType::COMPARE_GREATERTHANOREQUALTO, std::move(left),
-                 std::move(right));
+ExpressionPtr PelotonCodeGenTest::CmpGteExpr(ExpressionPtr &&left, ExpressionPtr &&right) {
+  return CmpExpr(ExpressionType::COMPARE_GREATERTHANOREQUALTO, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::CmpEqExpr(ExpressionPtr &&left,
-                                            ExpressionPtr &&right) {
-  return CmpExpr(ExpressionType::COMPARE_EQUAL, std::move(left),
-                 std::move(right));
+ExpressionPtr PelotonCodeGenTest::CmpEqExpr(ExpressionPtr &&left, ExpressionPtr &&right) {
+  return CmpExpr(ExpressionType::COMPARE_EQUAL, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type,
-                                         type::TypeId type,
-                                         ExpressionPtr &&left,
+ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type, type::TypeId type, ExpressionPtr &&left,
                                          ExpressionPtr &&right) {
   switch (op_type) {
     case ExpressionType::OPERATOR_PLUS:
@@ -409,13 +337,10 @@ ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type,
     case ExpressionType::OPERATOR_MULTIPLY:
     case ExpressionType::OPERATOR_DIVIDE:
     case ExpressionType::OPERATOR_MOD: {
-      return ExpressionPtr{new expression::OperatorExpression(
-          op_type, type, left.release(), right.release())};
+      return ExpressionPtr{new expression::OperatorExpression(op_type, type, left.release(), right.release())};
       break;
     }
-    default: {
-      throw Exception{"OpExpr only supports (+, -, *, /, %) operations"};
-    }
+    default: { throw Exception{"OpExpr only supports (+, -, *, /, %) operations"}; }
   }
 }
 
@@ -423,12 +348,9 @@ ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type,
 // PRINTER
 //===----------------------------------------------------------------------===//
 
-void Printer::Prepare(codegen::CompilationContext &ctx) {
-  ExecutionConsumer::Prepare(ctx);
-}
+void Printer::Prepare(codegen::CompilationContext &ctx) { ExecutionConsumer::Prepare(ctx); }
 
-void Printer::ConsumeResult(codegen::ConsumerContext &ctx,
-                            codegen::RowBatch::Row &row) const {
+void Printer::ConsumeResult(codegen::ConsumerContext &ctx, codegen::RowBatch::Row &row) const {
   codegen::CodeGen &codegen = ctx.GetCodeGen();
 
   // Iterate over the attributes, constructing the printf format along the way
@@ -442,7 +364,7 @@ void Printer::ConsumeResult(codegen::ConsumerContext &ctx,
     }
     first = false;
     codegen::Value val = row.DeriveValue(codegen, ai);
-    PELOTON_ASSERT(val.GetType().type_id != peloton::type::TypeId::INVALID);
+    PELOTON_ASSERT(val.GetType().type_id != type::TypeId::INVALID);
     switch (val.GetType().type_id) {
       case type::TypeId::BOOLEAN:
       case type::TypeId::TINYINT:

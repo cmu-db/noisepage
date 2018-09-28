@@ -23,8 +23,6 @@ namespace storage {
 class DataTable;
 }  // namespace storage
 
-
-
 //===----------------------------------------------------------------------===//
 // This class the main entry point for any code generation that requires
 // operating on physical tables. Ideally, there should only be one instance of
@@ -43,19 +41,16 @@ class Table {
   /// Generate code to perform a scan over the given table. The table pointer
   /// is provided as the second argument. The scan consumer (third argument)
   /// should be notified when ready to generate the scan loop body.
-  void GenerateScan(CodeGen &codegen, llvm::Value *table_ptr,
-                    llvm::Value *tilegroup_start, llvm::Value *tilegroup_end,
-                    uint32_t batch_size, llvm::Value *predicate_array,
-                    size_t num_predicates, ScanCallback &consumer) const;
+  void GenerateScan(CodeGen &codegen, llvm::Value *table_ptr, llvm::Value *tilegroup_start, llvm::Value *tilegroup_end,
+                    uint32_t batch_size, llvm::Value *predicate_array, size_t num_predicates,
+                    ScanCallback &consumer) const;
 
   /// Given a table instance, return the number of tile groups in the table.
-  llvm::Value *GetTileGroupCount(CodeGen &codegen,
-                                 llvm::Value *table_ptr) const;
+  llvm::Value *GetTileGroupCount(CodeGen &codegen, llvm::Value *table_ptr) const;
 
   /// Retrieve an instance of the provided table's tile group given the tile
   /// group's index.
-  llvm::Value *GetTileGroup(CodeGen &codegen, llvm::Value *table_ptr,
-                            llvm::Value *tile_group_id) const;
+  llvm::Value *GetTileGroup(CodeGen &codegen, llvm::Value *table_ptr, llvm::Value *tile_group_id) const;
 
   llvm::Value *GetZoneMapManager(CodeGen &codegen) const;
 
@@ -66,6 +61,5 @@ class Table {
   // The generator for a tile group
   TileGroup tile_group_;
 };
-
 
 }  // namespace terrier::execution

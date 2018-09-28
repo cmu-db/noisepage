@@ -70,8 +70,7 @@ class SorterTest : public PelotonTest {
     ::peloton::type::EphemeralPool pool;
 
     {
-      codegen::util::Sorter sorter{pool, CompareTuplesForAscending,
-                                   sizeof(TestTuple)};
+      codegen::util::Sorter sorter{pool, CompareTuplesForAscending, sizeof(TestTuple)};
 
       // Time this stuff
       Timer<std::ratio<1, 1000>> timer;
@@ -81,8 +80,7 @@ class SorterTest : public PelotonTest {
       LoadSorter(sorter, num_tuples_to_insert);
 
       timer.Stop();
-      LOG_INFO("Loading %" PRId64 " tuples into sort took %.2f ms",
-               num_tuples_to_insert, timer.GetDuration());
+      LOG_INFO("Loading %" PRId64 " tuples into sort took %.2f ms", num_tuples_to_insert, timer.GetDuration());
       timer.Reset();
       timer.Start();
 
@@ -90,8 +88,7 @@ class SorterTest : public PelotonTest {
       sorter.Sort();
 
       timer.Stop();
-      LOG_INFO("Sorting %" PRId64 " tuples took %.2f ms", num_tuples_to_insert,
-               timer.GetDuration());
+      LOG_INFO("Sorting %" PRId64 " tuples took %.2f ms", num_tuples_to_insert, timer.GetDuration());
 
       // Check sorted results
       CheckSorted(sorter, true);
@@ -128,16 +125,13 @@ TEST_F(SorterTest, ParallelSortTest) {
 
   // Load each sorter
   for (uint32_t i = 0; i < num_threads; i++) {
-    auto *sorter = reinterpret_cast<codegen::util::Sorter *>(
-        thread_states.AccessThreadState(i));
-    codegen::util::Sorter::Init(*sorter, ctx, CompareTuplesForAscending,
-                                sizeof(TestTuple));
+    auto *sorter = reinterpret_cast<codegen::util::Sorter *>(thread_states.AccessThreadState(i));
+    codegen::util::Sorter::Init(*sorter, ctx, CompareTuplesForAscending, sizeof(TestTuple));
     LoadSorter(*sorter, ntuples_per_sorter);
   }
 
   {
-    codegen::util::Sorter main_sorter{*ctx.GetPool(), CompareTuplesForAscending,
-                                      sizeof(TestTuple)};
+    codegen::util::Sorter main_sorter{*ctx.GetPool(), CompareTuplesForAscending, sizeof(TestTuple)};
     Timer<std::milli> timer;
     timer.Start();
 
@@ -155,8 +149,7 @@ TEST_F(SorterTest, ParallelSortTest) {
 
     // Clean up
     for (uint32_t i = 0; i < num_threads; i++) {
-      auto *sorter = reinterpret_cast<codegen::util::Sorter *>(
-          thread_states.AccessThreadState(i));
+      auto *sorter = reinterpret_cast<codegen::util::Sorter *>(thread_states.AccessThreadState(i));
       codegen::util::Sorter::Destroy(*sorter);
     }
   }

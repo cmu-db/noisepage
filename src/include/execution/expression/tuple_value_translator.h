@@ -20,20 +20,16 @@ namespace expression {
 class TupleValueExpression;
 }  // namespace expression
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator for expressions that access a specific attribute in a tuple
 //===----------------------------------------------------------------------===//
 class TupleValueTranslator : public ExpressionTranslator {
  public:
   // Constructor
-  TupleValueTranslator(const expression::TupleValueExpression &tve_expr,
-                       CompilationContext &context);
+  TupleValueTranslator(const expression::TupleValueExpression &tve_expr, CompilationContext &context);
 
   // Return the attribute from the row
   Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

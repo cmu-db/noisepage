@@ -11,14 +11,14 @@
 //===----------------------------------------------------------------------===//
 
 #include "catalog/catalog.h"
-#include "execution/query_compiler.h"
 #include "common/harness.h"
+#include "execution/query_compiler.h"
 #include "expression/case_expression.h"
 #include "expression/conjunction_expression.h"
 #include "expression/operator_expression.h"
 #include "expression/tuple_value_expression.h"
-#include "planner/seq_scan_plan.h"
 #include "planner/projection_plan.h"
+#include "planner/seq_scan_plan.h"
 
 #include "execution/testing_codegen_util.h"
 
@@ -46,16 +46,14 @@ TEST_F(CaseTranslatorTest, SimpleCase) {
   //
 
   // Make one When condition
-  auto when_a_eq_10 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  auto when_a_eq_10 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
 
   std::vector<expression::CaseExpression::WhenClause> clauses;
-  clauses.push_back(expression::CaseExpression::WhenClause{
-      std::move(when_a_eq_10), ConstIntExpr(1)});
+  clauses.push_back(expression::CaseExpression::WhenClause{std::move(when_a_eq_10), ConstIntExpr(1)});
 
   // Set up CASE with all the When's and the default value
-  expression::CaseExpression *case_expr = new expression::CaseExpression(
-      type::TypeId::INTEGER, clauses, ConstIntExpr(0));
+  expression::CaseExpression *case_expr =
+      new expression::CaseExpression(type::TypeId::INTEGER, clauses, ConstIntExpr(0));
 
   // Setup a projection
   DirectMapList direct_map_list = {{0, {0, 0}}};
@@ -63,15 +61,13 @@ TEST_F(CaseTranslatorTest, SimpleCase) {
   planner::DerivedAttribute attribute{case_expr};
   Target target = std::make_pair(1, attribute);
   target_list.push_back(target);
-  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(
-      std::move(target_list), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{
+      new planner::ProjectInfo(std::move(target_list), std::move(direct_map_list))};
 
   // Setup the plan nodes
-  std::unique_ptr<planner::SeqScanPlan> scan(
-      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0}));
+  std::unique_ptr<planner::SeqScanPlan> scan(new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0}));
 
-  std::shared_ptr<catalog::Schema> sp_table_schema{
-      new catalog::Schema(*GetTestTable(TestTableId()).GetSchema())};
+  std::shared_ptr<catalog::Schema> sp_table_schema{new catalog::Schema(*GetTestTable(TestTableId()).GetSchema())};
   planner::ProjectionPlan projection{std::move(proj_info), sp_table_schema};
   projection.AddChild(std::move(scan));
 
@@ -88,23 +84,13 @@ TEST_F(CaseTranslatorTest, SimpleCase) {
   // Check that we got all the results
   const auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(NumRowsInTestTable(), results.size());
-  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(0)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(0)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[1].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(10)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[1].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(1)) ==
-              CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(0)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(0)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[1].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(10)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[1].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(1)) == CmpBool::CmpTrue);
 
   for (uint32_t i = 2; i < NumRowsInTestTable(); i++) {
-    EXPECT_TRUE(results[i].GetValue(1).CompareEquals(
-                    type::ValueFactory::GetBigIntValue(0)) ==
-                CmpBool::CmpTrue);
+    EXPECT_TRUE(results[i].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(0)) == CmpBool::CmpTrue);
   }
 }
 
@@ -114,18 +100,16 @@ TEST_F(CaseTranslatorTest, SimpleCaseMoreWhen) {
   //
 
   // Make the when conditions
-  auto when_a_eq_10 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
-  auto when_a_eq_20 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  auto when_a_eq_10 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(10));
+  auto when_a_eq_20 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   std::vector<expression::CaseExpression::WhenClause> clauses;
   clauses.emplace_back(std::move(when_a_eq_10), ConstIntExpr(1));
   clauses.emplace_back(std::move(when_a_eq_20), ConstIntExpr(2));
 
   // Set up CASE with all the When's and the default value
-  expression::CaseExpression *case_expr = new expression::CaseExpression(
-      type::TypeId::INTEGER, clauses, ConstIntExpr(0));
+  expression::CaseExpression *case_expr =
+      new expression::CaseExpression(type::TypeId::INTEGER, clauses, ConstIntExpr(0));
 
   // Setup a projection
   DirectMapList direct_map_list = {{0, {0, 0}}};
@@ -133,15 +117,13 @@ TEST_F(CaseTranslatorTest, SimpleCaseMoreWhen) {
   planner::DerivedAttribute attribute{case_expr};
   Target target = std::make_pair(1, attribute);
   target_list.push_back(target);
-  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(
-      std::move(target_list), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{
+      new planner::ProjectInfo(std::move(target_list), std::move(direct_map_list))};
 
   // Setup the plan nodes
-  std::unique_ptr<planner::SeqScanPlan> scan(
-      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0}));
+  std::unique_ptr<planner::SeqScanPlan> scan(new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0}));
 
-  std::shared_ptr<catalog::Schema> sp_table_schema{
-      new catalog::Schema(*GetTestTable(TestTableId()).GetSchema())};
+  std::shared_ptr<catalog::Schema> sp_table_schema{new catalog::Schema(*GetTestTable(TestTableId()).GetSchema())};
   planner::ProjectionPlan projection{std::move(proj_info), sp_table_schema};
   projection.AddChild(std::move(scan));
 
@@ -158,24 +140,12 @@ TEST_F(CaseTranslatorTest, SimpleCaseMoreWhen) {
   // Check that we got all the results
   const auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(NumRowsInTestTable(), results.size());
-  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(0)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(0)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[1].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(10)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[1].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(1)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[2].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(20)) ==
-              CmpBool::CmpTrue);
-  EXPECT_TRUE(results[2].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(2)) ==
-              CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(0)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(0)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[1].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(10)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[1].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(1)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[2].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(20)) == CmpBool::CmpTrue);
+  EXPECT_TRUE(results[2].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(2)) == CmpBool::CmpTrue);
 }
 
 }  // namespace test

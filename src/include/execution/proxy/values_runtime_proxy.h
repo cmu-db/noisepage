@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(ValuesRuntime) {
   DECLARE_METHOD(OutputBoolean);
   DECLARE_METHOD(OutputTinyInt);
@@ -30,6 +29,5 @@ PROXY(ValuesRuntime) {
   DECLARE_METHOD(OutputVarchar);
   DECLARE_METHOD(OutputVarbinary);
 };
-
 
 }  // namespace terrier::execution

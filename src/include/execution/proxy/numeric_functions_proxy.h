@@ -16,7 +16,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(NumericFunctions) {
   // Utility functions
   DECLARE_METHOD(Abs);
@@ -32,6 +31,5 @@ PROXY(NumericFunctions) {
   DECLARE_METHOD(InputBigInt);
   DECLARE_METHOD(InputDecimal);
 };
-
 
 }  // namespace terrier::execution

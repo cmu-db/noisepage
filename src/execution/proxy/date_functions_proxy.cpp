@@ -18,12 +18,10 @@
 
 namespace terrier::execution {
 
-
 // Utility functions
 DEFINE_METHOD(peloton::function, DateFunctions, Now);
 
 // Input functions
 DEFINE_METHOD(peloton::function, DateFunctions, InputDate);
-
 
 }  // namespace terrier::execution

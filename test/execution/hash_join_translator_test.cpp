@@ -10,15 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/query_compiler.h"
 #include "common/harness.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/query_compiler.h"
 #include "expression/comparison_expression.h"
 #include "expression/tuple_value_expression.h"
-#include "storage/table_factory.h"
 #include "planner/hash_join_plan.h"
 #include "planner/hash_plan.h"
 #include "planner/seq_scan_plan.h"
+#include "storage/table_factory.h"
 
 #include "execution/testing_codegen_util.h"
 
@@ -38,13 +38,9 @@ class HashJoinTranslatorTest : public PelotonCodeGenTest {
 
   oid_t RightTableId() const { return test_table_oids[1]; }
 
-  storage::DataTable &GetLeftTable() const {
-    return GetTestTable(LeftTableId());
-  }
+  storage::DataTable &GetLeftTable() const { return GetTestTable(LeftTableId()); }
 
-  storage::DataTable &GetRightTable() const {
-    return GetTestTable(RightTableId());
-  }
+  storage::DataTable &GetRightTable() const { return GetTestTable(RightTableId()); }
 };
 
 TEST_F(HashJoinTranslatorTest, SingleHashJoinColumnTest) {
@@ -63,15 +59,12 @@ TEST_F(HashJoinTranslatorTest, SingleHashJoinColumnTest) {
   DirectMap dm3 = std::make_pair(2, std::make_pair(0, 1));
   DirectMap dm4 = std::make_pair(3, std::make_pair(1, 2));
   DirectMapList direct_map_list = {dm1, dm2, dm3, dm4};
-  std::unique_ptr<planner::ProjectInfo> projection{
-      new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> projection{new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
 
   // Output schema
   auto schema = std::shared_ptr<const catalog::Schema>(
-      new catalog::Schema({TestingExecutorUtil::GetColumnInfo(0),
-                           TestingExecutorUtil::GetColumnInfo(0),
-                           TestingExecutorUtil::GetColumnInfo(1),
-                           TestingExecutorUtil::GetColumnInfo(2)}));
+      new catalog::Schema({TestingExecutorUtil::GetColumnInfo(0), TestingExecutorUtil::GetColumnInfo(0),
+                           TestingExecutorUtil::GetColumnInfo(1), TestingExecutorUtil::GetColumnInfo(2)}));
 
   // Left and right hash keys
   std::vector<ConstExpressionPtr> left_hash_keys;
@@ -84,16 +77,12 @@ TEST_F(HashJoinTranslatorTest, SingleHashJoinColumnTest) {
   hash_keys.emplace_back(ColRefExpr(type::TypeId::INTEGER, 0));
 
   // Finally, the fucking join node
-  std::unique_ptr<planner::HashJoinPlan> hj_plan{
-      new planner::HashJoinPlan(JoinType::INNER, nullptr, std::move(projection),
-                                schema, left_hash_keys, right_hash_keys, true)};
-  std::unique_ptr<planner::HashPlan> hash_plan{
-      new planner::HashPlan(hash_keys)};
+  std::unique_ptr<planner::HashJoinPlan> hj_plan{new planner::HashJoinPlan(
+      JoinType::INNER, nullptr, std::move(projection), schema, left_hash_keys, right_hash_keys, true)};
+  std::unique_ptr<planner::HashPlan> hash_plan{new planner::HashPlan(hash_keys)};
 
-  std::unique_ptr<planner::AbstractPlan> left_scan{
-      new planner::SeqScanPlan(&GetLeftTable(), nullptr, {0, 1, 2})};
-  std::unique_ptr<planner::AbstractPlan> right_scan{
-      new planner::SeqScanPlan(&GetRightTable(), nullptr, {0, 1, 2})};
+  std::unique_ptr<planner::AbstractPlan> left_scan{new planner::SeqScanPlan(&GetLeftTable(), nullptr, {0, 1, 2})};
+  std::unique_ptr<planner::AbstractPlan> right_scan{new planner::SeqScanPlan(&GetRightTable(), nullptr, {0, 1, 2})};
 
   hash_plan->AddChild(std::move(right_scan));
   hj_plan->AddChild(std::move(left_scan));
@@ -118,12 +107,10 @@ TEST_F(HashJoinTranslatorTest, SingleHashJoinColumnTest) {
     type::Value v0 = tuple.GetValue(0);
     EXPECT_EQ(type::TypeId::INTEGER, v0.GetTypeId());
 
-    LOG_DEBUG("%s Output: %s", peloton::GETINFO_LONG_ARROW.c_str(),
-              tuple.GetInfo().c_str());
+    LOG_DEBUG("%s Output: %s", peloton::GETINFO_LONG_ARROW.c_str(), tuple.GetInfo().c_str());
 
     // Check that the joins keys are actually equal
-    EXPECT_EQ(CmpBool::CmpTrue,
-              tuple.GetValue(0).CompareEquals(tuple.GetValue(1)));
+    EXPECT_EQ(CmpBool::CmpTrue, tuple.GetValue(0).CompareEquals(tuple.GetValue(1)));
   }
 }
 

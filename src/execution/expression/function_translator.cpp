@@ -20,10 +20,7 @@
 
 namespace terrier::execution {
 
-
-FunctionTranslator::FunctionTranslator(
-    const expression::FunctionExpression &func_expr,
-    CompilationContext &context)
+FunctionTranslator::FunctionTranslator(const expression::FunctionExpression &func_expr, CompilationContext &context)
     : ExpressionTranslator(func_expr, context) {
   if (!func_expr.IsUDF()) {
     PELOTON_ASSERT(func_expr.GetFunc().op_id != OperatorId::Invalid);
@@ -36,21 +33,18 @@ FunctionTranslator::FunctionTranslator(
   }
 }
 
-codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
-                                               RowBatch::Row &row) const {
+Value FunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
   // The function expression
   const auto &func_expr = GetExpressionAs<expression::FunctionExpression>();
 
   // Collect the arguments for the function
-  std::vector<codegen::Value> args;
+  std::vector<Value> args;
   for (uint32_t i = 0; i < func_expr.GetChildrenSize(); i++) {
     args.push_back(row.DeriveValue(codegen, *func_expr.GetChild(i)));
   }
 
   // The context for the function invocation
-  type::TypeSystem::InvocationContext ctx{
-      .on_error = OnError::Exception,
-      .executor_context = GetExecutorContextPtr()};
+  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception, .executor_context = GetExecutorContextPtr()};
 
   if (!func_expr.IsUDF()) {
     // The ID of the operator we're calling
@@ -58,8 +52,7 @@ codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
 
     if (args.size() == 1) {
       // Lookup unary operation
-      auto *unary_op =
-          type::TypeSystem::GetUnaryOperator(operator_id, args[0].GetType());
+      auto *unary_op = type::TypeSystem::GetUnaryOperator(operator_id, args[0].GetType());
       PELOTON_ASSERT(unary_op != nullptr);
 
       // Invoke
@@ -67,13 +60,11 @@ codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
     } else if (args.size() == 2) {
       // Lookup the function
       type::Type left_type = args[0].GetType(), right_type = args[1].GetType();
-      auto *binary_op = type::TypeSystem::GetBinaryOperator(
-          operator_id, left_type, left_type, right_type, right_type);
+      auto *binary_op = type::TypeSystem::GetBinaryOperator(operator_id, left_type, left_type, right_type, right_type);
       PELOTON_ASSERT(binary_op);
 
       // Invoke
-      return binary_op->Eval(codegen, args[0].CastTo(codegen, left_type),
-                             args[1].CastTo(codegen, right_type), ctx);
+      return binary_op->Eval(codegen, args[0].CastTo(codegen, left_type), args[1].CastTo(codegen, right_type), ctx);
     } else {
       // It's an N-Ary function
       // Collect argument types for lookup
@@ -96,8 +87,7 @@ codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
       raw_args.push_back(args[i].GetValue());
     }
 
-    std::unique_ptr<peloton::udf::UDFHandler> udf_handler(
-        new peloton::udf::UDFHandler());
+    std::unique_ptr<peloton::udf::UDFHandler> udf_handler(new peloton::udf::UDFHandler());
 
     // Register function prototype in current context
     auto *func_ptr = udf_handler->RegisterExternalFunction(codegen, func_expr);
@@ -105,10 +95,8 @@ codegen::Value FunctionTranslator::DeriveValue(CodeGen &codegen,
     auto call_ret = codegen.CallFunc(func_ptr, raw_args);
 
     // TODO(PP): Should be changed to accomodate any return type
-    return codegen::Value{type::Decimal::Instance(), call_ret, nullptr,
-                          nullptr};
+    return Value{type::Decimal::Instance(), call_ret, nullptr, nullptr};
   }
 }
-
 
 }  // namespace terrier::execution

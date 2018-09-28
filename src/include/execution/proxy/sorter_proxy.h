@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(Sorter) {
   // clang-format off
   DECLARE_MEMBER(0,
@@ -45,6 +44,5 @@ PROXY(Sorter) {
 };
 
 TYPE_BUILDER(Sorter, util::Sorter);
-
 
 }  // namespace terrier::execution

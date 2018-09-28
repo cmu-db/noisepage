@@ -14,8 +14,6 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(Target, "peloton::Target", opaque);
-
 
 }  // namespace terrier::execution

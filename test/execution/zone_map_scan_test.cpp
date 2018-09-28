@@ -10,15 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "storage/storage_manager.h"
 #include "catalog/catalog.h"
-#include "execution/query_compiler.h"
 #include "common/harness.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/counting_consumer.h"
+#include "execution/query_compiler.h"
 #include "expression/conjunction_expression.h"
 #include "expression/operator_expression.h"
 #include "planner/seq_scan_plan.h"
-#include "execution/counting_consumer.h"
+#include "storage/storage_manager.h"
 
 #include "execution/testing_codegen_util.h"
 
@@ -29,8 +29,7 @@ class ZoneMapScanTest : public PelotonCodeGenTest {
   std::string all_cols_table_name = "skipping_table";
 
  public:
-  ZoneMapScanTest()
-      : PelotonCodeGenTest(TEST_TUPLES_PER_TILEGROUP), num_rows_to_insert(20) {
+  ZoneMapScanTest() : PelotonCodeGenTest(TEST_TUPLES_PER_TILEGROUP), num_rows_to_insert(20) {
     // Load test table
     LoadTestTable(TestTableId(), num_rows_to_insert);
 
@@ -54,8 +53,7 @@ class ZoneMapScanTest : public PelotonCodeGenTest {
     // Create Zone Maps.
     auto catalog = catalog::Catalog::GetInstance();
     (void)catalog;
-    storage::ZoneMapManager *zone_map_manager =
-        storage::ZoneMapManager::GetInstance();
+    storage::ZoneMapManager *zone_map_manager = storage::ZoneMapManager::GetInstance();
     zone_map_manager->CreateZoneMapTableInCatalog();
     auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
     auto txn = txn_manager.BeginTransaction();
@@ -84,8 +82,7 @@ TEST_F(ZoneMapScanTest, ScanNoPredicates) {
 TEST_F(ZoneMapScanTest, SimplePredicate) {
   // SELECT a, b, c FROM table where a >= 20;
   // 1) Setup the predicate
-  ExpressionPtr a_gt_20 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
   planner::SeqScanPlan scan{&table, a_gt_20.release(), {0, 1, 2}};
@@ -104,8 +101,7 @@ TEST_F(ZoneMapScanTest, SimplePredicate) {
 TEST_F(ZoneMapScanTest, PredicateOnNonOutputColumn) {
   // SELECT b FROM table where a >= 40;
   // 1) Setup the predicate
-  ExpressionPtr a_gt_40 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
+  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
   planner::SeqScanPlan scan{&table, a_gt_40.release(), {0, 1}};
@@ -125,14 +121,12 @@ TEST_F(ZoneMapScanTest, ScanwithConjunctionPredicate) {
   // SELECT a, b, c FROM table where a >= 20 and b = 21;
   // 1) Construct the components of the predicate
   // a >= 20
-  ExpressionPtr a_gt_20 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
   // b = 21
-  ExpressionPtr b_eq_21 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
+  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
   // a >= 20 AND b = 21
-  auto *conj_eq = new expression::ConjunctionExpression(
-      ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
+  auto *conj_eq =
+      new expression::ConjunctionExpression(ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
   // 2) Setup the scan plan node
   planner::SeqScanPlan scan{&GetTestTable(TestTableId()), conj_eq, {0, 1, 2}};
   // 3) Do binding
@@ -145,10 +139,8 @@ TEST_F(ZoneMapScanTest, ScanwithConjunctionPredicate) {
   // Check output results
   const auto &results = buffer.GetOutputTuples();
   ASSERT_EQ(1, results.size());
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(20)));
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(
-                                     type::ValueFactory::GetIntegerValue(21)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(20)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(21)));
 }
-}
-}
+}  // namespace test
+}  // namespace peloton

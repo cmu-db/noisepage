@@ -19,31 +19,26 @@
 
 namespace terrier::execution {
 
-
 class Varlen {
  public:
   // Get the length and the pointer to the variable length object
-  static void SafeGetPtrAndLength(CodeGen &codegen, llvm::Value *varlen_ptr,
-                                  llvm::Value *&data_ptr, llvm::Value *&len) {
+  static void SafeGetPtrAndLength(CodeGen &codegen, llvm::Value *varlen_ptr, llvm::Value *&data_ptr,
+                                  llvm::Value *&len) {
     auto *varlen_type = VarlenProxy::GetType(codegen);
 
     // The first four bytes are the length, load it here
-    auto *len_ptr =
-        codegen->CreateConstInBoundsGEP2_32(varlen_type, varlen_ptr, 0, 0);
+    auto *len_ptr = codegen->CreateConstInBoundsGEP2_32(varlen_type, varlen_ptr, 0, 0);
     len = codegen->CreateLoad(codegen.Int32Type(), len_ptr);
 
     // The four bytes after the start is where the (contiguous) data is
-    data_ptr =
-        codegen->CreateConstInBoundsGEP2_32(varlen_type, varlen_ptr, 0, 1);
+    data_ptr = codegen->CreateConstInBoundsGEP2_32(varlen_type, varlen_ptr, 0, 1);
   }
 
   // Get the length and the pointer to the variable length object
-  static void GetPtrAndLength(CodeGen &codegen, llvm::Value *varlen_ptr,
-                              llvm::Value *&data_ptr, llvm::Value *&len,
+  static void GetPtrAndLength(CodeGen &codegen, llvm::Value *varlen_ptr, llvm::Value *&data_ptr, llvm::Value *&len,
                               llvm::Value *&is_null) {
     // First check if varlen_ptr (i.e., the Varlen *) is NULL
-    auto *null_varlen =
-        codegen.NullPtr(VarlenProxy::GetType(codegen)->getPointerTo());
+    auto *null_varlen = codegen.NullPtr(VarlenProxy::GetType(codegen)->getPointerTo());
     is_null = codegen->CreateICmpEQ(varlen_ptr, null_varlen);
 
     // Depending on NULL-ness, perform load
@@ -66,6 +61,5 @@ class Varlen {
     len = varlen_is_null.BuildPHI(null_len, len);
   }
 };
-
 
 }  // namespace terrier::execution

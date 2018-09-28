@@ -12,11 +12,10 @@
 
 #pragma once
 
-#include "execution/proxy/proxy.h"
 #include "concurrency/transaction_context.h"
+#include "execution/proxy/proxy.h"
 
 namespace terrier::execution {
-
 
 PROXY(TransactionContext) {
   DECLARE_MEMBER(0, char[sizeof(concurrency::TransactionContext)], opaque);
@@ -24,6 +23,5 @@ PROXY(TransactionContext) {
 };
 
 TYPE_BUILDER(TransactionContext, concurrency::TransactionContext);
-
 
 }  // namespace terrier::execution

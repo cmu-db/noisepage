@@ -16,12 +16,10 @@
 
 namespace terrier::execution {
 
-
 PROXY(TimestampFunctions) {
   // Proxy everything in function::DateFunctions
   DECLARE_METHOD(DateTrunc);
   DECLARE_METHOD(DatePart);
 };
-
 
 }  // namespace terrier::execution

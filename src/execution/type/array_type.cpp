@@ -12,8 +12,8 @@
 
 #include "execution/type/array_type.h"
 
-#include "execution/value.h"
 #include "common/exception.h"
+#include "execution/value.h"
 
 namespace terrier::execution {
 
@@ -30,7 +30,7 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////
 
 // The list of types a SQL array type can be implicitly casted to
-const std::vector<peloton::type::TypeId> kImplicitCastingTable = {};
+const std::vector<type::TypeId> kImplicitCastingTable = {};
 
 // Explicit casting rules
 static std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {};
@@ -59,10 +59,9 @@ static std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Array::Array()
-    : SqlType(peloton::type::TypeId::ARRAY),
-      type_system_(kImplicitCastingTable, kExplicitCastingTable,
-                   kComparisonTable, kUnaryOperatorTable, kBinaryOperatorTable,
-                   kNaryOperatorTable, kNoArgOperatorTable) {}
+    : SqlType(type::TypeId::ARRAY),
+      type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
+                   kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 
 Value Array::GetMinValue(UNUSED_ATTRIBUTE CodeGen &codegen) const {
   throw Exception{"Arrays don't have minimum values ...."};
@@ -73,27 +72,20 @@ Value Array::GetMaxValue(UNUSED_ATTRIBUTE CodeGen &codegen) const {
 }
 
 Value Array::GetNullValue(CodeGen &codegen) const {
-  return Value{*this, codegen.NullPtr(codegen.CharPtrType()),
-               codegen.Const32(0), codegen.ConstBool(true)};
+  return Value{*this, codegen.NullPtr(codegen.CharPtrType()), codegen.Const32(0), codegen.ConstBool(true)};
 }
 
-void Array::GetTypeForMaterialization(
-    UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE llvm::Type *&val_type,
-    UNUSED_ATTRIBUTE llvm::Type *&len_type) const {
+void Array::GetTypeForMaterialization(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE llvm::Type *&val_type,
+                                      UNUSED_ATTRIBUTE llvm::Type *&len_type) const {
   // TODO
-  throw NotImplementedException{
-      "Arrays currently do not have a materialization format. Fix me."};
+  throw NotImplementedException{"Arrays currently do not have a materialization format. Fix me."};
 }
 
-llvm::Function *Array::GetInputFunction(
-    UNUSED_ATTRIBUTE CodeGen &codegen,
-    UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *Array::GetInputFunction(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   throw NotImplementedException{"Array's can't be input ... for now ..."};
 }
 
-llvm::Function *Array::GetOutputFunction(
-    UNUSED_ATTRIBUTE CodeGen &codegen,
-    UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *Array::GetOutputFunction(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   throw NotImplementedException{"Array's can't be output ... for now ..."};
 }
 

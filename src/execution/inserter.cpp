@@ -11,21 +11,19 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/inserter.h"
-#include "execution/transaction_runtime.h"
 #include "common/container_tuple.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/transaction_runtime.h"
 #include "executor/executor_context.h"
 #include "executor/logical_tile.h"
 #include "executor/logical_tile_factory.h"
 #include "storage/data_table.h"
-#include "storage/tile_group.h"
 #include "storage/tile.h"
+#include "storage/tile_group.h"
 
 namespace terrier::execution {
 
-
-void Inserter::Init(storage::DataTable *table,
-                    executor::ExecutorContext *executor_context) {
+void Inserter::Init(storage::DataTable *table, executor::ExecutorContext *executor_context) {
   PELOTON_ASSERT(table && executor_context);
   table_ = table;
   executor_context_ = executor_context;
@@ -54,8 +52,7 @@ void Inserter::Insert() {
   auto *txn = executor_context_->GetTransaction();
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
-  ContainerTuple<storage::TileGroup> tuple(
-      table_->GetTileGroupById(location_.block).get(), location_.offset);
+  ContainerTuple<storage::TileGroup> tuple(table_->GetTileGroupById(location_.block).get(), location_.offset);
   ItemPointer *index_entry_ptr = nullptr;
   bool result = table_->InsertTuple(&tuple, location_, txn, &index_entry_ptr);
   if (result == false) {
@@ -70,6 +67,5 @@ void Inserter::TearDown() {
   // Updater object does not destruct its own data structures
   tile_.reset();
 }
-
 
 }  // namespace terrier::execution

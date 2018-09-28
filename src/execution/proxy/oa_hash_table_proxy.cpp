@@ -14,7 +14,6 @@
 
 namespace terrier::execution {
 
-
 /// KeyValueList
 DEFINE_TYPE(KeyValueList, "peloton::OAKeyValueList", capacity, size);
 
@@ -22,13 +21,11 @@ DEFINE_TYPE(KeyValueList, "peloton::OAKeyValueList", capacity, size);
 DEFINE_TYPE(OAHashEntry, "peloton::OAHashEntry", kv_list, hash);
 
 /// OAHashTable
-DEFINE_TYPE(OAHashTable, "peloton::OAHashTable", buckets, num_buckets,
-            bucket_mask, num_occupied_buckets, num_entries, resize_threshold,
-            entry_size, key_size, value_size);
+DEFINE_TYPE(OAHashTable, "peloton::OAHashTable", buckets, num_buckets, bucket_mask, num_occupied_buckets, num_entries,
+            resize_threshold, entry_size, key_size, value_size);
 
-DEFINE_METHOD(peloton::codegen::util, OAHashTable, Init);
-DEFINE_METHOD(peloton::codegen::util, OAHashTable, StoreTuple);
-DEFINE_METHOD(peloton::codegen::util, OAHashTable, Destroy);
-
+DEFINE_METHOD(peloton::util, OAHashTable, Init);
+DEFINE_METHOD(peloton::util, OAHashTable, StoreTuple);
+DEFINE_METHOD(peloton::util, OAHashTable, Destroy);
 
 }  // namespace terrier::execution

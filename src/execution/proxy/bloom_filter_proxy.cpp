@@ -14,12 +14,9 @@
 
 namespace terrier::execution {
 
+DEFINE_TYPE(BloomFilter, "peloton::BloomFilter", num_hash_funcs, bytes, num_bits, num_misses, num_probes);
 
-DEFINE_TYPE(BloomFilter, "peloton::BloomFilter", num_hash_funcs, bytes,
-            num_bits, num_misses, num_probes);
-
-DEFINE_METHOD(peloton::codegen::util, BloomFilter, Init);
-DEFINE_METHOD(peloton::codegen::util, BloomFilter, Destroy);
-
+DEFINE_METHOD(peloton::util, BloomFilter, Init);
+DEFINE_METHOD(peloton::util, BloomFilter, Destroy);
 
 }  // namespace terrier::execution

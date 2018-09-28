@@ -23,8 +23,6 @@ namespace planner {
 struct AttributeInfo;
 }  // namespace planner
 
-
-
 class CompilationContext;
 class Vector;
 
@@ -36,8 +34,7 @@ class RowBatch {
   class Iterator;
 
  private:
-  typedef std::unordered_map<const planner::AttributeInfo *, AttributeAccess *>
-      AttributeMap;
+  typedef std::unordered_map<const planner::AttributeInfo *, AttributeAccess *> AttributeMap;
 
  public:
   //===--------------------------------------------------------------------===//
@@ -49,7 +46,7 @@ class RowBatch {
     virtual ~AttributeAccess() {}
 
     // Access the value given the row
-    virtual codegen::Value Access(CodeGen &codegen, Row &row) = 0;
+    virtual Value Access(CodeGen &codegen, Row &row) = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -81,25 +78,20 @@ class RowBatch {
     // Get this row's position in the batch
     llvm::Value *GetBatchPosition() const { return batch_position_; }
 
-    llvm::Value *GetTileGroupID() const {
-      return this->batch_.GetTileGroupID();
-    }
+    llvm::Value *GetTileGroupID() const { return this->batch_.GetTileGroupID(); }
 
     // Get the unique TID of this row
     llvm::Value *GetTID(CodeGen &codegen);
 
     // Derive the value of the given attribute (expression) from this row
-    codegen::Value DeriveValue(CodeGen &codegen,
-                               const planner::AttributeInfo *ai);
-    codegen::Value DeriveValue(CodeGen &codegen,
-                               const expression::AbstractExpression &expr);
+    Value DeriveValue(CodeGen &codegen, const planner::AttributeInfo *ai);
+    Value DeriveValue(CodeGen &codegen, const expression::AbstractExpression &expr);
 
     // Does this row have a given attribute available?
     bool HasAttribute(const planner::AttributeInfo *ai) const;
 
     // Register the temporary availability of an attribute in this row
-    void RegisterAttributeValue(const planner::AttributeInfo *ai,
-                                const codegen::Value &val);
+    void RegisterAttributeValue(const planner::AttributeInfo *ai, const Value &val);
 
     RowBatch &GetBatch() const { return batch_; }
 
@@ -116,11 +108,8 @@ class RowBatch {
     class CacheKey {
      public:
       CacheKey(const planner::AttributeInfo *ai) : ai_(ai), expr_(nullptr) {}
-      CacheKey(const expression::AbstractExpression *expr)
-          : ai_(nullptr), expr_(expr) {}
-      bool operator==(const CacheKey &other) const {
-        return ai_ != nullptr ? ai_ == other.ai_ : expr_ == other.expr_;
-      }
+      CacheKey(const expression::AbstractExpression *expr) : ai_(nullptr), expr_(expr) {}
+      bool operator==(const CacheKey &other) const { return ai_ != nullptr ? ai_ == other.ai_ : expr_ == other.expr_; }
 
       struct Hasher {
         size_t operator()(const CacheKey &k) const {
@@ -138,7 +127,7 @@ class RowBatch {
     };
 
     // A cache of the calculated/derived attributes and expressions
-    std::unordered_map<CacheKey, codegen::Value, CacheKey::Hasher> cache_;
+    std::unordered_map<CacheKey, Value, CacheKey::Hasher> cache_;
 
     // The class that tracks which slot in the output this row belongs to
     OutputTracker *output_tracker_;
@@ -205,19 +194,17 @@ class RowBatch {
 
  public:
   // Constructor
-  RowBatch(CompilationContext &ctx, llvm::Value *tid_start,
-           llvm::Value *tid_end, Vector &selection_vector, bool filtered);
+  RowBatch(CompilationContext &ctx, llvm::Value *tid_start, llvm::Value *tid_end, Vector &selection_vector,
+           bool filtered);
 
-  RowBatch(CompilationContext &ctx, llvm::Value *tile_group_id,
-           llvm::Value *tid_start, llvm::Value *tid_end,
+  RowBatch(CompilationContext &ctx, llvm::Value *tile_group_id, llvm::Value *tid_start, llvm::Value *tid_end,
            Vector &selection_vector, bool filtered);
 
   // Add an attribute to batch
   void AddAttribute(const planner::AttributeInfo *ai, AttributeAccess *access);
 
   // Get the row at the given position
-  Row GetRowAt(llvm::Value *batch_position,
-               OutputTracker *output_tracker = nullptr);
+  Row GetRowAt(llvm::Value *batch_position, OutputTracker *output_tracker = nullptr);
 
   // Iterate over all the rows in the batch
   void Iterate(CodeGen &codegen, IterateCallback &cb);
@@ -227,8 +214,7 @@ class RowBatch {
   void VectorizedIterate(CodeGen &codegen, VectorizedIterateCallback &cb);
   void VectorizedIterate(
       CodeGen &codegen, uint32_t vector_size,
-      const std::function<llvm::Value *(
-          RowBatch::VectorizedIterateCallback::IterationInstance &)> &cb);
+      const std::function<llvm::Value *(RowBatch::VectorizedIterateCallback::IterationInstance &)> &cb);
 
   // Return only the number of valid rows in this batch
   llvm::Value *GetNumValidRows(CodeGen &codegen);
@@ -284,6 +270,5 @@ class RowBatch {
   // Don't copy or move
   DISALLOW_COPY_AND_MOVE(RowBatch);
 };
-
 
 }  // namespace terrier::execution

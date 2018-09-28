@@ -36,19 +36,15 @@ class AuxiliaryProducerFunction {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-inline AuxiliaryProducerFunction::AuxiliaryProducerFunction()
-    : function_(nullptr) {}
+inline AuxiliaryProducerFunction::AuxiliaryProducerFunction() : function_(nullptr) {}
 
-inline AuxiliaryProducerFunction::AuxiliaryProducerFunction(
-    const FunctionDeclaration &declaration)
+inline AuxiliaryProducerFunction::AuxiliaryProducerFunction(const FunctionDeclaration &declaration)
     : function_(declaration.GetDeclaredFunction()) {}
 
 inline llvm::Value *AuxiliaryProducerFunction::Call(CodeGen &codegen) const {
-  // At this point, the function cannot be NULL!
-  PELOTON_ASSERT(function_ != nullptr);
+  TERRIER_ASSERT(function_ != nullptr, "at this point, the function cannot be NULL!");
   auto *query_state_ptr = codegen.GetState();
   return codegen.CallFunc(function_, {query_state_ptr});
 }
-
 
 }  // namespace terrier::execution

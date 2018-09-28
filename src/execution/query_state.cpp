@@ -15,7 +15,6 @@
 
 namespace terrier::execution {
 
-
 // Constructor
 QueryState::QueryState() : constructed_type_(nullptr) {}
 
@@ -32,8 +31,7 @@ QueryState::Id QueryState::RegisterState(std::string name, llvm::Type *type) {
   return state_id;
 }
 
-llvm::Value *QueryState::LoadStatePtr(CodeGen &codegen,
-                                      QueryState::Id state_id) const {
+llvm::Value *QueryState::LoadStatePtr(CodeGen &codegen, QueryState::Id state_id) const {
   // At this point, the runtime state type must have been finalized. Otherwise,
   // it'd be impossible for us to index into it because the type would be
   // incomplete.
@@ -45,13 +43,12 @@ llvm::Value *QueryState::LoadStatePtr(CodeGen &codegen,
   // We index into the runtime state to get a pointer to the state
   std::string ptr_name{state_info.name + "Ptr"};
   llvm::Value *query_state = codegen.GetState();
-  llvm::Value *state_ptr = codegen->CreateConstInBoundsGEP2_32(
-      constructed_type_, query_state, 0, state_info.index, ptr_name);
+  llvm::Value *state_ptr =
+      codegen->CreateConstInBoundsGEP2_32(constructed_type_, query_state, 0, state_info.index, ptr_name);
   return state_ptr;
 }
 
-llvm::Value *QueryState::LoadStateValue(CodeGen &codegen,
-                                        QueryState::Id state_id) const {
+llvm::Value *QueryState::LoadStateValue(CodeGen &codegen, QueryState::Id state_id) const {
   llvm::Value *state_ptr = LoadStatePtr(codegen, state_id);
   llvm::Value *state = codegen->CreateLoad(state_ptr);
 #ifndef NDEBUG
@@ -81,8 +78,7 @@ llvm::Type *QueryState::FinalizeType(CodeGen &codegen) {
     types.push_back(state_slots_[i].type);
   }
 
-  constructed_type_ =
-      llvm::StructType::create(codegen.GetContext(), types, "QueryState");
+  constructed_type_ = llvm::StructType::create(codegen.GetContext(), types, "QueryState");
   return constructed_type_;
 }
 
@@ -90,6 +86,5 @@ llvm::Type *QueryState::GetType() const {
   PELOTON_ASSERT(constructed_type_ != nullptr);
   return constructed_type_;
 }
-
 
 }  // namespace terrier::execution

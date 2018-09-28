@@ -15,13 +15,12 @@
 #include "execution/runtime_functions.h"
 #include "execution/type/type.h"
 #include "type/abstract_pool.h"
-#include "type/value.h"
 #include "type/type_util.h"
+#include "type/value.h"
 #include "type/value_factory.h"
 #include "type/value_peeker.h"
 
 namespace terrier::execution {
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -31,19 +30,16 @@ namespace terrier::execution {
 
 namespace {
 
-inline void SetValue(peloton::type::Value *val_ptr,
-                     peloton::type::Value &&val) {
+inline void SetValue(peloton::type::Value *val_ptr, peloton::type::Value &&val) {
   new (val_ptr) peloton::type::Value(val);
 }
 
 }  // namespace
 
-void ValuesRuntime::OutputBoolean(char *values, uint32_t idx, bool val,
-                                  bool is_null) {
+void ValuesRuntime::OutputBoolean(char *values, uint32_t idx, bool val, bool is_null) {
   auto *vals = reinterpret_cast<peloton::type::Value *>(values);
   if (is_null) {
-    SetValue(&vals[idx], peloton::type::ValueFactory::GetNullValueByType(
-                             peloton::type::TypeId::BOOLEAN));
+    SetValue(&vals[idx], peloton::type::ValueFactory::GetNullValueByType(type::TypeId::BOOLEAN));
   } else {
     SetValue(&vals[idx], peloton::type::ValueFactory::GetBooleanValue(val));
   }
@@ -84,20 +80,15 @@ void ValuesRuntime::OutputDecimal(char *values, uint32_t idx, double val) {
   SetValue(&vals[idx], peloton::type::ValueFactory::GetDecimalValue(val));
 }
 
-void ValuesRuntime::OutputVarchar(char *values, uint32_t idx, const char *str,
-                                  uint32_t len) {
+void ValuesRuntime::OutputVarchar(char *values, uint32_t idx, const char *str, uint32_t len) {
   auto *vals = reinterpret_cast<peloton::type::Value *>(values);
-  SetValue(&vals[idx],
-           peloton::type::ValueFactory::GetVarcharValue(str, len, false));
+  SetValue(&vals[idx], peloton::type::ValueFactory::GetVarcharValue(str, len, false));
 }
 
-void ValuesRuntime::OutputVarbinary(char *values, uint32_t idx, const char *ptr,
-                                    uint32_t len) {
+void ValuesRuntime::OutputVarbinary(char *values, uint32_t idx, const char *ptr, uint32_t len) {
   auto *vals = reinterpret_cast<peloton::type::Value *>(values);
   const auto *bin_ptr = reinterpret_cast<const unsigned char *>(ptr);
-  SetValue(&vals[idx],
-           peloton::type::ValueFactory::GetVarbinaryValue(bin_ptr, len, false));
+  SetValue(&vals[idx], peloton::type::ValueFactory::GetVarbinaryValue(bin_ptr, len, false));
 }
-
 
 }  // namespace terrier::execution

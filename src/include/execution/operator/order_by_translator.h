@@ -23,15 +23,12 @@ namespace planner {
 class OrderByPlan;
 }  // namespace planner
 
-
-
 /**
  * Translator for sorting/order-by operators.
  */
 class OrderByTranslator : public OperatorTranslator {
  public:
-  OrderByTranslator(const planner::OrderByPlan &plan,
-                    CompilationContext &context, Pipeline &pipeline);
+  OrderByTranslator(const planner::OrderByPlan &plan, CompilationContext &context, Pipeline &pipeline);
 
   void InitializeQueryState() override;
   void TearDownQueryState() override;
@@ -80,6 +77,5 @@ class OrderByTranslator : public OperatorTranslator {
 
   std::vector<SortKeyInfo> sort_key_info_;
 };
-
 
 }  // namespace terrier::execution

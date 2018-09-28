@@ -19,12 +19,9 @@
 
 namespace terrier::execution {
 
+DEFINE_TYPE(ColumnLayoutInfo, "peloton::ColumnLayoutInfo", col_start_ptr, stride, columnar);
 
-DEFINE_TYPE(ColumnLayoutInfo, "peloton::ColumnLayoutInfo", col_start_ptr,
-            stride, columnar);
-
-DEFINE_TYPE(AbstractExpression, "peloton::expression::AbstractExpression",
-            opaque);
+DEFINE_TYPE(AbstractExpression, "peloton::expression::AbstractExpression", opaque);
 
 DEFINE_TYPE(Type, "peloton::Type", opaque);
 
@@ -37,6 +34,5 @@ DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ExecuteTableScan);
 DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ExecutePerState);
 DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ThrowDivideByZeroException);
 DEFINE_METHOD(peloton::codegen, RuntimeFunctions, ThrowOverflowException);
-
 
 }  // namespace terrier::execution

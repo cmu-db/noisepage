@@ -12,29 +12,25 @@
 
 #include "execution/deleter.h"
 
-#include "execution/transaction_runtime.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/transaction_runtime.h"
 #include "executor/executor_context.h"
 #include "storage/data_table.h"
 
 namespace terrier::execution {
 
-
-Deleter::Deleter(storage::DataTable *table,
-                 executor::ExecutorContext *executor_context)
+Deleter::Deleter(storage::DataTable *table, executor::ExecutorContext *executor_context)
     : table_(table), executor_context_(executor_context) {
   PELOTON_ASSERT(table != nullptr && executor_context != nullptr);
 }
 
-void Deleter::Init(Deleter &deleter, storage::DataTable *table,
-                   executor::ExecutorContext *executor_context) {
+void Deleter::Init(Deleter &deleter, storage::DataTable *table, executor::ExecutorContext *executor_context) {
   new (&deleter) Deleter(table, executor_context);
 }
 
 void Deleter::Delete(uint32_t tile_group_id, uint32_t tuple_offset) {
-  LOG_TRACE("Deleting tuple <%u, %u> from table '%s' (db ID: %u, table ID: %u)",
-            tile_group_id, tuple_offset, table_->GetName().c_str(),
-            table_->GetDatabaseOid(), table_->GetOid());
+  LOG_TRACE("Deleting tuple <%u, %u> from table '%s' (db ID: %u, table ID: %u)", tile_group_id, tuple_offset,
+            table_->GetName().c_str(), table_->GetDatabaseOid(), table_->GetOid());
 
   auto *txn = executor_context_->GetTransaction();
   auto tile_group = table_->GetTileGroupById(tile_group_id);
@@ -60,26 +56,20 @@ void Deleter::Delete(uint32_t tile_group_id, uint32_t tuple_offset) {
   // We didn't create this version. In order to perform the delete, we need to
   // acquire ownership of the version. Let's check if we can do so.
 
-  bool is_ownable =
-      is_owner || txn_manager.IsOwnable(txn, tile_group_header, tuple_offset);
+  bool is_ownable = is_owner || txn_manager.IsOwnable(txn, tile_group_header, tuple_offset);
   if (!is_ownable) {
     // Version is not own-able. The transaction should be aborted as we cannot
     // update the latest version.
-    LOG_TRACE("Tuple [%u-%u] isn't own-able. Failing transaction.",
-              tile_group_id, tuple_offset);
+    LOG_TRACE("Tuple [%u-%u] isn't own-able. Failing transaction.", tile_group_id, tuple_offset);
     txn_manager.SetTransactionResult(txn, ResultType::FAILURE);
     return;
   }
 
   // Version is own-able. Let's grab ownership of the version.
 
-  bool acquired_ownership =
-      is_owner ||
-      txn_manager.AcquireOwnership(txn, tile_group_header, tuple_offset);
+  bool acquired_ownership = is_owner || txn_manager.AcquireOwnership(txn, tile_group_header, tuple_offset);
   if (!acquired_ownership) {
-    LOG_TRACE(
-        "Failed acquiring ownership of tuple [%u-%u]. Failing transaction.",
-        tile_group_id, tuple_offset);
+    LOG_TRACE("Failed acquiring ownership of tuple [%u-%u]. Failing transaction.", tile_group_id, tuple_offset);
     txn_manager.SetTransactionResult(txn, ResultType::FAILURE);
     return;
   }
@@ -111,6 +101,5 @@ void Deleter::Delete(uint32_t tile_group_id, uint32_t tuple_offset) {
   txn_manager.PerformDelete(txn, old_location, new_location);
   executor_context_->num_processed++;
 }
-
 
 }  // namespace terrier::execution

@@ -28,14 +28,12 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-
-
 class ExecutionConsumer;
 
 //===----------------------------------------------------------------------===//
 // A compiled query. An instance of this class can be created either by
 // providing a plan and its compiled function components through the constructor
-// of by codegen::QueryCompiler::Compile(). The former method is purely for
+// of by QueryCompiler::Compile(). The former method is purely for
 // testing purposes. The system uses QueryCompiler to generate compiled query
 // objects.
 //===----------------------------------------------------------------------===//
@@ -94,8 +92,7 @@ class Query {
    * @param consumer Stores the result.
    * @param stats Handy struct to collect various runtime timing statistics
    */
-  void Execute(executor::ExecutorContext &executor_context,
-               ExecutionConsumer &consumer, RuntimeStats *stats = nullptr);
+  void Execute(executor::ExecutorContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats = nullptr);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -119,12 +116,10 @@ class Query {
   explicit Query(const planner::AbstractPlan &query_plan);
 
   // Execute the query as native code (must already be compiled)
-  void ExecuteNative(FunctionArguments *function_arguments,
-                     RuntimeStats *stats);
+  void ExecuteNative(FunctionArguments *function_arguments, RuntimeStats *stats);
 
   // Execute the query using the interpreter
-  void ExecuteInterpreter(FunctionArguments *function_arguments,
-                          RuntimeStats *stats);
+  void ExecuteInterpreter(FunctionArguments *function_arguments, RuntimeStats *stats);
 
  private:
   // The query plan
@@ -145,6 +140,5 @@ class Query {
   // Shows if the query has been compiled to native code
   bool is_compiled_;
 };
-
 
 }  // namespace terrier::execution

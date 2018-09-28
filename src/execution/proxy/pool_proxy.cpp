@@ -14,9 +14,7 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(AbstractPool, "type::AbstractPool", opaque);
 DEFINE_TYPE(EphemeralPool, "type::EphemeralPool", opaque);
-
 
 }  // namespace terrier::execution

@@ -31,7 +31,6 @@ class FunctionPassManager;
 
 namespace terrier::execution {
 
-
 class FunctionBuilder;
 
 namespace interpreter {
@@ -179,8 +178,7 @@ class CodeContext {
   llvm::PointerType *char_ptr_type_;
 
   // All C/C++ builtin functions and their implementations
-  std::unordered_map<std::string, std::pair<llvm::Function *, FuncPtr>>
-      builtins_;
+  std::unordered_map<std::string, std::pair<llvm::Function *, FuncPtr>> builtins_;
 
   // The functions needed in this module, and their implementations. If the
   // function has not been compiled yet, the function pointer will be NULL. The
@@ -190,6 +188,5 @@ class CodeContext {
   // Shows if the Verify() has been run
   bool is_verified_;
 };
-
 
 }  // namespace terrier::execution

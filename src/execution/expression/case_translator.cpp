@@ -19,9 +19,7 @@
 
 namespace terrier::execution {
 
-
-CaseTranslator::CaseTranslator(const expression::CaseExpression &expression,
-                               CompilationContext &context)
+CaseTranslator::CaseTranslator(const expression::CaseExpression &expression, CompilationContext &context)
     : ExpressionTranslator(expression, context) {
   // We need to prepare each component of the case
   for (const auto &clause : expression.GetWhenClauses()) {
@@ -33,20 +31,18 @@ CaseTranslator::CaseTranslator(const expression::CaseExpression &expression,
   }
 }
 
-codegen::Value CaseTranslator::DeriveValue(CodeGen &codegen,
-                                           RowBatch::Row &row) const {
+Value CaseTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
   // The basic block where each of the WHEN clauses merge into
-  llvm::BasicBlock *merge_bb =
-      llvm::BasicBlock::Create(codegen.GetContext(), "caseMerge");
+  llvm::BasicBlock *merge_bb = llvm::BasicBlock::Create(codegen.GetContext(), "caseMerge");
 
-  std::vector<std::pair<codegen::Value, llvm::BasicBlock *>> branch_vals;
+  std::vector<std::pair<Value, llvm::BasicBlock *>> branch_vals;
 
   const auto &expr = GetExpressionAs<expression::CaseExpression>();
 
   // Handle all the WHEN clauses. We generate an IF for each WHEN clause.
-  codegen::Value ret;
+  Value ret;
   for (uint32_t i = 0; i < expr.GetWhenClauseSize(); i++) {
-    codegen::Value cond = row.DeriveValue(codegen, *expr.GetWhenClauseCond(i));
+    Value cond = row.DeriveValue(codegen, *expr.GetWhenClauseCond(i));
     lang::If when{codegen, cond.GetValue(), "case" + std::to_string(i)};
     {
       ret = row.DeriveValue(codegen, *expr.GetWhenClauseResult(i));
@@ -56,10 +52,8 @@ codegen::Value CaseTranslator::DeriveValue(CodeGen &codegen,
   }
   // Compute the default clause
   // default_ret will have the same type as one of the ret's from above
-  codegen::Value default_ret =
-      expr.GetDefault() != nullptr
-          ? row.DeriveValue(codegen, *expr.GetDefault())
-          : ret.GetType().GetSqlType().GetNullValue(codegen);
+  Value default_ret = expr.GetDefault() != nullptr ? row.DeriveValue(codegen, *expr.GetDefault())
+                                                            : ret.GetType().GetSqlType().GetNullValue(codegen);
   branch_vals.emplace_back(default_ret, codegen->GetInsertBlock());
 
   // Jump to the merging block from the internal If merging block
@@ -71,8 +65,7 @@ codegen::Value CaseTranslator::DeriveValue(CodeGen &codegen,
   codegen->SetInsertPoint(merge_bb);
 
   // Return the single node combining all possible branch values
-  return codegen::Value::BuildPHI(codegen, branch_vals);
+  return Value::BuildPHI(codegen, branch_vals);
 }
-
 
 }  // namespace terrier::execution

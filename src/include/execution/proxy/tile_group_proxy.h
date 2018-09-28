@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(TileGroup) {
   DECLARE_MEMBER(0, char[sizeof(storage::TileGroup)], opaque);
   DECLARE_TYPE;
@@ -27,6 +26,5 @@ PROXY(TileGroup) {
 };
 
 TYPE_BUILDER(TileGroup, storage::TileGroup);
-
 
 }  // namespace terrier::execution

@@ -53,9 +53,7 @@ struct Key {
  */
 struct Value {
   uint32_t v1, v2, v3, v4;
-  bool operator==(const Value &rhs) const {
-    return v1 == rhs.v1 && v2 == rhs.v2 && v3 == rhs.v3 && v4 == rhs.v4;
-  }
+  bool operator==(const Value &rhs) const { return v1 == rhs.v1 && v2 == rhs.v2 && v3 == rhs.v3 && v4 == rhs.v4; }
   bool operator!=(const Value &rhs) const { return !(rhs == *this); }
 };
 
@@ -95,8 +93,7 @@ TEST_F(HashTableTest, CanInsertUniqueKeys) {
   for (const auto &key : keys) {
     uint32_t count = 0;
     std::function<void(const Value &v)> f = [&key, &count, &c1](const Value &v) {
-      EXPECT_EQ(key.k2, v.v1)
-          << "Value's [v1] found in table doesn't match insert key";
+      EXPECT_EQ(key.k2, v.v1) << "Value's [v1] found in table doesn't match insert key";
       EXPECT_EQ(c1, v.v4) << "Value's [v4] doesn't match constant";
       count++;
     };
@@ -125,8 +122,7 @@ TEST_F(HashTableTest, BuildEmptyHashTable) {
 
   // Lookups should succeed
   for (const auto &key : keys) {
-    std::function<void(const Value &v)> f =
-        [](UNUSED_ATTRIBUTE const Value &v) {};
+    std::function<void(const Value &v)> f = [](UNUSED_ATTRIBUTE const Value &v) {};
     auto ret = table.TypedProbe(key.Hash(), key, f);
     EXPECT_EQ(false, ret);
   }
@@ -164,8 +160,7 @@ TEST_F(HashTableTest, CanInsertDuplicateKeys) {
   for (const auto &key : keys) {
     uint32_t count = 0;
     std::function<void(const Value &v)> f = [&key, &count, &c1](const Value &v) {
-      EXPECT_EQ(key.k2, v.v1)
-          << "Value's [v1] found in table doesn't match insert key";
+      EXPECT_EQ(key.k2, v.v1) << "Value's [v1] found in table doesn't match insert key";
       EXPECT_EQ(c1, v.v4) << "Value's [v4] doesn't match constant";
       count++;
     };
@@ -211,8 +206,7 @@ TEST_F(HashTableTest, CanInsertLazilyWithDups) {
   for (const auto &key : keys) {
     uint32_t count = 0;
     std::function<void(const Value &v)> f = [&key, &count, &c1](const Value &v) {
-      EXPECT_EQ(key.k2, v.v1)
-          << "Value's [v1] found in table doesn't match insert key";
+      EXPECT_EQ(key.k2, v.v1) << "Value's [v1] found in table doesn't match insert key";
       EXPECT_EQ(c1, v.v4) << "Value's [v4] doesn't match constant";
       count++;
     };
@@ -237,8 +231,7 @@ TEST_F(HashTableTest, ParallelMerge) {
   std::vector<Key> keys;
 
   // The global hash table
-  codegen::util::HashTable global_table{*exec_ctx.GetPool(), sizeof(Key),
-                                        sizeof(Value)};
+  codegen::util::HashTable global_table{*exec_ctx.GetPool(), sizeof(Key), sizeof(Value)};
 
   auto add_key = [&keys_mutex, &keys](const Key &k) {
     std::lock_guard<std::mutex> lock{keys_mutex};
@@ -248,12 +241,10 @@ TEST_F(HashTableTest, ParallelMerge) {
   // Insert function
   auto insert_fn = [&add_key, &exec_ctx](uint64_t tid) {
     // Get the local table for this thread
-    auto *table = reinterpret_cast<codegen::util::HashTable *>(
-        exec_ctx.GetThreadStates().AccessThreadState(tid));
+    auto *table = reinterpret_cast<codegen::util::HashTable *>(exec_ctx.GetThreadStates().AccessThreadState(tid));
 
     // Initialize it
-    codegen::util::HashTable::Init(*table, exec_ctx, sizeof(Key),
-                                   sizeof(Value));
+    codegen::util::HashTable::Init(*table, exec_ctx, sizeof(Key), sizeof(Value));
 
     // Insert keys disjoint from other threads
     for (uint32_t i = tid * to_insert, end = i + to_insert; i != end; i++) {
@@ -267,8 +258,7 @@ TEST_F(HashTableTest, ParallelMerge) {
 
   auto merge_fn = [&global_table, &thread_states](uint64_t tid) {
     // Get the local table for this threads
-    auto *table = reinterpret_cast<codegen::util::HashTable *>(
-        thread_states.AccessThreadState(tid));
+    auto *table = reinterpret_cast<codegen::util::HashTable *>(thread_states.AccessThreadState(tid));
 
     // Merge it into the global table
     global_table.MergeLazyUnfinished(*table);
@@ -277,8 +267,7 @@ TEST_F(HashTableTest, ParallelMerge) {
   // First insert into thread local tables in parallel
   LaunchParallelTest(num_threads, insert_fn);
   for (uint32_t tid = 0; tid < num_threads; tid++) {
-    auto *ht = reinterpret_cast<codegen::util::HashTable *>(
-        thread_states.AccessThreadState(tid));
+    auto *ht = reinterpret_cast<codegen::util::HashTable *>(thread_states.AccessThreadState(tid));
     EXPECT_EQ(to_insert, ht->NumElements());
   }
 
@@ -291,8 +280,7 @@ TEST_F(HashTableTest, ParallelMerge) {
 
   // Clean up local tables
   for (uint32_t tid = 0; tid < num_threads; tid++) {
-    auto *table = reinterpret_cast<codegen::util::HashTable *>(
-        thread_states.AccessThreadState(tid));
+    auto *table = reinterpret_cast<codegen::util::HashTable *>(thread_states.AccessThreadState(tid));
     codegen::util::HashTable::Destroy(*table);
   }
 
@@ -302,11 +290,9 @@ TEST_F(HashTableTest, ParallelMerge) {
   for (const auto &key : keys) {
     uint32_t count = 0;
     std::function<void(const Value &v)> f = [&key, &count](const Value &v) {
-      EXPECT_EQ(key.k2, v.v1)
-          << "Value's [v1] found in table doesn't match insert key";
-      EXPECT_EQ(key.k1, v.v2) << "Key " << key << " inserted by thread "
-                              << key.k1 << " but value was inserted by thread "
-                              << v.v2;
+      EXPECT_EQ(key.k2, v.v1) << "Value's [v1] found in table doesn't match insert key";
+      EXPECT_EQ(key.k1, v.v2) << "Key " << key << " inserted by thread " << key.k1
+                              << " but value was inserted by thread " << v.v2;
       count++;
     };
     global_table.TypedProbe(key.Hash(), key, f);

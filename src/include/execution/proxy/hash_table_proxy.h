@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 /// The proxy for HashTable::Entry
 PROXY(Entry) {
   DECLARE_MEMBER(0, uint64_t, hash);
@@ -50,6 +49,5 @@ PROXY(HashTable) {
 /// The type builders for Entry and HashTable
 TYPE_BUILDER(Entry, util::HashTable::Entry);
 TYPE_BUILDER(HashTable, util::HashTable);
-
 
 }  // namespace terrier::execution

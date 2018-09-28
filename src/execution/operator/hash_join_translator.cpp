@@ -22,7 +22,6 @@
 
 namespace terrier::execution {
 
-
 std::atomic<bool> HashJoinTranslator::kUsePrefetch{false};
 
 /**
@@ -39,9 +38,8 @@ class HashJoinTranslator::ProbeRight : public HashTable::IterateCallback {
    * @param row A reference to the row from the right side of the join
    * @param right_key A reference to the key from the right side of the join
    */
-  ProbeRight(const HashJoinTranslator &join_translator,
-             ConsumerContext &context, RowBatch::Row &row,
-             const std::vector<codegen::Value> &right_key);
+  ProbeRight(const HashJoinTranslator &join_translator, ConsumerContext &context, RowBatch::Row &row,
+             const std::vector<Value> &right_key);
 
   /**
    * The callback function called to process each matching tuple found in the
@@ -52,8 +50,7 @@ class HashJoinTranslator::ProbeRight : public HashTable::IterateCallback {
    * @param key The key stored in the tabble
    * @param data_area Memory space where the value is stored
    */
-  void ProcessEntry(CodeGen &codegen, const std::vector<codegen::Value> &key,
-                    llvm::Value *data_area) const override;
+  void ProcessEntry(CodeGen &codegen, const std::vector<Value> &key, llvm::Value *data_area) const override;
 
  private:
   // The translator (we need lots of its state)
@@ -64,7 +61,7 @@ class HashJoinTranslator::ProbeRight : public HashTable::IterateCallback {
   RowBatch::Row &row_;
 
   // The value of the key used during the probe
-  const std::vector<codegen::Value> &right_key_;
+  const std::vector<Value> &right_key_;
 };
 
 /**
@@ -79,8 +76,7 @@ class HashJoinTranslator::InsertLeft : public HashTable::InsertCallback {
    * @param storage The storage format to serialize values into the table
    * @param values The actual values to store in the table
    */
-  InsertLeft(const CompactStorage &storage,
-             const std::vector<codegen::Value> &values)
+  InsertLeft(const CompactStorage &storage, const std::vector<Value> &values)
       : storage_(storage), values_(values) {}
 
   /**
@@ -99,16 +95,14 @@ class HashJoinTranslator::InsertLeft : public HashTable::InsertCallback {
    * @param codegen The codegen instance
    * @return The number of bytes needed to store the value
    */
-  llvm::Value *GetValueSize(CodeGen &codegen) const override {
-    return codegen.Const32(storage_.MaxStorageSize());
-  }
+  llvm::Value *GetValueSize(CodeGen &codegen) const override { return codegen.Const32(storage_.MaxStorageSize()); }
 
  private:
   // The storage format of the values in the hash table
   const CompactStorage &storage_;
 
   // The attribute values from the left side
-  const std::vector<codegen::Value> &values_;
+  const std::vector<Value> &values_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,11 +111,9 @@ class HashJoinTranslator::InsertLeft : public HashTable::InsertCallback {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join,
-                                       CompilationContext &context,
+HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join, CompilationContext &context,
                                        Pipeline &pipeline)
-    : OperatorTranslator(join, context, pipeline),
-      left_pipeline_(this, Pipeline::Parallelism::Flexible) {
+    : OperatorTranslator(join, context, pipeline), left_pipeline_(this, Pipeline::Parallelism::Flexible) {
   CodeGen &codegen = GetCodeGen();
   QueryState &query_state = context.GetQueryState();
 
@@ -134,12 +126,10 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join,
   }
 
   // Allocate state for our hash table and bloom filter
-  hash_table_id_ =
-      query_state.RegisterState("join", HashTableProxy::GetType(codegen));
+  hash_table_id_ = query_state.RegisterState("join", HashTableProxy::GetType(codegen));
   if (GetJoinPlan().IsBloomFilterEnabled()) {
     LOG_DEBUG("Building HashJoin using BloomFilter ...");
-    bloom_filter_id_ = query_state.RegisterState(
-        "bloomfilter", BloomFilterProxy::GetType(codegen));
+    bloom_filter_id_ = query_state.RegisterState("bloomfilter", BloomFilterProxy::GetType(codegen));
   }
 
   // Prepare translators for the left and right input operators
@@ -178,15 +168,13 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join,
 
   // Make sure the key types are equal
   PELOTON_ASSERT(left_key_type.size() == right_key_type.size());
-  PELOTON_ASSERT(std::equal(left_key_type.begin(), left_key_type.end(),
-                            right_key_type.begin()));
+  PELOTON_ASSERT(std::equal(left_key_type.begin(), left_key_type.end(), right_key_type.begin()));
 
   // Collect (unique) attributes that are stored in hash-table
   std::unordered_set<const planner::AttributeInfo *> left_key_ais;
   for (auto *left_key_exp : left_key_exprs_) {
     if (left_key_exp->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
-      auto *tve =
-          static_cast<const expression::TupleValueExpression *>(left_key_exp);
+      auto *tve = static_cast<const expression::TupleValueExpression *>(left_key_exp);
       left_key_ais.insert(tve->GetAttributeRef());
     }
   }
@@ -213,17 +201,14 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join,
   needs_output_vector_ = false;
 
   // Create the hash table
-  hash_table_ =
-      HashTable{codegen, left_key_type, left_value_storage_.MaxStorageSize()};
+  hash_table_ = HashTable{codegen, left_key_type, left_value_storage_.MaxStorageSize()};
 }
 
 // Initialize the hash-table instance
 void HashJoinTranslator::InitializeQueryState() {
-  hash_table_.Init(GetCodeGen(), GetExecutorContextPtr(),
-                   LoadStatePtr(hash_table_id_));
+  hash_table_.Init(GetCodeGen(), GetExecutorContextPtr(), LoadStatePtr(hash_table_id_));
   if (GetJoinPlan().IsBloomFilterEnabled()) {
-    bloom_filter_.Init(GetCodeGen(), LoadStatePtr(bloom_filter_id_),
-                       EstimateCardinalityLeft());
+    bloom_filter_.Init(GetCodeGen(), LoadStatePtr(bloom_filter_id_), EstimateCardinalityLeft());
   }
 }
 
@@ -238,8 +223,7 @@ void HashJoinTranslator::Produce() const {
   // That's it, we've produced all the tuples
 }
 
-void HashJoinTranslator::Consume(ConsumerContext &context,
-                                 RowBatch &batch) const {
+void HashJoinTranslator::Consume(ConsumerContext &context, RowBatch &batch) const {
   OperatorTranslator::Consume(context, batch);
 #if 0
   if (!UsePrefetching()) {
@@ -273,7 +257,7 @@ void HashJoinTranslator::Consume(ConsumerContext &context,
           batch.GetRowAt(codegen->CreateAdd(p, iter_instance.start));
 
       // Collect keys
-      std::vector<codegen::Value> key;
+      std::vector<Value> key;
       if (IsFromLeftChild(context)) {
         CollectKeys(row, left_key_exprs_, key);
       } else {
@@ -308,7 +292,7 @@ void HashJoinTranslator::Consume(ConsumerContext &context,
       RowBatch::OutputTracker tracker{batch.GetSelectionVector(), write_pos};
       RowBatch::Row row = batch.GetRowAt(read_pos, &tracker);
 
-      codegen::Value row_hash{type::Type{peloton::type::TypeId::INTEGER, false},
+      Value row_hash{type::Type{type::TypeId::INTEGER, false},
                               hashes.GetValue(codegen, p)};
       row.RegisterAttributeValue(&OAHashTable::kHashAI, row_hash);
 
@@ -333,8 +317,7 @@ void HashJoinTranslator::Consume(ConsumerContext &context,
 }
 
 // Consume the tuples produced by a child operator
-void HashJoinTranslator::Consume(ConsumerContext &context,
-                                 RowBatch::Row &row) const {
+void HashJoinTranslator::Consume(ConsumerContext &context, RowBatch::Row &row) const {
   if (IsFromLeftChild(context)) {
     ConsumeFromLeft(context, row);
   } else {
@@ -343,22 +326,21 @@ void HashJoinTranslator::Consume(ConsumerContext &context,
 }
 
 // The given row is coming from the left child. Insert into hash table
-void HashJoinTranslator::ConsumeFromLeft(ConsumerContext &ctx,
-                                         RowBatch::Row &row) const {
+void HashJoinTranslator::ConsumeFromLeft(ConsumerContext &ctx, RowBatch::Row &row) const {
   CodeGen &codegen = GetCodeGen();
 
   // Collect all the attributes we need for the join (including keys and vals)
-  std::vector<codegen::Value> key;
+  std::vector<Value> key;
   CollectKeys(row, left_key_exprs_, key);
 
-  std::vector<codegen::Value> vals;
+  std::vector<Value> vals;
   CollectValues(row, left_val_ais_, vals);
 
   // If the hash value is available, use it
   llvm::Value *hash = nullptr;
 #if 0
   if (row.HasAttribute(&OAHashTable::kHashAI)) {
-    codegen::Value hash_val = row.DeriveValue(codegen, &OAHashTable::kHashAI);
+    Value hash_val = row.DeriveValue(codegen, &OAHashTable::kHashAI);
     hash = hash_val.GetValue();
   }
 #endif
@@ -382,17 +364,14 @@ void HashJoinTranslator::ConsumeFromLeft(ConsumerContext &ctx,
 
 void HashJoinTranslator::RegisterPipelineState(PipelineContext &pipeline_ctx) {
   if (pipeline_ctx.IsParallel() && IsLeftPipeline(pipeline_ctx.GetPipeline())) {
-    hash_table_tl_id_ = pipeline_ctx.RegisterState(
-        "localHT", HashTableProxy::GetType(GetCodeGen()));
+    hash_table_tl_id_ = pipeline_ctx.RegisterState("localHT", HashTableProxy::GetType(GetCodeGen()));
   }
 }
 
-void HashJoinTranslator::InitializePipelineState(
-    PipelineContext &pipeline_ctx) {
+void HashJoinTranslator::InitializePipelineState(PipelineContext &pipeline_ctx) {
   if (pipeline_ctx.IsParallel() && IsLeftPipeline(pipeline_ctx.GetPipeline())) {
     CodeGen &codegen = GetCodeGen();
-    hash_table_.Init(codegen, GetExecutorContextPtr(),
-                     pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_));
+    hash_table_.Init(codegen, GetExecutorContextPtr(), pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_));
   }
 }
 
@@ -405,17 +384,14 @@ void HashJoinTranslator::FinishPipeline(PipelineContext &pipeline_ctx) {
       hash_table_.BuildLazy(codegen, global_ht_ptr);
     } else {
       // First size the global hash table
-      hash_table_.ReserveLazy(
-          codegen, global_ht_ptr, GetThreadStatesPtr(),
-          pipeline_ctx.GetEntryOffset(codegen, hash_table_tl_id_));
+      hash_table_.ReserveLazy(codegen, global_ht_ptr, GetThreadStatesPtr(),
+                              pipeline_ctx.GetEntryOffset(codegen, hash_table_tl_id_));
 
       // Then merge each local table in parallel
       PipelineContext::LoopOverStates loop_states{pipeline_ctx};
-      loop_states.DoParallel([this, &pipeline_ctx, &codegen](
-          UNUSED_ATTRIBUTE llvm::Value *thread_state) {
+      loop_states.DoParallel([this, &pipeline_ctx, &codegen](UNUSED_ATTRIBUTE llvm::Value *thread_state) {
         llvm::Value *global_ht_ptr = LoadStatePtr(hash_table_id_);
-        llvm::Value *local_ht_ptr =
-            pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_);
+        llvm::Value *local_ht_ptr = pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_);
         hash_table_.MergeLazyUnfinished(codegen, global_ht_ptr, local_ht_ptr);
       });
     }
@@ -431,16 +407,14 @@ void HashJoinTranslator::TearDownPipelineState(PipelineContext &pipeline_ctx) {
 }
 
 // The given row is from the right child. Probe hash-table.
-void HashJoinTranslator::ConsumeFromRight(ConsumerContext &context,
-                                          RowBatch::Row &row) const {
+void HashJoinTranslator::ConsumeFromRight(ConsumerContext &context, RowBatch::Row &row) const {
   // Pull out the values of the keys we probe the hash-table with
-  std::vector<codegen::Value> key;
+  std::vector<Value> key;
   CollectKeys(row, right_key_exprs_, key);
 
   if (GetJoinPlan().IsBloomFilterEnabled()) {
     // Prefilter the tuple using Bloom Filter
-    llvm::Value *contains = bloom_filter_.Contains(
-        GetCodeGen(), LoadStatePtr(bloom_filter_id_), key);
+    llvm::Value *contains = bloom_filter_.Contains(GetCodeGen(), LoadStatePtr(bloom_filter_id_), key);
 
     lang::If is_valid_row{GetCodeGen(), contains};
     {
@@ -455,14 +429,12 @@ void HashJoinTranslator::ConsumeFromRight(ConsumerContext &context,
   }
 }
 
-void HashJoinTranslator::CodegenHashProbe(
-    ConsumerContext &context, RowBatch::Row &row,
-    std::vector<codegen::Value> &key) const {
+void HashJoinTranslator::CodegenHashProbe(ConsumerContext &context, RowBatch::Row &row,
+                                          std::vector<Value> &key) const {
   if (GetJoinPlan().GetJoinType() == JoinType::INNER) {
     // For inner joins, find all join partners
     ProbeRight probe_right{*this, context, row, key};
-    hash_table_.FindAll(GetCodeGen(), LoadStatePtr(hash_table_id_), key,
-                        probe_right);
+    hash_table_.FindAll(GetCodeGen(), LoadStatePtr(hash_table_id_), key, probe_right);
   }
 }
 
@@ -495,26 +467,21 @@ bool HashJoinTranslator::UsePrefetching() const {
   return kUsePrefetch;
 }
 
-void HashJoinTranslator::CollectKeys(
-    RowBatch::Row &row,
-    const std::vector<const expression::AbstractExpression *> &key,
-    std::vector<codegen::Value> &key_values) const {
+void HashJoinTranslator::CollectKeys(RowBatch::Row &row, const std::vector<const expression::AbstractExpression *> &key,
+                                     std::vector<Value> &key_values) const {
   for (const auto *exp : key) {
     key_values.push_back(row.DeriveValue(GetCodeGen(), *exp));
   }
 }
 
-void HashJoinTranslator::CollectValues(
-    RowBatch::Row &row, const std::vector<const planner::AttributeInfo *> &ais,
-    std::vector<codegen::Value> &values) const {
+void HashJoinTranslator::CollectValues(RowBatch::Row &row, const std::vector<const planner::AttributeInfo *> &ais,
+                                       std::vector<Value> &values) const {
   for (const auto *ai : ais) {
     values.push_back(row.DeriveValue(GetCodeGen(), ai));
   }
 }
 
-const planner::HashJoinPlan &HashJoinTranslator::GetJoinPlan() const {
-  return GetPlanAs<planner::HashJoinPlan>();
-}
+const planner::HashJoinPlan &HashJoinTranslator::GetJoinPlan() const { return GetPlanAs<planner::HashJoinPlan>(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -522,17 +489,12 @@ const planner::HashJoinPlan &HashJoinTranslator::GetJoinPlan() const {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-HashJoinTranslator::ProbeRight::ProbeRight(
-    const HashJoinTranslator &join_translator, ConsumerContext &context,
-    RowBatch::Row &row, const std::vector<codegen::Value> &right_key)
-    : join_translator_(join_translator),
-      context_(context),
-      row_(row),
-      right_key_(right_key) {}
+HashJoinTranslator::ProbeRight::ProbeRight(const HashJoinTranslator &join_translator, ConsumerContext &context,
+                                           RowBatch::Row &row, const std::vector<Value> &right_key)
+    : join_translator_(join_translator), context_(context), row_(row), right_key_(right_key) {}
 
-void HashJoinTranslator::ProbeRight::ProcessEntry(
-    CodeGen &codegen, const std::vector<codegen::Value> &key,
-    llvm::Value *data_area) const {
+void HashJoinTranslator::ProbeRight::ProcessEntry(CodeGen &codegen, const std::vector<Value> &key,
+                                                  llvm::Value *data_area) const {
   const auto &storage = join_translator_.left_value_storage_;
 
   if (join_translator_.needs_output_vector_) {
@@ -540,7 +502,7 @@ void HashJoinTranslator::ProbeRight::ProcessEntry(
     throw Exception{"Shouldn't need output"};
   } else {
     // LoadValues all the values from the hash entry
-    std::vector<codegen::Value> left_vals;
+    std::vector<Value> left_vals;
     storage.LoadValues(codegen, data_area, left_vals);
 
     // Put the values directly into the row
@@ -554,9 +516,8 @@ void HashJoinTranslator::ProbeRight::ProcessEntry(
       const auto *exp = left_key_exprs[i];
       if (exp->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
         auto *tve = static_cast<const expression::TupleValueExpression *>(exp);
-        codegen::Value v = key[i];
-        LOG_DEBUG("Putting AI %s (%p) into row",
-                  tve->GetAttributeRef()->name.c_str(), tve->GetAttributeRef());
+        Value v = key[i];
+        LOG_DEBUG("Putting AI %s (%p) into row", tve->GetAttributeRef()->name.c_str(), tve->GetAttributeRef());
         row_.RegisterAttributeValue(tve->GetAttributeRef(), v);
       }
     }
@@ -578,6 +539,5 @@ void HashJoinTranslator::ProbeRight::ProcessEntry(
     context_.Consume(row_);
   }
 }
-
 
 }  // namespace terrier::execution

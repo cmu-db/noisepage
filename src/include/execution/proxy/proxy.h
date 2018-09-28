@@ -20,7 +20,6 @@
 
 namespace terrier::execution {
 
-
 /// This file contains several macros that help in creating proxies to C++
 /// classes.
 
@@ -39,19 +38,16 @@ namespace terrier::execution {
   using name##_slot = std::integral_constant<uint32_t, slot_>;                 \
   static const CppProxyMember name;
 
-#define DECLARE_TYPE \
-  static ::llvm::Type *GetType(::peloton::codegen::CodeGen &codegen);
+#define DECLARE_TYPE static ::llvm::Type *GetType(::peloton::CodeGen &codegen);
 
-#define DECLARE_METHOD(name)                   \
-  struct _##name {                             \
-    static ::llvm::Function *GetFunction(      \
-        ::peloton::codegen::CodeGen &codegen); \
-  };                                           \
+#define DECLARE_METHOD(name)                                                    \
+  struct _##name {                                                              \
+    static ::llvm::Function *GetFunction(::peloton::CodeGen &codegen); \
+  };                                                                            \
   static _##name name;
 
-#define MEMBER_TYPE(r, data, member_name)              \
-  ::peloton::codegen::proxy::TypeBuilder<BOOST_PP_CAT( \
-      member_name, _type)>::GetType(codegen),
+#define MEMBER_TYPE(r, data, member_name) \
+  ::peloton::proxy::TypeBuilder<BOOST_PP_CAT(member_name, _type)>::GetType(codegen),
 
 #define DEFINE_MEMBER(r, clazz, member_name)                                 \
   /*                                                                         \
@@ -59,33 +55,30 @@ namespace terrier::execution {
    * initialized with the slot/position in the struct it lives in. This slot \
    * position was provided when the member was declared.                     \
    */                                                                        \
-  const CppProxyMember BOOST_PP_CAT(                                         \
-      clazz, Proxy)::member_name{BOOST_PP_CAT(member_name, _slot)()};
+  const CppProxyMember BOOST_PP_CAT(clazz, Proxy)::member_name{BOOST_PP_CAT(member_name, _slot)()};
 
-#define DEFINE_TYPE(clazz, str_name, members...)                               \
-  /* First we invoke DEFINE_MEMBER() on each proxy member to initialize it */  \
-  BOOST_PP_SEQ_FOR_EACH(DEFINE_MEMBER, clazz,                                  \
-                        BOOST_PP_VARIADIC_TO_SEQ(members))                     \
-                                                                               \
-  /* This is the function that constructs the LLVM layout of the proxy type */ \
-  ::llvm::Type *clazz##Proxy::GetType(::peloton::codegen::CodeGen &codegen) {  \
-    static constexpr const char *kTypeName = str_name;                         \
-    /* Check if type has already been registered */                            \
-    ::llvm::Type *type = codegen.LookupType(kTypeName);                        \
-    if (type != nullptr) {                                                     \
-      return type;                                                             \
-    }                                                                          \
-    /*                                                                         \
-     * The type hasn't been registered. We need to construct a vector of       \
-     * llvm::Type * that define the layout of the struct/class. To do this, we \
-     * iterate over each of the members, find an appropriate TypeBuilder to    \
-     * build the LLVM type. We know each member's type because a type-def was  \
-     * defined when the member was first declared.                             \
-     */                                                                        \
-    ::std::vector<::llvm::Type *> member_types = {BOOST_PP_SEQ_FOR_EACH(       \
-        MEMBER_TYPE, _, BOOST_PP_VARIADIC_TO_SEQ(members))};                   \
-    return ::llvm::StructType::create(codegen.GetContext(), member_types,      \
-                                      kTypeName);                              \
+#define DEFINE_TYPE(clazz, str_name, members...)                                      \
+  /* First we invoke DEFINE_MEMBER() on each proxy member to initialize it */         \
+  BOOST_PP_SEQ_FOR_EACH(DEFINE_MEMBER, clazz, BOOST_PP_VARIADIC_TO_SEQ(members))      \
+                                                                                      \
+  /* This is the function that constructs the LLVM layout of the proxy type */        \
+  ::llvm::Type *clazz##Proxy::GetType(::peloton::CodeGen &codegen) {         \
+    static constexpr const char *kTypeName = str_name;                                \
+    /* Check if type has already been registered */                                   \
+    ::llvm::Type *type = codegen.LookupType(kTypeName);                               \
+    if (type != nullptr) {                                                            \
+      return type;                                                                    \
+    }                                                                                 \
+    /*                                                                                \
+     * The type hasn't been registered. We need to construct a vector of              \
+     * llvm::Type * that define the layout of the struct/class. To do this, we        \
+     * iterate over each of the members, find an appropriate TypeBuilder to           \
+     * build the LLVM type. We know each member's type because a type-def was         \
+     * defined when the member was first declared.                                    \
+     */                                                                               \
+    ::std::vector<::llvm::Type *> member_types = {                                    \
+        BOOST_PP_SEQ_FOR_EACH(MEMBER_TYPE, _, BOOST_PP_VARIADIC_TO_SEQ(members))};    \
+    return ::llvm::StructType::create(codegen.GetContext(), member_types, kTypeName); \
   }
 
 namespace proxy {
@@ -226,48 +219,40 @@ struct MemFn<R (*)(Args..., ...), T, F> {
 }  // namespace detail
 }  // namespace proxy
 
-#define MEMFN(f) \
-  ::peloton::codegen::proxy::detail::MemFn<decltype(f), decltype(f), f>::Get()
+#define MEMFN(f) ::peloton::proxy::detail::MemFn<decltype(f), decltype(f), f>::Get()
 
 #define STR(x) #x
 
-#define DEFINE_METHOD(NS, C, F)                                               \
-  C##Proxy::_##F C##Proxy::F = {};                                            \
-  ::llvm::Function *C##Proxy::_##F::GetFunction(                              \
-      ::peloton::codegen::CodeGen &codegen) {                                 \
-    static constexpr const char *kFnName = STR(NS::C::F);                     \
-    /* If the function has already been defined, return it. */                \
-    if (::llvm::Function *func = codegen.LookupBuiltin(kFnName).first) {      \
-      return func;                                                            \
-    }                                                                         \
-                                                                              \
-    /* Ensure either a function pointer or a member function pointer */       \
-    static_assert(                                                            \
-        ((::std::is_pointer<decltype(&NS::C::F)>::value &&                    \
-          ::std::is_function<typename ::std::remove_pointer<decltype(         \
-              &NS::C::F)>::type>::value) ||                                   \
-         ::std::is_member_function_pointer<decltype(&NS::C::F)>::value),      \
-        "You must provide a pointer to the function you want to proxy");      \
-                                                                              \
-    /* The function hasn't been registered. Do it now. */                     \
-    auto *func_type_ptr = ::llvm::cast<::llvm::PointerType>(                  \
-        ::peloton::codegen::proxy::TypeBuilder<decltype(&NS::C::F)>::GetType( \
-            codegen));                                                        \
-    auto *func_type =                                                         \
-        ::llvm::cast<::llvm::FunctionType>(func_type_ptr->getElementType());  \
-    return codegen.RegisterBuiltin(kFnName, func_type, MEMFN(&NS::C::F));     \
+#define DEFINE_METHOD(NS, C, F)                                                                              \
+  C##Proxy::_##F C##Proxy::F = {};                                                                           \
+  ::llvm::Function *C##Proxy::_##F::GetFunction(::peloton::CodeGen &codegen) {                      \
+    static constexpr const char *kFnName = STR(NS::C::F);                                                    \
+    /* If the function has already been defined, return it. */                                               \
+    if (::llvm::Function *func = codegen.LookupBuiltin(kFnName).first) {                                     \
+      return func;                                                                                           \
+    }                                                                                                        \
+                                                                                                             \
+    /* Ensure either a function pointer or a member function pointer */                                      \
+    static_assert(((::std::is_pointer<decltype(&NS::C::F)>::value &&                                         \
+                    ::std::is_function<typename ::std::remove_pointer<decltype(&NS::C::F)>::type>::value) || \
+                   ::std::is_member_function_pointer<decltype(&NS::C::F)>::value),                           \
+                  "You must provide a pointer to the function you want to proxy");                           \
+                                                                                                             \
+    /* The function hasn't been registered. Do it now. */                                                    \
+    auto *func_type_ptr = ::llvm::cast<::llvm::PointerType>(                                                 \
+        ::peloton::proxy::TypeBuilder<decltype(&NS::C::F)>::GetType(codegen));                      \
+    auto *func_type = ::llvm::cast<::llvm::FunctionType>(func_type_ptr->getElementType());                   \
+    return codegen.RegisterBuiltin(kFnName, func_type, MEMFN(&NS::C::F));                                    \
   }
 
-#define TYPE_BUILDER(PROXY, TYPE)                                      \
-  namespace proxy {                                                    \
-  template <>                                                          \
-  struct TypeBuilder<TYPE> {                                           \
-    static ::llvm::Type *GetType(::peloton::codegen::CodeGen &codegen) \
-        ALWAYS_INLINE {                                                \
-      return PROXY##Proxy::GetType(codegen);                           \
-    }                                                                  \
-  };                                                                   \
+#define TYPE_BUILDER(PROXY, TYPE)                                                      \
+  namespace proxy {                                                                    \
+  template <>                                                                          \
+  struct TypeBuilder<TYPE> {                                                           \
+    static ::llvm::Type *GetType(::peloton::CodeGen &codegen) ALWAYS_INLINE { \
+      return PROXY##Proxy::GetType(codegen);                                           \
+    }                                                                                  \
+  };                                                                                   \
   }
-
 
 }  // namespace terrier::execution

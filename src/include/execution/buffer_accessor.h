@@ -19,7 +19,6 @@
 
 namespace terrier::execution {
 
-
 class BufferAccessor {
  public:
   BufferAccessor();
@@ -27,12 +26,10 @@ class BufferAccessor {
 
   void Init(CodeGen &codegen, llvm::Value *buffer_ptr) const;
 
-  void Append(CodeGen &codegen, llvm::Value *buffer_ptr,
-              const std::vector<codegen::Value> &tuple) const;
+  void Append(CodeGen &codegen, llvm::Value *buffer_ptr, const std::vector<Value> &tuple) const;
 
   struct IterateCallback;
-  void Iterate(CodeGen &codegen, llvm::Value *buffer_ptr,
-               IterateCallback &callback) const;
+  void Iterate(CodeGen &codegen, llvm::Value *buffer_ptr, IterateCallback &callback) const;
 
   void Reset(CodeGen &codegen, llvm::Value *buffer_ptr) const;
 
@@ -43,13 +40,11 @@ class BufferAccessor {
   uint32_t GetTupleSize() const { return storage_format_.GetStorageSize(); }
 
   struct IterateCallback {
-    virtual void ProcessEntry(
-        CodeGen &codegen, const std::vector<codegen::Value> &vals) const = 0;
+    virtual void ProcessEntry(CodeGen &codegen, const std::vector<Value> &vals) const = 0;
   };
 
  private:
   UpdateableStorage storage_format_;
 };
-
 
 }  // namespace terrier::execution

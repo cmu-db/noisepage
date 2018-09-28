@@ -14,8 +14,6 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(Tuple, "storage::Tuple", opaque);
-
 
 }  // namespace terrier::execution

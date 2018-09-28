@@ -16,22 +16,18 @@
 
 namespace terrier::execution {
 
-
 // Constructor
-ConjunctionTranslator::ConjunctionTranslator(
-    const expression::ConjunctionExpression &conjunction,
-    CompilationContext &context)
+ConjunctionTranslator::ConjunctionTranslator(const expression::ConjunctionExpression &conjunction,
+                                             CompilationContext &context)
     : ExpressionTranslator(conjunction, context) {
   PELOTON_ASSERT(conjunction.GetChildrenSize() == 2);
 }
 
 // Produce the value that is the result of codegening the expression
-codegen::Value ConjunctionTranslator::DeriveValue(CodeGen &codegen,
-                                                  RowBatch::Row &row) const {
-  const auto &conjunction =
-      GetExpressionAs<expression::ConjunctionExpression>();
-  codegen::Value left = row.DeriveValue(codegen, *conjunction.GetChild(0));
-  codegen::Value right = row.DeriveValue(codegen, *conjunction.GetChild(1));
+Value ConjunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
+  const auto &conjunction = GetExpressionAs<expression::ConjunctionExpression>();
+  Value left = row.DeriveValue(codegen, *conjunction.GetChild(0));
+  Value right = row.DeriveValue(codegen, *conjunction.GetChild(1));
 
   switch (conjunction.GetExpressionType()) {
     case ExpressionType::CONJUNCTION_AND:
@@ -43,6 +39,5 @@ codegen::Value ConjunctionTranslator::DeriveValue(CodeGen &codegen,
                       ExpressionTypeToString(conjunction.GetExpressionType())};
   }
 }
-
 
 }  // namespace terrier::execution

@@ -10,10 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/codegen.h"
 #include "execution/function_builder.h"
-#include "execution/proxy/runtime_functions_proxy.h"
 #include "common/harness.h"
+#include "execution/codegen.h"
+#include "execution/proxy/runtime_functions_proxy.h"
 
 namespace peloton {
 namespace test {
@@ -31,14 +31,12 @@ TEST_F(FunctionBuilderTest, ConstructSingleFunction) {
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
   codegen::FunctionBuilder func{code_context, "test", cg.Int32Type(), {}};
-  {
-    func.ReturnAndFinish(cg.Const32(magic_num));
-  }
+  { func.ReturnAndFinish(cg.Const32(magic_num)); }
 
   code_context.Compile();
 
   typedef int (*func_t)(void);
-  func_t fn = (func_t) code_context.GetRawFunctionPointer(func.GetFunction());
+  func_t fn = (func_t)code_context.GetRawFunctionPointer(func.GetFunction());
   ASSERT_EQ(fn(), magic_num);
 }
 
@@ -62,11 +60,9 @@ TEST_F(FunctionBuilderTest, ConstructNestedFunction) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder main{
-      code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
-    codegen::FunctionBuilder test{
-        code_context, "test", cg.Int32Type(), {{"a", cg.Int32Type()}}};
+    codegen::FunctionBuilder test{code_context, "test", cg.Int32Type(), {{"a", cg.Int32Type()}}};
     {
       auto *arg_a = test.GetArgumentByPosition(0);
       auto *ret = cg->CreateMul(arg_a, cg.Const32(magic_num));
@@ -83,7 +79,7 @@ TEST_F(FunctionBuilderTest, ConstructNestedFunction) {
   code_context.Compile();
 
   typedef int (*func_t)(uint32_t);
-  func_t fn = (func_t) code_context.GetRawFunctionPointer(main.GetFunction());
+  func_t fn = (func_t)code_context.GetRawFunctionPointer(main.GetFunction());
   ASSERT_EQ(fn(1), 44);
 }
 

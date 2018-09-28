@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/query_compiler.h"
 #include "common/harness.h"
+#include "execution/query_compiler.h"
 #include "planner/order_by_plan.h"
 #include "planner/seq_scan_plan.h"
 
@@ -36,10 +36,9 @@ TEST_F(OrderByTranslatorTest, SingleIntColAscTest) {
   uint32_t num_test_rows = 20;
   LoadTestTable(TestTableId(), num_test_rows);
 
-  std::unique_ptr<planner::OrderByPlan> order_by_plan{
-      new planner::OrderByPlan({0}, {false}, {0, 1, 2, 3})};
-  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
+  std::unique_ptr<planner::OrderByPlan> order_by_plan{new planner::OrderByPlan({0}, {false}, {0, 1, 2, 3})};
+  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
 
   order_by_plan->AddChild(std::move(seq_scan_plan));
 
@@ -56,12 +55,11 @@ TEST_F(OrderByTranslatorTest, SingleIntColAscTest) {
   // The results should be sorted in ascending order
   auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(results.size(), num_test_rows);
-  EXPECT_TRUE(std::is_sorted(
-      results.begin(), results.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        auto is_lte = t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0));
-        return is_lte == CmpBool::CmpTrue;
-      }));
+  EXPECT_TRUE(std::is_sorted(results.begin(), results.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               auto is_lte = t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0));
+                               return is_lte == CmpBool::CmpTrue;
+                             }));
 }
 
 TEST_F(OrderByTranslatorTest, SingleIntColDescTest) {
@@ -73,10 +71,9 @@ TEST_F(OrderByTranslatorTest, SingleIntColDescTest) {
   uint32_t num_test_rows = 20;
   LoadTestTable(TestTableId(), num_test_rows);
 
-  std::unique_ptr<planner::OrderByPlan> order_by_plan{
-      new planner::OrderByPlan({0}, {true}, {0, 1, 2, 3})};
-  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
+  std::unique_ptr<planner::OrderByPlan> order_by_plan{new planner::OrderByPlan({0}, {true}, {0, 1, 2, 3})};
+  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
 
   order_by_plan->AddChild(std::move(seq_scan_plan));
 
@@ -93,12 +90,11 @@ TEST_F(OrderByTranslatorTest, SingleIntColDescTest) {
   // The results should be sorted in descending order
   auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(results.size(), num_test_rows);
-  EXPECT_TRUE(std::is_sorted(
-      results.begin(), results.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
-        return is_gte == CmpBool::CmpTrue;
-      }));
+  EXPECT_TRUE(std::is_sorted(results.begin(), results.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
+                               return is_gte == CmpBool::CmpTrue;
+                             }));
 }
 
 TEST_F(OrderByTranslatorTest, MultiIntColAscTest) {
@@ -110,10 +106,9 @@ TEST_F(OrderByTranslatorTest, MultiIntColAscTest) {
   uint32_t num_test_rows = 20;
   LoadTestTable(TestTableId(), num_test_rows);
 
-  std::unique_ptr<planner::OrderByPlan> order_by_plan{
-      new planner::OrderByPlan({1, 0}, {false, false}, {0, 1, 2, 3})};
-  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
+  std::unique_ptr<planner::OrderByPlan> order_by_plan{new planner::OrderByPlan({1, 0}, {false, false}, {0, 1, 2, 3})};
+  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
 
   order_by_plan->AddChild(std::move(seq_scan_plan));
 
@@ -131,20 +126,16 @@ TEST_F(OrderByTranslatorTest, MultiIntColAscTest) {
   auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(results.size(), num_test_rows);
 
-  EXPECT_TRUE(std::is_sorted(
-      results.begin(), results.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        if (t1.GetValue(1).CompareEquals(t2.GetValue(0)) ==
-            CmpBool::CmpTrue) {
-          // t1.b == t2.b => t1.a <= t2.a
-          return t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0)) ==
-                 CmpBool::CmpTrue;
-        } else {
-          // t1.b != t2.b => t1.b < t2.b
-          return t1.GetValue(1).CompareLessThan(t2.GetValue(1)) ==
-                 CmpBool::CmpTrue;
-        }
-      }));
+  EXPECT_TRUE(std::is_sorted(results.begin(), results.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               if (t1.GetValue(1).CompareEquals(t2.GetValue(0)) == CmpBool::CmpTrue) {
+                                 // t1.b == t2.b => t1.a <= t2.a
+                                 return t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0)) == CmpBool::CmpTrue;
+                               } else {
+                                 // t1.b != t2.b => t1.b < t2.b
+                                 return t1.GetValue(1).CompareLessThan(t2.GetValue(1)) == CmpBool::CmpTrue;
+                               }
+                             }));
 }
 
 TEST_F(OrderByTranslatorTest, MultiIntColMixedTest) {
@@ -156,10 +147,9 @@ TEST_F(OrderByTranslatorTest, MultiIntColMixedTest) {
   uint32_t num_test_rows = 20;
   LoadTestTable(TestTableId(), num_test_rows);
 
-  std::unique_ptr<planner::OrderByPlan> order_by_plan{
-      new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
-  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
+  std::unique_ptr<planner::OrderByPlan> order_by_plan{new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
+  std::unique_ptr<planner::SeqScanPlan> seq_scan_plan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
 
   order_by_plan->AddChild(std::move(seq_scan_plan));
 
@@ -177,20 +167,16 @@ TEST_F(OrderByTranslatorTest, MultiIntColMixedTest) {
   auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(results.size(), num_test_rows);
 
-  EXPECT_TRUE(std::is_sorted(
-      results.begin(), results.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        if (t1.GetValue(1).CompareEquals(t2.GetValue(1)) ==
-            CmpBool::CmpTrue) {
-          // t1.b == t2.b => t1.a <= t2.a
-          return t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0)) ==
-                 CmpBool::CmpTrue;
-        } else {
-          // t1.b != t2.b => t1.b > t2.b
-          return t1.GetValue(1).CompareGreaterThan(t2.GetValue(1)) ==
-                 CmpBool::CmpTrue;
-        }
-      }));
+  EXPECT_TRUE(std::is_sorted(results.begin(), results.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               if (t1.GetValue(1).CompareEquals(t2.GetValue(1)) == CmpBool::CmpTrue) {
+                                 // t1.b == t2.b => t1.a <= t2.a
+                                 return t1.GetValue(0).CompareLessThanEquals(t2.GetValue(0)) == CmpBool::CmpTrue;
+                               } else {
+                                 // t1.b != t2.b => t1.b > t2.b
+                                 return t1.GetValue(1).CompareGreaterThan(t2.GetValue(1)) == CmpBool::CmpTrue;
+                               }
+                             }));
 }
 
 }  // namespace test

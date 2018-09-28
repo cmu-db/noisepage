@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "common/item_pointer.h"
 #include "common/internal_types.h"
+#include "common/item_pointer.h"
 
 namespace terrier::execution {
 
@@ -32,8 +32,7 @@ class Tile;
 
 namespace type {
 class AbstractPool;
-}  // namespace concurrency
-
+}  // namespace type
 
 // This class handles updating tuples from generated code. This avoids
 // passing along information through translators, and is intialized once
@@ -41,9 +40,8 @@ class AbstractPool;
 class Updater {
  public:
   // Initialize the instance
-  void Init(storage::DataTable *table,
-            executor::ExecutorContext *executor_context,
-            Target *target_vector, uint32_t target_vector_size);
+  void Init(storage::DataTable *table, executor::ExecutorContext *executor_context, Target *target_vector,
+            uint32_t target_vector_size);
 
   // Prepare for a non-primary key update and get a tuple data pointer
   char *Prepare(uint32_t tile_group_id, uint32_t tuple_offset);
@@ -65,21 +63,23 @@ class Updater {
 
  private:
   // No external constructor
-  Updater(): table_(nullptr), executor_context_(nullptr), target_list_(nullptr),
-             is_owner_(false), acquired_ownership_(false), tile_(nullptr) {}
+  Updater()
+      : table_(nullptr),
+        executor_context_(nullptr),
+        target_list_(nullptr),
+        is_owner_(false),
+        acquired_ownership_(false),
+        tile_(nullptr) {}
 
   char *GetDataPtr(uint32_t tile_group_id, uint32_t tuple_offset);
 
   // Check if the tuple is in the statement write set
   inline bool IsInStatementWriteSet(ItemPointer location) {
-    return statement_write_set_->find(location) !=
-           statement_write_set_->end();
+    return statement_write_set_->find(location) != statement_write_set_->end();
   }
 
   // Add the updated location to the statement write set
-  inline void AddToStatementWriteSet(ItemPointer& location) {
-    statement_write_set_->insert(location);
-  }
+  inline void AddToStatementWriteSet(ItemPointer &location) { statement_write_set_->insert(location); }
 
  private:
   // Table and executor context from the update translator
@@ -94,7 +94,7 @@ class Updater {
   // which refers to the phenomenon that an update operation causes a change to
   // a tuple, potentially allowing this tuple to be visited more than once during
   // the same operation.
-  // By maintaining the statement-level write set, an update operation will check 
+  // By maintaining the statement-level write set, an update operation will check
   // whether the to-be-updated tuple is created by the same operation.
   WriteSet *statement_write_set_;
 
@@ -112,6 +112,5 @@ class Updater {
  private:
   DISALLOW_COPY_AND_MOVE(Updater);
 };
-
 
 }  // namespace terrier::execution

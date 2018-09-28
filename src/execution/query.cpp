@@ -11,31 +11,27 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/query.h"
+#include "common/timer.h"
+#include "execution/execution_consumer.h"
 #include "execution/interpreter/bytecode_builder.h"
 #include "execution/interpreter/bytecode_interpreter.h"
 #include "execution/query_compiler.h"
-#include "common/timer.h"
-#include "executor/plan_executor.h"
-#include "execution/execution_consumer.h"
 #include "executor/executor_context.h"
-#include "storage/storage_manager.h"
+#include "executor/plan_executor.h"
 #include "settings/settings_manager.h"
+#include "storage/storage_manager.h"
 
 namespace terrier::execution {
 
-
 // Constructor
-Query::Query(const planner::AbstractPlan &query_plan)
-    : query_plan_(query_plan) {}
+Query::Query(const planner::AbstractPlan &query_plan) : query_plan_(query_plan) {}
 
-void Query::Execute(executor::ExecutorContext &executor_context,
-                    ExecutionConsumer &consumer, RuntimeStats *stats) {
+void Query::Execute(executor::ExecutorContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats) {
   CodeGen codegen{code_context_};
 
   llvm::Type *query_state_type = query_state_.GetType();
   size_t parameter_size = codegen.SizeOf(query_state_type);
-  PELOTON_ASSERT((parameter_size % 8 == 0) &&
-      "parameter size not multiple of 8");
+  PELOTON_ASSERT((parameter_size % 8 == 0) && "parameter size not multiple of 8");
 
   // Allocate some space for the function arguments
   std::unique_ptr<char[]> param_data{new char[parameter_size]};
@@ -47,8 +43,7 @@ void Query::Execute(executor::ExecutorContext &executor_context,
   func_args->executor_context = &executor_context;
   func_args->consumer_arg = consumer.GetConsumerState();
 
-  bool force_interpreter = settings::SettingsManager::GetBool(
-      settings::SettingId::codegen_interpreter);
+  bool force_interpreter = settings::SettingsManager::GetBool(settings::SettingId::codegen_interpreter);
 
   if (is_compiled_ && !force_interpreter) {
     ExecuteNative(func_args, stats);
@@ -90,19 +85,14 @@ void Query::Compile(CompileStats *stats) {
   code_context_.Compile();
 
   // Get pointers to the JITed functions
-  compiled_functions_.init_func =
-      (compiled_function_t)code_context_.GetRawFunctionPointer(
-          llvm_functions_.init_func);
+  compiled_functions_.init_func = (compiled_function_t)code_context_.GetRawFunctionPointer(llvm_functions_.init_func);
   PELOTON_ASSERT(compiled_functions_.init_func != nullptr);
 
-  compiled_functions_.plan_func =
-      (compiled_function_t)code_context_.GetRawFunctionPointer(
-          llvm_functions_.plan_func);
+  compiled_functions_.plan_func = (compiled_function_t)code_context_.GetRawFunctionPointer(llvm_functions_.plan_func);
   PELOTON_ASSERT(compiled_functions_.plan_func != nullptr);
 
   compiled_functions_.tear_down_func =
-      (compiled_function_t)code_context_.GetRawFunctionPointer(
-          llvm_functions_.tear_down_func);
+      (compiled_function_t)code_context_.GetRawFunctionPointer(llvm_functions_.tear_down_func);
   PELOTON_ASSERT(compiled_functions_.tear_down_func != nullptr);
 
   is_compiled_ = true;
@@ -117,8 +107,7 @@ void Query::Compile(CompileStats *stats) {
   }
 }
 
-void Query::ExecuteNative(FunctionArguments *function_arguments,
-                          RuntimeStats *stats) {
+void Query::ExecuteNative(FunctionArguments *function_arguments, RuntimeStats *stats) {
   // Start timer
   Timer<std::milli> timer;
   if (stats != nullptr) {
@@ -172,8 +161,7 @@ void Query::ExecuteNative(FunctionArguments *function_arguments,
   }
 }
 
-void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
-                               RuntimeStats *stats) {
+void Query::ExecuteInterpreter(FunctionArguments *function_arguments, RuntimeStats *stats) {
   LOG_INFO("Using codegen interpreter to execute plan");
 
   // Timer
@@ -184,14 +172,11 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
 
   // Create Bytecode
   interpreter::BytecodeFunction init_bytecode =
-      interpreter::BytecodeBuilder::CreateBytecodeFunction(
-          code_context_, llvm_functions_.init_func);
+      interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context_, llvm_functions_.init_func);
   interpreter::BytecodeFunction plan_bytecode =
-      interpreter::BytecodeBuilder::CreateBytecodeFunction(
-          code_context_, llvm_functions_.plan_func);
+      interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context_, llvm_functions_.plan_func);
   interpreter::BytecodeFunction tear_down_bytecode =
-      interpreter::BytecodeBuilder::CreateBytecodeFunction(
-          code_context_, llvm_functions_.tear_down_func);
+      interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context_, llvm_functions_.tear_down_func);
 
   // Time initialization
   if (stats != nullptr) {
@@ -204,11 +189,9 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
   // Call init
   LOG_TRACE("Calling query's init() ...");
   try {
-    interpreter::BytecodeInterpreter::ExecuteFunction(
-        init_bytecode, reinterpret_cast<char *>(function_arguments));
+    interpreter::BytecodeInterpreter::ExecuteFunction(init_bytecode, reinterpret_cast<char *>(function_arguments));
   } catch (...) {
-    interpreter::BytecodeInterpreter::ExecuteFunction(
-        tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
+    interpreter::BytecodeInterpreter::ExecuteFunction(tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
     throw;
   }
 
@@ -222,11 +205,9 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
   // Execute the query!
   LOG_TRACE("Calling query's plan() ...");
   try {
-    interpreter::BytecodeInterpreter::ExecuteFunction(
-        plan_bytecode, reinterpret_cast<char *>(function_arguments));
+    interpreter::BytecodeInterpreter::ExecuteFunction(plan_bytecode, reinterpret_cast<char *>(function_arguments));
   } catch (...) {
-    interpreter::BytecodeInterpreter::ExecuteFunction(
-        tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
+    interpreter::BytecodeInterpreter::ExecuteFunction(tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
     throw;
   }
 
@@ -240,8 +221,7 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
 
   // Clean up
   LOG_TRACE("Calling query's tearDown() ...");
-  interpreter::BytecodeInterpreter::ExecuteFunction(
-      tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
+  interpreter::BytecodeInterpreter::ExecuteFunction(tear_down_bytecode, reinterpret_cast<char *>(function_arguments));
 
   // No need to cleanup if we get an exception while cleaning up...
   if (stats != nullptr) {
@@ -249,6 +229,5 @@ void Query::ExecuteInterpreter(FunctionArguments *function_arguments,
     stats->tear_down_ms = timer.GetDuration();
   }
 }
-
 
 }  // namespace terrier::execution

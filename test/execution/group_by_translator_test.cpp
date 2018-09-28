@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "catalog/catalog.h"
+#include "common/harness.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 #include "execution/query_compiler.h"
-#include "common/harness.h"
 #include "expression/comparison_expression.h"
 #include "expression/conjunction_expression.h"
 #include "expression/tuple_value_expression.h"
@@ -44,28 +44,23 @@ TEST_F(GroupByTranslatorTest, SingleColumnGrouping) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {0, 0}}, {1, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
 
   // 2) Setup the aggregations
   // For count(*) just use a TVE
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
 
   // 3) The grouping column
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
   std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                           {type::TypeId::BIGINT, 8, "COUNT_A"}})};
+      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::BIGINT, 8, "COUNT_A"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -90,8 +85,7 @@ TEST_F(GroupByTranslatorTest, SingleColumnGrouping) {
   // Each group should have a count of one (since the grouping column is unique)
   type::Value const_one = type::ValueFactory::GetIntegerValue(1);
   for (const auto &tuple : results) {
-    EXPECT_TRUE(tuple.GetValue(1).CompareEquals(const_one) ==
-                CmpBool::CmpTrue);
+    EXPECT_TRUE(tuple.GetValue(1).CompareEquals(const_one) == CmpBool::CmpTrue);
   }
 }
 
@@ -104,29 +98,24 @@ TEST_F(GroupByTranslatorTest, MultiColumnGrouping) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {0, 0}}, {1, {0, 1}}, {2, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
   // 2) Setup the aggregations
   // For count(*) just use a TVE
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
 
   // 3) The grouping column
   std::vector<oid_t> gb_cols = {0, 1};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                           {type::TypeId::INTEGER, 4, "COL_B"},
-                           {type::TypeId::BIGINT, 8, "COUNT_*"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
+                                                                            {type::TypeId::INTEGER, 4, "COL_B"},
+                                                                            {type::TypeId::BIGINT, 8, "COUNT_*"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -165,27 +154,22 @@ TEST_F(GroupByTranslatorTest, AverageAggregation) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {0, 0}}, {1, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
   // 2) Setup the average over 'b'
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_AVG, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_AVG, tve_expr}};
 
   // 3) The grouping column
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
   std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                           {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -217,36 +201,28 @@ TEST_F(GroupByTranslatorTest, AggregationWithOutputPredicate) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {0, 0}}, {1, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
   // 2) Setup the average over 'b'
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_AVG, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_AVG, tve_expr}};
 
   // 3) The grouping column
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
   std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                           {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) The predicate on the average aggregate
-  auto *x_exp =
-      new expression::TupleValueExpression(type::TypeId::DECIMAL, 0, 1);
-  auto *const_50 = new expression::ConstantValueExpression(
-      type::ValueFactory::GetDecimalValue(50.0));
-  ExpressionPtr x_gt_50{
-      new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHAN,
-                                           x_exp, const_50)};
+  auto *x_exp = new expression::TupleValueExpression(type::TypeId::DECIMAL, 0, 1);
+  auto *const_50 = new expression::ConstantValueExpression(type::ValueFactory::GetDecimalValue(50.0));
+  ExpressionPtr x_gt_50{new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHAN, x_exp, const_50)};
 
   // 6) Finally, the aggregation node
-  std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), std::move(x_gt_50), std::move(agg_terms),
-      std::move(gb_cols), output_schema, AggregateType::HASH)};
+  std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(std::move(proj_info), std::move(x_gt_50),
+                                                                             std::move(agg_terms), std::move(gb_cols),
+                                                                             output_schema, AggregateType::HASH)};
 
   // 7) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -278,34 +254,27 @@ TEST_F(GroupByTranslatorTest, AggregationWithInputPredciate) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {0, 0}}, {1, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
   // 2) Setup the average over 'b'
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_AVG, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_AVG, tve_expr}};
 
   // 3) The grouping column
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
   std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                           {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+      new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The predicate on the grouping column
-  auto *a_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
   auto *const_50 = ConstIntExpr(50).release();
-  auto *a_gt_50 = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_GREATERTHAN, a_exp, const_50);
+  auto *a_gt_50 = new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHAN, a_exp, const_50);
 
   // 7) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -338,27 +307,22 @@ TEST_F(GroupByTranslatorTest, SingleCountStar) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {1, 0}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
   // 2) Setup the aggregations
   // For count(*) just use a TVE
-  auto *tve_expr =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
+  auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_COUNT_STAR, tve_expr}};
 
   // 3) No grouping
   std::vector<oid_t> gb_cols = {};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::BIGINT, 8, "COUNT_A"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema({{type::TypeId::BIGINT, 8, "COUNT_A"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -379,9 +343,7 @@ TEST_F(GroupByTranslatorTest, SingleCountStar) {
   // Check results
   const auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(1, results.size());
-  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(10)) ==
-              CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(10)) == CmpBool::CmpTrue);
 }
 
 TEST_F(GroupByTranslatorTest, MinAndMax) {
@@ -393,30 +355,24 @@ TEST_F(GroupByTranslatorTest, MinAndMax) {
 
   // 1) Set up projection (just a direct map)
   DirectMapList direct_map_list = {{0, {1, 0}}, {1, {1, 1}}};
-  std::unique_ptr<planner::ProjectInfo> proj_info{
-      new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
+  std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
 
   // 2) Setup MAX() aggregation on column 'a' and MIN() on 'b'
-  auto *a_col =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_col =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-      {ExpressionType::AGGREGATE_MAX, a_col},
-      {ExpressionType::AGGREGATE_MIN, b_col}};
+  auto *a_col = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *b_col = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_MAX, a_col},
+                                                            {ExpressionType::AGGREGATE_MIN, b_col}};
 
   // 3) No grouping
   std::vector<oid_t> gb_cols = {};
 
   // 4) The output schema
   std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{type::TypeId::INTEGER, 4, "MAX_A"},
-                           {type::TypeId::INTEGER, 4, "MIN_B"}})};
+      new catalog::Schema({{type::TypeId::INTEGER, 4, "MAX_A"}, {type::TypeId::INTEGER, 4, "MIN_B"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
-      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols),
-      output_schema, AggregateType::HASH)};
+      std::move(proj_info), nullptr, std::move(agg_terms), std::move(gb_cols), output_schema, AggregateType::HASH)};
 
   // 6) The scan that feeds the aggregation
   std::unique_ptr<planner::AbstractPlan> scan_plan{
@@ -438,21 +394,16 @@ TEST_F(GroupByTranslatorTest, MinAndMax) {
   const auto &results = buffer.GetOutputTuples();
   EXPECT_EQ(1, results.size());
 
-  LOG_INFO("max: %s, min: %s", results[0].GetValue(0).ToString().c_str(),
-           results[0].GetValue(1).ToString().c_str());
+  LOG_INFO("max: %s, min: %s", results[0].GetValue(0).ToString().c_str(), results[0].GetValue(1).ToString().c_str());
 
   // The values of column 'a' are equal to the (zero-indexed) row ID * 10. The
   // maximum row ID is equal to # inserted - 1. Therefore:
   // MAX(a) = (# inserted - 1) * 10 = (10 - 1) * 10 = 9 * 10 = 90
-  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(90)) ==
-              CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(0).CompareEquals(type::ValueFactory::GetBigIntValue(90)) == CmpBool::CmpTrue);
 
   // The values of 'b' are equal to the (zero-indexed) row ID * 10 + 1. The
   // minimum row ID is 0. Therefore: MIN(b) = 0 * 10 + 1 = 1
-  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(
-                  type::ValueFactory::GetBigIntValue(1)) ==
-              CmpBool::CmpTrue);
+  EXPECT_TRUE(results[0].GetValue(1).CompareEquals(type::ValueFactory::GetBigIntValue(1)) == CmpBool::CmpTrue);
 }
 
 }  // namespace test

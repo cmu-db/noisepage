@@ -21,15 +21,12 @@ namespace planner {
 class DeletePlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // The translator for a delete operator
 //===----------------------------------------------------------------------===//
 class DeleteTranslator : public OperatorTranslator {
  public:
-  DeleteTranslator(const planner::DeletePlan &delete_plan,
-                   CompilationContext &context, Pipeline &pipeline);
+  DeleteTranslator(const planner::DeletePlan &delete_plan, CompilationContext &context, Pipeline &pipeline);
 
   void InitializeQueryState() override;
 
@@ -43,11 +40,10 @@ class DeleteTranslator : public OperatorTranslator {
 
  private:
   // Table accessor
-  codegen::Table table_;
+  Table table_;
 
   // The Deleter instance
   QueryState::Id deleter_state_id_;
 };
-
 
 }  // namespace terrier::execution

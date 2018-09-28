@@ -24,13 +24,10 @@ namespace planner {
 class UpdatePlan;
 }  // namespace planner
 
-
-
 class UpdateTranslator : public OperatorTranslator {
  public:
   // Constructor
-  UpdateTranslator(const planner::UpdatePlan &plan, CompilationContext &context,
-                   Pipeline &pipeline);
+  UpdateTranslator(const planner::UpdatePlan &plan, CompilationContext &context, Pipeline &pipeline);
 
   void InitializeQueryState() override;
 
@@ -51,8 +48,7 @@ class UpdateTranslator : public OperatorTranslator {
   QueryState::Id updater_state_id_;
 
   // Tuple storage area
-  codegen::TableStorage table_storage_;
+  TableStorage table_storage_;
 };
-
 
 }  // namespace terrier::execution

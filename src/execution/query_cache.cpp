@@ -19,8 +19,7 @@
 
 namespace terrier::execution {
 
-
-Query* QueryCache::Find(const std::shared_ptr<planner::AbstractPlan> &key) {
+Query *QueryCache::Find(const std::shared_ptr<planner::AbstractPlan> &key) {
   cache_lock_.ReadLock();
   auto it = cache_map_.find(key);
   if (it == cache_map_.end()) {
@@ -33,8 +32,7 @@ Query* QueryCache::Find(const std::shared_ptr<planner::AbstractPlan> &key) {
   return query;
 }
 
-void QueryCache::Add(const std::shared_ptr<planner::AbstractPlan> &key,
-                     std::unique_ptr<Query> &&val) {
+void QueryCache::Add(const std::shared_ptr<planner::AbstractPlan> &key, std::unique_ptr<Query> &&val) {
   cache_lock_.WriteLock();
   query_list_.push_front(make_pair(key, std::move(val)));
   cache_map_.insert(make_pair(key, query_list_.begin()));
@@ -51,7 +49,7 @@ void QueryCache::Clear() {
 void QueryCache::Remove(const oid_t table_oid) {
   cache_lock_.WriteLock();
 
-  for (auto it = cache_map_.begin(); it != cache_map_.end(); ) {
+  for (auto it = cache_map_.begin(); it != cache_map_.end();) {
     oid_t oid = GetOidFromPlan(*it->first.get());
     if (oid == table_oid) {
       query_list_.erase(it->second);
@@ -76,7 +74,7 @@ void QueryCache::Resize(size_t target_size) {
 }
 
 oid_t QueryCache::GetOidFromPlan(const planner::AbstractPlan &plan) const {
- switch (plan.GetPlanNodeType()) {
+  switch (plan.GetPlanNodeType()) {
     case PlanNodeType::SEQSCAN: {
       auto &dplan = static_cast<const planner::SeqScanPlan &>(plan);
       return dplan.GetTable()->GetOid();
@@ -101,6 +99,5 @@ oid_t QueryCache::GetOidFromPlan(const planner::AbstractPlan &plan) const {
     return GetOidFromPlan(*plan.GetChild(0));
   }
 }
-
 
 }  // namespace terrier::execution

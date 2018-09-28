@@ -12,11 +12,11 @@
 
 #include "execution/type/type_system.h"
 
+#include "common/exception.h"
 #include "execution/lang/if.h"
 #include "execution/type/boolean_type.h"
 #include "execution/type/integer_type.h"
 #include "execution/value.h"
-#include "common/exception.h"
 #include "runtime/string_util.h"
 
 namespace terrier::execution {
@@ -26,10 +26,8 @@ namespace type {
 namespace {
 
 Value GenerateBinaryHandleNull(
-    CodeGen &codegen, const SqlType &result_type, const Value &left,
-    const Value &right,
-    const std::function<Value(CodeGen &codegen, const Value &left,
-                              const Value &right)> &impl) {
+    CodeGen &codegen, const SqlType &result_type, const Value &left, const Value &right,
+    const std::function<Value(CodeGen &codegen, const Value &left, const Value &right)> &impl) {
   if (!left.IsNullable() && !right.IsNullable()) {
     // Neither input is NULLable, elide the NULL check
     return impl(codegen, left, right);
@@ -61,8 +59,7 @@ Value GenerateBinaryHandleNull(
 //
 //===----------------------------------------------------------------------===//
 
-Value TypeSystem::CastHandleNull::Eval(CodeGen &codegen, const Value &value,
-                                       const Type &to_type) const {
+Value TypeSystem::CastHandleNull::Eval(CodeGen &codegen, const Value &value, const Type &to_type) const {
   if (!value.IsNullable()) {
     // If the value isn't NULLable, avoid the NULL check and just invoke
     return Impl(codegen, value, to_type);
@@ -111,40 +108,40 @@ Value TypeSystem::CastHandleNull::Eval(CodeGen &codegen, const Value &value,
   /* Return the result with the computed null-bit */                       \
   return Value{result.GetType().AsNullable(), result.GetValue(), nullptr, null};
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareLt(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareLt(CodeGen &codegen, const Value &left,
+                                                            const Value &right) const {
   GEN_COMPARE(CompareLtImpl(codegen, left, right));
 }
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareLte(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareLte(CodeGen &codegen, const Value &left,
+                                                             const Value &right) const {
   GEN_COMPARE(CompareLteImpl(codegen, left, right));
 }
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareEq(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareEq(CodeGen &codegen, const Value &left,
+                                                            const Value &right) const {
   GEN_COMPARE(CompareEqImpl(codegen, left, right));
 }
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareNe(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareNe(CodeGen &codegen, const Value &left,
+                                                            const Value &right) const {
   GEN_COMPARE(CompareNeImpl(codegen, left, right));
 }
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareGt(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareGt(CodeGen &codegen, const Value &left,
+                                                            const Value &right) const {
   GEN_COMPARE(CompareGtImpl(codegen, left, right));
 }
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareGte(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareGte(CodeGen &codegen, const Value &left,
+                                                             const Value &right) const {
   GEN_COMPARE(CompareGteImpl(codegen, left, right));
 }
 
 #undef GEN_COMPARE
 
-Value TypeSystem::SimpleComparisonHandleNull::EvalCompareForSort(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::SimpleComparisonHandleNull::EvalCompareForSort(CodeGen &codegen, const Value &left,
+                                                                 const Value &right) const {
   // Do null-safe comparison
   auto real_cmp = CompareForSortImpl(codegen, left, right);
 
@@ -179,12 +176,10 @@ Value TypeSystem::SimpleComparisonHandleNull::EvalCompareForSort(
   llvm::Value *right_null = right.IsNull(codegen);
   llvm::Value *either_null = codegen->CreateOr(left_null, right_null);
 
-  llvm::Value *null_cmp =
-      codegen->CreateSub(codegen->CreateZExt(left_null, codegen.Int32Type()),
-                         codegen->CreateZExt(right_null, codegen.Int32Type()));
+  llvm::Value *null_cmp = codegen->CreateSub(codegen->CreateZExt(left_null, codegen.Int32Type()),
+                                             codegen->CreateZExt(right_null, codegen.Int32Type()));
 
-  llvm::Value *final =
-      codegen->CreateSelect(either_null, null_cmp, real_cmp.GetValue());
+  llvm::Value *final = codegen->CreateSelect(either_null, null_cmp, real_cmp.GetValue());
 
   return Value{Integer::Instance(), final, nullptr, nullptr};
 }
@@ -195,8 +190,8 @@ Value TypeSystem::SimpleComparisonHandleNull::EvalCompareForSort(
 //
 //===----------------------------------------------------------------------===//
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLt(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLt(CodeGen &codegen, const Value &left,
+                                                               const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareLtImpl(codegen, left, right);
   };
@@ -204,8 +199,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLt(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLte(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLte(CodeGen &codegen, const Value &left,
+                                                                const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareLteImpl(codegen, left, right);
   };
@@ -213,8 +208,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareLte(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareEq(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareEq(CodeGen &codegen, const Value &left,
+                                                               const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareEqImpl(codegen, left, right);
   };
@@ -222,8 +217,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareEq(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareNe(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareNe(CodeGen &codegen, const Value &left,
+                                                               const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareNeImpl(codegen, left, right);
   };
@@ -231,8 +226,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareNe(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGt(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGt(CodeGen &codegen, const Value &left,
+                                                               const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareGtImpl(codegen, left, right);
   };
@@ -240,8 +235,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGt(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGte(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGte(CodeGen &codegen, const Value &left,
+                                                                const Value &right) const {
   auto impl = [this](CodeGen &codegen, const Value &left, const Value &right) {
     return CompareGteImpl(codegen, left, right);
   };
@@ -249,8 +244,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareGte(
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
 }
 
-Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareForSort(
-    CodeGen &codegen, const Value &left, const Value &right) const {
+Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareForSort(CodeGen &codegen, const Value &left,
+                                                                    const Value &right) const {
   // If neither input is NULLable, we're done
   if (!left.IsNullable() && !right.IsNullable()) {
     return CompareForSortImpl(codegen, left, right);
@@ -267,9 +262,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareForSort(
   lang::If is_null{codegen, codegen->CreateOr(left_null, right_null)};
   {
     // One of the inputs is null
-    auto *null_cmp = codegen->CreateSub(
-        codegen->CreateZExt(left_null, codegen.Int32Type()),
-        codegen->CreateZExt(right_null, codegen.Int32Type()));
+    auto *null_cmp = codegen->CreateSub(codegen->CreateZExt(left_null, codegen.Int32Type()),
+                                        codegen->CreateZExt(right_null, codegen.Int32Type()));
     null_ret = Value{Integer::Instance(), null_cmp};
   }
   is_null.ElseBlock();
@@ -286,8 +280,8 @@ Value TypeSystem::ExpensiveComparisonHandleNull::EvalCompareForSort(
 // UnaryOperatorHandleNull
 //
 //===----------------------------------------------------------------------===//
-Value TypeSystem::UnaryOperatorHandleNull::Eval(
-    CodeGen &codegen, const Value &val, const InvocationContext &ctx) const {
+Value TypeSystem::UnaryOperatorHandleNull::Eval(CodeGen &codegen, const Value &val,
+                                                const InvocationContext &ctx) const {
   if (!val.IsNullable()) {
     // If the input is not NULLable, elide the NULL check
     return Impl(codegen, val, ctx);
@@ -314,13 +308,11 @@ Value TypeSystem::UnaryOperatorHandleNull::Eval(
 // BinaryOperatorHandleNull
 //
 //===----------------------------------------------------------------------===//
-Value TypeSystem::BinaryOperatorHandleNull::Eval(
-    CodeGen &codegen, const Value &left, const Value &right,
-    const InvocationContext &ctx) const {
-  auto impl =
-      [this, &ctx](CodeGen &codegen, const Value &left, const Value &right) {
-        return Impl(codegen, left, right, ctx);
-      };
+Value TypeSystem::BinaryOperatorHandleNull::Eval(CodeGen &codegen, const Value &left, const Value &right,
+                                                 const InvocationContext &ctx) const {
+  auto impl = [this, &ctx](CodeGen &codegen, const Value &left, const Value &right) {
+    return Impl(codegen, left, right, ctx);
+  };
 
   auto &result_type = ResultType(left.GetType(), right.GetType()).GetSqlType();
   return GenerateBinaryHandleNull(codegen, result_type, left, right, impl);
@@ -331,14 +323,13 @@ Value TypeSystem::BinaryOperatorHandleNull::Eval(
 // TypeSystem
 //
 //===----------------------------------------------------------------------===//
-TypeSystem::TypeSystem(
-    const std::vector<peloton::type::TypeId> &implicit_cast_table,
-    const std::vector<TypeSystem::CastInfo> &explicit_cast_table,
-    const std::vector<TypeSystem::ComparisonInfo> &comparison_table,
-    const std::vector<TypeSystem::UnaryOpInfo> &unary_op_table,
-    const std::vector<TypeSystem::BinaryOpInfo> &binary_op_table,
-    const std::vector<TypeSystem::NaryOpInfo> &nary_op_table,
-    const std::vector<TypeSystem::NoArgOpInfo> &no_arg_op_table)
+TypeSystem::TypeSystem(const std::vector<type::TypeId> &implicit_cast_table,
+                       const std::vector<TypeSystem::CastInfo> &explicit_cast_table,
+                       const std::vector<TypeSystem::ComparisonInfo> &comparison_table,
+                       const std::vector<TypeSystem::UnaryOpInfo> &unary_op_table,
+                       const std::vector<TypeSystem::BinaryOpInfo> &binary_op_table,
+                       const std::vector<TypeSystem::NaryOpInfo> &nary_op_table,
+                       const std::vector<TypeSystem::NoArgOpInfo> &no_arg_op_table)
     : implicit_cast_table_(implicit_cast_table),
       explicit_cast_table_(explicit_cast_table),
       comparison_table_(comparison_table),
@@ -347,8 +338,7 @@ TypeSystem::TypeSystem(
       nary_op_table_(nary_op_table),
       no_arg_op_table_(no_arg_op_table) {}
 
-bool TypeSystem::CanImplicitlyCastTo(const Type &from_type,
-                                     const Type &to_type) {
+bool TypeSystem::CanImplicitlyCastTo(const Type &from_type, const Type &to_type) {
   const auto &type_system = from_type.GetTypeSystem();
   for (auto &castable_type_id : type_system.implicit_cast_table_) {
     if (castable_type_id == to_type.type_id) {
@@ -358,12 +348,10 @@ bool TypeSystem::CanImplicitlyCastTo(const Type &from_type,
   return false;
 }
 
-const TypeSystem::Cast *TypeSystem::GetCast(const Type &from_type,
-                                            const Type &to_type) {
+const TypeSystem::Cast *TypeSystem::GetCast(const Type &from_type, const Type &to_type) {
   const auto &type_system = from_type.GetTypeSystem();
   for (const auto &cast_info : type_system.explicit_cast_table_) {
-    if (cast_info.from_type == from_type.type_id &&
-        cast_info.to_type == to_type.type_id) {
+    if (cast_info.from_type == from_type.type_id && cast_info.to_type == to_type.type_id) {
       return &cast_info.cast_operation;
     }
   }
@@ -372,9 +360,8 @@ const TypeSystem::Cast *TypeSystem::GetCast(const Type &from_type,
   throw CastException{from_type.type_id, to_type.type_id};
 }
 
-const TypeSystem::Comparison *TypeSystem::GetComparison(
-    const Type &left_type, Type &left_casted_type, const Type &right_type,
-    Type &right_casted_type) {
+const TypeSystem::Comparison *TypeSystem::GetComparison(const Type &left_type, Type &left_casted_type,
+                                                        const Type &right_type, Type &right_casted_type) {
   const auto &left_type_system = left_type.GetTypeSystem();
   for (const auto &comparison_info : left_type_system.comparison_table_) {
     // Can we use the operation without any implicit casting?
@@ -386,8 +373,7 @@ const TypeSystem::Comparison *TypeSystem::GetComparison(
     }
 
     // Check if the right input type can be casted to the left input type
-    if (CanImplicitlyCastTo(right_type, left_type) &&
-        comparison.SupportsTypes(left_type, left_type)) {
+    if (CanImplicitlyCastTo(right_type, left_type) && comparison.SupportsTypes(left_type, left_type)) {
       left_casted_type = right_casted_type = left_type;
       return &comparison;
     }
@@ -402,8 +388,7 @@ const TypeSystem::Comparison *TypeSystem::GetComparison(
     // Can we use this comparison by implicitly casting the left input type to
     // the right input type?
     const auto &comparison = comparison_info.comparison;
-    if (CanImplicitlyCastTo(left_type, right_type) &&
-        comparison.SupportsTypes(right_type, right_type)) {
+    if (CanImplicitlyCastTo(left_type, right_type) && comparison.SupportsTypes(right_type, right_type)) {
       left_casted_type = right_casted_type = right_type;
       return &comparison;
     }
@@ -411,15 +396,13 @@ const TypeSystem::Comparison *TypeSystem::GetComparison(
 
   // Error
   std::string msg =
-      StringUtil::Format("No comparison rule between types: %s and %s",
-                         TypeIdToString(left_type.type_id).c_str(),
+      StringUtil::Format("No comparison rule between types: %s and %s", TypeIdToString(left_type.type_id).c_str(),
                          TypeIdToString(right_type.type_id).c_str());
 
   throw Exception{msg};
 }
 
-const TypeSystem::UnaryOperator *TypeSystem::GetUnaryOperator(
-    OperatorId op_id, const Type &input_type) {
+const TypeSystem::UnaryOperator *TypeSystem::GetUnaryOperator(OperatorId op_id, const Type &input_type) {
   const auto &type_system = input_type.GetTypeSystem();
   for (const auto &unary_op_info : type_system.unary_op_table_) {
     // Is this the operation we want? If not, keep looking ...
@@ -435,16 +418,15 @@ const TypeSystem::UnaryOperator *TypeSystem::GetUnaryOperator(
   }
 
   // Error
-  std::string msg = StringUtil::Format(
-      "No compatible '%s' unary operator for input type: '%s'",
-      TypeIdToString(input_type.type_id).c_str());
+  std::string msg = StringUtil::Format("No compatible '%s' unary operator for input type: '%s'",
+                                       TypeIdToString(input_type.type_id).c_str());
 
   throw Exception{msg};
 }
 
-const TypeSystem::BinaryOperator *TypeSystem::GetBinaryOperator(
-    OperatorId op_id, const Type &left_type, Type &left_casted_type,
-    const Type &right_type, Type &right_casted_type) {
+const TypeSystem::BinaryOperator *TypeSystem::GetBinaryOperator(OperatorId op_id, const Type &left_type,
+                                                                Type &left_casted_type, const Type &right_type,
+                                                                Type &right_casted_type) {
   const auto &left_type_system = left_type.GetTypeSystem();
   for (const auto &binary_op_info : left_type_system.binary_op_table_) {
     // Is this the operation we want? If not, keep looking ...
@@ -461,8 +443,7 @@ const TypeSystem::BinaryOperator *TypeSystem::GetBinaryOperator(
     }
 
     // Check if the right input type can be casted to the left input type
-    if (CanImplicitlyCastTo(right_type, left_type) &&
-        binary_operation.SupportsTypes(left_type, left_type)) {
+    if (CanImplicitlyCastTo(right_type, left_type) && binary_operation.SupportsTypes(left_type, left_type)) {
       left_casted_type = right_casted_type = left_type;
       return &binary_operation;
     }
@@ -481,8 +462,7 @@ const TypeSystem::BinaryOperator *TypeSystem::GetBinaryOperator(
 
     // Can we use the operation without any implicit casting?
     const auto &binary_operation = binary_op_info.binary_operation;
-    if (CanImplicitlyCastTo(left_type, right_type) &&
-        binary_operation.SupportsTypes(right_type, right_type)) {
+    if (CanImplicitlyCastTo(left_type, right_type) && binary_operation.SupportsTypes(right_type, right_type)) {
       left_casted_type = right_type;
       right_casted_type = right_type;
       return &binary_operation;
@@ -491,15 +471,12 @@ const TypeSystem::BinaryOperator *TypeSystem::GetBinaryOperator(
 
   // Error
   std::string msg =
-      StringUtil::Format("No compatible '%s' operator for input types: %s, %s",
-                         OperatorIdToString(op_id).c_str(),
-                         TypeIdToString(left_type.type_id).c_str(),
-                         TypeIdToString(right_type.type_id).c_str());
+      StringUtil::Format("No compatible '%s' operator for input types: %s, %s", OperatorIdToString(op_id).c_str(),
+                         TypeIdToString(left_type.type_id).c_str(), TypeIdToString(right_type.type_id).c_str());
   throw Exception{msg};
 }
 
-const TypeSystem::NaryOperator *TypeSystem::GetNaryOperator(
-    OperatorId op_id, const std::vector<Type> &arg_types) {
+const TypeSystem::NaryOperator *TypeSystem::GetNaryOperator(OperatorId op_id, const std::vector<Type> &arg_types) {
   for (const auto &arg_type : arg_types) {
     auto &type_system = arg_type.GetTypeSystem();
 
@@ -524,9 +501,8 @@ const TypeSystem::NaryOperator *TypeSystem::GetNaryOperator(
   }
 
   // Error
-  throw Exception{StringUtil::Format(
-      "No compatible '%s' operator for input types: %s",
-      OperatorIdToString(op_id).c_str(), arg_types_str.c_str())};
+  throw Exception{StringUtil::Format("No compatible '%s' operator for input types: %s",
+                                     OperatorIdToString(op_id).c_str(), arg_types_str.c_str())};
 }
 
 }  // namespace type

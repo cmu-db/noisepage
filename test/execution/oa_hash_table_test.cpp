@@ -10,17 +10,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <unordered_map>
 #include <random>
+#include <unordered_map>
 
 #include "common/harness.h"
 
-#include "murmur3/MurmurHash3.h"
 #include "libcuckoo/cuckoohash_map.hh"
+#include "murmur3/MurmurHash3.h"
 
-#include "execution/util/oa_hash_table.h"
-#include "execution/util/hash_table.h"
 #include "common/timer.h"
+#include "execution/util/hash_table.h"
+#include "execution/util/oa_hash_table.h"
 #include "type/ephemeral_pool.h"
 
 namespace peloton {
@@ -34,17 +34,13 @@ class OAHashTableTest : public PelotonTest {
 
     Key(uint32_t _k1, uint32_t _k2) : k1(_k1), k2(_k2) {}
 
-    bool operator==(const Key &rhs) const {
-      return k1 == rhs.k1 && k2 == rhs.k2;
-    }
+    bool operator==(const Key &rhs) const { return k1 == rhs.k1 && k2 == rhs.k2; }
     bool operator!=(const Key &rhs) const { return !(rhs == *this); }
   };
 
   struct Value {
     uint32_t v1, v2, v3, v4;
-    bool operator==(const Value &rhs) const {
-      return v1 == rhs.v1 && v2 == rhs.v2 && v3 == rhs.v3 && v4 == rhs.v4;
-    }
+    bool operator==(const Value &rhs) const { return v1 == rhs.v1 && v2 == rhs.v2 && v3 == rhs.v3 && v4 == rhs.v4; }
     bool operator!=(const Value &rhs) const { return !(rhs == *this); }
   };
 
@@ -102,8 +98,7 @@ TEST_F(OAHashTableTest, CanIterate) {
 
   // Check that we find them all
   uint32_t i = 0;
-  for (auto iter = hashtable.begin(), end = hashtable.end(); iter != end;
-       ++iter) {
+  for (auto iter = hashtable.begin(), end = hashtable.end(); iter != end; ++iter) {
     i++;
   }
 
@@ -118,8 +113,7 @@ TEST_F(OAHashTableTest, CanIterate) {
 
   i = 0;
   uint32_t dup_count = 0;
-  for (auto iter = hashtable.begin(), end = hashtable.end(); iter != end;
-       ++iter) {
+  for (auto iter = hashtable.begin(), end = hashtable.end(); iter != end; ++iter) {
     const auto *iter_key = reinterpret_cast<const Key *>(iter.Key());
     if (*iter_key == key_dup) {
       dup_count++;
@@ -157,9 +151,7 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
   // First, bench ours ...
   {
     for (uint32_t b = 0; b < num_runs; b++) {
-      codegen::util::OAHashTable ht(
-          sizeof(Key), sizeof(Value),
-          codegen::util::OAHashTable::kDefaultInitialSize);
+      codegen::util::OAHashTable ht(sizeof(Key), sizeof(Value), codegen::util::OAHashTable::kDefaultInitialSize);
 
       Timer<std::ratio<1, 1000>> timer;
       timer.Start();
@@ -180,8 +172,7 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
       std::vector<Key> shuffled = keys;
       std::random_shuffle(shuffled.begin(), shuffled.end());
       for (uint32_t i = 0; i < num_keys; i++) {
-        std::function<void(const Value &v)> f =
-            [](UNUSED_ATTRIBUTE const Value &vv) {};
+        std::function<void(const Value &v)> f = [](UNUSED_ATTRIBUTE const Value &vv) {};
         EXPECT_TRUE(ht.Probe(Hash(shuffled[i]), shuffled[i], f));
       }
       // End Probe
@@ -217,8 +208,7 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
       std::vector<Key> shuffled = keys;
       std::random_shuffle(shuffled.begin(), shuffled.end());
       for (uint32_t i = 0; i < num_keys; i++) {
-        std::function<void(const Value &v)> f =
-            [](UNUSED_ATTRIBUTE const Value &vv) {};
+        std::function<void(const Value &v)> f = [](UNUSED_ATTRIBUTE const Value &vv) {};
         EXPECT_TRUE(ht.TypedProbe(Hash(shuffled[i]), shuffled[i], f));
       }
       // End Probe
@@ -235,8 +225,7 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
     };
 
     for (uint32_t b = 0; b < num_runs; b++) {
-      std::unordered_map<Key, Value, Hasher> ht(
-          codegen::util::OAHashTable::kDefaultInitialSize);
+      std::unordered_map<Key, Value, Hasher> ht(codegen::util::OAHashTable::kDefaultInitialSize);
 
       Timer<std::ratio<1, 1000>> timer;
       timer.Start();
@@ -271,8 +260,7 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
     };
 
     for (uint32_t b = 0; b < num_runs; b++) {
-      cuckoohash_map<Key, Value, Hasher> map(
-          codegen::util::OAHashTable::kDefaultInitialSize);
+      cuckoohash_map<Key, Value, Hasher> map(codegen::util::OAHashTable::kDefaultInitialSize);
 
       Timer<std::ratio<1, 1000>> timer;
       timer.Start();
@@ -301,16 +289,12 @@ TEST_F(OAHashTableTest, MicroBenchmark) {
     }
   }
 
-  LOG_INFO("OA_HT insert: %.2lf, probe: %.2lf",
-           avg_oaht_insert / (double)num_runs,
-           avg_oaht_probe / (double)num_runs);
-  LOG_INFO("Lazy HT insert: %.2lf, probe: %.2lf",
-           avg_lazyht_insert / (double)num_runs,
+  LOG_INFO("OA_HT insert: %.2lf, probe: %.2lf", avg_oaht_insert / (double)num_runs, avg_oaht_probe / (double)num_runs);
+  LOG_INFO("Lazy HT insert: %.2lf, probe: %.2lf", avg_lazyht_insert / (double)num_runs,
            avg_lazyht_probe / (double)num_runs);
-  LOG_INFO("std::unordered_map insert: %.2lf, probe: %.2lf",
-           avg_map_insert / (double)num_runs, avg_map_probe / (double)num_runs);
-  LOG_INFO("Cuckoo insert: %.2lf, probe: %.2lf",
-           avg_cuckoo_insert / (double)num_runs,
+  LOG_INFO("std::unordered_map insert: %.2lf, probe: %.2lf", avg_map_insert / (double)num_runs,
+           avg_map_probe / (double)num_runs);
+  LOG_INFO("Cuckoo insert: %.2lf, probe: %.2lf", avg_cuckoo_insert / (double)num_runs,
            avg_cuckoo_probe / (double)num_runs);
 }
 

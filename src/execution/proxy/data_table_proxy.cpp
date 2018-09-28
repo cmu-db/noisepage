@@ -14,10 +14,8 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(DataTable, "storage::DataTable", opaque);
 
 DEFINE_METHOD(peloton::storage, DataTable, GetTileGroupCount);
-
 
 }  // namespace terrier::execution

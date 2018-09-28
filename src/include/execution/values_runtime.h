@@ -20,8 +20,6 @@ namespace type {
 class AbstractPool;
 }  // namespace type
 
-
-
 namespace type {
 class Type;
 }  // namespace type
@@ -53,13 +51,10 @@ class ValuesRuntime {
   static void OutputDecimal(char *values, uint32_t idx, double val);
 
   // Write out the given varchar value into the array at the provided index
-  static void OutputVarchar(char *values, uint32_t idx, const char *str,
-                            uint32_t len);
+  static void OutputVarchar(char *values, uint32_t idx, const char *str, uint32_t len);
 
   // Write out the given varbinary value into the array at the provided index
-  static void OutputVarbinary(char *values, uint32_t idx, const char *str,
-                              uint32_t len);
+  static void OutputVarbinary(char *values, uint32_t idx, const char *str, uint32_t len);
 };
-
 
 }  // namespace terrier::execution

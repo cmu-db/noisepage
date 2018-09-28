@@ -24,15 +24,12 @@ namespace planner {
 class NestedLoopJoinPlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // The translator for a block-wise nested loop join
 //===----------------------------------------------------------------------===//
 class BlockNestedLoopJoinTranslator : public OperatorTranslator {
  public:
-  BlockNestedLoopJoinTranslator(const planner::NestedLoopJoinPlan &nlj_plan,
-                                CompilationContext &context,
+  BlockNestedLoopJoinTranslator(const planner::NestedLoopJoinPlan &nlj_plan, CompilationContext &context,
                                 Pipeline &pipeline);
 
   void InitializeQueryState() override;
@@ -74,6 +71,5 @@ class BlockNestedLoopJoinTranslator : public OperatorTranslator {
   // buffered and we want to perform the BNLJ against the right input.
   AuxiliaryProducerFunction join_buffer_func_;
 };
-
 
 }  // namespace terrier::execution

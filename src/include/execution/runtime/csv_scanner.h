@@ -28,7 +28,6 @@ namespace type {
 class AbstractPool;
 }  // namespace type
 
-
 namespace util {
 
 /**
@@ -60,7 +59,7 @@ class CSVScanner {
    */
   struct Column {
     // The type of data this column represents
-    codegen::type::Type col_type;
+    type::Type col_type;
 
     // A pointer to where the next value of this column is
     const char *ptr;
@@ -101,10 +100,9 @@ class CSVScanner {
    * @param escape The character that should appear before any data characters
    * that match the quote character.
    */
-  CSVScanner(peloton::type::AbstractPool &memory, const std::string &file_path,
-             const codegen::type::Type *col_types, uint32_t num_cols,
-             Callback func, void *opaque_state, char delimiter = ',',
-             char quote = '"', char escape = '"');
+  CSVScanner(peloton::type::AbstractPool &memory, const std::string &file_path, const type::Type *col_types,
+             uint32_t num_cols, Callback func, void *opaque_state, char delimiter = ',', char quote = '"',
+             char escape = '"');
 
   /**
    * Destructor
@@ -128,10 +126,8 @@ class CSVScanner {
    * @param escape The character that should appear before any data characters
    * that match the quote character.
    */
-  static void Init(CSVScanner &scanner,
-                   executor::ExecutorContext &executor_context,
-                   const char *file_path, const codegen::type::Type *col_types,
-                   uint32_t num_cols, Callback func, void *opaque_state,
+  static void Init(CSVScanner &scanner, executor::ExecutorContext &executor_context, const char *file_path,
+                   const type::Type *col_types, uint32_t num_cols, Callback func, void *opaque_state,
                    char delimiter, char quote, char escape);
 
   /**
@@ -211,6 +207,6 @@ class CSVScanner {
   Stats stats_;
 };
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

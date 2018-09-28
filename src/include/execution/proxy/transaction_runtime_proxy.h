@@ -16,11 +16,9 @@
 
 namespace terrier::execution {
 
-
 PROXY(TransactionRuntime) {
   DECLARE_METHOD(PerformVectorizedRead);
   DECLARE_METHOD(PerformVisibilityCheck);
 };
-
 
 }  // namespace terrier::execution

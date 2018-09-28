@@ -55,14 +55,12 @@ TEST_F(DeleteTranslatorTest, DeleteAllTuples) {
 
   EXPECT_EQ(NumRowsInTestTable(), GetTestTable(TestTableId1()).GetTupleCount());
 
-  std::unique_ptr<planner::DeletePlan> delete_plan{
-      new planner::DeletePlan(&GetTestTable(TestTableId1()))};
-  std::unique_ptr<planner::AbstractPlan> scan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId1()), nullptr, {0, 1, 2})};
+  std::unique_ptr<planner::DeletePlan> delete_plan{new planner::DeletePlan(&GetTestTable(TestTableId1()))};
+  std::unique_ptr<planner::AbstractPlan> scan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId1()), nullptr, {0, 1, 2})};
   delete_plan->AddChild(std::move(scan));
 
-  LOG_DEBUG("tile group count %zu",
-            GetTestTable(TestTableId1()).GetTileGroupCount());
+  LOG_DEBUG("tile group count %zu", GetTestTable(TestTableId1()).GetTileGroupCount());
 
   planner::BindingContext deleteContext;
   delete_plan->PerformBinding(deleteContext);
@@ -82,13 +80,11 @@ TEST_F(DeleteTranslatorTest, DeleteWithSimplePredicate) {
   EXPECT_EQ(NumRowsInTestTable(), GetTestTable(TestTableId2()).GetTupleCount());
 
   // Setup the predicate
-  auto a_gt_40 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
+  auto a_gt_40 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
 
-  std::unique_ptr<planner::DeletePlan> delete_plan{
-      new planner::DeletePlan(&GetTestTable(TestTableId2()))};
-  std::unique_ptr<planner::AbstractPlan> scan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId2()), a_gt_40.release(), {0, 1, 2})};
+  std::unique_ptr<planner::DeletePlan> delete_plan{new planner::DeletePlan(&GetTestTable(TestTableId2()))};
+  std::unique_ptr<planner::AbstractPlan> scan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId2()), a_gt_40.release(), {0, 1, 2})};
   delete_plan->AddChild(std::move(scan));
 
   // Do binding
@@ -115,21 +111,18 @@ TEST_F(DeleteTranslatorTest, DeleteWithCompositePredicate) {
 
   // Construct the components of the predicate
   // a >= 20
-  auto a_gt_20 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  auto a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   // b = 21
-  auto b_eq_21 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
+  auto b_eq_21 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
 
   // a >= 20 AND b = 21
-  auto *conj_eq = new expression::ConjunctionExpression(
-      ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
+  auto *conj_eq =
+      new expression::ConjunctionExpression(ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
 
-  std::unique_ptr<planner::DeletePlan> delete_plan{
-      new planner::DeletePlan(&GetTestTable(TestTableId3()))};
-  std::unique_ptr<planner::AbstractPlan> scan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId3()), conj_eq, {0, 1, 2})};
+  std::unique_ptr<planner::DeletePlan> delete_plan{new planner::DeletePlan(&GetTestTable(TestTableId3()))};
+  std::unique_ptr<planner::AbstractPlan> scan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId3()), conj_eq, {0, 1, 2})};
   delete_plan->AddChild(std::move(scan));
 
   // Do binding
@@ -155,18 +148,15 @@ TEST_F(DeleteTranslatorTest, DeleteWithModuloPredicate) {
 
   auto b_col_exp = ColRefExpr(type::TypeId::INTEGER, 1);
   auto const_1_exp = ConstIntExpr(1);
-  auto b_mod_1 = ExpressionPtr{new expression::OperatorExpression(
-      ExpressionType::OPERATOR_MOD, type::TypeId::DECIMAL, b_col_exp.release(),
-      const_1_exp.release())};
+  auto b_mod_1 = ExpressionPtr{new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, type::TypeId::DECIMAL,
+                                                                  b_col_exp.release(), const_1_exp.release())};
 
   // a = b % 1
-  auto a_eq_b_mod_1 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), std::move(b_mod_1));
+  auto a_eq_b_mod_1 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 0), std::move(b_mod_1));
 
-  std::unique_ptr<planner::DeletePlan> delete_plan{
-      new planner::DeletePlan(&GetTestTable(TestTableId4()))};
-  std::unique_ptr<planner::AbstractPlan> scan{new planner::SeqScanPlan(
-      &GetTestTable(TestTableId4()), a_eq_b_mod_1.release(), {0, 1, 2})};
+  std::unique_ptr<planner::DeletePlan> delete_plan{new planner::DeletePlan(&GetTestTable(TestTableId4()))};
+  std::unique_ptr<planner::AbstractPlan> scan{
+      new planner::SeqScanPlan(&GetTestTable(TestTableId4()), a_eq_b_mod_1.release(), {0, 1, 2})};
   delete_plan->AddChild(std::move(scan));
 
   // Do binding

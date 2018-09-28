@@ -19,7 +19,6 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 // A vector of fixed size holding elements of a homogeneous type
 //===----------------------------------------------------------------------===//
@@ -49,9 +48,7 @@ class Vector {
 
   llvm::Value *GetNumElements() const { return num_elements_; }
 
-  void SetNumElements(llvm::Value *num_elements) {
-    num_elements_ = num_elements;
-  }
+  void SetNumElements(llvm::Value *num_elements) { num_elements_ = num_elements; }
 
  private:
   // The buffer pointer
@@ -66,6 +63,5 @@ class Vector {
   // The number of elements actually stored in this vector
   llvm::Value *num_elements_;
 };
-
 
 }  // namespace terrier::execution

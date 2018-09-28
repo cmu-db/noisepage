@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(StringFunctions) {
   // Proxy everything in function::StringFunctions
   DECLARE_METHOD(Ascii);
@@ -35,12 +34,11 @@ PROXY(StringFunctions) {
 };
 
 PROXY(StrWithLen) {
-  DECLARE_MEMBER(0, char*, str);
+  DECLARE_MEMBER(0, char *, str);
   DECLARE_MEMBER(1, uint32_t, length);
   DECLARE_TYPE;
 };
 
 TYPE_BUILDER(StrWithLen, peloton::function::StringFunctions::StrWithLen);
-
 
 }  // namespace terrier::execution

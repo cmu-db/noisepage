@@ -23,8 +23,6 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-
-
 // Forward declare
 class CompilationContext;
 class ConsumerContext;
@@ -60,8 +58,7 @@ class ConsumerContext;
 class OperatorTranslator {
  public:
   /// Constructor
-  OperatorTranslator(const planner::AbstractPlan &plan,
-                     CompilationContext &context, Pipeline &pipeline);
+  OperatorTranslator(const planner::AbstractPlan &plan, CompilationContext &context, Pipeline &pipeline);
 
   /// Destructor
   virtual ~OperatorTranslator() = default;
@@ -133,4 +130,3 @@ class OperatorTranslator {
 };
 
 }  // namespace terrier::execution
-

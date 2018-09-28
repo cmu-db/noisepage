@@ -12,15 +12,14 @@
 
 #pragma once
 
+#include "execution/proxy/pool_proxy.h"
 #include "execution/proxy/proxy.h"
-#include "execution/proxy/transaction_context_proxy.h"
 #include "execution/proxy/query_parameters_proxy.h"
 #include "execution/proxy/storage_manager_proxy.h"
-#include "execution/proxy/pool_proxy.h"
+#include "execution/proxy/transaction_context_proxy.h"
 #include "executor/executor_context.h"
 
 namespace terrier::execution {
-
 
 PROXY(ThreadStates) {
   DECLARE_MEMBER(0, peloton::type::EphemeralPool *, pool);
@@ -37,7 +36,7 @@ PROXY(ExecutorContext) {
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, uint32_t, num_processed);
   DECLARE_MEMBER(1, concurrency::TransactionContext *, txn);
-  DECLARE_MEMBER(2, codegen::QueryParameters, params);
+  DECLARE_MEMBER(2, QueryParameters, params);
   DECLARE_MEMBER(3, storage::StorageManager *, storage_manager);
   DECLARE_MEMBER(4, peloton::type::EphemeralPool, pool);
   DECLARE_MEMBER(5, executor::ExecutorContext::ThreadStates, thread_states);
@@ -46,6 +45,5 @@ PROXY(ExecutorContext) {
 
 TYPE_BUILDER(ThreadStates, executor::ExecutorContext::ThreadStates);
 TYPE_BUILDER(ExecutorContext, executor::ExecutorContext);
-
 
 }  // namespace terrier::execution

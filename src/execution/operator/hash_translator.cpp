@@ -12,23 +12,21 @@
 
 #include "execution/operator/hash_translator.h"
 
-#include "planner/hash_plan.h"
-#include "execution/proxy/oa_hash_table_proxy.h"
-#include "execution/operator/projection_translator.h"
-#include "execution/lang/vectorized_loop.h"
-#include "execution/type/integer_type.h"
 #include "common/logger.h"
+#include "execution/lang/vectorized_loop.h"
+#include "execution/operator/projection_translator.h"
+#include "execution/proxy/oa_hash_table_proxy.h"
+#include "execution/type/integer_type.h"
+#include "planner/hash_plan.h"
 
 namespace terrier::execution {
-
 
 //===----------------------------------------------------------------------===//
 // HASH TRANSLATOR
 //===----------------------------------------------------------------------===//
 
 // Constructor
-HashTranslator::HashTranslator(const planner::HashPlan &hash_plan,
-                               CompilationContext &context, Pipeline &pipeline)
+HashTranslator::HashTranslator(const planner::HashPlan &hash_plan, CompilationContext &context, Pipeline &pipeline)
     : OperatorTranslator(hash_plan, context, pipeline) {
   // Distincts are serial (for now ...)
   pipeline.SetSerial();
@@ -37,8 +35,7 @@ HashTranslator::HashTranslator(const planner::HashPlan &hash_plan,
   QueryState &query_state = context.GetQueryState();
 
   // Register the hash-table instance in the runtime state
-  hash_table_id_ =
-      query_state.RegisterState("hash", OAHashTableProxy::GetType(codegen));
+  hash_table_id_ = query_state.RegisterState("hash", OAHashTableProxy::GetType(codegen));
 
   // Prepare the input operator
   context.Prepare(*hash_plan.GetChild(0), pipeline);
@@ -59,9 +56,7 @@ HashTranslator::HashTranslator(const planner::HashPlan &hash_plan,
 }
 
 // Initialize the hash table instance
-void HashTranslator::InitializeQueryState() {
-  hash_table_.Init(GetCodeGen(), LoadStatePtr(hash_table_id_));
-}
+void HashTranslator::InitializeQueryState() { hash_table_.Init(GetCodeGen(), LoadStatePtr(hash_table_id_)); }
 
 // Produce!
 void HashTranslator::Produce() const {
@@ -70,12 +65,11 @@ void HashTranslator::Produce() const {
 }
 
 // Consume the tuples from the context, adding them to the hash table
-void HashTranslator::Consume(ConsumerContext &context,
-                             RowBatch::Row &row) const {
+void HashTranslator::Consume(ConsumerContext &context, RowBatch::Row &row) const {
   CodeGen &codegen = GetCodeGen();
 
   // Collect the keys we use to probe the hash table
-  std::vector<codegen::Value> key;
+  std::vector<Value> key;
   CollectHashKeys(row, key);
 
   llvm::Value *hash = nullptr;
@@ -89,21 +83,16 @@ void HashTranslator::Consume(ConsumerContext &context,
 }
 
 // Cleanup by destroying the aggregation hash-table
-void HashTranslator::TearDownQueryState() {
-  hash_table_.Destroy(GetCodeGen(), LoadStatePtr(hash_table_id_));
-}
+void HashTranslator::TearDownQueryState() { hash_table_.Destroy(GetCodeGen(), LoadStatePtr(hash_table_id_)); }
 
-void HashTranslator::CollectHashKeys(RowBatch::Row &row,
-                                     std::vector<codegen::Value> &key) const {
+void HashTranslator::CollectHashKeys(RowBatch::Row &row, std::vector<Value> &key) const {
   CodeGen &codegen = GetCodeGen();
   for (const auto &hash_key : GetHashPlan().GetHashKeys()) {
     key.push_back(row.DeriveValue(codegen, *hash_key));
   }
 }
 
-const planner::HashPlan &HashTranslator::GetHashPlan() const {
-  return GetPlanAs<planner::HashPlan>();
-}
+const planner::HashPlan &HashTranslator::GetHashPlan() const { return GetPlanAs<planner::HashPlan>(); }
 
 //===----------------------------------------------------------------------===//
 // CONSUMER PROBE
@@ -111,9 +100,8 @@ const planner::HashPlan &HashTranslator::GetHashPlan() const {
 
 // The callback invoked when we probe the hash table with a given key and find
 // an existing entry for the key
-void HashTranslator::ConsumerProbe::ProcessEntry(
-    UNUSED_ATTRIBUTE CodeGen &codegen,
-    UNUSED_ATTRIBUTE llvm::Value *data_area) const {
+void HashTranslator::ConsumerProbe::ProcessEntry(UNUSED_ATTRIBUTE CodeGen &codegen,
+                                                 UNUSED_ATTRIBUTE llvm::Value *data_area) const {
   // The key already exists in the hash table, which means that we can just drop
   // this row, as it already exists in the result
 }
@@ -123,22 +111,16 @@ void HashTranslator::ConsumerProbe::ProcessEntry(
 //===----------------------------------------------------------------------===//
 
 // Constructor
-HashTranslator::ConsumerInsert::ConsumerInsert(ConsumerContext &context,
-                                               RowBatch::Row &row)
+HashTranslator::ConsumerInsert::ConsumerInsert(ConsumerContext &context, RowBatch::Row &row)
     : context_(context), row_(row) {}
 
 // Insert the key in the hash table on its first occurrence
-void HashTranslator::ConsumerInsert::StoreValue(
-    UNUSED_ATTRIBUTE CodeGen &codegen,
-    UNUSED_ATTRIBUTE llvm::Value *space) const {
+void HashTranslator::ConsumerInsert::StoreValue(UNUSED_ATTRIBUTE CodeGen &codegen,
+                                                UNUSED_ATTRIBUTE llvm::Value *space) const {
   // It is the first time this key appears, so we just pass it along pipeline
   context_.Consume(row_);
 }
 
-llvm::Value *HashTranslator::ConsumerInsert::GetValueSize(
-    CodeGen &codegen) const {
-  return codegen.Const32(0);
-}
-
+llvm::Value *HashTranslator::ConsumerInsert::GetValueSize(CodeGen &codegen) const { return codegen.Const32(0); }
 
 }  // namespace terrier::execution

@@ -17,13 +17,11 @@
 
 namespace terrier::execution {
 
-
 PROXY(Tuple) {
   DECLARE_MEMBER(0, char[sizeof(storage::Tuple)], opaque);
   DECLARE_TYPE;
 };
 
 TYPE_BUILDER(Tuple, storage::Tuple);
-
 
 }  // namespace terrier::execution

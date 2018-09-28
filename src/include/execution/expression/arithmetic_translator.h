@@ -21,21 +21,16 @@ namespace expression {
 class OperatorExpression;
 }  // namespace expression
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator of arithmetic expressions.
 //===----------------------------------------------------------------------===//
 class ArithmeticTranslator : public ExpressionTranslator {
  public:
   // Constructor
-  ArithmeticTranslator(const expression::OperatorExpression &arithmetic,
-                       CompilationContext &context);
+  ArithmeticTranslator(const expression::OperatorExpression &arithmetic, CompilationContext &context);
 
   // Produce the value that is the result of codegening the expression
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

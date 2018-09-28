@@ -16,21 +16,18 @@
 
 namespace terrier::execution {
 
-
 // Constructor
-ArithmeticTranslator::ArithmeticTranslator(
-    const expression::OperatorExpression &arithmetic,
-    CompilationContext &context)
+ArithmeticTranslator::ArithmeticTranslator(const expression::OperatorExpression &arithmetic,
+                                           CompilationContext &context)
     : ExpressionTranslator(arithmetic, context) {
   PELOTON_ASSERT(arithmetic.GetChildrenSize() == 2);
 }
 
 // Produce the value that is the result of codegening the expression
-codegen::Value ArithmeticTranslator::DeriveValue(CodeGen &codegen,
-                                                 RowBatch::Row &row) const {
+Value ArithmeticTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
   const auto &arithmetic = GetExpressionAs<expression::OperatorExpression>();
-  codegen::Value left = row.DeriveValue(codegen, *arithmetic.GetChild(0));
-  codegen::Value right = row.DeriveValue(codegen, *arithmetic.GetChild(1));
+  Value left = row.DeriveValue(codegen, *arithmetic.GetChild(0));
+  Value right = row.DeriveValue(codegen, *arithmetic.GetChild(1));
 
   switch (arithmetic.GetExpressionType()) {
     case ExpressionType::OPERATOR_PLUS:
@@ -44,12 +41,10 @@ codegen::Value ArithmeticTranslator::DeriveValue(CodeGen &codegen,
     case ExpressionType::OPERATOR_MOD:
       return left.Mod(codegen, right);
     default: {
-      throw Exception(
-          "Arithmetic expression has invalid type for translation: " +
-          ExpressionTypeToString(arithmetic.GetExpressionType()));
+      throw Exception("Arithmetic expression has invalid type for translation: " +
+                      ExpressionTypeToString(arithmetic.GetExpressionType()));
     }
   }
 }
-
 
 }  // namespace terrier::execution

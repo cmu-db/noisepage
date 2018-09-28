@@ -12,16 +12,16 @@
 
 #include "execution/type/smallint_type.h"
 
+#include "common/exception.h"
 #include "execution/lang/if.h"
-#include "execution/value.h"
 #include "execution/proxy/numeric_functions_proxy.h"
 #include "execution/proxy/values_runtime_proxy.h"
 #include "execution/type/boolean_type.h"
 #include "execution/type/decimal_type.h"
 #include "execution/type/integer_type.h"
-#include "common/exception.h"
-#include "type/limits.h"
+#include "execution/value.h"
 #include "runtime/string_util.h"
+#include "type/limits.h"
 
 namespace terrier::execution {
 
@@ -33,11 +33,9 @@ namespace {
  *  Subtraction
  */
 struct Sub : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override;
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override;
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override;
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override;
@@ -52,62 +50,58 @@ struct Sub : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct CastSmallInt : public TypeSystem::CastHandleNull {
-  bool SupportsTypes(const Type &from_type,
-                     const Type &to_type) const override {
+  bool SupportsTypes(const Type &from_type, const Type &to_type) const override {
     if (from_type.GetSqlType() != SmallInt::Instance()) {
       return false;
     }
     switch (to_type.GetSqlType().TypeId()) {
-      case peloton::type::TypeId::BOOLEAN:
-      case peloton::type::TypeId::TINYINT:
-      case peloton::type::TypeId::SMALLINT:
-      case peloton::type::TypeId::INTEGER:
-      case peloton::type::TypeId::BIGINT:
-      case peloton::type::TypeId::DECIMAL:
-      case peloton::type::TypeId::VARCHAR:
+      case type::TypeId::BOOLEAN:
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT:
+      case type::TypeId::DECIMAL:
+      case type::TypeId::VARCHAR:
         return true;
       default:
         return false;
     }
   }
 
-  Value Impl(CodeGen &codegen, const Value &value,
-             const Type &to_type) const override {
+  Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
     llvm::Value *result = nullptr;
     switch (to_type.GetSqlType().TypeId()) {
-      case peloton::type::TypeId::BOOLEAN: {
+      case type::TypeId::BOOLEAN: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.BoolType());
         break;
       }
-      case peloton::type::TypeId::TINYINT: {
+      case type::TypeId::TINYINT: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.Int8Type());
         break;
       }
-      case peloton::type::TypeId::SMALLINT: {
+      case type::TypeId::SMALLINT: {
         result = value.GetValue();
         break;
       }
-      case peloton::type::TypeId::INTEGER: {
+      case type::TypeId::INTEGER: {
         result = codegen->CreateSExt(value.GetValue(), codegen.Int32Type());
         break;
       }
-      case peloton::type::TypeId::BIGINT: {
+      case type::TypeId::BIGINT: {
         result = codegen->CreateSExt(value.GetValue(), codegen.Int64Type());
         break;
       }
-      case peloton::type::TypeId::DECIMAL: {
+      case type::TypeId::DECIMAL: {
         result = codegen->CreateSIToFP(value.GetValue(), codegen.DoubleType());
         break;
       }
-      case peloton::type::TypeId::VARCHAR: {
+      case type::TypeId::VARCHAR: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.BoolType());
         break;
       }
       default: {
-        throw Exception{
-            StringUtil::Format("Cannot cast %s to %s",
-                               TypeIdToString(value.GetType().type_id).c_str(),
-                               TypeIdToString(to_type.type_id).c_str())};
+        throw Exception{StringUtil::Format("Cannot cast %s to %s", TypeIdToString(value.GetType().type_id).c_str(),
+                                           TypeIdToString(to_type.type_id).c_str())};
       }
     }
 
@@ -126,55 +120,45 @@ struct CastSmallInt : public TypeSystem::CastHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct CompareSmallInt : public TypeSystem::SimpleComparisonHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
     return left_type == SmallInt::Instance() && left_type == right_type;
   }
 
-  Value CompareLtImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpSLT(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareLteImpl(CodeGen &codegen, const Value &left,
-                       const Value &right) const override {
+  Value CompareLteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpSLE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareEqImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareEqImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpEQ(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareNeImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareNeImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpNE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareGtImpl(CodeGen &codegen, const Value &left,
-                      const Value &right) const override {
+  Value CompareGtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpSGT(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareGteImpl(CodeGen &codegen, const Value &left,
-                       const Value &right) const override {
+  Value CompareGteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     auto *raw_val = codegen->CreateICmpSGE(left.GetValue(), right.GetValue());
     return Value{Boolean::Instance(), raw_val, nullptr, nullptr};
   }
 
-  Value CompareForSortImpl(CodeGen &codegen, const Value &left,
-                           const Value &right) const override {
+  Value CompareForSortImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
     // For integer comparisons, just subtract left from right and cast the
     // result to a 32-bit value
     llvm::Value *diff = codegen->CreateSub(left.GetValue(), right.GetValue());
-    return Value{Integer::Instance(),
-                 codegen->CreateSExt(diff, codegen.Int32Type()), nullptr,
-                 nullptr};
+    return Value{Integer::Instance(), codegen->CreateSExt(diff, codegen.Int32Type()), nullptr, nullptr};
   }
 };
 
@@ -186,49 +170,37 @@ struct CompareSmallInt : public TypeSystem::SimpleComparisonHandleNull {
 
 // Abs
 struct Abs : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == SmallInt::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == SmallInt::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{SmallInt::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{SmallInt::Instance()}; }
 
-  Value Impl(CodeGen &codegen, const Value &val,
-             const TypeSystem::InvocationContext &ctx) const override {
+  Value Impl(CodeGen &codegen, const Value &val, const TypeSystem::InvocationContext &ctx) const override {
     // The smallint subtraction implementation
     Sub sub;
     PELOTON_ASSERT(SupportsType(val.GetType()));
     // Zero place-holder
-    auto zero = codegen::Value{type::SmallInt::Instance(), codegen.Const16(0)};
+    auto zero = Value{type::SmallInt::Instance(), codegen.Const16(0)};
 
     // We want: raw_ret = (val < 0 ? 0 - val : val)
     auto sub_result = sub.Impl(codegen, zero, val, ctx);
     auto *lt_zero = codegen->CreateICmpSLT(val.GetValue(), zero.GetValue());
-    auto *raw_ret =
-        codegen->CreateSelect(lt_zero, sub_result.GetValue(), val.GetValue());
+    auto *raw_ret = codegen->CreateSelect(lt_zero, sub_result.GetValue(), val.GetValue());
     return Value{SmallInt::Instance(), raw_ret};
   }
 };
 
 // Negation
 struct Negate : public TypeSystem::UnaryOperatorHandleNull {
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == SmallInt::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == SmallInt::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{SmallInt::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{SmallInt::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsType(val.GetType()));
 
     llvm::Value *overflow_bit = nullptr;
-    llvm::Value *result = codegen.CallSubWithOverflow(
-        codegen.Const16(0), val.GetValue(), overflow_bit);
+    llvm::Value *result = codegen.CallSubWithOverflow(codegen.Const16(0), val.GetValue(), overflow_bit);
 
     codegen.ThrowIfOverflow(overflow_bit);
 
@@ -241,17 +213,12 @@ struct Negate : public TypeSystem::UnaryOperatorHandleNull {
 struct Floor : public TypeSystem::UnaryOperatorHandleNull {
   CastSmallInt cast;
 
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == SmallInt::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == SmallInt::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsType(val.GetType()));
     return cast.Impl(codegen, val, Decimal::Instance());
   }
@@ -261,17 +228,12 @@ struct Floor : public TypeSystem::UnaryOperatorHandleNull {
 struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
   CastSmallInt cast;
 
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == SmallInt::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == SmallInt::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Type{Decimal::Instance()};
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{Decimal::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     PELOTON_ASSERT(SupportsType(val.GetType()));
     return cast.Impl(codegen, val, Decimal::Instance());
   }
@@ -281,18 +243,13 @@ struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
 struct Sqrt : public TypeSystem::UnaryOperatorHandleNull {
   CastSmallInt cast;
 
-  bool SupportsType(const Type &type) const override {
-    return type.GetSqlType() == SmallInt::Instance();
-  }
+  bool SupportsType(const Type &type) const override { return type.GetSqlType() == SmallInt::Instance(); }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override {
-    return Decimal::Instance();
-  }
+  Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Decimal::Instance(); }
 
  protected:
   Value Impl(CodeGen &codegen, const Value &val,
-             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx)
-      const override {
+             UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
     auto casted = cast.Impl(codegen, val, Decimal::Instance());
     auto *raw_ret = codegen.Sqrt(casted.GetValue());
     return Value{Decimal::Instance(), raw_ret};
@@ -307,14 +264,11 @@ struct Sqrt : public TypeSystem::UnaryOperatorHandleNull {
 
 // Addition
 struct Add : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == SmallInt::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == SmallInt::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{SmallInt::Instance()};
   }
 
@@ -324,8 +278,7 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
 
     // Do addition
     llvm::Value *overflow_bit = nullptr;
-    llvm::Value *result = codegen.CallAddWithOverflow(
-        left.GetValue(), right.GetValue(), overflow_bit);
+    llvm::Value *result = codegen.CallAddWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
     if (ctx.on_error == OnError::Exception) {
       codegen.ThrowIfOverflow(overflow_bit);
@@ -339,12 +292,10 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
 // Subtraction
 
 bool Sub::SupportsTypes(const Type &left_type, const Type &right_type) const {
-  return left_type.GetSqlType() == SmallInt::Instance() &&
-         left_type == right_type;
+  return left_type.GetSqlType() == SmallInt::Instance() && left_type == right_type;
 }
 
-Type Sub::ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                     UNUSED_ATTRIBUTE const Type &right_type) const {
+Type Sub::ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const {
   return Type{SmallInt::Instance()};
 }
 
@@ -354,8 +305,7 @@ Value Sub::Impl(CodeGen &codegen, const Value &left, const Value &right,
 
   // Do subtraction
   llvm::Value *overflow_bit = nullptr;
-  llvm::Value *result = codegen.CallSubWithOverflow(
-      left.GetValue(), right.GetValue(), overflow_bit);
+  llvm::Value *result = codegen.CallSubWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
   if (ctx.on_error == OnError::Exception) {
     codegen.ThrowIfOverflow(overflow_bit);
@@ -367,14 +317,11 @@ Value Sub::Impl(CodeGen &codegen, const Value &left, const Value &right,
 
 // Multiplication
 struct Mul : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == SmallInt::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == SmallInt::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{SmallInt::Instance()};
   }
 
@@ -384,8 +331,7 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
 
     // Do multiplication
     llvm::Value *overflow_bit = nullptr;
-    llvm::Value *result = codegen.CallMulWithOverflow(
-        left.GetValue(), right.GetValue(), overflow_bit);
+    llvm::Value *result = codegen.CallMulWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
     if (ctx.on_error == OnError::Exception) {
       codegen.ThrowIfOverflow(overflow_bit);
@@ -398,14 +344,11 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
 
 // Division
 struct Div : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == SmallInt::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == SmallInt::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{SmallInt::Instance()};
   }
 
@@ -431,8 +374,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
       {
         // The divisor isn't 0, do the division
         auto *raw_val = codegen->CreateSDiv(left.GetValue(), right.GetValue());
-        division_result =
-            Value{SmallInt::Instance(), raw_val, nullptr, nullptr};
+        division_result = Value{SmallInt::Instance(), raw_val, nullptr, nullptr};
       }
       is_div0.EndIf();
 
@@ -455,14 +397,11 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
 // Modulo
 struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
-  bool SupportsTypes(const Type &left_type,
-                     const Type &right_type) const override {
-    return left_type.GetSqlType() == SmallInt::Instance() &&
-           left_type == right_type;
+  bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
+    return left_type.GetSqlType() == SmallInt::Instance() && left_type == right_type;
   }
 
-  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type,
-                  UNUSED_ATTRIBUTE const Type &right_type) const override {
+  Type ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE const Type &right_type) const override {
     return Type{SmallInt::Instance()};
   }
 
@@ -488,8 +427,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
       {
         // The divisor isn't 0, do the division
         auto *raw_val = codegen->CreateSRem(left.GetValue(), right.GetValue());
-        division_result =
-            Value{SmallInt::Instance(), raw_val, nullptr, nullptr};
+        division_result = Value{SmallInt::Instance(), raw_val, nullptr, nullptr};
       }
       is_div0.EndIf();
 
@@ -517,20 +455,20 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<peloton::type::TypeId> kImplicitCastingTable = {
-    peloton::type::TypeId::SMALLINT, peloton::type::TypeId::INTEGER,
-    peloton::type::TypeId::BIGINT, peloton::type::TypeId::DECIMAL};
+std::vector<type::TypeId> kImplicitCastingTable = {
+    type::TypeId::SMALLINT, type::TypeId::INTEGER, type::TypeId::BIGINT,
+    type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casting rules
 CastSmallInt kCastSmallInt;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::BOOLEAN, kCastSmallInt},
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::TINYINT, kCastSmallInt},
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::SMALLINT, kCastSmallInt},
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::INTEGER, kCastSmallInt},
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::BIGINT, kCastSmallInt},
-    {peloton::type::TypeId::SMALLINT, peloton::type::TypeId::DECIMAL, kCastSmallInt}};
+    {type::TypeId::SMALLINT, type::TypeId::BOOLEAN, kCastSmallInt},
+    {type::TypeId::SMALLINT, type::TypeId::TINYINT, kCastSmallInt},
+    {type::TypeId::SMALLINT, type::TypeId::SMALLINT, kCastSmallInt},
+    {type::TypeId::SMALLINT, type::TypeId::INTEGER, kCastSmallInt},
+    {type::TypeId::SMALLINT, type::TypeId::BIGINT, kCastSmallInt},
+    {type::TypeId::SMALLINT, type::TypeId::DECIMAL, kCastSmallInt}};
 // clang-format on
 
 // Comparison operations
@@ -543,12 +481,11 @@ Abs kAbsOp;
 Ceil kCeilOp;
 Floor kFloorOp;
 Sqrt kSqrtOp;
-std::vector<TypeSystem::UnaryOpInfo> kUnaryOperatorTable = {
-    {OperatorId::Negation, kNegOp},
-    {OperatorId::Abs, kAbsOp},
-    {OperatorId::Ceil, kCeilOp},
-    {OperatorId::Floor, kFloorOp},
-    {OperatorId::Sqrt, kSqrtOp}};
+std::vector<TypeSystem::UnaryOpInfo> kUnaryOperatorTable = {{OperatorId::Negation, kNegOp},
+                                                            {OperatorId::Abs, kAbsOp},
+                                                            {OperatorId::Ceil, kCeilOp},
+                                                            {OperatorId::Floor, kFloorOp},
+                                                            {OperatorId::Sqrt, kSqrtOp}};
 
 // Binary operations
 Add kAddOp;
@@ -556,12 +493,11 @@ Sub kSubOp;
 Mul kMulOp;
 Div kDivOp;
 Modulo kModuloOp;
-std::vector<TypeSystem::BinaryOpInfo> kBinaryOperatorTable = {
-    {OperatorId::Add, kAddOp},
-    {OperatorId::Sub, kSubOp},
-    {OperatorId::Mul, kMulOp},
-    {OperatorId::Div, kDivOp},
-    {OperatorId::Mod, kModuloOp}};
+std::vector<TypeSystem::BinaryOpInfo> kBinaryOperatorTable = {{OperatorId::Add, kAddOp},
+                                                              {OperatorId::Sub, kSubOp},
+                                                              {OperatorId::Mul, kMulOp},
+                                                              {OperatorId::Div, kDivOp},
+                                                              {OperatorId::Mod, kModuloOp}};
 
 // Nary operations
 std::vector<TypeSystem::NaryOpInfo> kNaryOperatorTable = {};
@@ -578,10 +514,9 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 SmallInt::SmallInt()
-    : SqlType(peloton::type::TypeId::SMALLINT),
-      type_system_(kImplicitCastingTable, kExplicitCastingTable,
-                   kComparisonTable, kUnaryOperatorTable, kBinaryOperatorTable,
-                   kNaryOperatorTable, kNoArgOperatorTable) {}
+    : SqlType(type::TypeId::SMALLINT),
+      type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
+                   kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 
 Value SmallInt::GetMinValue(CodeGen &codegen) const {
   auto *raw_val = codegen.Const16(peloton::type::PELOTON_INT16_MIN);
@@ -598,20 +533,16 @@ Value SmallInt::GetNullValue(CodeGen &codegen) const {
   return Value{Type{TypeId(), true}, raw_val, nullptr, codegen.ConstBool(true)};
 }
 
-void SmallInt::GetTypeForMaterialization(CodeGen &codegen,
-                                         llvm::Type *&val_type,
-                                         llvm::Type *&len_type) const {
+void SmallInt::GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type, llvm::Type *&len_type) const {
   val_type = codegen.Int16Type();
   len_type = nullptr;
 }
 
-llvm::Function *SmallInt::GetInputFunction(
-    CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *SmallInt::GetInputFunction(CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   return NumericFunctionsProxy::InputSmallInt.GetFunction(codegen);
 }
 
-llvm::Function *SmallInt::GetOutputFunction(
-    CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
+llvm::Function *SmallInt::GetOutputFunction(CodeGen &codegen, UNUSED_ATTRIBUTE const Type &type) const {
   return ValuesRuntimeProxy::OutputSmallInt.GetFunction(codegen);
 }
 

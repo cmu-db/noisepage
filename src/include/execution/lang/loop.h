@@ -32,8 +32,7 @@ class Loop {
   };
 
   // Constructor
-  Loop(CodeGen &cg, llvm::Value *start_condition,
-       const std::vector<LoopVariable> &loop_vars);
+  Loop(CodeGen &cg, llvm::Value *start_condition, const std::vector<LoopVariable> &loop_vars);
 
   // Get the loop variable at the given index
   llvm::Value *GetLoopVar(uint32_t id) const;
@@ -43,8 +42,7 @@ class Loop {
 
   // Mark the end of the loop block.  The loop continues at the top if the end
   // condition is true
-  void LoopEnd(llvm::Value *end_condition,
-               const std::vector<llvm::Value *> &next);
+  void LoopEnd(llvm::Value *end_condition, const std::vector<llvm::Value *> &next);
 
   // Collect the final values of all loop variables
   void CollectFinalLoopVariables(std::vector<llvm::Value *> &loop_vals);

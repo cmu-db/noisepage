@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(DataTable) {
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, char[sizeof(storage::DataTable)], opaque);
@@ -28,6 +27,5 @@ PROXY(DataTable) {
 };
 
 TYPE_BUILDER(DataTable, storage::DataTable);
-
 
 }  // namespace terrier::execution

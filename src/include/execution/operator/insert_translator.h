@@ -23,8 +23,6 @@ namespace planner {
 class InsertPlan;
 }  // namespace planner
 
-
-
 /**
  * @brief There are 4 different flavors of INSERT.
  *
@@ -46,8 +44,7 @@ class InsertPlan;
 class InsertTranslator : public OperatorTranslator {
  public:
   // Constructor.
-  InsertTranslator(const planner::InsertPlan &insert_plan,
-                   CompilationContext &context, Pipeline &pipeline);
+  InsertTranslator(const planner::InsertPlan &insert_plan, CompilationContext &context, Pipeline &pipeline);
 
   // Codegen any initialization work
   void InitializeQueryState() override;
@@ -72,8 +69,7 @@ class InsertTranslator : public OperatorTranslator {
   QueryState::Id inserter_state_id_;
 
   // Storage access
-  codegen::TableStorage table_storage_;
+  TableStorage table_storage_;
 };
-
 
 }  // namespace terrier::execution

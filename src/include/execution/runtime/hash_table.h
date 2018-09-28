@@ -22,7 +22,6 @@ namespace type {
 class AbstractPool;
 }  // namespace type
 
-
 namespace util {
 
 /**
@@ -49,8 +48,7 @@ namespace util {
 class HashTable {
  public:
   /** Constructor */
-  HashTable(::peloton::type::AbstractPool &memory, uint32_t key_size,
-            uint32_t value_size);
+  HashTable(::peloton::type::AbstractPool &memory, uint32_t key_size, uint32_t value_size);
 
   /** Destructor */
   ~HashTable();
@@ -62,8 +60,7 @@ class HashTable {
    * @param key_size The size of the keys in bytes
    * @param value_size The size of the values in bytes
    */
-  static void Init(HashTable &table, executor::ExecutorContext &exec_ctx,
-                   uint32_t key_size, uint32_t value_size);
+  static void Init(HashTable &table, executor::ExecutorContext &exec_ctx, uint32_t key_size, uint32_t value_size);
 
   /**
    * Clean up all resources allocated by the provided table
@@ -119,8 +116,7 @@ class HashTable {
    * @param hash_table_offset The offset into each state where the thread-local
    * hash table can be found.
    */
-  void ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states,
-                   uint32_t hash_table_offset);
+  void ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t hash_table_offset);
 
   /**
    * This function is called to "merge" the contents of the provided hash table
@@ -183,8 +179,7 @@ class HashTable {
    * @return True if a value was found. False otherwise.
    */
   template <typename Key, typename Value>
-  bool TypedProbe(uint64_t hash, const Key &key,
-                  std::function<void(const Value &)> &consumer);
+  bool TypedProbe(uint64_t hash, const Key &key, std::function<void(const Value &)> &consumer);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -206,9 +201,7 @@ class HashTable {
     Entry *next;
     char data[0];
 
-    static uint32_t Size(uint32_t key_size, uint32_t value_size) {
-      return sizeof(Entry) + key_size + value_size;
-    }
+    static uint32_t Size(uint32_t key_size, uint32_t value_size) { return sizeof(Entry) + key_size + value_size; }
   };
 
   /**
@@ -304,8 +297,7 @@ class HashTable {
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename Key, typename Value>
-void HashTable::TypedInsertLazy(uint64_t hash, const Key &key,
-                                const Value &value) {
+void HashTable::TypedInsertLazy(uint64_t hash, const Key &key, const Value &value) {
   auto *data = InsertLazy(hash);
   *reinterpret_cast<Key *>(data) = key;
   *reinterpret_cast<Value *>(data + sizeof(Key)) = value;
@@ -319,8 +311,7 @@ void HashTable::TypedInsert(uint64_t hash, const Key &key, const Value &value) {
 }
 
 template <typename Key, typename Value>
-bool HashTable::TypedProbe(uint64_t hash, const Key &key,
-                           std::function<void(const Value &)> &consumer) {
+bool HashTable::TypedProbe(uint64_t hash, const Key &key, std::function<void(const Value &)> &consumer) {
   // Initial index in the directory
   uint64_t index = hash & directory_mask_;
 
@@ -343,6 +334,6 @@ bool HashTable::TypedProbe(uint64_t hash, const Key &key,
   return found;
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

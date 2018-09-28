@@ -31,8 +31,7 @@ static_assert((kDefaultNumElements & (kDefaultNumElements - 1)) == 0,
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-HashTable::EntryBuffer::EntryBuffer(::peloton::type::AbstractPool &memory,
-                                    uint32_t entry_size)
+HashTable::EntryBuffer::EntryBuffer(::peloton::type::AbstractPool &memory, uint32_t entry_size)
     : memory_(memory), entry_size_(entry_size) {
   // We also need to allocate some space to store tuples. Tuples are stored
   // externally from the main hash table in a separate values memory space.
@@ -59,8 +58,7 @@ HashTable::EntryBuffer::~EntryBuffer() {
 HashTable::Entry *HashTable::EntryBuffer::NextFree() {
   if (entry_size_ > available_bytes_) {
     uint64_t block_size = sizeof(MemoryBlock) + (entry_size_ * kNumBlockElems);
-    auto *new_block =
-        reinterpret_cast<MemoryBlock *>(memory_.Allocate(block_size));
+    auto *new_block = reinterpret_cast<MemoryBlock *>(memory_.Allocate(block_size));
     new_block->next = block_;
     block_ = new_block;
     next_entry_ = new_block->data;
@@ -76,8 +74,7 @@ HashTable::Entry *HashTable::EntryBuffer::NextFree() {
   return entry;
 }
 
-void HashTable::EntryBuffer::TransferMemoryBlocks(
-    HashTable::EntryBuffer &target) {
+void HashTable::EntryBuffer::TransferMemoryBlocks(HashTable::EntryBuffer &target) {
   // Find end of our memory block chain
   MemoryBlock *tail = block_;
 
@@ -106,8 +103,7 @@ void HashTable::EntryBuffer::TransferMemoryBlocks(
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-HashTable::HashTable(::peloton::type::AbstractPool &memory, uint32_t key_size,
-                     uint32_t value_size)
+HashTable::HashTable(::peloton::type::AbstractPool &memory, uint32_t key_size, uint32_t value_size)
     : memory_(memory),
       directory_(nullptr),
       directory_size_(0),
@@ -135,8 +131,7 @@ HashTable::~HashTable() {
   }
 }
 
-void HashTable::Init(HashTable &table, executor::ExecutorContext &exec_ctx,
-                     uint32_t key_size, uint32_t value_size) {
+void HashTable::Init(HashTable &table, executor::ExecutorContext &exec_ctx, uint32_t key_size, uint32_t value_size) {
   new (&table) HashTable(*exec_ctx.GetPool(), key_size, value_size);
 }
 
@@ -224,14 +219,11 @@ void HashTable::BuildLazy() {
   }
 }
 
-void HashTable::ReserveLazy(
-    const executor::ExecutorContext::ThreadStates &thread_states,
-    uint32_t hash_table_offset) {
+void HashTable::ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t hash_table_offset) {
   // Determine the total number of tuples stored across each hash table
   uint64_t total_size = 0;
   for (uint32_t i = 0; i < thread_states.NumThreads(); i++) {
-    auto *hash_table = reinterpret_cast<HashTable *>(
-        thread_states.AccessThreadState(i) + hash_table_offset);
+    auto *hash_table = reinterpret_cast<HashTable *>(thread_states.AccessThreadState(i) + hash_table_offset);
     total_size += hash_table->NumElements();
   }
 
@@ -319,6 +311,6 @@ void HashTable::Resize() {
   directory_ = new_dir;
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

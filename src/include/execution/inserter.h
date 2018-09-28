@@ -12,9 +12,9 @@
 
 #pragma once
 
+#include "common/item_pointer.h"
 #include "execution/compilation_context.h"
 #include "execution/consumer_context.h"
-#include "common/item_pointer.h"
 
 namespace terrier::execution {
 
@@ -37,15 +37,13 @@ class AbstractPool;
 class EphemeralPool;
 }  // namespace type
 
-
 // This class handles insertion of tuples from generated code. This avoids
 // passing along information through translators, and is intialized once
 // through its Init() outside the main loop
 class Inserter {
  public:
   // Initializes the instance
-  void Init(storage::DataTable *table,
-            executor::ExecutorContext *executor_context);
+  void Init(storage::DataTable *table, executor::ExecutorContext *executor_context);
 
   // Allocate the storage area that is to be reserved
   char *AllocateTupleStorage();
@@ -61,7 +59,7 @@ class Inserter {
 
  private:
   // No external constructor
-  Inserter(): table_(nullptr), executor_context_(nullptr), tile_(nullptr) {}
+  Inserter() : table_(nullptr), executor_context_(nullptr), tile_(nullptr) {}
 
  private:
   // Provided by its insert translator
@@ -75,6 +73,5 @@ class Inserter {
  private:
   DISALLOW_COPY_AND_MOVE(Inserter);
 };
-
 
 }  // namespace terrier::execution

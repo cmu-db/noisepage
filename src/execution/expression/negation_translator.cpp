@@ -17,22 +17,17 @@
 
 namespace terrier::execution {
 
-
 // Constructor
-NegationTranslator::NegationTranslator(
-    const expression::OperatorUnaryMinusExpression &unary_minus_expression,
-    CompilationContext &ctx)
+NegationTranslator::NegationTranslator(const expression::OperatorUnaryMinusExpression &unary_minus_expression,
+                                       CompilationContext &ctx)
     : ExpressionTranslator(unary_minus_expression, ctx) {
   PELOTON_ASSERT(unary_minus_expression.GetChildrenSize() == 1);
 }
 
-Value NegationTranslator::DeriveValue(CodeGen &codegen,
-                                      RowBatch::Row &row) const {
-  const auto &negation_expr =
-      GetExpressionAs<expression::OperatorUnaryMinusExpression>();
+Value NegationTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
+  const auto &negation_expr = GetExpressionAs<expression::OperatorUnaryMinusExpression>();
   Value child_value = row.DeriveValue(codegen, *negation_expr.GetChild(0));
   return child_value.CallUnaryOp(codegen, OperatorId::Negation);
 }
-
 
 }  // namespace terrier::execution

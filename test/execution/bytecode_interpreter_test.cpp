@@ -11,11 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/interpreter/bytecode_interpreter.h"
+#include "common/harness.h"
 #include "execution/function_builder.h"
 #include "execution/interpreter/bytecode_builder.h"
 #include "execution/lang/loop.h"
 #include "execution/proxy/runtime_functions_proxy.h"
-#include "common/harness.h"
 
 namespace peloton {
 namespace test {
@@ -28,8 +28,7 @@ TEST_F(BytecodeInterpreterTest, PHIResolveTest) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder main{
-      code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     auto *a = main.GetArgumentByPosition(0);
     auto *i = cg.Const32(0);
@@ -52,14 +51,11 @@ TEST_F(BytecodeInterpreterTest, PHIResolveTest) {
   }
 
   // create Bytecode
-  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(
-      code_context, main.GetFunction());
+  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context, main.GetFunction());
 
   // run Bytecode
   codegen::interpreter::value_t arg = 44;
-  codegen::interpreter::value_t ret =
-      codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode,
-                                                                 {arg});
+  codegen::interpreter::value_t ret = codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode, {arg});
   ASSERT_EQ(ret, arg - 10);
 }
 
@@ -69,15 +65,13 @@ TEST_F(BytecodeInterpreterTest, PHISwapProblemTest) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder main{
-      code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}}};
   {
     auto *a = main.GetArgumentByPosition(0);
     auto *b = cg.Const32(0);
     auto *i = cg.Const32(0);
 
-    codegen::lang::Loop loop{
-        cg, cg.ConstBool(true), {{"i", i}, {"a", a}, {"b", b}}};
+    codegen::lang::Loop loop{cg, cg.ConstBool(true), {{"i", i}, {"a", a}, {"b", b}}};
     {
       llvm::Value *i = loop.GetLoopVar(0);
       llvm::Value *a = loop.GetLoopVar(1);
@@ -95,14 +89,11 @@ TEST_F(BytecodeInterpreterTest, PHISwapProblemTest) {
   }
 
   // create Bytecode
-  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(
-      code_context, main.GetFunction());
+  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context, main.GetFunction());
 
   // run Bytecode
   codegen::interpreter::value_t arg = 44;
-  codegen::interpreter::value_t ret =
-      codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode,
-                                                                 {arg});
+  codegen::interpreter::value_t ret = codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode, {arg});
   ASSERT_EQ(ret, arg);
 }
 
@@ -117,10 +108,7 @@ TEST_F(BytecodeInterpreterTest, OverflowIntrinsicsTest) {
 
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
-  codegen::FunctionBuilder main{code_context,
-                                "main",
-                                cg.Int32Type(),
-                                {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
   {
     auto *a = main.GetArgumentByPosition(0);
     auto *b = main.GetArgumentByPosition(1);
@@ -128,16 +116,13 @@ TEST_F(BytecodeInterpreterTest, OverflowIntrinsicsTest) {
     llvm::Value *ret = cg.ConstBool(true);
 
     auto *add_result = cg.CallAddWithOverflow(a, b, add_overflow);
-    auto *add_result_correct = cg->CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ,
-                                              add_result, cg.Const32(10));
+    auto *add_result_correct = cg->CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, add_result, cg.Const32(10));
     ret = cg->CreateAnd(ret, add_result_correct);
     auto *add_overflow_correct = cg->CreateNot(add_overflow);
     ret = cg->CreateAnd(ret, add_overflow_correct);
 
-    auto *sub_result =
-        cg.CallSubWithOverflow(cg.Const32(2147483648), b, sub_overflow);
-    auto *sub_result_correct = cg->CreateICmp(
-        llvm::CmpInst::Predicate::ICMP_EQ, sub_result, cg.Const32(2147483642));
+    auto *sub_result = cg.CallSubWithOverflow(cg.Const32(2147483648), b, sub_overflow);
+    auto *sub_result_correct = cg->CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, sub_result, cg.Const32(2147483642));
     ret = cg->CreateAnd(ret, sub_result_correct);
     ret = cg->CreateAnd(ret, sub_overflow);
 
@@ -145,13 +130,10 @@ TEST_F(BytecodeInterpreterTest, OverflowIntrinsicsTest) {
   }
 
   // create Bytecode
-  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(
-      code_context, main.GetFunction());
+  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context, main.GetFunction());
 
   // run Bytecode
-  codegen::interpreter::value_t ret =
-      codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode,
-                                                                 {4, 6});
+  codegen::interpreter::value_t ret = codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode, {4, 6});
   ASSERT_EQ(ret, 1);
 }
 
@@ -164,17 +146,12 @@ TEST_F(BytecodeInterpreterTest, ExternalCallTest) {
   codegen::CodeGen cg{code_context};
 
   // create LLVM function declaration
-  auto *func_type = llvm::FunctionType::get(
-      cg.Int32Type(), {cg.Int32Type(), cg.Int32Type()}, false);
+  auto *func_type = llvm::FunctionType::get(cg.Int32Type(), {cg.Int32Type(), cg.Int32Type()}, false);
   llvm::Function *func_decl =
-      llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, "f",
-                             &(cg.GetCodeContext().GetModule()));
+      llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, "f", &(cg.GetCodeContext().GetModule()));
   code_context.RegisterExternalFunction(func_decl, (void *)f);
 
-  codegen::FunctionBuilder main{code_context,
-                                "main",
-                                cg.Int32Type(),
-                                {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
   {
     auto *a = main.GetArgumentByPosition(0);
     auto *b = main.GetArgumentByPosition(1);
@@ -185,13 +162,10 @@ TEST_F(BytecodeInterpreterTest, ExternalCallTest) {
   }
 
   // create Bytecode
-  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(
-      code_context, main.GetFunction());
+  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context, main.GetFunction());
 
   // run Bytecode
-  codegen::interpreter::value_t ret =
-      codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode,
-                                                                 {4, 6});
+  codegen::interpreter::value_t ret = codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode, {4, 6});
   ASSERT_EQ(ret, 10);
 }
 
@@ -201,10 +175,7 @@ TEST_F(BytecodeInterpreterTest, InternalCallTest) {
   codegen::CodeContext code_context;
   codegen::CodeGen cg{code_context};
 
-  codegen::FunctionBuilder f{code_context,
-                             "f",
-                             cg.Int32Type(),
-                             {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
+  codegen::FunctionBuilder f{code_context, "f", cg.Int32Type(), {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
   {
     auto *a = f.GetArgumentByPosition(0);
     auto *b = f.GetArgumentByPosition(1);
@@ -214,10 +185,7 @@ TEST_F(BytecodeInterpreterTest, InternalCallTest) {
     f.ReturnAndFinish(ret);
   }
 
-  codegen::FunctionBuilder main{code_context,
-                                "main",
-                                cg.Int32Type(),
-                                {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
+  codegen::FunctionBuilder main{code_context, "main", cg.Int32Type(), {{"a", cg.Int32Type()}, {"b", cg.Int32Type()}}};
   {
     auto *a = main.GetArgumentByPosition(0);
     auto *b = main.GetArgumentByPosition(1);
@@ -228,13 +196,10 @@ TEST_F(BytecodeInterpreterTest, InternalCallTest) {
   }
 
   // create Bytecode
-  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(
-      code_context, main.GetFunction());
+  auto bytecode = codegen::interpreter::BytecodeBuilder::CreateBytecodeFunction(code_context, main.GetFunction());
 
   // run Bytecode
-  codegen::interpreter::value_t ret =
-      codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode,
-                                                                 {4, 6});
+  codegen::interpreter::value_t ret = codegen::interpreter::BytecodeInterpreter::ExecuteFunction(bytecode, {4, 6});
   ASSERT_EQ(ret, 10);
 }
 

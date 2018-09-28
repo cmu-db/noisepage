@@ -12,23 +12,21 @@
 
 #pragma once
 
-#include "execution/proxy/proxy.h"
 #include "execution/deleter.h"
+#include "execution/proxy/proxy.h"
 
 namespace terrier::execution {
-
 
 PROXY(Deleter) {
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, char[sizeof(Deleter)], opaque);
   DECLARE_TYPE;
 
-  /// Proxy Init() and Delete() in codegen::Deleter
+  /// Proxy Init() and Delete() in Deleter
   DECLARE_METHOD(Init);
   DECLARE_METHOD(Delete);
 };
 
-TYPE_BUILDER(Deleter, codegen::Deleter);
-
+TYPE_BUILDER(Deleter, Deleter);
 
 }  // namespace terrier::execution

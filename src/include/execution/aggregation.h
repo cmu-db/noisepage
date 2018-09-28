@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <array>
+#include <vector>
 
 #include "execution/codegen.h"
 #include "execution/oa_hash_table.h"
@@ -29,14 +29,11 @@ class Aggregation {
   Aggregation(QueryState &query_state) : query_state_(query_state) {}
 
   // Setup the aggregation to handle the provided aggregates
-  void Setup(CodeGen &codegen,
-             const std::vector<planner::AggregatePlan::AggTerm> &agg_terms,
-             bool is_global, std::vector<type::Type> &grouping_ai_types);
+  void Setup(CodeGen &codegen, const std::vector<planner::AggregatePlan::AggTerm> &agg_terms, bool is_global,
+             std::vector<type::Type> &grouping_ai_types);
 
   // Setup the aggregation to handle the provided aggregates
-  void Setup(CodeGen &codegen,
-             const std::vector<planner::AggregatePlan::AggTerm> &agg_terms,
-             bool is_global);
+  void Setup(CodeGen &codegen, const std::vector<planner::AggregatePlan::AggTerm> &agg_terms, bool is_global);
 
   // Codegen any initialization work for the hash tables
   void InitializeQueryState(CodeGen &codegen);
@@ -48,32 +45,25 @@ class Aggregation {
   void CreateInitialGlobalValues(CodeGen &codegen, llvm::Value *space) const;
 
   // Store the provided values as the initial values for each of the aggregates
-  void CreateInitialValues(
-      CodeGen &codegen, llvm::Value *space,
-      const std::vector<codegen::Value> &initial,
-      const std::vector<codegen::Value> &grouping_keys) const;
+  void CreateInitialValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &initial,
+                           const std::vector<Value> &grouping_keys) const;
 
   // Advance all stored aggregates (stored in the provided storage space) using
   // the values in the provided vector
-  void AdvanceValues(CodeGen &codegen, llvm::Value *space,
-                     const std::vector<codegen::Value> &next,
-                     const std::vector<codegen::Value> &grouping_keys) const;
+  void AdvanceValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next,
+                     const std::vector<Value> &grouping_keys) const;
 
   // Advance all stored aggregates (stored in the provided storage space) using
   // the values in the provided vector
-  void AdvanceValues(CodeGen &codegen, llvm::Value *space,
-                     const std::vector<codegen::Value> &next) const;
+  void AdvanceValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next) const;
 
   // Compute the final values of all the aggregates stored in the provided
   // storage space, inserting them into the provided output vector.
-  void FinalizeValues(CodeGen &codegen, llvm::Value *space,
-                      std::vector<codegen::Value> &final_vals) const;
+  void FinalizeValues(CodeGen &codegen, llvm::Value *space, std::vector<Value> &final_vals) const;
 
   // Get the total number of bytes needed to store all the aggregates this is
   // configured to store
-  uint32_t GetAggregatesStorageSize() const {
-    return storage_.GetStorageSize();
-  }
+  uint32_t GetAggregatesStorageSize() const { return storage_.GetStorageSize(); }
 
   // Get the storage format of the aggregates this class is configured to handle
   const UpdateableStorage &GetAggregateStorage() const { return storage_; }
@@ -119,29 +109,24 @@ class Aggregation {
   };
 
  private:
-  void DoInitializeValue(CodeGen &codegen, llvm::Value *space,
-                         ExpressionType type, uint32_t storage_index,
-                         const Value &initial,
-                         UpdateableStorage::NullBitmap &null_bitmap) const;
+  void DoInitializeValue(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                         const Value &initial, UpdateableStorage::NullBitmap &null_bitmap) const;
 
   // Will perform the NULL checking, update the null bitmap and call
   // DoAdvanceValue if appropriate
-  void DoNullCheck(CodeGen &codegen, llvm::Value *space, ExpressionType type,
-                   uint32_t storage_index, const codegen::Value &update,
-                   UpdateableStorage::NullBitmap &null_bitmap) const;
+  void DoNullCheck(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                   const Value &update, UpdateableStorage::NullBitmap &null_bitmap) const;
 
   // Advance the value of a specific aggregate component, given its next value.
   // No NULL checking, the function assumes that the current aggregate value is
   // not NULL.
-  void DoAdvanceValue(CodeGen &codegen, llvm::Value *space, ExpressionType type,
-                      uint32_t storage_index, const codegen::Value &next) const;
+  void DoAdvanceValue(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                      const Value &next) const;
 
   // Advancethe value of a specifig aggregate. Performs NULL check if necessary
   // and finally calls DoAdvanceValue()
-  void AdvanceValue(CodeGen &codegen, llvm::Value *space,
-                    const std::vector<codegen::Value> &next_vals,
-                    const Aggregation::AggregateInfo &agg,
-                    UpdateableStorage::NullBitmap &null_bitmap) const;
+  void AdvanceValue(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next_vals,
+                    const Aggregation::AggregateInfo &agg, UpdateableStorage::NullBitmap &null_bitmap) const;
 
  private:
   // Is this a global aggregation?

@@ -20,20 +20,18 @@
 
 namespace terrier::execution {
 
-
 // Constructor
 QueryCompiler::QueryCompiler() : next_id_(0) {}
 
 // Compile the given query statement
-std::unique_ptr<Query> QueryCompiler::Compile(
-    const planner::AbstractPlan &root, const QueryParametersMap &parameters_map,
-    ExecutionConsumer &result_consumer, CompileStats *stats) {
+std::unique_ptr<Query> QueryCompiler::Compile(const planner::AbstractPlan &root,
+                                              const QueryParametersMap &parameters_map,
+                                              ExecutionConsumer &result_consumer, CompileStats *stats) {
   // The query statement we compile
   std::unique_ptr<Query> query{new Query(root)};
 
   // Set up the compilation context
-  CompilationContext context{query->GetCodeContext(), query->GetQueryState(),
-                             parameters_map, result_consumer};
+  CompilationContext context{query->GetCodeContext(), query->GetQueryState(), parameters_map, result_consumer};
 
   // Perform the compilation
   context.GeneratePlan(*query, stats);
@@ -121,8 +119,7 @@ bool QueryCompiler::IsSupported(const planner::AbstractPlan &plan) {
   return true;
 }
 
-bool QueryCompiler::IsExpressionSupported(
-    const expression::AbstractExpression &expr) {
+bool QueryCompiler::IsExpressionSupported(const expression::AbstractExpression &expr) {
   switch (expr.GetExpressionType()) {
     case ExpressionType::STAR:
       return false;
@@ -140,6 +137,5 @@ bool QueryCompiler::IsExpressionSupported(
   // Looks good ...
   return true;
 }
-
 
 }  // namespace terrier::execution

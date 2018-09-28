@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 /**
  * This is the main abstract class for consumers of query executions.
  */
@@ -57,8 +56,7 @@ class ExecutionConsumer {
   /// rows. A default implementation is provided by batch-consumption, but one
   /// must be provided for single-row consumption.
   virtual void ConsumeResult(ConsumerContext &context, RowBatch &batch) const;
-  virtual void ConsumeResult(ConsumerContext &context,
-                             RowBatch::Row &row) const = 0;
+  virtual void ConsumeResult(ConsumerContext &context, RowBatch::Row &row) const = 0;
 
   /// Load the ExecutorContext, Transaction, or StorageManager objects
   llvm::Value *GetExecutorContextPtr(CompilationContext &compilation_ctx);
@@ -71,6 +69,5 @@ class ExecutionConsumer {
   llvm::Type *executor_ctx_type_;
   QueryState::Id executor_ctx_id_;
 };
-
 
 }  // namespace terrier::execution

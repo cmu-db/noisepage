@@ -23,8 +23,6 @@ namespace planner {
 class AggregatePlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // The translator for a hash-based group-by operator.
 //===----------------------------------------------------------------------===//
@@ -34,8 +32,7 @@ class HashGroupByTranslator : public OperatorTranslator {
   static std::atomic<bool> kUsePrefetch;
 
   // Constructor
-  HashGroupByTranslator(const planner::AggregatePlan &group_by,
-                        CompilationContext &context, Pipeline &pipeline);
+  HashGroupByTranslator(const planner::AggregatePlan &group_by, CompilationContext &context, Pipeline &pipeline);
 
   // Codegen any initialization work for this operator
   void InitializeQueryState() override;
@@ -60,12 +57,10 @@ class HashGroupByTranslator : public OperatorTranslator {
   class ProduceResults : public HashTable::VectorizedIterateCallback {
    public:
     // Constructor
-    ProduceResults(ConsumerContext &ctx, const planner::AggregatePlan &plan,
-                   const Aggregation &aggregation);
+    ProduceResults(ConsumerContext &ctx, const planner::AggregatePlan &plan, const Aggregation &aggregation);
 
     // The callback
-    void ProcessEntries(CodeGen &codegen, llvm::Value *start, llvm::Value *end,
-                        Vector &selection_vector,
+    void ProcessEntries(CodeGen &codegen, llvm::Value *start, llvm::Value *end, Vector &selection_vector,
                         HashTable::HashTableAccess &access) const override;
 
    private:
@@ -83,8 +78,7 @@ class HashGroupByTranslator : public OperatorTranslator {
    public:
     // Constructor
     ConsumerProbe(CompilationContext &context, const Aggregation &aggregation,
-                  const std::vector<codegen::Value> &next_vals,
-                  const std::vector<codegen::Value> &grouping_keys);
+                  const std::vector<Value> &next_vals, const std::vector<Value> &grouping_keys);
 
     // The callback
     void ProcessEntry(CodeGen &codegen, llvm::Value *data_area) const override;
@@ -95,9 +89,9 @@ class HashGroupByTranslator : public OperatorTranslator {
     // The guy that handles the computation of the aggregates
     const Aggregation &aggregation_;
     // The next value to merge into the existing aggregates
-    const std::vector<codegen::Value> &next_vals_;
+    const std::vector<Value> &next_vals_;
     // The key used for the Group By, will be needed for distinct aggregations
-    const std::vector<codegen::Value> grouping_keys_;
+    const std::vector<Value> grouping_keys_;
   };
 
   //===--------------------------------------------------------------------===//
@@ -108,9 +102,8 @@ class HashGroupByTranslator : public OperatorTranslator {
   class ConsumerInsert : public HashTable::InsertCallback {
    public:
     // Constructor
-    ConsumerInsert(const Aggregation &aggregation,
-                   const std::vector<codegen::Value> &initial_vals,
-                   const std::vector<codegen::Value> &grouping_keys);
+    ConsumerInsert(const Aggregation &aggregation, const std::vector<Value> &initial_vals,
+                   const std::vector<Value> &grouping_keys);
 
     // StoreValue the initial values of the aggregates into the provided storage
     void StoreValue(CodeGen &codegen, llvm::Value *data_space) const override;
@@ -121,9 +114,9 @@ class HashGroupByTranslator : public OperatorTranslator {
     // The guy that handles the computation of the aggregates
     const Aggregation &aggregation_;
     // The list of initial values to use as aggregates
-    const std::vector<codegen::Value> &initial_vals_;
+    const std::vector<Value> &initial_vals_;
     // The key used for the Group By, will be needed for distinct aggregations
-    const std::vector<codegen::Value> grouping_keys_;
+    const std::vector<Value> grouping_keys_;
   };
 
   //===--------------------------------------------------------------------===//
@@ -133,11 +126,9 @@ class HashGroupByTranslator : public OperatorTranslator {
   //===--------------------------------------------------------------------===//
   class AggregateFinalizer {
    public:
-    AggregateFinalizer(const Aggregation &aggregation,
-                       HashTable::HashTableAccess &hash_table_access);
+    AggregateFinalizer(const Aggregation &aggregation, HashTable::HashTableAccess &hash_table_access);
     // Get the finalized aggregates at the given position in the results
-    const std::vector<codegen::Value> &GetAggregates(CodeGen &codegen,
-                                                     llvm::Value *index);
+    const std::vector<Value> &GetAggregates(CodeGen &codegen, llvm::Value *index);
 
    private:
     // The aggregator
@@ -146,7 +137,7 @@ class HashGroupByTranslator : public OperatorTranslator {
     HashTable::HashTableAccess &hash_table_access_;
     // Whether the aggregate has been finalized and the results
     bool finalized_;
-    std::vector<codegen::Value> final_aggregates_;
+    std::vector<Value> final_aggregates_;
   };
 
   //===--------------------------------------------------------------------===//
@@ -157,7 +148,7 @@ class HashGroupByTranslator : public OperatorTranslator {
    public:
     AggregateAccess(AggregateFinalizer &finalizer, uint32_t agg_index);
 
-    codegen::Value Access(CodeGen &codegen, RowBatch::Row &row) override;
+    Value Access(CodeGen &codegen, RowBatch::Row &row) override;
 
    private:
     // The associate finalizer
@@ -166,8 +157,7 @@ class HashGroupByTranslator : public OperatorTranslator {
     uint32_t agg_index_;
   };
 
-  void CollectHashKeys(RowBatch::Row &row,
-                       std::vector<codegen::Value> &key) const;
+  void CollectHashKeys(RowBatch::Row &row, std::vector<Value> &key) const;
 
   // Estimate the size of the constructed hash table
   uint64_t EstimateHashTableSize() const;
@@ -188,6 +178,5 @@ class HashGroupByTranslator : public OperatorTranslator {
   // The aggregation handler
   Aggregation aggregation_;
 };
-
 
 }  // namespace terrier::execution

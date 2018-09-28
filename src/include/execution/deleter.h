@@ -30,22 +30,18 @@ namespace storage {
 class DataTable;
 }  // namespace storage
 
-
-
 // This class handles deletion of tuples from generated code. It mainly exists
 // to avoid passing along table information through translators. Instead, this
 // class is initialized once (through Init()) outside the main loop.
 class Deleter {
  public:
   // Constructor
-  Deleter(storage::DataTable *table,
-          executor::ExecutorContext *executor_context);
+  Deleter(storage::DataTable *table, executor::ExecutorContext *executor_context);
 
   // Initializer this deleter instance using the provided transaction and table.
   // All tuples to be deleted occur within the provided transaction are from
   // the provided table
-  static void Init(Deleter &deleter, storage::DataTable *table,
-                   executor::ExecutorContext *executor_context);
+  static void Init(Deleter &deleter, storage::DataTable *table, executor::ExecutorContext *executor_context);
 
   // Delete the tuple within the provided tile group ID (unique) at the provided
   // offset from the start of the tile group.
@@ -61,6 +57,5 @@ class Deleter {
  private:
   DISALLOW_COPY_AND_MOVE(Deleter);
 };
-
 
 }  // namespace terrier::execution

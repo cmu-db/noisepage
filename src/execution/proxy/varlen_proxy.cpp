@@ -14,8 +14,6 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(Varlen, "peloton::Varlen", length, ptr);
-
 
 }  // namespace terrier::execution

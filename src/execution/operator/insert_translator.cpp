@@ -10,23 +10,20 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "execution/operator/insert_translator.h"
 #include "execution/proxy/inserter_proxy.h"
 #include "execution/proxy/query_parameters_proxy.h"
 #include "execution/proxy/storage_manager_proxy.h"
 #include "execution/proxy/transaction_runtime_proxy.h"
 #include "execution/proxy/tuple_proxy.h"
-#include "execution/operator/insert_translator.h"
 #include "planner/insert_plan.h"
 #include "storage/data_table.h"
 
 namespace terrier::execution {
 
-
-InsertTranslator::InsertTranslator(const planner::InsertPlan &insert_plan,
-                                   CompilationContext &context,
+InsertTranslator::InsertTranslator(const planner::InsertPlan &insert_plan, CompilationContext &context,
                                    Pipeline &pipeline)
-    : OperatorTranslator(insert_plan, context, pipeline),
-      table_storage_(*insert_plan.GetTable()->GetSchema()) {
+    : OperatorTranslator(insert_plan, context, pipeline), table_storage_(*insert_plan.GetTable()->GetSchema()) {
   // Inserts happen serially
   pipeline.SetSerial();
 
@@ -36,13 +33,10 @@ InsertTranslator::InsertTranslator(const planner::InsertPlan &insert_plan,
   }
 
   // Register the inserter instance as state
-  inserter_state_id_ = context.GetQueryState().RegisterState(
-      "inserter", InserterProxy::GetType(GetCodeGen()));
+  inserter_state_id_ = context.GetQueryState().RegisterState("inserter", InserterProxy::GetType(GetCodeGen()));
 }
 
-const planner::InsertPlan &InsertTranslator::GetInsertPlan() const {
-  return GetPlanAs<planner::InsertPlan>();
-}
+const planner::InsertPlan &InsertTranslator::GetInsertPlan() const { return GetPlanAs<planner::InsertPlan>(); }
 
 void InsertTranslator::InitializeQueryState() {
   CodeGen &codegen = GetCodeGen();
@@ -50,13 +44,11 @@ void InsertTranslator::InitializeQueryState() {
   storage::DataTable *table = GetInsertPlan().GetTable();
   llvm::Value *table_ptr = codegen.Call(
       StorageManagerProxy::GetTableWithOid,
-      {GetStorageManagerPtr(), codegen.Const32(table->GetDatabaseOid()),
-       codegen.Const32(table->GetOid())});
+      {GetStorageManagerPtr(), codegen.Const32(table->GetDatabaseOid()), codegen.Const32(table->GetOid())});
 
   // Initialize the inserter with txn and table
   llvm::Value *inserter = LoadStatePtr(inserter_state_id_);
-  codegen.Call(InserterProxy::Init,
-               {inserter, table_ptr, GetExecutorContextPtr()});
+  codegen.Call(InserterProxy::Init, {inserter, table_ptr, GetExecutorContextPtr()});
 }
 
 void InsertTranslator::Produce() const {
@@ -81,16 +73,14 @@ void InsertTranslator::Produce() const {
       // Read tuple data from the parameter storage and insert
       const auto &parameter_cache = GetCompilationContext().GetParameterCache();
       for (uint32_t tuple_idx = 0; tuple_idx < num_tuples; tuple_idx++) {
-        auto *tuple_ptr =
-            codegen.Call(InserterProxy::AllocateTupleStorage, {inserter});
+        auto *tuple_ptr = codegen.Call(InserterProxy::AllocateTupleStorage, {inserter});
         auto *pool = codegen.Call(InserterProxy::GetPool, {inserter});
 
         // Transform into the codegen values and store values in the tuple
         // storage
-        std::vector<codegen::Value> values;
+        std::vector<Value> values;
         for (uint32_t column_id = 0; column_id < num_columns; column_id++) {
-          auto value =
-              parameter_cache.GetValue(column_id + tuple_idx * num_columns);
+          auto value = parameter_cache.GetValue(column_id + tuple_idx * num_columns);
           values.push_back(value);
         }
         table_storage_.StoreValues(codegen, tuple_ptr, values, pool);
@@ -110,14 +100,13 @@ void InsertTranslator::Consume(ConsumerContext &, RowBatch::Row &row) const {
 
   // Ask the Inserter to allocate space for the row we received
   auto *inserter = LoadStatePtr(inserter_state_id_);
-  auto *tuple_ptr =
-      codegen.Call(InserterProxy::AllocateTupleStorage, {inserter});
+  auto *tuple_ptr = codegen.Call(InserterProxy::AllocateTupleStorage, {inserter});
   auto *pool = codegen.Call(InserterProxy::GetPool, {inserter});
 
   // Materialize tuple data from row and attribute information
-  std::vector<codegen::Value> values;
+  std::vector<Value> values;
   for (const auto *ai : GetInsertPlan().GetAttributeInfos()) {
-    codegen::Value v = row.DeriveValue(codegen, ai);
+    Value v = row.DeriveValue(codegen, ai);
     values.push_back(v);
   }
   table_storage_.StoreValues(codegen, tuple_ptr, values, pool);
@@ -131,6 +120,5 @@ void InsertTranslator::TearDownQueryState() {
   llvm::Value *inserter = LoadStatePtr(inserter_state_id_);
   GetCodeGen().Call(InserterProxy::TearDown, {inserter});
 }
-
 
 }  // namespace terrier::execution

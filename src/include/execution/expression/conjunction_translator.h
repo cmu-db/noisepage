@@ -21,21 +21,16 @@ namespace expression {
 class ConjunctionExpression;
 }  // namespace expression
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator for conjunction expressions
 //===----------------------------------------------------------------------===//
 class ConjunctionTranslator : public ExpressionTranslator {
  public:
   // Constructor
-  ConjunctionTranslator(const expression::ConjunctionExpression &conjunction,
-                        CompilationContext &context);
+  ConjunctionTranslator(const expression::ConjunctionExpression &conjunction, CompilationContext &context);
 
   // Produce the value that is the result of codegening the expression
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

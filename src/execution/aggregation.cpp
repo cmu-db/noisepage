@@ -2,16 +2,14 @@
 
 #include "execution/lang/if.h"
 #include "execution/proxy/oa_hash_table_proxy.h"
-#include "execution/type/boolean_type.h"
 #include "execution/type/bigint_type.h"
+#include "execution/type/boolean_type.h"
 #include "execution/type/decimal_type.h"
 
 namespace terrier::execution {
 // Configure/setup the aggregation class to handle the provided aggregate types
-void Aggregation::Setup(
-    CodeGen &codegen,
-    const std::vector<planner::AggregatePlan::AggTerm> &aggregates,
-    bool is_global, std::vector<type::Type> &grouping_ai_types) {
+void Aggregation::Setup(CodeGen &codegen, const std::vector<planner::AggregatePlan::AggTerm> &aggregates,
+                        bool is_global, std::vector<type::Type> &grouping_ai_types) {
   is_global_ = is_global;
 
   for (uint32_t source_idx = 0; source_idx < aggregates.size(); source_idx++) {
@@ -24,11 +22,7 @@ void Aggregation::Setup(
         uint32_t storage_pos = storage_.AddType(count_type);
 
         // Add metadata for the aggregate
-        AggregateInfo agg_info{agg_term.aggtype,
-                               source_idx,
-                               {{storage_pos}},
-                               agg_term.distinct,
-                               0};
+        AggregateInfo agg_info{agg_term.aggtype, source_idx, {{storage_pos}}, agg_term.distinct, 0};
         aggregate_infos_.push_back(agg_info);
         break;
       }
@@ -44,11 +38,7 @@ void Aggregation::Setup(
         uint32_t storage_pos = storage_.AddType(value_type);
 
         // Add metadata for the aggregate
-        AggregateInfo agg_info{agg_term.aggtype,
-                               source_idx,
-                               {{storage_pos}},
-                               agg_term.distinct,
-                               0};
+        AggregateInfo agg_info{agg_term.aggtype, source_idx, {{storage_pos}}, agg_term.distinct, 0};
         aggregate_infos_.push_back(agg_info);
         break;
       }
@@ -65,11 +55,7 @@ void Aggregation::Setup(
         uint32_t storage_pos = storage_.AddType(value_type);
 
         // Add metadata for the aggregate
-        AggregateInfo agg_info{agg_term.aggtype,
-                               source_idx,
-                               {{storage_pos}},
-                               agg_term.distinct,
-                               0};
+        AggregateInfo agg_info{agg_term.aggtype, source_idx, {{storage_pos}}, agg_term.distinct, 0};
         aggregate_infos_.push_back(agg_info);
         break;
       }
@@ -88,18 +74,14 @@ void Aggregation::Setup(
         uint32_t count_storage_pos = storage_.AddType(type::BigInt::Instance());
 
         // Add metadata for the aggregate
-        AggregateInfo agg_info{agg_term.aggtype,
-                               source_idx,
-                               {{sum_storage_pos, count_storage_pos}},
-                               agg_term.distinct,
-                               0};
+        AggregateInfo agg_info{
+            agg_term.aggtype, source_idx, {{sum_storage_pos, count_storage_pos}}, agg_term.distinct, 0};
         aggregate_infos_.push_back(agg_info);
         break;
       }
       default: {
-        std::string message = StringUtil::Format(
-            "Unexpected aggregate type [%s] when preparing aggregator",
-            ExpressionTypeToString(agg_term.aggtype).c_str());
+        std::string message = StringUtil::Format("Unexpected aggregate type [%s] when preparing aggregator",
+                                                 ExpressionTypeToString(agg_term.aggtype).c_str());
         LOG_ERROR("%s", message.c_str());
         throw Exception{ExceptionType::UNKNOWN_TYPE, message};
       }
@@ -123,9 +105,8 @@ void Aggregation::Setup(
     }
 
     // Register the hash-table instance in the runtime state
-    auto hash_table_id = query_state_.RegisterState(
-        "agg_hash" + std::to_string(agg_info.source_index),
-        OAHashTableProxy::GetType(codegen));
+    auto hash_table_id = query_state_.RegisterState("agg_hash" + std::to_string(agg_info.source_index),
+                                                    OAHashTableProxy::GetType(codegen));
 
     // Prepare the hash keys
     // if not global, start with grouping keys, then add aggregation key
@@ -133,8 +114,7 @@ void Aggregation::Setup(
     if (!IsGlobal()) {
       key_type = grouping_ai_types;
     }
-    key_type.push_back(
-        aggregates[agg_info.source_index].expression->ResultType());
+    key_type.push_back(aggregates[agg_info.source_index].expression->ResultType());
 
     // Create the hash table. We don't need to save any values, hence the zero
     // payload value size.
@@ -143,8 +123,7 @@ void Aggregation::Setup(
     hash_table_infos_.emplace_back(std::move(hash_table), hash_table_id);
 
     // Add index to the aggregation_info struct
-    agg_info.hast_table_index =
-        static_cast<uint32_t>(hash_table_infos_.size() - 1);
+    agg_info.hast_table_index = static_cast<uint32_t>(hash_table_infos_.size() - 1);
   }
 
   // Finalize the storage format
@@ -152,10 +131,8 @@ void Aggregation::Setup(
 }
 
 // Setup the aggregation to handle the provided aggregates
-void Aggregation::Setup(
-    CodeGen &codegen,
-    const std::vector<planner::AggregatePlan::AggTerm> &agg_terms,
-    bool is_global) {
+void Aggregation::Setup(CodeGen &codegen, const std::vector<planner::AggregatePlan::AggTerm> &agg_terms,
+                        bool is_global) {
   PELOTON_ASSERT(is_global);
   // Create empty vector and hand the reference to the actual implementation
   // makes it easier to call this function without providing grouping keys
@@ -177,13 +154,11 @@ void Aggregation::TearDownQueryState(CodeGen &codegen) {
   for (auto hash_table_info : hash_table_infos_) {
     auto &hash_table = hash_table_info.first;
     auto hash_table_id = hash_table_info.second;
-    hash_table.Destroy(codegen,
-                       query_state_.LoadStatePtr(codegen, hash_table_id));
+    hash_table.Destroy(codegen, query_state_.LoadStatePtr(codegen, hash_table_id));
   }
 }
 
-void Aggregation::CreateInitialGlobalValues(CodeGen &codegen,
-                                            llvm::Value *space) const {
+void Aggregation::CreateInitialGlobalValues(CodeGen &codegen, llvm::Value *space) const {
   PELOTON_ASSERT(IsGlobal());
   UpdateableStorage::NullBitmap null_bitmap{codegen, storage_, space};
   null_bitmap.InitAllNull(codegen);
@@ -191,10 +166,8 @@ void Aggregation::CreateInitialGlobalValues(CodeGen &codegen,
 }
 
 // Create the initial values of all aggregates based on the the provided values
-void Aggregation::CreateInitialValues(
-    CodeGen &codegen, llvm::Value *space,
-    const std::vector<codegen::Value> &initial,
-    const std::vector<codegen::Value> &grouping_keys) const {
+void Aggregation::CreateInitialValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &initial,
+                                      const std::vector<Value> &grouping_keys) const {
   // Global aggregations should be calling CreateInitialGlobalValues(...)
   PELOTON_ASSERT(!IsGlobal());
 
@@ -216,22 +189,20 @@ void Aggregation::CreateInitialValues(
       case ExpressionType::AGGREGATE_COUNT:
       case ExpressionType::AGGREGATE_COUNT_STAR: {
         // Those aggregations consist of only one component
-        DoInitializeValue(codegen, space, agg_info.aggregate_type,
-                          agg_info.storage_indices[0], input_val, null_bitmap);
+        DoInitializeValue(codegen, space, agg_info.aggregate_type, agg_info.storage_indices[0], input_val, null_bitmap);
         break;
       }
       case ExpressionType::AGGREGATE_AVG: {
         // AVG has to initialize both the SUM and the COUNT
-        DoInitializeValue(codegen, space, ExpressionType::AGGREGATE_SUM,
-                          agg_info.storage_indices[0], input_val, null_bitmap);
-        DoInitializeValue(codegen, space, ExpressionType::AGGREGATE_COUNT,
-                          agg_info.storage_indices[1], input_val, null_bitmap);
+        DoInitializeValue(codegen, space, ExpressionType::AGGREGATE_SUM, agg_info.storage_indices[0], input_val,
+                          null_bitmap);
+        DoInitializeValue(codegen, space, ExpressionType::AGGREGATE_COUNT, agg_info.storage_indices[1], input_val,
+                          null_bitmap);
         break;
       }
       default: {
-        std::string message = StringUtil::Format(
-            "Unexpected aggregate type [%s] when creating initial values",
-            ExpressionTypeToString(agg_info.aggregate_type).c_str());
+        std::string message = StringUtil::Format("Unexpected aggregate type [%s] when creating initial values",
+                                                 ExpressionTypeToString(agg_info.aggregate_type).c_str());
         LOG_ERROR("%s", message.c_str());
         throw Exception{ExceptionType::UNKNOWN_TYPE, message};
       }
@@ -246,11 +217,10 @@ void Aggregation::CreateInitialValues(
       auto hash_table_id = hash_table_infos_[agg_info.hast_table_index].second;
 
       // Get the hash table for this hash table
-      llvm::Value *state_pointer =
-          query_state_.LoadStatePtr(codegen, hash_table_id);
+      llvm::Value *state_pointer = query_state_.LoadStatePtr(codegen, hash_table_id);
 
       // Prepare the hash keys
-      std::vector<codegen::Value> key = grouping_keys;
+      std::vector<Value> key = grouping_keys;
       key.push_back(input_val);
 
       // Perform the dummy lookup in the hash table that creates the entry
@@ -261,10 +231,8 @@ void Aggregation::CreateInitialValues(
   }
 }
 
-void Aggregation::DoInitializeValue(
-    CodeGen &codegen, llvm::Value *space, ExpressionType type,
-    uint32_t storage_index, const Value &initial,
-    UpdateableStorage::NullBitmap &null_bitmap) const {
+void Aggregation::DoInitializeValue(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                                    const Value &initial, UpdateableStorage::NullBitmap &null_bitmap) const {
   switch (type) {
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
@@ -281,30 +249,28 @@ void Aggregation::DoInitializeValue(
       } else {
         raw_initial = codegen.Const64(1);
       }
-      codegen::Value initial_val{type::BigInt::Instance(), raw_initial};
+      Value initial_val{type::BigInt::Instance(), raw_initial};
       storage_.SetValueSkipNull(codegen, space, storage_index, initial_val);
       break;
     }
     case ExpressionType::AGGREGATE_COUNT_STAR: {
       // The initial value for COUNT(*) is 1
-      codegen::Value one{type::BigInt::Instance(), codegen.Const64(1)};
+      Value one{type::BigInt::Instance(), codegen.Const64(1)};
       storage_.SetValueSkipNull(codegen, space, storage_index, one);
       break;
     }
     default: {
-      std::string message = StringUtil::Format(
-          "Unexpected aggregate type [%s] when creating initial values",
-          ExpressionTypeToString(type).c_str());
+      std::string message = StringUtil::Format("Unexpected aggregate type [%s] when creating initial values",
+                                               ExpressionTypeToString(type).c_str());
       LOG_ERROR("%s", message.c_str());
       throw Exception{ExceptionType::UNKNOWN_TYPE, message};
     }
   }
 }
 
-void Aggregation::DoAdvanceValue(CodeGen &codegen, llvm::Value *space,
-                                 ExpressionType type, uint32_t storage_index,
-                                 const codegen::Value &update) const {
-  codegen::Value next;
+void Aggregation::DoAdvanceValue(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                                 const Value &update) const {
+  Value next;
   switch (type) {
     case ExpressionType::AGGREGATE_SUM: {
       auto curr = storage_.GetValueSkipNull(codegen, space, storage_index);
@@ -325,15 +291,12 @@ void Aggregation::DoAdvanceValue(CodeGen &codegen, llvm::Value *space,
       auto curr = storage_.GetValueSkipNull(codegen, space, storage_index);
 
       // Convert the next update into 0 or 1 depending of if it is NULL
-      codegen::Value raw_update;
+      Value raw_update;
       if (update.IsNullable()) {
         llvm::Value *not_null = update.IsNotNull(codegen);
-        raw_update =
-            codegen::Value{type::BigInt::Instance(),
-                           codegen->CreateZExt(not_null, codegen.Int64Type())};
+        raw_update = Value{type::BigInt::Instance(), codegen->CreateZExt(not_null, codegen.Int64Type())};
       } else {
-        raw_update =
-            codegen::Value{type::BigInt::Instance(), codegen.Const64(1)};
+        raw_update = Value{type::BigInt::Instance(), codegen.Const64(1)};
       }
 
       // Add to aggregate
@@ -342,28 +305,25 @@ void Aggregation::DoAdvanceValue(CodeGen &codegen, llvm::Value *space,
     }
     case ExpressionType::AGGREGATE_COUNT_STAR: {
       auto curr = storage_.GetValueSkipNull(codegen, space, storage_index);
-      auto delta = codegen::Value{type::BigInt::Instance(), codegen.Const64(1)};
+      auto delta = Value{type::BigInt::Instance(), codegen.Const64(1)};
       next = curr.Add(codegen, delta);
       break;
     }
     default: {
-      std::string message = StringUtil::Format(
-          "Unexpected aggregate type [%s] when advancing aggregator",
-          ExpressionTypeToString(type).c_str());
+      std::string message = StringUtil::Format("Unexpected aggregate type [%s] when advancing aggregator",
+                                               ExpressionTypeToString(type).c_str());
       LOG_ERROR("%s", message.c_str());
       throw Exception{ExceptionType::UNKNOWN_TYPE, message};
     }
   }
 
   // Store the updated value in the appropriate slot
-  PELOTON_ASSERT(next.GetType().type_id != peloton::type::TypeId::INVALID);
+  PELOTON_ASSERT(next.GetType().type_id != type::TypeId::INVALID);
   storage_.SetValueSkipNull(codegen, space, storage_index, next);
 }
 
-void Aggregation::DoNullCheck(
-    CodeGen &codegen, llvm::Value *space, ExpressionType type,
-    uint32_t storage_index, const codegen::Value &update,
-    UpdateableStorage::NullBitmap &null_bitmap) const {
+void Aggregation::DoNullCheck(CodeGen &codegen, llvm::Value *space, ExpressionType type, uint32_t storage_index,
+                              const Value &update, UpdateableStorage::NullBitmap &null_bitmap) const {
   // This aggregate is NULL-able, we need to check if the update value is
   // NULL, and whether the current value of the aggregate is NULL.
 
@@ -396,7 +356,7 @@ void Aggregation::DoNullCheck(
           break;
         }
         case ExpressionType::AGGREGATE_COUNT: {
-          codegen::Value one{type::BigInt::Instance(), codegen.Const64(1)};
+          Value one{type::BigInt::Instance(), codegen.Const64(1)};
           storage_.SetValue(codegen, space, storage_index, one, null_bitmap);
           break;
         }
@@ -421,11 +381,9 @@ void Aggregation::DoNullCheck(
 
 // Advance the value of a specific aggregate. Performs NULL check if necessary
 // and finally calls DoAdvanceValue().
-void Aggregation::AdvanceValue(
-    CodeGen &codegen, llvm::Value *space,
-    const std::vector<codegen::Value> &next_vals,
-    const Aggregation::AggregateInfo &aggregate_info,
-    UpdateableStorage::NullBitmap &null_bitmap) const {
+void Aggregation::AdvanceValue(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next_vals,
+                               const Aggregation::AggregateInfo &aggregate_info,
+                               UpdateableStorage::NullBitmap &null_bitmap) const {
   const Value &update = next_vals[aggregate_info.source_index];
 
   switch (aggregate_info.aggregate_type) {
@@ -434,41 +392,36 @@ void Aggregation::AdvanceValue(
     case ExpressionType::AGGREGATE_MAX: {
       // If the aggregate is not NULL-able, elide NULL check
       if (!null_bitmap.IsNullable(aggregate_info.storage_indices[0])) {
-        DoAdvanceValue(codegen, space, aggregate_info.aggregate_type,
-                       aggregate_info.storage_indices[0], update);
+        DoAdvanceValue(codegen, space, aggregate_info.aggregate_type, aggregate_info.storage_indices[0], update);
       } else {
-        DoNullCheck(codegen, space, aggregate_info.aggregate_type,
-                    aggregate_info.storage_indices[0], update, null_bitmap);
+        DoNullCheck(codegen, space, aggregate_info.aggregate_type, aggregate_info.storage_indices[0], update,
+                    null_bitmap);
       }
       break;
     }
     case ExpressionType::AGGREGATE_COUNT:
     case ExpressionType::AGGREGATE_COUNT_STAR: {
       // COUNT can't be nullable, so skip the null check
-      DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_COUNT,
-                     aggregate_info.storage_indices[0], update);
+      DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_COUNT, aggregate_info.storage_indices[0], update);
       break;
     }
     case ExpressionType::AGGREGATE_AVG: {
       // If the SUM is not NULL-able, elide NULL check
       if (!null_bitmap.IsNullable(aggregate_info.storage_indices[0])) {
-        DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_SUM,
-                       aggregate_info.storage_indices[0], update);
+        DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_SUM, aggregate_info.storage_indices[0], update);
       } else {
-        DoNullCheck(codegen, space, ExpressionType::AGGREGATE_SUM,
-                    aggregate_info.storage_indices[0], update, null_bitmap);
+        DoNullCheck(codegen, space, ExpressionType::AGGREGATE_SUM, aggregate_info.storage_indices[0], update,
+                    null_bitmap);
       }
 
       // COUNT can't be nullable, so skip the null check
-      DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_COUNT,
-                     aggregate_info.storage_indices[1], update);
+      DoAdvanceValue(codegen, space, ExpressionType::AGGREGATE_COUNT, aggregate_info.storage_indices[1], update);
 
       break;
     }
     default: {
-      std::string message = StringUtil::Format(
-          "Unexpected aggregate type [%s] when advancing aggregator",
-          ExpressionTypeToString(aggregate_info.aggregate_type).c_str());
+      std::string message = StringUtil::Format("Unexpected aggregate type [%s] when advancing aggregator",
+                                               ExpressionTypeToString(aggregate_info.aggregate_type).c_str());
       LOG_ERROR("%s", message.c_str());
       throw Exception{ExceptionType::UNKNOWN_TYPE, message};
     }
@@ -476,10 +429,8 @@ void Aggregation::AdvanceValue(
 }
 
 // Advance each of the aggregates stored in the provided storage space
-void Aggregation::AdvanceValues(
-    CodeGen &codegen, llvm::Value *space,
-    const std::vector<codegen::Value> &next_vals,
-    const std::vector<codegen::Value> &grouping_keys) const {
+void Aggregation::AdvanceValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next_vals,
+                                const std::vector<Value> &grouping_keys) const {
   // The null bitmap tracker
   UpdateableStorage::NullBitmap null_bitmap(codegen, storage_, space);
 
@@ -496,8 +447,7 @@ void Aggregation::AdvanceValues(
     // Check if aggregation is distinct, then add another hash table lookup
     // before advancing the value
     auto &hash_table = hash_table_infos_[aggregate_info.hast_table_index].first;
-    auto hash_table_id =
-        hash_table_infos_[aggregate_info.hast_table_index].second;
+    auto hash_table_id = hash_table_infos_[aggregate_info.hast_table_index].second;
 
     // Get runtime state pointer for this hash table
     llvm::Value *ht_ptr = query_state_.LoadStatePtr(codegen, hash_table_id);
@@ -508,15 +458,14 @@ void Aggregation::AdvanceValues(
 
     // Prepare the hash keys
     // if not global, start with grouping keys, then add aggregation key
-    std::vector<codegen::Value> key;
+    std::vector<Value> key;
     if (!IsGlobal()) {
       key = grouping_keys;
     }
     key.push_back(update);
 
     // Perform the lookup in the hash table
-    OAHashTable::ProbeResult probe_result =
-        hash_table.ProbeOrInsert(codegen, ht_ptr, hash, key);
+    OAHashTable::ProbeResult probe_result = hash_table.ProbeOrInsert(codegen, ht_ptr, hash, key);
 
     // Prepare condition for If
     llvm::Value *condition = codegen->CreateNot(probe_result.key_exists);
@@ -525,13 +474,11 @@ void Aggregation::AdvanceValues(
     // change after inside the if-clause. After the if-clause, we can use the
     // snapshot before and after to correctly resolve the final NULL indication
     // bit.
-    llvm::Value *null_byte_snapshot =
-        null_bitmap.ByteFor(codegen, aggregate_info.storage_indices[0]);
+    llvm::Value *null_byte_snapshot = null_bitmap.ByteFor(codegen, aggregate_info.storage_indices[0]);
 
     // Only process aggregation if value is distinct (key didn't exist in hash
     // table)
-    auto name = "agg" + std::to_string(aggregate_info.source_index) +
-                ".advanceValues.ifAggValueIsDistinct";
+    auto name = "agg" + std::to_string(aggregate_info.source_index) + ".advanceValues.ifAggValueIsDistinct";
     lang::If agg_is_distinct{codegen, condition, name};
     {
       // Advance value
@@ -552,17 +499,14 @@ void Aggregation::AdvanceValues(
 // the update values provided in "next". Since global aggregations don't
 // have grouping keys, this function creates an empty vector of keys in order
 // to use AdvanceValues() that assumes grouping keys.
-void Aggregation::AdvanceValues(CodeGen &codegen, llvm::Value *space,
-                                const std::vector<codegen::Value> &next) const {
-  std::vector<codegen::Value> empty;
+void Aggregation::AdvanceValues(CodeGen &codegen, llvm::Value *space, const std::vector<Value> &next) const {
+  std::vector<Value> empty;
   AdvanceValues(codegen, space, next, empty);
 }
 
 // This function will compute the final values of all aggregates stored in the
 // provided storage space, populating the provided vector with these values.
-void Aggregation::FinalizeValues(
-    CodeGen &codegen, llvm::Value *space,
-    std::vector<codegen::Value> &final_vals) const {
+void Aggregation::FinalizeValues(CodeGen &codegen, llvm::Value *space, std::vector<Value> &final_vals) const {
   // The null bitmap tracker
   UpdateableStorage::NullBitmap null_bitmap(codegen, storage_, space);
 
@@ -572,8 +516,7 @@ void Aggregation::FinalizeValues(
       case ExpressionType::AGGREGATE_SUM:
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_MAX: {
-        codegen::Value final_val = storage_.GetValue(
-            codegen, space, agg_info.storage_indices[0], null_bitmap);
+        Value final_val = storage_.GetValue(codegen, space, agg_info.storage_indices[0], null_bitmap);
 
         // append final value to result vector
         final_vals.push_back(final_val);
@@ -581,22 +524,17 @@ void Aggregation::FinalizeValues(
       }
       case ExpressionType::AGGREGATE_AVG: {
         // collect the final values of the SUM and the COUNT components
-        codegen::Value sum = storage_.GetValue(
-            codegen, space, agg_info.storage_indices[0], null_bitmap);
+        Value sum = storage_.GetValue(codegen, space, agg_info.storage_indices[0], null_bitmap);
 
         PELOTON_ASSERT(!null_bitmap.IsNullable(agg_info.storage_indices[1]));
-        codegen::Value count = storage_.GetValueSkipNull(
-            codegen, space, agg_info.storage_indices[1]);
+        Value count = storage_.GetValueSkipNull(codegen, space, agg_info.storage_indices[1]);
 
         // cast the values to DECIMAL
-        codegen::Value sum_casted =
-            sum.CastTo(codegen, type::Decimal::Instance());
-        codegen::Value count_casted =
-            count.CastTo(codegen, type::Decimal::Instance());
+        Value sum_casted = sum.CastTo(codegen, type::Decimal::Instance());
+        Value count_casted = count.CastTo(codegen, type::Decimal::Instance());
 
         // Compute the average
-        codegen::Value final_val =
-            sum_casted.Div(codegen, count_casted, OnError::ReturnNull);
+        Value final_val = sum_casted.Div(codegen, count_casted, OnError::ReturnNull);
 
         // append final value to result vector
         final_vals.push_back(final_val);
@@ -605,17 +543,15 @@ void Aggregation::FinalizeValues(
       case ExpressionType::AGGREGATE_COUNT:
       case ExpressionType::AGGREGATE_COUNT_STAR: {
         // Neither COUNT(...) or COUNT(*) can ever return NULL, so no NULL-check
-        codegen::Value final_val = storage_.GetValueSkipNull(
-            codegen, space, agg_info.storage_indices[0]);
+        Value final_val = storage_.GetValueSkipNull(codegen, space, agg_info.storage_indices[0]);
 
         // append final value to result vector
         final_vals.push_back(final_val);
         break;
       }
       default: {
-        std::string message = StringUtil::Format(
-            "Unexpected aggregate type [%s] when finalizing aggregator",
-            ExpressionTypeToString(agg_type).c_str());
+        std::string message = StringUtil::Format("Unexpected aggregate type [%s] when finalizing aggregator",
+                                                 ExpressionTypeToString(agg_type).c_str());
         LOG_ERROR("%s", message.c_str());
         throw Exception{ExceptionType::UNKNOWN_TYPE, message};
       }

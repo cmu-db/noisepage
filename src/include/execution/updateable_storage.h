@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 namespace lang {
 class If;
 }  // namespace lang
@@ -29,8 +28,7 @@ class If;
 class UpdateableStorage {
  public:
   /// Constructor
-  UpdateableStorage()
-      : storage_size_(0), storage_type_(nullptr), null_bitmap_type_(nullptr) {}
+  UpdateableStorage() : storage_size_(0), storage_type_(nullptr), null_bitmap_type_(nullptr) {}
 
   // Add the given type to the storage format. We return the index that this
   // value can be found it (i.e., the index to pass into Get() to get the value)
@@ -44,22 +42,19 @@ class UpdateableStorage {
 
   // Get the value at a specific index into the storage area, ignoring whether
   // the value is NULL or not
-  codegen::Value GetValueSkipNull(CodeGen &codegen, llvm::Value *space,
-                                  uint64_t index) const;
+  Value GetValueSkipNull(CodeGen &codegen, llvm::Value *space, uint64_t index) const;
 
   // Like GetValueIgnoreNull(), but this also reads the NULL bitmap to determine
   // if the value is null.
-  codegen::Value GetValue(CodeGen &codegen, llvm::Value *space, uint64_t index,
-                          NullBitmap &null_bitmap) const;
+  Value GetValue(CodeGen &codegen, llvm::Value *space, uint64_t index, NullBitmap &null_bitmap) const;
 
   // Set the given value at the specific index in the storage area, ignoring to
   // update the bitmap
-  void SetValueSkipNull(CodeGen &codegen, llvm::Value *space, uint64_t index,
-                        const codegen::Value &value) const;
+  void SetValueSkipNull(CodeGen &codegen, llvm::Value *space, uint64_t index, const Value &value) const;
 
   // Like SetValueIgnoreNull(), but this also updates the NULL bitmap
-  void SetValue(CodeGen &codegen, llvm::Value *space, uint64_t index,
-                const codegen::Value &value, NullBitmap &null_bitmap) const;
+  void SetValue(CodeGen &codegen, llvm::Value *space, uint64_t index, const Value &value,
+                NullBitmap &null_bitmap) const;
 
   // Return the format of the storage area
   llvm::Type *GetStorageType() const { return storage_type_; }
@@ -69,16 +64,13 @@ class UpdateableStorage {
   uint32_t GetStorageSize() const { return storage_size_; }
 
   // Return the number of elements this format is configured to handle
-  uint32_t GetNumElements() const {
-    return static_cast<uint32_t>(schema_.size());
-  }
+  uint32_t GetNumElements() const { return static_cast<uint32_t>(schema_.size()); }
 
  public:
   // Convenience class to handle NULL bitmaps.
   class NullBitmap {
    public:
-    NullBitmap(CodeGen &codegen, const UpdateableStorage &storage,
-               llvm::Value *storage_ptr);
+    NullBitmap(CodeGen &codegen, const UpdateableStorage &storage, llvm::Value *storage_ptr);
 
     void InitAllNull(CodeGen &codegen);
 
@@ -119,8 +111,7 @@ class UpdateableStorage {
  private:
   // Find the position in the underlying storage where the item with the
   // provided index is.
-  void FindStoragePositionFor(uint32_t item_index, int32_t &val_idx,
-                              int32_t &len_idx) const;
+  void FindStoragePositionFor(uint32_t item_index, int32_t &val_idx, int32_t &len_idx) const;
 
  private:
   // The types we store in the storage area
@@ -140,6 +131,5 @@ class UpdateableStorage {
   // The type of the bitmap
   llvm::Type *null_bitmap_type_;
 };
-
 
 }  // namespace terrier::execution

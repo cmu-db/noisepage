@@ -25,7 +25,6 @@ class Value;
 
 namespace terrier::execution {
 
-
 class CodeGen;
 class CompilationContext;
 class ConsumerContext;
@@ -79,8 +78,7 @@ class PipelineContext {
   class SetState {
    public:
     SetState(PipelineContext &pipeline_ctx, llvm::Value *thread_state)
-        : pipeline_ctx_(pipeline_ctx),
-          prev_thread_state_(pipeline_ctx.thread_state_) {
+        : pipeline_ctx_(pipeline_ctx), prev_thread_state_(pipeline_ctx.thread_state_) {
       pipeline_ctx.thread_state_ = thread_state;
     }
     ~SetState() { pipeline_ctx_.thread_state_ = prev_thread_state_; }
@@ -139,7 +137,7 @@ class PipelineContext {
  * a hybrid tuple-at-time and vectorized processing model. Each tuple batch is
  * accompanied by a cache-resident selection vector (also known as a position
  * list) to determine the validity of each tuple in the batch. Refer to
- * @refitem peloton::codegen::RowBatch for more details.
+ * @refitem peloton::RowBatch for more details.
  *
  * Pipelines form the unit of parallelism in Peloton. Each pipeline can either
  * be launched serially or in parallel.
@@ -187,12 +185,9 @@ class Pipeline {
 
   void RunSerial(const std::function<void(ConsumerContext &)> &body);
 
-  void RunParallel(
-      llvm::Function *dispatch_func,
-      const std::vector<llvm::Value *> &dispatch_args,
-      const std::vector<llvm::Type *> &pipeline_args_types,
-      const std::function<void(ConsumerContext &,
-                               const std::vector<llvm::Value *> &)> &body);
+  void RunParallel(llvm::Function *dispatch_func, const std::vector<llvm::Value *> &dispatch_args,
+                   const std::vector<llvm::Type *> &pipeline_args_types,
+                   const std::function<void(ConsumerContext &, const std::vector<llvm::Value *> &)> &body);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -220,16 +215,12 @@ class Pipeline {
   /// Initialize the state for this pipeline
   void InitializePipeline(PipelineContext &pipeline_ctx);
   void CompletePipeline(PipelineContext &pipeline_ctx);
-  void Run(llvm::Function *dispatch_func,
-           const std::vector<llvm::Value *> &dispatch_args,
+  void Run(llvm::Function *dispatch_func, const std::vector<llvm::Value *> &dispatch_args,
            const std::vector<llvm::Type *> &pipeline_arg_types,
-           const std::function<void(ConsumerContext &,
-                                    const std::vector<llvm::Value *> &)> &body);
+           const std::function<void(ConsumerContext &, const std::vector<llvm::Value *> &)> &body);
   void DoRun(PipelineContext &pipeline_ctx, llvm::Function *dispatch_func,
-             const std::vector<llvm::Value *> &dispatch_args,
-             const std::vector<llvm::Type *> &pipeline_args_types,
-             const std::function<void(
-                 ConsumerContext &, const std::vector<llvm::Value *> &)> &body);
+             const std::vector<llvm::Value *> &dispatch_args, const std::vector<llvm::Type *> &pipeline_args_types,
+             const std::function<void(ConsumerContext &, const std::vector<llvm::Value *> &)> &body);
 
   /// Return the total number of stages in the pipeline
   uint32_t GetNumStages() const;
@@ -255,6 +246,5 @@ class Pipeline {
   // Level of parallelism
   Parallelism parallelism_;
 };
-
 
 }  // namespace terrier::execution

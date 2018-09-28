@@ -20,45 +20,37 @@ namespace interpreter {
 /** This is the actual dispatch code: It lookups the destination handler address
  *  in the label_pointers_ array and performs a direct jump there.
  */
-#define INTERPRETER_DISPATCH_GOTO(ip)                   \
-  goto *(label_pointers_[BytecodeFunction::GetOpcodeId( \
-      reinterpret_cast<const Instruction *>(ip)->op)])
+#define INTERPRETER_DISPATCH_GOTO(ip) \
+  goto *(label_pointers_[BytecodeFunction::GetOpcodeId(reinterpret_cast<const Instruction *>(ip)->op)])
 
 /**
  * The array with the label pointers has to be zero initialized to make sure,
  * that we fill it with the actual values on the first execution.
  */
-void *
-    BytecodeInterpreter::label_pointers_[BytecodeFunction::GetNumberOpcodes()] =
-        {nullptr};
+void *BytecodeInterpreter::label_pointers_[BytecodeFunction::GetNumberOpcodes()] = {nullptr};
 
-BytecodeInterpreter::BytecodeInterpreter(
-    const BytecodeFunction &bytecode_function)
+BytecodeInterpreter::BytecodeInterpreter(const BytecodeFunction &bytecode_function)
     : bytecode_function_(bytecode_function) {}
 
-value_t BytecodeInterpreter::ExecuteFunction(
-    const BytecodeFunction &bytecode_function,
-    const std::vector<value_t> &arguments) {
+value_t BytecodeInterpreter::ExecuteFunction(const BytecodeFunction &bytecode_function,
+                                             const std::vector<value_t> &arguments) {
   BytecodeInterpreter interpreter(bytecode_function);
   interpreter.ExecuteFunction(arguments);
 
   return interpreter.GetReturnValue<value_t>();
 }
 
-void BytecodeInterpreter::ExecuteFunction(
-    const BytecodeFunction &bytecode_function, char *param) {
+void BytecodeInterpreter::ExecuteFunction(const BytecodeFunction &bytecode_function, char *param) {
   BytecodeInterpreter interpreter(bytecode_function);
   interpreter.ExecuteFunction({reinterpret_cast<value_t &>(param)});
 }
 
-NEVER_INLINE NO_CLONE void BytecodeInterpreter::ExecuteFunction(
-    const std::vector<value_t> &arguments) {
+NEVER_INLINE NO_CLONE void BytecodeInterpreter::ExecuteFunction(const std::vector<value_t> &arguments) {
   // Fill the label_pointers_ array with the handler addresses at first
   // startup. (This can't be done outside of this function, as the labels are
   // not visible there.
   if (label_pointers_[0] == nullptr) {
-#define HANDLE_INST(op) \
-  label_pointers_[BytecodeFunction::GetOpcodeId(Opcode::op)] = &&_##op;
+#define HANDLE_INST(op) label_pointers_[BytecodeFunction::GetOpcodeId(Opcode::op)] = &&_##op;
 
 #include "execution/interpreter/bytecode_instructions.def"
   }
@@ -66,26 +58,25 @@ NEVER_INLINE NO_CLONE void BytecodeInterpreter::ExecuteFunction(
   InitializeActivationRecord(arguments);
 
   // Get initial instruction pointer
-  const Instruction *bytecode =
-      reinterpret_cast<const Instruction *>(&bytecode_function_.bytecode_[0]);
+  const Instruction *bytecode = reinterpret_cast<const Instruction *>(&bytecode_function_.bytecode_[0]);
   const Instruction *ip = bytecode;
 
   // Start execution with first instruction
   INTERPRETER_DISPATCH_GOTO(ip);
 
-//--------------------------------------------------------------------------//
-//                             Dispatch area
-//
-// This is the actual dispatch area of the interpreter. Because we use
-// threaded interpretation, this is not a dispatch loop, but a long list of
-// labels, and the control flow jumps from one handler to the next with
-// goto's -> INTERPRETER_DISPATCH_GOTO(ip)
-//
-// The whole dispatch area gets generated using the bytecode_instructions.def
-// file. All instruction handlers from query_interpreter.h will get inlined
-// here for all their types. Even though the function looks small here,
-// it will be over 13kB in the resulting binary!
-//--------------------------------------------------------------------------//
+  //--------------------------------------------------------------------------//
+  //                             Dispatch area
+  //
+  // This is the actual dispatch area of the interpreter. Because we use
+  // threaded interpretation, this is not a dispatch loop, but a long list of
+  // labels, and the control flow jumps from one handler to the next with
+  // goto's -> INTERPRETER_DISPATCH_GOTO(ip)
+  //
+  // The whole dispatch area gets generated using the bytecode_instructions.def
+  // file. All instruction handlers from query_interpreter.h will get inlined
+  // here for all their types. Even though the function looks small here,
+  // it will be over 13kB in the resulting binary!
+  //--------------------------------------------------------------------------//
 
 #ifdef LOG_TRACE_ENABLED
 #define TRACE_CODE_PRE LOG_TRACE("%s", bytecode_function_.Dump(ip).c_str())
@@ -125,8 +116,7 @@ type_t BytecodeInterpreter::GetReturnValue() {
   return GetValue<type_t>(0);
 }
 
-void BytecodeInterpreter::InitializeActivationRecord(
-    const std::vector<value_t> &arguments) {
+void BytecodeInterpreter::InitializeActivationRecord(const std::vector<value_t> &arguments) {
   // resize vector to required number of value slots
   values_.resize(bytecode_function_.number_values_);
 
@@ -152,16 +142,13 @@ void BytecodeInterpreter::InitializeActivationRecord(
 
   // prepare call activations
   call_activations_.resize(bytecode_function_.external_call_contexts_.size());
-  for (size_t i = 0; i < bytecode_function_.external_call_contexts_.size();
-       i++) {
+  for (size_t i = 0; i < bytecode_function_.external_call_contexts_.size(); i++) {
     auto &call_context = bytecode_function_.external_call_contexts_[i];
     auto &call_activation = call_activations_[i];
 
     // initialize libffi call interface
-    if (ffi_prep_cif(&call_activation.call_interface, FFI_DEFAULT_ABI,
-                     call_context.args.size(), call_context.dest_type,
-                     const_cast<ffi_type **>(call_context.arg_types.data())) !=
-        FFI_OK) {
+    if (ffi_prep_cif(&call_activation.call_interface, FFI_DEFAULT_ABI, call_context.args.size(), call_context.dest_type,
+                     const_cast<ffi_type **>(call_context.arg_types.data())) != FFI_OK) {
       throw Exception("initializing ffi call interface failed ");
     }
 
@@ -175,8 +162,7 @@ void BytecodeInterpreter::InitializeActivationRecord(
 
 uintptr_t BytecodeInterpreter::AllocateMemory(size_t number_bytes) {
   // allocate memory
-  std::unique_ptr<char[]> pointer =
-      std::unique_ptr<char[]>(new char[number_bytes]);
+  std::unique_ptr<char[]> pointer = std::unique_ptr<char[]>(new char[number_bytes]);
 
   // get raw pointer before moving pointer object!
   auto raw_pointer = reinterpret_cast<uintptr_t>(pointer.get());

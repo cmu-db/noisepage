@@ -56,13 +56,12 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 // Create a translator for the given operator
 //===----------------------------------------------------------------------===//
-std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTranslator(
-    const planner::AbstractPlan &plan_node, CompilationContext &context,
-    Pipeline &pipeline) const {
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTranslator(const planner::AbstractPlan &plan_node,
+                                                                        CompilationContext &context,
+                                                                        Pipeline &pipeline) const {
   OperatorTranslator *translator = nullptr;
   switch (plan_node.GetPlanNodeType()) {
     case PlanNodeType::SEQSCAN: {
@@ -76,8 +75,7 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTranslator(
       break;
     }
     case PlanNodeType::PROJECTION: {
-      auto &projection =
-          static_cast<const planner::ProjectionPlan &>(plan_node);
+      auto &projection = static_cast<const planner::ProjectionPlan &>(plan_node);
       translator = new ProjectionTranslator(projection, context, pipeline);
       break;
     }
@@ -97,17 +95,14 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTranslator(
       break;
     }
     case PlanNodeType::AGGREGATE_V2: {
-      const auto &aggregate_plan =
-          static_cast<const planner::AggregatePlan &>(plan_node);
+      const auto &aggregate_plan = static_cast<const planner::AggregatePlan &>(plan_node);
       // An aggregation without any grouping clause is simpler to handle. All
       // other aggregations are handled using a hash-group-by for now.
       // TODO: Implement other (non hash) group-by algorithms
       if (aggregate_plan.IsGlobal()) {
-        translator =
-            new GlobalGroupByTranslator(aggregate_plan, context, pipeline);
+        translator = new GlobalGroupByTranslator(aggregate_plan, context, pipeline);
       } else {
-        translator =
-            new HashGroupByTranslator(aggregate_plan, context, pipeline);
+        translator = new HashGroupByTranslator(aggregate_plan, context, pipeline);
       }
       break;
     }
@@ -143,26 +138,22 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTranslator(
 //===----------------------------------------------------------------------===//
 // Create a translator for the given expression
 //===----------------------------------------------------------------------===//
-std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(
-    const expression::AbstractExpression &exp,
-    CompilationContext &context) const {
+std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(const expression::AbstractExpression &exp,
+                                                                          CompilationContext &context) const {
   ExpressionTranslator *translator = nullptr;
   switch (exp.GetExpressionType()) {
     case ExpressionType::VALUE_PARAMETER: {
-      auto &param_exp =
-          static_cast<const expression::ParameterValueExpression &>(exp);
+      auto &param_exp = static_cast<const expression::ParameterValueExpression &>(exp);
       translator = new ParameterTranslator(param_exp, context);
       break;
     }
     case ExpressionType::VALUE_CONSTANT: {
-      auto &const_exp =
-          static_cast<const expression::ConstantValueExpression &>(exp);
+      auto &const_exp = static_cast<const expression::ConstantValueExpression &>(exp);
       translator = new ConstantTranslator(const_exp, context);
       break;
     }
     case ExpressionType::VALUE_TUPLE: {
-      auto &tve_exp =
-          static_cast<const expression::TupleValueExpression &>(exp);
+      auto &tve_exp = static_cast<const expression::TupleValueExpression &>(exp);
       translator = new TupleValueTranslator(tve_exp, context);
       break;
     }
@@ -173,15 +164,13 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(
     case ExpressionType::COMPARE_LESSTHANOREQUALTO:
     case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
     case ExpressionType::COMPARE_LIKE: {
-      const auto &cmp_exp =
-          static_cast<const expression::ComparisonExpression &>(exp);
+      const auto &cmp_exp = static_cast<const expression::ComparisonExpression &>(exp);
       translator = new ComparisonTranslator(cmp_exp, context);
       break;
     }
     case ExpressionType::CONJUNCTION_AND:
     case ExpressionType::CONJUNCTION_OR: {
-      const auto &conjunction_exp =
-          static_cast<const expression::ConjunctionExpression &>(exp);
+      const auto &conjunction_exp = static_cast<const expression::ConjunctionExpression &>(exp);
       translator = new ConjunctionTranslator(conjunction_exp, context);
       break;
     }
@@ -190,21 +179,18 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(
     case ExpressionType::OPERATOR_MULTIPLY:
     case ExpressionType::OPERATOR_DIVIDE:
     case ExpressionType::OPERATOR_MOD: {
-      auto &arithmetic_exp =
-          static_cast<const expression::OperatorExpression &>(exp);
+      auto &arithmetic_exp = static_cast<const expression::OperatorExpression &>(exp);
       translator = new ArithmeticTranslator(arithmetic_exp, context);
       break;
     }
     case ExpressionType::OPERATOR_UNARY_MINUS: {
-      auto &negation_exp =
-          static_cast<const expression::OperatorUnaryMinusExpression &>(exp);
+      auto &negation_exp = static_cast<const expression::OperatorUnaryMinusExpression &>(exp);
       translator = new NegationTranslator(negation_exp, context);
       break;
     }
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL: {
-      auto &null_check_exp =
-          static_cast<const expression::OperatorExpression &>(exp);
+      auto &null_check_exp = static_cast<const expression::OperatorExpression &>(exp);
       translator = new NullCheckTranslator(null_check_exp, context);
       break;
     }
@@ -226,6 +212,5 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateTranslator(
   PELOTON_ASSERT(translator != nullptr);
   return std::unique_ptr<ExpressionTranslator>{translator};
 }
-
 
 }  // namespace terrier::execution

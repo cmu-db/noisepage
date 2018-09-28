@@ -12,18 +12,15 @@
 
 #include "execution/compilation_context.h"
 
-#include "execution/pipeline.h"
 #include "common/logger.h"
 #include "common/timer.h"
+#include "execution/pipeline.h"
 
 namespace terrier::execution {
 
-
 // Constructor
-CompilationContext::CompilationContext(CodeContext &code,
-                                       QueryState &query_state,
-                                       const QueryParametersMap &parameters_map,
-                                       ExecutionConsumer &execution_consumer)
+CompilationContext::CompilationContext(CodeContext &code, QueryState &query_state,
+                                       const QueryParametersMap &parameters_map, ExecutionConsumer &execution_consumer)
     : code_context_(code),
       query_state_(query_state),
       parameter_cache_(parameters_map),
@@ -32,8 +29,7 @@ CompilationContext::CompilationContext(CodeContext &code,
       pipelines_() {}
 
 // Prepare the translator for the given operator
-void CompilationContext::Prepare(const planner::AbstractPlan &op,
-                                 Pipeline &pipeline) {
+void CompilationContext::Prepare(const planner::AbstractPlan &op, Pipeline &pipeline) {
   auto translator = translator_factory_.CreateTranslator(op, *this, pipeline);
   op_translators_.insert(std::make_pair(&op, std::move(translator)));
 }
@@ -52,8 +48,7 @@ void CompilationContext::Produce(const planner::AbstractPlan &op) {
 }
 
 // Generate all plan functions for the given query
-void CompilationContext::GeneratePlan(Query &query,
-                                      QueryCompiler::CompileStats *stats) {
+void CompilationContext::GeneratePlan(Query &query, QueryCompiler::CompileStats *stats) {
   // Start timing
   Timer<std::ratio<1, 1000>> timer;
   timer.Start();
@@ -133,8 +128,7 @@ void CompilationContext::GenerateHelperFunctions() {
 llvm::Function *CompilationContext::GenerateInitFunction() {
   // Create function definition
   std::string name = StringUtil::Format("_%lu_init", code_context_.GetID());
-  std::vector<FunctionDeclaration::ArgumentInfo> args = {
-      {"queryState", query_state_.GetType()->getPointerTo()}};
+  std::vector<FunctionDeclaration::ArgumentInfo> args = {{"queryState", query_state_.GetType()->getPointerTo()}};
   FunctionBuilder init_func(code_context_, name, codegen_.VoidType(), args);
   {
     // Let the consumer initialize
@@ -155,11 +149,9 @@ llvm::Function *CompilationContext::GenerateInitFunction() {
 }
 
 // Generate the code for the plan() function of the query
-llvm::Function *CompilationContext::GeneratePlanFunction(
-    const planner::AbstractPlan &root) {
+llvm::Function *CompilationContext::GeneratePlanFunction(const planner::AbstractPlan &root) {
   std::string name = StringUtil::Format("_%lu_plan", code_context_.GetID());
-  std::vector<FunctionDeclaration::ArgumentInfo> args = {
-      {"queryState", query_state_.GetType()->getPointerTo()}};
+  std::vector<FunctionDeclaration::ArgumentInfo> args = {{"queryState", query_state_.GetType()->getPointerTo()}};
   FunctionBuilder plan_func(code_context_, name, codegen_.VoidType(), args);
   {
     // Generate the primary plan logic
@@ -175,10 +167,8 @@ llvm::Function *CompilationContext::GeneratePlanFunction(
 // Generate the code for the tearDown() function of the query
 llvm::Function *CompilationContext::GenerateTearDownFunction() {
   std::string name = StringUtil::Format("_%lu_tearDown", code_context_.GetID());
-  std::vector<FunctionDeclaration::ArgumentInfo> args = {
-      {"queryState", query_state_.GetType()->getPointerTo()}};
-  FunctionBuilder tear_down_func(code_context_, name, codegen_.VoidType(),
-                                 args);
+  std::vector<FunctionDeclaration::ArgumentInfo> args = {{"queryState", query_state_.GetType()->getPointerTo()}};
+  FunctionBuilder tear_down_func(code_context_, name, codegen_.VoidType(), args);
   {
     // Let the consumer cleanup
     exec_consumer_.TearDownQueryState(*this);
@@ -197,21 +187,19 @@ llvm::Function *CompilationContext::GenerateTearDownFunction() {
 }
 
 // Get the registered translator for the given expression
-ExpressionTranslator *CompilationContext::GetTranslator(
-    const expression::AbstractExpression &exp) const {
+ExpressionTranslator *CompilationContext::GetTranslator(const expression::AbstractExpression &exp) const {
   auto iter = exp_translators_.find(&exp);
   return iter == exp_translators_.end() ? nullptr : iter->second.get();
 }
 
 // Get the registered translator for the given operator
-OperatorTranslator *CompilationContext::GetTranslator(
-    const planner::AbstractPlan &op) const {
+OperatorTranslator *CompilationContext::GetTranslator(const planner::AbstractPlan &op) const {
   auto iter = op_translators_.find(&op);
   return iter == op_translators_.end() ? nullptr : iter->second.get();
 }
 
-AuxiliaryProducerFunction CompilationContext::DeclareAuxiliaryProducer(
-    const planner::AbstractPlan &plan, const std::string &provided_name) {
+AuxiliaryProducerFunction CompilationContext::DeclareAuxiliaryProducer(const planner::AbstractPlan &plan,
+                                                                       const std::string &provided_name) {
   auto iter = auxiliary_producers_.find(&plan);
   if (iter != auxiliary_producers_.end()) {
     const auto &declaration = iter->second;
@@ -227,18 +215,15 @@ AuxiliaryProducerFunction CompilationContext::DeclareAuxiliaryProducer(
     fn_name = StringUtil::Format("_%lu_auxPlanFunction", code_context_.GetID());
   }
 
-  std::vector<FunctionDeclaration::ArgumentInfo> fn_args = {
-      {"queryState", query_state_.GetType()->getPointerTo()}};
+  std::vector<FunctionDeclaration::ArgumentInfo> fn_args = {{"queryState", query_state_.GetType()->getPointerTo()}};
 
   auto declaration = FunctionDeclaration::MakeDeclaration(
-      code_context_, fn_name, FunctionDeclaration::Visibility::Internal,
-      codegen_.VoidType(), fn_args);
+      code_context_, fn_name, FunctionDeclaration::Visibility::Internal, codegen_.VoidType(), fn_args);
 
   // Save the function declaration for later definition
   auxiliary_producers_.emplace(&plan, declaration);
 
   return AuxiliaryProducerFunction(declaration);
 }
-
 
 }  // namespace terrier::execution

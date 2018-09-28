@@ -14,8 +14,8 @@
 
 #include <cstdint>
 
-#include "type/type_id.h"
 #include "common/hash_util.h"
+#include "type/type_id.h"
 
 namespace terrier::execution {
 
@@ -37,7 +37,7 @@ class TypeSystem;
 class Type {
  public:
   // The actual SQL type
-  peloton::type::TypeId type_id;
+  type::TypeId type_id;
 
   // Can this type take on NULL?
   bool nullable;
@@ -59,7 +59,7 @@ class Type {
 
   // Simple constructors
   Type();
-  Type(peloton::type::TypeId type_id, bool nullable);
+  Type(type::TypeId type_id, bool nullable);
   Type(const SqlType &sql_type, bool nullable = false);
 
   // Equality check
@@ -89,9 +89,7 @@ struct TypeHasher {
 };
 
 struct TypeEquality {
-  bool operator()(const type::Type &l, const type::Type &r) const {
-    return l == r;
-  }
+  bool operator()(const type::Type &l, const type::Type &r) const { return l == r; }
 };
 
 }  // namespace type

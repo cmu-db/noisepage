@@ -12,9 +12,9 @@
 
 #pragma once
 
+#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
-#include "common/singleton.h"
 
 namespace terrier::execution {
 
@@ -30,14 +30,11 @@ class Date : public SqlType, public Singleton<Date> {
 
   Value GetNullValue(CodeGen &codegen) const override;
 
-  void GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type,
-                                 llvm::Type *&len_type) const override;
+  void GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type, llvm::Type *&len_type) const override;
 
-  llvm::Function *GetInputFunction(CodeGen &codegen,
-                                   const Type &type) const override;
+  llvm::Function *GetInputFunction(CodeGen &codegen, const Type &type) const override;
 
-  llvm::Function *GetOutputFunction(CodeGen &codegen,
-                                    const Type &type) const override;
+  llvm::Function *GetOutputFunction(CodeGen &codegen, const Type &type) const override;
 
   const TypeSystem &GetTypeSystem() const override { return type_system_; }
 

@@ -15,16 +15,14 @@
 #include <list>
 #include <queue>
 
-#include "execution/type/type_system.h"
 #include "execution/type/sql_type.h"
+#include "execution/type/type_system.h"
 
 namespace terrier::execution {
 
+Value::Value() : Value(type::Type{type::TypeId::INVALID, false}) {}
 
-Value::Value() : Value(type::Type{peloton::type::TypeId::INVALID, false}) {}
-
-Value::Value(const type::Type &type, llvm::Value *val, llvm::Value *length,
-             llvm::Value *null)
+Value::Value(const type::Type &type, llvm::Value *val, llvm::Value *length, llvm::Value *null)
     : type_(type), value_(val), length_(length), null_(null) {
   // If the value is NULL-able, it better have an accompanying NULL bit
   PELOTON_ASSERT(!type_.nullable || null_ != nullptr);
@@ -41,9 +39,7 @@ llvm::Value *Value::IsNull(CodeGen &codegen) const {
 }
 
 // Return a boolean (i1) value indicating whether this value is not NULL
-llvm::Value *Value::IsNotNull(CodeGen &codegen) const {
-  return codegen->CreateNot(IsNull(codegen));
-}
+llvm::Value *Value::IsNotNull(CodeGen &codegen) const { return codegen->CreateNot(IsNull(codegen)); }
 
 //===----------------------------------------------------------------------===//
 // COMPARISONS
@@ -61,52 +57,36 @@ Value Value::CastTo(CodeGen &codegen, const type::Type &to_type) const {
   return cast_op->Eval(codegen, *this, to_type);
 }
 
-#define GEN_COMPARE(OP)                                     \
-  type::Type left_cast = GetType();                         \
-  type::Type right_cast = other.GetType();                  \
-                                                            \
-  const auto *comparison = type::TypeSystem::GetComparison( \
-      GetType(), left_cast, other.GetType(), right_cast);   \
-                                                            \
-  PELOTON_ASSERT(comparison != nullptr);                         \
-  Value left = CastTo(codegen, left_cast);                  \
-  Value right = other.CastTo(codegen, right_cast);          \
-                                                            \
+#define GEN_COMPARE(OP)                                                                                        \
+  type::Type left_cast = GetType();                                                                            \
+  type::Type right_cast = other.GetType();                                                                     \
+                                                                                                               \
+  const auto *comparison = type::TypeSystem::GetComparison(GetType(), left_cast, other.GetType(), right_cast); \
+                                                                                                               \
+  PELOTON_ASSERT(comparison != nullptr);                                                                       \
+  Value left = CastTo(codegen, left_cast);                                                                     \
+  Value right = other.CastTo(codegen, right_cast);                                                             \
+                                                                                                               \
   return comparison->Eval##OP(codegen, left, right);
 
-Value Value::CompareEq(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareEq);
-}
+Value Value::CompareEq(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareEq); }
 
-Value Value::CompareNe(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareNe);
-}
+Value Value::CompareNe(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareNe); }
 
-Value Value::CompareLt(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareLt);
-}
+Value Value::CompareLt(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareLt); }
 
-Value Value::CompareLte(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareLte);
-}
+Value Value::CompareLte(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareLte); }
 
-Value Value::CompareGt(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareGt);
-}
+Value Value::CompareGt(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareGt); }
 
-Value Value::CompareGte(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareGte);
-}
+Value Value::CompareGte(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareGte); }
 
-Value Value::CompareForSort(CodeGen &codegen, const Value &other) const {
-  GEN_COMPARE(CompareForSort);
-}
+Value Value::CompareForSort(CodeGen &codegen, const Value &other) const { GEN_COMPARE(CompareForSort); }
 
 #undef GEN_COMPARE
 
 // Check that all the values from the left and equal to all the values in right
-Value Value::TestEquality(CodeGen &codegen, const std::vector<Value> &lhs,
-                          const std::vector<Value> &rhs) {
+Value Value::TestEquality(CodeGen &codegen, const std::vector<Value> &lhs, const std::vector<Value> &rhs) {
   std::queue<Value, std::list<Value>> results;
   // Perform the comparison of each element of lhs to rhs
   for (size_t i = 0; i < lhs.size(); i++) {
@@ -155,14 +135,12 @@ Value Value::Mod(CodeGen &codegen, const Value &other, OnError on_error) const {
 
 // Logical AND
 Value Value::LogicalAnd(CodeGen &codegen, const Value &other) const {
-  return CallBinaryOp(codegen, OperatorId::LogicalAnd, other,
-                      OnError::Exception);
+  return CallBinaryOp(codegen, OperatorId::LogicalAnd, other, OnError::Exception);
 }
 
 // Logical OR
 Value Value::LogicalOr(CodeGen &codegen, const Value &other) const {
-  return CallBinaryOp(codegen, OperatorId::LogicalOr, other,
-                      OnError::Exception);
+  return CallBinaryOp(codegen, OperatorId::LogicalOr, other, OnError::Exception);
 }
 
 // TODO: Min/Max need to handle NULL
@@ -173,12 +151,10 @@ Value Value::Min(CodeGen &codegen, const Value &other) const {
   auto is_lt = CompareLt(codegen, other);
 
   // Choose either this or o depending on result of comparison
-  llvm::Value *val =
-      codegen->CreateSelect(is_lt.GetValue(), GetValue(), other.GetValue());
+  llvm::Value *val = codegen->CreateSelect(is_lt.GetValue(), GetValue(), other.GetValue());
   llvm::Value *len = nullptr;
   if (GetType().GetSqlType().IsVariableLength()) {
-    len =
-        codegen->CreateSelect(is_lt.GetValue(), GetLength(), other.GetLength());
+    len = codegen->CreateSelect(is_lt.GetValue(), GetLength(), other.GetLength());
   }
   return Value{GetType(), val, len};
 }
@@ -189,12 +165,10 @@ Value Value::Max(CodeGen &codegen, const Value &other) const {
   auto is_gt = CompareGt(codegen, other);
 
   // Choose either this or other depending on result of comparison
-  llvm::Value *val =
-      codegen->CreateSelect(is_gt.GetValue(), GetValue(), other.GetValue());
+  llvm::Value *val = codegen->CreateSelect(is_gt.GetValue(), GetValue(), other.GetValue());
   llvm::Value *len = nullptr;
   if (GetType().GetSqlType().IsVariableLength()) {
-    len =
-        codegen->CreateSelect(is_gt.GetValue(), GetLength(), other.GetLength());
+    len = codegen->CreateSelect(is_gt.GetValue(), GetLength(), other.GetLength());
   }
   return Value{GetType(), val, len};
 }
@@ -203,7 +177,7 @@ Value Value::Max(CodeGen &codegen, const Value &other) const {
 // Generate a hash for the given value
 //===----------------------------------------------------------------------===//
 void Value::ValuesForHash(llvm::Value *&val, llvm::Value *&len) const {
-  PELOTON_ASSERT(GetType().type_id != peloton::type::TypeId::INVALID);
+  PELOTON_ASSERT(GetType().type_id != type::TypeId::INVALID);
   val = GetValue();
   len = GetType().GetSqlType().IsVariableLength() ? GetLength() : nullptr;
 }
@@ -211,29 +185,22 @@ void Value::ValuesForHash(llvm::Value *&val, llvm::Value *&len) const {
 //===----------------------------------------------------------------------===//
 // Generate a hash for the given value
 //===----------------------------------------------------------------------===//
-void Value::ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val,
-                                     llvm::Value *&len,
-                                     llvm::Value *&null) const {
-  PELOTON_ASSERT(GetType().type_id != peloton::type::TypeId::INVALID);
+void Value::ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val, llvm::Value *&len, llvm::Value *&null) const {
+  PELOTON_ASSERT(GetType().type_id != type::TypeId::INVALID);
   val = GetValue();
   len = GetType().GetSqlType().IsVariableLength() ? GetLength() : nullptr;
   null = IsNull(codegen);
 }
 
 // Return the value that can be
-Value Value::ValueFromMaterialization(const type::Type &type, llvm::Value *val,
-                                      llvm::Value *len, llvm::Value *null) {
-  PELOTON_ASSERT(type.type_id != peloton::type::TypeId::INVALID);
-  return Value{type, val,
-               (type.GetSqlType().IsVariableLength() ? len : nullptr),
-               (type.nullable ? null : nullptr)};
+Value Value::ValueFromMaterialization(const type::Type &type, llvm::Value *val, llvm::Value *len, llvm::Value *null) {
+  PELOTON_ASSERT(type.type_id != type::TypeId::INVALID);
+  return Value{type, val, (type.GetSqlType().IsVariableLength() ? len : nullptr), (type.nullable ? null : nullptr)};
 }
 
 // Build a new value that combines values arriving from different BB's into a
 // single value.
-Value Value::BuildPHI(
-    CodeGen &codegen,
-    const std::vector<std::pair<Value, llvm::BasicBlock *>> &vals) {
+Value Value::BuildPHI(CodeGen &codegen, const std::vector<std::pair<Value, llvm::BasicBlock *>> &vals) {
   const auto num_entries = static_cast<uint32_t>(vals.size());
 
   // The SQL type of the values that we merge here
@@ -277,21 +244,19 @@ Value Value::CallUnaryOp(CodeGen &codegen, OperatorId op_id) const {
   PELOTON_ASSERT(unary_op != nullptr);
 
   // Setup the invocation context
-  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception,
-                                          .executor_context = nullptr};
+  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception, .executor_context = nullptr};
 
   // Invoke
   return unary_op->Eval(codegen, *this, ctx);
 }
 
-Value Value::CallBinaryOp(CodeGen &codegen, OperatorId op_id,
-                          const Value &other, OnError on_error) const {
+Value Value::CallBinaryOp(CodeGen &codegen, OperatorId op_id, const Value &other, OnError on_error) const {
   type::Type left_target_type = GetType();
   type::Type right_target_type = other.GetType();
 
   // Lookup the operation in the type system
-  auto *binary_op = type::TypeSystem::GetBinaryOperator(
-      op_id, GetType(), left_target_type, other.GetType(), right_target_type);
+  auto *binary_op =
+      type::TypeSystem::GetBinaryOperator(op_id, GetType(), left_target_type, other.GetType(), right_target_type);
   PELOTON_ASSERT(binary_op != nullptr);
 
   // Cast input types as need be
@@ -299,12 +264,10 @@ Value Value::CallBinaryOp(CodeGen &codegen, OperatorId op_id,
   Value casted_right = other.CastTo(codegen, right_target_type);
 
   // Setup the invocation context
-  type::TypeSystem::InvocationContext ctx{.on_error = on_error,
-                                          .executor_context = nullptr};
+  type::TypeSystem::InvocationContext ctx{.on_error = on_error, .executor_context = nullptr};
 
   // Invoke
   return binary_op->Eval(codegen, casted_left, casted_right, ctx);
 }
-
 
 }  // namespace terrier::execution

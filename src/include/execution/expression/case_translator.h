@@ -20,17 +20,12 @@ namespace expression {
 class CaseExpression;
 }  // namespace expression
 
-
-
 /// A translator for CASE expressions.
 class CaseTranslator : public ExpressionTranslator {
  public:
-  CaseTranslator(const expression::CaseExpression &expression,
-                 CompilationContext &context);
+  CaseTranslator(const expression::CaseExpression &expression, CompilationContext &context);
 
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

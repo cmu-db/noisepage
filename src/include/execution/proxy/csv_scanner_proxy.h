@@ -13,12 +13,11 @@
 #pragma once
 
 #include "execution/proxy/proxy.h"
+#include "execution/proxy/runtime_functions_proxy.h"
 #include "execution/proxy/type_builder.h"
 #include "execution/runtime/csv_scanner.h"
-#include "execution/proxy/runtime_functions_proxy.h"
 
 namespace terrier::execution {
-
 
 PROXY(CSVScannerColumn) {
   DECLARE_MEMBER(0, type::Type, type);
@@ -29,13 +28,12 @@ PROXY(CSVScannerColumn) {
 };
 
 PROXY(CSVScanner) {
-  DECLARE_MEMBER(0, char[sizeof(codegen::util::CSVScanner) -
-                         sizeof(util::CSVScanner::Column *) -
-                         sizeof(util::CSVScanner::Stats) - sizeof(uint32_t)],
+  DECLARE_MEMBER(0,
+                 char[sizeof(util::CSVScanner) - sizeof(util::CSVScanner::Column *) -
+                      sizeof(util::CSVScanner::Stats) - sizeof(uint32_t)],
                  opaque1);
   DECLARE_MEMBER(1, util::CSVScanner::Column *, cols);
-  DECLARE_MEMBER(2, char[sizeof(util::CSVScanner::Stats) + sizeof(uint32_t)],
-                 opaque2);
+  DECLARE_MEMBER(2, char[sizeof(util::CSVScanner::Stats) + sizeof(uint32_t)], opaque2);
   DECLARE_TYPE;
 
   DECLARE_METHOD(Init);
@@ -43,8 +41,7 @@ PROXY(CSVScanner) {
   DECLARE_METHOD(Produce);
 };
 
-TYPE_BUILDER(CSVScanner, codegen::util::CSVScanner);
-TYPE_BUILDER(CSVScannerColumn, codegen::util::CSVScanner::Column);
-
+TYPE_BUILDER(CSVScanner, util::CSVScanner);
+TYPE_BUILDER(CSVScannerColumn, util::CSVScanner::Column);
 
 }  // namespace terrier::execution

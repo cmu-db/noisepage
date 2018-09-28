@@ -21,21 +21,16 @@ namespace expression {
 class ComparisonExpression;
 }  // namespace expression
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator of comparison expressions.
 //===----------------------------------------------------------------------===//
 class ComparisonTranslator : public ExpressionTranslator {
  public:
   // Constructor
-  ComparisonTranslator(const expression::ComparisonExpression &comparison,
-                       CompilationContext &context);
+  ComparisonTranslator(const expression::ComparisonExpression &comparison, CompilationContext &context);
 
   // Produce the result of performing the comparison of left and right values
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

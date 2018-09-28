@@ -18,9 +18,7 @@ namespace terrier::execution {
 
 namespace expression {
 class ConstantValueExpression;
-}  // namespace planner
-
-
+}  // namespace expression
 
 //===----------------------------------------------------------------------===//
 // A const expression translator just produces the LLVM value version of the
@@ -28,13 +26,10 @@ class ConstantValueExpression;
 //===----------------------------------------------------------------------===//
 class ConstantTranslator : public ExpressionTranslator {
  public:
-  ConstantTranslator(const expression::ConstantValueExpression &exp,
-                     CompilationContext &ctx);
+  ConstantTranslator(const expression::ConstantValueExpression &exp, CompilationContext &ctx);
 
   // Produce the value that is the result of codegen-ing the expression
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

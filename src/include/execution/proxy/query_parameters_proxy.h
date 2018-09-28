@@ -17,13 +17,12 @@
 
 namespace terrier::execution {
 
-
 PROXY(QueryParameters) {
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, char[sizeof(QueryParameters)], opaque);
   DECLARE_TYPE;
 
-  /// Proxy Init() and Delete() in codegen::Deleter
+  /// Proxy Init() and Delete() in Deleter
   DECLARE_METHOD(GetBoolean);
   DECLARE_METHOD(GetTinyInt);
   DECLARE_METHOD(GetSmallInt);
@@ -39,7 +38,6 @@ PROXY(QueryParameters) {
   DECLARE_METHOD(IsNull);
 };
 
-TYPE_BUILDER(QueryParameters, codegen::QueryParameters);
-
+TYPE_BUILDER(QueryParameters, QueryParameters);
 
 }  // namespace terrier::execution

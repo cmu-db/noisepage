@@ -13,10 +13,10 @@
 #include "execution/testing_codegen_util.h"
 
 #include "catalog/catalog.h"
+#include "common/timer.h"
 #include "execution/query_cache.h"
 #include "execution/testing_codegen_util.h"
 #include "execution/type/decimal_type.h"
-#include "common/timer.h"
 #include "expression/conjunction_expression.h"
 #include "expression/operator_expression.h"
 #include "planner/aggregate_plan.h"
@@ -42,66 +42,57 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
   // SELECT a FROM table where a >= 40;
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlan() {
-    auto *a_col_exp =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
     auto *const_40_exp = PelotonCodeGenTest::ConstIntExpr(40).release();
-    auto *a_gt_40 = new expression::ComparisonExpression(
-        ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_40_exp);
-    return std::shared_ptr<planner::SeqScanPlan>(new planner::SeqScanPlan(
-        &GetTestTable(TestTableId()), a_gt_40, {0, 1}));
+    auto *a_gt_40 =
+        new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_40_exp);
+    return std::shared_ptr<planner::SeqScanPlan>(
+        new planner::SeqScanPlan(&GetTestTable(TestTableId()), a_gt_40, {0, 1}));
   }
 
   /* SELECT a FROM table where a >= 40;
      bind_tve: flag for binding the tuple value expression
   */
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanA(bool bind_tve) {
-    auto *a_col_exp =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
     if (bind_tve) {
       a_col_exp->SetBoundOid(GetDatabase().GetOid(), TestTableId(), 0);
     }
     auto *const_40_exp = PelotonCodeGenTest::ConstIntExpr(40).release();
-    auto *a_eq_40 = new expression::ComparisonExpression(
-        ExpressionType::COMPARE_EQUAL, a_col_exp, const_40_exp);
-    return std::shared_ptr<planner::SeqScanPlan>(new planner::SeqScanPlan(
-        &GetTestTable(TestTableId()), a_eq_40, {0, 1}));
+    auto *a_eq_40 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp, const_40_exp);
+    return std::shared_ptr<planner::SeqScanPlan>(
+        new planner::SeqScanPlan(&GetTestTable(TestTableId()), a_eq_40, {0, 1}));
   }
 
   /* SELECT b FROM table where b >= 41;
      bind_tve: flag for binding the tuple value expression
   */
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanB(bool bind_tve) {
-    auto *b_col_exp =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
     if (bind_tve) {
       b_col_exp->SetBoundOid(GetDatabase().GetOid(), TestTableId(), 1);
     }
     auto *const_41_exp = PelotonCodeGenTest::ConstIntExpr(41).release();
-    auto *b_eq_41 = new expression::ComparisonExpression(
-        ExpressionType::COMPARE_EQUAL, b_col_exp, const_41_exp);
-    return std::shared_ptr<planner::SeqScanPlan>(new planner::SeqScanPlan(
-        &GetTestTable(TestTableId()), b_eq_41, {0, 1}));
+    auto *b_eq_41 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, const_41_exp);
+    return std::shared_ptr<planner::SeqScanPlan>(
+        new planner::SeqScanPlan(&GetTestTable(TestTableId()), b_eq_41, {0, 1}));
   }
 
   // SELECT a, b, c FROM table where a >= 20 and b = 21;
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanWithPredicate() {
-    auto *a_col_exp =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
     auto *const_20_exp = PelotonCodeGenTest::ConstIntExpr(20).release();
-    auto *a_gt_20 = new expression::ComparisonExpression(
-        ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_20_exp);
+    auto *a_gt_20 =
+        new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_20_exp);
 
-    auto *b_col_exp =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
     auto *const_21_exp = PelotonCodeGenTest::ConstIntExpr(21).release();
-    auto *b_eq_21 = new expression::ComparisonExpression(
-        ExpressionType::COMPARE_EQUAL, b_col_exp, const_21_exp);
+    auto *b_eq_21 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, const_21_exp);
 
-    auto *conj_eq = new expression::ConjunctionExpression(
-        ExpressionType::CONJUNCTION_AND, b_eq_21, a_gt_20);
+    auto *conj_eq = new expression::ConjunctionExpression(ExpressionType::CONJUNCTION_AND, b_eq_21, a_gt_20);
 
-    return std::shared_ptr<planner::SeqScanPlan>(new planner::SeqScanPlan(
-        &GetTestTable(TestTableId()), conj_eq, {0, 1, 2}));
+    return std::shared_ptr<planner::SeqScanPlan>(
+        new planner::SeqScanPlan(&GetTestTable(TestTableId()), conj_eq, {0, 1, 2}));
   }
 
   // SELECT left_table.a, right_table.a, left_table.b, right_table.c,
@@ -118,34 +109,25 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
     // Output schema
     auto schema = std::shared_ptr<const catalog::Schema>(
-        new catalog::Schema({TestingExecutorUtil::GetColumnInfo(0),
-                             TestingExecutorUtil::GetColumnInfo(0),
-                             TestingExecutorUtil::GetColumnInfo(1),
-                             TestingExecutorUtil::GetColumnInfo(2)}));
+        new catalog::Schema({TestingExecutorUtil::GetColumnInfo(0), TestingExecutorUtil::GetColumnInfo(0),
+                             TestingExecutorUtil::GetColumnInfo(1), TestingExecutorUtil::GetColumnInfo(2)}));
     // Left and right hash keys
     std::vector<ConstExpressionPtr> left_hash_keys;
-    left_hash_keys.emplace_back(
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    left_hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
 
     std::vector<ConstExpressionPtr> right_hash_keys;
-    right_hash_keys.emplace_back(
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    right_hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
 
     std::vector<ConstExpressionPtr> hash_keys;
-    hash_keys.emplace_back(
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
 
     // Finally, the fucking join node
     std::shared_ptr<planner::HashJoinPlan> hj_plan{new planner::HashJoinPlan(
-        JoinType::INNER, nullptr, std::move(projection), schema, left_hash_keys,
-        right_hash_keys)};
-    std::unique_ptr<planner::HashPlan> hash_plan{
-        new planner::HashPlan(hash_keys)};
+        JoinType::INNER, nullptr, std::move(projection), schema, left_hash_keys, right_hash_keys)};
+    std::unique_ptr<planner::HashPlan> hash_plan{new planner::HashPlan(hash_keys)};
 
-    PlanPtr left_scan{new planner::SeqScanPlan(&GetTestTable(TestTableId()),
-                                               nullptr, {0, 1, 2})};
-    PlanPtr right_scan{new planner::SeqScanPlan(&GetTestTable(RightTableId()),
-                                                nullptr, {0, 1, 2})};
+    PlanPtr left_scan{new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2})};
+    PlanPtr right_scan{new planner::SeqScanPlan(&GetTestTable(RightTableId()), nullptr, {0, 1, 2})};
 
     hash_plan->AddChild(std::move(right_scan));
     hj_plan->AddChild(std::move(left_scan));
@@ -157,14 +139,11 @@ class QueryCacheTest : public PelotonCodeGenTest {
   // SELECT a, avg(b) as x FROM table GROUP BY a WHERE x > 50;
   std::shared_ptr<planner::AggregatePlan> GetAggregatePlan() {
     DirectMapList direct_map_list = {{0, {0, 0}}, {1, {1, 0}}};
-    std::unique_ptr<planner::ProjectInfo> proj_info{
-        new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
+    std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
     // 2) Setup the average over 'b'
-    auto *tve_expr =
-        new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-    std::vector<planner::AggregatePlan::AggTerm> agg_terms = {
-        {ExpressionType::AGGREGATE_AVG, tve_expr}};
+    auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_AVG, tve_expr}};
     agg_terms[0].agg_ai.type = codegen::type::Decimal::Instance();
 
     // 3) The grouping column
@@ -172,26 +151,21 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
     // 4) The output schema
     std::shared_ptr<const catalog::Schema> output_schema{
-        new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"},
-                             {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+        new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
     // 5) The predicate on the average aggregate
-    auto *x_exp =
-        new expression::TupleValueExpression(type::TypeId::DECIMAL, 0, 1);
-    auto *const_50 = new expression::ConstantValueExpression(
-        type::ValueFactory::GetDecimalValue(50.0));
+    auto *x_exp = new expression::TupleValueExpression(type::TypeId::DECIMAL, 0, 1);
+    auto *const_50 = new expression::ConstantValueExpression(type::ValueFactory::GetDecimalValue(50.0));
     std::unique_ptr<expression::AbstractExpression> x_gt_50{
-        new expression::ComparisonExpression(
-            ExpressionType::COMPARE_GREATERTHAN, x_exp, const_50)};
+        new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHAN, x_exp, const_50)};
 
     // 6) Finally, the aggregation node
-    std::shared_ptr<planner::AggregatePlan> agg_plan{new planner::AggregatePlan(
-        std::move(proj_info), std::move(x_gt_50), std::move(agg_terms),
-        std::move(gb_cols), output_schema, AggregateType::HASH)};
+    std::shared_ptr<planner::AggregatePlan> agg_plan{
+        new planner::AggregatePlan(std::move(proj_info), std::move(x_gt_50), std::move(agg_terms), std::move(gb_cols),
+                                   output_schema, AggregateType::HASH)};
 
     // 7) The scan that feeds the aggregation
-    PlanPtr scan_plan{new planner::SeqScanPlan(&GetTestTable(TestTableId()),
-                                               nullptr, {0, 1})};
+    PlanPtr scan_plan{new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1})};
 
     agg_plan->AddChild(std::move(scan_plan));
     return agg_plan;
@@ -199,35 +173,27 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
   std::shared_ptr<planner::NestedLoopJoinPlan> GetBlockNestedLoopJoinPlan() {
     // Output all columns
-    DirectMapList direct_map_list = {
-        {0, std::make_pair(0, 0)}, {1, std::make_pair(0, 1)},
-        {2, std::make_pair(0, 2)}, {3, std::make_pair(1, 0)},
-        {4, std::make_pair(1, 1)}, {5, std::make_pair(1, 2)}};
+    DirectMapList direct_map_list = {{0, std::make_pair(0, 0)}, {1, std::make_pair(0, 1)}, {2, std::make_pair(0, 2)},
+                                     {3, std::make_pair(1, 0)}, {4, std::make_pair(1, 1)}, {5, std::make_pair(1, 2)}};
     std::unique_ptr<planner::ProjectInfo> projection{
         new planner::ProjectInfo(TargetList{}, std::move(direct_map_list))};
 
     // Output schema
     auto schema = std::shared_ptr<const catalog::Schema>(new catalog::Schema(
-        {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(0),
-         GetTestColumn(1), GetTestColumn(2)}));
+        {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(0), GetTestColumn(1), GetTestColumn(2)}));
 
     bool left_side = true;
     auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
     auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
-    auto left_a_eq_right_a =
-        CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
+    auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<oid_t> left_join_cols = {0};
     std::vector<oid_t> right_join_cols = {0};
-    std::shared_ptr<planner::NestedLoopJoinPlan> nlj_plan{
-        new planner::NestedLoopJoinPlan(
-            JoinType::INNER, std::move(left_a_eq_right_a),
-            std::move(projection), schema, left_join_cols, right_join_cols)};
+    std::shared_ptr<planner::NestedLoopJoinPlan> nlj_plan{new planner::NestedLoopJoinPlan(
+        JoinType::INNER, std::move(left_a_eq_right_a), std::move(projection), schema, left_join_cols, right_join_cols)};
 
-    PlanPtr left_scan{new planner::SeqScanPlan(&GetTestTable(TestTableId()),
-                                               nullptr, {0, 1, 2})};
-    PlanPtr right_scan{new planner::SeqScanPlan(&GetTestTable(RightTableId()),
-                                                nullptr, {0, 1, 2})};
+    PlanPtr left_scan{new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2})};
+    PlanPtr right_scan{new planner::SeqScanPlan(&GetTestTable(RightTableId()), nullptr, {0, 1, 2})};
 
     nlj_plan->AddChild(std::move(left_scan));
     nlj_plan->AddChild(std::move(right_scan));
@@ -238,7 +204,6 @@ class QueryCacheTest : public PelotonCodeGenTest {
  private:
   uint32_t num_rows_to_insert = 64;
 };
-
 
 TEST_F(QueryCacheTest, SimpleCache) {
   int CACHE_USED_BY_CATALOG = codegen::QueryCache::Instance().GetCount();
@@ -267,8 +232,7 @@ TEST_F(QueryCacheTest, SimpleCache) {
   const auto &results_1 = buffer_1.GetOutputTuples();
   EXPECT_EQ(NumRowsInTestTable() - 4, results_1.size());
   EXPECT_FALSE(cached);
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // Execute a query cached
   codegen::BufferingConsumer buffer_2{{0}, context_2};
@@ -277,8 +241,7 @@ TEST_F(QueryCacheTest, SimpleCache) {
   EXPECT_TRUE(cached);
   EXPECT_EQ(NumRowsInTestTable() - 4, results_2.size());
 
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // PelotonCodeTest dies after each TEST_F()
   // So, we delete the cache
@@ -387,10 +350,8 @@ TEST_F(QueryCacheTest, CacheSeqScanPlan) {
   // Check that we got all the results
   const auto &results_1 = buffer_1.GetOutputTuples();
   EXPECT_EQ(1, results_1.size());
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(20)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(21)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(20)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_1[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(21)));
   EXPECT_FALSE(cached);
 
   codegen::BufferingConsumer buffer_2{{0, 1, 2}, context_2};
@@ -398,13 +359,10 @@ TEST_F(QueryCacheTest, CacheSeqScanPlan) {
 
   const auto &results_2 = buffer_2.GetOutputTuples();
   EXPECT_EQ(1, results_2.size());
-  EXPECT_EQ(CmpBool::CmpTrue, results_2[0].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(20)));
-  EXPECT_EQ(CmpBool::CmpTrue, results_2[0].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(21)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_2[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(20)));
+  EXPECT_EQ(CmpBool::CmpTrue, results_2[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(21)));
   EXPECT_TRUE(cached);
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // PelotonCodeTest dies after each TEST_F()
   // So, we delete the cache
@@ -445,8 +403,7 @@ TEST_F(QueryCacheTest, CacheHashJoinPlan) {
     EXPECT_EQ(v0.GetTypeId(), type::TypeId::INTEGER);
 
     // Check that the joins keys are actually equal
-    EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)),
-              CmpBool::CmpTrue);
+    EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)), CmpBool::CmpTrue);
   }
 
   // We collect the results of the query into an in-memory buffer
@@ -461,11 +418,9 @@ TEST_F(QueryCacheTest, CacheHashJoinPlan) {
     EXPECT_EQ(v0.GetTypeId(), type::TypeId::INTEGER);
 
     // Check that the joins keys are actually equal
-    EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)),
-              CmpBool::CmpTrue);
+    EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)), CmpBool::CmpTrue);
   }
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // PelotonCodeTest dies after each TEST_F()
   // So, we delete the cache
@@ -478,22 +433,16 @@ TEST_F(QueryCacheTest, CacheOrderByPlan) {
 
   // plan 1, 2: SELECT * FROM test_table ORDER BY b DESC a ASC;
   // plan 3: SELECT * FROM test_table ORDER BY b ASC a DESC;
-  std::shared_ptr<planner::OrderByPlan> order_by_plan_1{
-      new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
-  std::shared_ptr<planner::OrderByPlan> order_by_plan_2{
-      new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
-  std::shared_ptr<planner::OrderByPlan> order_by_plan_3{
-      new planner::OrderByPlan({1, 0}, {false, true}, {0, 1, 2, 3})};
+  std::shared_ptr<planner::OrderByPlan> order_by_plan_1{new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
+  std::shared_ptr<planner::OrderByPlan> order_by_plan_2{new planner::OrderByPlan({1, 0}, {true, false}, {0, 1, 2, 3})};
+  std::shared_ptr<planner::OrderByPlan> order_by_plan_3{new planner::OrderByPlan({1, 0}, {false, true}, {0, 1, 2, 3})};
 
   std::unique_ptr<planner::SeqScanPlan> seq_scan_plan_1{
-      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr,
-                               {0, 1, 2, 3})};
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
   std::unique_ptr<planner::SeqScanPlan> seq_scan_plan_2{
-      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr,
-                               {0, 1, 2, 3})};
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
   std::unique_ptr<planner::SeqScanPlan> seq_scan_plan_3{
-      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr,
-                               {0, 1, 2, 3})};
+      new planner::SeqScanPlan(&GetTestTable(TestTableId()), nullptr, {0, 1, 2, 3})};
   order_by_plan_1->AddChild(std::move(seq_scan_plan_1));
   order_by_plan_2->AddChild(std::move(seq_scan_plan_2));
   order_by_plan_3->AddChild(std::move(seq_scan_plan_3));
@@ -523,30 +472,26 @@ TEST_F(QueryCacheTest, CacheOrderByPlan) {
   EXPECT_FALSE(cached);
   auto &results_1 = buffer_1.GetOutputTuples();
   EXPECT_EQ(results_1.size(), NumRowsInTestTable());
-  EXPECT_TRUE(std::is_sorted(
-      results_1.begin(), results_1.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
-        return is_gte == CmpBool::CmpTrue;
-      }));
+  EXPECT_TRUE(std::is_sorted(results_1.begin(), results_1.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
+                               return is_gte == CmpBool::CmpTrue;
+                             }));
 
   CompileAndExecuteCache(order_by_plan_2, buffer_2, cached);
   EXPECT_TRUE(cached);
   auto &results_2 = buffer_2.GetOutputTuples();
   EXPECT_EQ(results_2.size(), NumRowsInTestTable());
-  EXPECT_TRUE(std::is_sorted(
-      results_2.begin(), results_2.end(),
-      [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
-        auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
-        return is_gte == CmpBool::CmpTrue;
-      }));
+  EXPECT_TRUE(std::is_sorted(results_2.begin(), results_2.end(),
+                             [](const codegen::WrappedTuple &t1, const codegen::WrappedTuple &t2) {
+                               auto is_gte = t1.GetValue(0).CompareGreaterThanEquals(t2.GetValue(0));
+                               return is_gte == CmpBool::CmpTrue;
+                             }));
 
-  auto found = (codegen::QueryCache::Instance().Find(
-                    std::move(order_by_plan_3)) == nullptr);
+  auto found = (codegen::QueryCache::Instance().Find(std::move(order_by_plan_3)) == nullptr);
   EXPECT_EQ(found, 1);
 
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // PelotonCodeTest dies after each TEST_F()
   // So, we delete the cache
@@ -569,8 +514,7 @@ TEST_F(QueryCacheTest, CacheAggregatePlan) {
 
   auto is_equal = (*agg_plan1.get() == *agg_plan_2.get());
   EXPECT_TRUE(is_equal);
-  EXPECT_EQ(0 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(0 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   codegen::BufferingConsumer buffer_1{{0, 1}, context_1};
   codegen::BufferingConsumer buffer_2{{0, 1}, context_2};
@@ -582,8 +526,7 @@ TEST_F(QueryCacheTest, CacheAggregatePlan) {
   const auto &results_1 = buffer_1.GetOutputTuples();
   EXPECT_EQ(results_1.size(), 59);
   EXPECT_FALSE(cached);
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // Compile and execute with the cached query
   CompileAndExecuteCache(agg_plan_2, buffer_2, cached);
@@ -593,8 +536,7 @@ TEST_F(QueryCacheTest, CacheAggregatePlan) {
   EXPECT_TRUE(cached);
 
   // Clean the query cache and leaves only one query
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
   codegen::QueryCache::Instance().Clear();
   EXPECT_EQ(0, codegen::QueryCache::Instance().GetCount());
 
@@ -621,8 +563,7 @@ TEST_F(QueryCacheTest, CacheNestedLoopJoinPlan) {
 
   auto is_equal = (*nlj_plan_1.get() == *nlj_plan_2.get());
   EXPECT_TRUE(is_equal);
-  EXPECT_EQ(0 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(0 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   codegen::BufferingConsumer buffer_1{{0, 1}, context_1};
   codegen::BufferingConsumer buffer_2{{0, 1}, context_2};
@@ -631,16 +572,14 @@ TEST_F(QueryCacheTest, CacheNestedLoopJoinPlan) {
   bool cached;
   CompileAndExecuteCache(nlj_plan_1, buffer_1, cached);
   EXPECT_FALSE(cached);
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
 
   // Compile and execute with the cached query
   CompileAndExecuteCache(nlj_plan_2, buffer_2, cached);
   EXPECT_TRUE(cached);
 
   // Clean the query cache and leaves only one query
-  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG,
-            codegen::QueryCache::Instance().GetCount());
+  EXPECT_EQ(1 + CACHE_USED_BY_CATALOG, codegen::QueryCache::Instance().GetCount());
   codegen::QueryCache::Instance().Clear();
   EXPECT_EQ(0, codegen::QueryCache::Instance().GetCount());
 

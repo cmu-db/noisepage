@@ -17,11 +17,9 @@
 
 namespace terrier::execution {
 
-
 BufferAccessor::BufferAccessor() = default;
 
-BufferAccessor::BufferAccessor(CodeGen &codegen,
-                               const std::vector<type::Type> &tuple_desc) {
+BufferAccessor::BufferAccessor(CodeGen &codegen, const std::vector<type::Type> &tuple_desc) {
   for (const auto &value_type : tuple_desc) {
     storage_format_.AddType(value_type);
   }
@@ -32,16 +30,14 @@ void BufferAccessor::Init(CodeGen &codegen, llvm::Value *buffer_ptr) const {
   codegen.Call(BufferProxy::Init, {buffer_ptr});
 }
 
-void BufferAccessor::Append(CodeGen &codegen, llvm::Value *buffer_ptr,
-                            const std::vector<codegen::Value> &tuple) const {
+void BufferAccessor::Append(CodeGen &codegen, llvm::Value *buffer_ptr, const std::vector<Value> &tuple) const {
   auto *size = codegen.Const32(storage_format_.GetStorageSize());
   auto *space = codegen.Call(BufferProxy::Append, {buffer_ptr, size});
 
   // Now, individually store the attributes of the tuple into the free space
   UpdateableStorage::NullBitmap null_bitmap(codegen, storage_format_, space);
   for (uint32_t col_id = 0; col_id < tuple.size(); col_id++) {
-    storage_format_.SetValue(codegen, space, col_id, tuple[col_id],
-                             null_bitmap);
+    storage_format_.SetValue(codegen, space, col_id, tuple[col_id], null_bitmap);
   }
   null_bitmap.WriteBack(codegen);
 }
@@ -55,10 +51,9 @@ void BufferAccessor::Iterate(CodeGen &codegen, llvm::Value *buffer_ptr,
     auto *pos = loop.GetLoopVar(0);
 
     // Read
-    std::vector<codegen::Value> vals;
+    std::vector<Value> vals;
     UpdateableStorage::NullBitmap null_bitmap(codegen, storage_format_, pos);
-    for (uint32_t col_id = 0; col_id < storage_format_.GetNumElements();
-         col_id++) {
+    for (uint32_t col_id = 0; col_id < storage_format_.GetNumElements(); col_id++) {
       auto val = storage_format_.GetValue(codegen, pos, col_id, null_bitmap);
       vals.emplace_back(val);
     }
@@ -67,8 +62,7 @@ void BufferAccessor::Iterate(CodeGen &codegen, llvm::Value *buffer_ptr,
     callback.ProcessEntry(codegen, vals);
 
     // Move along
-    auto *next = codegen->CreateConstInBoundsGEP1_64(
-        pos, storage_format_.GetStorageSize());
+    auto *next = codegen->CreateConstInBoundsGEP1_64(pos, storage_format_.GetStorageSize());
     loop.LoopEnd(codegen->CreateICmpNE(next, end), {next});
   }
 }
@@ -81,8 +75,7 @@ void BufferAccessor::Destroy(CodeGen &codegen, llvm::Value *buffer_ptr) const {
   codegen.Call(BufferProxy::Destroy, {buffer_ptr});
 }
 
-llvm::Value *BufferAccessor::NumTuples(CodeGen &codegen,
-                                       llvm::Value *buffer_ptr) const {
+llvm::Value *BufferAccessor::NumTuples(CodeGen &codegen, llvm::Value *buffer_ptr) const {
   auto *start = codegen.Load(BufferProxy::buffer_start, buffer_ptr);
   auto *end = codegen.Load(BufferProxy::buffer_pos, buffer_ptr);
   start = codegen->CreatePtrToInt(start, codegen.Int64Type());
@@ -91,6 +84,5 @@ llvm::Value *BufferAccessor::NumTuples(CodeGen &codegen,
   diff = codegen->CreateAShr(diff, 3, "numTuples", true);
   return codegen->CreateTrunc(diff, codegen.Int32Type());
 }
-
 
 }  // namespace terrier::execution

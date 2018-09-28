@@ -16,18 +16,13 @@
 
 namespace terrier::execution {
 
-
 // Constructor
-ConsumerContext::ConsumerContext(CompilationContext &compilation_context,
-                                 Pipeline &pipeline)
+ConsumerContext::ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline)
     : ConsumerContext(compilation_context, pipeline, nullptr) {}
 
-ConsumerContext::ConsumerContext(CompilationContext &compilation_context,
-                                 Pipeline &pipeline,
+ConsumerContext::ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline,
                                  PipelineContext *pipeline_context)
-    : compilation_context_(compilation_context),
-      pipeline_(pipeline),
-      pipeline_context_(pipeline_context) {}
+    : compilation_context_(compilation_context), pipeline_(pipeline), pipeline_context_(pipeline_context) {}
 
 // Pass the row batch to the next operator in the pipeline
 void ConsumerContext::Consume(RowBatch &batch) {
@@ -72,13 +67,8 @@ void ConsumerContext::Consume(RowBatch::Row &row) {
   consumer.ConsumeResult(*this, row);
 }
 
-CodeGen &ConsumerContext::GetCodeGen() const {
-  return compilation_context_.GetCodeGen();
-}
+CodeGen &ConsumerContext::GetCodeGen() const { return compilation_context_.GetCodeGen(); }
 
-QueryState &ConsumerContext::GetQueryState() const {
-  return compilation_context_.GetQueryState();
-}
-
+QueryState &ConsumerContext::GetQueryState() const { return compilation_context_.GetQueryState(); }
 
 }  // namespace terrier::execution

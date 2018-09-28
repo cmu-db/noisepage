@@ -10,26 +10,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/compilation_context.h"
 #include "execution/expression/parameter_translator.h"
+#include "execution/compilation_context.h"
 #include "expression/parameter_value_expression.h"
 
 namespace terrier::execution {
 
-
 // Constructor
-ParameterTranslator::ParameterTranslator(
-    const expression::ParameterValueExpression &exp, CompilationContext &ctx)
+ParameterTranslator::ParameterTranslator(const expression::ParameterValueExpression &exp, CompilationContext &ctx)
     : ExpressionTranslator(exp, ctx) {}
 
 // Return an LLVM value for the constant: run-time value
-codegen::Value ParameterTranslator::DeriveValue(
-    UNUSED_ATTRIBUTE CodeGen &codegen,
-    UNUSED_ATTRIBUTE RowBatch::Row &row) const {
+Value ParameterTranslator::DeriveValue(UNUSED_ATTRIBUTE CodeGen &codegen,
+                                                UNUSED_ATTRIBUTE RowBatch::Row &row) const {
   const auto &expr = GetExpressionAs<expression::ParameterValueExpression>();
   const auto &parameter_cache = context_.GetParameterCache();
   return parameter_cache.GetValue(&expr);
 }
-
 
 }  // namespace terrier::execution

@@ -15,17 +15,15 @@
 #include <atomic>
 #include <memory>
 
+#include "execution/execution_consumer.h"
 #include "execution/query.h"
 #include "execution/query_parameters_map.h"
-#include "execution/execution_consumer.h"
 
 namespace terrier::execution {
 
 namespace planner {
 class AbstractPlan;
-}  // namespace plan
-
-
+}  // namespace planner
 
 // The primary interface to JIT compile queries
 class QueryCompiler {
@@ -54,10 +52,8 @@ class QueryCompiler {
   // to return results. Callers can also pass in an (optional) CompileStats
   // object pointer if they want to collect statistics on the compilation
   // process.
-  std::unique_ptr<Query> Compile(const planner::AbstractPlan &query_plan,
-                                 const QueryParametersMap &parameters_map,
-                                 ExecutionConsumer &consumer,
-                                 CompileStats *stats = nullptr);
+  std::unique_ptr<Query> Compile(const planner::AbstractPlan &query_plan, const QueryParametersMap &parameters_map,
+                                 ExecutionConsumer &consumer, CompileStats *stats = nullptr);
 
   // Get the next available query plan ID
   uint64_t NextId() { return next_id_++; }
@@ -69,6 +65,5 @@ class QueryCompiler {
   // Counter we use to ID the queries we compiled
   std::atomic<uint64_t> next_id_;
 };
-
 
 }  // namespace terrier::execution

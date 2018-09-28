@@ -14,13 +14,12 @@
 
 #include <list>
 
-#include "execution/query.h"
-#include "common/synchronization/readwrite_latch.h"
 #include "common/singleton.h"
+#include "common/synchronization/readwrite_latch.h"
+#include "execution/query.h"
 #include "planner/abstract_plan.h"
 
 namespace terrier::execution {
-
 
 // Query cache implementation that maps an AbstractPlan with a CodeGen query
 // using LRU eviction policy. The cache is implemented as a singleton.
@@ -38,8 +37,7 @@ class QueryCache : public Singleton<QueryCache> {
   Query *Find(const std::shared_ptr<planner::AbstractPlan> &key);
 
   // Add a plan and a query object to the cache
-  void Add(const std::shared_ptr<planner::AbstractPlan> &key,
-           std::unique_ptr<Query> &&val);
+  void Add(const std::shared_ptr<planner::AbstractPlan> &key, std::unique_ptr<Query> &&val);
 
   // Remove all the items in the cache
   void Clear();
@@ -68,17 +66,15 @@ class QueryCache : public Singleton<QueryCache> {
   oid_t GetOidFromPlan(const planner::AbstractPlan &plan) const;
 
  private:
-  std::list<std::pair<std::shared_ptr<planner::AbstractPlan>,
-                      std::unique_ptr<Query>>> query_list_;
+  std::list<std::pair<std::shared_ptr<planner::AbstractPlan>, std::unique_ptr<Query>>> query_list_;
 
-  std::unordered_map<std::shared_ptr<planner::AbstractPlan>,
-                     decltype(query_list_.begin()), planner::Hash,
-                     planner::Equal> cache_map_;
+  std::unordered_map<std::shared_ptr<planner::AbstractPlan>, decltype(query_list_.begin()), planner::Hash,
+                     planner::Equal>
+      cache_map_;
 
   common::synchronization::ReadWriteLatch cache_lock_;
 
   size_t capacity_ = 0;
 };
-
 
 }  // namespace terrier::execution

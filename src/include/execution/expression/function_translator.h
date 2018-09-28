@@ -22,17 +22,12 @@ namespace expression {
 class FunctionExpression;
 }  // namespace expression
 
-
-
 /// A translator for function expressions.
 class FunctionTranslator : public ExpressionTranslator {
  public:
-  FunctionTranslator(const expression::FunctionExpression &func_expr,
-                     CompilationContext &context);
+  FunctionTranslator(const expression::FunctionExpression &func_expr, CompilationContext &context);
 
-  codegen::Value DeriveValue(CodeGen &codegen,
-                             RowBatch::Row &row) const override;
+  Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const override;
 };
-
 
 }  // namespace terrier::execution

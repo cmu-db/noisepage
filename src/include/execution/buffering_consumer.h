@@ -12,21 +12,19 @@
 
 #pragma once
 
-#include <vector>
 #include <mutex>
+#include <vector>
 
+#include "common/container_tuple.h"
 #include "execution/compilation_context.h"
 #include "execution/execution_consumer.h"
 #include "execution/value.h"
-#include "common/container_tuple.h"
 
 namespace terrier::execution {
 
 namespace planner {
 class BindingContext;
 }  // namespace planner
-
-
 
 //===----------------------------------------------------------------------===//
 // A wrapped class for output tuples
@@ -54,8 +52,7 @@ class WrappedTuple : public ContainerTuple<std::vector<peloton::type::Value>> {
 class BufferingConsumer : public ExecutionConsumer {
  public:
   /// Constructor
-  BufferingConsumer(const std::vector<oid_t> &cols,
-                    const planner::BindingContext &context);
+  BufferingConsumer(const std::vector<oid_t> &cols, const planner::BindingContext &context);
 
   void Prepare(CompilationContext &compilation_ctx) override;
 
@@ -92,6 +89,5 @@ class BufferingConsumer : public ExecutionConsumer {
   // The slot in the runtime state to find our state context
   QueryState::Id consumer_state_id_;
 };
-
 
 }  // namespace terrier::execution

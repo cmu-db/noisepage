@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(AbstractPool) {
   DECLARE_MEMBER(0, char[sizeof(peloton::type::AbstractPool)], opaque);
   DECLARE_TYPE;
@@ -31,6 +30,5 @@ PROXY(EphemeralPool) {
 
 TYPE_BUILDER(AbstractPool, peloton::type::AbstractPool);
 TYPE_BUILDER(EphemeralPool, peloton::type::EphemeralPool);
-
 
 }  // namespace terrier::execution

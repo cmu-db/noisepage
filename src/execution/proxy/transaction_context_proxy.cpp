@@ -14,8 +14,6 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(TransactionContext, "concurrency::TransactionContext", opaque);
-
 
 }  // namespace terrier::execution

@@ -15,11 +15,10 @@
 #include <vector>
 
 #include "execution/codegen.h"
-#include "execution/value.h"
 #include "execution/type/type.h"
+#include "execution/value.h"
 
 namespace terrier::execution {
-
 
 //===----------------------------------------------------------------------===//
 // This class enables the compact storage of a given set of types into a
@@ -38,13 +37,11 @@ class CompactStorage {
   llvm::Type *Setup(CodeGen &codegen, const std::vector<type::Type> &types);
 
   // Store the given values into the provided storage area
-  llvm::Value *StoreValues(CodeGen &codegen, llvm::Value *area_start,
-                           const std::vector<codegen::Value> &vals) const;
+  llvm::Value *StoreValues(CodeGen &codegen, llvm::Value *area_start, const std::vector<Value> &vals) const;
 
   // Load the values stored at the given storage area into the provided
   // vector
-  llvm::Value *LoadValues(CodeGen &codegen, llvm::Value *area_start,
-                          std::vector<codegen::Value> &vals) const;
+  llvm::Value *LoadValues(CodeGen &codegen, llvm::Value *area_start, std::vector<Value> &vals) const;
 
   // Get the maximum number of bytes this storage format will need
   uint32_t MaxStorageSize() const { return storage_size_; }
@@ -86,6 +83,5 @@ class CompactStorage {
   // The size of the constructed finalized type
   uint32_t storage_size_;
 };
-
 
 }  // namespace terrier::execution

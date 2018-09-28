@@ -21,7 +21,6 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 // WRAPPED TUPLE
 //===----------------------------------------------------------------------===//
@@ -31,8 +30,7 @@ WrappedTuple::WrappedTuple(peloton::type::Value *vals, uint32_t num_vals)
     : ContainerTuple(&tuple_), tuple_(vals, vals + num_vals) {}
 
 // Copy Constructor
-WrappedTuple::WrappedTuple(const WrappedTuple &o)
-    : ContainerTuple(&tuple_), tuple_(o.tuple_) {}
+WrappedTuple::WrappedTuple(const WrappedTuple &o) : ContainerTuple(&tuple_), tuple_(o.tuple_) {}
 
 WrappedTuple &WrappedTuple::operator=(const WrappedTuple &o) {
   ContainerTuple<std::vector<peloton::type::Value>>::operator=(o);
@@ -61,8 +59,7 @@ DEFINE_METHOD(peloton::codegen, BufferingConsumer, BufferTuple);
 // BUFFERING CONSUMER
 //===----------------------------------------------------------------------===//
 
-BufferingConsumer::BufferingConsumer(const std::vector<oid_t> &cols,
-                                     const planner::BindingContext &context) {
+BufferingConsumer::BufferingConsumer(const std::vector<oid_t> &cols, const planner::BindingContext &context) {
   for (oid_t col_id : cols) {
     output_ais_.push_back(context.Find(col_id));
   }
@@ -73,12 +70,10 @@ BufferingConsumer::BufferingConsumer(const std::vector<oid_t> &cols,
 // Note: buffering consumers rely on an ugly mutex to protect access to the
 //       output buffer. This is ugly AF. We don't actually use it for primary
 //       query processing, so it's okay.
-void BufferingConsumer::BufferTuple(char *opaque_state, char *tuple,
-                                    uint32_t num_cols) {
+void BufferingConsumer::BufferTuple(char *opaque_state, char *tuple, uint32_t num_cols) {
   auto *buffer = reinterpret_cast<Buffer *>(opaque_state);
   std::lock_guard<std::mutex> lock{buffer->mutex};
-  buffer->output.emplace_back(reinterpret_cast<peloton::type::Value *>(tuple),
-                              num_cols);
+  buffer->output.emplace_back(reinterpret_cast<peloton::type::Value *>(tuple), num_cols);
 }
 
 // Create two pieces of state: a pointer to the output tuple vector and an
@@ -90,22 +85,18 @@ void BufferingConsumer::Prepare(CompilationContext &compilation_ctx) {
   // Install a little char* for the state we need
   CodeGen &codegen = compilation_ctx.GetCodeGen();
   QueryState &query_state = compilation_ctx.GetQueryState();
-  consumer_state_id_ =
-      query_state.RegisterState("consumerState", codegen.CharPtrType());
+  consumer_state_id_ = query_state.RegisterState("consumerState", codegen.CharPtrType());
 }
 
 // For each output attribute, we write out the attribute's value into the
 // currently active output tuple. When all attributes have been written, we
 // call BufferTuple(...) to append the currently active tuple into the output.
-void BufferingConsumer::ConsumeResult(ConsumerContext &ctx,
-                                      RowBatch::Row &row) const {
+void BufferingConsumer::ConsumeResult(ConsumerContext &ctx, RowBatch::Row &row) const {
   CodeGen &codegen = ctx.GetCodeGen();
 
   auto num_cols = static_cast<uint32_t>(output_ais_.size());
-  auto *tuple_buffer_ =
-      codegen.AllocateBuffer(ValueProxy::GetType(codegen), num_cols, "output");
-  tuple_buffer_ =
-      codegen->CreatePointerCast(tuple_buffer_, codegen.CharPtrType());
+  auto *tuple_buffer_ = codegen.AllocateBuffer(ValueProxy::GetType(codegen), num_cols, "output");
+  tuple_buffer_ = codegen->CreatePointerCast(tuple_buffer_, codegen.CharPtrType());
 
   for (uint32_t i = 0; i < num_cols; i++) {
     // Derive the column's final value
@@ -129,8 +120,7 @@ void BufferingConsumer::ConsumeResult(ConsumerContext &ctx,
     auto *output_func = sql_type.GetOutputFunction(codegen, val.GetType());
 
     // Setup the function arguments
-    std::vector<llvm::Value *> args = {tuple_buffer_, codegen.Const32(i),
-                                       val.GetValue()};
+    std::vector<llvm::Value *> args = {tuple_buffer_, codegen.Const32(i), val.GetValue()};
     // If the value is a string, push back the length
     if (val.GetLength() != nullptr) {
       args.push_back(val.GetLength());
@@ -141,7 +131,7 @@ void BufferingConsumer::ConsumeResult(ConsumerContext &ctx,
     // in codegen are 1-bit types, as opposed to 1-byte types in the rest of the
     // system. Since, we cannot have a special value for NULL in a 1-bit boolean
     // system, we pass along the NULL bit during output.
-    if (sql_type.TypeId() == peloton::type::TypeId::BOOLEAN) {
+    if (sql_type.TypeId() == type::TypeId::BOOLEAN) {
       args.push_back(val.IsNull(codegen));
     }
 
@@ -150,22 +140,15 @@ void BufferingConsumer::ConsumeResult(ConsumerContext &ctx,
   }
 
   auto &query_state = ctx.GetQueryState();
-  llvm::Value *buffer_ptr =
-      query_state.LoadStateValue(codegen, consumer_state_id_);
+  llvm::Value *buffer_ptr = query_state.LoadStateValue(codegen, consumer_state_id_);
 
   // Append the tuple to the output buffer (by calling BufferTuple(...))
-  std::vector<llvm::Value *> args = {buffer_ptr, tuple_buffer_,
-                                     codegen.Const32(output_ais_.size())};
+  std::vector<llvm::Value *> args = {buffer_ptr, tuple_buffer_, codegen.Const32(output_ais_.size())};
   codegen.Call(BufferingConsumerProxy::BufferTuple, args);
 }
 
-char *BufferingConsumer::GetConsumerState() {
-  return reinterpret_cast<char *>(&buffer_);
-}
+char *BufferingConsumer::GetConsumerState() { return reinterpret_cast<char *>(&buffer_); }
 
-const std::vector<WrappedTuple> &BufferingConsumer::GetOutputTuples() const {
-  return buffer_.output;
-}
-
+const std::vector<WrappedTuple> &BufferingConsumer::GetOutputTuples() const { return buffer_.output; }
 
 }  // namespace terrier::execution

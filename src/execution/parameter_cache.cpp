@@ -10,94 +10,83 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "execution/codegen.h"
 #include "execution/parameter_cache.h"
-#include "execution/updateable_storage.h"
-#include "execution/value.h"
+#include "execution/codegen.h"
 #include "execution/proxy/query_parameters_proxy.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type.h"
+#include "execution/updateable_storage.h"
+#include "execution/value.h"
 
 namespace terrier::execution {
 
-
-void ParameterCache::Populate(CodeGen &codegen,
-                              llvm::Value *query_parameters_ptr) {
+void ParameterCache::Populate(CodeGen &codegen, llvm::Value *query_parameters_ptr) {
   auto &parameters = parameters_map_.GetParameters();
   for (uint32_t i = 0; i < parameters.size(); i++) {
     auto &parameter = parameters[i];
     auto type_id = parameter.GetValueType();
     auto is_nullable = parameter.IsNullable();
-    auto val = DeriveParameterValue(codegen, query_parameters_ptr, i, type_id,
-                                    is_nullable);
+    auto val = DeriveParameterValue(codegen, query_parameters_ptr, i, type_id, is_nullable);
     values_.push_back(val);
   }
 }
 
-codegen::Value ParameterCache::GetValue(uint32_t index) const {
-  return values_[index];
-}
+Value ParameterCache::GetValue(uint32_t index) const { return values_[index]; }
 
-codegen::Value ParameterCache::GetValue(
-    const expression::AbstractExpression *expr) const {
+Value ParameterCache::GetValue(const expression::AbstractExpression *expr) const {
   return GetValue(parameters_map_.GetIndex(expr));
 }
 
 void ParameterCache::Reset() { values_.clear(); }
 
-codegen::Value ParameterCache::DeriveParameterValue(
-    CodeGen &codegen, llvm::Value *query_parameters_ptr, uint32_t index,
-    peloton::type::TypeId type_id, bool is_nullable) {
+Value ParameterCache::DeriveParameterValue(CodeGen &codegen, llvm::Value *query_parameters_ptr, uint32_t index,
+                                                    type::TypeId type_id, bool is_nullable) {
   llvm::Value *val = nullptr, *len = nullptr;
-  std::vector<llvm::Value *> args = {query_parameters_ptr,
-                                     codegen.Const32(index)};
+  std::vector<llvm::Value *> args = {query_parameters_ptr, codegen.Const32(index)};
   switch (type_id) {
-    case peloton::type::TypeId::BOOLEAN: {
+    case type::TypeId::BOOLEAN: {
       val = codegen.Call(QueryParametersProxy::GetBoolean, args);
       break;
     }
-    case peloton::type::TypeId::TINYINT: {
+    case type::TypeId::TINYINT: {
       val = codegen.Call(QueryParametersProxy::GetTinyInt, args);
       break;
     }
-    case peloton::type::TypeId::SMALLINT: {
+    case type::TypeId::SMALLINT: {
       val = codegen.Call(QueryParametersProxy::GetSmallInt, args);
       break;
     }
-    case peloton::type::TypeId::INTEGER: {
+    case type::TypeId::INTEGER: {
       val = codegen.Call(QueryParametersProxy::GetInteger, args);
       break;
     }
-    case peloton::type::TypeId::BIGINT: {
+    case type::TypeId::BIGINT: {
       val = codegen.Call(QueryParametersProxy::GetBigInt, args);
       break;
     }
-    case peloton::type::TypeId::DECIMAL: {
+    case type::TypeId::DECIMAL: {
       val = codegen.Call(QueryParametersProxy::GetDouble, args);
       break;
     }
-    case peloton::type::TypeId::DATE: {
+    case type::TypeId::DATE: {
       val = codegen.Call(QueryParametersProxy::GetDate, args);
       break;
     }
-    case peloton::type::TypeId::TIMESTAMP: {
+    case type::TypeId::TIMESTAMP: {
       val = codegen.Call(QueryParametersProxy::GetTimestamp, args);
       break;
     }
-    case peloton::type::TypeId::VARCHAR: {
+    case type::TypeId::VARCHAR: {
       val = codegen.Call(QueryParametersProxy::GetVarcharVal, args);
       len = codegen.Call(QueryParametersProxy::GetVarcharLen, args);
       break;
     }
-    case peloton::type::TypeId::VARBINARY: {
+    case type::TypeId::VARBINARY: {
       val = codegen.Call(QueryParametersProxy::GetVarbinaryVal, args);
       len = codegen.Call(QueryParametersProxy::GetVarbinaryLen, args);
       break;
     }
-    default: {
-      throw Exception{"Unknown parameter storage value type " +
-                      TypeIdToString(type_id)};
-    }
+    default: { throw Exception{"Unknown parameter storage value type " + TypeIdToString(type_id)}; }
   }
   llvm::Value *is_null = nullptr;
   if (is_nullable) {
@@ -105,6 +94,5 @@ codegen::Value ParameterCache::DeriveParameterValue(
   }
   return Value{type::Type{type_id, is_nullable}, val, len, is_null};
 }
-
 
 }  // namespace terrier::execution

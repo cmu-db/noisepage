@@ -15,10 +15,10 @@
 #include <random>
 
 #include "execution/function_builder.h"
-#include "execution/type/tinyint_type.h"
-#include "execution/type/smallint_type.h"
-#include "execution/type/integer_type.h"
 #include "execution/type/bigint_type.h"
+#include "execution/type/integer_type.h"
+#include "execution/type/smallint_type.h"
+#include "execution/type/tinyint_type.h"
 #include "function/numeric_functions.h"
 
 namespace peloton {
@@ -39,8 +39,7 @@ void DivideByZeroTest(const codegen::type::Type &data_type, ExpressionType op) {
   llvm::Type *llvm_type = nullptr, *llvm_len_type = nullptr;
   sql_type.GetTypeForMaterialization(codegen, llvm_type, llvm_len_type);
 
-  codegen::FunctionBuilder function{
-      code_context, "test", codegen.VoidType(), {{"arg", llvm_type}}};
+  codegen::FunctionBuilder function{code_context, "test", codegen.VoidType(), {{"arg", llvm_type}}};
   {
     codegen::Value a = sql_type.GetMaxValue(codegen);
     codegen::Value divisor{data_type, function.GetArgumentByPosition(0)};
@@ -56,9 +55,7 @@ void DivideByZeroTest(const codegen::type::Type &data_type, ExpressionType op) {
         res = a.Mod(codegen, divisor);
         break;
       }
-      default: {
-        throw Exception{"Invalid expression type for divide-by-zero test"};
-      }
+      default: { throw Exception{"Invalid expression type for divide-by-zero test"}; }
     }
 
     codegen.Printf("%lu\n", {res.GetValue()});
@@ -84,8 +81,7 @@ void OverflowTest(const codegen::type::Type &data_type, ExpressionType op) {
   llvm::Type *llvm_type = nullptr, *llvm_len_type = nullptr;
   sql_type.GetTypeForMaterialization(codegen, llvm_type, llvm_len_type);
 
-  codegen::FunctionBuilder function{
-      code_context, "test", codegen.VoidType(), {{"arg", llvm_type}}};
+  codegen::FunctionBuilder function{code_context, "test", codegen.VoidType(), {{"arg", llvm_type}}};
   {
     codegen::Value initial{data_type, function.GetArgumentByPosition(0)};
     codegen::Value res;
@@ -123,9 +119,7 @@ void OverflowTest(const codegen::type::Type &data_type, ExpressionType op) {
         break;
       }
       */
-      default: {
-        throw Exception{"Invalid expression type for overflow check"};
-      }
+      default: { throw Exception{"Invalid expression type for overflow check"}; }
     }
 
     codegen.Printf("%lu\n", {res.GetValue()});
@@ -142,8 +136,7 @@ void OverflowTest(const codegen::type::Type &data_type, ExpressionType op) {
 }
 
 TEST_F(ValueIntegrityTest, IntegerOverflow) {
-  auto overflowable_ops = {ExpressionType::OPERATOR_MINUS,
-                           ExpressionType::OPERATOR_PLUS,
+  auto overflowable_ops = {ExpressionType::OPERATOR_MINUS, ExpressionType::OPERATOR_PLUS,
                            ExpressionType::OPERATOR_MULTIPLY};
   for (auto op : overflowable_ops) {
     OverflowTest<int8_t>(codegen::type::TinyInt::Instance(), op);
@@ -154,8 +147,7 @@ TEST_F(ValueIntegrityTest, IntegerOverflow) {
 }
 
 TEST_F(ValueIntegrityTest, IntegerDivideByZero) {
-  auto div0_ops = {ExpressionType::OPERATOR_DIVIDE,
-                   ExpressionType::OPERATOR_MOD};
+  auto div0_ops = {ExpressionType::OPERATOR_DIVIDE, ExpressionType::OPERATOR_MOD};
   for (auto op : div0_ops) {
     DivideByZeroTest<int8_t>(codegen::type::TinyInt::Instance(), op);
     DivideByZeroTest<int16_t>(codegen::type::SmallInt::Instance(), op);
@@ -170,41 +162,25 @@ template <typename T>
 using InputFunc = T (*)(const codegen::type::Type &, const char *, uint32_t);
 
 template <typename T>
-void TestInputIntegral(
-    const codegen::type::Type &type, InputFunc<T> TestFunc,
-    std::vector<std::pair<std::string, int64_t>> extra_valid_tests = {},
-    std::vector<std::string> extra_invalid_tests = {},
-    std::vector<std::string> extra_overflow_tests = {}) {
+void TestInputIntegral(const codegen::type::Type &type, InputFunc<T> TestFunc,
+                       std::vector<std::pair<std::string, int64_t>> extra_valid_tests = {},
+                       std::vector<std::string> extra_invalid_tests = {},
+                       std::vector<std::string> extra_overflow_tests = {}) {
   // Default valid tests - these are valid for all integral types
-  std::vector<std::pair<std::string, int64_t>> valid_tests = {{"0", 0},
-                                                              {"-1", -1},
-                                                              {"2", 2},
-                                                              {"+3", 3},
-                                                              {"  4", 4},
-                                                              {"  -5", -5},
-                                                              {"  +6", 6},
-                                                              {"7  ", 7},
-                                                              {"-8  ", -8},
-                                                              {"  9  ", 9},
-                                                              {"  -10  ", -10},
-                                                              {"  +11  ", 11}};
-  valid_tests.insert(valid_tests.end(), extra_valid_tests.begin(),
-                     extra_valid_tests.end());
+  std::vector<std::pair<std::string, int64_t>> valid_tests = {
+      {"0", 0},    {"-1", -1}, {"2", 2},     {"+3", 3},    {"  4", 4},       {"  -5", -5},
+      {"  +6", 6}, {"7  ", 7}, {"-8  ", -8}, {"  9  ", 9}, {"  -10  ", -10}, {"  +11  ", 11}};
+  valid_tests.insert(valid_tests.end(), extra_valid_tests.begin(), extra_valid_tests.end());
 
   // Default invalid tests
-  std::vector<std::string> invalid_tests = {"a",       "-b",    "+c",   " 1c",
-                                            "2d ",     "3 3",   "-4 4", "-5 a ",
-                                            "  -6  a", "  c 7 "};
-  invalid_tests.insert(invalid_tests.end(), extra_invalid_tests.begin(),
-                       extra_invalid_tests.end());
+  std::vector<std::string> invalid_tests = {"a", "-b", "+c", " 1c", "2d ", "3 3", "-4 4", "-5 a ", "  -6  a", "  c 7 "};
+  invalid_tests.insert(invalid_tests.end(), extra_invalid_tests.begin(), extra_invalid_tests.end());
 
   // Default overflow tests
-  std::vector<std::string> overflow_tests = {
-      std::to_string(std::numeric_limits<T>::min()) + "1",
-      std::to_string(std::numeric_limits<T>::max()) + "1",
-      "123456789123456789123456789"};
-  overflow_tests.insert(overflow_tests.end(), extra_overflow_tests.begin(),
-                        extra_overflow_tests.end());
+  std::vector<std::string> overflow_tests = {std::to_string(std::numeric_limits<T>::min()) + "1",
+                                             std::to_string(std::numeric_limits<T>::max()) + "1",
+                                             "123456789123456789123456789"};
+  overflow_tests.insert(overflow_tests.end(), extra_overflow_tests.begin(), extra_overflow_tests.end());
 
   for (const auto &test : valid_tests) {
     auto *ptr = test.first.data();
@@ -234,12 +210,10 @@ void TestInputIntegral(
 
 TEST_F(ValueIntegrityTest, InputIntegralTypesTest) {
   codegen::type::Type tinyint{type::TypeId::TINYINT, false};
-  TestInputIntegral<int8_t>(tinyint, function::NumericFunctions::InputTinyInt,
-                            {{"-126", -126}, {"126", 126}});
+  TestInputIntegral<int8_t>(tinyint, function::NumericFunctions::InputTinyInt, {{"-126", -126}, {"126", 126}});
 
   codegen::type::Type smallint{type::TypeId::SMALLINT, false};
-  TestInputIntegral<int16_t>(smallint,
-                             function::NumericFunctions::InputSmallInt);
+  TestInputIntegral<int16_t>(smallint, function::NumericFunctions::InputSmallInt);
 
   codegen::type::Type integer{type::TypeId::INTEGER, false};
   TestInputIntegral<int32_t>(integer, function::NumericFunctions::InputInteger);
@@ -253,24 +227,13 @@ TEST_F(ValueIntegrityTest, InputDecimalTypesTest) {
 
   // First check some valid cases
   std::vector<std::pair<std::string, double>> valid_tests = {
-      {"0.0", 0.0},
-      {"-1.0", -1.0},
-      {"2.0", 2.0},
-      {"+3.0", 3.0},
-      {"  4.0", 4.0},
-      {"  -5.0", -5.0},
-      {"  +6.0", 6.0},
-      {"7.0  ", 7.0},
-      {"-8.0  ", -8.0},
-      {"  9.0  ", 9.0},
-      {"  -10.0  ", -10.0},
-      {"  +11.0  ", 11.0}};
+      {"0.0", 0.0},    {"-1.0", -1.0}, {"2.0", 2.0},     {"+3.0", 3.0},    {"  4.0", 4.0},       {"  -5.0", -5.0},
+      {"  +6.0", 6.0}, {"7.0  ", 7.0}, {"-8.0  ", -8.0}, {"  9.0  ", 9.0}, {"  -10.0  ", -10.0}, {"  +11.0  ", 11.0}};
 
   for (const auto &test_case : valid_tests) {
     auto *ptr = test_case.first.data();
     auto len = static_cast<uint32_t>(test_case.first.length());
-    EXPECT_EQ(test_case.second,
-              function::NumericFunctions::InputDecimal(decimal, ptr, len));
+    EXPECT_EQ(test_case.second, function::NumericFunctions::InputDecimal(decimal, ptr, len));
   }
 
   // Now let's try some invalid ones. Take each valid test and randomly insert
@@ -295,10 +258,8 @@ TEST_F(ValueIntegrityTest, InputDecimalTypesTest) {
   for (const auto &invalid_test : invalid_tests) {
     auto *ptr = invalid_test.data();
     auto len = static_cast<uint32_t>(invalid_test.length());
-    EXPECT_THROW(function::NumericFunctions::InputDecimal(decimal, ptr, len),
-                 std::runtime_error)
-        << "Input '" << invalid_test
-        << "' expected to throw error, but passed parsing logic";
+    EXPECT_THROW(function::NumericFunctions::InputDecimal(decimal, ptr, len), std::runtime_error)
+        << "Input '" << invalid_test << "' expected to throw error, but passed parsing logic";
   }
 }
 

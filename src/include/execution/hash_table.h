@@ -19,7 +19,6 @@
 
 namespace terrier::execution {
 
-
 /**
  * The main hash table access class for util::HashTable.
  */
@@ -78,12 +77,8 @@ class HashTable {
   // No-op InsertCallback
   class NoOpInsertCallback : public InsertCallback {
    public:
-    void StoreValue(UNUSED_ATTRIBUTE CodeGen &codegen,
-                    UNUSED_ATTRIBUTE llvm::Value *space) const override {}
-    llvm::Value *GetValueSize(
-        UNUSED_ATTRIBUTE CodeGen &codegen) const override {
-      return nullptr;
-    }
+    void StoreValue(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE llvm::Value *space) const override {}
+    llvm::Value *GetValueSize(UNUSED_ATTRIBUTE CodeGen &codegen) const override { return nullptr; }
   };
 
   /**
@@ -104,9 +99,7 @@ class HashTable {
      * @param keys The key stored in the hash table
      * @param values A pointer to a set of bytes where the value is stored
      */
-    virtual void ProcessEntry(CodeGen &codegen,
-                              const std::vector<codegen::Value> &keys,
-                              llvm::Value *values) const = 0;
+    virtual void ProcessEntry(CodeGen &codegen, const std::vector<Value> &keys, llvm::Value *values) const = 0;
   };
 
   class HashTableAccess;
@@ -130,8 +123,7 @@ class HashTable {
      * @param selection_vector A vector containing indexes of valid entries
      * @param access A hash-table random-access helper
      */
-    virtual void ProcessEntries(CodeGen &codegen, llvm::Value *start,
-                                llvm::Value *end, Vector &selection_vector,
+    virtual void ProcessEntries(CodeGen &codegen, llvm::Value *start, llvm::Value *end, Vector &selection_vector,
                                 HashTableAccess &access) const = 0;
   };
 
@@ -152,8 +144,7 @@ class HashTable {
      * @param[out] keys Where each column of the key is stored
      */
     // Extract the keys for the bucket at the given index
-    virtual void ExtractBucketKeys(CodeGen &codegen, llvm::Value *index,
-                                   std::vector<codegen::Value> &keys) const = 0;
+    virtual void ExtractBucketKeys(CodeGen &codegen, llvm::Value *index, std::vector<Value> &keys) const = 0;
 
     /**
      * Returns a pointer to a value stored at the entry at the given index.
@@ -162,8 +153,7 @@ class HashTable {
      * @param index An index in the directory
      * @return A pointer to where the value is serialized
      */
-    virtual llvm::Value *BucketValue(CodeGen &codegen,
-                                     llvm::Value *index) const = 0;
+    virtual llvm::Value *BucketValue(CodeGen &codegen, llvm::Value *index) const = 0;
   };
 
   /**
@@ -180,51 +170,39 @@ class HashTable {
  public:
   // Constructor
   HashTable();
-  HashTable(CodeGen &codegen, const std::vector<type::Type> &key_type,
-            uint32_t value_size);
+  HashTable(CodeGen &codegen, const std::vector<type::Type> &key_type, uint32_t value_size);
 
   // Destructor
   virtual ~HashTable() = default;
 
   virtual void Init(CodeGen &codegen, llvm::Value *ht_ptr) const;
-  virtual void Init(CodeGen &codegen, llvm::Value *exec_ctx,
-                    llvm::Value *ht_ptr) const;
+  virtual void Init(CodeGen &codegen, llvm::Value *exec_ctx, llvm::Value *ht_ptr) const;
 
-  virtual void ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr,
-                             llvm::Value *hash,
-                             const std::vector<codegen::Value> &key,
-                             ProbeCallback &probe_callback,
+  virtual void ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
+                             const std::vector<Value> &key, ProbeCallback &probe_callback,
                              InsertCallback &insert_callback) const;
 
-  virtual ProbeResult ProbeOrInsert(
-      CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-      const std::vector<codegen::Value> &key) const;
+  virtual ProbeResult ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
+                                    const std::vector<Value> &key) const;
 
-  virtual void Insert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                      const std::vector<codegen::Value> &keys,
+  virtual void Insert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &keys,
                       InsertCallback &callback) const;
 
-  void InsertLazy(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                  const std::vector<codegen::Value> &keys,
+  void InsertLazy(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &keys,
                   InsertCallback &callback) const;
 
   void BuildLazy(CodeGen &codegen, llvm::Value *ht_ptr) const;
 
-  void ReserveLazy(CodeGen &codegen, llvm::Value *ht_ptr,
-                   llvm::Value *thread_states, uint32_t ht_state_offset) const;
+  void ReserveLazy(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *thread_states, uint32_t ht_state_offset) const;
 
-  void MergeLazyUnfinished(CodeGen &codegen, llvm::Value *global_ht,
-                           llvm::Value *local_ht) const;
+  void MergeLazyUnfinished(CodeGen &codegen, llvm::Value *global_ht, llvm::Value *local_ht) const;
 
-  virtual void Iterate(CodeGen &codegen, llvm::Value *ht_ptr,
-                       IterateCallback &callback) const;
+  virtual void Iterate(CodeGen &codegen, llvm::Value *ht_ptr, IterateCallback &callback) const;
 
-  virtual void VectorizedIterate(CodeGen &codegen, llvm::Value *ht_ptr,
-                                 Vector &selection_vector,
+  virtual void VectorizedIterate(CodeGen &codegen, llvm::Value *ht_ptr, Vector &selection_vector,
                                  VectorizedIterateCallback &callback) const;
 
-  virtual void FindAll(CodeGen &codegen, llvm::Value *ht_ptr,
-                       const std::vector<codegen::Value> &key,
+  virtual void FindAll(CodeGen &codegen, llvm::Value *ht_ptr, const std::vector<Value> &key,
                        IterateCallback &callback) const;
 
   virtual void Destroy(CodeGen &codegen, llvm::Value *ht_ptr) const;
@@ -235,6 +213,5 @@ class HashTable {
   // The storage strategy we use to store the lookup keys inside every HashEntry
   CompactStorage key_storage_;
 };
-
 
 }  // namespace terrier::execution

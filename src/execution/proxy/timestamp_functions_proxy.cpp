@@ -17,9 +17,7 @@
 
 namespace terrier::execution {
 
-
 DEFINE_METHOD(peloton::function, TimestampFunctions, DateTrunc);
 DEFINE_METHOD(peloton::function, TimestampFunctions, DatePart);
-
 
 }  // namespace terrier::execution

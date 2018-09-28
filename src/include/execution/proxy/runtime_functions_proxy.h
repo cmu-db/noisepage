@@ -12,14 +12,13 @@
 
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <vector>
 #include "execution/proxy/proxy.h"
 #include "execution/runtime_functions.h"
 #include "expression/abstract_expression.h"
 
 namespace terrier::execution {
-
 
 PROXY(ColumnLayoutInfo) {
   DECLARE_MEMBER(0, char *, col_start_ptr);
@@ -34,7 +33,7 @@ PROXY(AbstractExpression) {
 };
 
 PROXY(Type) {
-  DECLARE_MEMBER(0, char[sizeof(codegen::type::Type)], opaque);
+  DECLARE_MEMBER(0, char[sizeof(type::Type)], opaque);
   DECLARE_TYPE;
 };
 
@@ -50,9 +49,8 @@ PROXY(RuntimeFunctions) {
   DECLARE_METHOD(ThrowOverflowException);
 };
 
-TYPE_BUILDER(ColumnLayoutInfo, codegen::RuntimeFunctions::ColumnLayoutInfo);
+TYPE_BUILDER(ColumnLayoutInfo, RuntimeFunctions::ColumnLayoutInfo);
 TYPE_BUILDER(AbstractExpression, expression::AbstractExpression);
-TYPE_BUILDER(Type, codegen::type::Type);
-
+TYPE_BUILDER(Type, type::Type);
 
 }  // namespace terrier::execution

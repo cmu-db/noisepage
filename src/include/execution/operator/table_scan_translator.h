@@ -28,16 +28,13 @@ namespace storage {
 class DataTable;
 }  // namespace storage
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator for sequential table scans
 //===----------------------------------------------------------------------===//
 class TableScanTranslator : public OperatorTranslator {
  public:
   // Constructor
-  TableScanTranslator(const planner::SeqScanPlan &scan,
-                      CompilationContext &context, Pipeline &pipeline);
+  TableScanTranslator(const planner::SeqScanPlan &scan, CompilationContext &context, Pipeline &pipeline);
 
   // Nothing to do here
   void InitializeQueryState() override {}
@@ -73,8 +70,7 @@ class TableScanTranslator : public OperatorTranslator {
 
  private:
   // The code-generating table instance
-  codegen::Table table_;
+  Table table_;
 };
-
 
 }  // namespace terrier::execution

@@ -23,8 +23,6 @@ namespace expression {
 class AbstractExpression;
 }  // namespace expression
 
-
-
 // Forward declare
 class CompilationContext;
 class PipelineContext;
@@ -38,8 +36,7 @@ class ConsumerContext {
  public:
   // Constructor
   ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline);
-  ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline,
-                  PipelineContext *pipeline_context);
+  ConsumerContext(CompilationContext &compilation_context, Pipeline &pipeline, PipelineContext *pipeline_context);
 
   /// This class cannot be copy or move-constructed
   DISALLOW_COPY_AND_MOVE(ConsumerContext);
@@ -68,6 +65,5 @@ class ConsumerContext {
   Pipeline &pipeline_;
   PipelineContext *pipeline_context_;
 };
-
 
 }  // namespace terrier::execution

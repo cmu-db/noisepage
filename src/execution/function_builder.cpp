@@ -12,18 +12,15 @@
 
 #include "execution/function_builder.h"
 
-#include "execution/proxy/runtime_functions_proxy.h"
 #include "common/exception.h"
+#include "execution/proxy/runtime_functions_proxy.h"
 
 namespace terrier::execution {
 
-
 namespace {
 
-llvm::Function *ConstructFunction(
-    CodeContext &cc, const std::string &name,
-    FunctionDeclaration::Visibility visibility, llvm::Type *ret_type,
-    const std::vector<FunctionDeclaration::ArgumentInfo> &args) {
+llvm::Function *ConstructFunction(CodeContext &cc, const std::string &name, FunctionDeclaration::Visibility visibility,
+                                  llvm::Type *ret_type, const std::vector<FunctionDeclaration::ArgumentInfo> &args) {
   // Collect the function argument types
   std::vector<llvm::Type *> arg_types;
   for (auto &arg : args) {
@@ -46,13 +43,11 @@ llvm::Function *ConstructFunction(
 
   // Declare the function
   auto *fn_type = llvm::FunctionType::get(ret_type, arg_types, false);
-  auto *func_decl =
-      llvm::Function::Create(fn_type, linkage, name, &cc.GetModule());
+  auto *func_decl = llvm::Function::Create(fn_type, linkage, name, &cc.GetModule());
 
   // Set the argument names
   auto arg_iter = args.begin();
-  for (auto iter = func_decl->arg_begin(), end = func_decl->arg_end();
-       iter != end; iter++, arg_iter++) {
+  for (auto iter = func_decl->arg_begin(), end = func_decl->arg_end(); iter != end; iter++, arg_iter++) {
     iter->setName(arg_iter->name);
   }
 
@@ -67,20 +62,18 @@ llvm::Function *ConstructFunction(
 //
 //===----------------------------------------------------------------------===//
 
-FunctionDeclaration::FunctionDeclaration(
-    CodeContext &cc, const std::string &name,
-    FunctionDeclaration::Visibility visibility, llvm::Type *ret_type,
-    const std::vector<ArgumentInfo> &args)
+FunctionDeclaration::FunctionDeclaration(CodeContext &cc, const std::string &name,
+                                         FunctionDeclaration::Visibility visibility, llvm::Type *ret_type,
+                                         const std::vector<ArgumentInfo> &args)
     : name_(name),
       visibility_(visibility),
       ret_type_(ret_type),
       args_info_(args),
       func_decl_(ConstructFunction(cc, name, visibility, ret_type, args)) {}
 
-FunctionDeclaration FunctionDeclaration::MakeDeclaration(
-    CodeContext &cc, const std::string &name,
-    FunctionDeclaration::Visibility visibility, llvm::Type *ret_type,
-    const std::vector<ArgumentInfo> &args) {
+FunctionDeclaration FunctionDeclaration::MakeDeclaration(CodeContext &cc, const std::string &name,
+                                                         FunctionDeclaration::Visibility visibility,
+                                                         llvm::Type *ret_type, const std::vector<ArgumentInfo> &args) {
   return FunctionDeclaration(cc, name, visibility, ret_type, args);
 }
 
@@ -111,8 +104,7 @@ FunctionBuilder::FunctionBuilder(CodeContext &cc, llvm::Function *func_decl)
   //  3. We register the function into the context.
 
   // Set the entry point of the function
-  entry_bb_ =
-      llvm::BasicBlock::Create(code_context_.GetContext(), "entry", func_);
+  entry_bb_ = llvm::BasicBlock::Create(code_context_.GetContext(), "entry", func_);
   code_context_.GetBuilder().SetInsertPoint(entry_bb_);
   code_context_.SetCurrentFunction(this);
 
@@ -120,23 +112,16 @@ FunctionBuilder::FunctionBuilder(CodeContext &cc, llvm::Function *func_decl)
   code_context_.RegisterFunction(func_);
 }
 
-FunctionBuilder::FunctionBuilder(CodeContext &cc,
-                                 const FunctionDeclaration &declaration)
+FunctionBuilder::FunctionBuilder(CodeContext &cc, const FunctionDeclaration &declaration)
     : FunctionBuilder(cc, declaration.GetDeclaredFunction()) {}
 
-FunctionBuilder::FunctionBuilder(
-    CodeContext &cc, std::string name, llvm::Type *ret_type,
-    const std::vector<FunctionDeclaration::ArgumentInfo> &args)
-    : FunctionBuilder(
-          cc,
-          ConstructFunction(cc, name, FunctionDeclaration::Visibility::External,
-                            ret_type, args)) {}
+FunctionBuilder::FunctionBuilder(CodeContext &cc, std::string name, llvm::Type *ret_type,
+                                 const std::vector<FunctionDeclaration::ArgumentInfo> &args)
+    : FunctionBuilder(cc, ConstructFunction(cc, name, FunctionDeclaration::Visibility::External, ret_type, args)) {}
 
 FunctionBuilder::~FunctionBuilder() {
   if (!finished_) {
-    LOG_ERROR(
-        "Missing call to FunctionBuilder::ReturnAndFinish() for function '%s'",
-        func_->getName().data());
+    LOG_ERROR("Missing call to FunctionBuilder::ReturnAndFinish() for function '%s'", func_->getName().data());
   }
 }
 
@@ -154,8 +139,7 @@ llvm::Value *FunctionBuilder::GetArgumentByName(std::string name) {
 llvm::Value *FunctionBuilder::GetArgumentByPosition(uint32_t index) {
   PELOTON_ASSERT(index < func_->arg_size());
   uint32_t pos = 0;
-  for (auto arg_iter = func_->arg_begin(), end = func_->arg_end();
-       arg_iter != end; ++arg_iter, ++pos) {
+  for (auto arg_iter = func_->arg_begin(), end = func_->arg_end(); arg_iter != end; ++arg_iter, ++pos) {
     if (pos == index) {
       return &*arg_iter;
     }
@@ -210,8 +194,7 @@ llvm::BasicBlock *FunctionBuilder::GetDivideByZeroBB() {
   auto *curr_position = codegen->GetInsertBlock();
 
   // Create the overflow block now, but don't attach to function just yet.
-  divide_by_zero_bb_ =
-      llvm::BasicBlock::Create(codegen.GetContext(), "divideByZero");
+  divide_by_zero_bb_ = llvm::BasicBlock::Create(codegen.GetContext(), "divideByZero");
 
   // Make a call into RuntimeFunctions::ThrowDivideByZeroException()
   codegen->SetInsertPoint(divide_by_zero_bb_);
@@ -260,8 +243,7 @@ void FunctionBuilder::ReturnAndFinish(llvm::Value *ret) {
   finished_ = true;
 }
 
-llvm::Value *FunctionBuilder::GetOrCacheVariable(
-    const std::string &name, const std::function<llvm::Value *()> &func) {
+llvm::Value *FunctionBuilder::GetOrCacheVariable(const std::string &name, const std::function<llvm::Value *()> &func) {
   auto iter = cached_vars_.find(name);
   if (iter != cached_vars_.end()) {
     return iter->second;
@@ -279,6 +261,5 @@ llvm::Value *FunctionBuilder::GetOrCacheVariable(
     return val;
   }
 }
-
 
 }  // namespace terrier::execution

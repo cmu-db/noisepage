@@ -25,8 +25,6 @@ namespace planner {
 class HashJoinPlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // The translator for a hash-join operator
 //===----------------------------------------------------------------------===//
@@ -35,8 +33,7 @@ class HashJoinTranslator : public OperatorTranslator {
   // Global/configurable variable controlling whether hash aggregations prefetch
   static std::atomic<bool> kUsePrefetch;
 
-  HashJoinTranslator(const planner::HashJoinPlan &join,
-                     CompilationContext &context, Pipeline &pipeline);
+  HashJoinTranslator(const planner::HashJoinPlan &join, CompilationContext &context, Pipeline &pipeline);
 
   void InitializeQueryState() override;
 
@@ -60,25 +57,17 @@ class HashJoinTranslator : public OperatorTranslator {
   void ConsumeFromLeft(ConsumerContext &context, RowBatch::Row &row) const;
   void ConsumeFromRight(ConsumerContext &context, RowBatch::Row &row) const;
 
-  bool IsLeftPipeline(const Pipeline &pipeline) const {
-    return pipeline == left_pipeline_;
-  }
+  bool IsLeftPipeline(const Pipeline &pipeline) const { return pipeline == left_pipeline_; }
 
-  bool IsFromLeftChild(ConsumerContext &context) const {
-    return IsLeftPipeline(context.GetPipeline());
-  }
+  bool IsFromLeftChild(ConsumerContext &context) const { return IsLeftPipeline(context.GetPipeline()); }
 
-  void CollectKeys(
-      RowBatch::Row &row,
-      const std::vector<const expression::AbstractExpression *> &key,
-      std::vector<codegen::Value> &key_values) const;
+  void CollectKeys(RowBatch::Row &row, const std::vector<const expression::AbstractExpression *> &key,
+                   std::vector<Value> &key_values) const;
 
-  void CollectValues(RowBatch::Row &row,
-                     const std::vector<const planner::AttributeInfo *> &ais,
-                     std::vector<codegen::Value> &values) const;
+  void CollectValues(RowBatch::Row &row, const std::vector<const planner::AttributeInfo *> &ais,
+                     std::vector<Value> &values) const;
 
-  void CodegenHashProbe(ConsumerContext &context, RowBatch::Row &row,
-                        std::vector<codegen::Value> &key) const;
+  void CodegenHashProbe(ConsumerContext &context, RowBatch::Row &row, std::vector<Value> &key) const;
 
   /// Estimate the size of the constructed hash table
   uint64_t EstimateHashTableSize() const;
@@ -130,6 +119,5 @@ class HashJoinTranslator : public OperatorTranslator {
   // Does this join need an output vector
   bool needs_output_vector_;
 };
-
 
 }  // namespace terrier::execution

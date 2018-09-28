@@ -37,8 +37,6 @@ namespace planner {
 class AbstractPlan;
 }  // namespace planner
 
-
-
 /**
  * All the state for the current compilation unit (i.e., one query). This state
  * includes translations for every operator and expression in the tree, the
@@ -49,8 +47,7 @@ class AbstractPlan;
 class CompilationContext {
  public:
   /// Constructor
-  CompilationContext(CodeContext &code, QueryState &query_state,
-                     const QueryParametersMap &parameters_map,
+  CompilationContext(CodeContext &code, QueryState &query_state, const QueryParametersMap &parameters_map,
                      ExecutionConsumer &execution_consumer);
 
   /// This class cannot be copy or move-constructed
@@ -70,8 +67,8 @@ class CompilationContext {
 
   /// Declare an extra function that produces tuples outside of the main plan
   /// function. The primary producer in this function is the provided plan node.
-  AuxiliaryProducerFunction DeclareAuxiliaryProducer(
-      const planner::AbstractPlan &plan, const std::string &provided_name);
+  AuxiliaryProducerFunction DeclareAuxiliaryProducer(const planner::AbstractPlan &plan,
+                                                     const std::string &provided_name);
 
   /// Register the given pipeline in this context
   uint32_t RegisterPipeline(Pipeline &pipeline) {
@@ -96,8 +93,7 @@ class CompilationContext {
 
   ExecutionConsumer &GetExecutionConsumer() const { return exec_consumer_; }
 
-  ExpressionTranslator *GetTranslator(
-      const expression::AbstractExpression &exp) const;
+  ExpressionTranslator *GetTranslator(const expression::AbstractExpression &exp) const;
 
   OperatorTranslator *GetTranslator(const planner::AbstractPlan &op) const;
 
@@ -137,17 +133,13 @@ class CompilationContext {
   TranslatorFactory translator_factory_;
 
   // The mapping of an operator in the tree to its translator
-  std::unordered_map<const planner::AbstractPlan *,
-                     std::unique_ptr<OperatorTranslator>> op_translators_;
+  std::unordered_map<const planner::AbstractPlan *, std::unique_ptr<OperatorTranslator>> op_translators_;
 
   // The mapping of an expression somewhere in the tree to its translator
-  std::unordered_map<const expression::AbstractExpression *,
-                     std::unique_ptr<ExpressionTranslator>> exp_translators_;
+  std::unordered_map<const expression::AbstractExpression *, std::unique_ptr<ExpressionTranslator>> exp_translators_;
 
   // Pre-declared producer functions and their root plan nodes
-  std::unordered_map<const planner::AbstractPlan *, FunctionDeclaration>
-      auxiliary_producers_;
+  std::unordered_map<const planner::AbstractPlan *, FunctionDeclaration> auxiliary_producers_;
 };
-
 
 }  // namespace terrier::execution

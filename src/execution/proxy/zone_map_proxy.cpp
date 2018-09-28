@@ -12,18 +12,15 @@
 
 #include "execution/proxy/zone_map_proxy.h"
 
-#include "execution/proxy/value_proxy.h"
 #include "execution/proxy/data_table_proxy.h"
+#include "execution/proxy/value_proxy.h"
 
 namespace terrier::execution {
 
-
-DEFINE_TYPE(PredicateInfo, "peloton::storage::PredicateInfo", col_id,
-            comparison_operator, predicate_value);
+DEFINE_TYPE(PredicateInfo, "peloton::storage::PredicateInfo", col_id, comparison_operator, predicate_value);
 DEFINE_TYPE(ZoneMapManager, "peloton::storage::ZoneMapManager", opaque);
 
 DEFINE_METHOD(peloton::storage, ZoneMapManager, ShouldScanTileGroup);
 DEFINE_METHOD(peloton::storage, ZoneMapManager, GetInstance);
-
 
 }  // namespace terrier::execution

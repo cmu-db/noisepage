@@ -18,7 +18,6 @@
 
 namespace terrier::execution {
 
-
 // StrWithLen struct
 DEFINE_TYPE(StrWithLen, "peloton::StrWithLen", str, length);
 
@@ -34,6 +33,5 @@ DEFINE_METHOD(peloton::function, StringFunctions, Repeat);
 DEFINE_METHOD(peloton::function, StringFunctions, CompareStrings);
 DEFINE_METHOD(peloton::function, StringFunctions, WriteString);
 DEFINE_METHOD(peloton::function, StringFunctions, InputString);
-
 
 }  // namespace terrier::execution

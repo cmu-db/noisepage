@@ -20,12 +20,8 @@ namespace planner {
 class CSVScanPlan;
 }  // namespace planner
 
-
 class CompilationContext;
 class Pipeline;
-
-
-
 
 //===----------------------------------------------------------------------===//
 // A translator for CSV file scans
@@ -33,8 +29,7 @@ class Pipeline;
 class CSVScanTranslator : public OperatorTranslator {
  public:
   // Constructor
-  CSVScanTranslator(const planner::CSVScanPlan &scan,
-                    CompilationContext &context, Pipeline &pipeline);
+  CSVScanTranslator(const planner::CSVScanPlan &scan, CompilationContext &context, Pipeline &pipeline);
 
   void InitializeQueryState() override;
 
@@ -60,6 +55,5 @@ class CSVScanTranslator : public OperatorTranslator {
   // The generated CSV scan consumer function
   llvm::Function *consumer_func_;
 };
-
 
 }  // namespace terrier::execution

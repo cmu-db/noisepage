@@ -17,7 +17,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(Buffer) {
   // Member Variables
   DECLARE_MEMBER(0, char *, buffer_start);
@@ -32,6 +31,5 @@ PROXY(Buffer) {
 };
 
 TYPE_BUILDER(Buffer, util::Buffer);
-
 
 }  // namespace terrier::execution

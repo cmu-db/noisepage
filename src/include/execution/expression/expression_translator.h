@@ -22,8 +22,6 @@ namespace expression {
 class AbstractExpression;
 }  // namespace expression
 
-
-
 // Forward declare
 class CompilationContext;
 
@@ -35,15 +33,13 @@ class CompilationContext;
 class ExpressionTranslator {
  public:
   // Constructor
-  ExpressionTranslator(const expression::AbstractExpression &expression,
-                       CompilationContext &ctx);
+  ExpressionTranslator(const expression::AbstractExpression &expression, CompilationContext &ctx);
 
   // Destructor
   virtual ~ExpressionTranslator() = default;
 
   // Compute this expression
-  virtual codegen::Value DeriveValue(CodeGen &codegen,
-                                     RowBatch::Row &row) const = 0;
+  virtual Value DeriveValue(CodeGen &codegen, RowBatch::Row &row) const = 0;
 
   template <typename T>
   const T &GetExpressionAs() const {
@@ -62,6 +58,5 @@ class ExpressionTranslator {
   // The expression
   const expression::AbstractExpression &expression_;
 };
-
 
 }  // namespace terrier::execution

@@ -16,7 +16,6 @@
 
 namespace terrier::execution {
 
-
 PROXY(DateFunctions) {
   // Utility functions
   DECLARE_METHOD(Now);
@@ -24,6 +23,5 @@ PROXY(DateFunctions) {
   // Input functions
   DECLARE_METHOD(InputDate);
 };
-
 
 }  // namespace terrier::execution

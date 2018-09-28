@@ -17,9 +17,7 @@
 
 namespace terrier::execution {
 
-
 PROXY(Inserter) {
-
   DECLARE_MEMBER(0, char[sizeof(Inserter)], opaque);
   DECLARE_TYPE;
 
@@ -30,7 +28,6 @@ PROXY(Inserter) {
   DECLARE_METHOD(TearDown);
 };
 
-TYPE_BUILDER(Inserter, codegen::Inserter);
-
+TYPE_BUILDER(Inserter, Inserter);
 
 }  // namespace terrier::execution

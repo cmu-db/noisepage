@@ -32,12 +32,10 @@ namespace proxy {
 template <typename T>
 struct TypeBuilder {};
 
-#define DEFINE_PRIMITIVE_BUILDER(P, N)                           \
-  template <>                                                    \
-  struct TypeBuilder<P> {                                        \
-    static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE { \
-      return codegen.N##Type();                                  \
-    }                                                            \
+#define DEFINE_PRIMITIVE_BUILDER(P, N)                                                       \
+  template <>                                                                                \
+  struct TypeBuilder<P> {                                                                    \
+    static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE { return codegen.N##Type(); } \
   };
 DEFINE_PRIMITIVE_BUILDER(void, Void);
 DEFINE_PRIMITIVE_BUILDER(bool, Bool);
@@ -61,9 +59,7 @@ DEFINE_PRIMITIVE_BUILDER(unsigned char *, CharPtr);
 /// Const
 template <typename T>
 struct TypeBuilder<const T> {
-  static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
-    return TypeBuilder<T>::GetType(codegen);
-  }
+  static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE { return TypeBuilder<T>::GetType(codegen); }
 };
 
 /// Pointers and references
@@ -89,8 +85,7 @@ template <typename Ret, typename... Args>
 struct TypeBuilder<Ret(Args...)> {
   static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
     llvm::Type *ret_type = TypeBuilder<Ret>::GetType(codegen);
-    std::vector<llvm::Type *> arg_types = {
-        TypeBuilder<Args>::GetType(codegen)...};
+    std::vector<llvm::Type *> arg_types = {TypeBuilder<Args>::GetType(codegen)...};
     return llvm::FunctionType::get(ret_type, arg_types, false);
   }
 };
@@ -100,8 +95,7 @@ template <typename Ret, typename... Args>
 struct TypeBuilder<Ret (*)(Args...)> {
   static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
     llvm::Type *ret_type = TypeBuilder<Ret>::GetType(codegen);
-    std::vector<llvm::Type *> arg_types = {
-        TypeBuilder<Args>::GetType(codegen)...};
+    std::vector<llvm::Type *> arg_types = {TypeBuilder<Args>::GetType(codegen)...};
     return llvm::FunctionType::get(ret_type, arg_types, false)->getPointerTo();
   }
 };
@@ -111,8 +105,7 @@ template <typename Ret, typename... Args>
 struct TypeBuilder<Ret(Args..., ...)> {
   static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
     llvm::Type *ret_type = TypeBuilder<Ret>::GetType(codegen);
-    std::vector<llvm::Type *> arg_types = {
-        TypeBuilder<Args>::GetType(codegen)...};
+    std::vector<llvm::Type *> arg_types = {TypeBuilder<Args>::GetType(codegen)...};
     return llvm::FunctionType::get(ret_type, arg_types, true);
   }
 };
@@ -122,8 +115,7 @@ template <typename Ret, typename... Args>
 struct TypeBuilder<Ret (*)(Args..., ...)> {
   static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
     llvm::Type *ret_type = TypeBuilder<Ret>::GetType(codegen);
-    std::vector<llvm::Type *> arg_types = {
-        TypeBuilder<Args>::GetType(codegen)...};
+    std::vector<llvm::Type *> arg_types = {TypeBuilder<Args>::GetType(codegen)...};
     return llvm::FunctionType::get(ret_type, arg_types, true)->getPointerTo();
   }
 };
@@ -134,13 +126,11 @@ struct TypeBuilder<R (T::*)(Args...)> {
   static llvm::Type *GetType(CodeGen &codegen) ALWAYS_INLINE {
     std::vector<llvm::Type *> arg_types = {TypeBuilder<T *>::GetType(codegen)};
     arg_types.insert(arg_types.end(), {TypeBuilder<Args>::GetType(codegen)...});
-    return llvm::FunctionType::get(TypeBuilder<R>::GetType(codegen), arg_types,
-                                   false)->getPointerTo();
+    return llvm::FunctionType::get(TypeBuilder<R>::GetType(codegen), arg_types, false)->getPointerTo();
   }
 };
 template <typename R, typename T, typename... Args>
-struct TypeBuilder<R (T::*)(Args...) const>
-    : public TypeBuilder<R (T::*)(Args...)> {};
+struct TypeBuilder<R (T::*)(Args...) const> : public TypeBuilder<R (T::*)(Args...)> {};
 
 }  // namespace proxy
 

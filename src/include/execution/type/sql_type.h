@@ -23,7 +23,6 @@ class Function;
 
 namespace terrier::execution {
 
-
 // Forward declare
 class CodeGen;
 class Value;
@@ -44,26 +43,22 @@ class TypeSystem;
 //===----------------------------------------------------------------------===//
 class SqlType {
  public:
-  SqlType(peloton::type::TypeId type_id) : type_id_(type_id) {}
+  SqlType(type::TypeId type_id) : type_id_(type_id) {}
   virtual ~SqlType() {}
 
-  virtual peloton::type::TypeId TypeId() const { return type_id_; }
+  virtual type::TypeId TypeId() const { return type_id_; }
 
   virtual bool IsVariableLength() const = 0;
   virtual Value GetMinValue(CodeGen &codegen) const = 0;
   virtual Value GetMaxValue(CodeGen &codegen) const = 0;
   virtual Value GetNullValue(CodeGen &codegen) const = 0;
-  virtual void GetTypeForMaterialization(CodeGen &codegen,
-                                         llvm::Type *&val_type,
-                                         llvm::Type *&len_type) const = 0;
-  virtual llvm::Function *GetInputFunction(CodeGen &codegen,
-                                           const Type &type) const = 0;
-  virtual llvm::Function *GetOutputFunction(CodeGen &codegen,
-                                            const Type &type) const = 0;
+  virtual void GetTypeForMaterialization(CodeGen &codegen, llvm::Type *&val_type, llvm::Type *&len_type) const = 0;
+  virtual llvm::Function *GetInputFunction(CodeGen &codegen, const Type &type) const = 0;
+  virtual llvm::Function *GetOutputFunction(CodeGen &codegen, const Type &type) const = 0;
   virtual const TypeSystem &GetTypeSystem() const = 0;
 
   // Given a type ID, get the SQL Type instance
-  static const SqlType &LookupType(peloton::type::TypeId type_id);
+  static const SqlType &LookupType(type::TypeId type_id);
 
   // Equality
   bool operator==(const SqlType &o) const { return TypeId() == o.TypeId(); }
@@ -71,7 +66,7 @@ class SqlType {
 
  private:
   // The unique ID of this type
-  peloton::type::TypeId type_id_;
+  type::TypeId type_id_;
 };
 
 }  // namespace type

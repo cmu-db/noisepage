@@ -29,7 +29,6 @@
 
 namespace terrier::execution {
 
-
 /// Atomic plan ID counter
 static std::atomic<uint64_t> kIdCounter{0};
 
@@ -44,18 +43,15 @@ namespace {
 class PelotonMemoryManager : public llvm::SectionMemoryManager {
  public:
   explicit PelotonMemoryManager(
-      const std::unordered_map<std::string,
-                               std::pair<llvm::Function *, CodeContext::FuncPtr>> &builtins)
+      const std::unordered_map<std::string, std::pair<llvm::Function *, CodeContext::FuncPtr>> &builtins)
       : builtins_(builtins) {}
 
 #if LLVM_VERSION_GE(4, 0)
 #define RET_TYPE llvm::JITSymbol
-#define BUILD_RET_TYPE(addr) \
-  (RET_TYPE{(llvm::JITTargetAddress)addr, llvm::JITSymbolFlags::Exported})
+#define BUILD_RET_TYPE(addr) (RET_TYPE{(llvm::JITTargetAddress)addr, llvm::JITSymbolFlags::Exported})
 #else
 #define RET_TYPE llvm::RuntimeDyld::SymbolInfo
-#define BUILD_RET_TYPE(addr) \
-  (RET_TYPE{(uint64_t)addr, llvm::JITSymbolFlags::Exported})
+#define BUILD_RET_TYPE(addr) (RET_TYPE{(uint64_t)addr, llvm::JITSymbolFlags::Exported})
 #endif
   RET_TYPE findSymbol(const std::string &name) override {
     LOG_TRACE("Looking up symbol '%s' ...", name.c_str());
@@ -92,9 +88,7 @@ class PelotonMemoryManager : public llvm::SectionMemoryManager {
 
  private:
   // The code context
-  const std::unordered_map<std::string,
-                           std::pair<llvm::Function *, CodeContext::FuncPtr>>
-      &builtins_;
+  const std::unordered_map<std::string, std::pair<llvm::Function *, CodeContext::FuncPtr>> &builtins_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,11 +111,7 @@ class PelotonMemoryManager : public llvm::SectionMemoryManager {
 class InstructionCounts : public llvm::ModulePass {
  public:
   explicit InstructionCounts(char &pid)
-      : ModulePass(pid),
-        external_func_count_(0),
-        func_count_(0),
-        basic_block_count_(0),
-        total_inst_counts_(0) {}
+      : ModulePass(pid), external_func_count_(0), func_count_(0), basic_block_count_(0), total_inst_counts_(0) {}
 
   bool runOnModule(::llvm::Module &module) override {
     for (const auto &func : module) {
@@ -142,10 +132,8 @@ class InstructionCounts : public llvm::ModulePass {
   }
 
   void DumpStats() const {
-    LOG_INFO("# functions: %" PRId64 " (%" PRId64
-              " external), # blocks: %" PRId64 ", # instructions: %" PRId64,
-              func_count_, external_func_count_, basic_block_count_,
-              total_inst_counts_);
+    LOG_INFO("# functions: %" PRId64 " (%" PRId64 " external), # blocks: %" PRId64 ", # instructions: %" PRId64,
+             func_count_, external_func_count_, basic_block_count_, total_inst_counts_);
     for (const auto iter : counts_) {
       const char *inst_name = llvm::Instruction::getOpcodeName(iter.first);
       LOG_INFO("↳ %s: %" PRId64, inst_name, iter.second);
@@ -198,13 +186,12 @@ CodeContext::CodeContext()
   // references etc.
   std::unique_ptr<llvm::Module> m{module_};
   module_ = m.get();
-  engine_.reset(
-      llvm::EngineBuilder(std::move(m))
-          .setEngineKind(llvm::EngineKind::JIT)
-          .setMCJITMemoryManager(llvm::make_unique<PelotonMemoryManager>(builtins_))
-          .setMCPU(llvm::sys::getHostCPUName())
-          .setErrorStr(&err_str_)
-          .create());
+  engine_.reset(llvm::EngineBuilder(std::move(m))
+                    .setEngineKind(llvm::EngineKind::JIT)
+                    .setMCJITMemoryManager(llvm::make_unique<PelotonMemoryManager>(builtins_))
+                    .setMCPU(llvm::sys::getHostCPUName())
+                    .setErrorStr(&err_str_)
+                    .create());
   PELOTON_ASSERT(engine_ != nullptr);
 
   // The set of optimization passes we include
@@ -237,26 +224,21 @@ CodeContext::~CodeContext() {
 }
 
 void CodeContext::RegisterFunction(llvm::Function *func) {
-  PELOTON_ASSERT(
-      func->getParent() == &GetModule() &&
-      "Cannot register a function from a different context and module");
+  PELOTON_ASSERT(func->getParent() == &GetModule() && "Cannot register a function from a different context and module");
   // Insert the function without an implementation
   functions_.emplace_back(func, nullptr);
 }
 
-void CodeContext::RegisterExternalFunction(llvm::Function *func_decl,
-                                           CodeContext::FuncPtr func_impl) {
+void CodeContext::RegisterExternalFunction(llvm::Function *func_decl, CodeContext::FuncPtr func_impl) {
   PELOTON_ASSERT(func_decl != nullptr && "Function declaration cannot be NULL");
-  PELOTON_ASSERT(func_decl->isDeclaration() &&
-                 "The first argument must be a function declaration");
+  PELOTON_ASSERT(func_decl->isDeclaration() && "The first argument must be a function declaration");
   PELOTON_ASSERT(func_impl != nullptr && "The function pointer cannot be NULL");
   functions_.emplace_back(func_decl, func_impl);
 
   builtins_[func_decl->getName()] = std::make_pair(func_decl, func_impl);
 }
 
-void CodeContext::RegisterBuiltin(llvm::Function *func_decl,
-                                  CodeContext::FuncPtr func_impl) {
+void CodeContext::RegisterBuiltin(llvm::Function *func_decl, CodeContext::FuncPtr func_impl) {
   const auto name = func_decl->getName();
   if (LookupBuiltin(name).first != nullptr) {
     LOG_DEBUG("Builtin '%s' already registered, skipping ...", name.data());
@@ -264,9 +246,7 @@ void CodeContext::RegisterBuiltin(llvm::Function *func_decl,
   }
 
   // Sanity check
-  PELOTON_ASSERT(
-      func_decl->isDeclaration() &&
-      "You cannot provide a function definition for a builtin function");
+  PELOTON_ASSERT(func_decl->isDeclaration() && "You cannot provide a function definition for a builtin function");
 
   // Register the builtin function with type and implementation
   builtins_[name] = std::make_pair(func_decl, func_impl);
@@ -274,7 +254,8 @@ void CodeContext::RegisterBuiltin(llvm::Function *func_decl,
 
 std::pair<llvm::Function *, CodeContext::FuncPtr> CodeContext::LookupBuiltin(const std::string &name) const {
   auto iter = builtins_.find(name);
-  return (iter == builtins_.end() ? std::make_pair<llvm::Function *, CodeContext::FuncPtr>(nullptr, nullptr) : iter->second);
+  return (iter == builtins_.end() ? std::make_pair<llvm::Function *, CodeContext::FuncPtr>(nullptr, nullptr)
+                                  : iter->second);
 }
 
 /// Verify all the functions that were created in this context
@@ -339,13 +320,9 @@ size_t CodeContext::GetTypeSize(llvm::Type *type) const {
   return size != 0 ? size : 1;
 }
 
-size_t CodeContext::GetTypeSizeInBits(llvm::Type *type) const {
-  return GetDataLayout().getTypeSizeInBits(type);
-}
+size_t CodeContext::GetTypeSizeInBits(llvm::Type *type) const { return GetDataLayout().getTypeSizeInBits(type); }
 
-size_t CodeContext::GetTypeAllocSize(llvm::Type *type) const {
-  return GetDataLayout().getTypeAllocSize(type);
-}
+size_t CodeContext::GetTypeAllocSize(llvm::Type *type) const { return GetDataLayout().getTypeAllocSize(type); }
 
 size_t CodeContext::GetTypeAllocSizeInBits(llvm::Type *type) const {
   return GetDataLayout().getTypeAllocSizeInBits(type);
@@ -356,8 +333,7 @@ size_t CodeContext::GetStructElementOffset(llvm::StructType *type, size_t index)
 }
 
 // TODO(marcel) same as LookupBuiltin?
-CodeContext::FuncPtr CodeContext::GetRawFunctionPointer(
-    llvm::Function *fn) const {
+CodeContext::FuncPtr CodeContext::GetRawFunctionPointer(llvm::Function *fn) const {
   for (const auto &iter : functions_) {
     if (iter.first == fn) {
       return iter.second;
@@ -369,9 +345,7 @@ CodeContext::FuncPtr CodeContext::GetRawFunctionPointer(
 }
 
 /// Get the module's layout
-const llvm::DataLayout &CodeContext::GetDataLayout() const {
-  return module_->getDataLayout();
-}
+const llvm::DataLayout &CodeContext::GetDataLayout() const { return module_->getDataLayout(); }
 
 void CodeContext::DumpContents() const {
   std::error_code error_code;
@@ -386,13 +360,11 @@ void CodeContext::DumpContents() const {
   // Now, write out the raw ASM
   {
     std::string asm_fname = "dump_plan_" + std::to_string(id_) + ".s";
-    llvm::raw_fd_ostream asm_ostream{asm_fname, error_code,
-                                     llvm::sys::fs::F_RW};
+    llvm::raw_fd_ostream asm_ostream{asm_fname, error_code, llvm::sys::fs::F_RW};
     llvm::legacy::PassManager pass_manager;
     auto *target_machine = engine_->getTargetMachine();
     target_machine->Options.MCOptions.AsmVerbose = true;
-    target_machine->addPassesToEmitFile(pass_manager, asm_ostream,
-                                        llvm::TargetMachine::CGFT_AssemblyFile);
+    target_machine->addPassesToEmitFile(pass_manager, asm_ostream, llvm::TargetMachine::CGFT_AssemblyFile);
     pass_manager.run(*module_);
     target_machine->Options.MCOptions.AsmVerbose = false;
   }
@@ -405,6 +377,5 @@ std::string CodeContext::GetIR() const {
   module_->print(ostream, nullptr, false);
   return module_str;
 }
-
 
 }  // namespace terrier::execution

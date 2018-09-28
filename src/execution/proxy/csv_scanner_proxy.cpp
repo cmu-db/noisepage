@@ -17,15 +17,12 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(CSVScanner, "runtime::CSVScanner", opaque1, cols, opaque2);
 
-DEFINE_TYPE(CSVScannerColumn, "runtime::CSVScanner::Column", type, ptr, len,
-            is_null);
+DEFINE_TYPE(CSVScannerColumn, "runtime::CSVScanner::Column", type, ptr, len, is_null);
 
-DEFINE_METHOD(peloton::codegen::util, CSVScanner, Init);
-DEFINE_METHOD(peloton::codegen::util, CSVScanner, Destroy);
-DEFINE_METHOD(peloton::codegen::util, CSVScanner, Produce);
-
+DEFINE_METHOD(peloton::util, CSVScanner, Init);
+DEFINE_METHOD(peloton::util, CSVScanner, Destroy);
+DEFINE_METHOD(peloton::util, CSVScanner, Produce);
 
 }  // namespace terrier::execution

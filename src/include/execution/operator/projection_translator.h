@@ -22,16 +22,13 @@ class ProjectInfo;
 class ProjectionPlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // A translator for projections.
 //===----------------------------------------------------------------------===//
 class ProjectionTranslator : public OperatorTranslator {
  public:
   // Constructor
-  ProjectionTranslator(const planner::ProjectionPlan &plan,
-                       CompilationContext &context, Pipeline &pipeline);
+  ProjectionTranslator(const planner::ProjectionPlan &plan, CompilationContext &context, Pipeline &pipeline);
 
   // Nothing to initialize
   void InitializeQueryState() override {}
@@ -49,13 +46,10 @@ class ProjectionTranslator : public OperatorTranslator {
   void TearDownQueryState() override {}
 
   // Helpers
-  static void PrepareProjection(CompilationContext &context,
-                                const planner::ProjectInfo &projection_info);
+  static void PrepareProjection(CompilationContext &context, const planner::ProjectInfo &projection_info);
 
-  static void AddNonTrivialAttributes(
-      RowBatch &row_batch, const planner::ProjectInfo &projection_info,
-      std::vector<RowBatch::ExpressionAccess> &accessors);
+  static void AddNonTrivialAttributes(RowBatch &row_batch, const planner::ProjectInfo &projection_info,
+                                      std::vector<RowBatch::ExpressionAccess> &accessors);
 };
-
 
 }  // namespace terrier::execution

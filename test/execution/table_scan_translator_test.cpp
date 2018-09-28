@@ -12,9 +12,9 @@
 
 #include "catalog/catalog.h"
 #include "catalog/system_catalogs.h"
-#include "execution/query_compiler.h"
 #include "common/harness.h"
 #include "concurrency/transaction_manager_factory.h"
+#include "execution/query_compiler.h"
 #include "expression/conjunction_expression.h"
 #include "expression/operator_expression.h"
 #include "planner/seq_scan_plan.h"
@@ -37,8 +37,7 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
     CreateAndLoadAllColsTable();
   }
 
-  void ScanLayoutTable(oid_t tuples_per_tilegroup, oid_t tilegroup_count,
-                       oid_t column_count) {
+  void ScanLayoutTable(oid_t tuples_per_tilegroup, oid_t tilegroup_count, oid_t column_count) {
     auto table = GetLayoutTable();
     oid_t tuple_count = tuples_per_tilegroup * tilegroup_count;
 
@@ -73,10 +72,8 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
       auto &tuple = results[tuple_id];
       int tuple_id_value = tuple_id;
       for (oid_t col_id = 0; col_id < column_count; col_id++) {
-        auto value =
-            type::ValueFactory::GetIntegerValue(tuple_id_value + col_id);
-        EXPECT_EQ(CmpBool::CmpTrue,
-                  tuple.GetValue(col_id).CompareEquals(value));
+        auto value = type::ValueFactory::GetIntegerValue(tuple_id_value + col_id);
+        EXPECT_EQ(CmpBool::CmpTrue, tuple.GetValue(col_id).CompareEquals(value));
       }
     }
   }
@@ -93,37 +90,21 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
     // Columns and schema
     const bool is_inlined = true;
     std::vector<catalog::Column> cols = {
-        {type::TypeId::BOOLEAN, type::Type::GetTypeSize(type::TypeId::BOOLEAN),
-         "COL_A", is_inlined},
-        {type::TypeId::TINYINT, type::Type::GetTypeSize(type::TypeId::TINYINT),
-         "COL_B", is_inlined},
-        {type::TypeId::SMALLINT,
-         type::Type::GetTypeSize(type::TypeId::SMALLINT), "COL_C", is_inlined},
-        {type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
-         "COL_D", is_inlined},
-        {type::TypeId::BIGINT, type::Type::GetTypeSize(type::TypeId::BIGINT),
-         "COL_E", is_inlined},
-        {type::TypeId::DECIMAL, type::Type::GetTypeSize(type::TypeId::DECIMAL),
-         "COL_F", is_inlined},
-        {type::TypeId::TIMESTAMP,
-         type::Type::GetTypeSize(type::TypeId::TIMESTAMP), "COL_G", is_inlined},
-        {type::TypeId::DATE, type::Type::GetTypeSize(type::TypeId::DATE),
-         "COL_H", is_inlined},
+        {type::TypeId::BOOLEAN, type::Type::GetTypeSize(type::TypeId::BOOLEAN), "COL_A", is_inlined},
+        {type::TypeId::TINYINT, type::Type::GetTypeSize(type::TypeId::TINYINT), "COL_B", is_inlined},
+        {type::TypeId::SMALLINT, type::Type::GetTypeSize(type::TypeId::SMALLINT), "COL_C", is_inlined},
+        {type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER), "COL_D", is_inlined},
+        {type::TypeId::BIGINT, type::Type::GetTypeSize(type::TypeId::BIGINT), "COL_E", is_inlined},
+        {type::TypeId::DECIMAL, type::Type::GetTypeSize(type::TypeId::DECIMAL), "COL_F", is_inlined},
+        {type::TypeId::TIMESTAMP, type::Type::GetTypeSize(type::TypeId::TIMESTAMP), "COL_G", is_inlined},
+        {type::TypeId::DATE, type::Type::GetTypeSize(type::TypeId::DATE), "COL_H", is_inlined},
         {type::TypeId::VARCHAR, 25, "COL_I", !is_inlined}};
     std::unique_ptr<catalog::Schema> schema{new catalog::Schema(cols)};
 
     // Insert table in catalog
-    catalog->CreateTable(txn,
-                         test_db_name,
-                         DEFAULT_SCHEMA_NAME,
-                         std::move(schema),
-                         all_cols_table_name,
-                         false);
+    catalog->CreateTable(txn, test_db_name, DEFAULT_SCHEMA_NAME, std::move(schema), all_cols_table_name, false);
 
-    all_cols_table = catalog->GetTableWithName(txn,
-                                               test_db_name,
-                                               DEFAULT_SCHEMA_NAME,
-                                               all_cols_table_name);
+    all_cols_table = catalog->GetTableWithName(txn, test_db_name, DEFAULT_SCHEMA_NAME, all_cols_table_name);
     auto *table_schema = all_cols_table->GetSchema();
 
     // Insert one row where all columns are NULL
@@ -134,8 +115,7 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
     }
 
     ItemPointer *index_entry_ptr = nullptr;
-    ItemPointer tuple_slot_id =
-        all_cols_table->InsertTuple(&tuple, txn, &index_entry_ptr);
+    ItemPointer tuple_slot_id = all_cols_table->InsertTuple(&tuple, txn, &index_entry_ptr);
     PELOTON_ASSERT(tuple_slot_id.block != INVALID_OID);
     PELOTON_ASSERT(tuple_slot_id.offset != INVALID_OID);
 
@@ -202,8 +182,7 @@ TEST_F(TableScanTranslatorTest, AllColumnsScanWithNulls) {
   auto &tuple = buffer.GetOutputTuples()[0];
   for (uint32_t i = 0; i < all_col_ids.size(); i++) {
     auto col_val = tuple.GetValue(i);
-    EXPECT_TRUE(col_val.IsNull())
-        << "Result value: " << col_val.ToString() << ", expected NULL";
+    EXPECT_TRUE(col_val.IsNull()) << "Result value: " << col_val.ToString() << ", expected NULL";
   }
 }
 
@@ -213,8 +192,7 @@ TEST_F(TableScanTranslatorTest, SimplePredicate) {
   //
 
   // Setup the predicate
-  ExpressionPtr a_gt_20 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   // Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -245,8 +223,7 @@ TEST_F(TableScanTranslatorTest, SimplePredicateWithNull) {
   //
 
   // Setup the predicate
-  ExpressionPtr b_lt_20 =
-      CmpLtExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(20));
+  ExpressionPtr b_lt_20 = CmpLtExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(20));
 
   // Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -267,16 +244,12 @@ TEST_F(TableScanTranslatorTest, SimplePredicateWithNull) {
   EXPECT_EQ(2, results.size());
 
   // First tuple should be (0, 1)
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(0)));
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(0)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
 
   // Second tuple should be (10, 11)
-  EXPECT_EQ(CmpBool::CmpTrue, results[1].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(10)));
-  EXPECT_EQ(CmpBool::CmpTrue, results[1].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(11)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[1].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(10)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[1].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(11)));
 }
 
 TEST_F(TableScanTranslatorTest, PredicateOnNonOutputColumn) {
@@ -285,8 +258,7 @@ TEST_F(TableScanTranslatorTest, PredicateOnNonOutputColumn) {
   //
 
   // 1) Setup the predicate
-  ExpressionPtr a_gt_40 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
+  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
 
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -315,16 +287,14 @@ TEST_F(TableScanTranslatorTest, ScanWithConjunctionPredicate) {
   // 1) Construct the components of the predicate
 
   // a >= 20
-  ExpressionPtr a_gt_20 =
-      CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   // b = 21
-  ExpressionPtr b_eq_21 =
-      CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
+  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
 
   // a >= 20 AND b = 21
-  auto *conj_eq = new expression::ConjunctionExpression(
-      ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
+  auto *conj_eq =
+      new expression::ConjunctionExpression(ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());
 
   // 2) Setup the scan plan node
   planner::SeqScanPlan scan{&GetTestTable(TestTableId()), conj_eq, {0, 1, 2}};
@@ -342,10 +312,8 @@ TEST_F(TableScanTranslatorTest, ScanWithConjunctionPredicate) {
   // Check output results
   const auto &results = buffer.GetOutputTuples();
   ASSERT_EQ(1, results.size());
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(20)));
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(21)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(20)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(21)));
 }
 
 TEST_F(TableScanTranslatorTest, ScanWithAddPredicate) {
@@ -356,22 +324,17 @@ TEST_F(TableScanTranslatorTest, ScanWithAddPredicate) {
   // Construct the components of the predicate
 
   // a + 1
-  auto *a_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *a_plus_1 = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp,
-      const_1_exp);
+  auto *a_plus_1 =
+      new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp, const_1_exp);
 
   // b = a + 1
-  auto *b_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *b_eq_a_plus_1 = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, b_col_exp, a_plus_1);
+  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_eq_a_plus_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, a_plus_1);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), b_eq_a_plus_1, {0, 1}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), b_eq_a_plus_1, {0, 1}};
 
   // Do binding
   planner::BindingContext context;
@@ -396,23 +359,17 @@ TEST_F(TableScanTranslatorTest, ScanWithAddColumnsPredicate) {
   // Construct the components of the predicate
 
   // a + b
-  auto *a_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_rhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *a_plus_b = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp,
-      b_rhs_col_exp);
+  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *b_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *a_plus_b = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp,
+                                                      b_rhs_col_exp);
 
   // b = a + b
-  auto *b_lhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *b_eq_a_plus_b = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, a_plus_b);
+  auto *b_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_eq_a_plus_b = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, a_plus_b);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), b_eq_a_plus_b, {0, 1}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), b_eq_a_plus_b, {0, 1}};
 
   // Do binding
   planner::BindingContext context;
@@ -437,22 +394,17 @@ TEST_F(TableScanTranslatorTest, ScanWithSubtractPredicate) {
   // Construct the components of the predicate
 
   // b - 1
-  auto *b_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *b_minus_1 = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, b_col_exp,
-      const_1_exp);
+  auto *b_minus_1 =
+      new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, b_col_exp, const_1_exp);
 
   // a = b - 1
-  auto *a_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *a_eq_b_minus_1 = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, a_col_exp, b_minus_1);
+  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_eq_b_minus_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp, b_minus_1);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), a_eq_b_minus_1, {0, 1}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), a_eq_b_minus_1, {0, 1}};
 
   // Do binding
   planner::BindingContext context;
@@ -477,23 +429,17 @@ TEST_F(TableScanTranslatorTest, ScanWithSubtractColumnsPredicate) {
   // Construct the components of the predicate
 
   // b - a
-  auto *a_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_rhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *b_minus_a = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, b_rhs_col_exp,
-      a_col_exp);
+  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *b_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_minus_a = new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER,
+                                                       b_rhs_col_exp, a_col_exp);
 
   // b = b - a
-  auto *b_lhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *b_eq_b_minus_a = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, b_minus_a);
+  auto *b_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_eq_b_minus_a = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, b_minus_a);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), b_eq_b_minus_a, {0, 1}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), b_eq_b_minus_a, {0, 1}};
 
   // Do binding
   planner::BindingContext context;
@@ -518,22 +464,17 @@ TEST_F(TableScanTranslatorTest, ScanWithDividePredicate) {
   // Construct the components of the predicate
 
   // a / 1
-  auto *a_rhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = ConstIntExpr(2).release();
-  auto *a_div_1 = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_DIVIDE, type::TypeId::INTEGER, a_rhs_col_exp,
-      const_1_exp);
+  auto *a_div_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_DIVIDE, type::TypeId::INTEGER,
+                                                     a_rhs_col_exp, const_1_exp);
 
   // a = a / 1
-  auto *a_lhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *a_eq_a_div_1 = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_div_1);
+  auto *a_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_eq_a_div_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_div_1);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), a_eq_a_div_1, {0, 1, 2}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), a_eq_a_div_1, {0, 1, 2}};
 
   // Do binding
   planner::BindingContext context;
@@ -559,23 +500,17 @@ TEST_F(TableScanTranslatorTest, ScanWithMultiplyPredicate) {
   // Construct the components of the predicate
 
   // a  *b
-  auto *a_rhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *a_mul_b = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_MULTIPLY, type::TypeId::BIGINT, a_rhs_col_exp,
-      b_col_exp);
+  auto *a_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *a_mul_b = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, type::TypeId::BIGINT,
+                                                     a_rhs_col_exp, b_col_exp);
 
   // a = a  *b
-  auto *a_lhs_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *a_eq_a_mul_b = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_mul_b);
+  auto *a_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_eq_a_mul_b = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_mul_b);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), a_eq_a_mul_b, {0, 1, 2}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), a_eq_a_mul_b, {0, 1, 2}};
 
   // Do binding
   planner::BindingContext context;
@@ -600,22 +535,17 @@ TEST_F(TableScanTranslatorTest, ScanWithModuloPredicate) {
   // Construct the components of the predicate
 
   // b % 1
-  auto *b_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *b_mod_1 = new expression::OperatorExpression(
-      ExpressionType::OPERATOR_MOD, type::TypeId::DECIMAL, b_col_exp,
-      const_1_exp);
+  auto *b_mod_1 =
+      new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, type::TypeId::DECIMAL, b_col_exp, const_1_exp);
 
   // a = b % 1
-  auto *a_col_exp =
-      new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *a_eq_b_mod_1 = new expression::ComparisonExpression(
-      ExpressionType::COMPARE_EQUAL, a_col_exp, b_mod_1);
+  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_eq_b_mod_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp, b_mod_1);
 
   // Setup the scan plan node
-  planner::SeqScanPlan scan{
-      &GetTestTable(TestTableId()), a_eq_b_mod_1, {0, 1, 2}};
+  planner::SeqScanPlan scan{&GetTestTable(TestTableId()), a_eq_b_mod_1, {0, 1, 2}};
 
   // Do binding
   planner::BindingContext context;
@@ -630,10 +560,8 @@ TEST_F(TableScanTranslatorTest, ScanWithModuloPredicate) {
   // Check output results
   const auto &results = buffer.GetOutputTuples();
   ASSERT_EQ(1, results.size());
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(0)));
-  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(
-                                  type::ValueFactory::GetIntegerValue(1)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(0).CompareEquals(type::ValueFactory::GetIntegerValue(0)));
+  EXPECT_EQ(CmpBool::CmpTrue, results[0].GetValue(1).CompareEquals(type::ValueFactory::GetIntegerValue(1)));
 }
 
 TEST_F(TableScanTranslatorTest, ScanRowLayout) {
@@ -645,8 +573,7 @@ TEST_F(TableScanTranslatorTest, ScanRowLayout) {
   uint32_t tilegroup_count = 5;
   uint32_t column_count = 100;
   bool is_inlined = true;
-  CreateAndLoadTableWithLayout(LayoutType::ROW, tuples_per_tilegroup,
-                               tilegroup_count, column_count, is_inlined);
+  CreateAndLoadTableWithLayout(LayoutType::ROW, tuples_per_tilegroup, tilegroup_count, column_count, is_inlined);
   ScanLayoutTable(tuples_per_tilegroup, tilegroup_count, column_count);
 }
 
@@ -659,8 +586,7 @@ TEST_F(TableScanTranslatorTest, ScanColumnLayout) {
   uint32_t tilegroup_count = 5;
   uint32_t column_count = 100;
   bool is_inlined = true;
-  CreateAndLoadTableWithLayout(LayoutType::COLUMN, tuples_per_tilegroup,
-                               tilegroup_count, column_count, is_inlined);
+  CreateAndLoadTableWithLayout(LayoutType::COLUMN, tuples_per_tilegroup, tilegroup_count, column_count, is_inlined);
   ScanLayoutTable(tuples_per_tilegroup, tilegroup_count, column_count);
 }
 
@@ -686,15 +612,13 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr < col_count; col_itr++) {
-    auto column = catalog::Column(
-        type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
-        "FIELD" + std::to_string(col_itr), is_inlined);
+    auto column = catalog::Column(type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
+                                  "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);
   }
 
-  std::unique_ptr<catalog::Schema> table_schema =
-      std::unique_ptr<catalog::Schema>(new catalog::Schema(columns));
+  std::unique_ptr<catalog::Schema> table_schema = std::unique_ptr<catalog::Schema>(new catalog::Schema(columns));
   std::string table_name("MULTI_LAYOUT_TABLE");
 
   /////////////////////////////////////////////////////////
@@ -708,19 +632,10 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   auto txn = txn_manager.BeginTransaction();
 
   // Insert table in catalog
-  catalog->CreateTable(txn,
-                       test_db_name,
-                       DEFAULT_SCHEMA_NAME,
-                       std::move(table_schema),
-                       table_name,
-                       is_catalog,
-                       tuples_per_tilegroup,
-                       LayoutType::ROW);
+  catalog->CreateTable(txn, test_db_name, DEFAULT_SCHEMA_NAME, std::move(table_schema), table_name, is_catalog,
+                       tuples_per_tilegroup, LayoutType::ROW);
   // Get table reference
-  auto table = catalog->GetTableWithName(txn,
-                                         test_db_name,
-                                         DEFAULT_SCHEMA_NAME,
-                                         table_name);
+  auto table = catalog->GetTableWithName(txn, test_db_name, DEFAULT_SCHEMA_NAME, table_name);
   txn_manager.CommitTransaction(txn);
 
   /////////////////////////////////////////////////////////
@@ -728,10 +643,9 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   /////////////////////////////////////////////////////////
   txn = txn_manager.BeginTransaction();
   table->ResetDefaultLayout(LayoutType::COLUMN);
-  catalog->GetSystemCatalogs(table->GetDatabaseOid())->GetTableCatalog()
-      ->UpdateDefaultLayoutOid(txn,
-                               table->GetOid(),
-                               table->GetDefaultLayout()->GetOid());
+  catalog->GetSystemCatalogs(table->GetDatabaseOid())
+      ->GetTableCatalog()
+      ->UpdateDefaultLayoutOid(txn, table->GetOid(), table->GetDefaultLayout()->GetOid());
   txn_manager.CommitTransaction(txn);
 
   /////////////////////////////////////////////////////////
@@ -752,8 +666,7 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
     }
 
     ItemPointer *index_entry_ptr = nullptr;
-    ItemPointer tuple_slot_id =
-        table->InsertTuple(&tuple, txn, &index_entry_ptr);
+    ItemPointer tuple_slot_id = table->InsertTuple(&tuple, txn, &index_entry_ptr);
 
     EXPECT_TRUE(tuple_slot_id.block != INVALID_OID);
     EXPECT_TRUE(tuple_slot_id.offset != INVALID_OID);
@@ -779,8 +692,7 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   auto table_oid = table->GetOid();
 
   txn = txn_manager.BeginTransaction();
-  auto layout =
-      catalog->CreateDefaultLayout(txn, database_oid, table_oid, column_map);
+  auto layout = catalog->CreateDefaultLayout(txn, database_oid, table_oid, column_map);
   EXPECT_NE(nullptr, layout);
   txn_manager.CommitTransaction(txn);
 
@@ -801,8 +713,7 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
     }
 
     ItemPointer *index_entry_ptr = nullptr;
-    ItemPointer tuple_slot_id =
-        table->InsertTuple(&tuple, txn, &index_entry_ptr);
+    ItemPointer tuple_slot_id = table->InsertTuple(&tuple, txn, &index_entry_ptr);
 
     EXPECT_TRUE(tuple_slot_id.block != INVALID_OID);
     EXPECT_TRUE(tuple_slot_id.offset != INVALID_OID);

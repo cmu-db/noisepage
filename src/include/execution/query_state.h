@@ -19,7 +19,6 @@
 
 namespace terrier::execution {
 
-
 //===----------------------------------------------------------------------===//
 // This class captures all the state that a query plans' operators need. During
 // the compilation process, we pass this class around so that translators can
@@ -62,8 +61,7 @@ class QueryState {
   llvm::Value *LoadStatePtr(CodeGen &codegen, QueryState::Id state_id) const;
 
   /// Get the actual value of the state information with the given ID
-  llvm::Value *LoadStateValue(CodeGen &codegen,
-                              QueryState::Id state_id) const;
+  llvm::Value *LoadStateValue(CodeGen &codegen, QueryState::Id state_id) const;
 
   /// Construct the equivalent LLVM type that represents this runtime state
   llvm::Type *FinalizeType(CodeGen &codegen);
@@ -92,6 +90,5 @@ class QueryState {
   // The LLVM type of this runtime state. This type is cached for re-use.
   llvm::Type *constructed_type_;
 };
-
 
 }  // namespace terrier::execution

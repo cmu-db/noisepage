@@ -80,8 +80,7 @@ class OAHashTable {
   };
 
   /// Constructor
-  OAHashTable(uint64_t key_size, uint64_t value_size,
-              uint64_t estimated_num_entries = kDefaultInitialSize);
+  OAHashTable(uint64_t key_size, uint64_t value_size, uint64_t estimated_num_entries = kDefaultInitialSize);
 
   /// Destructor
   ~OAHashTable();
@@ -95,8 +94,7 @@ class OAHashTable {
    * @param estimated_num_entries An initial estimate of the number of entries
    * that will be stored in the table
    */
-  static void Init(OAHashTable &table, uint64_t key_size, uint64_t value_size,
-                   uint64_t estimated_num_entries);
+  static void Init(OAHashTable &table, uint64_t key_size, uint64_t value_size, uint64_t estimated_num_entries);
 
   /**
    * Clean up all resources allocated by the provided table
@@ -125,8 +123,7 @@ class OAHashTable {
    * @return
    */
   template <typename Key, typename Value>
-  bool Probe(uint64_t hash, const Key &key,
-             std::function<void(const Value &)> &consumer);
+  bool Probe(uint64_t hash, const Key &key, std::function<void(const Value &)> &consumer);
 
   /**
    * Make room in the hash-table to store a new key-value pair. The provided
@@ -277,8 +274,7 @@ template <typename Key, typename Value>
 void OAHashTable::Insert(uint64_t hash, const Key &key, const Value &value) {
   uint64_t bucket = hash & bucket_mask_;
 
-  uint64_t entry_int =
-      reinterpret_cast<uint64_t>(buckets_) + bucket * entry_size_;
+  uint64_t entry_int = reinterpret_cast<uint64_t>(buckets_) + bucket * entry_size_;
   while (true) {
     auto *entry = reinterpret_cast<HashEntry *>(entry_int);
 
@@ -315,14 +311,12 @@ void OAHashTable::Insert(uint64_t hash, const Key &key, const Value &value) {
 }
 
 template <typename Key, typename Value>
-bool OAHashTable::Probe(uint64_t hash, const Key &key,
-                        std::function<void(const Value &)> &consumer) {
+bool OAHashTable::Probe(uint64_t hash, const Key &key, std::function<void(const Value &)> &consumer) {
   uint64_t steps = 0;
 
   uint64_t bucket = hash & bucket_mask_;
 
-  uint64_t entry_int =
-      reinterpret_cast<uint64_t>(buckets_) + (bucket * entry_size_);
+  uint64_t entry_int = reinterpret_cast<uint64_t>(buckets_) + (bucket * entry_size_);
 
   while (steps++ < num_entries_) {
     auto *entry = reinterpret_cast<HashEntry *>(entry_int);
@@ -333,9 +327,7 @@ bool OAHashTable::Probe(uint64_t hash, const Key &key,
       if (*entry_key == key) {
         if (entry->HasKeyValueList()) {
           auto *kv_list = entry->kv_list;
-          for (uint64_t pos = 0,
-                        end = GetCurrentKeyValueListSize(kv_list->size);
-               pos != end; pos += value_size_) {
+          for (uint64_t pos = 0, end = GetCurrentKeyValueListSize(kv_list->size); pos != end; pos += value_size_) {
             auto *value = reinterpret_cast<Value *>(kv_list->data + pos);
             consumer(*value);
           }
@@ -360,6 +352,6 @@ bool OAHashTable::Probe(uint64_t hash, const Key &key,
   return false;
 }
 
-}  // namespace runtime
+}  // namespace util
 
 }  // namespace terrier::execution

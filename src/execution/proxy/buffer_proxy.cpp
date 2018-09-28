@@ -17,13 +17,11 @@
 
 namespace terrier::execution {
 
-
 DEFINE_TYPE(Buffer, "peloton::Buffer", buffer_start, buffer_pos, buffer_end);
 
-DEFINE_METHOD(peloton::codegen::util, Buffer, Init);
-DEFINE_METHOD(peloton::codegen::util, Buffer, Destroy);
-DEFINE_METHOD(peloton::codegen::util, Buffer, Append);
-DEFINE_METHOD(peloton::codegen::util, Buffer, Reset);
-
+DEFINE_METHOD(peloton::util, Buffer, Init);
+DEFINE_METHOD(peloton::util, Buffer, Destroy);
+DEFINE_METHOD(peloton::util, Buffer, Append);
+DEFINE_METHOD(peloton::util, Buffer, Reset);
 
 }  // namespace terrier::execution

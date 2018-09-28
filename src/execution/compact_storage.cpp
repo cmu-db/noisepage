@@ -18,18 +18,15 @@
 
 namespace terrier::execution {
 
-
 // TODO: Only load/store values if it's not NULL
 
 namespace {
 
 class BitmapWriter {
  public:
-  BitmapWriter(CodeGen &codegen, llvm::Value *bitmap_ptr, uint32_t num_bits)
-      : bitmap_ptr_(bitmap_ptr) {
+  BitmapWriter(CodeGen &codegen, llvm::Value *bitmap_ptr, uint32_t num_bits) : bitmap_ptr_(bitmap_ptr) {
     if (bitmap_ptr_->getType() != codegen.CharPtrType()) {
-      bitmap_ptr_ =
-          codegen->CreateBitOrPointerCast(bitmap_ptr_, codegen.CharPtrType());
+      bitmap_ptr_ = codegen->CreateBitOrPointerCast(bitmap_ptr_, codegen.CharPtrType());
     }
     bytes_.resize((num_bits + 7) >> 3, nullptr);
   }
@@ -42,15 +39,12 @@ class BitmapWriter {
 
     // Store in bytes
     uint32_t byte_pos = bit_idx >> 3;
-    bytes_[byte_pos] = (bytes_[byte_pos] == nullptr)
-                           ? byte_val
-                           : codegen->CreateOr(bytes_[byte_pos], byte_val);
+    bytes_[byte_pos] = (bytes_[byte_pos] == nullptr) ? byte_val : codegen->CreateOr(bytes_[byte_pos], byte_val);
   }
 
   void Write(CodeGen &codegen) const {
     for (uint32_t idx = 0; idx < bytes_.size(); idx++) {
-      llvm::Value *addr = codegen->CreateConstInBoundsGEP1_32(
-          codegen.ByteType(), bitmap_ptr_, idx);
+      llvm::Value *addr = codegen->CreateConstInBoundsGEP1_32(codegen.ByteType(), bitmap_ptr_, idx);
       if (bytes_[idx] != nullptr) {
         codegen->CreateStore(bytes_[idx], addr);
       } else {
@@ -69,11 +63,9 @@ class BitmapWriter {
 
 class BitmapReader {
  public:
-  BitmapReader(CodeGen &codegen, llvm::Value *bitmap_ptr, uint32_t num_bits)
-      : bitmap_ptr_(bitmap_ptr) {
+  BitmapReader(CodeGen &codegen, llvm::Value *bitmap_ptr, uint32_t num_bits) : bitmap_ptr_(bitmap_ptr) {
     if (bitmap_ptr_->getType() != codegen.CharPtrType()) {
-      bitmap_ptr_ =
-          codegen->CreateBitOrPointerCast(bitmap_ptr_, codegen.CharPtrType());
+      bitmap_ptr_ = codegen->CreateBitOrPointerCast(bitmap_ptr_, codegen.CharPtrType());
     }
     bytes_.resize((num_bits + 7) >> 3, nullptr);
   }
@@ -82,8 +74,7 @@ class BitmapReader {
     uint32_t byte_pos = bit_idx >> 3;
     if (bytes_[byte_pos] == nullptr) {
       // Load the byte
-      auto *byte_addr = codegen->CreateConstInBoundsGEP1_32(
-          codegen.ByteType(), bitmap_ptr_, byte_pos);
+      auto *byte_addr = codegen->CreateConstInBoundsGEP1_32(codegen.ByteType(), bitmap_ptr_, byte_pos);
       bytes_[byte_pos] = codegen->CreateLoad(byte_addr);
     }
     // Pull out only the bit we want
@@ -107,8 +98,7 @@ class BitmapReader {
 //===----------------------------------------------------------------------===//
 // Setup
 //===----------------------------------------------------------------------===//
-llvm::Type *CompactStorage::Setup(CodeGen &codegen,
-                                  const std::vector<type::Type> &types) {
+llvm::Type *CompactStorage::Setup(CodeGen &codegen, const std::vector<type::Type> &types) {
   // Return the constructed type if the compact storage has already been set up
   if (storage_type_ != nullptr) {
     return storage_type_;
@@ -128,22 +118,18 @@ llvm::Type *CompactStorage::Setup(CodeGen &codegen,
     // Create a slot metadata entry for the value
     // Note: The physical and logical index are the same for now. The physical
     //       index is modified after storage format optimization (later).
-    storage_format_.push_back(
-        EntryInfo{val_type, i, i, false, codegen.SizeOf(val_type)});
+    storage_format_.push_back(EntryInfo{val_type, i, i, false, codegen.SizeOf(val_type)});
 
     // If there is a length component, add that too
     if (len_type != nullptr) {
-      storage_format_.push_back(
-          EntryInfo{len_type, i, i, true, codegen.SizeOf(len_type)});
+      storage_format_.push_back(EntryInfo{len_type, i, i, true, codegen.SizeOf(len_type)});
     }
   }
 
   // Sort the entries by decreasing size. This minimizes storage overhead due to
   // padding (potentially) added by LLVM.
   std::sort(storage_format_.begin(), storage_format_.end(),
-            [](const EntryInfo &left, const EntryInfo &right) {
-              return right.num_bytes < left.num_bytes;
-            });
+            [](const EntryInfo &left, const EntryInfo &right) { return right.num_bytes < left.num_bytes; });
 
   // Now we construct the LLVM type of this storage space. First comes bytes
   // to manage the null bitmap. Then all the data elements.
@@ -170,9 +156,8 @@ llvm::Type *CompactStorage::Setup(CodeGen &codegen,
 //===----------------------------------------------------------------------===//
 // Stores the given values into the provided storage area
 //===----------------------------------------------------------------------===//
-llvm::Value *CompactStorage::StoreValues(
-    CodeGen &codegen, llvm::Value *area_start,
-    const std::vector<codegen::Value> &to_store) const {
+llvm::Value *CompactStorage::StoreValues(CodeGen &codegen, llvm::Value *area_start,
+                                         const std::vector<Value> &to_store) const {
   PELOTON_ASSERT(storage_type_ != nullptr);
   PELOTON_ASSERT(to_store.size() == schema_.size());
 
@@ -183,13 +168,11 @@ llvm::Value *CompactStorage::StoreValues(
   std::vector<llvm::Value *> vals{nitems}, lengths{nitems}, nulls{nitems};
 
   for (uint32_t i = 0; i < nitems; i++) {
-    to_store[i].ValuesForMaterialization(codegen, vals[i], lengths[i],
-                                         nulls[i]);
+    to_store[i].ValuesForMaterialization(codegen, vals[i], lengths[i], nulls[i]);
   }
 
   // Cast the area pointer to our constructed type
-  auto *typed_ptr =
-      codegen->CreateBitCast(area_start, storage_type_->getPointerTo());
+  auto *typed_ptr = codegen->CreateBitCast(area_start, storage_type_->getPointerTo());
 
   // The NULL bitmap
   BitmapWriter null_bitmap{codegen, area_start, nitems};
@@ -199,8 +182,7 @@ llvm::Value *CompactStorage::StoreValues(
     const auto &entry_info = storage_format_[i];
 
     // Load the address where this entry's data is in the storage space
-    llvm::Value *addr = codegen->CreateConstInBoundsGEP2_32(
-        storage_type_, typed_ptr, 0, entry_info.physical_index);
+    llvm::Value *addr = codegen->CreateConstInBoundsGEP2_32(storage_type_, typed_ptr, 0, entry_info.physical_index);
 
     // Load it
     if (entry_info.is_length) {
@@ -209,8 +191,7 @@ llvm::Value *CompactStorage::StoreValues(
       codegen->CreateStore(vals[entry_info.logical_index], addr);
 
       // Update the bitmap
-      null_bitmap.SetBit(codegen, entry_info.logical_index,
-                         nulls[entry_info.logical_index]);
+      null_bitmap.SetBit(codegen, entry_info.logical_index, nulls[entry_info.logical_index]);
     }
   }
 
@@ -218,17 +199,15 @@ llvm::Value *CompactStorage::StoreValues(
   null_bitmap.Write(codegen);
 
   // Return a pointer into the space just after all the entries we just wrote
-  return codegen->CreateConstInBoundsGEP1_32(codegen.ByteType(), area_start,
-                                             storage_size_);
+  return codegen->CreateConstInBoundsGEP1_32(codegen.ByteType(), area_start, storage_size_);
 }
 
 //===----------------------------------------------------------------------===//
 // Load the values stored compactly at the provided storage area into the
 // provided vector
 //===----------------------------------------------------------------------===//
-llvm::Value *CompactStorage::LoadValues(
-    CodeGen &codegen, llvm::Value *area_start,
-    std::vector<codegen::Value> &output) const {
+llvm::Value *CompactStorage::LoadValues(CodeGen &codegen, llvm::Value *area_start,
+                                        std::vector<Value> &output) const {
   const uint32_t nitems = static_cast<uint32_t>(schema_.size());
   std::vector<llvm::Value *> vals{nitems}, lengths{nitems}, nulls{nitems};
 
@@ -237,14 +216,13 @@ llvm::Value *CompactStorage::LoadValues(
 
   // Collect all the values in the provided storage space, separating the
   // values into either value components or length components
-  auto *typed_ptr =
-      codegen->CreateBitCast(area_start, storage_type_->getPointerTo());
+  auto *typed_ptr = codegen->CreateBitCast(area_start, storage_type_->getPointerTo());
   for (uint32_t i = 0; i < storage_format_.size(); i++) {
     const auto &entry_info = storage_format_[i];
 
     // Load the raw value
-    llvm::Value *entry_addr = codegen->CreateConstInBoundsGEP2_32(
-        storage_type_, typed_ptr, 0, entry_info.physical_index);
+    llvm::Value *entry_addr =
+        codegen->CreateConstInBoundsGEP2_32(storage_type_, typed_ptr, 0, entry_info.physical_index);
     llvm::Value *entry = codegen->CreateLoad(entry_addr);
 
     // Set the length or value component
@@ -254,23 +232,19 @@ llvm::Value *CompactStorage::LoadValues(
       vals[entry_info.logical_index] = entry;
 
       // Load the null-bit too
-      nulls[entry_info.logical_index] =
-          null_bitmap.GetBit(codegen, entry_info.logical_index);
+      nulls[entry_info.logical_index] = null_bitmap.GetBit(codegen, entry_info.logical_index);
     }
   }
 
   // Create the values
   output.resize(nitems);
   for (uint64_t i = 0; i < nitems; i++) {
-    output[i] = codegen::Value::ValueFromMaterialization(schema_[i], vals[i],
-                                                         lengths[i], nulls[i]);
+    output[i] = Value::ValueFromMaterialization(schema_[i], vals[i], lengths[i], nulls[i]);
   }
 
   // Return a pointer into the space just after all the entries we stored
-  return codegen->CreateConstInBoundsGEP1_32(
-      codegen.ByteType(),
-      codegen->CreateBitCast(area_start, codegen.CharPtrType()), storage_size_);
+  return codegen->CreateConstInBoundsGEP1_32(codegen.ByteType(),
+                                             codegen->CreateBitCast(area_start, codegen.CharPtrType()), storage_size_);
 }
-
 
 }  // namespace terrier::execution

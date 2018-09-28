@@ -16,14 +16,12 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "common/internal_types.h"
 
 namespace llvm {
 class Value;
 }  // namespace llvm
 
 namespace terrier::execution {
-
 
 class CodeGen;
 class QueryState;
@@ -56,12 +54,10 @@ class TypeSystem {
     virtual ~Cast() = default;
 
     // Does this cast support casting from the given type to the given type?
-    virtual bool SupportsTypes(const Type &from_type,
-                               const Type &to_type) const = 0;
+    virtual bool SupportsTypes(const Type &from_type, const Type &to_type) const = 0;
 
     // Cast the given value to the provided type
-    virtual Value Eval(CodeGen &codegen, const Value &value,
-                       const Type &to_type) const = 0;
+    virtual Value Eval(CodeGen &codegen, const Value &value, const Type &to_type) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -81,18 +77,16 @@ class TypeSystem {
   //===--------------------------------------------------------------------===//
   class CastHandleNull : public TypeSystem::Cast {
    public:
-    Value Eval(CodeGen &codegen, const Value &value,
-               const Type &to_type) const override;
+    Value Eval(CodeGen &codegen, const Value &value, const Type &to_type) const override;
 
    protected:
     // Perform the cast assuming the input is not NULLable
-    virtual Value Impl(CodeGen &codegen, const Value &value,
-                       const Type &to_type) const = 0;
+    virtual Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const = 0;
   };
 
   struct CastInfo {
-    peloton::type::TypeId from_type;
-    peloton::type::TypeId to_type;
+    type::TypeId from_type;
+    type::TypeId to_type;
     const Cast &cast_operation;
   };
 
@@ -108,30 +102,22 @@ class TypeSystem {
 
     // Does this instance support comparison of the values of the given left and
     // right SQL types?
-    virtual bool SupportsTypes(const Type &left_type,
-                               const Type &right_type) const = 0;
+    virtual bool SupportsTypes(const Type &left_type, const Type &right_type) const = 0;
 
     // Main comparison operators
-    virtual Value EvalCompareLt(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value EvalCompareLte(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
-    virtual Value EvalCompareEq(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value EvalCompareNe(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value EvalCompareGt(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value EvalCompareGte(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
+    virtual Value EvalCompareLt(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value EvalCompareLte(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value EvalCompareEq(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value EvalCompareNe(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value EvalCompareGt(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value EvalCompareGte(CodeGen &codegen, const Value &left, const Value &right) const = 0;
 
     // Perform a comparison used for sorting. We need a stable and transitive
     // sorting comparison operator here. The operator returns:
     //  < 0 - if the left value comes before the right value when sorted
     //  = 0 - if the left value is equivalent to the right element
     //  > 0 - if the left value comes after the right value when sorted
-    virtual Value EvalCompareForSort(CodeGen &codegen, const Value &left,
-                                     const Value &right) const = 0;
+    virtual Value EvalCompareForSort(CodeGen &codegen, const Value &left, const Value &right) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -153,37 +139,23 @@ class TypeSystem {
   //===--------------------------------------------------------------------===//
   class SimpleComparisonHandleNull : public Comparison {
    public:
-    Value EvalCompareLt(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareLte(CodeGen &codegen, const Value &left,
-                         const Value &right) const override;
-    Value EvalCompareEq(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareNe(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareGt(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareGte(CodeGen &codegen, const Value &left,
-                         const Value &right) const override;
-    Value EvalCompareForSort(CodeGen &codegen, const Value &left,
-                             const Value &right) const override;
+    Value EvalCompareLt(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareLte(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareEq(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareNe(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareGt(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareGte(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareForSort(CodeGen &codegen, const Value &left, const Value &right) const override;
 
    protected:
     // The non-null comparison implementations
-    virtual Value CompareLtImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareLteImpl(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
-    virtual Value CompareEqImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareNeImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareGtImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareGteImpl(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
-    virtual Value CompareForSortImpl(CodeGen &codegen, const Value &left,
-                                     const Value &right) const = 0;
+    virtual Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareLteImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareEqImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareNeImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareGtImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareGteImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareForSortImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -199,37 +171,23 @@ class TypeSystem {
   //===--------------------------------------------------------------------===//
   class ExpensiveComparisonHandleNull : public Comparison {
    public:
-    Value EvalCompareLt(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareLte(CodeGen &codegen, const Value &left,
-                         const Value &right) const override;
-    Value EvalCompareEq(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareNe(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareGt(CodeGen &codegen, const Value &left,
-                        const Value &right) const override;
-    Value EvalCompareGte(CodeGen &codegen, const Value &left,
-                         const Value &right) const override;
-    Value EvalCompareForSort(CodeGen &codegen, const Value &left,
-                             const Value &right) const override;
+    Value EvalCompareLt(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareLte(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareEq(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareNe(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareGt(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareGte(CodeGen &codegen, const Value &left, const Value &right) const override;
+    Value EvalCompareForSort(CodeGen &codegen, const Value &left, const Value &right) const override;
 
    protected:
     // The non-null comparison implementations
-    virtual Value CompareLtImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareLteImpl(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
-    virtual Value CompareEqImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareNeImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareGtImpl(CodeGen &codegen, const Value &left,
-                                const Value &right) const = 0;
-    virtual Value CompareGteImpl(CodeGen &codegen, const Value &left,
-                                 const Value &right) const = 0;
-    virtual Value CompareForSortImpl(CodeGen &codegen, const Value &left,
-                                     const Value &right) const = 0;
+    virtual Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareLteImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareEqImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareNeImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareGtImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareGteImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
+    virtual Value CompareForSortImpl(CodeGen &codegen, const Value &left, const Value &right) const = 0;
   };
 
   struct ComparisonInfo {
@@ -261,8 +219,7 @@ class TypeSystem {
     virtual Type ResultType(const Type &val_type) const = 0;
 
     // Apply the operator on the given value
-    virtual Value Eval(CodeGen &codegen,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Eval(CodeGen &codegen, const InvocationContext &ctx) const = 0;
   };
 
   struct NoArgOpInfo {
@@ -288,8 +245,7 @@ class TypeSystem {
     virtual Type ResultType(const Type &val_type) const = 0;
 
     // Apply the operator on the given value
-    virtual Value Eval(CodeGen &codegen, const Value &val,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Eval(CodeGen &codegen, const Value &val, const InvocationContext &ctx) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -308,13 +264,11 @@ class TypeSystem {
   //===--------------------------------------------------------------------===//
   class UnaryOperatorHandleNull : public UnaryOperator {
    public:
-    Value Eval(CodeGen &codegen, const Value &val,
-               const InvocationContext &ctx) const override;
+    Value Eval(CodeGen &codegen, const Value &val, const InvocationContext &ctx) const override;
 
    protected:
     // The actual implementation assuming non-NULL input
-    virtual Value Impl(CodeGen &codegen, const Value &val,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Impl(CodeGen &codegen, const Value &val, const InvocationContext &ctx) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -337,16 +291,13 @@ class TypeSystem {
     virtual ~BinaryOperator() = default;
 
     // Are these input types supported by this operator?
-    virtual bool SupportsTypes(const Type &left_type,
-                               const Type &right_type) const = 0;
+    virtual bool SupportsTypes(const Type &left_type, const Type &right_type) const = 0;
 
     // The SQL type of the result of this operator
-    virtual Type ResultType(const Type &left_type,
-                            const Type &right_type) const = 0;
+    virtual Type ResultType(const Type &left_type, const Type &right_type) const = 0;
 
     // Execute the actual operator
-    virtual Value Eval(CodeGen &codegen, const Value &left, const Value &right,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Eval(CodeGen &codegen, const Value &left, const Value &right, const InvocationContext &ctx) const = 0;
   };
 
   //===--------------------------------------------------------------------===//
@@ -363,13 +314,11 @@ class TypeSystem {
   //===--------------------------------------------------------------------===//
   struct BinaryOperatorHandleNull : public BinaryOperator {
    public:
-    Value Eval(CodeGen &codegen, const Value &left, const Value &right,
-               const InvocationContext &ctx) const override;
+    Value Eval(CodeGen &codegen, const Value &left, const Value &right, const InvocationContext &ctx) const override;
 
    protected:
     // The implementation assuming non-nullable types
-    virtual Value Impl(CodeGen &codegen, const Value &left, const Value &right,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Impl(CodeGen &codegen, const Value &left, const Value &right, const InvocationContext &ctx) const = 0;
   };
 
   struct BinaryOpInfo {
@@ -392,8 +341,7 @@ class TypeSystem {
     virtual Type ResultType(const std::vector<Type> &arg_types) const = 0;
 
     // Execute the actual operator
-    virtual Value Eval(CodeGen &codegen, const std::vector<Value> &input_args,
-                       const InvocationContext &ctx) const = 0;
+    virtual Value Eval(CodeGen &codegen, const std::vector<Value> &input_args, const InvocationContext &ctx) const = 0;
   };
 
   struct NaryOpInfo {
@@ -405,13 +353,10 @@ class TypeSystem {
   };
 
  public:
-  TypeSystem(const std::vector<peloton::type::TypeId> &implicit_cast_table,
-             const std::vector<CastInfo> &explicit_cast_table,
-             const std::vector<ComparisonInfo> &comparison_table,
-             const std::vector<UnaryOpInfo> &unary_op_table,
-             const std::vector<BinaryOpInfo> &binary_op_table,
-             const std::vector<NaryOpInfo> &nary_op_table,
-             const std::vector<NoArgOpInfo> &no_arg_op_table);
+  TypeSystem(const std::vector<type::TypeId> &implicit_cast_table,
+             const std::vector<CastInfo> &explicit_cast_table, const std::vector<ComparisonInfo> &comparison_table,
+             const std::vector<UnaryOpInfo> &unary_op_table, const std::vector<BinaryOpInfo> &binary_op_table,
+             const std::vector<NaryOpInfo> &nary_op_table, const std::vector<NoArgOpInfo> &no_arg_op_table);
 
   // Can values of the provided type be implicitly casted into a value of the
   // other provided type?
@@ -421,29 +366,22 @@ class TypeSystem {
   static const Cast *GetCast(const Type &from_type, const Type &to_type);
 
   // Lookup comparison handler for the given type
-  static const Comparison *GetComparison(const Type &left_type,
-                                         Type &left_casted_type,
-                                         const Type &right_type,
+  static const Comparison *GetComparison(const Type &left_type, Type &left_casted_type, const Type &right_type,
                                          Type &right_casted_type);
 
   // Lookup the given binary operator that works on the left and right types
-  static const UnaryOperator *GetUnaryOperator(OperatorId op_id,
-                                               const Type &input_type);
+  static const UnaryOperator *GetUnaryOperator(OperatorId op_id, const Type &input_type);
 
   // Lookup the given binary operator that works on the left and right types
-  static const BinaryOperator *GetBinaryOperator(OperatorId op_id,
-                                                 const Type &left_type,
-                                                 Type &left_casted_type,
-                                                 const Type &right_type,
-                                                 Type &right_casted_type);
+  static const BinaryOperator *GetBinaryOperator(OperatorId op_id, const Type &left_type, Type &left_casted_type,
+                                                 const Type &right_type, Type &right_casted_type);
 
   // Lookup the given nary operator that operators on the provided types
-  static const NaryOperator *GetNaryOperator(
-      OperatorId op_id, const std::vector<Type> &arg_types);
+  static const NaryOperator *GetNaryOperator(OperatorId op_id, const std::vector<Type> &arg_types);
 
  private:
   // The list of types a given type can be implicitly casted to
-  const std::vector<peloton::type::TypeId> &implicit_cast_table_;
+  const std::vector<type::TypeId> &implicit_cast_table_;
 
   // The table of explicit casting functions
   const std::vector<CastInfo> &explicit_cast_table_;

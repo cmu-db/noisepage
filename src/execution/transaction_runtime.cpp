@@ -21,10 +21,9 @@
 
 namespace terrier::execution {
 
-
-uint32_t TransactionRuntime::PerformVisibilityCheck(
-    concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
-    uint32_t tid_start, uint32_t tid_end, uint32_t *selection_vector) {
+uint32_t TransactionRuntime::PerformVisibilityCheck(concurrency::TransactionContext &txn,
+                                                    storage::TileGroup &tile_group, uint32_t tid_start,
+                                                    uint32_t tid_end, uint32_t *selection_vector) {
   // Get the transaction manager
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
@@ -45,9 +44,8 @@ uint32_t TransactionRuntime::PerformVisibilityCheck(
   return out_idx;
 }
 
-uint32_t TransactionRuntime::PerformVectorizedRead(
-    concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
-    uint32_t *selection_vector, uint32_t end_idx, bool is_for_update) {
+uint32_t TransactionRuntime::PerformVectorizedRead(concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
+                                                   uint32_t *selection_vector, uint32_t end_idx, bool is_for_update) {
   // Get the transaction manager
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
@@ -63,8 +61,7 @@ uint32_t TransactionRuntime::PerformVectorizedRead(
     ItemPointer location{tile_group_idx, selection_vector[idx]};
 
     // Perform the read
-    bool can_read = txn_manager.PerformRead(&txn, location, tile_group_header,
-                                            is_for_update);
+    bool can_read = txn_manager.PerformRead(&txn, location, tile_group_header, is_for_update);
 
     // Update the selection vector and output position
     selection_vector[out_idx] = selection_vector[idx];
@@ -73,26 +70,21 @@ uint32_t TransactionRuntime::PerformVectorizedRead(
   return out_idx;
 }
 
-bool TransactionRuntime::IsOwner(concurrency::TransactionContext &txn,
-                                 storage::TileGroupHeader *tile_group_header,
+bool TransactionRuntime::IsOwner(concurrency::TransactionContext &txn, storage::TileGroupHeader *tile_group_header,
                                  uint32_t tuple_offset) {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   bool is_owner = txn_manager.IsOwner(&txn, tile_group_header, tuple_offset);
-  bool is_written = txn_manager.IsWritten(&txn, tile_group_header,
-                                          tuple_offset);
+  bool is_written = txn_manager.IsWritten(&txn, tile_group_header, tuple_offset);
   PELOTON_ASSERT((is_owner == false && is_written == true) == false);
-  if (is_owner == true && is_written == true)
-    return true;
+  if (is_owner == true && is_written == true) return true;
   return false;
 }
 
 bool TransactionRuntime::AcquireOwnership(concurrency::TransactionContext &txn,
-    storage::TileGroupHeader *tile_group_header, uint32_t tuple_offset) {
+                                          storage::TileGroupHeader *tile_group_header, uint32_t tuple_offset) {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   bool is_owner = txn_manager.IsOwner(&txn, tile_group_header, tuple_offset);
-  bool is_ownable = is_owner ||
-                    txn_manager.IsOwnable(&txn, tile_group_header,
-                                          tuple_offset);
+  bool is_ownable = is_owner || txn_manager.IsOwnable(&txn, tile_group_header, tuple_offset);
   if (is_ownable == false) {
     // transaction should be aborted as we cannot update the latest version.
     LOG_TRACE("Not ownable. Fail to update tuple. Txn failure.");
@@ -101,9 +93,7 @@ bool TransactionRuntime::AcquireOwnership(concurrency::TransactionContext &txn,
   }
 
   // If the tuple is not owned by any other txn and is ownable to me
-  bool acquired = is_owner ||
-                  txn_manager.AcquireOwnership(&txn, tile_group_header,
-                                               tuple_offset);
+  bool acquired = is_owner || txn_manager.AcquireOwnership(&txn, tile_group_header, tuple_offset);
   if (acquired == false) {
     LOG_TRACE("Cannot acquire ownership. Fail to update tuple. Txn failure.");
     txn_manager.SetTransactionResult(&txn, ResultType::FAILURE);
@@ -113,14 +103,13 @@ bool TransactionRuntime::AcquireOwnership(concurrency::TransactionContext &txn,
 }
 
 void TransactionRuntime::YieldOwnership(concurrency::TransactionContext &txn,
-    storage::TileGroupHeader *tile_group_header, uint32_t tuple_offset) {
+                                        storage::TileGroupHeader *tile_group_header, uint32_t tuple_offset) {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   bool is_owner = txn_manager.IsOwner(&txn, tile_group_header, tuple_offset);
   if (is_owner == false) {
-      txn_manager.YieldOwnership(&txn, tile_group_header, tuple_offset);
+    txn_manager.YieldOwnership(&txn, tile_group_header, tuple_offset);
   }
   txn_manager.SetTransactionResult(&txn, ResultType::FAILURE);
 }
-
 
 }  // namespace terrier::execution

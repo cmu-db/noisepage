@@ -14,17 +14,16 @@
 
 #include <llvm/Support/raw_ostream.h>
 
+#include "common/exception.h"
+#include "common/logger.h"
 #include "execution/compilation_context.h"
 #include "execution/lang/if.h"
 #include "execution/lang/loop.h"
 #include "execution/lang/vectorized_loop.h"
 #include "execution/vector.h"
-#include "common/exception.h"
-#include "common/logger.h"
 #include "planner/attribute_info.h"
 
 namespace terrier::execution {
-
 
 // An anonymous namespace to construct some function adapters
 namespace {
@@ -35,8 +34,7 @@ namespace {
 struct CallbackAdapter : public RowBatch::IterateCallback {
   // The callback function
   const std::function<void(RowBatch::Row &)> &callback;
-  CallbackAdapter(const std::function<void(RowBatch::Row &)> &_callback)
-      : callback(_callback) {}
+  CallbackAdapter(const std::function<void(RowBatch::Row &)> &_callback) : callback(_callback) {}
 
   // The adapter
   void ProcessRow(RowBatch::Row &row) { callback(row); }
@@ -46,8 +44,7 @@ struct CallbackAdapter : public RowBatch::IterateCallback {
 // An adapter that adapts a std::function to a vectorized iteration callback
 //===----------------------------------------------------------------------===//
 struct VectorizedCallbackAdapter : public RowBatch::VectorizedIterateCallback {
-  typedef std::function<llvm::Value *(
-      RowBatch::VectorizedIterateCallback::IterationInstance &)> Callback;
+  typedef std::function<llvm::Value *(RowBatch::VectorizedIterateCallback::IterationInstance &)> Callback;
 
   // The callback function
   uint32_t vector_size;
@@ -60,9 +57,7 @@ struct VectorizedCallbackAdapter : public RowBatch::VectorizedIterateCallback {
   uint32_t GetVectorSize() const override { return vector_size; }
 
   // The callback
-  llvm::Value *ProcessRows(IterationInstance &iter_instance) override {
-    return callback(iter_instance);
-  }
+  llvm::Value *ProcessRows(IterationInstance &iter_instance) override { return callback(iter_instance); }
 };
 
 }  // anonymous namespace
@@ -71,32 +66,23 @@ struct VectorizedCallbackAdapter : public RowBatch::VectorizedIterateCallback {
 // EXPRESSION ACCESS
 //===----------------------------------------------------------------------===//
 
-RowBatch::ExpressionAccess::ExpressionAccess(
-    const expression::AbstractExpression &expression)
+RowBatch::ExpressionAccess::ExpressionAccess(const expression::AbstractExpression &expression)
     : expression_(expression) {}
 
-Value RowBatch::ExpressionAccess::Access(CodeGen &codegen, Row &row) {
-  return row.DeriveValue(codegen, expression_);
-}
+Value RowBatch::ExpressionAccess::Access(CodeGen &codegen, Row &row) { return row.DeriveValue(codegen, expression_); }
 
 //===----------------------------------------------------------------------===//
 // ROW
 //===----------------------------------------------------------------------===//
 
-RowBatch::Row::Row(RowBatch &batch, llvm::Value *batch_pos,
-                   OutputTracker *output_tracker)
-    : batch_(batch),
-      tid_(nullptr),
-      batch_position_(batch_pos),
-      output_tracker_(output_tracker) {}
+RowBatch::Row::Row(RowBatch &batch, llvm::Value *batch_pos, OutputTracker *output_tracker)
+    : batch_(batch), tid_(nullptr), batch_position_(batch_pos), output_tracker_(output_tracker) {}
 
 bool RowBatch::Row::HasAttribute(const planner::AttributeInfo *ai) const {
-  return cache_.find(ai) != cache_.end() ||
-         batch_.GetAttributes().find(ai) != batch_.GetAttributes().end();
+  return cache_.find(ai) != cache_.end() || batch_.GetAttributes().find(ai) != batch_.GetAttributes().end();
 }
 
-codegen::Value RowBatch::Row::DeriveValue(CodeGen &codegen,
-                                          const planner::AttributeInfo *ai) {
+Value RowBatch::Row::DeriveValue(CodeGen &codegen, const planner::AttributeInfo *ai) {
   // First check cache
   auto cache_iter = cache_.find(ai);
   if (cache_iter != cache_.end()) {
@@ -116,8 +102,7 @@ codegen::Value RowBatch::Row::DeriveValue(CodeGen &codegen,
   throw Exception{"Attribute '" + ai->name + "' is not an available attribute"};
 }
 
-codegen::Value RowBatch::Row::DeriveValue(
-    CodeGen &codegen, const expression::AbstractExpression &expr) {
+Value RowBatch::Row::DeriveValue(CodeGen &codegen, const expression::AbstractExpression &expr) {
   // First check cache
   auto cache_iter = cache_.find(&expr);
   if (cache_iter != cache_.end()) {
@@ -132,8 +117,7 @@ codegen::Value RowBatch::Row::DeriveValue(
   return ret;
 }
 
-void RowBatch::Row::RegisterAttributeValue(const planner::AttributeInfo *ai,
-                                           const codegen::Value &val) {
+void RowBatch::Row::RegisterAttributeValue(const planner::AttributeInfo *ai, const Value &val) {
   // Here the caller wants to register a temporary attribute value for the row
   // that overrides any attribute accessor available for the underlying batch
   // We place the value in the cache to ensure we don't go through the normal
@@ -152,8 +136,7 @@ void RowBatch::Row::SetValidity(CodeGen &codegen, llvm::Value *valid) {
   if (valid->getType() != codegen.BoolType()) {
     std::string error_msg;
     llvm::raw_string_ostream rso{error_msg};
-    rso << "Validity of row must be a boolean value. Received type: "
-        << valid->getType();
+    rso << "Validity of row must be a boolean value. Received type: " << valid->getType();
     throw Exception{error_msg};
   }
 
@@ -178,13 +161,10 @@ llvm::Value *RowBatch::Row::GetTID(CodeGen &codegen) {
 // OUTPUT TRACKER
 //===----------------------------------------------------------------------===//
 
-RowBatch::OutputTracker::OutputTracker(const Vector &output,
-                                       llvm::Value *target_pos)
+RowBatch::OutputTracker::OutputTracker(const Vector &output, llvm::Value *target_pos)
     : output_(output), target_pos_(target_pos), final_pos_(nullptr) {}
 
-void RowBatch::OutputTracker::AppendRowToOutput(CodeGen &codegen,
-                                                RowBatch::Row &row,
-                                                llvm::Value *delta) {
+void RowBatch::OutputTracker::AppendRowToOutput(CodeGen &codegen, RowBatch::Row &row, llvm::Value *delta) {
   output_.SetValue(codegen, target_pos_, row.GetTID(codegen));
   final_pos_ = codegen->CreateAdd(target_pos_, delta);
 }
@@ -197,13 +177,11 @@ llvm::Value *RowBatch::OutputTracker::GetFinalOutputPos() const {
 // ROW BATCH
 //===----------------------------------------------------------------------===//
 
-RowBatch::RowBatch(CompilationContext &ctx, llvm::Value *tid_start,
-                   llvm::Value *tid_end, Vector &selection_vector,
+RowBatch::RowBatch(CompilationContext &ctx, llvm::Value *tid_start, llvm::Value *tid_end, Vector &selection_vector,
                    bool filtered)
     : RowBatch(ctx, nullptr, tid_start, tid_end, selection_vector, filtered) {}
 
-RowBatch::RowBatch(CompilationContext &ctx, llvm::Value *tile_group_id,
-                   llvm::Value *tid_start, llvm::Value *tid_end,
+RowBatch::RowBatch(CompilationContext &ctx, llvm::Value *tile_group_id, llvm::Value *tid_start, llvm::Value *tid_end,
                    Vector &selection_vector, bool filtered)
     : context_(ctx),
       tile_group_id_(tile_group_id),
@@ -213,8 +191,7 @@ RowBatch::RowBatch(CompilationContext &ctx, llvm::Value *tile_group_id,
       selection_vector_(selection_vector),
       filtered_(filtered) {}
 
-void RowBatch::AddAttribute(const planner::AttributeInfo *ai,
-                            RowBatch::AttributeAccess *access) {
+void RowBatch::AddAttribute(const planner::AttributeInfo *ai, RowBatch::AttributeAccess *access) {
   auto iter = attributes_.find(ai);
   if (iter != attributes_.end()) {
     LOG_DEBUG("Overwriting attribute %p with %p", iter->first, ai);
@@ -224,8 +201,7 @@ void RowBatch::AddAttribute(const planner::AttributeInfo *ai,
 
 // Get the row in this batch at the given position. Note: the output tracker
 // is allowed to be null (hence the use of a pointer) for read-only rows.
-RowBatch::Row RowBatch::GetRowAt(llvm::Value *batch_position,
-                                 OutputTracker *output_tracker) {
+RowBatch::Row RowBatch::GetRowAt(llvm::Value *batch_position, OutputTracker *output_tracker) {
   return RowBatch::Row{*this, batch_position, output_tracker};
 }
 
@@ -238,8 +214,7 @@ void RowBatch::Iterate(CodeGen &codegen, RowBatch::IterateCallback &cb) {
   llvm::Value *end = GetNumValidRows(codegen);
 
   // Generating the loop
-  std::vector<lang::Loop::LoopVariable> loop_vars = {
-      {"readIdx", start}, {"writeIdx", codegen.Const32(0)}};
+  std::vector<lang::Loop::LoopVariable> loop_vars = {{"readIdx", start}, {"writeIdx", codegen.Const32(0)}};
   llvm::Value *loop_cond = codegen->CreateICmpULT(start, end);
   lang::Loop batch_loop{codegen, loop_cond, loop_vars};
   {
@@ -276,8 +251,7 @@ void RowBatch::Iterate(CodeGen &codegen, RowBatch::IterateCallback &cb) {
 }
 
 // Iterate over all valid rows in this batch
-void RowBatch::Iterate(CodeGen &codegen,
-                       const std::function<void(RowBatch::Row &)> cb) {
+void RowBatch::Iterate(CodeGen &codegen, const std::function<void(RowBatch::Row &)> cb) {
   // Create a simple adapter around the provided function
   CallbackAdapter adapter{cb};
 
@@ -286,8 +260,7 @@ void RowBatch::Iterate(CodeGen &codegen,
 }
 
 // Iterate over all valid rows in this batch in vectors of a given size
-void RowBatch::VectorizedIterate(CodeGen &codegen,
-                                 RowBatch::VectorizedIterateCallback &cb) {
+void RowBatch::VectorizedIterate(CodeGen &codegen, RowBatch::VectorizedIterateCallback &cb) {
   // The size of the vectors we use for iteration
   auto vector_size = cb.GetVectorSize();
 
@@ -298,8 +271,7 @@ void RowBatch::VectorizedIterate(CodeGen &codegen,
   llvm::Value *write_pos = codegen.Const32(0);
 
   // The vectorized loop
-  lang::VectorizedLoop vector_loop{
-      codegen, num_rows, vector_size, {{"writePos", write_pos}}};
+  lang::VectorizedLoop vector_loop{codegen, num_rows, vector_size, {{"writePos", write_pos}}};
   {
     auto curr_range = vector_loop.GetCurrentRange();
     write_pos = vector_loop.GetLoopVar(0);
@@ -328,8 +300,7 @@ void RowBatch::VectorizedIterate(CodeGen &codegen,
 // Iterate over all valid rows in this batch in vectors of a given size
 void RowBatch::VectorizedIterate(
     CodeGen &codegen, uint32_t vector_size,
-    const std::function<llvm::Value *(
-        RowBatch::VectorizedIterateCallback::IterationInstance &)> &cb) {
+    const std::function<llvm::Value *(RowBatch::VectorizedIterateCallback::IterationInstance &)> &cb) {
   // Create a simple adapter around the provided function
   VectorizedCallbackAdapter adapter{vector_size, cb};
 
@@ -363,8 +334,7 @@ void RowBatch::UpdateWritePosition(llvm::Value *sz) {
   filtered_ = true;
 }
 
-llvm::Value *RowBatch::GetPhysicalPosition(CodeGen &codegen,
-                                           const Row &row) const {
+llvm::Value *RowBatch::GetPhysicalPosition(CodeGen &codegen, const Row &row) const {
   llvm::Value *batch_pos = row.GetBatchPosition();
   if (IsFiltered()) {
     return selection_vector_.GetValue(codegen, batch_pos);
@@ -372,6 +342,5 @@ llvm::Value *RowBatch::GetPhysicalPosition(CodeGen &codegen,
     return codegen->CreateAdd(tid_start_, batch_pos);
   }
 }
-
 
 }  // namespace terrier::execution

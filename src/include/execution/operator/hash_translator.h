@@ -25,16 +25,13 @@ namespace planner {
 class HashPlan;
 }  // namespace planner
 
-
-
 //===----------------------------------------------------------------------===//
 // The translator for a hash-based distinct operator.
 //===----------------------------------------------------------------------===//
 class HashTranslator : public OperatorTranslator {
  public:
   // Constructor
-  HashTranslator(const planner::HashPlan &hash_plan,
-                 CompilationContext &context, Pipeline &pipeline);
+  HashTranslator(const planner::HashPlan &hash_plan, CompilationContext &context, Pipeline &pipeline);
 
   // Codegen any initialization work for this operator
   void InitializeQueryState() override;
@@ -52,8 +49,7 @@ class HashTranslator : public OperatorTranslator {
   void TearDownQueryState() override;
 
  private:
-  void CollectHashKeys(RowBatch::Row &row,
-                       std::vector<codegen::Value> &key) const;
+  void CollectHashKeys(RowBatch::Row &row, std::vector<Value> &key) const;
 
   const planner::HashPlan &GetHashPlan() const;
 
@@ -96,6 +92,5 @@ class HashTranslator : public OperatorTranslator {
   // The hash table
   OAHashTable hash_table_;
 };
-
 
 }  // namespace terrier::execution

@@ -16,15 +16,12 @@
 
 namespace terrier::execution {
 
+DEFINE_TYPE(Sorter, "peloton::runtime::Sorter", opaque1, tuples_start, tuples_end, opaque2);
 
-DEFINE_TYPE(Sorter, "peloton::runtime::Sorter", opaque1, tuples_start, tuples_end,
-            opaque2);
-
-DEFINE_METHOD(peloton::codegen::util, Sorter, Init);
-DEFINE_METHOD(peloton::codegen::util, Sorter, StoreInputTuple);
-DEFINE_METHOD(peloton::codegen::util, Sorter, Sort);
-DEFINE_METHOD(peloton::codegen::util, Sorter, SortParallel);
-DEFINE_METHOD(peloton::codegen::util, Sorter, Destroy);
-
+DEFINE_METHOD(peloton::util, Sorter, Init);
+DEFINE_METHOD(peloton::util, Sorter, StoreInputTuple);
+DEFINE_METHOD(peloton::util, Sorter, Sort);
+DEFINE_METHOD(peloton::util, Sorter, SortParallel);
+DEFINE_METHOD(peloton::util, Sorter, Destroy);
 
 }  // namespace terrier::execution
