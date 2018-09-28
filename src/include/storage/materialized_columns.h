@@ -26,10 +26,63 @@ namespace terrier::storage {
  */
 class PACKED MaterializedColumns {
  public:
+  // TODO(Tianyu): This is potentially inefficient, implemented as immutable
+  // although it is nicer from a software engineering standpoint, if it ends up a problem we can change it so caller
+  // can change the row this view refers to.
+  class RowView {
+   public:
+    uint16_t NumColumns() const { return underlying_->NumColumns(); }
+    col_id_t *ColumnIds() { return underlying_->ColumnIds(); }
+    const col_id_t *ColumnIds() const { return underlying_->ColumnIds(); }
+    void SetNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      underlying_->ColumnPresenceBitmap(projection_list_index)->Set(row_offset_, false);
+    }
+
+    void SetNotNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      underlying_->ColumnPresenceBitmap(projection_list_index)->Set(row_offset_, true);
+    }
+
+    bool IsNull(const uint16_t projection_list_index) const {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      return !underlying_->ColumnPresenceBitmap(projection_list_index)->Test(row_offset_);
+    }
+
+    byte *AccessWithNullCheck(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) return nullptr;
+      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
+      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+    }
+
+    const byte *AccessWithNullCheck(const uint16_t projection_list_index) const {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) return nullptr;
+      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
+      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+    }
+
+    byte *AccessForceNotNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
+      col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
+      return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
+    }
+   private:
+    friend class MaterializedColumns;
+    RowView(MaterializedColumns *underlying,
+            const BlockLayout &layout,
+            uint32_t row_offset) : underlying_(underlying), layout_(layout), row_offset_(row_offset) {}
+    MaterializedColumns *const underlying_;
+    const BlockLayout &layout_;
+    const uint32_t row_offset_;
+  };
+
   MEM_REINTERPRETATION_ONLY(MaterializedColumns)
   uint32_t Size() const { return size_; }
   uint32_t MaxTuples() const { return max_tuples_; }
-  uint32_t NumTuples() const { return num_tuples_; }
+  uint32_t &NumTuples() { return num_tuples_; }
   uint16_t NumColumns() const { return num_cols_; }
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
   const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
@@ -41,6 +94,11 @@ class PACKED MaterializedColumns {
   common::RawBitmap *ColumnPresenceBitmap(uint16_t projection_list_index) {
     byte *column_start = reinterpret_cast<byte *>(this) + AttrValueOffsets()[projection_list_index];
     return reinterpret_cast<common::RawBitmap *>(column_start);
+  }
+
+  // TODO(Tianyu): If we make RowView mutable, then remove this function and make the constructor of RowView public.
+  RowView InterpretAsRow(const BlockLayout &layout, uint32_t row_offset) {
+    return {this, layout, row_offset};
   }
 
   byte *ColumnStart(uint16_t projection_list_index) {

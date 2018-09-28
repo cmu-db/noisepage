@@ -19,68 +19,18 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
-bool DataTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot,
-                       ProjectedRow *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumColumns() - 1,
-                 "The output buffer never returns the version pointer or logical delete columns, so it should have "
-                 "fewer attributes.");
-  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
-
-  data_table_counter_.IncrementNumSelect(1);
-
-  UndoRecord *version_ptr;
-  bool visible;
-  do {
-    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
-    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-    // can potentially happen, and chase the version chain before returning anyway,
-    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should not read the version pointer column.");
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
-                     "Output buffer should not read the logical delete column.");
-      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-    }
-    // Here we will need to check that the version pointer did not change during our read. If it did, the content
-    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
-    // we will have to loop around to avoid a dirty read.
-    // TODO(Matt): might not need to read visible in the loop (move after?) but not confident without large random tests
-    visible = Visible(slot, accessor_);
-  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-
-  // Nullptr in version chain means no version visible to any transaction alive at this point.
-  // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
-    return visible;
+void DataTable::Scan(transaction::TransactionContext *const txn,
+                     SlotIterator *start_pos,
+                     MaterializedColumns *out_buffer) const {
+  // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
+  // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
+  for (uint32_t &i = out_buffer->NumTuples() = 0; i < out_buffer->MaxTuples(); i++, ++(start_pos)) {
+    bool valid;
+    do {
+      MaterializedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), i);
+      valid = SelectIntoBuffer(txn, *(*start_pos), &row);
+    } while (!valid);
   }
-
-  // Apply deltas until we reconstruct a version safe for us to read
-  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
-  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
-  while (version_ptr != nullptr &&
-         transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-    // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
-    // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
-    const DeltaRecordType undo_type = StorageUtil::CheckUndoRecordType(*version_ptr);
-    if (undo_type == DeltaRecordType::UPDATE) {
-      // Normal delta to be applied. Does not modify the logical delete column.
-      StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-    } else if (undo_type == DeltaRecordType::INSERT) {
-      // Applying the undo of an INSERT makes the tuple invisible to this txn.
-      visible = false;
-    } else {
-      TERRIER_ASSERT(undo_type == DeltaRecordType::DELETE,
-                     "DeltaRecordType must be DELETE if it's not UPDATE or INSERT.");
-      // Applying the undo of a DELETE makes the tuple visible to this txn.
-      visible = true;
-    }
-    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
-    // the chain than an insert.
-    version_ptr = version_ptr->Next();
-  }
-
-  return visible;
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
@@ -184,11 +134,28 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   return Update(txn, slot, *(redo->Delta()));
 }
 
-bool DataTable::IsVisible(const transaction::TransactionContext &txn, const TupleSlot slot) const {
+template<class RowType>
+bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
+                                 RowType *const out_buffer) const {
+  TERRIER_ASSERT(out_buffer->NumColumns() < accessor_.GetBlockLayout().NumColumns() - 1,
+                 "The output buffer never returns the version pointer or logical delete columns, so it should have "
+                 "fewer attributes.");
+  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
+
   UndoRecord *version_ptr;
   bool visible;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
+    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+    // can potentially happen, and chase the version chain before returning anyway,
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Output buffer should not read the version pointer column.");
+      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != LOGICAL_DELETE_COLUMN_ID,
+                     "Output buffer should not read the logical delete column.");
+      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+    }
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
@@ -198,20 +165,27 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
 
   // Nullptr in version chain means no version visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
     return visible;
   }
 
-  // Inspect deltas so we can determine visibility
+  // Apply deltas until we reconstruct a version safe for us to read
+  // If the version chain becomes null, this tuple does not exist for this version, and the last delta
+  // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
-         transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn.StartTime())) {
+      transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
     // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
     const DeltaRecordType undo_type = StorageUtil::CheckUndoRecordType(*version_ptr);
-    if (undo_type == DeltaRecordType::INSERT) {
+    if (undo_type == DeltaRecordType::UPDATE) {
+      // Normal delta to be applied. Does not modify the logical delete column.
+      StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
+    } else if (undo_type == DeltaRecordType::INSERT) {
       // Applying the undo of an INSERT makes the tuple invisible to this txn.
       visible = false;
-    } else if (undo_type == DeltaRecordType::DELETE) {
+    } else {
+      TERRIER_ASSERT(undo_type == DeltaRecordType::DELETE,
+                     "DeltaRecordType must be DELETE if it's not UPDATE or INSERT.");
       // Applying the undo of a DELETE makes the tuple visible to this txn.
       visible = true;
     }
@@ -222,6 +196,13 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
 
   return visible;
 }
+
+template bool DataTable::SelectIntoBuffer<ProjectedRow>(transaction::TransactionContext *txn,
+                                                        const TupleSlot slot,
+                                                        ProjectedRow *out_buffer) const;
+template bool DataTable::SelectIntoBuffer<MaterializedColumns::RowView>(transaction::TransactionContext *txn,
+                                                                        const TupleSlot slot,
+                                                                        MaterializedColumns::RowView *out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   byte *ptr_location = accessor.AccessWithoutNullCheck(slot, VERSION_POINTER_COLUMN_ID);
@@ -234,17 +215,6 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
-/**
- * Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this
- * information alone is not enough to determine visibility of a tuple to a transaction. This should be used along with a
- * version chain traversal to determine if a tuple's versions are actually visible to a txn.
- *
- * The criteria for visibilty of a slot are presence (presence/version pointer column is non-NULL) and not deleted
- * (logical delete column is non-NULL).
- * @param slot slot to be checked
- * @param accessor TAS for the slot's block
- * @return true if slot is visible, false otherwise
- */
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   const bool present = !accessor.IsNull(slot, PRESENCE_COLUMN_ID);
   const bool not_deleted = !accessor.IsNull(slot, LOGICAL_DELETE_COLUMN_ID);
@@ -259,7 +229,7 @@ bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::Tr
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
-                                       transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
+      transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
   return owned_by_other_txn || newer_committed_version;
 }
 

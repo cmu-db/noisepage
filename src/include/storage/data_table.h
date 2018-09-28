@@ -33,14 +33,43 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
  */
 class DataTable {
  public:
-  class SequentialScanContext {
-    // TODO(Tianyu): I don't think this needs to expose any operations?
+  class SlotIterator {
+   public:
+    const TupleSlot &operator*() const {
+      return current_slot_;
+    }
+
+    const TupleSlot *operator->() const {
+      return &current_slot_;
+    }
+
+    SlotIterator &operator++() {
+      if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots())
+        current_slot_ = {*(++block_), 0};
+      else
+        current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+      return *this;
+    }
+
+    const SlotIterator operator++(int) {
+      SlotIterator copy = *this;
+      operator++();
+      return copy;
+    }
+
+    bool operator==(const SlotIterator &other) const {
+      return table_ == other.table_ && block_ == other.block_ && current_slot_ == other.current_slot_;
+    }
+
+   private:
     friend class DataTable;
-    SequentialScanContext(std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : block_(std::move(block)), offset_in_block_(offset_in_block) {}
-    // TODO(Tianyu): Not really safe when we start removing blocks. See comment in definition of blocks_
+    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
+        : table_(table), block_(block), current_slot_(*block, offset_in_block) {}
+    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
+    // the table anymore
+    const DataTable *table_;
     std::list<RawBlock *>::const_iterator block_;
-    uint32_t offset_in_block_;
+    TupleSlot current_slot_;
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
@@ -74,15 +103,27 @@ class DataTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
+  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const {
+    data_table_counter_.IncrementNumSelect(1);
+    return SelectIntoBuffer(txn, slot, out_buffer);
+  }
 
-  bool Scan(transaction::TransactionContext *txn,
-            SequentialScanContext *context,
+  // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
+  // save a point of scan and come back to it later?
+  // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,
+  // just like the ++i and i++ dichotomy.
+  void Scan(transaction::TransactionContext *txn,
+            SlotIterator *start_pos,
             MaterializedColumns *out_buffer) const;
 
-  SequentialScanContext TableStart() const {
+  SlotIterator begin() const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {blocks_.cbegin(), 0};
+    return {this, blocks_.begin(), 0};
+  }
+
+  SlotIterator end() const {
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    return {this, blocks_.end(), 0};
   }
 
   // TODO(Tianyu): Do we really need a table end?
@@ -122,16 +163,6 @@ class DataTable {
   bool Delete(transaction::TransactionContext *txn, TupleSlot slot);
 
   /**
-   * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
-   * (follow a version chain if present) without the materialization. If the logic of Select changes, this should change
-   * with it and vice versa.
-   * @param txn the calling transaction
-   * @param slot the slot of the tuple to check visibility on
-   * @return true if tuple is visible to this txn, false otherwise
-   */
-  bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
-
-  /**
    * Return a pointer to the performance counter for the data table.
    * @return pointer to the performance counter
    */
@@ -165,6 +196,11 @@ class DataTable {
   std::atomic<RawBlock *> insertion_head_ = nullptr;
   mutable DataTableCounter data_table_counter_;
 
+  // A templatized version for select, so that we can use the same code for both row and column access.
+  // the method is explicitly instantiated for ProjectedRow and MaterializedColumns::RowView
+  template <class RowType>
+  bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
+
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
@@ -175,6 +211,11 @@ class DataTable {
   // Checks for Snapshot Isolation conflicts, used by Update
   bool HasConflict(UndoRecord *version_ptr, const transaction::TransactionContext *txn) const;
 
+  // Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this
+  // information alone is not enough to determine visibility of a tuple to a transaction. This should be used along with
+  // a version chain traversal to determine if a tuple's versions are actually visible to a txn.
+  // The criteria for visibilty of a slot are presence (presence/version pointer column is non-NULL) and not deleted
+  // (logical delete column is non-NULL).
   bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

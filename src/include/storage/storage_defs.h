@@ -195,7 +195,7 @@ class TupleSlot {
   friend struct std::hash<TupleSlot>;
   // Block pointers are always aligned to 1 mb, thus we get 5 free bytes to
   // store the offset.
-  uintptr_t bytes_{0};
+  uintptr_t bytes_;
 };
 
 /**

@@ -2,21 +2,18 @@
 #include <unordered_map>
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "storage/materialized_columns.h"
 
 namespace terrier::storage {
 void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *const pos) {
   switch (attr_size) {
-    case sizeof(uint8_t):
-      *reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
+    case sizeof(uint8_t):*reinterpret_cast<uint8_t *>(pos) = static_cast<uint8_t>(val);
       break;
-    case sizeof(uint16_t):
-      *reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
+    case sizeof(uint16_t):*reinterpret_cast<uint16_t *>(pos) = static_cast<uint16_t>(val);
       break;
-    case sizeof(uint32_t):
-      *reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
+    case sizeof(uint32_t):*reinterpret_cast<uint32_t *>(pos) = static_cast<uint32_t>(val);
       break;
-    case sizeof(uint64_t):
-      *reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
+    case sizeof(uint64_t):*reinterpret_cast<uint64_t *>(pos) = static_cast<uint64_t>(val);
       break;
     default:
       // Invalid attr size
@@ -26,27 +23,30 @@ void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *
 
 uint64_t StorageUtil::ReadBytes(const uint8_t attr_size, const byte *const pos) {
   switch (attr_size) {
-    case sizeof(uint8_t):
-      return *reinterpret_cast<const uint8_t *>(pos);
-    case sizeof(uint16_t):
-      return *reinterpret_cast<const uint16_t *>(pos);
-    case sizeof(uint32_t):
-      return *reinterpret_cast<const uint32_t *>(pos);
-    case sizeof(uint64_t):
-      return *reinterpret_cast<const uint64_t *>(pos);
+    case sizeof(uint8_t):return *reinterpret_cast<const uint8_t *>(pos);
+    case sizeof(uint16_t):return *reinterpret_cast<const uint16_t *>(pos);
+    case sizeof(uint32_t):return *reinterpret_cast<const uint32_t *>(pos);
+    case sizeof(uint64_t):return *reinterpret_cast<const uint64_t *>(pos);
     default:
       // Invalid attr size
       throw std::runtime_error("Invalid byte write value");
   }
 }
 
-void StorageUtil::CopyWithNullCheck(const byte *const from, ProjectedRow *const to, const uint8_t size,
+template<class RowType>
+void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint8_t size,
                                     const uint16_t projection_list_index) {
   if (from == nullptr)
     to->SetNull(projection_list_index);
   else
     WriteBytes(size, ReadBytes(size, from), to->AccessForceNotNull(projection_list_index));
 }
+
+template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
+template void StorageUtil::CopyWithNullCheck<MaterializedColumns::RowView>(const byte *,
+                                                                           MaterializedColumns::RowView *,
+                                                                           uint8_t,
+                                                                           uint16_t);
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
@@ -58,22 +58,43 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStr
   }
 }
 
+template<class RowType>
 void StorageUtil::CopyAttrIntoProjection(const TupleAccessStrategy &accessor, const TupleSlot from,
-                                         ProjectedRow *const to, const uint16_t projection_list_offset) {
+                                         RowType *const to, const uint16_t projection_list_offset) {
   col_id_t col_id = to->ColumnIds()[projection_list_offset];
   uint8_t attr_size = accessor.GetBlockLayout().AttrSize(col_id);
   byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
   CopyWithNullCheck(stored_attr, to, attr_size, projection_list_offset);
 }
 
+template void StorageUtil::CopyAttrIntoProjection<ProjectedRow>(const TupleAccessStrategy &,
+                                                                TupleSlot,
+                                                                ProjectedRow *,
+                                                                uint16_t);
+template void StorageUtil::CopyAttrIntoProjection<MaterializedColumns::RowView>(const TupleAccessStrategy &,
+                                                                                TupleSlot,
+                                                                                MaterializedColumns::RowView *,
+                                                                                uint16_t);
+
+template<class RowType>
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, const TupleSlot to,
-                                         const ProjectedRow &from, const uint16_t projection_list_offset) {
+                                         const RowType &from, const uint16_t projection_list_offset) {
   col_id_t col_id = from.ColumnIds()[projection_list_offset];
   const byte *stored_attr = from.AccessWithNullCheck(projection_list_offset);
   CopyWithNullCheck(stored_attr, accessor, to, col_id);
 }
 
-void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *const buffer) {
+template void StorageUtil::CopyAttrFromProjection<ProjectedRow>(const TupleAccessStrategy &,
+                                                                TupleSlot,
+                                                                const ProjectedRow &,
+                                                                uint16_t);
+template void StorageUtil::CopyAttrFromProjection<MaterializedColumns::RowView>(const TupleAccessStrategy &,
+                                                                                TupleSlot,
+                                                                                const MaterializedColumns::RowView &,
+                                                                                uint16_t);
+
+template<class RowType>
+void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
   // the projection list in delta and buffer have to be sorted in the same way for this to work,
   // which should be guaranteed if both are constructed correctly using ProjectedRowInitializer,
   // (or copied from a valid ProjectedRow)
@@ -99,6 +120,13 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
     }
   }
 }
+
+template void StorageUtil::ApplyDelta<ProjectedRow>(const BlockLayout &layout,
+                                                    const ProjectedRow &delta,
+                                                    ProjectedRow *buffer);
+template void StorageUtil::ApplyDelta<MaterializedColumns::RowView>(const BlockLayout &layout,
+                                                                    const ProjectedRow &delta,
+                                                                    MaterializedColumns::RowView *buffer);
 
 DeltaRecordType StorageUtil::CheckUndoRecordType(const UndoRecord &undo) {
   const ProjectedRow &delta = *(undo.Delta());

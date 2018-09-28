@@ -43,7 +43,8 @@ class StorageUtil {
    * @param size size of the attribute
    * @param projection_list_index the projection_list_index to copy to
    */
-  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t projection_list_index);
+  template <class RowType>
+  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
@@ -63,7 +64,8 @@ class StorageUtil {
    * @param to projected row to copy into
    * @param projection_list_offset The projection_list index to copy to on the projected row.
    */
-  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
+  template <class RowType>
+  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, RowType *to,
                                      uint16_t projection_list_offset);
 
   /**
@@ -73,7 +75,8 @@ class StorageUtil {
    * @param from projected row to copy from
    * @param projection_list_offset The projection_list index to copy from on the projected row.
    */
-  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const ProjectedRow &from,
+  template <class RowType>
+  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const RowType &from,
                                      uint16_t projection_list_offset);
 
   /**
@@ -87,7 +90,8 @@ class StorageUtil {
    * @param delta delta to apply
    * @param buffer buffer to apply delta into
    */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
+  template <class RowType>
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *buffer);
 
   /**
    * Given an address offset, aligns it to the word_size
