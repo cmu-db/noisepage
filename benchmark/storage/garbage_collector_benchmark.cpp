@@ -56,7 +56,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
 
     delete gc_;
 
-    state.SetIterationTime(elapsed_ms / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_txns);
 }
@@ -94,7 +94,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
 
     delete gc_;
 
-    state.SetIterationTime(elapsed_ms / 1000.0);
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_txns);
 }
