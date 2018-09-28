@@ -10,7 +10,7 @@
 #include "execution/value.h"
 #include "planner/aggregate_plan.h"
 
-
+namespace terrier::execution {
 //===----------------------------------------------------------------------===//
 // This class is responsible for handling the logic around performing
 // aggregations. Users first setup the aggregation (through Setup()) with all
@@ -160,3 +160,4 @@ class Aggregation {
   // Reference to QueryState, needed for the hash tables
   QueryState &query_state_;
 };
+}  // namespace terrier::execution
