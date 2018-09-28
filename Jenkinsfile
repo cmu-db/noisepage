@@ -51,7 +51,7 @@ pipeline {
                         sh 'sudo apt-get install -q -y curl'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_GENERATE_COVERAGE=ON .. && make -j4'
-                        sh 'cd build && make unittest -j4'
+                        sh 'cd build && make coveralls -j4'
                     }
                 }
 
