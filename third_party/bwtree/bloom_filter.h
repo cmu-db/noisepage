@@ -144,7 +144,7 @@ class BloomFilter {
    * but delicate situations might occur and we need to take care.
    */
   inline void __InsertScalar(const ValueType &value) {
-    register size_t hash_value = value_hash_obj(value);
+    size_t hash_value = value_hash_obj(value);
 
     // Copy the pointer into the array
     // We do not do any bounds checking here, and assume there is always
@@ -179,7 +179,7 @@ class BloomFilter {
   inline bool __ExistsScalar(const ValueType &value) {
 
     #ifdef BLOOM_FILTER_ENABLED
-    register size_t hash_value = value_hash_obj(value);
+    size_t hash_value = value_hash_obj(value);
 
     if((bit_array_0[(hash_value & BYTE_OFFSET_MASK) >> 3] & \
       (0x1 << (hash_value & BIT_OFFSET_MASK))) == 0x00) {
