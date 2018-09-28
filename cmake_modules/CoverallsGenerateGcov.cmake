@@ -229,8 +229,8 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 endforeach()
 
 # TODO: Enable setting these
-set(JSON_SERVICE_NAME "jenkins-ci")
-set(JSON_SERVICE_JOB_ID $ENV{BUILD_NUMBER})
+set(JSON_SERVICE_NAME "travis-ci")
+set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
 
 set(JSON_TEMPLATE
 "{
