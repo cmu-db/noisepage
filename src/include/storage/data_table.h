@@ -57,7 +57,7 @@ class DataTable {
   table_oid_t TableOid() const { return table_oid_t{0}; }
 
   /**
-   * Materializes a single tuple from the given slot, as visible at the timestamp.
+   * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
    *
    * @param txn the calling transaction
    * @param slot the tuple slot to read
