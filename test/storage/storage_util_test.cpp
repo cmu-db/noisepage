@@ -203,7 +203,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
   for (uint32_t iteration = 0; iteration < num_iterations_; iteration++) {
     uint16_t max_columns = 1000;
-    const catalog::Schema schema = StorageTestUtil::RandomSchema(max_columns - NUM_RESERVED_COLUMNS, &generator_);
+    const catalog::Schema schema =
+        StorageTestUtil::RandomSchema(static_cast<uint16_t>(max_columns - NUM_RESERVED_COLUMNS), &generator_);
     const auto layout_and_col_map = storage::StorageUtil::BlockLayoutFromSchema(schema);
     const storage::BlockLayout layout = layout_and_col_map.first;
     const std::unordered_map<col_oid_t, col_id_t> column_map = layout_and_col_map.second;
@@ -217,7 +218,7 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
 
     // Verify that the BlockLayout's columns are sorted by attribute size in descending order
     for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
-      EXPECT_GE(layout.AttrSize(col_id_t(i)), layout.AttrSize(col_id_t(i + 1)));
+      EXPECT_GE(layout.AttrSize(col_id_t(i)), layout.AttrSize(col_id_t(static_cast<uint16_t>(i + 1))));
     }
 
     // Verify the contents of the column_map
