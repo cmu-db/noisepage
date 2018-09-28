@@ -97,7 +97,7 @@ class Schema {
    * @return description of the schema for a specific column
    */
   Column GetColumn(const col_id_t col_id) const {
-    TERRIER_ASSERT(!col_id < columns_.size(), "column id is out of bounds for this Schema");
+    TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[static_cast<uint16_t>(col_id)];
   }
   /**

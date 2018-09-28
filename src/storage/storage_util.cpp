@@ -148,14 +148,15 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
     }
   }
 
-  TERRIER_ASSERT(attr_sizes.size() == num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
+  TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
+                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
                  "Number of attr_sizes does not match the sum of attr counts.");
 
   // Initialize the offsets for each attr_size
   uint16_t offset_8_byte_attrs = NUM_RESERVED_COLUMNS;
   uint16_t offset_4_byte_attrs = num_8_byte_attrs;
-  uint16_t offset_2_byte_attrs = offset_4_byte_attrs + num_4_byte_attrs;
-  uint16_t offset_1_byte_attrs = offset_2_byte_attrs + num_2_byte_attrs;
+  auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
+  auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
 
   ColumnMap col_oid_to_id;
   // Build the map from Schema columns to underlying columns
