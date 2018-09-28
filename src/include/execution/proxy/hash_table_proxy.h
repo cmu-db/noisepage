@@ -13,7 +13,7 @@
 #pragma once
 
 #include "execution/proxy/proxy.h"
-#include "execution/util/hash_table.h"
+#include "execution/runtime/hash_table.h"
 
 namespace peloton {
 namespace codegen {

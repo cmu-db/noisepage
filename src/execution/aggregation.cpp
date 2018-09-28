@@ -1,10 +1,10 @@
-#include "exeuction/aggregation.h"
+#include "execution/aggregation.h"
 
-#include "exeuction/lang/if.h"
-#include "exeuction/proxy/oa_hash_table_proxy.h"
-#include "exeuction/type/boolean_type.h"
-#include "exeuction/type/bigint_type.h"
-#include "exeuction/type/decimal_type.h"
+#include "execution/lang/if.h"
+#include "execution/proxy/oa_hash_table_proxy.h"
+#include "execution/type/boolean_type.h"
+#include "execution/type/bigint_type.h"
+#include "execution/type/decimal_type.h"
 
 namespace terrier::execution {
 // Configure/setup the aggregation class to handle the provided aggregate types

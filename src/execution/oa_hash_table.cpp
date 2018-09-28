@@ -21,7 +21,7 @@
 #include "execution/proxy/oa_hash_table_proxy.h"
 #include "execution/lang/vectorized_loop.h"
 #include "execution/type/integer_type.h"
-#include "execution/util/oa_hash_table.h"
+#include "execution/runtime/oa_hash_table.h"
 
 namespace peloton {
 namespace codegen {

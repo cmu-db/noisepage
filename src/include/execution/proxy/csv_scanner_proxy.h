@@ -14,7 +14,7 @@
 
 #include "execution/proxy/proxy.h"
 #include "execution/proxy/type_builder.h"
-#include "execution/util/csv_scanner.h"
+#include "execution/runtime/csv_scanner.h"
 #include "execution/proxy/runtime_functions_proxy.h"
 
 namespace peloton {

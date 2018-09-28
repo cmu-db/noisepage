@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// aggregation.h
-//
-// Identification: src/include/execution/aggregation.h
-//
-// Copyright (c) 2015-2017, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <vector>
@@ -22,8 +10,6 @@
 #include "execution/value.h"
 #include "planner/aggregate_plan.h"
 
-namespace peloton {
-namespace codegen {
 
 //===----------------------------------------------------------------------===//
 // This class is responsible for handling the logic around performing
@@ -174,6 +160,3 @@ class Aggregation {
   // Reference to QueryState, needed for the hash tables
   QueryState &query_state_;
 };
-
-}  // namespace codegen
-}  // namespace peloton

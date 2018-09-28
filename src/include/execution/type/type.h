@@ -15,7 +15,7 @@
 #include <cstdint>
 
 #include "type/type_id.h"
-#include "util/hash_util.h"
+#include "common/hash_util.h"
 
 namespace peloton {
 namespace codegen {

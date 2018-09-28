@@ -16,7 +16,7 @@
 
 #include "execution/lang/if.h"
 #include "execution/type/sql_type.h"
-#include "util/math_util.h"
+#include "runtime/math_util.h"
 
 namespace peloton {
 namespace codegen {

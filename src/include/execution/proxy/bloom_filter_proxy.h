@@ -13,7 +13,7 @@
 #pragma once
 
 #include "execution/proxy/proxy.h"
-#include "execution/util/bloom_filter.h"
+#include "execution/runtime/bloom_filter.h"
 
 namespace peloton {
 namespace codegen {

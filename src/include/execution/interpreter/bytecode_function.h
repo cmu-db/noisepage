@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "util/math_util.h"
+#include "runtime/math_util.h"
 
 namespace llvm {
 class Instruction;

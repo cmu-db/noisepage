@@ -14,7 +14,7 @@
 #include "execution/lang/if.h"
 #include "execution/lang/loop.h"
 #include "execution/proxy/bloom_filter_proxy.h"
-#include "execution/util/bloom_filter.h"
+#include "execution/runtime/bloom_filter.h"
 
 #include <cmath>
 #include <vector>

@@ -17,7 +17,7 @@
 #include "execution/type/integer_type.h"
 #include "execution/value.h"
 #include "common/exception.h"
-#include "util/string_util.h"
+#include "runtime/string_util.h"
 
 namespace peloton {
 namespace codegen {
