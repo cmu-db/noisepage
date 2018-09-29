@@ -178,9 +178,6 @@ class DataTable {
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
 
-  // for performance in generating initializer for inserts
-  const storage::ProjectedRowInitializer insert_record_initializer_;
-
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
@@ -200,6 +197,8 @@ class DataTable {
   // the method is explicitly instantiated for ProjectedRow and MaterializedColumns::RowView
   template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
+
+  bool GrabWriteLock(transaction::TransactionContext *txn, TupleSlot slot, UndoRecord *undo);
 
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;

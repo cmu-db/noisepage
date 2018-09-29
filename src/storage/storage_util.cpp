@@ -103,10 +103,8 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
     col_id_t delta_col_id = delta.ColumnIds()[delta_i], buffer_col_id = buffer->ColumnIds()[buffer_i];
     if (delta_col_id == buffer_col_id) {
       // Should apply changes
-      TERRIER_ASSERT(delta_col_id != PRESENCE_COLUMN_ID,
+      TERRIER_ASSERT(delta_col_id != VERSION_POINTER_COLUMN_ID,
                      "Output buffer should never return the version vector column.");
-      TERRIER_ASSERT(delta_col_id != LOGICAL_DELETE_COLUMN_ID,
-                     "Output buffer should never return the logical delete column.");
       uint8_t attr_size = layout.AttrSize(delta_col_id);
       StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(delta_i), buffer, attr_size, buffer_i);
       delta_i++;
@@ -127,17 +125,6 @@ template void StorageUtil::ApplyDelta<ProjectedRow>(const BlockLayout &layout,
 template void StorageUtil::ApplyDelta<MaterializedColumns::RowView>(const BlockLayout &layout,
                                                                     const ProjectedRow &delta,
                                                                     MaterializedColumns::RowView *buffer);
-
-DeltaRecordType StorageUtil::CheckUndoRecordType(const UndoRecord &undo) {
-  const ProjectedRow &delta = *(undo.Delta());
-  if (delta.ColumnIds()[0] == LOGICAL_DELETE_COLUMN_ID) {
-    if (delta.IsNull(0)) {
-      return DeltaRecordType::INSERT;
-    }
-    return DeltaRecordType::DELETE;
-  }
-  return DeltaRecordType::UPDATE;
-}
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
   const uint32_t remainder = offset % word_size;

@@ -51,7 +51,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std:
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no latch required on undo since all operations are transaction-local
   timestamp_t txn_id = txn->TxnId().load();  // will not change
-  for (auto &it : txn->undo_buffer_) Rollback(txn_id, it);
+  for (auto &it : txn->undo_buffer_)
+    Rollback(txn_id, it);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
@@ -84,13 +85,23 @@ void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoR
     return;
   }
   const storage::TupleSlot slot = record.Slot();
+  // This is slightly weird because we don't necessarily undo the record given, but a record by this txn at the
+  // given slot. It ends up being correct because we call the correct number of rollbacks.
   storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
-  // We do not hold the lock. Should just return
   TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn_id,
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
-  // Re-apply the before image
-  for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
-    storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
+  switch (version_ptr->Type()) {
+    case storage::DeltaRecordType::UPDATE:
+      // Re-apply the before image
+      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
+        storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
+      break;
+    case storage::DeltaRecordType::INSERT:
+      table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+      break;
+    case storage::DeltaRecordType::DELETE:
+      table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+  }
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.

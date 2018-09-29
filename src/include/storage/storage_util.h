@@ -1,8 +1,9 @@
 #pragma once
 #include <unordered_map>
+#include "storage/storage_defs.h"
 #include "common/macros.h"
 #include "common/typedefs.h"
-#include "storage/storage_defs.h"
+#include "storage/block_layout.h"
 
 namespace terrier::storage {
 class ProjectedRow;
@@ -125,13 +126,5 @@ class StorageUtil {
   static A *AlignedPtr(const void *ptr) {
     return reinterpret_cast<A *>(AlignedPtr(sizeof(A), ptr));
   }
-
-  /**
-   * Inspects an UndoRecord's ProjectedRow contents for a modification on the logical delete column
-   * @param undo UndoRecord to be inspected
-   * @return INSERT if UndoRecord's ProjectedRow represents an insert, DELETE if delta represents a delete, UPDATE
-   * otherwise
-   */
-  static DeltaRecordType CheckUndoRecordType(const UndoRecord &undo);
 };
 }  // namespace terrier::storage

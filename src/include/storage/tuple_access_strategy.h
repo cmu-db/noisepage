@@ -46,11 +46,13 @@ class TupleAccessStrategy {
 
   /**
    * Block Header layout:
-   * ------------------------------------------------------------------------------------
-   * | layout_version | num_records | num_slots | attr_offsets[num_attributes]          | // 32-bit fields
-   * ------------------------------------------------------------------------------------
-   * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |   content (64-bit aligned)   |
-   * ------------------------------------------------------------------------------------
+   * ------------------------------------------------------------------------------------------
+   * | layout_version | num_records | num_slots | attr_offsets[num_attributes] 32-bit fields  |
+   * ------------------------------------------------------------------------------------------
+   * | num_attrs (16-bit) | attr_sizes[num_attr] (8-bit) |  bitmap for slots (64-bit aligned) |
+   * ------------------------------------------------------------------------------------------
+   * | content (64-bit aligned) |
+   * ----------------------------
    *
    * This is laid out in this order, because except for num_records,
    * the other fields are going to be immutable for a block's lifetime,
@@ -75,6 +77,15 @@ class TupleAccessStrategy {
     MiniBlock *Column(const col_id_t col_id) {
       byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[!col_id];
       return reinterpret_cast<MiniBlock *>(head);
+    }
+
+    /**
+     * @param layout layout of the block
+     * @return reference to the bitmap for slots. Use as a member
+     */
+    common::RawConcurrentBitmap *SlotValidityBitmap(const BlockLayout &layout) {
+      return reinterpret_cast<common::RawConcurrentBitmap *>(
+          StorageUtil::AlignedPtr(sizeof(uint64_t), AttrSizes(layout) + NumAttrs(layout)));
     }
 
     /**
@@ -122,7 +133,14 @@ class TupleAccessStrategy {
    */
   void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
 
-  /* Vectorized Access */
+  /**
+   * @param slot tuple slot value to check
+   * @return whether the given slot is occupied by a tuple
+   */
+  bool ValidSlot(TupleSlot slot) const {
+    return reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Test(slot.GetOffset());
+  }
+
   /**
    * @param block block to access
    * @param col_id id of the column
@@ -143,6 +161,7 @@ class TupleAccessStrategy {
     return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
   }
 
+
   /**
    * @param slot tuple slot to access
    * @param col_id id of the column
@@ -155,15 +174,13 @@ class TupleAccessStrategy {
   }
 
   /**
+   * Returns a pointer to the attribute, ignoring the presence bit.
    * @param slot tuple slot to access
    * @param col_id id of the column
-   * @return a pointer to the attribute, or garbage if attribute is null.
-   * @warning currently this should only be used by the DataTable when updating VersionPtrs on known-present tuples
+   * @return a pointer to the attribute
    */
   byte *AccessWithoutNullCheck(const TupleSlot slot, const col_id_t col_id) const {
     TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
-    TERRIER_ASSERT(col_id == PRESENCE_COLUMN_ID,
-                   "Currently this should only be called on the presence column by the DataTable.");
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
 
@@ -182,19 +199,6 @@ class TupleAccessStrategy {
   }
 
   /**
-   * Set an attribute null. If called on the primary key column (0), this is
-   * considered freeing.
-   * @param slot tuple slot to access
-   * @param col_id id of the column
-   */
-  void SetNull(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
-    if (ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), true)  // Noop if already null
-        && col_id == PRESENCE_COLUMN_ID)
-      slot.GetBlock()->num_records_--;
-  }
-
-  /**
    * Get an attribute's null value
    * @param slot tuple slot to access
    * @param col_id id of the column
@@ -206,12 +210,38 @@ class TupleAccessStrategy {
   }
 
   /**
+   * Set an attribute null.
+   * @param slot tuple slot to access
+   * @param col_id id of the column
+   */
+  void SetNull(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), true);
+  }
+
+  /**
+   * Set an attribute not null.
+   * @param slot tuple slot to access
+   * @param col_id id of the column
+   */
+  void SetNotNull(const TupleSlot slot, const col_id_t col_id) const {
+    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), false);
+  }
+
+  /**
    * Allocates a slot for a new tuple, writing to the given reference.
    * @param block block to allocate a slot in.
    * @param[out] slot tuple to write to.
    * @return true if the allocation succeeded, false if no space could be found.
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
+
+  void Deallocate(TupleSlot slot) const {
+    TERRIER_ASSERT(ValidSlot(slot), "Can only deallocate slots that are allocated");
+    reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Flip(slot.GetOffset(), true);
+    slot.GetBlock()->num_records_--;
+  }
 
   /**
    * Returns the block layout.

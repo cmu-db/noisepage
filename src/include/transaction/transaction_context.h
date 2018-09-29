@@ -58,7 +58,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     const uint32_t size = storage::UndoRecord::Size(redo);
-    return storage::UndoRecord::Initialize(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
+    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
   }
 
   /**
@@ -68,10 +68,14 @@ class TransactionContext {
    * @param insert_record_initializer ProjectedRowInitializer used to initialize an insert undo record
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
-  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot,
-                                           const storage::ProjectedRowInitializer &insert_record_initializer) {
-    byte *result = undo_buffer_.NewEntry(storage::UndoRecord::Size(insert_record_initializer));
-    return storage::UndoRecord::Initialize(result, txn_id_.load(), slot, table, insert_record_initializer);
+  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
+    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
+  }
+
+  storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
+    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
   }
 
   /**
@@ -88,6 +92,11 @@ class TransactionContext {
     auto *log_record =
         storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+  }
+
+  void StageDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
+    uint32_t size = storage::DeleteRecord::Size();
+    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
   }
 
  private:

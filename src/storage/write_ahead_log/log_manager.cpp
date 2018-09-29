@@ -40,8 +40,15 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       Write(record_body->Delta(), record_body->Delta()->Size());
       break;
     }
+    case LogRecordType::DELETE: {
+      auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
+      WriteValue(record_body->GetDataTable()->TableOid());
+      WriteValue(record_body->GetTupleSlot());
+      break;
+    }
     case LogRecordType::COMMIT:
       WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
+
   }
 }
 
