@@ -67,12 +67,14 @@ struct StorageTestUtil {
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
-    TERRIER_ASSERT(max_cols > 1, "There should be at least 2 cols (first is version).");
+    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS,
+                   "There should be at least 3 cols (first is version, second is logical delete).");
     // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(2, max_cols)(*generator);
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(3, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
-    for (uint16_t i = 1; i < num_attrs; i++)
+    attr_sizes[1] = 8;
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
   }
@@ -101,11 +103,11 @@ struct StorageTestUtil {
   }
 
   static std::vector<col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
-    std::vector<col_id_t> col_ids(layout.NumCols() - 1u);
+    std::vector<col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      col_ids[col - 1] = col_id_t(col);
+    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+      col_ids[col - NUM_RESERVED_COLUMNS] = col_id_t(col);
     }
     return col_ids;
   }
@@ -116,12 +118,12 @@ struct StorageTestUtil {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
     uint16_t num_cols =
-        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.NumCols() - 1))(*generator);
+        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.NumColumns() - 2))(*generator);
 
     std::vector<col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = 1; col < layout.NumCols(); col++) col_ids.emplace_back(col);
+    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
 
     // permute the column ids for our random delta
     std::shuffle(col_ids.begin(), col_ids.end(), *generator);
@@ -180,8 +182,8 @@ struct StorageTestUtil {
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
       if (val_ptr == nullptr) {
         tested.SetNull(slot, col_id_t(col));
       } else {
@@ -196,8 +198,8 @@ struct StorageTestUtil {
   // Check that the written tuple is the same as the expected one
   static void CheckTupleEqual(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
-      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - 1));
+    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
       byte *col_slot = tested.AccessWithNullCheck(slot, col_id_t(col));
       if (val_ptr != nullptr) {
         // Read the value
