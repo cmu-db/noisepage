@@ -31,5 +31,5 @@ Checks:     '
             -readability-braces-around-statements,
             '
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(benchmark|src|test)/include'
+HeaderFilterRegex: '(benchmark|src|test)\/include'
 AnalyzeTemporaryDtors: true

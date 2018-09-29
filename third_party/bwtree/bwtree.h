@@ -5753,6 +5753,7 @@ class BwTree : public BwTreeBase {
         const KeyNodeIDPair *location;
 
         // Find the deleted item
+        // NOLINTNEXTLINE
         const KeyNodeIDPair *found_pair_p = NavigateInnerNode(
             parent_snapshot_p, delete_item_p->first, &location);
 

@@ -5,11 +5,24 @@
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
+###############################################
+# Third Party sources
+###############################################
+
 # spdlog
 file(GLOB_RECURSE SPDLOG_SOURCES
     ${PROJECT_SOURCE_DIR}/third_party/spdlog/*.h
     )
 list(APPEND TERRIER_SRCS ${SPDLOG_SOURCES})
+
+# bwtree
+file(GLOB_RECURSE BWTREE_SOURCES
+    ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
+)
+list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
+
+# json
+list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
 ###############################################
 # Terrier library
