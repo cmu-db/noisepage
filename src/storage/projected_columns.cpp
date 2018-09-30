@@ -17,24 +17,22 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage:
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
   // descending order in attribute size.
   std::sort(col_ids_.begin(), col_ids_.end(), std::less<>());
-  size_ = sizeof(ProjectedColumns);  // size and num_col size
+  size_ = sizeof(ProjectedColumns);
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
   // space needed to store value offsets, pad up to 8 bytes to store tuple slots
   size_ =
       StorageUtil::PadUpToSize(sizeof(TupleSlot), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t)));
   // Space needed to store tuple slots, no need to pad bitmaps
-  size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples);
+  size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples_);
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     offsets_[i] = size_;
-    // space needed to store the bitmap, padded up to the size of the first value in this projected row
-    size_ = StorageUtil::PadUpToSize(layout.AttrSize(col_ids_[0]),
-                                     size_ + common::RawBitmap::SizeInBytes(static_cast<uint32_t>(col_ids_.size())));
-    // Pad up to either the next value's size, or 8 bytes at the end.
-    auto next_size =
-        static_cast<uint8_t>(i == col_ids_.size() - 1 ? sizeof(uint64_t) : layout.AttrSize(col_ids_[i + 1]));
-    size_ = StorageUtil::PadUpToSize(next_size, size_ + layout.AttrSize(col_ids_[i]));
+    // space needed to store the bitmap, padded up to 8 bytes
+    size_ = StorageUtil::PadUpToSize(sizeof(uint64_t),
+                                     size_ + common::RawBitmap::SizeInBytes(static_cast<uint32_t>(max_tuples_)));
+    // Pad up to always 8 bytes across columns.
+    size_ = StorageUtil::PadUpToSize(sizeof(uint64_t), size_ + layout.AttrSize(col_ids_[i]) * max_tuples_);
   }
 }
 

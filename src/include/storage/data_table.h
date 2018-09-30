@@ -53,10 +53,13 @@ class DataTable {
      * @return self-reference after the iterator is advanced
      */
     SlotIterator &operator++() {
-      if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots())
-        current_slot_ = {*(++block_), 0};
-      else
+      common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+      if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots()) {
+        ++block_;
+        current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
+      } else {
         current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+      }
       return *this;
     }
 
@@ -89,8 +92,12 @@ class DataTable {
 
    private:
     friend class DataTable;
+    // MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
     SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block), current_slot_(*block, offset_in_block) {}
+        : table_(table),
+          block_(block) {
+      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    }
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
@@ -166,7 +173,6 @@ class DataTable {
     return {this, blocks_.end(), 0};
   }
 
-  // TODO(Tianyu): Do we really need a table end?
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
    * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
@@ -235,7 +241,7 @@ class DataTable {
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
-  template <class RowType>
+  template<class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
   // Atomically read out the version pointer value.

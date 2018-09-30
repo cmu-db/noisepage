@@ -68,9 +68,9 @@ struct StorageTestUtil {
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
     TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS,
-                   "There should be at least 3 cols (first is version, second is logical delete).");
+                   "There should be at least 2 cols (reserved for version).");
     // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(3, max_cols)(*generator);
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
     attr_sizes[1] = 8;
@@ -165,7 +165,8 @@ struct StorageTestUtil {
     return true;
   }
 
-  static void PrintRow(const storage::ProjectedRow &row, const storage::BlockLayout &layout) {
+  template <class RowType>
+  static void PrintRow(const RowType &row, const storage::BlockLayout &layout) {
     printf("num_cols: %u\n", row.NumColumns());
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       col_id_t col_id = row.ColumnIds()[i];

@@ -25,6 +25,7 @@ namespace terrier::storage {
  * |                                ...                                  |
  * -----------------------------------------------------------------------
  */
+// TODO(Tianyu): PACKED for the same reason as ProjectedRow
 class PACKED ProjectedColumns {
  public:
   // TODO(Tianyu): This is potentially inefficient, implemented as immutable
@@ -198,7 +199,9 @@ class PACKED ProjectedColumns {
     // We should probably be consistent with what we do in blocks, which probably means modifying blocks
     // since I don't think replicating the block layout here sounds right.
     return StorageUtil::AlignedPtr(
-        sizeof(uint64_t), ColumnPresenceBitmap(projection_list_index) + common::RawBitmap::SizeInBytes(num_tuples_));
+        sizeof(uint64_t),
+        reinterpret_cast<byte *>(ColumnPresenceBitmap(projection_list_index))
+                                 + common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
  private:

@@ -24,17 +24,18 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *s
                      ProjectedColumns *out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
-  uint32_t i = 0;
-  for (; i < out_buffer->MaxTuples() && *start_pos != end(); ++i, ++(*start_pos)) {
-    bool valid;
-    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), i);
-    do {
-      TupleSlot slot = **start_pos;
-      // Only fill the buffer with valid, visible tuples
-      valid = !accessor_.ValidSlot(slot) && SelectIntoBuffer(txn, slot, &row);
-    } while (!valid);
+  uint32_t filled = 0;
+  while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), filled);
+    TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (accessor_.ValidSlot(slot) && SelectIntoBuffer(txn, slot, &row)) {
+      out_buffer->TupleSlots()[filled] = slot;
+      filled++;
+    }
+    ++(*start_pos);
   }
-  out_buffer->SetNumTuples(i);
+  out_buffer->SetNumTuples(filled);
 }
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
