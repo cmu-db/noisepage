@@ -37,26 +37,42 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
                  "The input buffer never changes both the version pointer and logical delete columns, so it should "
                  "have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
+  UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
-  UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
+  // write lock on the tuple.
+  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
+  }
+
   // Store before-image before making any changes or grabbing lock
   for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
+  // Update the next pointer of the new head of the version chain
+  undo->Next() = version_ptr;
 
-  if (GrabWriteLock(txn, slot, undo)) {
-    // Update in place with the new value.
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-      TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Input buffer should not change the version pointer column.");
-      // TODO(Matt): It would be nice to check that a ProjectedRow that modifies the logical delete column only originated
-      // from the DataTable calling Update() within Delete(), rather than an outside soure modifying this column, but
-      // that's difficult with this implementation
-      StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
-    }
-    data_table_counter_.IncrementNumUpdate(1);
-    return true;
+  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
   }
-  return false;
+
+  // Update in place with the new value.
+  for (uint16_t i = 0; i < redo.NumColumns(); i++) {
+    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                   "Input buffer should not change the version pointer column.");
+    // TODO(Matt): It would be nice to check that a ProjectedRow that modifies the logical delete column only originated
+    // from the DataTable calling Update() within Delete(), rather than an outside soure modifying this column, but
+    // that's difficult with this implementation
+    StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
+  }
+  data_table_counter_.IncrementNumUpdate(1);
+  return true;
 }
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
@@ -79,12 +95,12 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, result);
 
-  // Set the logically deleted bit to present
-  accessor_.AccessForceNotNull(result, VERSION_POINTER_COLUMN_ID);
-
   // Update the version pointer atomically so that a sequential scan will not see inconsistent version pointer, which
   // may result in a segfault
   AtomicallyWriteVersionPtr(result, accessor_, undo);
+
+  // Set the logically deleted bit to present as the undo record is ready
+  accessor_.AccessForceNotNull(result, VERSION_POINTER_COLUMN_ID);
 
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
@@ -103,12 +119,28 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   // Create a redo
   txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
-  if (GrabWriteLock(txn, slot, undo)) {
-    // We have the write lock. Go ahead and flip the logically deleted bit to true
-    accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
-    return true;
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
+  // write lock on the tuple.
+  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
   }
-  return false;
+
+  // Update the next pointer of the new head of the version chain
+  undo->Next() = version_ptr;
+
+  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
+    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
+    // TransactionManager's Rollback() and GC's Unlink logic
+    undo->Table() = nullptr;
+    return false;
+  }
+  // We have the write lock. Go ahead and flip the logically deleted bit to true
+  accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+  return true;
 }
 
 template<class RowType>
@@ -175,28 +207,6 @@ template bool DataTable::SelectIntoBuffer<ProjectedRow>(transaction::Transaction
 template bool DataTable::SelectIntoBuffer<MaterializedColumns::RowView>(transaction::TransactionContext *txn,
                                                                         const TupleSlot slot,
                                                                         MaterializedColumns::RowView *out_buffer) const;
-
-bool DataTable::GrabWriteLock(transaction::TransactionContext *txn, TupleSlot slot, UndoRecord *undo) {
-  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
-  // write lock on the tuple.
-  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
-  // Update the next pointer of the new head of the version chain
-  undo->Next() = version_ptr;
-
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
-  return true;
-}
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

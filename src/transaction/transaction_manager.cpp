@@ -51,8 +51,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, const std:
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no latch required on undo since all operations are transaction-local
   timestamp_t txn_id = txn->TxnId().load();  // will not change
-  for (auto &it : txn->undo_buffer_)
-    Rollback(txn_id, it);
+  for (auto &it : txn->undo_buffer_) Rollback(txn_id, it);
   table_latch_.Lock();
   const timestamp_t start_time = txn->StartTime();
   size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);

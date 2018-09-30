@@ -198,8 +198,6 @@ class DataTable {
   template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
-  bool GrabWriteLock(transaction::TransactionContext *txn, TupleSlot slot, UndoRecord *undo);
-
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 

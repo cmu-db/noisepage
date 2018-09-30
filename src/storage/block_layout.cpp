@@ -42,7 +42,7 @@ uint32_t BlockLayout::ComputeNumSlots() const {
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {
-  return StorageUtil::PadUpToSize(sizeof(uint64_t), static_header_size_ + common::RawBitmap::SizeInBytes(NumColumns()));
+  return StorageUtil::PadUpToSize(sizeof(uint64_t), static_header_size_ + common::RawBitmap::SizeInBytes(NumSlots()));
 }
 
 }  // namespace terrier::storage
