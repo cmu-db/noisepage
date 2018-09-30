@@ -118,7 +118,6 @@ class UndoRecord {
    * @param timestamp timestamp of the transaction that generated this UndoRecord
    * @param slot the TupleSlot this UndoRecord points to
    * @param table the DataTable this UndoRecord points to
-   * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
   static UndoRecord *InitializeDelete(byte *const head, const timestamp_t timestamp, const TupleSlot slot,

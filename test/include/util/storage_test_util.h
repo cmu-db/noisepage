@@ -139,8 +139,9 @@ struct StorageTestUtil {
     return {layout, ProjectionListRandomColumns(layout, generator)};
   }
 
-  static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *const one,
-                                  const storage::ProjectedRow *const other) {
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqual(const storage::BlockLayout &layout, const RowType1 *const one,
+                                  const RowType2 *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       if (one->ColumnIds()[projection_list_index] != other->ColumnIds()[projection_list_index]) return false;

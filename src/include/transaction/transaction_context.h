@@ -64,8 +64,7 @@ class TransactionContext {
   /**
    * Reserve space on this transaction's undo buffer for a record to log the insert given
    * @param table pointer to the updated DataTable object
-   * @param slot the TupleSlot being updated
-   * @param insert_record_initializer ProjectedRowInitializer used to initialize an insert undo record
+   * @param slot the TupleSlot inserted
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
@@ -73,6 +72,12 @@ class TransactionContext {
     return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
   }
 
+  /**
+   * Reserve space on this transaction's undo buffer for a record to log the delete given
+   * @param table pointer to the updated DataTable object
+   * @param slot the TupleSlot being deleted
+   * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
+   */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
     return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
@@ -94,6 +99,11 @@ class TransactionContext {
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 
+  /**
+   * Initialize a record that logs a delete, that will be logged out to disk
+   * @param table the DataTable that this record changes
+   * @param slot the slot that this record changes
+   */
   void StageDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     uint32_t size = storage::DeleteRecord::Size();
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);

@@ -13,7 +13,7 @@ namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
-  template <class Random>
+  template<class Random>
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
@@ -26,7 +26,7 @@ class RandomDataTableTestObject {
     delete[] select_buffer_;
   }
 
-  template <class Random>
+  template<class Random>
   storage::TupleSlot InsertRandomTuple(const timestamp_t timestamp, Random *generator,
                                        storage::RecordBufferSegmentPool *buffer_pool) {
     // generate a random redo ProjectedRow to Insert
@@ -47,7 +47,7 @@ class RandomDataTableTestObject {
   }
 
   // be sure to only update tuple incrementally (cannot go back in time)
-  template <class Random>
+  template<class Random>
   bool RandomlyUpdateTuple(const timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
@@ -110,6 +110,17 @@ class RandomDataTableTestObject {
     return select_row;
   }
 
+  void Scan(storage::DataTable::SlotIterator *begin,
+            const timestamp_t timestamp,
+            storage::ProjectedColumns *buffer,
+            storage::RecordBufferSegmentPool *buffer_pool) {
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, buffer_pool, LOGGING_DISABLED);
+    loose_txns_.push_back(txn);
+    table_.Scan(txn, begin, buffer);
+  }
+
+  storage::DataTable &GetTable() { return table_; }
+
  private:
   storage::BlockLayout layout_;
   storage::DataTable table_;
@@ -159,7 +170,31 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 
 // Insert some number of tuples and sequentially scan for them down the table
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, SimpleSequentialScan) {}
+TEST_F(DataTableTests, SimpleSequentialScan) {
+  const uint32_t num_iterations = 50;
+  const uint32_t num_inserts = 1000;
+  const uint16_t max_columns = 100;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+
+    // Populate the table with random tuples
+    for (uint32_t i = 0; i < num_inserts; ++i) tested.InsertRandomTuple(timestamp_t(0), &generator_, &buffer_pool_);
+
+    std::vector<col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+    auto it = tested.GetTable().begin();
+    tested.Scan(&it, timestamp_t(1), columns, &buffer_pool_);
+    EXPECT_EQ(num_inserts, columns->NumTuples());
+    for (uint32_t i = 0; i < tested.InsertedTuples().size(); i++) {
+      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(tested.Layout(), i);
+      const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(columns->TupleSlots()[i], timestamp_t(1));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), &stored, ref));
+    }
+    delete[] buffer;
+  }
+}
 
 // Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
