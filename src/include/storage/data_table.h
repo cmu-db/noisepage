@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include "common/performance_counter.h"
-#include "storage/materialized_columns.h"
+#include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
@@ -33,12 +33,25 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
  */
 class DataTable {
  public:
+  /**
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
+   */
   class SlotIterator {
    public:
+    /**
+     * @return reference to the underlying tuple slot
+     */
     const TupleSlot &operator*() const { return current_slot_; }
 
+    /**
+     * @return pointer to the underlying tuple slto
+     */
     const TupleSlot *operator->() const { return &current_slot_; }
 
+    /**
+     * pre-fix increment.
+     * @return self-reference after the iterator is advanced
+     */
     SlotIterator &operator++() {
       if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots())
         current_slot_ = {*(++block_), 0};
@@ -47,22 +60,39 @@ class DataTable {
       return *this;
     }
 
+    /**
+     * post-fix increment.
+     * @return copy of the iterator equal to this before increment
+     */
     const SlotIterator operator++(int) {
       SlotIterator copy = *this;
       operator++();
       return copy;
     }
 
+    /**
+     * Equality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators point to the same slot
+     */
     bool operator==(const SlotIterator &other) const {
-      return table_ == other.table_ && block_ == other.block_ && current_slot_ == other.current_slot_;
+      // TODO(Tianyu): I believe this is enough?
+      return current_slot_ == other.current_slot_;
     }
+
+    /**
+     * Inequality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators are not equal
+     */
+    bool operator!=(const SlotIterator &other) const { return !this->operator==(other); }
 
    private:
     friend class DataTable;
     SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
         : table_(table), block_(block), current_slot_(*block, offset_in_block) {}
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
-    // the table anymore
+    // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
     std::list<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
@@ -92,29 +122,44 @@ class DataTable {
   table_oid_t TableOid() const { return table_oid_t{0}; }
 
   /**
-   * Materializes a single tuple from the given slot, as visible at the timestamp.
+   * Materializes a single tuple from the given slot, as visible to the transaction given, according to the format
+   * described by the given output buffer.
    *
    * @param txn the calling transaction
    * @param slot the tuple slot to read
-   * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param out_buffer output buffer. The object should already contain projection list information
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const {
-    data_table_counter_.IncrementNumSelect(1);
-    return SelectIntoBuffer(txn, slot, out_buffer);
-  }
+  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
 
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,
   // just like the ++i and i++ dichotomy.
-  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, MaterializedColumns *out_buffer) const;
+  /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * last slot scanned in the invocation.
+   *
+   * @param txn the calling transaction
+   * @param start_pos iterator to the starting location for the sequential scan
+   * @param out_buffer output buffer. The object should already contain projection list information.
+   */
+  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
 
+  /**
+   * @return the first tuple slot contained in the data table
+   */
   SlotIterator begin() const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.begin(), 0};
   }
 
+  /**
+   * @return one past the last tuple slot contained in the data table
+   */
   SlotIterator end() const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.end(), 0};
@@ -188,7 +233,7 @@ class DataTable {
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
-  // the method is explicitly instantiated for ProjectedRow and MaterializedColumns::RowView
+  // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
   template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 

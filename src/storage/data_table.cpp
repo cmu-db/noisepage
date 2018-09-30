@@ -14,13 +14,20 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
+bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
+                       terrier::storage::ProjectedRow *out_buffer) const {
+  data_table_counter_.IncrementNumSelect(1);
+  return SelectIntoBuffer(txn, slot, out_buffer);
+}
+
 void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *start_pos,
-                     MaterializedColumns *out_buffer) const {
+                     ProjectedColumns *out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
-  for (uint32_t &i = out_buffer->NumTuples() = 0; i < out_buffer->MaxTuples(); i++, ++(start_pos)) {
+  for (uint32_t &i = out_buffer->NumTuples() = 0; i < out_buffer->MaxTuples() && *start_pos != end();
+       ++i, ++(*start_pos)) {
     bool valid;
-    MaterializedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), i);
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), i);
     do {
       TupleSlot slot = **start_pos;
       // Only fill the buffer with valid, visible tuples
@@ -202,9 +209,9 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
 
 template bool DataTable::SelectIntoBuffer<ProjectedRow>(transaction::TransactionContext *txn, const TupleSlot slot,
                                                         ProjectedRow *out_buffer) const;
-template bool DataTable::SelectIntoBuffer<MaterializedColumns::RowView>(transaction::TransactionContext *txn,
-                                                                        const TupleSlot slot,
-                                                                        MaterializedColumns::RowView *out_buffer) const;
+template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(transaction::TransactionContext *txn,
+                                                                     const TupleSlot slot,
+                                                                     ProjectedColumns::RowView *out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

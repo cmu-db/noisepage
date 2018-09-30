@@ -1,6 +1,6 @@
 #include "storage/storage_util.h"
 #include <unordered_map>
-#include "storage/materialized_columns.h"
+#include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
@@ -51,8 +51,8 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
 }
 
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
-template void StorageUtil::CopyWithNullCheck<MaterializedColumns::RowView>(const byte *, MaterializedColumns::RowView *,
-                                                                           uint8_t, uint16_t);
+template void StorageUtil::CopyWithNullCheck<ProjectedColumns::RowView>(const byte *, ProjectedColumns::RowView *,
+                                                                        uint8_t, uint16_t);
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
@@ -75,9 +75,8 @@ void StorageUtil::CopyAttrIntoProjection(const TupleAccessStrategy &accessor, co
 
 template void StorageUtil::CopyAttrIntoProjection<ProjectedRow>(const TupleAccessStrategy &, TupleSlot, ProjectedRow *,
                                                                 uint16_t);
-template void StorageUtil::CopyAttrIntoProjection<MaterializedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
-                                                                                MaterializedColumns::RowView *,
-                                                                                uint16_t);
+template void StorageUtil::CopyAttrIntoProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
+                                                                             ProjectedColumns::RowView *, uint16_t);
 
 template <class RowType>
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, const TupleSlot to, const RowType &from,
@@ -89,9 +88,9 @@ void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, co
 
 template void StorageUtil::CopyAttrFromProjection<ProjectedRow>(const TupleAccessStrategy &, TupleSlot,
                                                                 const ProjectedRow &, uint16_t);
-template void StorageUtil::CopyAttrFromProjection<MaterializedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
-                                                                                const MaterializedColumns::RowView &,
-                                                                                uint16_t);
+template void StorageUtil::CopyAttrFromProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
+                                                                             const ProjectedColumns::RowView &,
+                                                                             uint16_t);
 
 template <class RowType>
 void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
@@ -121,9 +120,8 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
 
 template void StorageUtil::ApplyDelta<ProjectedRow>(const BlockLayout &layout, const ProjectedRow &delta,
                                                     ProjectedRow *buffer);
-template void StorageUtil::ApplyDelta<MaterializedColumns::RowView>(const BlockLayout &layout,
-                                                                    const ProjectedRow &delta,
-                                                                    MaterializedColumns::RowView *buffer);
+template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayout &layout, const ProjectedRow &delta,
+                                                                 ProjectedColumns::RowView *buffer);
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
   const uint32_t remainder = offset % word_size;

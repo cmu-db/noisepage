@@ -1,9 +1,8 @@
 
-#include <storage/materialized_columns.h>
+#include <storage/projected_columns.h>
 namespace terrier::storage {
-MaterializedColumnsInitializer::MaterializedColumnsInitializer(const terrier::storage::BlockLayout &layout,
-                                                               std::vector<terrier::col_id_t> col_ids,
-                                                               uint32_t max_tuples)
+ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage::BlockLayout &layout,
+                                                         std::vector<terrier::col_id_t> col_ids, uint32_t max_tuples)
     : max_tuples_(max_tuples), col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
   TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
@@ -15,7 +14,7 @@ MaterializedColumnsInitializer::MaterializedColumnsInitializer(const terrier::st
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
   // descending order in attribute size.
   std::sort(col_ids_.begin(), col_ids_.end(), std::less<>());
-  size_ = sizeof(MaterializedColumns);  // size and num_col size
+  size_ = sizeof(ProjectedColumns);  // size and num_col size
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
   // space needed to store value offsets, pad up to 8 bytes to store tuple slots
@@ -36,11 +35,11 @@ MaterializedColumnsInitializer::MaterializedColumnsInitializer(const terrier::st
   }
 }
 
-MaterializedColumns *MaterializedColumnsInitializer::Initialize(void *head) const {
+ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
-  auto *result = reinterpret_cast<MaterializedColumns *>(head);
+  auto *result = reinterpret_cast<ProjectedColumns *>(head);
   result->size_ = size_;
   result->max_tuples_ = max_tuples_;
   result->num_tuples_ = 0;
