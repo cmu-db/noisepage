@@ -161,7 +161,6 @@ class TupleAccessStrategy {
     return reinterpret_cast<Block *>(block)->Column(col_id)->ColumnStart(layout_, col_id);
   }
 
-
   /**
    * @param slot tuple slot to access
    * @param col_id id of the column

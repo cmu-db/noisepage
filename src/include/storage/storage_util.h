@@ -1,9 +1,9 @@
 #pragma once
 #include <unordered_map>
-#include "storage/storage_defs.h"
 #include "common/macros.h"
 #include "common/typedefs.h"
 #include "storage/block_layout.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::storage {
 class ProjectedRow;

@@ -19,7 +19,8 @@ MaterializedColumnsInitializer::MaterializedColumnsInitializer(const terrier::st
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
   // space needed to store value offsets, pad up to 8 bytes to store tuple slots
-  size_ = StorageUtil::PadUpToSize(sizeof(TupleSlot), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t)));
+  size_ =
+      StorageUtil::PadUpToSize(sizeof(TupleSlot), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t)));
   // Space needed to store tuple slots, no need to pad bitmaps
   size_ += sizeof(TupleSlot) * max_tuples;
 
@@ -35,7 +36,7 @@ MaterializedColumnsInitializer::MaterializedColumnsInitializer(const terrier::st
   }
 }
 
-MaterializedColumns* MaterializedColumnsInitializer::Initialize(void *head) const {
+MaterializedColumns *MaterializedColumnsInitializer::Initialize(void *head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");

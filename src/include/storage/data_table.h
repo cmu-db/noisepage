@@ -1,12 +1,12 @@
 #pragma once
+#include <list>
 #include <unordered_map>
 #include <vector>
-#include <list>
 #include "common/performance_counter.h"
+#include "storage/materialized_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "storage/materialized_columns.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -35,13 +35,9 @@ class DataTable {
  public:
   class SlotIterator {
    public:
-    const TupleSlot &operator*() const {
-      return current_slot_;
-    }
+    const TupleSlot &operator*() const { return current_slot_; }
 
-    const TupleSlot *operator->() const {
-      return &current_slot_;
-    }
+    const TupleSlot *operator->() const { return &current_slot_; }
 
     SlotIterator &operator++() {
       if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots())
@@ -112,9 +108,7 @@ class DataTable {
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,
   // just like the ++i and i++ dichotomy.
-  void Scan(transaction::TransactionContext *txn,
-            SlotIterator *start_pos,
-            MaterializedColumns *out_buffer) const;
+  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, MaterializedColumns *out_buffer) const;
 
   SlotIterator begin() const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);

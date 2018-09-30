@@ -69,7 +69,8 @@ class UndoRecord {
    * @return size of this UndoRecord in memory, in bytes.
    */
   uint32_t Size() const {
-    return static_cast<uint32_t>(sizeof(UndoRecord) + (type_ == DeltaRecordType::UPDATE ? Delta()->Size() : 0)); }
+    return static_cast<uint32_t>(sizeof(UndoRecord) + (type_ == DeltaRecordType::UPDATE ? Delta()->Size() : 0));
+  }
 
   /**
    * @param redo the redo changes to be applied
@@ -87,9 +88,7 @@ class UndoRecord {
     return static_cast<uint32_t>(sizeof(UndoRecord)) + initializer.ProjectedRowSize();
   }
 
-  static UndoRecord *InitializeInsert(byte *const head,
-                                      const timestamp_t timestamp,
-                                      const TupleSlot slot,
+  static UndoRecord *InitializeInsert(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::INSERT;
@@ -100,10 +99,8 @@ class UndoRecord {
     return result;
   }
 
-  static UndoRecord *InitializeDelete(byte *const head,
-                                     const timestamp_t timestamp,
-                                     const TupleSlot slot,
-                                     DataTable *const table) {
+  static UndoRecord *InitializeDelete(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+                                      DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::DELETE;
     result->next_ = nullptr;

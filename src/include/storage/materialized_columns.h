@@ -69,11 +69,11 @@ class PACKED MaterializedColumns {
       col_id_t col_id = underlying_->ColumnIds()[projection_list_index];
       return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
     }
+
    private:
     friend class MaterializedColumns;
-    RowView(MaterializedColumns *underlying,
-            const BlockLayout &layout,
-            uint32_t row_offset) : underlying_(underlying), layout_(layout), row_offset_(row_offset) {}
+    RowView(MaterializedColumns *underlying, const BlockLayout &layout, uint32_t row_offset)
+        : underlying_(underlying), layout_(layout), row_offset_(row_offset) {}
     MaterializedColumns *const underlying_;
     const BlockLayout &layout_;
     const uint32_t row_offset_;
@@ -97,17 +97,14 @@ class PACKED MaterializedColumns {
   }
 
   // TODO(Tianyu): If we make RowView mutable, then remove this function and make the constructor of RowView public.
-  RowView InterpretAsRow(const BlockLayout &layout, uint32_t row_offset) {
-    return {this, layout, row_offset};
-  }
+  RowView InterpretAsRow(const BlockLayout &layout, uint32_t row_offset) { return {this, layout, row_offset}; }
 
   byte *ColumnStart(uint16_t projection_list_index) {
     // TODO(Tianyu): Just pad up to 8 bytes because we do not want to store block layout?
     // We should probably be consistent with what we do in blocks, which probably means modifying blocks
     // since I don't think replicating the block layout here sounds right.
-    return StorageUtil::AlignedPtr(sizeof(uint64_t),
-                                   ColumnPresenceBitmap(projection_list_index)
-                                       + common::RawBitmap::SizeInBytes(num_tuples_));
+    return StorageUtil::AlignedPtr(
+        sizeof(uint64_t), ColumnPresenceBitmap(projection_list_index) + common::RawBitmap::SizeInBytes(num_tuples_));
   }
 
  private:

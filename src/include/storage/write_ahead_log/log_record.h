@@ -36,7 +36,7 @@ class LogRecord {
    *                        value of the RecordType() call
    * @return pointer to the underlying record body
    */
-  template<class UnderlyingType>
+  template <class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
@@ -48,7 +48,7 @@ class LogRecord {
    *                        value of the RecordType() call
    * @return const pointer to the underlying record body
    */
-  template<class UnderlyingType>
+  template <class UnderlyingType>
   const UnderlyingType *GetUnderlyingRecordBodyAs() const {
     TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
@@ -95,9 +95,7 @@ class RedoRecord {
   /**
    * @return pointer to the DataTable that this Redo is concerned with
    */
-  DataTable *GetDataTable() const {
-    return table_;
-  }
+  DataTable *GetDataTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this redo record
@@ -215,11 +213,9 @@ class DeleteRecord {
   }
 
   /**
-    * @return pointer to the DataTable that this delete is concerned with
-    */
-  DataTable *GetDataTable() const {
-    return table_;
-  }
+   * @return pointer to the DataTable that this delete is concerned with
+   */
+  DataTable *GetDataTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this delete record

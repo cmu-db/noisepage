@@ -48,7 +48,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     }
     case LogRecordType::COMMIT:
       WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
-
   }
 }
 
