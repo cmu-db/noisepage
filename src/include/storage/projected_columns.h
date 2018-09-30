@@ -225,7 +225,7 @@ class ProjectedColumnsInitializer {
    * @param col_ids projection list of column ids to map
    * @param num_tuples max number of tuples the ProjectedColumns should hold
    */
-  ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids, uint32_t num_tuples);
+  ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids, uint32_t max_tuples);
 
   /**
    * Populates the ProjectedColumns's members based on projection list and BlockLayout used to construct this

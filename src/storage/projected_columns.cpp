@@ -1,5 +1,8 @@
-
-#include <storage/projected_columns.h>
+#include "storage/projected_columns.h"
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <vector>
 namespace terrier::storage {
 ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage::BlockLayout &layout,
                                                          std::vector<terrier::col_id_t> col_ids, uint32_t max_tuples)

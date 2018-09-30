@@ -46,9 +46,9 @@ struct RawBlock {
 class TupleSlot {
  public:
   /**
-   * Constructs an empty tuple slot
+   * Constructs an empty tuple slot (uninitialized)
    */
-  TupleSlot() : bytes_(0) {}
+  TupleSlot() = default;
 
   /**
    * Construct a tuple slot representing the given offset in the given block
@@ -100,8 +100,6 @@ class TupleSlot {
   friend std::ostream &operator<<(std::ostream &os, const TupleSlot &slot) {
     return os << "block: " << slot.GetBlock() << ", offset: " << slot.GetOffset();
   }
-
-  static TupleSlot INVALID;
 
  private:
   friend struct std::hash<TupleSlot>;

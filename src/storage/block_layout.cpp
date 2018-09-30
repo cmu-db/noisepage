@@ -1,4 +1,8 @@
 #include "storage/block_layout.h"
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <vector>
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
