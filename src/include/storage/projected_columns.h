@@ -141,7 +141,13 @@ class PACKED ProjectedColumns {
    * @return the actual number of tuples this ProjectedColumns holds. These tuples are guaranteed to be laid out in
    * offsets 0 to NumTuples() - 1
    */
-  uint32_t &NumTuples() { return num_tuples_; }
+  uint32_t NumTuples() { return num_tuples_; }
+
+  /**
+   * Set the number of tuples in the ProjectedColumns to be the given value
+   * @param val the value to set to
+   */
+  void SetNumTuples(uint32_t val) { num_tuples_ = val; }
 
   /**
    * @return number of columns stored in the ProjectedColumns
