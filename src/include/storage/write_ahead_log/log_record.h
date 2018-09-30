@@ -182,6 +182,10 @@ class RedoRecord {
 // TODO(Tianyu): Same here
 static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo record needs to be aligned to 8 bytes");
 
+/**
+ * Record body of a Delete. The header is stored in the LogRecord class that would presumably return this
+ * object.
+ */
 class DeleteRecord {
  public:
   MEM_REINTERPRETATION_ONLY(DeleteRecord)
@@ -196,12 +200,13 @@ class DeleteRecord {
   static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(DeleteRecord)); }
 
   /**
-   * Initialize an entire LogRecord (header included) to have an underlying commit record, using the parameters
+   * Initialize an entire LogRecord (header included) to have an underlying delete record, using the parameters
    * supplied.
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param txn_commit the commit timestamp of the transaction that generated this log record
+   * @param table the data table this delete points to
+   * @param slot the tuple slot this delete applies to
    * @return pointer to the initialized log record, always equal in value to the given head
    */
   static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table, TupleSlot slot) {

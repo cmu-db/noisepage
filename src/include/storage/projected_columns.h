@@ -52,7 +52,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Set the attribute in the row to be null using the internal bitmap
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNull(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
@@ -61,7 +61,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Set the attribute in the row to be not null using the internal bitmap
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNotNull(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
@@ -70,7 +70,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Check if the attribute in the RowView is null
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      * @return true if null, false otherwise
      */
     bool IsNull(const uint16_t projection_list_index) const {
@@ -80,7 +80,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Access a single attribute within the RowView with a check of the null bitmap first for nullable types
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
      * nullable and set to null, then return value is nullptr
      */
@@ -93,7 +93,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Access a single attribute within the RowView with a check of the null bitmap first for nullable types
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
      * nullable and set to null, then return value is nullptr
      */
@@ -106,7 +106,7 @@ class PACKED ProjectedColumns {
 
     /**
      * Access a single attribute within the RowView without a check of the null bitmap first
-     * @param offset The 0-indexed element to access in this RowView
+     * @param projection_list_index The 0-indexed element to access in this RowView
      * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
      */
     byte *AccessForceNotNull(const uint16_t projection_list_index) {
@@ -229,7 +229,7 @@ class ProjectedColumnsInitializer {
    *  repeated initialization. The semantics is analogous to @see ProjectedRowInitializer.
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map
-   * @param num_tuples max number of tuples the ProjectedColumns should hold
+   * @param max_tuples max number of tuples the ProjectedColumns should hold
    */
   ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids, uint32_t max_tuples);
 

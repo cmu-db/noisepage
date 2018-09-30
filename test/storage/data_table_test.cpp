@@ -157,6 +157,10 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
   }
 }
 
+// Insert some number of tuples and sequentially scan for them down the table
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SimpleSequentialScan) {}
+
 // Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
 // delta chain produces the correct tuple. Repeats for num_iterations.

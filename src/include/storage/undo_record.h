@@ -34,6 +34,9 @@ class UndoRecord {
    */
   const std::atomic<timestamp_t> &Timestamp() const { return timestamp_; }
 
+  /**
+   * @return the type of this undo record
+   */
   DeltaRecordType Type() const { return type_; }
 
   /**
@@ -88,6 +91,15 @@ class UndoRecord {
     return static_cast<uint32_t>(sizeof(UndoRecord)) + initializer.ProjectedRowSize();
   }
 
+  /**
+   * Populates the UndoRecord to hold an insert.
+   *
+   * @param head pointer to the byte buffer to initialize as a UndoRecord
+   * @param timestamp timestamp of the transaction that generated this UndoRecord
+   * @param slot the TupleSlot this UndoRecord points to
+   * @param table the DataTable this UndoRecord points to
+   * @return pointer to the initialized UndoRecord
+   */
   static UndoRecord *InitializeInsert(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
@@ -99,6 +111,16 @@ class UndoRecord {
     return result;
   }
 
+  /**
+   * Populates the UndoRecord to hold a delete.
+   *
+   * @param head pointer to the byte buffer to initialize as a UndoRecord
+   * @param timestamp timestamp of the transaction that generated this UndoRecord
+   * @param slot the TupleSlot this UndoRecord points to
+   * @param table the DataTable this UndoRecord points to
+   * @param initializer the initializer to use for the embedded ProjectedRow
+   * @return pointer to the initialized UndoRecord
+   */
   static UndoRecord *InitializeDelete(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
@@ -109,8 +131,10 @@ class UndoRecord {
     result->slot_ = slot;
     return result;
   }
+
   /**
-   * Populates the UndoRecord's members based on next pointer, timestamp, projection list, and BlockLayout.
+   * Populates the UndoRecord's members to hold an update based on next pointer, timestamp, projection list,
+   * and BlockLayout.
    *
    * @param head pointer to the byte buffer to initialize as a UndoRecord
    * @param timestamp timestamp of the transaction that generated this UndoRecord
@@ -135,8 +159,8 @@ class UndoRecord {
   }
 
   /**
-   * Populates the UndoRecord's members based on next pointer, timestamp, projection list, and the redo changes that
-   * this UndoRecord is supposed to log.
+   * Populates the UndoRecord's members to hold an update based on next pointer, timestamp, projection list, and
+   * the redo changes that this UndoRecord is supposed to log.
    *
    * @param head pointer to the byte buffer to initialize as a UndoRecord
    * @param timestamp timestamp of the transaction that generated this UndoRecord

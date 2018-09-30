@@ -236,6 +236,10 @@ class TupleAccessStrategy {
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
+  /**
+   * Deallocates a slot, making it usable for later inserts.
+   * @param slot the slot to free up
+   */
   void Deallocate(TupleSlot slot) const {
     TERRIER_ASSERT(ValidSlot(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Flip(slot.GetOffset(), true);
