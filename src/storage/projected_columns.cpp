@@ -24,7 +24,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage:
   size_ =
       StorageUtil::PadUpToSize(sizeof(TupleSlot), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t)));
   // Space needed to store tuple slots, no need to pad bitmaps
-  size_ += sizeof(TupleSlot) * max_tuples;
+  size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples);
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     offsets_[i] = size_;
