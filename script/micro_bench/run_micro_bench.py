@@ -449,8 +449,13 @@ class GBBenchResult(object):
         self.attrs.add("test_name")
 
         if len(parts) == 3:
+            # if there is a time type for this benchmark, use it
             self.time_type = parts[2]
-            self.attrs.add("time_type")
+        else:
+            # otherwise use cpu_time
+            self.time_type = "cpu_time"
+
+        self.attrs.add("time_type")
         return
 
     def add_timestamp(self, timestamp):
@@ -470,7 +475,13 @@ class GBBenchResult(object):
         """ Return execution time. Elapsed or CPU specified by the
             test.
         """
-        time_attr = getattr(self, "time_type", "cpu_time")
+        time_map = { "manual_time" : "real_time" }
+
+        time_attr = self.time_type
+        if time_attr in time_map:
+            # convert to desired time type via time_map
+            time_attr = time_map[time_attr]
+
         return getattr(self, time_attr)
 
     def get_time_secs(self):
