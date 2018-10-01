@@ -35,7 +35,7 @@ class TupleAccessStrategy {
     /**
      * @return The null-bitmap of this column
      */
-    common::RawConcurrentBitmap *PresenceBitmap() {
+    common::RawConcurrentBitmap *NullBitmap() {
       return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
     }
 
@@ -83,7 +83,7 @@ class TupleAccessStrategy {
      * @param layout layout of the block
      * @return reference to the bitmap for slots. Use as a member
      */
-    common::RawConcurrentBitmap *SlotValidityBitmap(const BlockLayout &layout) {
+    common::RawConcurrentBitmap *SlotAllocationBitmap(const BlockLayout &layout) {
       return reinterpret_cast<common::RawConcurrentBitmap *>(
           StorageUtil::AlignedPtr(sizeof(uint64_t), AttrSizes(layout) + NumAttrs(layout)));
     }
@@ -137,8 +137,8 @@ class TupleAccessStrategy {
    * @param slot tuple slot value to check
    * @return whether the given slot is occupied by a tuple
    */
-  bool Occupied(TupleSlot slot) const {
-    return reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Test(slot.GetOffset());
+  bool Allocated(const TupleSlot slot) const {
+    return reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Test(slot.GetOffset());
   }
 
   /**
@@ -148,7 +148,7 @@ class TupleAccessStrategy {
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
     TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
-    return reinterpret_cast<Block *>(block)->Column(col_id)->PresenceBitmap();
+    return reinterpret_cast<Block *>(block)->Column(col_id)->NullBitmap();
   }
 
   /**
@@ -240,9 +240,9 @@ class TupleAccessStrategy {
    * Deallocates a slot, making it usable for later inserts.
    * @param slot the slot to free up
    */
-  void Deallocate(TupleSlot slot) const {
-    TERRIER_ASSERT(Occupied(slot), "Can only deallocate slots that are allocated");
-    reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Flip(slot.GetOffset(), true);
+  void Deallocate(const TupleSlot slot) const {
+    TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
+    reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
     slot.GetBlock()->num_records_--;
   }
 

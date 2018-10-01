@@ -25,14 +25,14 @@ namespace terrier::storage {
  * |                                ...                                  |
  * -----------------------------------------------------------------------
  */
-// TODO(Tianyu): PACKED for the same reason as ProjectedRow
+// PACKED for the same reason as ProjectedRow
 class PACKED ProjectedColumns {
  public:
   // TODO(Tianyu): This is potentially inefficient, implemented as immutable
   // although it is nicer from a software engineering standpoint, if it ends up a problem we can change it so caller
   // can change the row this view refers to.
   /**
-   * A view into a row of the ProjectedColumns that has the same interface as a RowView.
+   * A view into a row of the ProjectedColumns that has the same interface as a ProjectedRow.
    */
   class RowView {
    public:
@@ -57,7 +57,7 @@ class PACKED ProjectedColumns {
      */
     void SetNull(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
-      underlying_->ColumnPresenceBitmap(projection_list_index)->Set(row_offset_, false);
+      underlying_->ColumnNullBitmap(projection_list_index)->Set(row_offset_, false);
     }
 
     /**
@@ -66,7 +66,7 @@ class PACKED ProjectedColumns {
      */
     void SetNotNull(const uint16_t projection_list_index) {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
-      underlying_->ColumnPresenceBitmap(projection_list_index)->Set(row_offset_, true);
+      underlying_->ColumnNullBitmap(projection_list_index)->Set(row_offset_, true);
     }
 
     /**
@@ -76,7 +76,7 @@ class PACKED ProjectedColumns {
      */
     bool IsNull(const uint16_t projection_list_index) const {
       TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
-      return !underlying_->ColumnPresenceBitmap(projection_list_index)->Test(row_offset_);
+      return !underlying_->ColumnNullBitmap(projection_list_index)->Test(row_offset_);
     }
 
     /**
@@ -176,7 +176,7 @@ class PACKED ProjectedColumns {
    * @param projection_list_index index of the desired column in the projection list
    * @return pointer to the column presence bitmap for the given projection list column
    */
-  common::RawBitmap *ColumnPresenceBitmap(uint16_t projection_list_index) {
+  common::RawBitmap *ColumnNullBitmap(uint16_t projection_list_index) {
     byte *column_start = reinterpret_cast<byte *>(this) + AttrValueOffsets()[projection_list_index];
     return reinterpret_cast<common::RawBitmap *>(column_start);
   }
@@ -198,9 +198,8 @@ class PACKED ProjectedColumns {
     // TODO(Tianyu): Just pad up to 8 bytes because we do not want to store block layout?
     // We should probably be consistent with what we do in blocks, which probably means modifying blocks
     // since I don't think replicating the block layout here sounds right.
-    return StorageUtil::AlignedPtr(sizeof(uint64_t),
-                                   reinterpret_cast<byte *>(ColumnPresenceBitmap(projection_list_index)) +
-                                       common::RawBitmap::SizeInBytes(max_tuples_));
+    return StorageUtil::AlignedPtr(sizeof(uint64_t), reinterpret_cast<byte *>(ColumnNullBitmap(projection_list_index)) +
+                                                         common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
  private:

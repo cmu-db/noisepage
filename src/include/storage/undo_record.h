@@ -132,8 +132,7 @@ class UndoRecord {
   }
 
   /**
-   * Populates the UndoRecord's members to hold an update based on next pointer, timestamp, projection list,
-   * and BlockLayout.
+   * Populates the UndoRecord's members to hold an update.
    *
    * @param head pointer to the byte buffer to initialize as a UndoRecord
    * @param timestamp timestamp of the transaction that generated this UndoRecord
@@ -158,8 +157,8 @@ class UndoRecord {
   }
 
   /**
-   * Populates the UndoRecord's members to hold an update based on next pointer, timestamp, projection list, and
-   * the redo changes that this UndoRecord is supposed to log.
+   * Populates the UndoRecord's members to hold an update based on the redo changes that this UndoRecord is supposed to
+   * log.
    *
    * @param head pointer to the byte buffer to initialize as a UndoRecord
    * @param timestamp timestamp of the transaction that generated this UndoRecord

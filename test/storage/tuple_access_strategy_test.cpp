@@ -30,7 +30,7 @@ class TupleAccessStrategyTestObject {
     storage::TupleSlot slot;
     // There should always be enough slots.
     EXPECT_TRUE(tested.Allocate(block, &slot));
-    EXPECT_TRUE(tested.Occupied(slot));
+    EXPECT_TRUE(tested.Allocated(slot));
 
     // Generate a random ProjectedRow to insert
     storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));

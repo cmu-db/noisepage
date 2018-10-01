@@ -21,15 +21,15 @@ bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::s
 }
 
 void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *start_pos,
-                     ProjectedColumns *out_buffer) const {
+                     ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
   uint32_t filled = 0;
   while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), filled);
-    TupleSlot slot = **start_pos;
+    const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
-    if (accessor_.Occupied(slot) && SelectIntoBuffer(txn, slot, &row)) {
+    if (accessor_.Allocated(slot) && SelectIntoBuffer(txn, slot, &row)) {
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
@@ -40,10 +40,9 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *s
 
 bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer never changes both the version pointer and logical delete columns, so it should "
-                 "have fewer attributes.");
+                 "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
-  UndoRecord *undo = txn->UndoRecordForUpdate(this, slot, redo);
+  UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
@@ -58,6 +57,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   // Store before-image before making any changes or grabbing lock
   for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
+
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
@@ -83,8 +83,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer never changes the version pointer or logical delete columns, so it should have "
-                 "exactly 2 fewer attributes than the DataTable's layout.");
+                 "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
+                 "attribute than the DataTable's layout.");
 
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
@@ -120,7 +120,6 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-  // This will mean Deletes get counted as a Delete and an Update in stats
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
   txn->StageDelete(this, slot);
@@ -152,8 +151,8 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
 template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
-  TERRIER_ASSERT(accessor_.Occupied(slot), "Must select a tuple slot that is claimed by a tuple");
-  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - 1,
+  TERRIER_ASSERT(accessor_.Allocated(slot), "Must select a tuple slot that is claimed by a tuple");
+  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
@@ -210,10 +209,10 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
 }
 
 template bool DataTable::SelectIntoBuffer<ProjectedRow>(transaction::TransactionContext *txn, const TupleSlot slot,
-                                                        ProjectedRow *out_buffer) const;
+                                                        ProjectedRow *const out_buffer) const;
 template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(transaction::TransactionContext *txn,
                                                                      const TupleSlot slot,
-                                                                     ProjectedColumns::RowView *out_buffer) const;
+                                                                     ProjectedColumns::RowView *const out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value
@@ -229,7 +228,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
 }
 
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  const bool present = accessor.Occupied(slot);
+  const bool present = accessor.Allocated(slot);
   const bool not_deleted = !accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID);
   return present && not_deleted;
 }

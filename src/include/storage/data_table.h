@@ -44,7 +44,7 @@ class DataTable {
     const TupleSlot &operator*() const { return current_slot_; }
 
     /**
-     * @return pointer to the underlying tuple slto
+     * @return pointer to the underlying tuple slot
      */
     const TupleSlot *operator->() const { return &current_slot_; }
 
@@ -92,7 +92,9 @@ class DataTable {
 
    private:
     friend class DataTable;
-    // MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+    /**
+     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+     */
     SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
         : table_(table), block_(block) {
       current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
@@ -105,7 +107,7 @@ class DataTable {
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
-   * of its storage blocks. The first 2 columns must be size 8 and are effectively hidden from upper levels.
+   * of its storage blocks. The first column must be size 8 and is effectively hidden from upper levels.
    *
    * @param store the Block store to use.
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
@@ -121,7 +123,8 @@ class DataTable {
     for (RawBlock *block : blocks_) block_store_->Release(block);
   }
 
-  // TODO(Tianyu): Implement
+  // TODO(Matt): I think the concept of a DataTable oid is going away once SqlTable is merged, so this placeholder will
+  // go away
   /**
    * @return table oid of this data table
    */
@@ -133,7 +136,8 @@ class DataTable {
    *
    * @param txn the calling transaction
    * @param slot the tuple slot to read
-   * @param out_buffer output buffer. The object should already contain projection list information
+   * @param out_buffer output buffer. The object should already contain projection list information and should not
+   * reference col_id 0
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
@@ -182,7 +186,7 @@ class DataTable {
    * @param txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. Should
-   * not reference column ids 0 or 1. Can only reference column id 1 if the redo originated in the DataTable
+   * not reference col_id 0
    * @return true if successful, false otherwise
    */
   bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
@@ -192,14 +196,14 @@ class DataTable {
    * delta record. The slot allocated for the tuple is returned.
    *
    * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple. Should not reference column ids 0 or 1
+   * @param redo after-image of the inserted tuple. Should not reference col_id 0
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
 
   /**
-   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.
    * The rest of the behavior follows Update's behavior.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete

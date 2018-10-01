@@ -33,12 +33,12 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
 
-  result->SlotValidityBitmap(layout_)->UnsafeClear(layout_.NumSlots());
-  result->Column(VERSION_POINTER_COLUMN_ID)->PresenceBitmap()->UnsafeClear(layout_.NumSlots());
+  result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
+  result->Column(VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
 }
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
-  common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotValidityBitmap(layout_);
+  common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
   const uint32_t start = block->num_records_;
 
   if (start == layout_.NumSlots()) return false;
