@@ -256,8 +256,8 @@ class DataTable {
   // Performs a visibility check on the designated TupleSlot. Note that this does not traverse a version chain, so this
   // information alone is not enough to determine visibility of a tuple to a transaction. This should be used along with
   // a version chain traversal to determine if a tuple's versions are actually visible to a txn.
-  // The criteria for visibilty of a slot are presence (presence/version pointer column is non-NULL) and not deleted
-  // (logical delete column is non-NULL).
+  // The criteria for visibility of a slot are presence (slot is occupied) and not deleted
+  // (logical delete bitmap is non-NULL).
   bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.

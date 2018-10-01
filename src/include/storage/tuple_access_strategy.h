@@ -137,7 +137,7 @@ class TupleAccessStrategy {
    * @param slot tuple slot value to check
    * @return whether the given slot is occupied by a tuple
    */
-  bool ValidSlot(TupleSlot slot) const {
+  bool Occupied(TupleSlot slot) const {
     return reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Test(slot.GetOffset());
   }
 
@@ -241,7 +241,7 @@ class TupleAccessStrategy {
    * @param slot the slot to free up
    */
   void Deallocate(TupleSlot slot) const {
-    TERRIER_ASSERT(ValidSlot(slot), "Can only deallocate slots that are allocated");
+    TERRIER_ASSERT(Occupied(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotValidityBitmap(layout_)->Flip(slot.GetOffset(), true);
     slot.GetBlock()->num_records_--;
   }

@@ -29,7 +29,7 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *s
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), filled);
     TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
-    if (accessor_.ValidSlot(slot) && SelectIntoBuffer(txn, slot, &row)) {
+    if (accessor_.Occupied(slot) && SelectIntoBuffer(txn, slot, &row)) {
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
@@ -152,7 +152,7 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
 template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
-  TERRIER_ASSERT(accessor_.ValidSlot(slot), "Must select a tuple slot that is claimed by a tuple");
+  TERRIER_ASSERT(accessor_.Occupied(slot), "Must select a tuple slot that is claimed by a tuple");
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - 1,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -229,7 +229,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
 }
 
 bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  const bool present = accessor.ValidSlot(slot);
+  const bool present = accessor.Occupied(slot);
   const bool not_deleted = !accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID);
   return present && not_deleted;
 }

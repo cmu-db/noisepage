@@ -23,7 +23,7 @@ namespace terrier::storage {
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
  */
-struct RawBlock {
+struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Layout version.
    */
@@ -38,7 +38,7 @@ struct RawBlock {
   byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
-} __attribute__((aligned(common::Constants::BLOCK_SIZE)));
+};
 
 /**
  * A TupleSlot represents a physical location of a tuple in memory.
@@ -145,6 +145,11 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
  * TODO(Matt): could be used by the GC for recycling
  */
 enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
+
+/**
+ * Types of LogRecords
+ */
+enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
 }  // namespace terrier::storage
 
 namespace std {

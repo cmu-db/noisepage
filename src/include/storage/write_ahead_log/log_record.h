@@ -4,11 +4,6 @@
 
 namespace terrier::storage {
 /**
- * Types of LogRecords
- */
-enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
-
-/**
  * Encapsulates information common to all log records in memory (i.e. a header). Note that the disk representation of
  * log records can be different. Depending on the type of this LogRecord the underlying body can be
  * obtained with the @see GetUnderlyingRecordBodyAs method.

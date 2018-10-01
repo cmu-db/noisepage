@@ -41,7 +41,7 @@ struct BlockLayout {
   const uint32_t HeaderSize() const { return header_size_; }
 
   /**
-   * Number of slots in the tuple.
+   * Number of tuple slots in a block with this layout.
    */
   const uint32_t NumSlots() const { return num_slots_; }
 

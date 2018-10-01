@@ -30,7 +30,7 @@ class TupleAccessStrategyTestObject {
     storage::TupleSlot slot;
     // There should always be enough slots.
     EXPECT_TRUE(tested.Allocate(block, &slot));
-    EXPECT_TRUE(tested.ValidSlot(slot));
+    EXPECT_TRUE(tested.Occupied(slot));
 
     // Generate a random ProjectedRow to insert
     storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
@@ -150,7 +150,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // Skip header
-    void *lower_bound = tested.ColumnNullBitmap(raw_block_, col_id_t(0));
+    void *lower_bound = tested.ColumnNullBitmap(raw_block_, VERSION_POINTER_COLUMN_ID);
     void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
     for (uint16_t offset = 0; offset < layout.NumColumns(); offset++) {
       col_id_t col_id(offset);

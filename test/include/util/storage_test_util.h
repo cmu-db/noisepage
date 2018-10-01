@@ -116,8 +116,8 @@ struct StorageTestUtil {
                                                            Random *const generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
-    uint16_t num_cols =
-        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.NumColumns() - 2))(*generator);
+    uint16_t num_cols = std::uniform_int_distribution<uint16_t>(
+        1, static_cast<uint16_t>(layout.NumColumns() - NUM_RESERVED_COLUMNS))(*generator);
 
     std::vector<col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
