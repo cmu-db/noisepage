@@ -99,6 +99,9 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * num_txns);
 }
 
-BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, UnlinkTime)->Unit(benchmark::kMillisecond)->UseManualTime();
-BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, ReclaimTime)->Unit(benchmark::kMillisecond)->UseManualTime();
+BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, UnlinkTime)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(1);
+BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, ReclaimTime)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(1);
 }  // namespace terrier
