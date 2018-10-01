@@ -94,8 +94,7 @@ class DataTable {
     friend class DataTable;
     // MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
     SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table),
-          block_(block) {
+        : table_(table), block_(block) {
       current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
     }
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
@@ -241,7 +240,7 @@ class DataTable {
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
-  template<class RowType>
+  template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
   // Atomically read out the version pointer value.

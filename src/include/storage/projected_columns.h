@@ -198,10 +198,9 @@ class PACKED ProjectedColumns {
     // TODO(Tianyu): Just pad up to 8 bytes because we do not want to store block layout?
     // We should probably be consistent with what we do in blocks, which probably means modifying blocks
     // since I don't think replicating the block layout here sounds right.
-    return StorageUtil::AlignedPtr(
-        sizeof(uint64_t),
-        reinterpret_cast<byte *>(ColumnPresenceBitmap(projection_list_index))
-                                 + common::RawBitmap::SizeInBytes(max_tuples_));
+    return StorageUtil::AlignedPtr(sizeof(uint64_t),
+                                   reinterpret_cast<byte *>(ColumnPresenceBitmap(projection_list_index)) +
+                                       common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
  private:
