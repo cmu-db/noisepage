@@ -438,7 +438,7 @@ class BwTreeBase {
    * is fixed at startup time.
    */
   static void RegisterThread() {
-    gc_id = total_thread_num.fetch_add(1);
+    gc_id = static_cast<int>(total_thread_num.fetch_add(1));
 
     return;
   }
@@ -2310,7 +2310,7 @@ class BwTree : public BwTreeBase {
       it++;
 
       // This size is exactly the index of the split point
-      int left_sibling_size = std::distance(this->Begin(), it);
+      int left_sibling_size = static_cast<int>(std::distance(this->Begin(), it));
 
       if (left_sibling_size >
           static_cast<int>(LEAF_NODE_SIZE_LOWER_THRESHOLD)) {
@@ -2327,11 +2327,11 @@ class BwTree : public BwTreeBase {
         it++;
       }
 
-      int right_sibling_size = std::distance(it, this->End());
+      int right_sibling_size = static_cast<int>(std::distance(it, this->End()));
 
       if (right_sibling_size >
           static_cast<int>(LEAF_NODE_SIZE_LOWER_THRESHOLD)) {
-        return std::distance(this->Begin(), it);
+        return static_cast<int>(std::distance(this->Begin(), it));
       }
 
       return -1;
@@ -2529,13 +2529,13 @@ class BwTree : public BwTreeBase {
     // First of all we should set all last active counter to -1 to
     // guarantee progress to clear all epoches
     for (size_t i = 0; i < GetThreadNum(); i++) {
-      UnregisterThread(i);
+      UnregisterThread(static_cast<int>(i));
     }
 
     for (size_t i = 0; i < GetThreadNum(); i++) {
       // Here all epoch counters have been set to 0xFFFFFFFFFFFFFFFF
       // so GC should always succeed
-      PerformGC(i);
+      PerformGC(static_cast<int>(i));
 
       // This will collect all nodes since we have adjusted the currenr thread
       // GC ID
@@ -4247,7 +4247,7 @@ class BwTree : public BwTreeBase {
               // Since only Delete() will use this piece of information
               // we set exist flag to false to indicate that the value
               // has been invalidated
-              index_pair_p->first = scan_start_it - leaf_node_p->Begin();
+              index_pair_p->first = static_cast<int>(scan_start_it - leaf_node_p->Begin());
               index_pair_p->second = true;
 
               // Return a pointer to the item inside LeafNode;
@@ -4261,7 +4261,7 @@ class BwTree : public BwTreeBase {
           // Either key does not exist or key exists but value does not
           // exist will reach here
           // Since only Insert() will use the index we set exist flag to false
-          index_pair_p->first = scan_start_it - leaf_node_p->Begin();
+          index_pair_p->first = static_cast<int>(scan_start_it - leaf_node_p->Begin());
           index_pair_p->second = false;
 
           return nullptr;
@@ -9089,15 +9089,15 @@ class BwTree : public BwTreeBase {
 };  // class BwTree
 
 
-// set static members
-bool print_flag = true;
-
-// This will be initialized when thread is initialized and in a per-thread
-// basis, i.e. each thread will get the same initialization image and then
-// is free to change them
-thread_local int BwTreeBase::gc_id = -1;
-
-std::atomic<size_t> BwTreeBase::total_thread_num{0UL};
+//// set static members
+//bool print_flag = true;
+//
+//// This will be initialized when thread is initialized and in a per-thread
+//// basis, i.e. each thread will get the same initialization image and then
+//// is free to change them
+//thread_local int BwTreeBase::gc_id = -1;
+//
+//std::atomic<size_t> BwTreeBase::total_thread_num{0UL};
 
 }  // End index/bwtree namespace
 }  // End peloton/wangziqi2013 namespace

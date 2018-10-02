@@ -153,8 +153,8 @@ class BloomFilter {
     value_count++;
 
     #ifdef BLOOM_FILTER_ENABLED
-    bit_array_0[(hash_value & BYTE_OFFSET_MASK) >> 3] |= \
-      (0x1 << (hash_value & BIT_OFFSET_MASK));
+    bit_array_0[(hash_value & BYTE_OFFSET_MASK) >> 3] = static_cast<char>(bit_array_0[(hash_value & BYTE_OFFSET_MASK) >> 3] | \
+      (0x1 << (hash_value & BIT_OFFSET_MASK)));
     #endif
 
     return;

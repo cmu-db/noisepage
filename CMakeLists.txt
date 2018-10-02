@@ -339,7 +339,7 @@ include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-  set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic)
+  set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic papi)
 endif()
 
 set(TERRIER_LINK_LIBS
