@@ -6,6 +6,7 @@
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
+// TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
