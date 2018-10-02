@@ -18,11 +18,11 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value value to be held
    */
   explicit ConstantValueExpression(const type::Value &value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.type_id), value_(value) {}
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.GetType()), value_(value) {}
 
   hash_t Hash() const override {
     ExpressionType expr = GetExpressionType();
-    return HashUtil::CombineHashes(HashUtil::Hash(&expr), HashUtil::Hash(value_.contents));
+    return HashUtil::CombineHashes(HashUtil::Hash(&expr), value_.Hash());
   }
 
   bool operator==(const AbstractExpression &other) const override {
@@ -30,10 +30,12 @@ class ConstantValueExpression : public AbstractExpression {
       return false;
     }
     auto const &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
-    return value_.contents == const_expr.GetValue().contents;
+    return value_ == const_expr.GetValue();
   }
 
-  bool operator!=(const AbstractExpression &rhs) const override { return !(*this == rhs); }
+  bool operator!=(const AbstractExpression &rhs) const override {
+    return !(*this == rhs);
+  }
 
   AbstractExpression *Copy() const override { return new ConstantValueExpression(GetValue()); }
 
