@@ -228,7 +228,6 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
 
       // Column id should not map to either of the reserved columns
       EXPECT_NE(col_id, col_id_t(0));
-      EXPECT_NE(col_id, col_id_t(1));
       // Find the Column in the Schema corresponding to the current oid
       auto schema_column =
           std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),

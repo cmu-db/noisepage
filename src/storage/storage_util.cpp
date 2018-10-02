@@ -1,9 +1,9 @@
 #include "storage/storage_util.h"
 #include <unordered_map>
-#include "storage/projected_columns.h"
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
+#include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
@@ -138,7 +138,9 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
   uint16_t num_1_byte_attrs = 0;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
-  std::vector<uint8_t> attr_sizes({8, 8});
+  std::vector<uint8_t> attr_sizes({8});
+  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
+                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   // First pass through to accumulate the counts of each attr_size
   for (const auto &column : schema.GetColumns()) {
