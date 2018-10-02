@@ -56,6 +56,7 @@
  * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
  *                  reduces performance
  */
+//TODO{yangjuns}: we don't want to turn this on
 //#define BWTREE_NODEBUG
 
 #ifdef BWTREE_PELOTON
