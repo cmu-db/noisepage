@@ -4,11 +4,6 @@
 
 namespace terrier::storage {
 /**
- * Types of LogRecords
- */
-enum class LogRecordType : uint8_t { REDO = 1, COMMIT };
-
-/**
  * Encapsulates information common to all log records in memory (i.e. a header). Note that the disk representation of
  * log records can be different. Depending on the type of this LogRecord the underlying body can be
  * obtained with the @see GetUnderlyingRecordBodyAs method.
@@ -95,10 +90,7 @@ class RedoRecord {
   /**
    * @return pointer to the DataTable that this Redo is concerned with
    */
-  DataTable *GetDataTable() const {
-    uintptr_t ptr_value = *reinterpret_cast<const uintptr_t *>(varlen_contents_);
-    return reinterpret_cast<DataTable *>(ptr_value);
-  }
+  DataTable *GetDataTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this redo record
@@ -184,6 +176,57 @@ class RedoRecord {
 
 // TODO(Tianyu): Same here
 static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo record needs to be aligned to 8 bytes");
+
+/**
+ * Record body of a Delete. The header is stored in the LogRecord class that would presumably return this
+ * object.
+ */
+class DeleteRecord {
+ public:
+  MEM_REINTERPRETATION_ONLY(DeleteRecord)
+  /**
+   * @return type of record this type of body holds
+   */
+  static constexpr LogRecordType RecordType() { return LogRecordType::DELETE; }
+
+  /**
+   * @return Size of the entire record of this type, in bytes, in memory.
+   */
+  static uint32_t Size() { return static_cast<uint32_t>(sizeof(LogRecord) + sizeof(DeleteRecord)); }
+
+  /**
+   * Initialize an entire LogRecord (header included) to have an underlying delete record, using the parameters
+   * supplied.
+   *
+   * @param head pointer location to initialize, this is also the returned address (reinterpreted)
+   * @param txn_begin begin timestamp of the transaction that generated this log record
+   * @param table the data table this delete points to
+   * @param slot the tuple slot this delete applies to
+   * @return pointer to the initialized log record, always equal in value to the given head
+   */
+  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table, TupleSlot slot) {
+    auto *result = LogRecord::InitializeHeader(head, LogRecordType::DELETE, Size(), txn_begin);
+    auto *body = result->GetUnderlyingRecordBodyAs<DeleteRecord>();
+    body->table_ = table;
+    body->tuple_slot_ = slot;
+    return result;
+  }
+
+  /**
+   * @return pointer to the DataTable that this delete is concerned with
+   */
+  DataTable *GetDataTable() const { return table_; }
+
+  /**
+   * @return the tuple slot changed by this delete record
+   */
+  TupleSlot GetTupleSlot() const { return tuple_slot_; }
+
+ private:
+  // TODO(Tianyu): Change to oid maybe?
+  DataTable *table_;
+  TupleSlot tuple_slot_;
+};
 
 /**
  * Record body of a Commit. The header is stored in the LogRecord class that would presumably return this

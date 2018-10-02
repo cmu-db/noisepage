@@ -18,10 +18,9 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
                                                  std::vector<col_id_t> col_ids)
     : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
-  TERRIER_ASSERT(col_ids.size() < layout.NumColumns(),
-                 "projected row should have number of columns smaller than the table's");
-  // TODO(Tianyu): We should really assert that the projected row has a subset of columns, but that
-  // is a bit more complicated.
+  TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
+                 "ProjectedRow should have fewer columns than the table (can't read version vector)");
+  // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
