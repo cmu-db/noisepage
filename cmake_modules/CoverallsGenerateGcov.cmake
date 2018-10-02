@@ -229,17 +229,13 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 endforeach()
 
 # TODO: Enable setting these
-set(JSON_SERVICE_NAME "jenkins")
-set(JSON_SERVICE_NUMBER $ENV{BUILD_NUMBER})
-set(JSON_SERVICE_BRANCH $ENV{BRANCH_NAME})
-set(JSON_SERVICE_PULL_REQUEST $ENV{ghprbPullId})
+set(JSON_SERVICE_NAME "travis-ci")
+set(JSON_SERVICE_JOB_ID $ENV{TRAVIS_JOB_ID})
 
 set(JSON_TEMPLATE
 "{
   \"service_name\": \"\@JSON_SERVICE_NAME\@\",
-  \"service_number\": \"\@JSON_SERVICE_NUMBER\@\",
-  \"service_branch\": \"\@JSON_SERVICE_BRANCH\@\",
-  \"service_pull_request\": \"\@JSON_SERVICE_PULL_REQUEST\@\",
+  \"service_number\": \"\@JSON_SERVICE_JOB_ID\@\",
   \"source_files\": \@JSON_GCOV_FILES\@
 }"
 )
@@ -310,8 +306,8 @@ foreach (GCOV_FILE ${GCOV_FILES})
 		# Example of what we're parsing:
 		# Hitcount  |Line | Source
 		# "        8:   26:        if (!allowed || (strlen(allowed) == 0))"
-		string(REGEX REPLACE 
-			"^([^:]*):([^:]*):(.*)$" 
+		string(REGEX REPLACE
+			"^([^:]*):([^:]*):(.*)$"
 			"\\1;\\2;\\3"
 			RES
 			"${GCOV_LINE}")
@@ -348,7 +344,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 
 			# Lines with 0 line numbers are metadata and can be ignored.
 			if (NOT ${LINE} EQUAL 0)
-				
+
 				if (DO_SKIP)
 					set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}null, ")
 				else()
@@ -428,7 +424,7 @@ string(CONFIGURE ${JSON_TEMPLATE} JSON)
 
 file(WRITE "${COVERALLS_OUTPUT_FILE}" "${JSON}")
 message("###########################################################################")
-message("Generated coveralls JSON containing coverage data:") 
+message("Generated coveralls JSON containing coverage data:")
 message("${COVERALLS_OUTPUT_FILE}")
 message("###########################################################################")
 

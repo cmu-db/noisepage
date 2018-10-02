@@ -39,22 +39,6 @@ pipeline {
                     }
                 }
 
-                stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Debug/Coverage)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
-                        }
-                    }
-                    steps {
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get install -q -y curl'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_GENERATE_COVERAGE=ON .. && make -j4'
-                        sh 'cd build && make coveralls -j4'
-                    }
-                }
-
                 stage('macOS 10.13/Apple clang-902.0.39.2/llvm-6.0.1 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
