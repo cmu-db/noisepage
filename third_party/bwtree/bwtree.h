@@ -56,7 +56,7 @@
  * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
  *                  reduces performance
  */
-#define BWTREE_NODEBUG
+//#define BWTREE_NODEBUG
 
 #ifdef BWTREE_PELOTON
 

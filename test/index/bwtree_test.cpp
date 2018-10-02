@@ -3,6 +3,9 @@
 #include "bwtree/bwtree.h"
 #include "util/test_harness.h"
 #include "util/bwtree_test_util.h"
+
+//#define BWTREE_DEBUG
+
 namespace terrier {
 using TEST_TYPE = char;
 //using BwTree = ::wangziqi2013::bwtree::BwTree<TEST_TYPE, TEST_TYPE, std::less<>, std::equal_to<>, std::hash<TEST_TYPE>,
@@ -10,7 +13,6 @@ using TEST_TYPE = char;
 
 struct BwTreeTests : public TerrierTest {
   //BwTree tree_;
-  TreeType *t1 = nullptr;
 };
 
 // NOLINTNEXTLINE
@@ -18,6 +20,7 @@ TEST_F(BwTreeTests, IteratorTest) {
   /////////////////////////////////////////////////////////////////
   // Test iterator
   /////////////////////////////////////////////////////////////////
+  TreeType *t1 = nullptr;
   // This could print
   t1 = GetEmptyTree();
 
@@ -27,6 +30,8 @@ TEST_F(BwTreeTests, IteratorTest) {
   for(int i = 0;i < key_num;i++) {
     t1->Insert(i, i);
   }
+  //TODO{yangjuns}: The following line makes RandomInsert pass. I have no idea why.
+  //t1->GetValue(0);
 
   ForwardIteratorTest(t1, key_num);
   BackwardIteratorTest(t1, key_num);
@@ -44,7 +49,7 @@ TEST_F(BwTreeTests, RandomInsert) {
   /////////////////////////////////////////////////////////////////
   // Test random insert
   /////////////////////////////////////////////////////////////////
-
+  TreeType *t1 = nullptr;
   printf("Testing random insert...\n");
 
   // Do not print here otherwise we could not see result
@@ -64,7 +69,7 @@ TEST_F(BwTreeTests, MixedTest) {
   /////////////////////////////////////////////////////////////////
   // Test mixed insert/delete
   /////////////////////////////////////////////////////////////////
-
+  TreeType *t1 = nullptr;
   // no print
   t1 = GetEmptyTree(true);
 
@@ -74,8 +79,9 @@ TEST_F(BwTreeTests, MixedTest) {
   PrintStat(t1);
 
   MixedGetValueTest(t1);
+  // no print
+  DestroyTree(t1, true);
 }
-
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, MultiThread) {
@@ -83,7 +89,8 @@ TEST_F(BwTreeTests, MultiThread) {
   // Test Basic Insert/Delete/GetValue
   //   with different patterns and multi thread
   /////////////////////////////////////////////////////////////////
-
+  TreeType *t1 = nullptr;
+  t1 = GetEmptyTree(true);
   LaunchParallelTestID(t1, basic_test_thread_num, InsertTest2, t1);
   printf("Finished inserting all keys\n");
 
