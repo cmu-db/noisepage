@@ -31,6 +31,7 @@ class TestConfig(object):
     def __init__(self):
         # benchmark executables to run
         self.benchmark_list = ["data_table_benchmark",
+                               "garbage_collector_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
@@ -448,8 +449,13 @@ class GBBenchResult(object):
         self.attrs.add("test_name")
 
         if len(parts) == 3:
+            # if there is a time type for this benchmark, use it
             self.time_type = parts[2]
-            self.attrs.add("time_type")
+        else:
+            # otherwise use cpu_time
+            self.time_type = "cpu_time"
+
+        self.attrs.add("time_type")
         return
 
     def add_timestamp(self, timestamp):
@@ -469,7 +475,13 @@ class GBBenchResult(object):
         """ Return execution time. Elapsed or CPU specified by the
             test.
         """
-        time_attr = getattr(self, "time_type", "cpu_time")
+        time_map = { "manual_time" : "real_time" }
+
+        time_attr = self.time_type
+        if time_attr in time_map:
+            # convert to desired time type via time_map
+            time_attr = time_map[time_attr]
+
         return getattr(self, time_attr)
 
     def get_time_secs(self):
@@ -697,6 +709,7 @@ class RunMicroBenchmarks(object):
     def __init__(self, verbose=False, debug=False):
         # list of benchmarks to run
         self.benchmark_list = ["data_table_benchmark",
+                               "garbage_collector_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
