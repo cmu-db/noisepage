@@ -40,18 +40,15 @@ class SqlTable {
    * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const table_oid_t oid)
-      : block_store_(store), oid_(oid) {
-    auto layout = StorageUtil::BlockLayoutFromSchema(schema);
-    tables_.push_back({new DataTable(block_store_, layout.first, layout_version_t(0)), layout.first, layout.second});
-  }
+      : block_store_(store),
+        oid_(oid),
+        table_({new DataTable(block_store_, StorageUtil::BlockLayoutFromSchema(schema).first, layout_version_t(0)),
+                StorageUtil::BlockLayoutFromSchema(schema).first, StorageUtil::BlockLayoutFromSchema(schema).second}) {}
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() {
-    TERRIER_ASSERT(tables_.size() == 1, "We don't support concurrent schema, so this should have size 1 right now.");
-    delete tables_.front().data_table;
-  }
+  ~SqlTable() { delete table_.data_table; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -62,7 +59,7 @@ class SqlTable {
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer) const {
-    return tables_.front().data_table->Select(txn, slot, out_buffer);
+    return table_.data_table->Select(txn, slot, out_buffer);
   }
 
   /**
@@ -76,7 +73,7 @@ class SqlTable {
   bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
-    return tables_.front().data_table->Update(txn, slot, redo);
+    return table_.data_table->Update(txn, slot, redo);
   }
 
   /**
@@ -90,7 +87,7 @@ class SqlTable {
   TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
-    return tables_.front().data_table->Insert(txn, redo);
+    return table_.data_table->Insert(txn, redo);
   }
 
   /**
@@ -102,7 +99,7 @@ class SqlTable {
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
-    return tables_.front().data_table->Delete(txn, slot);
+    return table_.data_table->Delete(txn, slot);
   }
 
   /**
@@ -119,7 +116,7 @@ class SqlTable {
    */
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
-    return tables_.front().data_table->Scan(txn, start_pos, out_buffer);
+    return table_.data_table->Scan(txn, start_pos, out_buffer);
   }
 
   /**
@@ -130,12 +127,12 @@ class SqlTable {
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator begin() const { return tables_.front().data_table->begin(); }
+  DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return tables_.front().data_table->end(); }
+  DataTable::SlotIterator end() const { return table_.data_table->end(); }
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
@@ -153,7 +150,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedColumnsInitializer initializer(tables_.front().layout, col_ids, max_tuples);
+    ProjectedColumnsInitializer initializer(table_.layout, col_ids, max_tuples);
     auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -176,7 +173,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer(tables_.front().layout, col_ids);
+    ProjectedRowInitializer initializer(table_.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -187,8 +184,8 @@ class SqlTable {
   BlockStore *const block_store_;
   const table_oid_t oid_;
 
-  // Eventually we'll support adding more tables when schema changes. For now we'll always access the first DataTable.
-  std::list<DataTableVersion> tables_;
+  // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
+  DataTableVersion table_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
