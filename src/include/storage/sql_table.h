@@ -106,9 +106,36 @@ class SqlTable {
   }
 
   /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * last slot scanned in the invocation.
+   *
+   * @param txn the calling transaction
+   * @param start_pos iterator to the starting location for the sequential scan
+   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+   *                   always cleared of old values.
+   */
+  void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
+            ProjectedColumns *const out_buffer) const {
+    return tables_.front().data_table->Scan(txn, start_pos, out_buffer);
+  }
+
+  /**
    * @return table's unique identifier
    */
   table_oid_t Oid() const { return oid_; }
+
+  /**
+   * @return the first tuple slot contained in the underlying DataTable
+   */
+  DataTable::SlotIterator begin() const { return tables_.front().data_table->begin(); }
+
+  /**
+   * @return one past the last tuple slot contained in the underlying DataTable
+   */
+  DataTable::SlotIterator end() const { return tables_.front().data_table->end(); }
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
