@@ -168,6 +168,7 @@ class ProjectedRowInitializer {
    * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
    * utilization and performance. Make no assumption about the ordering of these elements and always consult either
    * the initializer or the populated ProjectedRow for the true ordering.
+   * @warning col_ids must be a set (no repeats)
    *
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map, should have all unique values (no repeats)

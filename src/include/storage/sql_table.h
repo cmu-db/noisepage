@@ -117,9 +117,12 @@ class SqlTable {
    * @param max_tuples the maximum number of tuples to store in the ProjectedColumn
    * @return pair of: initializer to create ProjectedColumns, and a mapping between col_oid and the offset within the
    * ProjectedColumn
+   * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids,
+  std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::vector<col_oid_t> &col_oids,
                                                                               const uint32_t max_tuples) const {
+    TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+                   "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
@@ -135,9 +138,14 @@ class SqlTable {
    * col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
    * @return pair of: initializer to create ProjectedRow, and a mapping between col_oid and the offset within the
-   * ProjectedRow
+   * ProjectedRow to create ProjectedColumns, and a mapping between col_oid and the offset within the
+   * ProjectedColumn
+   * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids) const {
+  std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(
+      const std::vector<col_oid_t> &col_oids) const {
+    TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+                   "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
@@ -160,7 +168,7 @@ class SqlTable {
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @return vector of col_ids for these col_oids
    */
-  std::vector<col_id_t> ColIdsForOids(const std::set<col_oid_t> &col_oids) const;
+  std::vector<col_id_t> ColIdsForOids(const std::vector<col_oid_t> &col_oids) const;
 
   /**
    * Given a ProjectionInitializer, returns a map between col_oid and the offset within the projection to access that
