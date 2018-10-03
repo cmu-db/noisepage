@@ -75,7 +75,8 @@ class Value {
   bool operator==(const Value &rhs) const;
 
   hash_t Hash() const {
-    hash_t ret_hash;
+    hash_t ret_hash = 0;
+
     switch (type_id_) {
       case TypeId::BOOLEAN:
         ret_hash = HashUtil::Hash(GetBooleanValue());
