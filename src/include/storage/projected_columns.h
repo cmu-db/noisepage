@@ -227,7 +227,7 @@ class ProjectedColumnsInitializer {
    *  values, bitmaps, and potential padding, and the offsets to jump to for each value. This information is cached for
    *  repeated initialization. The semantics is analogous to @see ProjectedRowInitializer.
    * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    * @param max_tuples max number of tuples the ProjectedColumns should hold
    */
   ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids, uint32_t max_tuples);

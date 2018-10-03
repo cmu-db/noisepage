@@ -170,7 +170,7 @@ class ProjectedRowInitializer {
    * the initializer or the populated ProjectedRow for the true ordering.
    *
    * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
   ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 

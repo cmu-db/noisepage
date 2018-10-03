@@ -1,6 +1,7 @@
 #include "storage/projected_row.h"
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -20,6 +21,8 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
   TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
                  "ProjectedRow should have fewer columns than the table (can't read version vector)");
+  TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
+                 "There should not be any duplicated in the col_ids!");
   // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
   // Sort the projection list for optimal space utilization and delta application performance
