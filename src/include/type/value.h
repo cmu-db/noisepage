@@ -75,35 +75,45 @@ class Value {
   bool operator==(const Value &rhs) const;
 
   hash_t Hash() const {
+    hash_t ret_hash;
     switch (type_id_) {
       case TypeId::BOOLEAN:
-        return HashUtil::Hash(GetBooleanValue());
+        ret_hash = HashUtil::Hash(GetBooleanValue());
+        break;
 
       case TypeId::TINYINT:
-        return HashUtil::Hash(GetTinyIntValue());
+        ret_hash = HashUtil::Hash(GetTinyIntValue());
+        break;
 
       case TypeId::SMALLINT:
-        return HashUtil::Hash(GetSmallIntValue());
+        ret_hash = HashUtil::Hash(GetSmallIntValue());
+        break;
 
       case TypeId::INTEGER:
-        return HashUtil::Hash(GetIntValue());
+        ret_hash = HashUtil::Hash(GetIntValue());
+        break;
 
       case TypeId::BIGINT:
-        return HashUtil::Hash(GetBigIntValue());
+        ret_hash = HashUtil::Hash(GetBigIntValue());
+        break;
 
       case TypeId::DATE:
-        return HashUtil::Hash(GetDateValue());
+        ret_hash = HashUtil::Hash(GetDateValue());
+        break;
 
       case TypeId::DECIMAL:
-        return HashUtil::Hash(GetDecimalValue());
+        ret_hash = HashUtil::Hash(GetDecimalValue());
+        break;
 
       case TypeId::TIMESTAMP:
-        return HashUtil::Hash(GetTimestampValue());
+        ret_hash = HashUtil::Hash(GetTimestampValue());
+        break;
 
       default:
         TERRIER_ASSERT(false, "unsupported type");
         break;
     }
+    return ret_hash;
   }
 
  protected:

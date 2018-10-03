@@ -80,6 +80,8 @@ Value::Value(const char *data, uint32_t len) {
 }
 
 bool Value::operator==(const Value &rhs) const {
+  bool return_bool = false;
+
   TypeId my_type = type_id_;
   if (my_type != rhs.GetType()) {
     return false;
@@ -87,33 +89,42 @@ bool Value::operator==(const Value &rhs) const {
 
   switch (my_type) {
     case TypeId::BOOLEAN:
-      return *GetBooleanValue() == *rhs.GetBooleanValue();
+      return_bool = (*GetBooleanValue() == *rhs.GetBooleanValue());
+      break;
 
     case TypeId::TINYINT:
-      return *GetTinyIntValue() == *rhs.GetTinyIntValue();
+      return_bool = (*GetTinyIntValue() == *rhs.GetTinyIntValue());
+      break;
 
     case TypeId::SMALLINT:
-      return *GetSmallIntValue() == *rhs.GetSmallIntValue();
+      return_bool = (*GetSmallIntValue() == *rhs.GetSmallIntValue());
+      break;
 
     case TypeId::INTEGER:
-      return *GetIntValue() == *rhs.GetIntValue();
+      return_bool = (*GetIntValue() == *rhs.GetIntValue());
+      break;
 
     case TypeId::BIGINT:
-      return *GetBigIntValue() == *rhs.GetBigIntValue();
+      return_bool = (*GetBigIntValue() == *rhs.GetBigIntValue());
+      break;
 
     case TypeId::DATE:
-      return *GetDateValue() == *rhs.GetDateValue();
+      return_bool = (*GetDateValue() == *rhs.GetDateValue());
+      break;
 
     case TypeId::DECIMAL:
-      return *GetDecimalValue() == *rhs.GetDecimalValue();
+      return_bool = (*GetDecimalValue() == *rhs.GetDecimalValue());
+      break;
 
     case TypeId::TIMESTAMP:
-      return *GetTimestampValue() == *rhs.GetTimestampValue();
+      return_bool = (*GetTimestampValue() == *rhs.GetTimestampValue());
+      break;
 
     default:
       TERRIER_ASSERT(false, "unsupported type");
       break;
   }
+  return return_bool;
 }
 
 }  // namespace terrier::type

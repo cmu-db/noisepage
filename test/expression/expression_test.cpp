@@ -4,11 +4,12 @@
 
 namespace terrier::type::expression {
 
+// NOLINTNEXTLINE
 TEST(ExpressionTests, BasicTest) {
   // constant Booleans
-  auto expr_b_1 = new ConstantValueExpression(Value(boolean_t(true)));
-  auto expr_b_2 = new ConstantValueExpression(Value(boolean_t(false)));
-  auto expr_b_3 = new ConstantValueExpression(Value(boolean_t(true)));
+  auto expr_b_1 = new ConstantValueExpression(Value(static_cast<boolean_t>(1)));
+  auto expr_b_2 = new ConstantValueExpression(Value(static_cast<boolean_t>(0)));
+  auto expr_b_3 = new ConstantValueExpression(Value(static_cast<boolean_t>(1)));
 
   EXPECT_FALSE(*expr_b_1 == *expr_b_2);
   EXPECT_TRUE(*expr_b_1 == *expr_b_3);
@@ -110,18 +111,19 @@ TEST(ExpressionTests, BasicTest) {
   delete expr_b_1;
 }
 
+// NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionTest) {
-  auto c_expr_1 =
-      new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, new ConstantValueExpression(Value(boolean_t(true))),
-                                new ConstantValueExpression(Value(boolean_t(false))));
+  auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND,
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(1))),
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(0))));
 
-  auto c_expr_2 =
-      new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, new ConstantValueExpression(Value(boolean_t(true))),
-                                new ConstantValueExpression(Value(boolean_t(false))));
+  auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND,
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(1))),
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(0))));
 
-  auto c_expr_3 =
-      new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, new ConstantValueExpression(Value(boolean_t(true))),
-                                new ConstantValueExpression(Value(boolean_t(true))));
+  auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND,
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(1))),
+                                            new ConstantValueExpression(Value(static_cast<boolean_t>(1))));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
   EXPECT_FALSE(*c_expr_1 == *c_expr_3);
