@@ -156,11 +156,13 @@ class PACKED ProjectedColumns {
   uint16_t NumColumns() const { return num_cols_; }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
