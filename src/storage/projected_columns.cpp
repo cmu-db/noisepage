@@ -35,7 +35,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage:
   }
 }
 
-ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *head) const {
+ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");

@@ -205,7 +205,6 @@ class PACKED ProjectedColumns {
  private:
   friend class ProjectedColumnsInitializer;
   uint32_t size_;
-  // TODO(Tianyu): Do I need to store this or will the caller always have access to the initializer?
   uint32_t max_tuples_;
   uint32_t num_tuples_;
   uint16_t num_cols_;
@@ -215,15 +214,12 @@ class PACKED ProjectedColumns {
   const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
 };
 
-// TODO(Tianyu): The argument for separate initializer/container class is less strong here than for
-// ProjectedRow. We are putting this here anyway for now for the sake of consistency.
 /**
  * A ProjectedColumnsInitializer calculates and stores information on how to initialize ProjectedColumns
  * for a specific layout. The interface is analogous to @see ProjectedRowInitializer
  */
 class ProjectedColumnsInitializer {
  public:
-  // TODO(Tianyu): num tuples or size in bytes?
   /**
    *  Constructs a ProjectedColumnsInitializer. Calculates the size of this ProjectedColumns, including all members,
    *  values, bitmaps, and potential padding, and the offsets to jump to for each value. This information is cached for

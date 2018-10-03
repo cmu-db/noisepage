@@ -1,5 +1,6 @@
 #pragma once
 #include <list>
+#include <set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -112,11 +113,12 @@ class SqlTable {
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
-   * @param col_oids
-   * @param max_tuples
-   * @return
+   * @param col_oids set of col_oids to be projected
+   * @param max_tuples the maximum number of tuples to store in the ProjectedColumn
+   * @return pair of: initializer to create ProjectedColumns, and a mapping between col_oid and the offset within the
+   * ProjectedColumn
    */
-  std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::vector<col_oid_t> &col_oids,
+  std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids,
                                                                               const uint32_t max_tuples) const {
     auto col_ids = ColIdsForOids(col_oids);
     ProjectedColumnsInitializer initializer(tables_.front().layout, col_ids, max_tuples);
@@ -125,12 +127,13 @@ class SqlTable {
   }
 
   /**
-   *
-   * @param col_oids
-   * @return
+   * Generates an ProjectedRowInitializer for the execution layer to use. This performs the translation from col_oid to
+   * col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
+   * @param col_oids set of col_oids to be projected
+   * @return pair of: initializer to create ProjectedRow, and a mapping between col_oid and the offset within the
+   * ProjectedRow
    */
-  std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(
-      const std::vector<col_oid_t> &col_oids) const {
+  std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids) const {
     auto col_ids = ColIdsForOids(col_oids);
     ProjectedRowInitializer initializer(tables_.front().layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
@@ -144,7 +147,7 @@ class SqlTable {
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the first DataTable.
   std::list<DataTableVersion> tables_;
 
-  std::vector<col_id_t> ColIdsForOids(const std::vector<col_oid_t> &col_oids) const;
+  std::vector<col_id_t> ColIdsForOids(const std::set<col_oid_t> &col_oids) const;
 
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;

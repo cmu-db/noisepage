@@ -4,7 +4,7 @@
 
 namespace terrier::storage {
 
-std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<terrier::col_oid_t> &col_oids) const {
+std::vector<col_id_t> SqlTable::ColIdsForOids(const std::set<col_oid_t> &col_oids) const {
   TERRIER_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
   std::vector<col_id_t> col_ids;
 
