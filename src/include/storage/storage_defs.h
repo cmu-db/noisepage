@@ -142,6 +142,7 @@ class BlockAllocator {
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
 using ColumnMap = std::unordered_map<col_oid_t, col_id_t>;
+using ProjectionMap = std::unordered_map<col_oid_t, uint16_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas

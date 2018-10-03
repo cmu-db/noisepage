@@ -47,13 +47,16 @@ struct BlockLayout {
 
  private:
   std::vector<uint8_t> attr_sizes_;
+  // These fields below should be declared const but then that deletes the assignment operator for BlockLayout. With
+  // const-only accessors we should be safe from making changes to a BlockLayout that would break stuff.
+
   // Cached values so that we don't have to iterate through attr_sizes_ every time.
-  const uint32_t tuple_size_;
+  uint32_t tuple_size_;
   // static_header_size is everything in the header that is not the bitmap (dependent in the number of slots)
-  const uint32_t static_header_size_;
-  const uint32_t num_slots_;
+  uint32_t static_header_size_;
+  uint32_t num_slots_;
   // header is everything up to the first column
-  const uint32_t header_size_;
+  uint32_t header_size_;
 
  private:
   uint32_t ComputeTupleSize() const;
