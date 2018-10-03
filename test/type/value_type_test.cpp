@@ -19,9 +19,9 @@ TEST(valueTests, BasicTest) {
   // bigint
   // double
   // timestamp
-  timestamp_t timestamp_value = (timestamp_t) 0;
+  timestamp_t timestamp_value = (timestamp_t)0;
   Value pv_timestamp(timestamp_value);
   EXPECT_TRUE(pv_timestamp.GetTimestampValue() == timestamp_value);
   // date
 }
-}  // namespace terrier
+}  // namespace terrier::type

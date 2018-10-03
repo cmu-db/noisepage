@@ -33,9 +33,7 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  bool operator!=(const AbstractExpression &rhs) const override {
-    return !(*this == rhs);
-  }
+  bool operator!=(const AbstractExpression &rhs) const override { return !(*this == rhs); }
 
   AbstractExpression *Copy() const override { return new ConstantValueExpression(GetValue()); }
 

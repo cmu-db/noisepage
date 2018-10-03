@@ -1,25 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include "common/hash_util.h"
 #include "common/typedefs.h"
 #include "type/type_id.h"
-
-
-//namespace terrier::type {
-///**
-// * A Value is a tagged union of a SQL type ID and the contents.
-// */
-//struct Value {
-//  /**
-//   * SQL type ID.
-//   */
-//  TypeId type_id;
-//  /**
-//   * Contents of this value.
-//   */
-//  byte *contents;
-//};
 
 namespace terrier::type {
 
@@ -40,49 +25,49 @@ class Value {
   explicit Value(date_t value);
 
   // varchar
-  Value(const std::string &value);
+  explicit Value(const std::string &value);
   // varbinary
   Value(const char *data, uint32_t len);
 
   TypeId GetType() const { return type_id_; }
 
   // value retrieval methods
-  const boolean_t* GetBooleanValue() const {
+  const boolean_t *GetBooleanValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::BOOLEAN, "The type must be a boolean");
     return &value_.boolean;
   }
 
-  const int8_t* GetTinyIntValue() const {
+  const int8_t *GetTinyIntValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::TINYINT, "The type must be a tinyint");
     return &value_.tinyint;
   }
 
-  const int16_t* GetSmallIntValue() const {
+  const int16_t *GetSmallIntValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::SMALLINT, "The type must be a smallint");
     return &value_.smallint;
   }
 
-  const int32_t* GetIntValue() const {
+  const int32_t *GetIntValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::INTEGER, "The type must be a integer");
     return &value_.integer;
   }
 
-  const int64_t* GetBigIntValue() const {
+  const int64_t *GetBigIntValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::BIGINT, "The type must be a bigint");
     return &value_.bigint;
   }
 
-  const double* GetDecimalValue() const {
+  const double *GetDecimalValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::DECIMAL, "The type must be a decimal");
     return &value_.decimal;
   }
 
-  const timestamp_t* GetTimestampValue() const {
+  const timestamp_t *GetTimestampValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::TIMESTAMP, "The type must be a timestamp");
     return &value_.timestamp;
   }
 
-  const date_t* GetDateValue() const {
+  const date_t *GetDateValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::DATE, "The type must be a date");
     return &value_.date;
   }
