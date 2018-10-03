@@ -121,8 +121,12 @@ class SqlTable {
   std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids,
                                                                               const uint32_t max_tuples) const {
     auto col_ids = ColIdsForOids(col_oids);
+    TERRIER_ASSERT(col_ids.size() == col_oids.size(),
+                   "Projection should be the same number of columns as requested col_oids.");
     ProjectedColumnsInitializer initializer(tables_.front().layout, col_ids, max_tuples);
     auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer);
+    TERRIER_ASSERT(projection_map.size() == col_oids.size(),
+                   "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
   }
 
@@ -135,8 +139,12 @@ class SqlTable {
    */
   std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(const std::set<col_oid_t> &col_oids) const {
     auto col_ids = ColIdsForOids(col_oids);
+    TERRIER_ASSERT(col_ids.size() == col_oids.size(),
+                   "Projection should be the same number of columns as requested col_oids.");
     ProjectedRowInitializer initializer(tables_.front().layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
+    TERRIER_ASSERT(projection_map.size() == col_oids.size(),
+                   "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
   }
 
@@ -147,8 +155,20 @@ class SqlTable {
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the first DataTable.
   std::list<DataTableVersion> tables_;
 
+  /**
+   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
+   * @param col_oids set of col_oids, they must be in the table's ColumnMap
+   * @return vector of col_ids for these col_oids
+   */
   std::vector<col_id_t> ColIdsForOids(const std::set<col_oid_t> &col_oids) const;
 
+  /**
+   * Given a ProjectionInitializer, returns a map between col_oid and the offset within the projection to access that
+   * column
+   * @tparam ProjectionInitializerType ProjectedRowInitializer or ProjectedColumnsInitializer
+   * @param initializer the initializer to generate a map for
+   * @return the projection map for this initializer
+   */
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;
 };
