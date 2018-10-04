@@ -44,7 +44,7 @@ class ParameterCache {
 
  private:
   static Value DeriveParameterValue(CodeGen &codegen, llvm::Value *query_parameters_ptr, uint32_t index,
-                                             type::TypeId type_id, bool is_nullable);
+                                             ::terrier::type::TypeId type_id, bool is_nullable);
 
  private:
   // Parameter information

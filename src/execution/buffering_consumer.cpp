@@ -131,7 +131,7 @@ void BufferingConsumer::ConsumeResult(ConsumerContext &ctx, RowBatch::Row &row) 
     // in codegen are 1-bit types, as opposed to 1-byte types in the rest of the
     // system. Since, we cannot have a special value for NULL in a 1-bit boolean
     // system, we pass along the NULL bit during output.
-    if (sql_type.TypeId() == type::TypeId::BOOLEAN) {
+    if (sql_type.TypeId() == ::terrier::type::TypeId::BOOLEAN) {
       args.push_back(val.IsNull(codegen));
     }
 

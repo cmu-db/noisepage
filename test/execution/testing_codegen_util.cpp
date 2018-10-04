@@ -64,18 +64,18 @@ PelotonCodeGenTest::~PelotonCodeGenTest() {
 
 catalog::Column PelotonCodeGenTest::GetTestColumn(uint32_t col_id) const {
   PELOTON_ASSERT(col_id < 4);
-  static const uint64_t int_size = type::Type::GetTypeSize(type::TypeId::INTEGER);
-  static const uint64_t dec_size = type::Type::GetTypeSize(type::TypeId::DECIMAL);
+  static const uint64_t int_size = type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER);
+  static const uint64_t dec_size = type::Type::GetTypeSize(::terrier::type::TypeId::DECIMAL);
 
   bool is_inlined = true;
   if (col_id == 0) {
-    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_A", is_inlined};
+    return catalog::Column{::terrier::type::TypeId::INTEGER, int_size, "COL_A", is_inlined};
   } else if (col_id == 1) {
-    return catalog::Column{type::TypeId::INTEGER, int_size, "COL_B", is_inlined};
+    return catalog::Column{::terrier::type::TypeId::INTEGER, int_size, "COL_B", is_inlined};
   } else if (col_id == 2) {
-    return catalog::Column{type::TypeId::DECIMAL, dec_size, "COL_C", is_inlined};
+    return catalog::Column{::terrier::type::TypeId::DECIMAL, dec_size, "COL_C", is_inlined};
   } else {
-    return catalog::Column{type::TypeId::VARCHAR, 25, "COL_D", !is_inlined};
+    return catalog::Column{::terrier::type::TypeId::VARCHAR, 25, "COL_D", !is_inlined};
   }
 }
 
@@ -168,7 +168,7 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(peloton::LayoutType layout
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr <= column_count; col_itr++) {
-    auto column = catalog::Column(type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
+    auto column = catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
                                   "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);
@@ -295,12 +295,12 @@ ExpressionPtr PelotonCodeGenTest::ConstDecimalExpr(double val) {
   return ExpressionPtr{expr};
 }
 
-ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type, uint32_t col_id) {
+ExpressionPtr PelotonCodeGenTest::ColRefExpr(::terrier::type::TypeId type, uint32_t col_id) {
   auto *expr = new expression::TupleValueExpression(type, 0, col_id);
   return ExpressionPtr{expr};
 }
 
-ExpressionPtr PelotonCodeGenTest::ColRefExpr(type::TypeId type, bool left, uint32_t col_id) {
+ExpressionPtr PelotonCodeGenTest::ColRefExpr(::terrier::type::TypeId type, bool left, uint32_t col_id) {
   return ExpressionPtr{new expression::TupleValueExpression(type, !left, col_id)};
 }
 
@@ -329,7 +329,7 @@ ExpressionPtr PelotonCodeGenTest::CmpEqExpr(ExpressionPtr &&left, ExpressionPtr 
   return CmpExpr(ExpressionType::COMPARE_EQUAL, std::move(left), std::move(right));
 }
 
-ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type, type::TypeId type, ExpressionPtr &&left,
+ExpressionPtr PelotonCodeGenTest::OpExpr(ExpressionType op_type, ::terrier::type::TypeId type, ExpressionPtr &&left,
                                          ExpressionPtr &&right) {
   switch (op_type) {
     case ExpressionType::OPERATOR_PLUS:
@@ -364,26 +364,26 @@ void Printer::ConsumeResult(codegen::ConsumerContext &ctx, codegen::RowBatch::Ro
     }
     first = false;
     codegen::Value val = row.DeriveValue(codegen, ai);
-    PELOTON_ASSERT(val.GetType().type_id != type::TypeId::INVALID);
+    PELOTON_ASSERT(val.GetType().type_id != ::terrier::type::TypeId::INVALID);
     switch (val.GetType().type_id) {
-      case type::TypeId::BOOLEAN:
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::DATE:
-      case type::TypeId::INTEGER: {
+      case ::terrier::type::TypeId::BOOLEAN:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::DATE:
+      case ::terrier::type::TypeId::INTEGER: {
         format.append("%d");
         break;
       }
-      case type::TypeId::TIMESTAMP:
-      case type::TypeId::BIGINT: {
+      case ::terrier::type::TypeId::TIMESTAMP:
+      case ::terrier::type::TypeId::BIGINT: {
         format.append("%ld");
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case ::terrier::type::TypeId::DECIMAL: {
         format.append("%lf");
         break;
       }
-      case type::TypeId::VARCHAR: {
+      case ::terrier::type::TypeId::VARCHAR: {
         cols.push_back(val.GetLength());
         format.append("'%.*s'");
         break;

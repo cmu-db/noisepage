@@ -32,7 +32,7 @@ class Schema {
      * @param nullable true if the column is nullable, false otherwise
      * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const col_oid_t oid)
+    Column(std::string name, const ::terrier::type::TypeId type, const bool nullable, const col_oid_t oid)
         : name_(std::move(name)),
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
@@ -46,7 +46,7 @@ class Schema {
       }
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "Attribute size must be 1, 2, 4, or 8 bytes.");
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(type_ != ::terrier::type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
     /**
      * @return column name
@@ -67,7 +67,7 @@ class Schema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId GetType() const { return type_; }
+    ::terrier::type::TypeId GetType() const { return type_; }
     /**
      * @return internal unique identifier for this column
      */
@@ -79,7 +79,7 @@ class Schema {
 
    private:
     const std::string name_;
-    const type::TypeId type_;
+    const ::terrier::type::TypeId type_;
     uint8_t attr_size_;
     const bool nullable_;
     bool inlined_;

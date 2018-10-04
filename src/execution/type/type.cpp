@@ -18,13 +18,13 @@ namespace terrier::execution {
 
 namespace type {
 
-Type::Type(type::TypeId type_id, bool _nullable) : type_id(type_id), nullable(_nullable) {
+Type::Type(::terrier::type::TypeId type_id, bool _nullable) : type_id(type_id), nullable(_nullable) {
   aux_info.varlen = 0;
   aux_info.numeric_info.precision = 0;
   aux_info.numeric_info.scale = 0;
 }
 
-Type::Type() : Type(type::TypeId::INVALID, false) {}
+Type::Type() : Type(::terrier::type::TypeId::INVALID, false) {}
 
 Type::Type(const SqlType &sql_type, bool _nullable) : Type(sql_type.TypeId(), _nullable) {}
 

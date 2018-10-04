@@ -82,7 +82,7 @@ TEST_F(ZoneMapScanTest, ScanNoPredicates) {
 TEST_F(ZoneMapScanTest, SimplePredicate) {
   // SELECT a, b, c FROM table where a >= 20;
   // 1) Setup the predicate
-  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(20));
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
   planner::SeqScanPlan scan{&table, a_gt_20.release(), {0, 1, 2}};
@@ -101,7 +101,7 @@ TEST_F(ZoneMapScanTest, SimplePredicate) {
 TEST_F(ZoneMapScanTest, PredicateOnNonOutputColumn) {
   // SELECT b FROM table where a >= 40;
   // 1) Setup the predicate
-  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
+  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(40));
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
   planner::SeqScanPlan scan{&table, a_gt_40.release(), {0, 1}};
@@ -121,9 +121,9 @@ TEST_F(ZoneMapScanTest, ScanwithConjunctionPredicate) {
   // SELECT a, b, c FROM table where a >= 20 and b = 21;
   // 1) Construct the components of the predicate
   // a >= 20
-  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(20));
   // b = 21
-  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
+  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 1), ConstIntExpr(21));
   // a >= 20 AND b = 21
   auto *conj_eq =
       new expression::ConjunctionExpression(ExpressionType::CONJUNCTION_AND, b_eq_21.release(), a_gt_20.release());

@@ -85,8 +85,8 @@ class TypeSystem {
   };
 
   struct CastInfo {
-    type::TypeId from_type;
-    type::TypeId to_type;
+    ::terrier::type::TypeId from_type;
+    ::terrier::type::TypeId to_type;
     const Cast &cast_operation;
   };
 
@@ -353,7 +353,7 @@ class TypeSystem {
   };
 
  public:
-  TypeSystem(const std::vector<type::TypeId> &implicit_cast_table,
+  TypeSystem(const std::vector<::terrier::type::TypeId> &implicit_cast_table,
              const std::vector<CastInfo> &explicit_cast_table, const std::vector<ComparisonInfo> &comparison_table,
              const std::vector<UnaryOpInfo> &unary_op_table, const std::vector<BinaryOpInfo> &binary_op_table,
              const std::vector<NaryOpInfo> &nary_op_table, const std::vector<NoArgOpInfo> &no_arg_op_table);
@@ -381,7 +381,7 @@ class TypeSystem {
 
  private:
   // The list of types a given type can be implicitly casted to
-  const std::vector<type::TypeId> &implicit_cast_table_;
+  const std::vector<::terrier::type::TypeId> &implicit_cast_table_;
 
   // The table of explicit casting functions
   const std::vector<CastInfo> &explicit_cast_table_;

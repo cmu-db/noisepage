@@ -20,7 +20,7 @@
 
 namespace terrier::execution {
 
-Value::Value() : Value(type::Type{type::TypeId::INVALID, false}) {}
+Value::Value() : Value(type::Type{::terrier::type::TypeId::INVALID, false}) {}
 
 Value::Value(const type::Type &type, llvm::Value *val, llvm::Value *length, llvm::Value *null)
     : type_(type), value_(val), length_(length), null_(null) {
@@ -177,7 +177,7 @@ Value Value::Max(CodeGen &codegen, const Value &other) const {
 // Generate a hash for the given value
 //===----------------------------------------------------------------------===//
 void Value::ValuesForHash(llvm::Value *&val, llvm::Value *&len) const {
-  PELOTON_ASSERT(GetType().type_id != type::TypeId::INVALID);
+  PELOTON_ASSERT(GetType().type_id != ::terrier::type::TypeId::INVALID);
   val = GetValue();
   len = GetType().GetSqlType().IsVariableLength() ? GetLength() : nullptr;
 }
@@ -186,7 +186,7 @@ void Value::ValuesForHash(llvm::Value *&val, llvm::Value *&len) const {
 // Generate a hash for the given value
 //===----------------------------------------------------------------------===//
 void Value::ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val, llvm::Value *&len, llvm::Value *&null) const {
-  PELOTON_ASSERT(GetType().type_id != type::TypeId::INVALID);
+  PELOTON_ASSERT(GetType().type_id != ::terrier::type::TypeId::INVALID);
   val = GetValue();
   len = GetType().GetSqlType().IsVariableLength() ? GetLength() : nullptr;
   null = IsNull(codegen);
@@ -194,7 +194,7 @@ void Value::ValuesForMaterialization(CodeGen &codegen, llvm::Value *&val, llvm::
 
 // Return the value that can be
 Value Value::ValueFromMaterialization(const type::Type &type, llvm::Value *val, llvm::Value *len, llvm::Value *null) {
-  PELOTON_ASSERT(type.type_id != type::TypeId::INVALID);
+  PELOTON_ASSERT(type.type_id != ::terrier::type::TypeId::INVALID);
   return Value{type, val, (type.GetSqlType().IsVariableLength() ? len : nullptr), (type.nullable ? null : nullptr)};
 }
 

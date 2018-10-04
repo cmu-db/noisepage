@@ -55,12 +55,12 @@ struct CastBigInt : public TypeSystem::CastHandleNull {
       return false;
     }
     switch (to_type.GetSqlType().TypeId()) {
-      case type::TypeId::BOOLEAN:
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
-      case type::TypeId::DECIMAL:
+      case ::terrier::type::TypeId::BOOLEAN:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::INTEGER:
+      case ::terrier::type::TypeId::BIGINT:
+      case ::terrier::type::TypeId::DECIMAL:
         return true;
       default:
         return false;
@@ -70,27 +70,27 @@ struct CastBigInt : public TypeSystem::CastHandleNull {
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
     llvm::Value *result = nullptr;
     switch (to_type.GetSqlType().TypeId()) {
-      case type::TypeId::BOOLEAN: {
+      case ::terrier::type::TypeId::BOOLEAN: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.BoolType());
         break;
       }
-      case type::TypeId::TINYINT: {
+      case ::terrier::type::TypeId::TINYINT: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.Int8Type());
         break;
       }
-      case type::TypeId::SMALLINT: {
+      case ::terrier::type::TypeId::SMALLINT: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.Int16Type());
         break;
       }
-      case type::TypeId::INTEGER: {
+      case ::terrier::type::TypeId::INTEGER: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.Int32Type());
         break;
       }
-      case type::TypeId::BIGINT: {
+      case ::terrier::type::TypeId::BIGINT: {
         result = value.GetValue();
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case ::terrier::type::TypeId::DECIMAL: {
         result = codegen->CreateSIToFP(value.GetValue(), codegen.DoubleType());
         break;
       }
@@ -450,19 +450,19 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::BIGINT,
-                                                            type::TypeId::DECIMAL};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::BIGINT,
+                                                            ::terrier::type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casts
 CastBigInt kCastBigInt;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::BIGINT, type::TypeId::BOOLEAN, kCastBigInt},
-    {type::TypeId::BIGINT, type::TypeId::TINYINT, kCastBigInt},
-    {type::TypeId::BIGINT, type::TypeId::SMALLINT, kCastBigInt},
-    {type::TypeId::BIGINT, type::TypeId::INTEGER, kCastBigInt},
-    {type::TypeId::BIGINT, type::TypeId::BIGINT, kCastBigInt},
-    {type::TypeId::BIGINT, type::TypeId::DECIMAL, kCastBigInt}};
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::BOOLEAN, kCastBigInt},
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::TINYINT, kCastBigInt},
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::SMALLINT, kCastBigInt},
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::INTEGER, kCastBigInt},
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::BIGINT, kCastBigInt},
+    {::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::DECIMAL, kCastBigInt}};
 // clang-format on
 
 // Comparison operations
@@ -508,7 +508,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 BigInt::BigInt()
-    : SqlType(type::TypeId::BIGINT),
+    : SqlType(::terrier::type::TypeId::BIGINT),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

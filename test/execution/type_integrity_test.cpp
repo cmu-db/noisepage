@@ -135,11 +135,11 @@ TEST_F(TypeIntegrityTest, MathOpWithImplicitCastTest) {
 
   const auto IsNumber = [](const codegen::type::Type &type) {
     switch (type.type_id) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
-      case type::TypeId::DECIMAL:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::INTEGER:
+      case ::terrier::type::TypeId::BIGINT:
+      case ::terrier::type::TypeId::DECIMAL:
         return true;
       default:
         return false;

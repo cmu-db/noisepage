@@ -42,7 +42,7 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
   // SELECT a FROM table where a >= 40;
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlan() {
-    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
     auto *const_40_exp = PelotonCodeGenTest::ConstIntExpr(40).release();
     auto *a_gt_40 =
         new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_40_exp);
@@ -54,7 +54,7 @@ class QueryCacheTest : public PelotonCodeGenTest {
      bind_tve: flag for binding the tuple value expression
   */
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanA(bool bind_tve) {
-    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
     if (bind_tve) {
       a_col_exp->SetBoundOid(GetDatabase().GetOid(), TestTableId(), 0);
     }
@@ -68,7 +68,7 @@ class QueryCacheTest : public PelotonCodeGenTest {
      bind_tve: flag for binding the tuple value expression
   */
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanB(bool bind_tve) {
-    auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
     if (bind_tve) {
       b_col_exp->SetBoundOid(GetDatabase().GetOid(), TestTableId(), 1);
     }
@@ -80,12 +80,12 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
   // SELECT a, b, c FROM table where a >= 20 and b = 21;
   std::shared_ptr<planner::SeqScanPlan> GetSeqScanPlanWithPredicate() {
-    auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+    auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
     auto *const_20_exp = PelotonCodeGenTest::ConstIntExpr(20).release();
     auto *a_gt_20 =
         new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHANOREQUALTO, a_col_exp, const_20_exp);
 
-    auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
     auto *const_21_exp = PelotonCodeGenTest::ConstIntExpr(21).release();
     auto *b_eq_21 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, const_21_exp);
 
@@ -113,13 +113,13 @@ class QueryCacheTest : public PelotonCodeGenTest {
                              TestingExecutorUtil::GetColumnInfo(1), TestingExecutorUtil::GetColumnInfo(2)}));
     // Left and right hash keys
     std::vector<ConstExpressionPtr> left_hash_keys;
-    left_hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    left_hash_keys.emplace_back(new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0));
 
     std::vector<ConstExpressionPtr> right_hash_keys;
-    right_hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    right_hash_keys.emplace_back(new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0));
 
     std::vector<ConstExpressionPtr> hash_keys;
-    hash_keys.emplace_back(new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0));
+    hash_keys.emplace_back(new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0));
 
     // Finally, the fucking join node
     std::shared_ptr<planner::HashJoinPlan> hj_plan{new planner::HashJoinPlan(
@@ -142,7 +142,7 @@ class QueryCacheTest : public PelotonCodeGenTest {
     std::unique_ptr<planner::ProjectInfo> proj_info{new planner::ProjectInfo(TargetList(), std::move(direct_map_list))};
 
     // 2) Setup the average over 'b'
-    auto *tve_expr = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+    auto *tve_expr = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
     std::vector<planner::AggregatePlan::AggTerm> agg_terms = {{ExpressionType::AGGREGATE_AVG, tve_expr}};
     agg_terms[0].agg_ai.type = codegen::type::Decimal::Instance();
 
@@ -151,10 +151,10 @@ class QueryCacheTest : public PelotonCodeGenTest {
 
     // 4) The output schema
     std::shared_ptr<const catalog::Schema> output_schema{
-        new catalog::Schema({{type::TypeId::INTEGER, 4, "COL_A"}, {type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+        new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
     // 5) The predicate on the average aggregate
-    auto *x_exp = new expression::TupleValueExpression(type::TypeId::DECIMAL, 0, 1);
+    auto *x_exp = new expression::TupleValueExpression(::terrier::type::TypeId::DECIMAL, 0, 1);
     auto *const_50 = new expression::ConstantValueExpression(type::ValueFactory::GetDecimalValue(50.0));
     std::unique_ptr<expression::AbstractExpression> x_gt_50{
         new expression::ComparisonExpression(ExpressionType::COMPARE_GREATERTHAN, x_exp, const_50)};
@@ -183,8 +183,8 @@ class QueryCacheTest : public PelotonCodeGenTest {
         {GetTestColumn(0), GetTestColumn(1), GetTestColumn(2), GetTestColumn(0), GetTestColumn(1), GetTestColumn(2)}));
 
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<oid_t> left_join_cols = {0};
@@ -400,7 +400,7 @@ TEST_F(QueryCacheTest, CacheHashJoinPlan) {
   // The output has the join columns (that should match) in positions 0 and 1
   for (const auto &tuple : results_1) {
     type::Value v0 = tuple.GetValue(0);
-    EXPECT_EQ(v0.GetTypeId(), type::TypeId::INTEGER);
+    EXPECT_EQ(v0.GetTypeId(), ::terrier::type::TypeId::INTEGER);
 
     // Check that the joins keys are actually equal
     EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)), CmpBool::CmpTrue);
@@ -415,7 +415,7 @@ TEST_F(QueryCacheTest, CacheHashJoinPlan) {
   EXPECT_EQ(64, results_2.size());
   for (const auto &tuple : results_2) {
     type::Value v0 = tuple.GetValue(0);
-    EXPECT_EQ(v0.GetTypeId(), type::TypeId::INTEGER);
+    EXPECT_EQ(v0.GetTypeId(), ::terrier::type::TypeId::INTEGER);
 
     // Check that the joins keys are actually equal
     EXPECT_EQ(tuple.GetValue(0).CompareEquals(tuple.GetValue(1)), CmpBool::CmpTrue);

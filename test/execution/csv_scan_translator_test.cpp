@@ -62,10 +62,10 @@ TEST_F(CSVScanTranslatorTest, IntCsvScan) {
     // clang-format off
     // NOTE: this schema has to match that of the test table!
     std::vector<planner::CSVScanPlan::ColumnInfo> cols = {
-        planner::CSVScanPlan::ColumnInfo{.name = "1", .type = type::TypeId::INTEGER},
-        planner::CSVScanPlan::ColumnInfo{.name = "2", .type = type::TypeId::INTEGER},
-        planner::CSVScanPlan::ColumnInfo{.name = "3", .type = type::TypeId::DECIMAL},
-        planner::CSVScanPlan::ColumnInfo{.name = "4", .type = type::TypeId::VARCHAR},
+        planner::CSVScanPlan::ColumnInfo{.name = "1", .type = ::terrier::type::TypeId::INTEGER},
+        planner::CSVScanPlan::ColumnInfo{.name = "2", .type = ::terrier::type::TypeId::INTEGER},
+        planner::CSVScanPlan::ColumnInfo{.name = "3", .type = ::terrier::type::TypeId::DECIMAL},
+        planner::CSVScanPlan::ColumnInfo{.name = "4", .type = ::terrier::type::TypeId::VARCHAR},
     };
     // clang-format on
     std::unique_ptr<planner::AbstractPlan> csv_scan{new planner::CSVScanPlan(fh.name, std::move(cols), ',')};

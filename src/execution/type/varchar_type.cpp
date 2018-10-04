@@ -452,7 +452,7 @@ struct Substr : public TypeSystem::NaryOperator {
 ////////////////////////////////////////////////////////////////////////////////
 
 // The list of types a SQL varchar type can be implicitly casted to
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::VARCHAR};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::VARCHAR};
 
 // Explicit casting rules
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {};
@@ -497,7 +497,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Varchar::Varchar()
-    : SqlType(type::TypeId::VARCHAR),
+    : SqlType(::terrier::type::TypeId::VARCHAR),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

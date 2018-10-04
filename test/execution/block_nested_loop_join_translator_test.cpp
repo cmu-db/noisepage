@@ -99,8 +99,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
         "SELECT A,B FROM table1 INNER JOIN table2 ON table1.A = table2.A");
 
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpEqExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
@@ -120,8 +120,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
         "Testing: "
         "SELECT A,B FROM table1 INNER JOIN table2 ON table1.A = table2.B");
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_b_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 1);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_b_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 1);
     auto left_a_eq_right_b = CmpEqExpr(std::move(left_a_col), std::move(right_b_col));
 
     std::vector<codegen::WrappedTuple> results;
@@ -137,10 +137,10 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
     //
 
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_b_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 1);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_b_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 1);
     auto b_col_minus_1 =
-        OpExpr(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, std::move(right_b_col), ConstIntExpr(1));
+        OpExpr(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER, std::move(right_b_col), ConstIntExpr(1));
     auto left_a_eq_right_b = CmpEqExpr(std::move(left_a_col), std::move(b_col_minus_1));
 
     std::vector<codegen::WrappedTuple> results;
@@ -161,8 +161,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
         "Testing: "
         "SELECT A,B FROM table1 INNER JOIN table2 ON table1.A > table2.B");
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
@@ -191,8 +191,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
         "Testing: "
         "SELECT A,B FROM table1 INNER JOIN table2 ON table1.A <= table2.B");
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpLteExpr(std::move(left_a_col), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;
@@ -220,12 +220,12 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
         "SELECT A,B FROM table1 INNER JOIN table2 ON table1.A + table1.B > "
         "table2.A");
     bool left_side = true;
-    auto left_a_col = ColRefExpr(type::TypeId::INTEGER, left_side, 0);
-    auto left_b_col = ColRefExpr(type::TypeId::INTEGER, left_side, 1);
+    auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
+    auto left_b_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 1);
     auto left_a_pl_b =
-        OpExpr(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, std::move(left_a_col), std::move(left_b_col));
+        OpExpr(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, std::move(left_a_col), std::move(left_b_col));
 
-    auto right_a_col = ColRefExpr(type::TypeId::INTEGER, !left_side, 0);
+    auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_pl_b), std::move(right_a_col));
 
     std::vector<codegen::WrappedTuple> results;

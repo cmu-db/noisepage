@@ -39,7 +39,7 @@ inline void SetValue(peloton::type::Value *val_ptr, peloton::type::Value &&val) 
 void ValuesRuntime::OutputBoolean(char *values, uint32_t idx, bool val, bool is_null) {
   auto *vals = reinterpret_cast<peloton::type::Value *>(values);
   if (is_null) {
-    SetValue(&vals[idx], peloton::type::ValueFactory::GetNullValueByType(type::TypeId::BOOLEAN));
+    SetValue(&vals[idx], peloton::type::ValueFactory::GetNullValueByType(::terrier::type::TypeId::BOOLEAN));
   } else {
     SetValue(&vals[idx], peloton::type::ValueFactory::GetBooleanValue(val));
   }

@@ -119,7 +119,7 @@ TEST_F(BloomFilterCodegenTest, FalsePositiveRateTest) {
 
       // Get numbers[i]
       llvm::Value *number = codegen->CreateLoad(codegen->CreateInBoundsGEP(codegen.Int32Type(), number_array, index));
-      codegen::Value number_val{codegen::type::Type(type::TypeId::INTEGER, false), number};
+      codegen::Value number_val{codegen::type::Type(::terrier::type::TypeId::INTEGER, false), number};
       // Insert numbers[i] into bloom filter
       bloom_filter_accessor.Add(codegen, bloom_filter, {number_val});
 
@@ -135,7 +135,7 @@ TEST_F(BloomFilterCodegenTest, FalsePositiveRateTest) {
 
       // Get numbers[i]
       llvm::Value *number = codegen->CreateLoad(codegen->CreateInBoundsGEP(codegen.Int32Type(), number_array, index));
-      codegen::Value number_val{codegen::type::Type(type::TypeId::INTEGER, false), number};
+      codegen::Value number_val{codegen::type::Type(::terrier::type::TypeId::INTEGER, false), number};
 
       // Test if numbers[i] is contained in bloom filter
       llvm::Value *contains = bloom_filter_accessor.Contains(codegen, bloom_filter, {number_val});
@@ -301,11 +301,11 @@ double BloomFilterCodegenTest::ExecuteJoin(std::string query, concurrency::Trans
 // tuple size
 void BloomFilterCodegenTest::CreateTable(std::string table_name, int tuple_size, concurrency::TransactionContext *txn) {
   int curr_size = 0;
-  size_t bigint_size = type::Type::GetTypeSize(type::TypeId::BIGINT);
+  size_t bigint_size = type::Type::GetTypeSize(::terrier::type::TypeId::BIGINT);
   std::vector<catalog::Column> cols;
   while (curr_size < tuple_size) {
     cols.push_back(
-        catalog::Column{type::TypeId::BIGINT, bigint_size, "c" + std::to_string(curr_size / bigint_size), true});
+        catalog::Column{::terrier::type::TypeId::BIGINT, bigint_size, "c" + std::to_string(curr_size / bigint_size), true});
     curr_size += bigint_size;
   }
   auto *catalog = catalog::Catalog::GetInstance();

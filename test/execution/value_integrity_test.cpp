@@ -112,10 +112,10 @@ void OverflowTest(const codegen::type::Type &data_type, ExpressionType op) {
         auto *const_min_exp = ConstIntExpr(INT32_MIN).release();
         auto *const_one_exp = ConstIntExpr(1).release();
         auto *a_sub_one = new expression::OperatorExpression(
-            ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER,
+            ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER,
             a_col_exp, const_one_exp);
         a_op_lim = new expression::OperatorExpression(
-            exp_type, type::TypeId::INTEGER, const_min_exp, a_sub_one);
+            exp_type, ::terrier::type::TypeId::INTEGER, const_min_exp, a_sub_one);
         break;
       }
       */
@@ -209,21 +209,21 @@ void TestInputIntegral(const codegen::type::Type &type, InputFunc<T> TestFunc,
 }  // namespace
 
 TEST_F(ValueIntegrityTest, InputIntegralTypesTest) {
-  codegen::type::Type tinyint{type::TypeId::TINYINT, false};
+  codegen::type::Type tinyint{::terrier::type::TypeId::TINYINT, false};
   TestInputIntegral<int8_t>(tinyint, function::NumericFunctions::InputTinyInt, {{"-126", -126}, {"126", 126}});
 
-  codegen::type::Type smallint{type::TypeId::SMALLINT, false};
+  codegen::type::Type smallint{::terrier::type::TypeId::SMALLINT, false};
   TestInputIntegral<int16_t>(smallint, function::NumericFunctions::InputSmallInt);
 
-  codegen::type::Type integer{type::TypeId::INTEGER, false};
+  codegen::type::Type integer{::terrier::type::TypeId::INTEGER, false};
   TestInputIntegral<int32_t>(integer, function::NumericFunctions::InputInteger);
 
-  codegen::type::Type bigint{type::TypeId::BIGINT, false};
+  codegen::type::Type bigint{::terrier::type::TypeId::BIGINT, false};
   TestInputIntegral<int64_t>(bigint, function::NumericFunctions::InputBigInt);
 }
 
 TEST_F(ValueIntegrityTest, InputDecimalTypesTest) {
-  codegen::type::Type decimal{type::TypeId::DECIMAL, false};
+  codegen::type::Type decimal{::terrier::type::TypeId::DECIMAL, false};
 
   // First check some valid cases
   std::vector<std::pair<std::string, double>> valid_tests = {

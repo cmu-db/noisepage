@@ -42,11 +42,11 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
       return false;
     }
     switch (to_type.type_id) {
-      case type::TypeId::BOOLEAN:
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
+      case ::terrier::type::TypeId::BOOLEAN:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::INTEGER:
+      case ::terrier::type::TypeId::BIGINT:
         return true;
       default:
         return false;
@@ -63,11 +63,11 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
 
     llvm::Value *result = nullptr;
     switch (to_type.type_id) {
-      case type::TypeId::BOOLEAN:
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
+      case ::terrier::type::TypeId::BOOLEAN:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::INTEGER:
+      case ::terrier::type::TypeId::BIGINT: {
         result = codegen->CreateFPToSI(value.GetValue(), val_type);
         break;
       }
@@ -403,18 +403,18 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::DECIMAL};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casting rules
 CastDecimal kCastDecimal;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::DECIMAL, type::TypeId::BOOLEAN, kCastDecimal},
-    {type::TypeId::DECIMAL, type::TypeId::TINYINT, kCastDecimal},
-    {type::TypeId::DECIMAL, type::TypeId::SMALLINT, kCastDecimal},
-    {type::TypeId::DECIMAL, type::TypeId::INTEGER, kCastDecimal},
-    {type::TypeId::DECIMAL, type::TypeId::BIGINT, kCastDecimal},
-    {type::TypeId::DECIMAL, type::TypeId::DECIMAL, kCastDecimal}};
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::BOOLEAN, kCastDecimal},
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::TINYINT, kCastDecimal},
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::SMALLINT, kCastDecimal},
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::INTEGER, kCastDecimal},
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::BIGINT, kCastDecimal},
+    {::terrier::type::TypeId::DECIMAL, ::terrier::type::TypeId::DECIMAL, kCastDecimal}};
 // clang-format on
 
 // Comparison operations
@@ -459,7 +459,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Decimal::Decimal()
-    : SqlType(type::TypeId::DECIMAL),
+    : SqlType(::terrier::type::TypeId::DECIMAL),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

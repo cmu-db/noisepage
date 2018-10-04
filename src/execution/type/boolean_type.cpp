@@ -34,7 +34,7 @@ namespace {
 
 struct CastBooleanToInteger : public TypeSystem::CastHandleNull {
   bool SupportsTypes(const Type &from_type, const Type &to_type) const override {
-    return from_type.type_id == type::TypeId::BOOLEAN && to_type.type_id == type::TypeId::INTEGER;
+    return from_type.type_id == ::terrier::type::TypeId::BOOLEAN && to_type.type_id == ::terrier::type::TypeId::INTEGER;
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
@@ -53,7 +53,7 @@ struct CastBooleanToInteger : public TypeSystem::CastHandleNull {
 
 struct CastBooleanToDecimal : public TypeSystem::CastHandleNull {
   bool SupportsTypes(const Type &from_type, const Type &to_type) const override {
-    return from_type.type_id == type::TypeId::BOOLEAN && to_type.type_id == type::TypeId::DECIMAL;
+    return from_type.type_id == ::terrier::type::TypeId::BOOLEAN && to_type.type_id == ::terrier::type::TypeId::DECIMAL;
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
@@ -67,7 +67,7 @@ struct CastBooleanToDecimal : public TypeSystem::CastHandleNull {
 
 struct CastBooleanToVarchar : public TypeSystem::CastHandleNull {
   bool SupportsTypes(const Type &from_type, const Type &to_type) const override {
-    return from_type.type_id == type::TypeId::BOOLEAN && to_type.type_id == type::TypeId::VARCHAR;
+    return from_type.type_id == ::terrier::type::TypeId::BOOLEAN && to_type.type_id == ::terrier::type::TypeId::VARCHAR;
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
@@ -93,7 +93,7 @@ struct CastBooleanToVarchar : public TypeSystem::CastHandleNull {
 
 struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   bool SupportsTypes(const Type &left_type, const Type &right_type) const override {
-    return left_type.type_id == type::TypeId::BOOLEAN && left_type == right_type;
+    return left_type.type_id == ::terrier::type::TypeId::BOOLEAN && left_type == right_type;
   }
 
   Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
@@ -215,7 +215,7 @@ struct LogicalOr : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::BOOLEAN};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::BOOLEAN};
 
 // clang-format off
 // Explicit casts
@@ -223,9 +223,9 @@ CastBooleanToInteger kBooleanToInteger;
 CastBooleanToDecimal kBooleanToDecimal;
 CastBooleanToVarchar kBooleanToVarchar;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::BOOLEAN, type::TypeId::INTEGER, kBooleanToInteger},
-    {type::TypeId::BOOLEAN, type::TypeId::VARCHAR, kBooleanToVarchar},
-    {type::TypeId::BOOLEAN, type::TypeId::DECIMAL, kBooleanToDecimal}};
+    {::terrier::type::TypeId::BOOLEAN, ::terrier::type::TypeId::INTEGER, kBooleanToInteger},
+    {::terrier::type::TypeId::BOOLEAN, ::terrier::type::TypeId::VARCHAR, kBooleanToVarchar},
+    {::terrier::type::TypeId::BOOLEAN, ::terrier::type::TypeId::DECIMAL, kBooleanToDecimal}};
 // clang-format on
 
 // Comparison operations
@@ -256,7 +256,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Boolean::Boolean()
-    : SqlType(type::TypeId::BOOLEAN),
+    : SqlType(::terrier::type::TypeId::BOOLEAN),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

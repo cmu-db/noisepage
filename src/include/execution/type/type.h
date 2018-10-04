@@ -18,7 +18,6 @@
 #include "type/type_id.h"
 
 namespace terrier::execution {
-
 namespace type {
 
 class SqlType;
@@ -37,7 +36,7 @@ class TypeSystem;
 class Type {
  public:
   // The actual SQL type
-  type::TypeId type_id;
+  ::terrier::type::TypeId type_id;
 
   // Can this type take on NULL?
   bool nullable;
@@ -59,7 +58,7 @@ class Type {
 
   // Simple constructors
   Type();
-  Type(type::TypeId type_id, bool nullable);
+  Type(::terrier::type::TypeId type_id, bool nullable);
   Type(const SqlType &sql_type, bool nullable = false);
 
   // Equality check
@@ -82,8 +81,8 @@ class Type {
 struct TypeHasher {
   std::size_t operator()(const type::Type &type) const {
     // TODO: hash the other parts
-    auto hash = HashUtil::Hash(&type.type_id);
-    hash = HashUtil::CombineHashes(hash, HashUtil::Hash(&type.nullable));
+    auto hash = common::HashUtil::Hash(&type.type_id);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&type.nullable));
     return hash;
   }
 };

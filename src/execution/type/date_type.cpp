@@ -114,14 +114,14 @@ struct CompareDate : public TypeSystem::SimpleComparisonHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::DATE,
-                                                            type::TypeId::TIMESTAMP};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::DATE,
+                                                            ::terrier::type::TypeId::TIMESTAMP};
 
 // clang-format off
 // Explicit casts
 CastDateToTimestamp kDateToTimestamp;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::DATE, type::TypeId::TIMESTAMP, kDateToTimestamp}};
+    {::terrier::type::TypeId::DATE, ::terrier::type::TypeId::TIMESTAMP, kDateToTimestamp}};
 // clang-format on
 
 // Comparison operations
@@ -149,7 +149,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Date::Date()
-    : SqlType(type::TypeId::DATE),
+    : SqlType(::terrier::type::TypeId::DATE),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

@@ -115,7 +115,7 @@ struct CompareVarbinary : public TypeSystem::ExpensiveComparisonHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::VARBINARY};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::VARBINARY};
 
 // Explicit casting rules
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {};
@@ -145,7 +145,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Varbinary::Varbinary()
-    : SqlType(type::TypeId::VARBINARY),
+    : SqlType(::terrier::type::TypeId::VARBINARY),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

@@ -318,7 +318,7 @@ void Aggregation::DoAdvanceValue(CodeGen &codegen, llvm::Value *space, Expressio
   }
 
   // Store the updated value in the appropriate slot
-  PELOTON_ASSERT(next.GetType().type_id != type::TypeId::INVALID);
+  PELOTON_ASSERT(next.GetType().type_id != ::terrier::type::TypeId::INVALID);
   storage_.SetValueSkipNull(codegen, space, storage_index, next);
 }
 

@@ -292,7 +292,7 @@ void HashJoinTranslator::Consume(ConsumerContext &context, RowBatch &batch) cons
       RowBatch::OutputTracker tracker{batch.GetSelectionVector(), write_pos};
       RowBatch::Row row = batch.GetRowAt(read_pos, &tracker);
 
-      Value row_hash{type::Type{type::TypeId::INTEGER, false},
+      Value row_hash{type::Type{::terrier::type::TypeId::INTEGER, false},
                               hashes.GetValue(codegen, p)};
       row.RegisterAttributeValue(&OAHashTable::kHashAI, row_hash);
 

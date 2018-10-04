@@ -63,10 +63,10 @@ void IterateAsCSV(const std::vector<std::string> &rows, const std::vector<codege
 TEST_F(CSVScanTest, NumericScanTest) {
   // The set of test rows and their types
   std::vector<std::string> rows = {"1,2,3.0,4", "4,5,6.0,7", "8,9,10.0,11"};
-  std::vector<codegen::type::Type> types = {{type::TypeId::INTEGER, false},
-                                            {type::TypeId::INTEGER, false},
-                                            {type::TypeId::DECIMAL, false},
-                                            {type::TypeId::INTEGER, false}};
+  std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::INTEGER, false},
+                                            {::terrier::type::TypeId::INTEGER, false},
+                                            {::terrier::type::TypeId::DECIMAL, false},
+                                            {::terrier::type::TypeId::INTEGER, false}};
 
   uint32_t rows_read = 0;
   IterateAsCSV(rows, types, [&rows, &rows_read, &types](const codegen::util::CSVScanner::Column *cols) {
@@ -93,7 +93,7 @@ TEST_F(CSVScanTest, QuoteEscapeTest) {
   // The set of test rows and their types
   std::vector<std::string> rows = {"yea he's \"cool\",1,2", "a quote:\"\",3,4"};
   std::vector<codegen::type::Type> types = {
-      {type::TypeId::VARCHAR, false}, {type::TypeId::INTEGER, false}, {type::TypeId::INTEGER, false}};
+      {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::INTEGER, false}};
 
   uint32_t rows_read = 0;
   IterateAsCSV(rows, types, [&rows, &rows_read, &types](const codegen::util::CSVScanner::Column *cols) {
@@ -120,10 +120,10 @@ TEST_F(CSVScanTest, QuoteEscapeTest) {
 TEST_F(CSVScanTest, MixedStringTest) {
   std::vector<std::string> rows = {"1,1994-01-01,3,test", "4,2018-01-01,6,\"quoted_test\"",
                                    "8,2016-05-05,10,\"test\nnewline\ninquote\""};
-  std::vector<codegen::type::Type> types = {{type::TypeId::INTEGER, false},
-                                            {type::TypeId::DATE, false},
-                                            {type::TypeId::INTEGER, false},
-                                            {type::TypeId::VARCHAR, false}};
+  std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::INTEGER, false},
+                                            {::terrier::type::TypeId::DATE, false},
+                                            {::terrier::type::TypeId::INTEGER, false},
+                                            {::terrier::type::TypeId::VARCHAR, false}};
   uint32_t rows_read = 0;
   IterateAsCSV(rows, types, [&rows, &rows_read, &types](const codegen::util::CSVScanner::Column *cols) {
     // Split the input row into column values
@@ -153,10 +153,10 @@ TEST_F(CSVScanTest, CatchErrorsTest) {
   ////////////////////////////////////////////////////////////////////
   {
     std::vector<std::string> missing_col = {"1,1994-01-01,3"};
-    std::vector<codegen::type::Type> types = {{type::TypeId::INTEGER, false},
-                                              {type::TypeId::DATE, false},
-                                              {type::TypeId::INTEGER, false},
-                                              {type::TypeId::VARCHAR, false}};
+    std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::INTEGER, false},
+                                              {::terrier::type::TypeId::DATE, false},
+                                              {::terrier::type::TypeId::INTEGER, false},
+                                              {::terrier::type::TypeId::VARCHAR, false}};
     EXPECT_ANY_THROW(IterateAsCSV(missing_col, types,
                                   [](UNUSED_ATTRIBUTE const codegen::util::CSVScanner::Column *cols) { FAIL(); }));
   }
@@ -169,7 +169,7 @@ TEST_F(CSVScanTest, CatchErrorsTest) {
   {
     std::vector<std::string> missing_col = {"1,\"unclosed,3"};
     std::vector<codegen::type::Type> types = {
-        {type::TypeId::INTEGER, false}, {type::TypeId::VARCHAR, false}, {type::TypeId::INTEGER, false}};
+        {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}};
     EXPECT_ANY_THROW(IterateAsCSV(missing_col, types,
                                   [](UNUSED_ATTRIBUTE const codegen::util::CSVScanner::Column *cols) { FAIL(); }));
   }
@@ -182,7 +182,7 @@ TEST_F(CSVScanTest, CatchErrorsTest) {
   {
     std::vector<std::string> missing_col = {"1,unclosed\",3"};
     std::vector<codegen::type::Type> types = {
-        {type::TypeId::INTEGER, false}, {type::TypeId::VARCHAR, false}, {type::TypeId::INTEGER, false}};
+        {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}};
     EXPECT_ANY_THROW(IterateAsCSV(missing_col, types,
                                   [](UNUSED_ATTRIBUTE const codegen::util::CSVScanner::Column *cols) { FAIL(); }));
   }

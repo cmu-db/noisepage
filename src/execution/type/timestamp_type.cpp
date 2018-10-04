@@ -127,14 +127,14 @@ struct Now : public TypeSystem::NoArgOperator {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {type::TypeId::DATE,
-                                                            type::TypeId::TIMESTAMP};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::DATE,
+                                                            ::terrier::type::TypeId::TIMESTAMP};
 
 // clang-format off
 // Explicit casts
 CastTimestampToDate kTimestampToDate;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::TIMESTAMP, type::TypeId::DATE, kTimestampToDate}};
+    {::terrier::type::TypeId::TIMESTAMP, ::terrier::type::TypeId::DATE, kTimestampToDate}};
 // clang-format on
 
 // Comparisons
@@ -163,7 +163,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {{OperatorId::Now, kN
 ////////////////////////////////////////////////////////////////////////////////
 
 Timestamp::Timestamp()
-    : SqlType(type::TypeId::TIMESTAMP),
+    : SqlType(::terrier::type::TypeId::TIMESTAMP),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

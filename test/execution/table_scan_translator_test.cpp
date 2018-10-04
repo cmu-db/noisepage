@@ -90,15 +90,15 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
     // Columns and schema
     const bool is_inlined = true;
     std::vector<catalog::Column> cols = {
-        {type::TypeId::BOOLEAN, type::Type::GetTypeSize(type::TypeId::BOOLEAN), "COL_A", is_inlined},
-        {type::TypeId::TINYINT, type::Type::GetTypeSize(type::TypeId::TINYINT), "COL_B", is_inlined},
-        {type::TypeId::SMALLINT, type::Type::GetTypeSize(type::TypeId::SMALLINT), "COL_C", is_inlined},
-        {type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER), "COL_D", is_inlined},
-        {type::TypeId::BIGINT, type::Type::GetTypeSize(type::TypeId::BIGINT), "COL_E", is_inlined},
-        {type::TypeId::DECIMAL, type::Type::GetTypeSize(type::TypeId::DECIMAL), "COL_F", is_inlined},
-        {type::TypeId::TIMESTAMP, type::Type::GetTypeSize(type::TypeId::TIMESTAMP), "COL_G", is_inlined},
-        {type::TypeId::DATE, type::Type::GetTypeSize(type::TypeId::DATE), "COL_H", is_inlined},
-        {type::TypeId::VARCHAR, 25, "COL_I", !is_inlined}};
+        {::terrier::type::TypeId::BOOLEAN, type::Type::GetTypeSize(::terrier::type::TypeId::BOOLEAN), "COL_A", is_inlined},
+        {::terrier::type::TypeId::TINYINT, type::Type::GetTypeSize(::terrier::type::TypeId::TINYINT), "COL_B", is_inlined},
+        {::terrier::type::TypeId::SMALLINT, type::Type::GetTypeSize(::terrier::type::TypeId::SMALLINT), "COL_C", is_inlined},
+        {::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER), "COL_D", is_inlined},
+        {::terrier::type::TypeId::BIGINT, type::Type::GetTypeSize(::terrier::type::TypeId::BIGINT), "COL_E", is_inlined},
+        {::terrier::type::TypeId::DECIMAL, type::Type::GetTypeSize(::terrier::type::TypeId::DECIMAL), "COL_F", is_inlined},
+        {::terrier::type::TypeId::TIMESTAMP, type::Type::GetTypeSize(::terrier::type::TypeId::TIMESTAMP), "COL_G", is_inlined},
+        {::terrier::type::TypeId::DATE, type::Type::GetTypeSize(::terrier::type::TypeId::DATE), "COL_H", is_inlined},
+        {::terrier::type::TypeId::VARCHAR, 25, "COL_I", !is_inlined}};
     std::unique_ptr<catalog::Schema> schema{new catalog::Schema(cols)};
 
     // Insert table in catalog
@@ -192,7 +192,7 @@ TEST_F(TableScanTranslatorTest, SimplePredicate) {
   //
 
   // Setup the predicate
-  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   // Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -223,7 +223,7 @@ TEST_F(TableScanTranslatorTest, SimplePredicateWithNull) {
   //
 
   // Setup the predicate
-  ExpressionPtr b_lt_20 = CmpLtExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(20));
+  ExpressionPtr b_lt_20 = CmpLtExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 1), ConstIntExpr(20));
 
   // Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -258,7 +258,7 @@ TEST_F(TableScanTranslatorTest, PredicateOnNonOutputColumn) {
   //
 
   // 1) Setup the predicate
-  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(40));
+  ExpressionPtr a_gt_40 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(40));
 
   // 2) Setup the scan plan node
   auto &table = GetTestTable(TestTableId());
@@ -287,10 +287,10 @@ TEST_F(TableScanTranslatorTest, ScanWithConjunctionPredicate) {
   // 1) Construct the components of the predicate
 
   // a >= 20
-  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(type::TypeId::INTEGER, 0), ConstIntExpr(20));
+  ExpressionPtr a_gt_20 = CmpGteExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 0), ConstIntExpr(20));
 
   // b = 21
-  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(type::TypeId::INTEGER, 1), ConstIntExpr(21));
+  ExpressionPtr b_eq_21 = CmpEqExpr(ColRefExpr(::terrier::type::TypeId::INTEGER, 1), ConstIntExpr(21));
 
   // a >= 20 AND b = 21
   auto *conj_eq =
@@ -324,13 +324,13 @@ TEST_F(TableScanTranslatorTest, ScanWithAddPredicate) {
   // Construct the components of the predicate
 
   // a + 1
-  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = ConstIntExpr(1).release();
   auto *a_plus_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp, const_1_exp);
+      new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp, const_1_exp);
 
   // b = a + 1
-  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *b_eq_a_plus_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, a_plus_1);
 
   // Setup the scan plan node
@@ -359,13 +359,13 @@ TEST_F(TableScanTranslatorTest, ScanWithAddColumnsPredicate) {
   // Construct the components of the predicate
 
   // a + b
-  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *a_plus_b = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INTEGER, a_col_exp,
+  auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
+  auto *b_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
+  auto *a_plus_b = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp,
                                                       b_rhs_col_exp);
 
   // b = a + b
-  auto *b_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *b_eq_a_plus_b = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, a_plus_b);
 
   // Setup the scan plan node
@@ -394,13 +394,13 @@ TEST_F(TableScanTranslatorTest, ScanWithSubtractPredicate) {
   // Construct the components of the predicate
 
   // b - 1
-  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
   auto *b_minus_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER, b_col_exp, const_1_exp);
+      new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER, b_col_exp, const_1_exp);
 
   // a = b - 1
-  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *a_eq_b_minus_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp, b_minus_1);
 
   // Setup the scan plan node
@@ -429,13 +429,13 @@ TEST_F(TableScanTranslatorTest, ScanWithSubtractColumnsPredicate) {
   // Construct the components of the predicate
 
   // b - a
-  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *b_minus_a = new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, type::TypeId::INTEGER,
+  auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
+  auto *b_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
+  auto *b_minus_a = new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER,
                                                        b_rhs_col_exp, a_col_exp);
 
   // b = b - a
-  auto *b_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *b_eq_b_minus_a = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_lhs_col_exp, b_minus_a);
 
   // Setup the scan plan node
@@ -464,13 +464,13 @@ TEST_F(TableScanTranslatorTest, ScanWithDividePredicate) {
   // Construct the components of the predicate
 
   // a / 1
-  auto *a_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = ConstIntExpr(2).release();
-  auto *a_div_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_DIVIDE, type::TypeId::INTEGER,
+  auto *a_div_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_DIVIDE, ::terrier::type::TypeId::INTEGER,
                                                      a_rhs_col_exp, const_1_exp);
 
   // a = a / 1
-  auto *a_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *a_eq_a_div_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_div_1);
 
   // Setup the scan plan node
@@ -500,13 +500,13 @@ TEST_F(TableScanTranslatorTest, ScanWithMultiplyPredicate) {
   // Construct the components of the predicate
 
   // a  *b
-  auto *a_rhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
-  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
-  auto *a_mul_b = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, type::TypeId::BIGINT,
+  auto *a_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
+  auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
+  auto *a_mul_b = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, ::terrier::type::TypeId::BIGINT,
                                                      a_rhs_col_exp, b_col_exp);
 
   // a = a  *b
-  auto *a_lhs_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *a_eq_a_mul_b = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_lhs_col_exp, a_mul_b);
 
   // Setup the scan plan node
@@ -535,13 +535,13 @@ TEST_F(TableScanTranslatorTest, ScanWithModuloPredicate) {
   // Construct the components of the predicate
 
   // b % 1
-  auto *b_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 1);
+  auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
   auto *b_mod_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, type::TypeId::DECIMAL, b_col_exp, const_1_exp);
+      new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, ::terrier::type::TypeId::DECIMAL, b_col_exp, const_1_exp);
 
   // a = b % 1
-  auto *a_col_exp = new expression::TupleValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *a_eq_b_mod_1 = new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp, b_mod_1);
 
   // Setup the scan plan node
@@ -612,7 +612,7 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr < col_count; col_itr++) {
-    auto column = catalog::Column(type::TypeId::INTEGER, type::Type::GetTypeSize(type::TypeId::INTEGER),
+    auto column = catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
                                   "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);

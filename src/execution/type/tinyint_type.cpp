@@ -55,12 +55,12 @@ struct CastTinyInt : public TypeSystem::CastHandleNull {
       return false;
     }
     switch (to_type.GetSqlType().TypeId()) {
-      case type::TypeId::BOOLEAN:
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
-      case type::TypeId::DECIMAL:
+      case ::terrier::type::TypeId::BOOLEAN:
+      case ::terrier::type::TypeId::TINYINT:
+      case ::terrier::type::TypeId::SMALLINT:
+      case ::terrier::type::TypeId::INTEGER:
+      case ::terrier::type::TypeId::BIGINT:
+      case ::terrier::type::TypeId::DECIMAL:
         return true;
       default:
         return false;
@@ -70,31 +70,31 @@ struct CastTinyInt : public TypeSystem::CastHandleNull {
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
     llvm::Value *result = nullptr;
     switch (to_type.GetSqlType().TypeId()) {
-      case type::TypeId::BOOLEAN: {
+      case ::terrier::type::TypeId::BOOLEAN: {
         result = codegen->CreateTrunc(value.GetValue(), codegen.BoolType());
         break;
       }
-      case type::TypeId::TINYINT: {
+      case ::terrier::type::TypeId::TINYINT: {
         result = value.GetValue();
         break;
       }
-      case type::TypeId::SMALLINT: {
+      case ::terrier::type::TypeId::SMALLINT: {
         result = codegen->CreateSExt(value.GetValue(), codegen.Int16Type());
         break;
       }
-      case type::TypeId::INTEGER: {
+      case ::terrier::type::TypeId::INTEGER: {
         result = codegen->CreateSExt(value.GetValue(), codegen.Int32Type());
         break;
       }
-      case type::TypeId::BIGINT: {
+      case ::terrier::type::TypeId::BIGINT: {
         result = codegen->CreateSExt(value.GetValue(), codegen.Int64Type());
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case ::terrier::type::TypeId::DECIMAL: {
         result = codegen->CreateSIToFP(value.GetValue(), codegen.DoubleType());
         break;
       }
-      case type::TypeId::VARCHAR:
+      case ::terrier::type::TypeId::VARCHAR:
       default: {
         throw Exception{StringUtil::Format("Cannot cast %s to %s", TypeIdToString(value.GetType().type_id).c_str(),
                                            TypeIdToString(to_type.type_id).c_str())};
@@ -451,20 +451,20 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implicit casts
-std::vector<type::TypeId> kImplicitCastingTable = {
-    type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-    type::TypeId::BIGINT, type::TypeId::DECIMAL};
+std::vector<::terrier::type::TypeId> kImplicitCastingTable = {
+    ::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::SMALLINT, ::terrier::type::TypeId::INTEGER,
+    ::terrier::type::TypeId::BIGINT, ::terrier::type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casting rules
 CastTinyInt kCastTinyInt;
 std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {
-    {type::TypeId::TINYINT, type::TypeId::BOOLEAN, kCastTinyInt},
-    {type::TypeId::TINYINT, type::TypeId::TINYINT, kCastTinyInt},
-    {type::TypeId::TINYINT, type::TypeId::SMALLINT, kCastTinyInt},
-    {type::TypeId::TINYINT, type::TypeId::INTEGER, kCastTinyInt},
-    {type::TypeId::TINYINT, type::TypeId::BIGINT, kCastTinyInt},
-    {type::TypeId::TINYINT, type::TypeId::DECIMAL, kCastTinyInt}};
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::BOOLEAN, kCastTinyInt},
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::TINYINT, kCastTinyInt},
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::SMALLINT, kCastTinyInt},
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::INTEGER, kCastTinyInt},
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::BIGINT, kCastTinyInt},
+    {::terrier::type::TypeId::TINYINT, ::terrier::type::TypeId::DECIMAL, kCastTinyInt}};
 // clang-format on
 
 // Comparison operations
@@ -510,7 +510,7 @@ std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 TinyInt::TinyInt()
-    : SqlType(type::TypeId::TINYINT),
+    : SqlType(::terrier::type::TypeId::TINYINT),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

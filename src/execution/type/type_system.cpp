@@ -323,7 +323,7 @@ Value TypeSystem::BinaryOperatorHandleNull::Eval(CodeGen &codegen, const Value &
 // TypeSystem
 //
 //===----------------------------------------------------------------------===//
-TypeSystem::TypeSystem(const std::vector<type::TypeId> &implicit_cast_table,
+TypeSystem::TypeSystem(const std::vector<::terrier::type::TypeId> &implicit_cast_table,
                        const std::vector<TypeSystem::CastInfo> &explicit_cast_table,
                        const std::vector<TypeSystem::ComparisonInfo> &comparison_table,
                        const std::vector<TypeSystem::UnaryOpInfo> &unary_op_table,

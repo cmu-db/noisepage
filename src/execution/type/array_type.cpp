@@ -30,7 +30,7 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////
 
 // The list of types a SQL array type can be implicitly casted to
-const std::vector<type::TypeId> kImplicitCastingTable = {};
+const std::vector<::terrier::type::TypeId> kImplicitCastingTable = {};
 
 // Explicit casting rules
 static std::vector<TypeSystem::CastInfo> kExplicitCastingTable = {};
@@ -59,7 +59,7 @@ static std::vector<TypeSystem::NoArgOpInfo> kNoArgOperatorTable = {};
 ////////////////////////////////////////////////////////////////////////////////
 
 Array::Array()
-    : SqlType(type::TypeId::ARRAY),
+    : SqlType(::terrier::type::TypeId::ARRAY),
       type_system_(kImplicitCastingTable, kExplicitCastingTable, kComparisonTable, kUnaryOperatorTable,
                    kBinaryOperatorTable, kNaryOperatorTable, kNoArgOperatorTable) {}
 

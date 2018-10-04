@@ -138,7 +138,7 @@ Value TileGroup::LoadColumn(CodeGen &codegen, llvm::Value *tid, const TileGroup:
       // just read from the table with the NULL value for the column's type. We
       // need to be careful that the runtime type of both values is not NULL to
       // bypass the type system's NULL checking logic.
-      if (sql_type.TypeId() == type::TypeId::BOOLEAN) {
+      if (sql_type.TypeId() == ::terrier::type::TypeId::BOOLEAN) {
         is_null = type::Boolean::Instance().CheckNull(codegen, col_address);
       } else {
         auto val_tmp = Value{sql_type, val};

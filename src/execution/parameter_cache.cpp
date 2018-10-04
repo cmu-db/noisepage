@@ -40,48 +40,48 @@ Value ParameterCache::GetValue(const expression::AbstractExpression *expr) const
 void ParameterCache::Reset() { values_.clear(); }
 
 Value ParameterCache::DeriveParameterValue(CodeGen &codegen, llvm::Value *query_parameters_ptr, uint32_t index,
-                                                    type::TypeId type_id, bool is_nullable) {
+                                                    ::terrier::type::TypeId type_id, bool is_nullable) {
   llvm::Value *val = nullptr, *len = nullptr;
   std::vector<llvm::Value *> args = {query_parameters_ptr, codegen.Const32(index)};
   switch (type_id) {
-    case type::TypeId::BOOLEAN: {
+    case ::terrier::type::TypeId::BOOLEAN: {
       val = codegen.Call(QueryParametersProxy::GetBoolean, args);
       break;
     }
-    case type::TypeId::TINYINT: {
+    case ::terrier::type::TypeId::TINYINT: {
       val = codegen.Call(QueryParametersProxy::GetTinyInt, args);
       break;
     }
-    case type::TypeId::SMALLINT: {
+    case ::terrier::type::TypeId::SMALLINT: {
       val = codegen.Call(QueryParametersProxy::GetSmallInt, args);
       break;
     }
-    case type::TypeId::INTEGER: {
+    case ::terrier::type::TypeId::INTEGER: {
       val = codegen.Call(QueryParametersProxy::GetInteger, args);
       break;
     }
-    case type::TypeId::BIGINT: {
+    case ::terrier::type::TypeId::BIGINT: {
       val = codegen.Call(QueryParametersProxy::GetBigInt, args);
       break;
     }
-    case type::TypeId::DECIMAL: {
+    case ::terrier::type::TypeId::DECIMAL: {
       val = codegen.Call(QueryParametersProxy::GetDouble, args);
       break;
     }
-    case type::TypeId::DATE: {
+    case ::terrier::type::TypeId::DATE: {
       val = codegen.Call(QueryParametersProxy::GetDate, args);
       break;
     }
-    case type::TypeId::TIMESTAMP: {
+    case ::terrier::type::TypeId::TIMESTAMP: {
       val = codegen.Call(QueryParametersProxy::GetTimestamp, args);
       break;
     }
-    case type::TypeId::VARCHAR: {
+    case ::terrier::type::TypeId::VARCHAR: {
       val = codegen.Call(QueryParametersProxy::GetVarcharVal, args);
       len = codegen.Call(QueryParametersProxy::GetVarcharLen, args);
       break;
     }
-    case type::TypeId::VARBINARY: {
+    case ::terrier::type::TypeId::VARBINARY: {
       val = codegen.Call(QueryParametersProxy::GetVarbinaryVal, args);
       len = codegen.Call(QueryParametersProxy::GetVarbinaryLen, args);
       break;

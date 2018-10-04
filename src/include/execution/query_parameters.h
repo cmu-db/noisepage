@@ -56,7 +56,7 @@ class QueryParameters {
   }
 
   // Get the parameter value's type at the specified index
-  type::TypeId GetValueType(uint32_t index) const { return parameters_values_[index].GetTypeId(); }
+  ::terrier::type::TypeId GetValueType(uint32_t index) const { return parameters_values_[index].GetTypeId(); }
 
   // Get the parameter object vector
   const std::vector<expression::Parameter> &GetParameters() const { return parameters_map_.GetParameters(); }

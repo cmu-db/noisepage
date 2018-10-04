@@ -66,12 +66,12 @@ class Invalid : public SqlType, public Singleton<Invalid> {
  private:
   friend class Singleton<Invalid>;
 
-  Invalid() : SqlType(type::TypeId::INVALID) {}
+  Invalid() : SqlType(::terrier::type::TypeId::INVALID) {}
 };
 
 namespace {
 
-// The order of elements here **must** be the same as type::TypeId
+// The order of elements here **must** be the same as ::terrier::type::TypeId
 static const SqlType *kTypeTable[] = {
     &Invalid::Instance(),    // The invalid type
     &Invalid::Instance(),    // The parameter offset type ... which isn't a real
@@ -92,7 +92,7 @@ static const SqlType *kTypeTable[] = {
 
 }  // anonymous namespace
 
-const SqlType &SqlType::LookupType(type::TypeId type_id) {
+const SqlType &SqlType::LookupType(::terrier::type::TypeId type_id) {
   return *kTypeTable[static_cast<uint32_t>(type_id)];
 }
 

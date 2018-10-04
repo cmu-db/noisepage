@@ -43,10 +43,10 @@ class TypeSystem;
 //===----------------------------------------------------------------------===//
 class SqlType {
  public:
-  SqlType(type::TypeId type_id) : type_id_(type_id) {}
+  SqlType(::terrier::type::TypeId type_id) : type_id_(type_id) {}
   virtual ~SqlType() {}
 
-  virtual type::TypeId TypeId() const { return type_id_; }
+  virtual ::terrier::type::TypeId TypeId() const { return type_id_; }
 
   virtual bool IsVariableLength() const = 0;
   virtual Value GetMinValue(CodeGen &codegen) const = 0;
@@ -58,7 +58,7 @@ class SqlType {
   virtual const TypeSystem &GetTypeSystem() const = 0;
 
   // Given a type ID, get the SQL Type instance
-  static const SqlType &LookupType(type::TypeId type_id);
+  static const SqlType &LookupType(::terrier::type::TypeId type_id);
 
   // Equality
   bool operator==(const SqlType &o) const { return TypeId() == o.TypeId(); }
@@ -66,7 +66,7 @@ class SqlType {
 
  private:
   // The unique ID of this type
-  type::TypeId type_id_;
+  ::terrier::type::TypeId type_id_;
 };
 
 }  // namespace type
