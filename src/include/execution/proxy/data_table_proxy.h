@@ -18,6 +18,7 @@
 namespace terrier::execution {
 
 PROXY(DataTable) {
+  // TODO(Tianyu): Replace with SqlTable
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, char[sizeof(storage::DataTable)], opaque);
   DECLARE_TYPE;
