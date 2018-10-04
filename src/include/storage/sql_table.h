@@ -25,9 +25,9 @@ class SqlTable {
    * this layer, consider alternatives.
    */
   struct DataTableVersion {
-    DataTable *const data_table;
-    const BlockLayout layout;
-    const ColumnMap column_map;
+    DataTable *data_table;
+    BlockLayout layout;
+    ColumnMap column_map;
   };
 
  public:
@@ -40,10 +40,11 @@ class SqlTable {
    * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const table_oid_t oid)
-      : block_store_(store),
-        oid_(oid),
-        table_({new DataTable(block_store_, StorageUtil::BlockLayoutFromSchema(schema).first, layout_version_t(0)),
-                StorageUtil::BlockLayoutFromSchema(schema).first, StorageUtil::BlockLayoutFromSchema(schema).second}) {}
+      : block_store_(store), oid_(oid) {
+    const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
+    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
+              layout_and_map.second};
+  }
 
   /**
    * Destructs a SqlTable, frees all its members.
@@ -143,8 +144,8 @@ class SqlTable {
    * ProjectedColumn
    * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedColumnsInitializer, ProjectionMap> ProjectionInitializer(const std::vector<col_oid_t> &col_oids,
-                                                                              const uint32_t max_tuples) const {
+  std::pair<ProjectedColumnsInitializer, ProjectionMap> InitializerForProjectedColumns(
+      const std::vector<col_oid_t> &col_oids, const uint32_t max_tuples) const {
     TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
@@ -166,7 +167,7 @@ class SqlTable {
    * ProjectedColumn
    * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedRowInitializer, ProjectionMap> ProjectionInitializer(
+  std::pair<ProjectedRowInitializer, ProjectionMap> InitializerForProjectedRow(
       const std::vector<col_oid_t> &col_oids) const {
     TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
