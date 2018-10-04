@@ -9,7 +9,6 @@
 
 #include "util/bwtree_test_util.h"
 
-
 /*
  * ForwardIteratorTest() - Tests forward iterator functionalities
  */
@@ -19,7 +18,7 @@ void ForwardIteratorTest(TreeType *t, int key_num) {
   auto it = t->Begin();
 
   long i = 0;
-  while(it.IsEnd() == false) {
+  while (it.IsEnd() == false) {
     assert(it->first == it->second);
     assert(it->first == i);
 
@@ -39,7 +38,7 @@ void ForwardIteratorTest(TreeType *t, int key_num) {
 
   auto it4 = t->Begin(key_num + 1);
   assert(it4.IsEnd() == true);
-  
+
   printf("PASS\n");
 
   return;
@@ -50,15 +49,15 @@ void ForwardIteratorTest(TreeType *t, int key_num) {
  */
 void BackwardIteratorTest(TreeType *t, int key_num) {
   printf("========== Backward Iteration Test ==========\n");
-  
+
   auto it = t->Begin(key_num - 1);
-  
+
   assert(it.IsEnd() == false);
   assert(it.IsBegin() == false);
-  
+
   // This does not test Begin()
   long int key = key_num - 1;
-  while(it.IsBegin() == false) {
+  while (it.IsBegin() == false) {
     assert(it->first == it->second);
     assert(it->first == key);
     key--;
@@ -69,8 +68,8 @@ void BackwardIteratorTest(TreeType *t, int key_num) {
   assert(it->first == it->second);
   assert(it->first == key);
   assert(key == 0);
-  
+
   printf("PASS\n");
-  
+
   return;
 }

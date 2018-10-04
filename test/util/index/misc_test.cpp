@@ -21,7 +21,7 @@ void TestEpochManager(TreeType *t) {
   thread_finished = 1;
 
   auto func = [t, &thread_finished](uint64_t thread_id, int iter) {
-    for(int i = 0;i < iter;i++) {
+    for (int i = 0; i < iter; i++) {
       auto node = t->epoch_manager.JoinEpoch();
 
       // Copied from stack overflow:
@@ -29,8 +29,7 @@ void TestEpochManager(TreeType *t) {
 
       std::mt19937_64 eng{std::random_device{}()};  // or seed however you want
       std::uniform_int_distribution<> dist{1, 100};
-      std::this_thread::sleep_for(std::chrono::milliseconds{dist(eng) +
-                                                            thread_id});
+      std::this_thread::sleep_for(std::chrono::milliseconds{dist(eng) + thread_id});
 
       t->epoch_manager.LeaveEpoch(node);
     }

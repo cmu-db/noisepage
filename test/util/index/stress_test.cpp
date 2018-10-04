@@ -36,16 +36,16 @@ void StressTest(uint64_t thread_id, TreeType *t) {
   std::default_random_engine e1(r());
   std::uniform_int_distribution<int> uniform_dist(0, max_key - 1);
 
-  while(1) {
+  while (1) {
     int key = uniform_dist(e1);
 
-    if((thread_id % 2) == 0) {
-      if(t->Insert(key, key)) {
+    if ((thread_id % 2) == 0) {
+      if (t->Insert(key, key)) {
         tree_size.fetch_add(1);
         insert_success.fetch_add(1);
       }
     } else {
-      if(t->Delete(key, key)) {
+      if (t->Delete(key, key)) {
         tree_size.fetch_sub(1);
         delete_success.fetch_add(1);
       }
@@ -53,19 +53,15 @@ void StressTest(uint64_t thread_id, TreeType *t) {
 
     size_t op = total_op.fetch_add(1);
 
-    if(op % max_key == 0) {
+    if (op % max_key == 0) {
       PrintStat(t);
-      printf("Total operation = %lu; tree size = %lu\n",
-             op,
-             tree_size.load());
-      printf("    insert success = %lu; delete success = %lu\n",
-             insert_success.load(),
-             delete_success.load());
+      printf("Total operation = %lu; tree size = %lu\n", op, tree_size.load());
+      printf("    insert success = %lu; delete success = %lu\n", insert_success.load(), delete_success.load());
     }
 
     size_t remainder = (op % (1024UL * 1024UL * 10UL));
 
-    if(remainder < thread_num) {
+    if (remainder < thread_num) {
       std::vector<long> v{};
       int iter = 10;
 
@@ -75,8 +71,8 @@ void StressTest(uint64_t thread_id, TreeType *t) {
 
       start = std::chrono::system_clock::now();
 
-      for(int j = 0;j < iter;j++) {
-        for(int i = 0;i < max_key;i++) {
+      for (int j = 0; j < iter; j++) {
+        for (int i = 0; i < max_key; i++) {
           t->GetValue(i, v);
 
           v.clear();
@@ -86,9 +82,9 @@ void StressTest(uint64_t thread_id, TreeType *t) {
       end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_seconds = end - start;
 
-      std::cout << " Stress Test BwTree: "
-                << (iter * max_key / (1024.0 * 1024.0)) / elapsed_seconds.count()
-                << " million read/sec" << "\n";
+      std::cout << " Stress Test BwTree: " << (iter * max_key / (1024.0 * 1024.0)) / elapsed_seconds.count()
+                << " million read/sec"
+                << "\n";
     }
   }
 

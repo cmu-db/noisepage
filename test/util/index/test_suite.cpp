@@ -17,13 +17,11 @@
  * the constructor, in order to print tree metadata under debug mode
  */
 TreeType *GetEmptyTree(bool no_print) {
-  if(no_print == false) {
+  if (no_print == false) {
     print_flag = true;
   }
-  
-  TreeType *t1 = new TreeType{true,
-                              KeyComparator{1},
-                              KeyEqualityChecker{1}};
+
+  TreeType *t1 = new TreeType{true, KeyComparator{1}, KeyEqualityChecker{1}};
 
   // By default let is serve single thread (i.e. current one)
   // and assign gc_id = 0 to the current thread
@@ -31,17 +29,17 @@ TreeType *GetEmptyTree(bool no_print) {
   t1->AssignGCID(0);
 
   print_flag = false;
-  
+
   return t1;
 }
 
 /*
  * GetEmptyBTree() - Returns an empty Btree multimap object created on the heap
- */ 
+ */
 BTreeType *GetEmptyBTree() {
   BTreeType *t = new BTreeType{KeyComparator{1}};
-  
-  return t; 
+
+  return t;
 }
 
 /*
@@ -52,36 +50,30 @@ BTreeType *GetEmptyBTree() {
  * tree destruction under debug mode
  */
 void DestroyTree(TreeType *t, bool no_print) {
-  if(no_print == false) {
+  if (no_print == false) {
     print_flag = true;
   }
-  
+
   delete t;
-  
+
   print_flag = false;
-  
+
   return;
 }
 
 /*
  * DestroyBTree() - Destroies the btree multimap instance created on the heap
  */
-void DestroyBTree(BTreeType *t) {
-  delete t; 
-}
+void DestroyBTree(BTreeType *t) { delete t; }
 
 /*
  * PrintStat() - Print the current statical information on stdout
  */
 void PrintStat(TreeType *t) {
-  printf("Insert op = %lu; abort = %lu; abort rate = %lf\n",
-         t->insert_op_count.load(),
-         t->insert_abort_count.load(),
+  printf("Insert op = %lu; abort = %lu; abort rate = %lf\n", t->insert_op_count.load(), t->insert_abort_count.load(),
          (double)t->insert_abort_count.load() / (double)t->insert_op_count.load());
 
-  printf("Delete op = %lu; abort = %lu; abort rate = %lf\n",
-         t->delete_op_count.load(),
-         t->delete_abort_count.load(),
+  printf("Delete op = %lu; abort = %lu; abort rate = %lf\n", t->delete_op_count.load(), t->delete_abort_count.load(),
          (double)t->delete_abort_count.load() / (double)t->delete_op_count.load());
 
   return;
