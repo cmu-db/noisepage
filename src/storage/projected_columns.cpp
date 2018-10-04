@@ -1,15 +1,18 @@
 #include "storage/projected_columns.h"
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <utility>
 #include <vector>
 namespace terrier::storage {
-ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage::BlockLayout &layout,
-                                                         std::vector<terrier::col_id_t> col_ids, uint32_t max_tuples)
+ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids,
+                                                         const uint32_t max_tuples)
     : max_tuples_(max_tuples), col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedColumns");
   TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
                  "ProjectedColumns should have fewer columns than the table (can't read version vector)");
+  TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
+                 "There should not be any duplicated in the col_ids!");
   // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
   // Sort the projection list for optimal space utilization and delta application performance
@@ -35,7 +38,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const terrier::storage:
   }
 }
 
-ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *head) const {
+ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
