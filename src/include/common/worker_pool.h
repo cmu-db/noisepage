@@ -1,8 +1,8 @@
 #pragma once
-
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
+#include <iostream>
 #include <mutex>  // NOLINT
 #include <queue>
 #include <string>
@@ -24,12 +24,21 @@ class WorkerPool {
   WorkerPool(const std::string &pool_name, uint32_t num_workers, const TaskQueue &task_queue)
       : pool_name_(pool_name), num_workers_(num_workers), is_running_(false), task_queue_(task_queue) {}
 
+  ~WorkerPool() {
+    std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
+    is_running_ = false;                            // signal all the threads to shutdown
+    task_cv_.notify_all();                          // wake up all the threads
+    lock.unlock();                                  // free the lock
+    for (auto &thread : workers_) thread.join();
+  }
   /**
    * @brief Start this worker pool. Thread-safe and idempotent.
    */
   void Startup() {
     is_running_ = true;
-    while (workers_.size() < num_workers_) AddThread();
+    while (workers_.size() < num_workers_) {
+      AddThread();
+    }
   }
 
   /**
@@ -42,6 +51,15 @@ class WorkerPool {
     finished_cv_.wait(lock, [this] { return busy_workers_ == 0; });
   }
 
+  template <typename F>
+  inline void SubmitTask(const F &func) {
+    if (!is_running_) {
+      Startup();
+    }
+    std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
+    task_queue_.emplace(std::move(func));
+    task_cv_.notify_one();
+  }
   /**
    * @brief Access the number of worker threads in this pool
    *
@@ -59,7 +77,7 @@ class WorkerPool {
   // Flag indicating whether the pool is running
   std::atomic_bool is_running_;
   // The queue where workers pick up tasks
-  TaskQueue &task_queue_;
+  TaskQueue task_queue_;
 
   uint32_t busy_workers_ = 0;
 
