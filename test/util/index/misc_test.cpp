@@ -27,7 +27,7 @@ void TestEpochManager(TreeType *t) {
       // Copied from stack overflow:
       // http://stackoverflow.com/questions/7577452/random-time-delay
 
-      std::mt19937_64 eng{std::random_device{}()};  // or seed however you want
+      std::mt19937_64 eng{std::random_device()()};  // or seed however you want
       std::uniform_int_distribution<> dist{1, 100};
       std::this_thread::sleep_for(std::chrono::milliseconds{dist(eng) + thread_id});
 

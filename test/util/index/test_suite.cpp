@@ -9,6 +9,7 @@
 
 #include "util/bwtree_test_util.h"
 
+using wangziqi2013::bwtree::print_flag;
 /*
  * GetEmptyTree() - Return an empty BwTree with proper constructor argument
  *                  in order to finish all tests without problem
@@ -71,10 +72,10 @@ void DestroyBTree(BTreeType *t) { delete t; }
  */
 void PrintStat(TreeType *t) {
   printf("Insert op = %lu; abort = %lu; abort rate = %lf\n", t->insert_op_count.load(), t->insert_abort_count.load(),
-         (double)t->insert_abort_count.load() / (double)t->insert_op_count.load());
+         static_cast<double>(t->insert_abort_count.load()) / static_cast<double>(t->insert_op_count.load()));
 
   printf("Delete op = %lu; abort = %lu; abort rate = %lf\n", t->delete_op_count.load(), t->delete_abort_count.load(),
-         (double)t->delete_abort_count.load() / (double)t->delete_op_count.load());
+         static_cast<double>(t->delete_abort_count.load()) / static_cast<double>(t->delete_op_count.load()));
 
   return;
 }

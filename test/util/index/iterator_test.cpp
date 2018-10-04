@@ -17,7 +17,7 @@ void ForwardIteratorTest(TreeType *t, int key_num) {
 
   auto it = t->Begin();
 
-  long i = 0;
+  int64_t i = 0;
   while (it.IsEnd() == false) {
     assert(it->first == it->second);
     assert(it->first == i);
@@ -56,7 +56,7 @@ void BackwardIteratorTest(TreeType *t, int key_num) {
   assert(it.IsBegin() == false);
 
   // This does not test Begin()
-  long int key = key_num - 1;
+  int64_t key = key_num - 1;
   while (it.IsBegin() == false) {
     assert(it->first == it->second);
     assert(it->first == key);

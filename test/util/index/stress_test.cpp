@@ -6,6 +6,7 @@
  *
  * By Ziqi Wang
  */
+#include <vector>
 
 #include "util/bwtree_test_util.h"
 
@@ -62,7 +63,7 @@ void StressTest(uint64_t thread_id, TreeType *t) {
     size_t remainder = (op % (1024UL * 1024UL * 10UL));
 
     if (remainder < thread_num) {
-      std::vector<long> v{};
+      std::vector<int64_t> v{};
       int iter = 10;
 
       v.reserve(100);

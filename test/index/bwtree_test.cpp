@@ -4,8 +4,6 @@
 #include "util/bwtree_test_util.h"
 #include "util/test_harness.h"
 
-//#define BWTREE_DEBUG
-
 namespace terrier {
 
 // NOLINTNEXTLINE

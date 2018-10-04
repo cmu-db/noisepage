@@ -21,7 +21,8 @@ int basic_test_thread_num = 8;
  * |---- thread 0 ----|---- thread 1----|----thread 2----| .... |---- thread n----|
  */
 void InsertTest1(uint64_t thread_id, TreeType *t) {
-  for (int i = static_cast<int>(thread_id * basic_test_key_num); i < (int)(thread_id + 1) * basic_test_key_num; i++) {
+  for (int i = static_cast<int>(thread_id * basic_test_key_num);
+       i < static_cast<int>(thread_id + 1) * basic_test_key_num; i++) {
     t->Insert(i, i + 1);
     t->Insert(i, i + 2);
     t->Insert(i, i + 3);
@@ -35,7 +36,8 @@ void InsertTest1(uint64_t thread_id, TreeType *t) {
  * DeleteTest1() - Same pattern as InsertTest1()
  */
 void DeleteTest1(uint64_t thread_id, TreeType *t) {
-  for (int i = static_cast<int>(thread_id * basic_test_key_num); i < (int)(thread_id + 1) * basic_test_key_num; i++) {
+  for (int i = static_cast<int>(thread_id * basic_test_key_num);
+       i < static_cast<int>(thread_id + 1) * basic_test_key_num; i++) {
     t->Delete(i, i + 1);
     t->Delete(i, i + 2);
     t->Delete(i, i + 3);
