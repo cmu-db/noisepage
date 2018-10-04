@@ -208,6 +208,9 @@ class Value {
   }
 
  protected:
+  /**
+   * Holds the type and value
+   */
   union Val {
     /**
      * booleans
@@ -249,10 +252,14 @@ class Value {
     // char *array;
   } value_;
 
-  // For variable length types
+  /**
+   * length of varchar type
+   */
   uint32_t var_len;
 
-  // type of this Value
+  /**
+   * type of this Value
+   */
   TypeId type_id_;
 };
 
