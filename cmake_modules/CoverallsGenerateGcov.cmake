@@ -306,8 +306,8 @@ foreach (GCOV_FILE ${GCOV_FILES})
 		# Example of what we're parsing:
 		# Hitcount  |Line | Source
 		# "        8:   26:        if (!allowed || (strlen(allowed) == 0))"
-		string(REGEX REPLACE 
-			"^([^:]*):([^:]*):(.*)$" 
+		string(REGEX REPLACE
+			"^([^:]*):([^:]*):(.*)$"
 			"\\1;\\2;\\3"
 			RES
 			"${GCOV_LINE}")
@@ -344,7 +344,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 
 			# Lines with 0 line numbers are metadata and can be ignored.
 			if (NOT ${LINE} EQUAL 0)
-				
+
 				if (DO_SKIP)
 					set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}null, ")
 				else()
@@ -424,7 +424,7 @@ string(CONFIGURE ${JSON_TEMPLATE} JSON)
 
 file(WRITE "${COVERALLS_OUTPUT_FILE}" "${JSON}")
 message("###########################################################################")
-message("Generated coveralls JSON containing coverage data:") 
+message("Generated coveralls JSON containing coverage data:")
 message("${COVERALLS_OUTPUT_FILE}")
 message("###########################################################################")
 
