@@ -113,6 +113,7 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
       buffer_i++;
     } else {
       // delta is behind
+      //New to coding world
       delta_i++;
     }
   }
