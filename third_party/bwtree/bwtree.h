@@ -56,8 +56,12 @@
  * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
  *                  reduces performance
  */
-//TODO{yangjuns}: we don't want to turn this on
-//#define BWTREE_NODEBUG
+
+// BWTREE_DEBUG is required to correctly run bwtree unittest.
+// I believe that we only want to run test in DEBUG mode
+#ifndef DEBUG
+#define BWTREE_NODEBUG
+#endif
 
 #ifdef BWTREE_PELOTON
 
