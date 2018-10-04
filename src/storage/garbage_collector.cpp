@@ -109,6 +109,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
                  "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
   if (table == nullptr) {
+  	cout<<"THIS WAS JUST A DECENT  TRY";
     // This UndoRecord has already been unlinked, so we can skip it
     return true;
   }
