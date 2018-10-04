@@ -21,9 +21,22 @@ using TaskQueue = std::queue<std::function<void()>>;
  */
 class WorkerPool {
  public:
-  WorkerPool(const std::string &pool_name, uint32_t num_workers, const TaskQueue &task_queue)
-      : pool_name_(pool_name), num_workers_(num_workers), is_running_(false), task_queue_(task_queue) {}
+  /**
+   * Initialize the worker pool.
+   *
+   * @param pool_name the name of the worker pool
+   * @param num_workers the number of workers in this pool
+   * @param task_queue a queue of tasks
+   */
+  WorkerPool(std::string pool_name, uint32_t num_workers, TaskQueue task_queue)
+      : pool_name_(std::move(pool_name)),
+        num_workers_(num_workers),
+        is_running_(false),
+        task_queue_(std::move(task_queue)) {}
 
+  /**
+   * Destructor. Wake up all workers and let them finish before it's destroyed.
+   */
   ~WorkerPool() {
     std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
     is_running_ = false;                            // signal all the threads to shutdown
@@ -31,6 +44,7 @@ class WorkerPool {
     lock.unlock();                                  // free the lock
     for (auto &thread : workers_) thread.join();
   }
+
   /**
    * @brief Start this worker pool. Thread-safe and idempotent.
    */
