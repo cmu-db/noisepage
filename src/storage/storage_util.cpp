@@ -21,6 +21,7 @@ void StorageUtil::WriteBytes(const uint8_t attr_size, const uint64_t val, byte *
       break;
     default:
       // Invalid attr size
+      // new to coding world
       throw std::runtime_error("Invalid byte write value");
   }
 }
