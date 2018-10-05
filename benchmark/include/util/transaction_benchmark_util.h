@@ -16,8 +16,6 @@ namespace terrier {
 class LargeTransactionBenchmarkObject;
 class RandomWorkloadTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
-// {committed, aborted}
-using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
@@ -26,10 +24,6 @@ using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std
  * of transaction recycling when GC is not turned on. Disable correctness record-keeping for test cases where you
  * don't care about correctness.
  */
-// TODO(Tianyu): We do not support inserts and deletes interleaved in this randomized test yet. Given our storage model,
-// those operations are not really different from updates except the execution layer will interpret tuples differently,
-// and GC needs to recycle slots. Maybe we can write those later, but I suspect the gain will be minimal compared to
-// the extra effort.
 class RandomWorkloadTransaction {
  public:
   /**
@@ -134,10 +128,9 @@ class LargeTransactionBenchmarkObject {
    *
    * @param num_transactions total number of transactions to run
    * @param num_concurrent_txns number of transactions allowed to run concurrently
-   * @return a list of transaction logs if correctness checks are enabled, that can be checked for consistency. (these
-   * will need to be freed manually.), or empty otherwise.
+   * @return abort count
    */
-  SimulationResult SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
+  uint64_t SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
 
   /**
    * @return layout of the randomly generated table
@@ -159,6 +152,7 @@ class LargeTransactionBenchmarkObject {
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_, wal_on_, bookkeeping_;
+  uint64_t abort_count_;
 
   // tuple content is meaningless if bookkeeping is off.
   std::vector<TupleEntry> last_checked_version_;

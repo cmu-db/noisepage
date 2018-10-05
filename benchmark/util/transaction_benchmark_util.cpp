@@ -96,7 +96,7 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       wal_on_(log_manager != LOGGING_DISABLED),
-      bookkeeping_(false) {
+      bookkeeping_(false), abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
 }
@@ -109,7 +109,7 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-SimulationResult LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions,
+uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions,
                                                                uint32_t num_concurrent_txns) {
   TestThreadPool thread_pool;
   std::vector<RandomWorkloadTransaction *> txns;
@@ -139,21 +139,13 @@ SimulationResult LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_tran
 
   thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
 
-  if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
-    for (RandomWorkloadTransaction *txn : txns) delete txn;
+    for (RandomWorkloadTransaction *txn : txns) {
+      abort_count_++;
+      delete txn;
+    }
     // This result is meaningless if bookkeeping is not turned on.
-    return {{}, {}};
-  }
-  // filter out aborted transactions
-  std::vector<RandomWorkloadTransaction *> committed, aborted;
-  for (RandomWorkloadTransaction *txn : txns) (txn->aborted_ ? aborted : committed).push_back(txn);
-
-  // Sort according to commit timestamp (Although we probably already are? Never hurts to be sure)
-  std::sort(committed.begin(), committed.end(), [](RandomWorkloadTransaction *a, RandomWorkloadTransaction *b) {
-    return transaction::TransactionUtil::NewerThan(b->commit_time_, a->commit_time_);
-  });
-  return {committed, aborted};
+    return abort_count_;
 }
 
 void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
