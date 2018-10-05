@@ -92,7 +92,7 @@ install_linux() {
       doxygen \
       git \
       g++-7 \
-      libboost-filesystem-dev \
+      libboost-dev \
       libjemalloc-dev \
       libtbb-dev \
       libz-dev \
