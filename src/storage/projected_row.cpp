@@ -1,9 +1,9 @@
-#include "storage/delta_record.h"
+#include "storage/projected_row.h"
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <utility>
 #include <vector>
-#include "storage/storage_util.h"
 
 namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
@@ -19,10 +19,11 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
                                                  std::vector<col_id_t> col_ids)
     : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedRow");
-  TERRIER_ASSERT(col_ids.size() < layout.NumCols(),
-                 "projected row should have number of columns smaller than the table's");
-  // TODO(Tianyu): We should really assert that the projected row has a subset of columns, but that
-  // is a bit more complicated.
+  TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
+                 "ProjectedRow should have fewer columns than the table (can't read version vector)");
+  TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
+                 "There should not be any duplicated in the col_ids!");
+  // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
@@ -45,7 +46,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   }
 }
 
-ProjectedRow *ProjectedRowInitializer::InitializeRow(void *head) const {
+ProjectedRow *ProjectedRowInitializer::InitializeRow(void *const head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
@@ -55,20 +56,6 @@ ProjectedRow *ProjectedRowInitializer::InitializeRow(void *head) const {
   for (uint32_t i = 0; i < col_ids_.size(); i++) result->ColumnIds()[i] = col_ids_[i];
   for (uint32_t i = 0; i < col_ids_.size(); i++) result->AttrValueOffsets()[i] = offsets_[i];
   result->Bitmap().Clear(result->num_cols_);
-  return result;
-}
-
-UndoRecord *UndoRecord::Initialize(void *head, timestamp_t timestamp, TupleSlot slot, DataTable *table,
-                                   const ProjectedRowInitializer &initializer) {
-  auto *result = reinterpret_cast<UndoRecord *>(head);
-
-  result->next_ = nullptr;
-  result->timestamp_.store(timestamp);
-  result->table_ = table;
-  result->slot_ = slot;
-
-  initializer.InitializeRow(result->varlen_contents_);
-
   return result;
 }
 }  // namespace terrier::storage

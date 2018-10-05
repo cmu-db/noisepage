@@ -1,5 +1,8 @@
 #pragma once
 
+#include "common/typedefs.h"
+#include "type/type_id.h"
+
 namespace terrier::type {
 
 /**
@@ -15,7 +18,7 @@ class TypeUtil {
    * the size of a pointer to point to the varlen entry
    * @throw std::runtime_error if type is unknown
    */
-  static uint64_t GetTypeSize(const TypeId type_id) {
+  static uint8_t GetTypeSize(const TypeId type_id) {
     switch (type_id) {
       case TypeId::BOOLEAN:
       case TypeId::TINYINT:

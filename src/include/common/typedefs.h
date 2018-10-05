@@ -67,7 +67,7 @@ class StrongTypeAlias {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
  public:
-  StrongTypeAlias() : val_() {}
+  StrongTypeAlias() = default;
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.
@@ -213,7 +213,10 @@ using byte = std::byte;
 
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
+// TODO(Matt): consider namespacing strong typedefs so we have storage::col_id_t and catalog::col_oid_t
 STRONG_TYPEDEF(col_id_t, uint16_t);
+STRONG_TYPEDEF(col_oid_t, uint32_t);
+STRONG_TYPEDEF(table_oid_t, uint32_t);
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
