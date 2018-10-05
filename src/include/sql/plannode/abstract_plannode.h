@@ -4,7 +4,7 @@
 //
 // abstract_plan.h
 //
-// Identification: src/include/planner/abstract_plan.h
+// Identification: src/include/sql/plannode/abstract_plannode.h
 //
 // Copyright (c) 2015-2018, Carnegie Mellon University Database Group
 //
@@ -90,15 +90,15 @@ class AbstractPlanNode {
 
 class Equal {
  public:
-  bool operator()(const std::shared_ptr<planner::AbstractPlanNode> &a,
-                  const std::shared_ptr<planner::AbstractPlanNode> &b) const {
+  bool operator()(const std::shared_ptr<AbstractPlanNode> &a,
+                  const std::shared_ptr<AbstractPlanNode> &b) const {
     return *a.get() == *b.get();
   }
 };
 
 class Hash {
  public:
-  size_t operator()(const std::shared_ptr<planner::AbstractPlanNode> &plan) const {
+  size_t operator()(const std::shared_ptr<AbstractPlanNode> &plan) const {
     return static_cast<size_t>(plan->Hash());
   }
 };

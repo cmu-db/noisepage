@@ -56,4 +56,19 @@ enum class PlanNodeType {
   // Test
   MOCK = 80
 };
+
+/**
+ * Set Operation Types
+ * These are used by the SetOpPlanNode
+ */
+enum class SetOpType {
+  // clang-format off
+  INVALID = INVALID_TYPE_ID,
+  INTERSECT = 1,
+  INTERSECT_ALL = 2,
+  EXCEPT = 3,
+  EXCEPT_ALL = 4
+  // clang-format on
+};
+
 }  // namespace terrier::sql::plannode
