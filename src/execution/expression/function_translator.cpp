@@ -23,8 +23,8 @@ namespace terrier::execution {
 FunctionTranslator::FunctionTranslator(const expression::FunctionExpression &func_expr, CompilationContext &context)
     : ExpressionTranslator(func_expr, context) {
   if (!func_expr.IsUDF()) {
-    PELOTON_ASSERT(func_expr.GetFunc().op_id != OperatorId::Invalid);
-    PELOTON_ASSERT(func_expr.GetFunc().impl != nullptr);
+    TERRIER_ASSERT(func_expr.GetFunc().op_id != OperatorId::Invalid, "Operator ID must be valid.");
+    TERRIER_ASSERT(func_expr.GetFunc().impl != nullptr, "Function must have an implementation.");
 
     // Prepare each of the child expressions
     for (uint32_t i = 0; i < func_expr.GetChildrenSize(); i++) {
@@ -53,7 +53,7 @@ Value FunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) cons
     if (args.size() == 1) {
       // Lookup unary operation
       auto *unary_op = type::TypeSystem::GetUnaryOperator(operator_id, args[0].GetType());
-      PELOTON_ASSERT(unary_op != nullptr);
+      TERRIER_ASSERT(unary_op != nullptr, "Unary operator cannot be null.");
 
       // Invoke
       return unary_op->Eval(codegen, args[0], ctx);
@@ -61,7 +61,7 @@ Value FunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) cons
       // Lookup the function
       type::Type left_type = args[0].GetType(), right_type = args[1].GetType();
       auto *binary_op = type::TypeSystem::GetBinaryOperator(operator_id, left_type, left_type, right_type, right_type);
-      PELOTON_ASSERT(binary_op);
+      TERRIER_ASSERT(binary_op != nullptr, "Binary operator cannot be null.");
 
       // Invoke
       return binary_op->Eval(codegen, args[0].CastTo(codegen, left_type), args[1].CastTo(codegen, right_type), ctx);
@@ -75,7 +75,7 @@ Value FunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) cons
 
       // Lookup the function
       auto *nary_op = type::TypeSystem::GetNaryOperator(operator_id, arg_types);
-      PELOTON_ASSERT(nary_op != nullptr);
+      TERRIER_ASSERT(nary_op != nullptr, "N-ary operator cannot be null.");
 
       // Invoke
       return nary_op->Eval(codegen, args, ctx);

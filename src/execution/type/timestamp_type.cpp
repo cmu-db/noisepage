@@ -41,7 +41,7 @@ struct CastTimestampToDate : public TypeSystem::CastHandleNull {
 
   // Cast the given decimal value into the provided type
   Value Impl(CodeGen &codegen, const Value &value, const type::Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired types.");
 
     // TODO: Fix me
     auto *usecs_per_date = codegen.Const64(peloton::type::TimestampType::kUsecsPerDate);

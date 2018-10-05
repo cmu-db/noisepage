@@ -56,7 +56,7 @@ namespace terrier::execution {
 BlockNestedLoopJoinTranslator::BlockNestedLoopJoinTranslator(const planner::NestedLoopJoinPlan &nlj_plan,
                                                              CompilationContext &context, Pipeline &pipeline)
     : OperatorTranslator(nlj_plan, context, pipeline), left_pipeline_(this, Pipeline::Parallelism::Serial) {
-  PELOTON_ASSERT(nlj_plan.GetChildrenSize() == 2 && "NLJ must have exactly two children");
+  TERRIER_ASSERT(nlj_plan.GetChildrenSize() == 2, "NLJ must have exactly two children");
 
   // Prepare children
   context.Prepare(*nlj_plan.GetChild(0), left_pipeline_);
@@ -211,7 +211,7 @@ BufferedTupleCallback::BufferedTupleCallback(const planner::NestedLoopJoinPlan &
 
 // This function is called for each tuple in the BNLJ buffer.
 void BufferedTupleCallback::ProcessEntry(CodeGen &codegen, const std::vector<Value> &left_row) const {
-  PELOTON_ASSERT(left_row.size() == left_attributes_.size());
+  TERRIER_ASSERT(left_row.size() == left_attributes_.size(), "Size of row and attributes must match.");
 
   // Add all the attributes from left tuple (from the sorter) into the row
   // coming from the right input side. We need to do this in order to evaluate

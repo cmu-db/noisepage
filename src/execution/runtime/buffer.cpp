@@ -64,7 +64,7 @@ void Buffer::MakeRoomForBytes(uint64_t num_bytes) {
   uint64_t curr_used_size = UsedSpace();
 
   // Ensure the current size is a power of two
-  PELOTON_ASSERT(curr_alloc_size % 2 == 0);
+  TERRIER_ASSERT(curr_alloc_size % 2 == 0, "Current size must be power of 2.");
 
   // Allocate double the buffer room
   uint64_t next_alloc_size = curr_alloc_size;

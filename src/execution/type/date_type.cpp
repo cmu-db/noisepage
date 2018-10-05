@@ -43,7 +43,7 @@ struct CastDateToTimestamp : public TypeSystem::CastHandleNull {
 
   // Cast the given decimal value into the provided type
   Value Impl(CodeGen &codegen, const Value &value, const type::Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired types.");
 
     // Date is number of days since 2000, timestamp is micros since same
     auto *date = codegen->CreateZExt(value.GetValue(), codegen.Int64Type());

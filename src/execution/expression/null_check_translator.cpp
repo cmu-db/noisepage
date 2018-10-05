@@ -21,7 +21,7 @@ namespace terrier::execution {
 // Constructor
 NullCheckTranslator::NullCheckTranslator(const expression::OperatorExpression &null_check, CompilationContext &ctx)
     : ExpressionTranslator(null_check, ctx) {
-  PELOTON_ASSERT(null_check.GetChildrenSize() == 1);
+  TERRIER_ASSERT(null_check.GetChildrenSize() == 1, "Must have exactly one child.");
 }
 
 Value NullCheckTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
