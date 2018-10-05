@@ -5,6 +5,7 @@
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/typedefs.h"
+#include "loggers/execution_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -18,6 +19,7 @@ int main() {
   try {
     init_main_logger();
     // initialize namespace specific loggers
+    terrier::execution::init_execution_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
 
