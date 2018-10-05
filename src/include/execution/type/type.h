@@ -15,7 +15,7 @@
 #include <cstdint>
 
 #include "common/hash_util.h"
-#include "type/type_id.h"
+#include "sql/type/type_id.h"
 
 namespace terrier::execution {
 namespace type {

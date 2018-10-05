@@ -15,9 +15,7 @@ namespace execution {
 ////////////////////////////////////////////////////////////////////////////////
 
 ExecutionContext::ExecutionContext(transaction::TransactionContext *transaction, QueryParameters parameters)
-    : transaction_(transaction),
-      parameters_(std::move(parameters)),
-      thread_states_(pool_) {}
+    : transaction_(transaction), parameters_(std::move(parameters)), thread_states_(pool_) {}
 
 transaction::TransactionContext *ExecutionContext::GetTransaction() const { return transaction_; }
 

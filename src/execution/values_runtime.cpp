@@ -14,8 +14,8 @@
 
 #include "execution/runtime_functions.h"
 #include "execution/type/type.h"
+#include "sql/type/type_util.h"
 #include "type/abstract_pool.h"
-#include "type/type_util.h"
 #include "type/value.h"
 #include "type/value_factory.h"
 #include "type/value_peeker.h"

@@ -1,6 +1,6 @@
 #pragma once
 #include <stdexcept>
-#include "type/type_id.h"
+#include "type_id.h"
 
 namespace terrier::type {
 

@@ -3,10 +3,10 @@
 #include "execution/query_parameters_map.h"
 #include "expression/parameter.h"
 #include "sql/plannode/abstract_plannode.h"
-#include "type/type_id.h"
+#include "sql/type/type_id.h"
 #include "type/value_peeker.h"
 
-//TODO(Justin):
+// TODO(Justin):
 // -terrier::type::Value
 // -expression
 // -value_peeker

@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-#include "type/type_id.h"
+#include "sql/type/type_id.h"
 
 namespace llvm {
 class Type;

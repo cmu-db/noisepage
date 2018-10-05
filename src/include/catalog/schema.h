@@ -5,9 +5,9 @@
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/typedefs.h"
+#include "sql/type/type_id.h"
+#include "sql/type/type_util.h"
 #include "storage/storage_defs.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace terrier::catalog {
 
