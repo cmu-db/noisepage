@@ -23,32 +23,23 @@ namespace executor {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-ExecutorContext::ExecutorContext(concurrency::TransactionContext *transaction,
-                                 codegen::QueryParameters parameters)
+ExecutorContext::ExecutorContext(concurrency::TransactionContext *transaction, codegen::QueryParameters parameters)
     : transaction_(transaction),
       parameters_(std::move(parameters)),
       storage_manager_(storage::StorageManager::GetInstance()),
       thread_states_(pool_) {}
 
-concurrency::TransactionContext *ExecutorContext::GetTransaction() const {
-  return transaction_;
-}
+concurrency::TransactionContext *ExecutorContext::GetTransaction() const { return transaction_; }
 
-const std::vector<type::Value> &ExecutorContext::GetParamValues() const {
-  return parameters_.GetParameterValues();
-}
+const std::vector<type::Value> &ExecutorContext::GetParamValues() const { return parameters_.GetParameterValues(); }
 
-storage::StorageManager &ExecutorContext::GetStorageManager() const {
-  return *storage_manager_;
-}
+storage::StorageManager &ExecutorContext::GetStorageManager() const { return *storage_manager_; }
 
 codegen::QueryParameters &ExecutorContext::GetParams() { return parameters_; }
 
 type::EphemeralPool *ExecutorContext::GetPool() { return &pool_; }
 
-ExecutorContext::ThreadStates &ExecutorContext::GetThreadStates() {
-  return thread_states_;
-}
+ExecutorContext::ThreadStates &ExecutorContext::GetThreadStates() { return thread_states_; }
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -80,8 +71,7 @@ void ExecutorContext::ThreadStates::Allocate(const uint32_t num_threads) {
   PELOTON_MEMSET(states_, 0, alloc_size);
 }
 
-char *ExecutorContext::ThreadStates::AccessThreadState(
-    const uint32_t thread_id) const {
+char *ExecutorContext::ThreadStates::AccessThreadState(const uint32_t thread_id) const {
   PELOTON_ASSERT(state_size_ > 0);
   PELOTON_ASSERT(states_ != nullptr);
   PELOTON_ASSERT(thread_id < num_threads_);
