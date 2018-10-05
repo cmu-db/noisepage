@@ -18,10 +18,10 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
 };
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(LargeTransactionBenchmark, MixedReadWrite)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 5;
-  const std::vector<double> update_select_ratio = {0.5, 0.5};
+  const std::vector<double> update_select_ratio = {0.4, 0.6};
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
@@ -93,7 +93,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, MixedReadWrite)
+BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(5);
