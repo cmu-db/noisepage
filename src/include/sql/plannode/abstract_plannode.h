@@ -25,7 +25,6 @@ namespace terrier::sql::plannode {
  * Base class for all SQL plan nodes
  */
 class AbstractPlanNode {
-
  public:
   AbstractPlanNode();
 
@@ -60,7 +59,7 @@ class AbstractPlanNode {
   // Utilities
   //===--------------------------------------------------------------------===//
 
-  virtual void GetOutputColumns(std::vector<oid_t> &columns UNUSED_ATTRIBUTE) const {}
+  virtual void GetOutputColumns(std::vector<oid_t> &columns) const {}
 
   /**
    * Get a string representation for debugging

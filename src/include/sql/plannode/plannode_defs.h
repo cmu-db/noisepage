@@ -14,29 +14,29 @@ enum class PlanNodeType {
   CSVSCAN = 12,
 
   // Join Nodes
-      NESTLOOP = 20,
+  NESTLOOP = 20,
   NESTLOOPINDEX = 21,
   MERGEJOIN = 22,
   HASHJOIN = 23,
 
   // Mutator Nodes
-      UPDATE = 30,
+  UPDATE = 30,
   INSERT = 31,
   DELETE = 32,
 
   // DDL Nodes
-      DROP = 33,
+  DROP = 33,
   CREATE = 34,
   POPULATE_INDEX = 35,
   ANALYZE = 36,
 
   // Communication Nodes
-      SEND = 40,
+  SEND = 40,
   RECEIVE = 41,
   PRINT = 42,
 
   // Algebra Nodes
-      AGGREGATE = 50,
+  AGGREGATE = 50,
   UNION = 52,
   ORDERBY = 53,
   PROJECTION = 54,
@@ -49,11 +49,11 @@ enum class PlanNodeType {
   HASH = 62,
 
   // Utility
-      RESULT = 70,
+  RESULT = 70,
   EXPORT_EXTERNAL_FILE = 71,
   CREATE_FUNC = 72,
 
   // Test
-      MOCK = 80
+  MOCK = 80
 };
 }  // namespace terrier::sql::plannode

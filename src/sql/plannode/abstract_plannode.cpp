@@ -21,14 +21,9 @@ AbstractPlanNode::AbstractPlanNode() {}
 
 AbstractPlanNode::~AbstractPlanNode() {}
 
-void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) {
-  children_.emplace_back(std::move(child));
-}
+void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) { children_.emplace_back(std::move(child)); }
 
-const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren()
-    const {
-  return children_;
-}
+const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren() const { return children_; }
 
 const AbstractPlanNode *AbstractPlanNode::GetChild(uint32_t child_index) const {
   PELOTON_ASSERT(child_index < children_.size());
@@ -47,11 +42,9 @@ hash_t AbstractPlanNode::Hash() const {
 
 bool AbstractPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto num = GetChildren().size();
-  if (num != rhs.GetChildren().size())
-    return false;
+  if (num != rhs.GetChildren().size()) return false;
   for (unsigned int i = 0; i < num; i++) {
-    if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i))
-      return false;
+    if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i)) return false;
   }
   return true;
 }
