@@ -21,7 +21,7 @@ namespace terrier::execution {
 NegationTranslator::NegationTranslator(const expression::OperatorUnaryMinusExpression &unary_minus_expression,
                                        CompilationContext &ctx)
     : ExpressionTranslator(unary_minus_expression, ctx) {
-  PELOTON_ASSERT(unary_minus_expression.GetChildrenSize() == 1);
+  TERRIER_ASSERT(unary_minus_expression.GetChildrenSize() == 1, "Must have exactly one child.");
 }
 
 Value NegationTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {

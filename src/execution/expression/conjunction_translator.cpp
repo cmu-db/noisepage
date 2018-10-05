@@ -20,7 +20,7 @@ namespace terrier::execution {
 ConjunctionTranslator::ConjunctionTranslator(const expression::ConjunctionExpression &conjunction,
                                              CompilationContext &context)
     : ExpressionTranslator(conjunction, context) {
-  PELOTON_ASSERT(conjunction.GetChildrenSize() == 2);
+  TERRIER_ASSERT(conjunction.GetChildrenSize() == 2, "Must have exactly two children.");
 }
 
 // Produce the value that is the result of codegening the expression

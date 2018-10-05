@@ -55,7 +55,7 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
 
   // Cast the given decimal value into the provided type
   Value Impl(CodeGen &codegen, const Value &value, const type::Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired types.");
     PELOTON_ASSERT(!to_type.nullable);
 
     llvm::Type *val_type = nullptr, *len_type = nullptr;

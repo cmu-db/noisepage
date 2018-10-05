@@ -22,8 +22,10 @@ ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlan &plan, 
                                            Pipeline &pipeline)
     : OperatorTranslator(plan, context, pipeline) {
   // Prepare translator for our child
-  PELOTON_ASSERT(plan.GetChildrenSize() < 2);
-  context.Prepare(*plan.GetChild(0), pipeline);
+  TERRIER_ASSERT(plan.GetChildrenSize() < 2, "Cannot have more than one child.");
+  if (plan.GetChildrenSize() > 0) {
+    context.Prepare(*plan.GetChild(0), pipeline);
+  }
 
   // Prepare translators for the projection
   const auto *projection_info = plan.GetProjectInfo();
@@ -48,7 +50,7 @@ void ProjectionTranslator::PrepareProjection(CompilationContext &context, const 
   if (projection_info.IsNonTrivial()) {
     for (const auto &target : projection_info.GetTargetList()) {
       const auto &derived_attribute = target.second;
-      PELOTON_ASSERT(derived_attribute.expr != nullptr);
+      TERRIER_ASSERT(derived_attribute.expr != nullptr, "Expression cannot be null.");
       context.Prepare(*derived_attribute.expr);
     }
   }
