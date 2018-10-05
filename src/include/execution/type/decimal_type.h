@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
 
@@ -20,7 +19,7 @@ namespace terrier::execution {
 
 namespace type {
 
-class Decimal : public SqlType, public Singleton<Decimal> {
+class Decimal : public SqlType {
  public:
   bool IsVariableLength() const override { return false; }
 
@@ -39,8 +38,6 @@ class Decimal : public SqlType, public Singleton<Decimal> {
   const TypeSystem &GetTypeSystem() const override { return type_system_; }
 
  private:
-  friend class Singleton<Decimal>;
-
   Decimal();
 
  private:

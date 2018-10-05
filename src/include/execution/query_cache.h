@@ -14,7 +14,6 @@
 
 #include <list>
 
-#include "common/singleton.h"
 #include "common/synchronization/readwrite_latch.h"
 #include "execution/query.h"
 #include "planner/abstract_plan.h"
@@ -31,7 +30,7 @@ namespace terrier::execution {
 // Potential enhancements (minor):
 //   1) Manually keep some of the compiled results in the cache
 //   2) Configure the cache size
-class QueryCache : public Singleton<QueryCache> {
+class QueryCache {
  public:
   // Find the cached query object with the given plan
   Query *Find(const std::shared_ptr<planner::AbstractPlan> &key);
@@ -55,8 +54,6 @@ class QueryCache : public Singleton<QueryCache> {
   void SetCapacity(size_t capacity) { Resize(capacity); }
 
  private:
-  friend class Singleton<QueryCache>;
-
   QueryCache() {}
 
   // Resize the cache in the LRU manner

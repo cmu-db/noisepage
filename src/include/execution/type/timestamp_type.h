@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
 
@@ -20,7 +19,7 @@ namespace terrier::execution {
 
 namespace type {
 
-class Timestamp : public SqlType, public Singleton<Timestamp> {
+class Timestamp : public SqlType {
  public:
   bool IsVariableLength() const override { return false; }
 
@@ -39,8 +38,6 @@ class Timestamp : public SqlType, public Singleton<Timestamp> {
   const TypeSystem &GetTypeSystem() const override { return type_system_; }
 
  private:
-  friend class Singleton<Timestamp>;
-
   Timestamp();
 
  private:
