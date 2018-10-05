@@ -44,7 +44,7 @@ Value FunctionTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) cons
   }
 
   // The context for the function invocation
-  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception, .executor_context = GetExecutorContextPtr()};
+  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception, .executor_context = GetExecutionContextPtr()};
 
   if (!func_expr.IsUDF()) {
     // The ID of the operator we're calling

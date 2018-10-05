@@ -32,18 +32,18 @@ PROXY(ThreadStates) {
   DECLARE_METHOD(Allocate);
 };
 
-PROXY(ExecutorContext) {
+PROXY(ExecutionContext) {
   /// We don't need access to internal fields, so use an opaque byte array
   DECLARE_MEMBER(0, uint32_t, num_processed);
   DECLARE_MEMBER(1, concurrency::TransactionContext *, txn);
   DECLARE_MEMBER(2, QueryParameters, params);
   DECLARE_MEMBER(3, storage::StorageManager *, storage_manager);
   DECLARE_MEMBER(4, peloton::type::EphemeralPool, pool);
-  DECLARE_MEMBER(5, executor::ExecutorContext::ThreadStates, thread_states);
+  DECLARE_MEMBER(5, executor::ExecutionContext::ThreadStates, thread_states);
   DECLARE_TYPE;
 };
 
-TYPE_BUILDER(ThreadStates, executor::ExecutorContext::ThreadStates);
-TYPE_BUILDER(ExecutorContext, executor::ExecutorContext);
+TYPE_BUILDER(ThreadStates, executor::ExecutionContext::ThreadStates);
+TYPE_BUILDER(ExecutionContext, executor::ExecutionContext);
 
 }  // namespace terrier::execution

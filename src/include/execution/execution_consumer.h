@@ -58,8 +58,8 @@ class ExecutionConsumer {
   virtual void ConsumeResult(ConsumerContext &context, RowBatch &batch) const;
   virtual void ConsumeResult(ConsumerContext &context, RowBatch::Row &row) const = 0;
 
-  /// Load the ExecutorContext, Transaction, or StorageManager objects
-  llvm::Value *GetExecutorContextPtr(CompilationContext &compilation_ctx);
+  /// Load the ExecutionContext, Transaction, or StorageManager objects
+  llvm::Value *GetExecutionContextPtr(CompilationContext &compilation_ctx);
   llvm::Value *GetTransactionPtr(CompilationContext &compilation_ctx);
   llvm::Value *GetStorageManagerPtr(CompilationContext &compilation_ctx);
   llvm::Value *GetQueryParametersPtr(CompilationContext &compilation_ctx);

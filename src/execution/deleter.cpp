@@ -19,12 +19,12 @@
 
 namespace terrier::execution {
 
-Deleter::Deleter(storage::DataTable *table, executor::ExecutorContext *executor_context)
+Deleter::Deleter(storage::DataTable *table, executor::ExecutionContext *executor_context)
     : table_(table), executor_context_(executor_context) {
   PELOTON_ASSERT(table != nullptr && executor_context != nullptr);
 }
 
-void Deleter::Init(Deleter &deleter, storage::DataTable *table, executor::ExecutorContext *executor_context) {
+void Deleter::Init(Deleter &deleter, storage::DataTable *table, executor::ExecutionContext *executor_context) {
   new (&deleter) Deleter(table, executor_context);
 }
 

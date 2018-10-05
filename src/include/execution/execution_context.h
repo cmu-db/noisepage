@@ -1,43 +1,35 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// executor_context.h
-//
-// Identification: src/include/executor/executor_context.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
-#include "codegen/query_parameters.h"
+#include "execution/query_parameters.h"
 #include "type/ephemeral_pool.h"
 #include "type/value.h"
 
-namespace peloton {
+// TODO(Justin):
+// -replace with terrier/storage/varlen_pool.h?
+// -check about StorageManager replacement status
 
-namespace concurrency {
+namespace terrier {
+
+namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+}  // namespace transaction
 
 namespace storage {
 class StorageManager;
 }  // namespace storage
 
-namespace executor {
+namespace execution {
 
 /**
  * @brief Stores information for one execution of a plan.
  */
-class ExecutorContext {
+class ExecutionContext {
  public:
   /// Constructor
-  ExecutorContext(concurrency::TransactionContext *transaction, codegen::QueryParameters parameters = {});
+  ExecutionContext(transaction::TransactionContext *transaction, QueryParameters parameters = {});
 
   /// This class cannot be copy or move-constructed
-  DISALLOW_COPY_AND_MOVE(ExecutorContext);
+  DISALLOW_COPY_AND_MOVE(ExecutionContext);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
@@ -46,7 +38,7 @@ class ExecutorContext {
   //////////////////////////////////////////////////////////////////////////////
 
   /// Return the transaction for this particular query execution
-  concurrency::TransactionContext *GetTransaction() const;
+  transaction::TransactionContext *GetTransaction() const;
 
   /// Return the explicit set of parameters for this particular query execution
   const std::vector<type::Value> &GetParamValues() const;
@@ -55,7 +47,7 @@ class ExecutorContext {
   storage::StorageManager &GetStorageManager() const;
 
   /// Return the query parameters
-  codegen::QueryParameters &GetParams();
+  QueryParameters &GetParams();
 
   /// Return the memory pool for this particular query execution
   type::EphemeralPool *GetPool();
@@ -95,9 +87,9 @@ class ExecutorContext {
 
  private:
   // The transaction context
-  concurrency::TransactionContext *transaction_;
+  transaction::TransactionContext *transaction_;
   // All query parameters
-  codegen::QueryParameters parameters_;
+  QueryParameters parameters_;
   // The storage manager instance
   storage::StorageManager *storage_manager_;
   // Temporary memory pool for allocations done during execution
@@ -107,13 +99,13 @@ class ExecutorContext {
 };
 
 template <typename T>
-inline void ExecutorContext::ThreadStates::ForEach(uint32_t element_offset, std::function<void(T *)> func) const {
-  PELOTON_ASSERT(element_offset < state_size_);
+inline void ExecutionContext::ThreadStates::ForEach(uint32_t element_offset, std::function<void(T *)> func) const {
+  TERRIER_ASSERT(element_offset < state_size_, "The element offset should be less than the state size.");
   for (uint32_t tid = 0; tid < NumThreads(); tid++) {
     auto *elem_state = reinterpret_cast<T *>(AccessThreadState(tid) + element_offset);
     func(elem_state);
   }
 }
 
-}  // namespace executor
-}  // namespace peloton
+}  // namespace execution
+}  // namespace terrier

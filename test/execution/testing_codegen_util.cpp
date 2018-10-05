@@ -241,7 +241,7 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecute(planner::
       codegen::QueryCompiler().Compile(plan, parameters.GetQueryParametersMap(), consumer, &stats.compile_stats);
 
   // Executor context
-  executor::ExecutorContext exec_ctx{txn, std::move(parameters)};
+  executor::ExecutionContext exec_ctx{txn, std::move(parameters)};
 
   // Compile Query to native code
   query->Compile();
@@ -263,7 +263,7 @@ PelotonCodeGenTest::CodeGenStats PelotonCodeGenTest::CompileAndExecuteCache(std:
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto *txn = txn_manager.BeginTransaction();
 
-  executor::ExecutorContext exec_ctx{txn, codegen::QueryParameters(*plan, params)};
+  executor::ExecutionContext exec_ctx{txn, codegen::QueryParameters(*plan, params)};
 
   // Compile
   CodeGenStats stats;

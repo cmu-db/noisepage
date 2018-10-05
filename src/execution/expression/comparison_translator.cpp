@@ -46,7 +46,7 @@ Value ComparisonTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) co
       return left.CompareGte(codegen, right);
     case ExpressionType::COMPARE_LIKE: {
       type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception,
-                                              .executor_context = GetExecutorContextPtr()};
+                                              .executor_context = GetExecutionContextPtr()};
 
       type::Type left_type = left.GetType(), right_type = right.GetType();
       auto *binary_op =

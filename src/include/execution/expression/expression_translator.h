@@ -48,7 +48,7 @@ class ExpressionTranslator {
 
  protected:
   // Load the executor context
-  llvm::Value *GetExecutorContextPtr() const;
+  llvm::Value *GetExecutionContextPtr() const;
 
  protected:
   // The compilation state context

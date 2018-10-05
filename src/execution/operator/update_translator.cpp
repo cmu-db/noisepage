@@ -73,7 +73,7 @@ void UpdateTranslator::InitializeQueryState() {
   // Initialize the inserter with txn and table
   llvm::Value *updater = LoadStatePtr(updater_state_id_);
   codegen.Call(UpdaterProxy::Init,
-               {updater, table_ptr, GetExecutorContextPtr(), target_vector_ptr, target_vector_size_ptr});
+               {updater, table_ptr, GetExecutionContextPtr(), target_vector_ptr, target_vector_size_ptr});
 }
 
 void UpdateTranslator::Produce() const { GetCompilationContext().Produce(*GetPlan().GetChild(0)); }
