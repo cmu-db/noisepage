@@ -79,7 +79,6 @@ class RandomWorkloadTransaction {
   // extra bookkeeping for correctness checks
   bool aborted_;
   timestamp_t start_time_, commit_time_;
-  std::vector<TupleEntry> selects_;
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> updates_;
   byte *buffer_;
 };
@@ -151,7 +150,7 @@ class LargeTransactionBenchmarkObject {
   storage::DataTable table_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
-  bool gc_on_, wal_on_, bookkeeping_;
+  bool gc_on_, wal_on_;
   uint64_t abort_count_;
 
   // tuple content is meaningless if bookkeeping is off.
