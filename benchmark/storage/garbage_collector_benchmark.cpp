@@ -29,7 +29,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
   for (auto _ : state) {
     // generate our table and instantiate GC
     LargeTransactionBenchmarkObject tested({8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true, false);
+                                           &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn
@@ -68,7 +68,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   for (auto _ : state) {
     // generate our table and instantiate GC
     LargeTransactionBenchmarkObject tested({8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true, false);
+                                           &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn

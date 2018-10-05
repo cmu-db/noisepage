@@ -16,8 +16,6 @@ namespace terrier {
 class LargeTransactionBenchmarkObject;
 class RandomWorkloadTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
-using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
-using VersionedSnapshots = std::map<timestamp_t, TableSnapshot>;
 // {committed, aborted}
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
@@ -117,7 +115,7 @@ class LargeTransactionBenchmarkObject {
   LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
                                   uint32_t txn_length, std::vector<double> update_select_ratio,
                                   storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
-                                  std::default_random_engine *generator, bool gc_on, bool bookkeeping,
+                                  std::default_random_engine *generator, bool gc_on,
                                   storage::LogManager *log_manager = LOGGING_DISABLED);
 
   /**
@@ -146,33 +144,11 @@ class LargeTransactionBenchmarkObject {
    */
   const storage::BlockLayout &Layout() const { return layout_; }
 
-  /**
-   * Checks the correctness of reads in the committed transactions. No committed transaction should have read some
-   * version of the tuple outside of its version. The correct version is reconstructed using the last valid image of
-   * the table, either initial or the newest version last time this method is called, and the list of updates committed.
-   * @param commits list of commits to check.
-   */
-  // TODO(Tianyu): Interesting thought: If we let an external correctness checker share the list of
-  // RandomWorkloadTransaction objects, we can in theory check correctness as more operations are run, and
-  // keep the memory consumption of all this bookkeeping down. (Just like checkpoints)
-  void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
-
  private:
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 
   template <class Random>
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
-
-  storage::ProjectedRow *CopyTuple(storage::ProjectedRow *other);
-
-  void UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr, const TableSnapshot &before);
-
-  // This returned value will contain memory that has to be freed manually
-  VersionedSnapshots ReconstructVersionedTable(std::vector<RandomWorkloadTransaction *> *txns);
-
-  void CheckTransactionReadCorrect(RandomWorkloadTransaction *txn, const VersionedSnapshots &snapshots);
-
-  void UpdateLastCheckedVersion(const TableSnapshot &snapshot);
 
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;

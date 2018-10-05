@@ -87,7 +87,7 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
                                                                  storage::BlockStore *block_store,
                                                                  storage::RecordBufferSegmentPool *buffer_pool,
                                                                  std::default_random_engine *generator, bool gc_on,
-                                                                 bool bookkeeping, storage::LogManager *log_manager)
+                                                                 storage::LogManager *log_manager)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
@@ -96,7 +96,7 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       wal_on_(log_manager != LOGGING_DISABLED),
-      bookkeeping_(bookkeeping) {
+      bookkeeping_(false) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
 }
@@ -156,24 +156,6 @@ SimulationResult LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_tran
   return {committed, aborted};
 }
 
-void LargeTransactionBenchmarkObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
-  TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
-  VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
-  // make sure table_version is updated
-  timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
-  // Only need to check that reads make sense?
-  for (RandomWorkloadTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
-
-  // clean up memory, update the kept version to be the latest.
-  for (auto &snapshot : snapshots) {
-    if (snapshot.first == latest_version) {
-      UpdateLastCheckedVersion(snapshot.second);
-    } else {
-      for (auto &entry : snapshot.second) delete[] reinterpret_cast<byte *>(entry.second);
-    }
-  }
-}
-
 void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
@@ -211,60 +193,5 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
   txn_manager_.Commit(initial_txn_, [] {});
   // cleanup if not keeping track of all the inserts.
   if (!bookkeeping_) delete[] redo_buffer;
-}
-
-storage::ProjectedRow *LargeTransactionBenchmarkObject::CopyTuple(storage::ProjectedRow *other) {
-  auto *copy = common::AllocationUtil::AllocateAligned(other->Size());
-  TERRIER_MEMCPY(copy, other, other->Size());
-  return reinterpret_cast<storage::ProjectedRow *>(copy);
-}
-
-void LargeTransactionBenchmarkObject::UpdateSnapshot(RandomWorkloadTransaction *txn, TableSnapshot *curr,
-                                                     const TableSnapshot &before) {
-  for (auto &entry : before) curr->emplace(entry.first, CopyTuple(entry.second));
-  for (auto &update : txn->updates_) {
-    // TODO(Tianyu): Can be smarter about copies
-    storage::ProjectedRow *new_version = (*curr)[update.first];
-    storage::StorageUtil::ApplyDelta(layout_, *update.second, new_version);
-  }
-}
-
-VersionedSnapshots LargeTransactionBenchmarkObject::ReconstructVersionedTable(
-    std::vector<RandomWorkloadTransaction *> *txns) {
-  VersionedSnapshots result;
-  // empty starting version
-  TableSnapshot *prev = &(result.emplace(timestamp_t(0), TableSnapshot()).first->second);
-  // populate with initial image of the table
-  for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
-
-  for (RandomWorkloadTransaction *txn : *txns) {
-    auto ret = result.emplace(txn->commit_time_, TableSnapshot());
-    UpdateSnapshot(txn, &(ret.first->second), *prev);
-    prev = &(ret.first->second);
-  }
-  return result;
-}
-
-void LargeTransactionBenchmarkObject::CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
-                                                                  const VersionedSnapshots &snapshots) {
-  timestamp_t start_time = txn->start_time_;
-  // this version is the most recent future update
-  auto ret = snapshots.upper_bound(start_time);
-  // Go to the version visible to this txn
-  --ret;
-  timestamp_t version_timestamp = ret->first;
-  const TableSnapshot &before_snapshot = ret->second;
-  EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
-  for (auto &entry : txn->selects_) {
-    auto it = before_snapshot.find(entry.first);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
-  }
-}
-
-void LargeTransactionBenchmarkObject::UpdateLastCheckedVersion(const TableSnapshot &snapshot) {
-  for (auto &entry : last_checked_version_) {
-    delete[] reinterpret_cast<byte *>(entry.second);
-    entry.second = snapshot.find(entry.first)->second;
-  }
 }
 }  // namespace terrier
