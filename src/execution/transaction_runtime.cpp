@@ -20,7 +20,7 @@
 
 namespace terrier::execution {
 
-uint32_t TransactionRuntime::PerformVisibilityCheck(concurrency::TransactionContext &,
+uint32_t TransactionRuntime::PerformVisibilityCheck(transaction::TransactionContext &,
                                                     storage::TileGroup &, uint32_t,
                                                     uint32_t, uint32_t *) {
 //  // Get the transaction manager

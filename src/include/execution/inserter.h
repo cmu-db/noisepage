@@ -12,30 +12,21 @@
 
 #pragma once
 
-#include "common/item_pointer.h"
 #include "execution/compilation_context.h"
 #include "execution/consumer_context.h"
+#include "storage/storage_defs.h"
 
-namespace terrier::execution {
-
-namespace concurrency {
+namespace terrier {
+namespace transaction {
 class TransactionContext;
 }  // namespace concurrency
 
-namespace executor {
-class ExecutorContext;
-}  // namespace executor
-
 namespace storage {
 class DataTable;
-class Tile;
-class Tuple;
+class VarlenPool;
 }  // namespace storage
 
-namespace type {
-class AbstractPool;
-class EphemeralPool;
-}  // namespace type
+namespace execution {
 
 // This class handles insertion of tuples from generated code. This avoids
 // passing along information through translators, and is intialized once
@@ -48,8 +39,6 @@ class Inserter {
   // Allocate the storage area that is to be reserved
   char *AllocateTupleStorage();
 
-  // Get the pool address
-  peloton::type::AbstractPool *GetPool();
 
   // Insert a tuple
   void Insert();
@@ -59,19 +48,18 @@ class Inserter {
 
  private:
   // No external constructor
-  Inserter() : table_(nullptr), executor_context_(nullptr), tile_(nullptr) {}
+  Inserter() = default;
 
  private:
   // Provided by its insert translator
-  storage::DataTable *table_;
-  executor::ExecutorContext *executor_context_;
-
-  // Set once a tuple storage is reserved
-  std::shared_ptr<storage::Tile> tile_;
-  ItemPointer location_;
+  storage::DataTable *table_ = nullptr;
+  executor::ExecutorContext *executor_context_ = nullptr;
+  storage::TupleSlot slot_;
+  storage::VarlenPool *pool_;
 
  private:
   DISALLOW_COPY_AND_MOVE(Inserter);
 };
 
-}  // namespace terrier::execution
+}  // namespace execution
+}  // namespace terrier

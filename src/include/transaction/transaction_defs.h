@@ -10,4 +10,16 @@ class TransactionContext;
 // background thread (GC). This structure can be replace with something faster if it becomes a measurable performance
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
+
+enum class ResultType {
+  // TODO(Tianyu): Most of these seem unnecessary and broken. Refactor later.
+  INVALID = 0,  // invalid result type
+  SUCCESS,
+  FAILURE,
+  ABORTED ,  // aborted
+  NOOP,     // no op
+  UNKNOWN,
+  QUEUING,
+  TO_ABORT,
+};
 }  // namespace terrier::transaction
