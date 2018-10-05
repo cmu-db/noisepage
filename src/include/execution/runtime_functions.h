@@ -15,6 +15,7 @@
 #include <cstdint>
 
 #include "common/internal_types.h"
+#include "common/worker_pool.h"
 #include "executor/executor_context.h"
 
 namespace terrier::execution {
@@ -86,7 +87,7 @@ class RuntimeFunctions {
    * to scan.
    */
   static void ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-                               uint32_t db_oid, uint32_t table_oid, void *func);
+                               uint32_t db_oid, uint32_t table_oid, void *func, common::WorkerPool &worker_pool);
   //      void (*scanner)(void *, void *, uint64_t, uint64_t));
 
   /**
@@ -98,7 +99,7 @@ class RuntimeFunctions {
    * @param work_func Callback function called for each thread state.
    */
   static void ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-                              void (*work_func)(void *, void *));
+                              void (*work_func)(void *, void *), common::WorkerPool &worker_pool);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
