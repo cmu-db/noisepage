@@ -24,7 +24,7 @@
 namespace terrier::execution {
 
 void Inserter::Init(storage::DataTable *table, executor::ExecutorContext *executor_context) {
-  PELOTON_ASSERT(table && executor_context);
+  TERRIER_ASSERT(table && executor_context, "Arguments should not be nullptr");
   table_ = table;
   executor_context_ = executor_context;
 }

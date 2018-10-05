@@ -13,19 +13,20 @@
 #pragma once
 
 #include <cstdint>
+#include "storage/data_table.h"
 
-namespace terrier::execution {
+namespace terrier {
 
-namespace concurrency {
+namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+}  // namespace transaction
 
 namespace executor {
 class ExecutorContext;
 }  // namespace executor
 
+// TODO(Tianyu): Remove
 namespace storage {
-class DataTable;
 class TileGroup;
 class TileGroupHeader;
 }  // namespace storage
@@ -34,6 +35,7 @@ namespace type {
 class Value;
 }  // namespace type
 
+namespace execution {
 //===----------------------------------------------------------------------===//
 // This class contains common runtime functions needed during query execution.
 // These functions are used exclusively by the codegen component.
@@ -42,12 +44,14 @@ class TransactionRuntime {
  public:
   // Perform a visibility check for all tuples in the given tile group with IDs
   // in the range [tid_start, tid_end) in the context of the given transaction
-  static uint32_t PerformVisibilityCheck(concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
+  // TODO(Tianyu): This is no longer useful in the new system since the new data table hand out visible tuples only
+  static uint32_t PerformVisibilityCheck(transaction::TransactionContext &txn, storage::TileGroup &tile_group,
                                          uint32_t tid_start, uint32_t tid_end, uint32_t *selection_vector);
 
   // Perform a read operation for all tuples in the given tile group with IDs
   // in the range [tid_start, tid_end) in the context of the given transaction
-  static uint32_t PerformVectorizedRead(concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
+  // TODO(Tianyu): Again, no longer relevant
+  static uint32_t PerformVectorizedRead(transaction::TransactionContext &txn, storage::TileGroup &tile_group,
                                         uint32_t *selection_vector, uint32_t end_idx, bool is_for_update);
   // Check Ownership
   static bool IsOwner(concurrency::TransactionContext &txn, storage::TileGroupHeader *tile_group_header,
@@ -62,4 +66,5 @@ class TransactionRuntime {
                              uint32_t tuple_offset);
 };
 
-}  // namespace terrier::execution
+}  // namespace execution
+}  // namespace terrier
