@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "common/worker_pool.h"
 #include "executor/executor_context.h"
 
 namespace terrier::execution {
@@ -107,7 +108,8 @@ class Sorter {
    * @param sorter_offset The offset in each thread state where the sorters are
    * stored.
    */
-  void SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset);
+  void SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset,
+                    common::WorkerPool &work_pool);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
