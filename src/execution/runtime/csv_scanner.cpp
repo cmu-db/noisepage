@@ -133,7 +133,7 @@ bool CSVScanner::NextBuffer() {
 }
 
 void CSVScanner::AppendToLineBuffer(const char *data, uint32_t len) {
-  PELOTON_ASSERT(len > 0);
+  TERRIER_ASSERT(len > 0, "Must append a positive length.");
 
   // Short-circuit if we're not appending any data
   if (len == 0) {

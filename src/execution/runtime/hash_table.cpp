@@ -153,7 +153,7 @@ char *HashTable::InsertLazy(uint64_t hash) {
     directory_[0] = entry;
     directory_[1] = entry;
   } else {
-    PELOTON_ASSERT(directory_[1] != nullptr);
+    TERRIER_ASSERT(directory_[1] != nullptr, "Should have been initialized with directory[0].");
     directory_[1]->next = entry;
     directory_[1] = entry;
   }
@@ -266,14 +266,14 @@ void HashTable::MergeLazyUnfinished(HashTable &other) {
   ::peloton::atomic_add(&num_elems_, other.NumElements());
 
   // Transfer all allocated memory blocks in the other table into this one
-  PELOTON_ASSERT(&memory_ == &other.memory_);
+  TERRIER_ASSERT(&memory_ == &other.memory_, "Same memory starting location required.");
   other.num_elems_ = other.capacity_ = 0;
   other.entry_buffer_.TransferMemoryBlocks(entry_buffer_);
 }
 
 void HashTable::Resize() {
   // Sanity check
-  PELOTON_ASSERT(NeedsResize());
+  TERRIER_ASSERT(NeedsResize(), "Make sure we actually need to resize!");
 
   // Double the capacity
   capacity_ *= 2;

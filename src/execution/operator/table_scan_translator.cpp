@@ -201,7 +201,7 @@ void TableScanTranslator::ProduceParallel() const {
 
   // Parallel production
   auto producer = [this, &codegen](ConsumerContext &ctx, const std::vector<llvm::Value *> params) {
-    PELOTON_ASSERT(params.size() == 2);
+    TERRIER_ASSERT(params.size() == 2, "Must have two parameters.");
     llvm::Value *tilegroup_start = params[0];
     llvm::Value *tilegroup_end = params[1];
 
@@ -344,7 +344,7 @@ void TableScanTranslator::ScanConsumer::FilterRowsByPredicate(CodeGen &codegen,
     Value valid_row = row.DeriveValue(codegen, *predicate);
 
     // Reify the boolean value since it may be NULL
-    PELOTON_ASSERT(valid_row.GetType().GetSqlType() == type::Boolean::Instance());
+    TERRIER_ASSERT(valid_row.GetType().GetSqlType() == type::Boolean::Instance(), "SQLType must be Boolean.");
     llvm::Value *bool_val = type::Boolean::Instance().Reify(codegen, valid_row);
 
     // Set the validity of the row

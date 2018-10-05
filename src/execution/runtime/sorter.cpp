@@ -41,7 +41,7 @@ Sorter::~Sorter() {
   for (const auto &iter : blocks_) {
     void *block = iter.first;
     total_alloc += iter.second;
-    PELOTON_ASSERT(block != nullptr);
+    TERRIER_ASSERT(block != nullptr, "Block cannot be null.");
     memory_.Free(block);
   }
   buffer_pos_ = buffer_end_ = nullptr;
@@ -302,7 +302,7 @@ void Sorter::MakeRoomForNewTuple() {
     return;
   }
 
-  PELOTON_ASSERT(next_alloc_size_ >= tuple_size_);
+  TERRIER_ASSERT(next_alloc_size_ >= tuple_size_, "Ensure we actually need to make room.");
 
   LOG_TRACE("Allocating block of size %.2lf KB ...", next_alloc_size_ / 1024.0);
 

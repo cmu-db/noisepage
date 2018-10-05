@@ -38,7 +38,7 @@ struct CastBooleanToInteger : public TypeSystem::CastHandleNull {
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired type.");
 
     // Any integral value requires a zero-extension
     auto *raw_val = codegen->CreateZExt(value.GetValue(), codegen.Int32Type());
@@ -57,7 +57,7 @@ struct CastBooleanToDecimal : public TypeSystem::CastHandleNull {
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired type.");
 
     // Converts True to 1.0 and False to 0.0
     auto *raw_val = codegen->CreateUIToFP(value.GetValue(), codegen.DoubleType());
@@ -71,7 +71,7 @@ struct CastBooleanToVarchar : public TypeSystem::CastHandleNull {
   }
 
   Value Impl(CodeGen &codegen, const Value &value, const Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired type.");
 
     // Convert this boolean (unsigned int) into a string
     llvm::Value *str_val =
@@ -97,7 +97,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareLtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpULT(left.GetValue(), right.GetValue());
@@ -107,7 +107,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareLteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpULE(left.GetValue(), right.GetValue());
@@ -117,7 +117,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareEqImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpEQ(left.GetValue(), right.GetValue());
@@ -127,7 +127,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareNeImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpNE(left.GetValue(), right.GetValue());
@@ -137,7 +137,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareGtImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpUGT(left.GetValue(), right.GetValue());
@@ -147,7 +147,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareGteImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do the comparison
     llvm::Value *result = codegen->CreateICmpUGE(left.GetValue(), right.GetValue());
@@ -157,7 +157,7 @@ struct CompareBoolean : public TypeSystem::SimpleComparisonHandleNull {
   }
 
   Value CompareForSortImpl(CodeGen &codegen, const Value &left, const Value &right) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // For boolean sorting, we convert 1-bit boolean values into a 32-bit number
     const auto int_type = type::Type{Integer::Instance()};

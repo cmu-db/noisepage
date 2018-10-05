@@ -191,7 +191,7 @@ struct Negate : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
 
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallSubWithOverflow(codegen.Const32(0), val.GetValue(), overflow_bit);
@@ -213,7 +213,7 @@ struct Floor : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
     return cast.Impl(codegen, val, Decimal::Instance());
   }
 };
@@ -228,7 +228,7 @@ struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
     return cast.Impl(codegen, val, Decimal::Instance());
   }
 };
@@ -268,7 +268,7 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do addition
     llvm::Value *overflow_bit = nullptr;
@@ -294,7 +294,7 @@ Type Sub::ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE co
 
 Value Sub::Impl(CodeGen &codegen, const Value &left, const Value &right,
                 const TypeSystem::InvocationContext &ctx) const {
-  PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+  TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
   // Do subtraction
   llvm::Value *overflow_bit = nullptr;
@@ -320,7 +320,7 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do multiplication
     llvm::Value *overflow_bit = nullptr;
@@ -347,7 +347,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // First, check if the divisor is zero
     auto *div0 = codegen->CreateICmpEQ(right.GetValue(), codegen.Const32(0));
@@ -400,7 +400,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // First, check if the divisor is zero
     auto *div0 = codegen->CreateICmpEQ(right.GetValue(), codegen.Const32(0));

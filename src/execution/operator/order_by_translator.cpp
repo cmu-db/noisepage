@@ -147,7 +147,7 @@ OrderByTranslator::OrderByTranslator(const planner::OrderByPlan &plan, Compilati
   // Now consider the sort columns
   const auto &sort_col_ais = plan.GetSortKeyAIs();
   const auto &sort_col_ids = plan.GetSortKeys();
-  PELOTON_ASSERT(!sort_col_ids.empty());
+  TERRIER_ASSERT(!sort_col_ids.empty(), "Sort column IDs must have documents.");
 
   for (uint32_t i = 0; i < sort_col_ais.size(); i++) {
     const auto *ai = sort_col_ais[i];

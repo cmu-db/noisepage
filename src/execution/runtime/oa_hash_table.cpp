@@ -38,7 +38,7 @@ OAHashTable::OAHashTable(uint64_t key_size, uint64_t value_size, uint64_t estima
       key_size_(key_size),
       value_size_(value_size) {
   // Sanity check
-  PELOTON_ASSERT((num_buckets_ & bucket_mask_) == 0);
+  TERRIER_ASSERT((num_buckets_ & bucket_mask_) == 0, "Number of buckets doesn't conflict with mask.");
 
   // Create bucket array
   entry_size_ = sizeof(HashEntry) + key_size_ + value_size_;
@@ -94,8 +94,7 @@ void OAHashTable::Destroy(OAHashTable &table) { table.~OAHashTable(); }
 char *OAHashTable::StoreToKeyValueList(KeyValueList **kv_list_p_p) {
   KeyValueList *kv_list_p = *kv_list_p_p;
 
-  // Size always <= capacity
-  PELOTON_ASSERT(kv_list_p->capacity >= kv_list_p->size);
+  TERRIER_ASSERT(kv_list_p->capacity >= kv_list_p->size, "Invariant: size <= capacity.");
 
   // We always need this to compute something
   uint32_t size = kv_list_p->size;
@@ -121,7 +120,7 @@ char *OAHashTable::StoreToKeyValueList(KeyValueList **kv_list_p_p) {
     uint64_t new_kv_list_length = GetCurrentKeyValueListSize(new_capacity);
 
     kv_list_p = static_cast<KeyValueList *>(malloc(new_kv_list_length));
-    PELOTON_ASSERT(kv_list_p != nullptr);
+    TERRIER_ASSERT(kv_list_p != nullptr, "KVList cannot be null.");
 
     // Copy from the old memory chunk to the new chunk
     PELOTON_MEMCPY(kv_list_p, *kv_list_p_p, current_length);
@@ -167,7 +166,7 @@ OAHashTable::HashEntry *OAHashTable::FindNextFreeEntry(uint64_t hash_value) {
     }
   }
 
-  PELOTON_ASSERT(false);
+  TERRIER_ASSERT(false, "Shouldn't get here.");
   return nullptr;
 }
 
@@ -226,8 +225,8 @@ char *OAHashTable::StoreTuple(HashEntry *entry, uint64_t hash) {
     entry->kv_list =
         static_cast<KeyValueList *>(malloc(GetCurrentKeyValueListSize(OAHashTable::kInitialKVListCapacity)));
 
-    PELOTON_ASSERT(entry->kv_list != nullptr);
-    PELOTON_ASSERT(entry->HasKeyValueList());
+    TERRIER_ASSERT(entry->kv_list != nullptr, "Key value list shouldn't be null.");
+    TERRIER_ASSERT(entry->HasKeyValueList(), "Make sure the entry has a key value list.");
 
     // Initialize members - also copy the current data into the kv list
     // to simplify iterating over the hash table
@@ -281,7 +280,7 @@ void OAHashTable::InitializeArray(HashEntry *entries) {
 //===----------------------------------------------------------------------===//
 void OAHashTable::Resize(HashEntry **entry_p_p) {
   // Make it an assertion to prevent potential bugs
-  PELOTON_ASSERT(NeedsResize());
+  TERRIER_ASSERT(NeedsResize(), "Make sure we actually need to resize.");
 
   LOG_DEBUG("Resizing hash-table from %llu buckets to %llu", (unsigned long long)num_buckets_,
             (unsigned long long)num_buckets_ << 1);

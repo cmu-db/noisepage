@@ -20,7 +20,7 @@ namespace terrier::execution {
 TupleValueTranslator::TupleValueTranslator(const expression::TupleValueExpression &tve_expr,
                                            CompilationContext &context)
     : ExpressionTranslator(tve_expr, context) {
-  PELOTON_ASSERT(tve_expr.GetAttributeRef() != nullptr);
+  TERRIER_ASSERT(tve_expr.GetAttributeRef() != nullptr, "Attribute reference cannot be null.");
 }
 
 // Produce the value that is the result of codegening the expression
