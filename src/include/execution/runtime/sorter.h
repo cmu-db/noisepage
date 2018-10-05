@@ -74,7 +74,7 @@ class Sorter {
    * @param func The comparison function used during sort
    * @param tuple_size The size of the tuple in bytes
    */
-  static void Init(Sorter &sorter, executor::ExecutorContext &ctx, ComparisonFunction func, uint32_t tuple_size);
+  static void Init(Sorter &sorter, executor::ExecutionContext &ctx, ComparisonFunction func, uint32_t tuple_size);
 
   /**
    * Cleans up all resources maintained by the given sorter instance. This
@@ -108,7 +108,7 @@ class Sorter {
    * @param sorter_offset The offset in each thread state where the sorters are
    * stored.
    */
-  void SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset,
+  void SortParallel(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t sorter_offset,
                     common::WorkerPool &work_pool);
 
   //////////////////////////////////////////////////////////////////////////////

@@ -34,7 +34,7 @@ namespace execution {
 class Inserter {
  public:
   // Initializes the instance
-  void Init(storage::DataTable *table, executor::ExecutorContext *executor_context);
+  void Init(storage::DataTable *table, executor::ExecutionContext *executor_context);
 
   // Allocate the storage area that is to be reserved
   char *AllocateTupleStorage();
@@ -52,7 +52,7 @@ class Inserter {
  private:
   // Provided by its insert translator
   storage::DataTable *table_ = nullptr;
-  executor::ExecutorContext *executor_context_ = nullptr;
+  executor::ExecutionContext *executor_context_ = nullptr;
   storage::TupleSlot slot_;
   storage::VarlenPool *pool_;
 

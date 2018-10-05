@@ -48,7 +48,7 @@ void InsertTranslator::InitializeQueryState() {
 
   // Initialize the inserter with txn and table
   llvm::Value *inserter = LoadStatePtr(inserter_state_id_);
-  codegen.Call(InserterProxy::Init, {inserter, table_ptr, GetExecutorContextPtr()});
+  codegen.Call(InserterProxy::Init, {inserter, table_ptr, GetExecutionContextPtr()});
 }
 
 void InsertTranslator::Produce() const {

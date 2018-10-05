@@ -22,9 +22,9 @@ namespace concurrency {
 class TransactionContext;
 }  // namespace concurrency
 
-namespace executor {
-class ExecutorContext;
-}  // namespace executor
+namespace execution {
+class ExecutionContext;
+}  // namespace execution
 
 namespace storage {
 class DataTable;
@@ -36,12 +36,12 @@ class DataTable;
 class Deleter {
  public:
   // Constructor
-  Deleter(storage::DataTable *table, executor::ExecutorContext *executor_context);
+  Deleter(storage::DataTable *table, executor::ExecutionContext *executor_context);
 
   // Initializer this deleter instance using the provided transaction and table.
   // All tuples to be deleted occur within the provided transaction are from
   // the provided table
-  static void Init(Deleter &deleter, storage::DataTable *table, executor::ExecutorContext *executor_context);
+  static void Init(Deleter &deleter, storage::DataTable *table, executor::ExecutionContext *executor_context);
 
   // Delete the tuple within the provided tile group ID (unique) at the provided
   // offset from the start of the tile group.
@@ -52,7 +52,7 @@ class Deleter {
   storage::DataTable *table_;
 
   // The executor context with which the current execution happens
-  executor::ExecutorContext *executor_context_;
+  executor::ExecutionContext *executor_context_;
 
  private:
   DISALLOW_COPY_AND_MOVE(Deleter);

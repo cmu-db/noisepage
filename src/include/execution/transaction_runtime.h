@@ -21,9 +21,9 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
-namespace executor {
-class ExecutorContext;
-}  // namespace executor
+namespace execution {
+class ExecutionContext;
+}  // namespace execution
 
 // TODO(Tianyu): Remove
 namespace storage {

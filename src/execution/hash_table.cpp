@@ -31,7 +31,7 @@ HashTable::HashTable(CodeGen &codegen, const std::vector<type::Type> &key_type, 
 }
 
 void HashTable::Init(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE llvm::Value *ht_ptr) const {
-  throw NotImplementedException{"Init with no ExecutorContext not supported in HashTable"};
+  throw NotImplementedException{"Init with no ExecutionContext not supported in HashTable"};
 }
 
 void HashTable::Init(CodeGen &codegen, llvm::Value *exec_ctx, llvm::Value *ht_ptr) const {

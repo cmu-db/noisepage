@@ -21,9 +21,9 @@ namespace concurrency {
 class TransactionContext;
 }  // namespace concurrency
 
-namespace executor {
-class ExecutorContext;
-}  // namespace executor
+namespace execution {
+class ExecutionContext;
+}  // namespace execution
 
 namespace storage {
 class DataTable;
@@ -40,7 +40,7 @@ class AbstractPool;
 class Updater {
  public:
   // Initialize the instance
-  void Init(storage::DataTable *table, executor::ExecutorContext *executor_context, Target *target_vector,
+  void Init(storage::DataTable *table, executor::ExecutionContext *executor_context, Target *target_vector,
             uint32_t target_vector_size);
 
   // Prepare for a non-primary key update and get a tuple data pointer
@@ -84,7 +84,7 @@ class Updater {
  private:
   // Table and executor context from the update translator
   storage::DataTable *table_;
-  executor::ExecutorContext *executor_context_;
+  executor::ExecutionContext *executor_context_;
 
   // Target list and direct map list pointer from the update translator
   TargetList *target_list_;
