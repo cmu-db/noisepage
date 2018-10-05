@@ -304,8 +304,8 @@ void BloomFilterCodegenTest::CreateTable(std::string table_name, int tuple_size,
   size_t bigint_size = type::Type::GetTypeSize(::terrier::type::TypeId::BIGINT);
   std::vector<catalog::Column> cols;
   while (curr_size < tuple_size) {
-    cols.push_back(
-        catalog::Column{::terrier::type::TypeId::BIGINT, bigint_size, "c" + std::to_string(curr_size / bigint_size), true});
+    cols.push_back(catalog::Column{::terrier::type::TypeId::BIGINT, bigint_size,
+                                   "c" + std::to_string(curr_size / bigint_size), true});
     curr_size += bigint_size;
   }
   auto *catalog = catalog::Catalog::GetInstance();

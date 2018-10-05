@@ -30,8 +30,7 @@ class TableStorage {
   // Constructor
   TableStorage(catalog::Schema &schema) : schema_(schema) {}
 
-  void StoreValues(CodeGen &codegen, llvm::Value *tuple_ptr, const std::vector<Value> &values,
-                   llvm::Value *pool) const;
+  void StoreValues(CodeGen &codegen, llvm::Value *tuple_ptr, const std::vector<Value> &values, llvm::Value *pool) const;
 
  private:
   // The table associated with this generator

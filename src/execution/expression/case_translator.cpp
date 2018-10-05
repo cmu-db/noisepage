@@ -53,7 +53,7 @@ Value CaseTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) const {
   // Compute the default clause
   // default_ret will have the same type as one of the ret's from above
   Value default_ret = expr.GetDefault() != nullptr ? row.DeriveValue(codegen, *expr.GetDefault())
-                                                            : ret.GetType().GetSqlType().GetNullValue(codegen);
+                                                   : ret.GetType().GetSqlType().GetNullValue(codegen);
   branch_vals.emplace_back(default_ret, codegen->GetInsertBlock());
 
   // Jump to the merging block from the internal If merging block

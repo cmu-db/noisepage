@@ -46,8 +46,8 @@ namespace terrier::execution {
   };                                                                              \
   static _##name name;
 
-#define MEMBER_TYPE(r, data, member_name)                                                       \
-  ::terrier::execution::proxy::TypeBuilder<BOOST_PP_CAT(member_name, _type)>::GetType(codegen), \
+#define MEMBER_TYPE(r, data, member_name) \
+  ::terrier::execution::proxy::TypeBuilder<BOOST_PP_CAT(member_name, _type)>::GetType(codegen),
 
 #define DEFINE_MEMBER(r, clazz, member_name)                                 \
   /*                                                                         \

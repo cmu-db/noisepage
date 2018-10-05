@@ -77,8 +77,8 @@ class HashGroupByTranslator : public OperatorTranslator {
   class ConsumerProbe : public HashTable::ProbeCallback {
    public:
     // Constructor
-    ConsumerProbe(CompilationContext &context, const Aggregation &aggregation,
-                  const std::vector<Value> &next_vals, const std::vector<Value> &grouping_keys);
+    ConsumerProbe(CompilationContext &context, const Aggregation &aggregation, const std::vector<Value> &next_vals,
+                  const std::vector<Value> &grouping_keys);
 
     // The callback
     void ProcessEntry(CodeGen &codegen, llvm::Value *data_area) const override;

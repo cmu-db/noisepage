@@ -260,7 +260,7 @@ void OrderByTranslator::DefineAuxiliaryFunctions() {
         // forward the comparison result of the previous attributes
         auto prev_zero = result.CompareEq(codegen, zero);
         result = Value(type::Integer::Instance(),
-                                codegen->CreateSelect(prev_zero.GetValue(), cmp.GetValue(), result.GetValue()));
+                       codegen->CreateSelect(prev_zero.GetValue(), cmp.GetValue(), result.GetValue()));
       }
     }
 

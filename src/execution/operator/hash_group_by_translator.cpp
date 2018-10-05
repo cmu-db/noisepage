@@ -254,7 +254,7 @@ HashGroupByTranslator::AggregateFinalizer::AggregateFinalizer(const Aggregation 
     : aggregation_(aggregation), hash_table_access_(hash_table_access), finalized_(false) {}
 
 const std::vector<Value> &HashGroupByTranslator::AggregateFinalizer::GetAggregates(CodeGen &codegen,
-                                                                                            llvm::Value *index) {
+                                                                                   llvm::Value *index) {
   if (!finalized_) {
     // It hasn't been finalized yet, do so now
 

@@ -76,8 +76,7 @@ class HashJoinTranslator::InsertLeft : public HashTable::InsertCallback {
    * @param storage The storage format to serialize values into the table
    * @param values The actual values to store in the table
    */
-  InsertLeft(const CompactStorage &storage, const std::vector<Value> &values)
-      : storage_(storage), values_(values) {}
+  InsertLeft(const CompactStorage &storage, const std::vector<Value> &values) : storage_(storage), values_(values) {}
 
   /**
    * Callback used to serialize a set of values into the table.
@@ -429,8 +428,7 @@ void HashJoinTranslator::ConsumeFromRight(ConsumerContext &context, RowBatch::Ro
   }
 }
 
-void HashJoinTranslator::CodegenHashProbe(ConsumerContext &context, RowBatch::Row &row,
-                                          std::vector<Value> &key) const {
+void HashJoinTranslator::CodegenHashProbe(ConsumerContext &context, RowBatch::Row &row, std::vector<Value> &key) const {
   if (GetJoinPlan().GetJoinType() == JoinType::INNER) {
     // For inner joins, find all join partners
     ProbeRight probe_right{*this, context, row, key};
