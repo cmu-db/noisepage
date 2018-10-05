@@ -90,17 +90,14 @@ class AbstractPlanNode {
 
 class Equal {
  public:
-  bool operator()(const std::shared_ptr<AbstractPlanNode> &a,
-                  const std::shared_ptr<AbstractPlanNode> &b) const {
+  bool operator()(const std::shared_ptr<AbstractPlanNode> &a, const std::shared_ptr<AbstractPlanNode> &b) const {
     return *a.get() == *b.get();
   }
 };
 
 class Hash {
  public:
-  size_t operator()(const std::shared_ptr<AbstractPlanNode> &plan) const {
-    return static_cast<size_t>(plan->Hash());
-  }
+  size_t operator()(const std::shared_ptr<AbstractPlanNode> &plan) const { return static_cast<size_t>(plan->Hash()); }
 };
 
 }  // namespace terrier::sql::plannode

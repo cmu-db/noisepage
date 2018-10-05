@@ -14,10 +14,10 @@
 
 #include <memory>
 #include <vector>
+#include "common/worker_pool.h"
 #include "execution/proxy/proxy.h"
 #include "execution/runtime_functions.h"
 #include "expression/abstract_expression.h"
-#include "common/worker_pool.h"
 
 namespace terrier::execution {
 
