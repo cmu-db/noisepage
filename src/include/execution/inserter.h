@@ -19,7 +19,7 @@
 namespace terrier {
 namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+}  // namespace transaction
 
 namespace storage {
 class DataTable;
@@ -38,7 +38,6 @@ class Inserter {
 
   // Allocate the storage area that is to be reserved
   char *AllocateTupleStorage();
-
 
   // Insert a tuple
   void Insert();

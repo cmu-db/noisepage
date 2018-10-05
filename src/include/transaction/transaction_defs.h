@@ -16,7 +16,7 @@ enum class ResultType {
   INVALID = 0,  // invalid result type
   SUCCESS,
   FAILURE,
-  ABORTED ,  // aborted
+  ABORTED,  // aborted
   NOOP,     // no op
   UNKNOWN,
   QUEUING,

@@ -18,6 +18,7 @@
 #include <common/macros.h>
 
 #include "sql/plannode/plannode_defs.h"
+#include "common/typedefs.h"
 #include "common/hash_util.h"
 
 namespace terrier::sql::plannode {
@@ -60,7 +61,8 @@ class AbstractPlanNode {
   // Utilities
   //===--------------------------------------------------------------------===//
 
-  virtual void GetOutputColumns(std::vector<oid_t> &columns) const {}
+  //TODO: Determine if the col_oid_t is actually the col_id or the column offset
+  virtual void GetOutputColumns(std::vector<col_oid_t> &columns) const {}
 
   /**
    * Get a string representation for debugging
@@ -91,8 +93,7 @@ class AbstractPlanNode {
 
 class Equal {
  public:
-  bool operator()(const std::shared_ptr<AbstractPlanNode> &a,
-                  const std::shared_ptr<AbstractPlanNode> &b) const {
+  bool operator()(const std::shared_ptr<AbstractPlanNode> &a, const std::shared_ptr<AbstractPlanNode> &b) const {
     return *a.get() == *b.get();
   }
 };

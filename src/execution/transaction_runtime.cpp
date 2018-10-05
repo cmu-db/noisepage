@@ -14,62 +14,60 @@
 
 #include "catalog/manager.h"
 #include "common/container_tuple.h"
-#include "transaction/transaction_context.h"
 #include "executor/executor_context.h"
 #include "storage/tile_group.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::execution {
 
-uint32_t TransactionRuntime::PerformVisibilityCheck(transaction::TransactionContext &,
-                                                    storage::TileGroup &, uint32_t,
+uint32_t TransactionRuntime::PerformVisibilityCheck(concurrency::TransactionContext &, storage::TileGroup &, uint32_t,
                                                     uint32_t, uint32_t *) {
-//  // Get the transaction manager
-//  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-//
-//  // Get the tile group header
-//  auto tile_group_header = tile_group.GetHeader();
-//
-//  // Check visibility of tuples in the range [tid_start, tid_end), storing all
-//  // visible tuple IDs in the provided selection vector
-//  uint32_t out_idx = 0;
-//  for (uint32_t i = tid_start; i < tid_end; i++) {
-//    // Perform the visibility check
-//    auto visibility = txn_manager.IsVisible(&txn, tile_group_header, i);
-//
-//    // Update the output position
-//    selection_vector[out_idx] = i;
-//    out_idx += (visibility == VisibilityType::OK);
-//  }
-//  return out_idx;
+  //  // Get the transaction manager
+  //  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  //
+  //  // Get the tile group header
+  //  auto tile_group_header = tile_group.GetHeader();
+  //
+  //  // Check visibility of tuples in the range [tid_start, tid_end), storing all
+  //  // visible tuple IDs in the provided selection vector
+  //  uint32_t out_idx = 0;
+  //  for (uint32_t i = tid_start; i < tid_end; i++) {
+  //    // Perform the visibility check
+  //    auto visibility = txn_manager.IsVisible(&txn, tile_group_header, i);
+  //
+  //    // Update the output position
+  //    selection_vector[out_idx] = i;
+  //    out_idx += (visibility == VisibilityType::OK);
+  //  }
+  //  return out_idx;
   // TODO(Tianyu): FIXME
   return 0;
 }
 
 uint32_t TransactionRuntime::PerformVectorizedRead(concurrency::TransactionContext &txn, storage::TileGroup &tile_group,
                                                    uint32_t *selection_vector, uint32_t end_idx, bool is_for_update) {
-
   // Get the transaction manager
-//  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  //  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
   // Get the tile group header
-//  auto tile_group_header = tile_group.GetHeader();
-//
-//  uint32_t tile_group_idx = tile_group.GetTileGroupId();
-//
-//  // Perform a read operation for every visible tuple we found
-//  uint32_t out_idx = 0;
-//  for (uint32_t idx = 0; idx < end_idx; idx++) {
-//    // Construct the item location
-//    ItemPointer location{tile_group_idx, selection_vector[idx]};
-//
-//    // Perform the read
-//    bool can_read = txn_manager.PerformRead(&txn, location, tile_group_header, is_for_update);
-//
-//    // Update the selection vector and output position
-//    selection_vector[out_idx] = selection_vector[idx];
-//    out_idx += static_cast<uint32_t>(can_read);
-//  }
-//  return out_idx;
+  //  auto tile_group_header = tile_group.GetHeader();
+  //
+  //  uint32_t tile_group_idx = tile_group.GetTileGroupId();
+  //
+  //  // Perform a read operation for every visible tuple we found
+  //  uint32_t out_idx = 0;
+  //  for (uint32_t idx = 0; idx < end_idx; idx++) {
+  //    // Construct the item location
+  //    ItemPointer location{tile_group_idx, selection_vector[idx]};
+  //
+  //    // Perform the read
+  //    bool can_read = txn_manager.PerformRead(&txn, location, tile_group_header, is_for_update);
+  //
+  //    // Update the selection vector and output position
+  //    selection_vector[out_idx] = selection_vector[idx];
+  //    out_idx += static_cast<uint32_t>(can_read);
+  //  }
+  //  return out_idx;
   // TODO(Tianyu): Implement on new storage system
   return 0;
 }

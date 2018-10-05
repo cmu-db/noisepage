@@ -34,6 +34,10 @@ class LimitPlanNode : public AbstractPlanNode {
   /// This class cannot be copied or moved
   DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 
+  size_t GetLimit() const { return limit_; }
+
+  size_t GetOffset() const { return offset_; }
+
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 
   const std::string GetInfo() const {
@@ -60,22 +64,13 @@ class LimitPlanNode : public AbstractPlanNode {
     return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
   }
 
-  bool LimitPlan::operator==(const AbstractPlanNode &rhs) const override {
+  bool operator==(const AbstractPlanNode &rhs) const override {
     if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
       return false;
     }
     auto &other = static_cast<const LimitPlanNode &>(rhs);
     return (limit_ == other.limit_ && offset_ == other.offset_ && AbstractPlanNode::operator==(rhs));
   }
-  //////////////////////////////////////////////////////////////////////////////
-  ///
-  /// Member Accessors
-  ///
-  //////////////////////////////////////////////////////////////////////////////
-
-  size_t GetLimit() const { return limit_; }
-
-  size_t GetOffset() const { return offset_; }
 
  private:
   const size_t limit_;

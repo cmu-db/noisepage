@@ -17,7 +17,7 @@
 
 #include "common/synchronization/count_down_latch.h"
 #include "common/timer.h"
-#include "threadpool/mono_queue_pool.h"
+#include "common/worker_pool.h"
 
 namespace terrier::execution {
 
@@ -122,7 +122,8 @@ struct MergeWork {
 // N splitter keys. For each splitter key, we find all input ranges and output
 // positions and construct a merge package. Merge packages are independent
 // pieces of work that are issued in parallel across a set of worker threads.
-void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset) {
+void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset,
+                          common::WorkerPool &work_pool) {
   // Collect all sorter instances
   uint64_t num_tuples = 0;
   std::vector<Sorter *> sorters;
@@ -130,9 +131,6 @@ void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_
     sorters.push_back(sorter);
     num_tuples += sorter->NumTuples();
   });
-
-  // The worker pool we use to execute parallel work
-  auto &work_pool = threadpool::MonoQueuePool::GetExecutionInstance();
 
   // The main comparison function to compare two tuples
   auto comp = [this](char *l, char *r) { return cmp_func_(l, r) < 0; };

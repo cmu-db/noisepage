@@ -34,8 +34,7 @@ namespace executor {
 class ExecutorContext {
  public:
   /// Constructor
-  ExecutorContext(concurrency::TransactionContext *transaction,
-                  codegen::QueryParameters parameters = {});
+  ExecutorContext(concurrency::TransactionContext *transaction, codegen::QueryParameters parameters = {});
 
   /// This class cannot be copy or move-constructed
   DISALLOW_COPY_AND_MOVE(ExecutorContext);
@@ -108,12 +107,10 @@ class ExecutorContext {
 };
 
 template <typename T>
-inline void ExecutorContext::ThreadStates::ForEach(
-    uint32_t element_offset, std::function<void(T *)> func) const {
+inline void ExecutorContext::ThreadStates::ForEach(uint32_t element_offset, std::function<void(T *)> func) const {
   PELOTON_ASSERT(element_offset < state_size_);
   for (uint32_t tid = 0; tid < NumThreads(); tid++) {
-    auto *elem_state =
-        reinterpret_cast<T *>(AccessThreadState(tid) + element_offset);
+    auto *elem_state = reinterpret_cast<T *>(AccessThreadState(tid) + element_offset);
     func(elem_state);
   }
 }
