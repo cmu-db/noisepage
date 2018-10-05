@@ -137,7 +137,7 @@ Value UpdateableStorage::GetValueSkipNull(CodeGen &codegen, llvm::Value *space, 
 }
 
 Value UpdateableStorage::GetValue(CodeGen &codegen, llvm::Value *space, uint64_t index,
-                                           UpdateableStorage::NullBitmap &null_bitmap) const {
+                                  UpdateableStorage::NullBitmap &null_bitmap) const {
   // If the index isn't NULL-able, skip the check
   if (!null_bitmap.IsNullable(index)) {
     return GetValueSkipNull(codegen, space, index);

@@ -92,8 +92,9 @@ TEST_F(CSVScanTest, NumericScanTest) {
 TEST_F(CSVScanTest, QuoteEscapeTest) {
   // The set of test rows and their types
   std::vector<std::string> rows = {"yea he's \"cool\",1,2", "a quote:\"\",3,4"};
-  std::vector<codegen::type::Type> types = {
-      {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::INTEGER, false}};
+  std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::VARCHAR, false},
+                                            {::terrier::type::TypeId::INTEGER, false},
+                                            {::terrier::type::TypeId::INTEGER, false}};
 
   uint32_t rows_read = 0;
   IterateAsCSV(rows, types, [&rows, &rows_read, &types](const codegen::util::CSVScanner::Column *cols) {
@@ -168,8 +169,9 @@ TEST_F(CSVScanTest, CatchErrorsTest) {
   ////////////////////////////////////////////////////////////////////
   {
     std::vector<std::string> missing_col = {"1,\"unclosed,3"};
-    std::vector<codegen::type::Type> types = {
-        {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}};
+    std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::INTEGER, false},
+                                              {::terrier::type::TypeId::VARCHAR, false},
+                                              {::terrier::type::TypeId::INTEGER, false}};
     EXPECT_ANY_THROW(IterateAsCSV(missing_col, types,
                                   [](UNUSED_ATTRIBUTE const codegen::util::CSVScanner::Column *cols) { FAIL(); }));
   }
@@ -181,8 +183,9 @@ TEST_F(CSVScanTest, CatchErrorsTest) {
   ////////////////////////////////////////////////////////////////////
   {
     std::vector<std::string> missing_col = {"1,unclosed\",3"};
-    std::vector<codegen::type::Type> types = {
-        {::terrier::type::TypeId::INTEGER, false}, {::terrier::type::TypeId::VARCHAR, false}, {::terrier::type::TypeId::INTEGER, false}};
+    std::vector<codegen::type::Type> types = {{::terrier::type::TypeId::INTEGER, false},
+                                              {::terrier::type::TypeId::VARCHAR, false},
+                                              {::terrier::type::TypeId::INTEGER, false}};
     EXPECT_ANY_THROW(IterateAsCSV(missing_col, types,
                                   [](UNUSED_ATTRIBUTE const codegen::util::CSVScanner::Column *cols) { FAIL(); }));
   }

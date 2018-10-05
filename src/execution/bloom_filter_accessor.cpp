@@ -28,8 +28,7 @@ void BloomFilterAccessor::Init(CodeGen &codegen, llvm::Value *bloom_filter, uint
 void BloomFilterAccessor::Destroy(CodeGen &codegen, llvm::Value *bloom_filter) const {
   codegen.Call(BloomFilterProxy::Destroy, {bloom_filter});
 }
-void BloomFilterAccessor::Add(CodeGen &codegen, llvm::Value *bloom_filter,
-                              const std::vector<Value> &key) const {
+void BloomFilterAccessor::Add(CodeGen &codegen, llvm::Value *bloom_filter, const std::vector<Value> &key) const {
   // Index of current hash being calculated
   llvm::Value *index = codegen.Const64(0);
   llvm::Value *num_hashes = LoadBloomFilterField(codegen, bloom_filter, 0);

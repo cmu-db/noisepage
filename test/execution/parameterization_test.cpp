@@ -384,8 +384,8 @@ TEST_F(ParameterizationTest, ParamParameterWithOperators) {
   // b = a + ?
   auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *param_1_exp = new expression::ParameterValueExpression(0);
-  auto *a_plus_param =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp, param_1_exp);
+  auto *a_plus_param = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS,
+                                                          ::terrier::type::TypeId::INTEGER, a_col_exp, param_1_exp);
   auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *b_eq_a_plus_param =
       new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp, a_plus_param);
@@ -412,8 +412,8 @@ TEST_F(ParameterizationTest, ParamParameterWithOperators) {
   // (2) Set a different value on the cached query
   auto *a_col_exp_2 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *param_1_exp_2 = new expression::ParameterValueExpression(0);
-  auto *a_plus_param_2 = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER,
-                                                            a_col_exp_2, param_1_exp_2);
+  auto *a_plus_param_2 = new expression::OperatorExpression(
+      ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp_2, param_1_exp_2);
   auto *b_col_exp_2 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *b_eq_a_plus_param_2 =
       new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, b_col_exp_2, a_plus_param_2);
@@ -441,8 +441,8 @@ TEST_F(ParameterizationTest, ParamParameterWithOperators) {
   auto *b_col_exp_3 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *param_1_exp_3 = new expression::ParameterValueExpression(0);
   type::Value param_b_3 = type::ValueFactory::GetIntegerValue(1);
-  auto *b_minus_param_3 = new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER,
-                                                             b_col_exp_3, param_1_exp_3);
+  auto *b_minus_param_3 = new expression::OperatorExpression(
+      ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER, b_col_exp_3, param_1_exp_3);
   auto *a_col_exp_3 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *a_eq_b_minus_param_3 =
       new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_col_exp_3, b_minus_param_3);
@@ -467,8 +467,8 @@ TEST_F(ParameterizationTest, ParamParameterWithOperatersLeftHand) {
   // SELECT a, b, c FROM table where a * 1 = a * b;
   auto *a_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = new expression::ConstantValueExpression(type::ValueFactory::GetIntegerValue(1));
-  auto *a_mul_param = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, ::terrier::type::TypeId::BIGINT,
-                                                         a_lhs_col_exp, const_1_exp);
+  auto *a_mul_param = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY,
+                                                         ::terrier::type::TypeId::BIGINT, a_lhs_col_exp, const_1_exp);
 
   auto *a_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
@@ -495,13 +495,13 @@ TEST_F(ParameterizationTest, ParamParameterWithOperatersLeftHand) {
   auto *a_lhs_col_exp_2 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *param_1_exp_2 = new expression::ParameterValueExpression(0);
   type::Value param_a_2 = type::ValueFactory::GetIntegerValue(1);
-  auto *a_mul_param_2 = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, ::terrier::type::TypeId::BIGINT,
-                                                           a_lhs_col_exp_2, param_1_exp_2);
+  auto *a_mul_param_2 = new expression::OperatorExpression(
+      ExpressionType::OPERATOR_MULTIPLY, ::terrier::type::TypeId::BIGINT, a_lhs_col_exp_2, param_1_exp_2);
 
   auto *a_rhs_col_exp_2 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *b_col_exp_2 = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
-  auto *a_mul_b_2 = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY, ::terrier::type::TypeId::BIGINT,
-                                                       a_rhs_col_exp_2, b_col_exp_2);
+  auto *a_mul_b_2 = new expression::OperatorExpression(ExpressionType::OPERATOR_MULTIPLY,
+                                                       ::terrier::type::TypeId::BIGINT, a_rhs_col_exp_2, b_col_exp_2);
 
   auto *a_mul_param_eq_a_mul_b_2 =
       new expression::ComparisonExpression(ExpressionType::COMPARE_EQUAL, a_mul_param_2, a_mul_b_2);

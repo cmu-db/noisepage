@@ -40,9 +40,8 @@ void HashTable::Init(CodeGen &codegen, llvm::Value *exec_ctx, llvm::Value *ht_pt
   codegen.Call(HashTableProxy::Init, {ht_ptr, exec_ctx, key_size, value_size});
 }
 
-void HashTable::ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                              const std::vector<Value> &key, ProbeCallback &probe_callback,
-                              InsertCallback &insert_callback) const {
+void HashTable::ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &key,
+                              ProbeCallback &probe_callback, InsertCallback &insert_callback) const {
   llvm::BasicBlock *cont_bb = llvm::BasicBlock::Create(codegen.GetContext(), "cont");
 
   // Compute hash value
@@ -130,8 +129,8 @@ void HashTable::Insert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
   insert_callback.StoreValue(codegen, data_space_ptr);
 }
 
-void HashTable::InsertLazy(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                           const std::vector<Value> &keys, HashTable::InsertCallback &callback) const {
+void HashTable::InsertLazy(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &keys,
+                           HashTable::InsertCallback &callback) const {
   Insert(codegen, ht_ptr, hash, keys, callback);
 }
 

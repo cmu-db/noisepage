@@ -21,8 +21,7 @@ ConstantTranslator::ConstantTranslator(const expression::ConstantValueExpression
     : ExpressionTranslator(exp, ctx) {}
 
 // Return an LLVM value for our constant: values passed over at run time
-Value ConstantTranslator::DeriveValue(UNUSED_ATTRIBUTE CodeGen &codegen,
-                                               UNUSED_ATTRIBUTE RowBatch::Row &row) const {
+Value ConstantTranslator::DeriveValue(UNUSED_ATTRIBUTE CodeGen &codegen, UNUSED_ATTRIBUTE RowBatch::Row &row) const {
   const auto &expr = GetExpressionAs<expression::ConstantValueExpression>();
   const auto &parameter_cache = context_.GetParameterCache();
   return parameter_cache.GetValue(&expr);

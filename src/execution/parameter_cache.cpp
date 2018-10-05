@@ -40,7 +40,7 @@ Value ParameterCache::GetValue(const expression::AbstractExpression *expr) const
 void ParameterCache::Reset() { values_.clear(); }
 
 Value ParameterCache::DeriveParameterValue(CodeGen &codegen, llvm::Value *query_parameters_ptr, uint32_t index,
-                                                    ::terrier::type::TypeId type_id, bool is_nullable) {
+                                           ::terrier::type::TypeId type_id, bool is_nullable) {
   llvm::Value *val = nullptr, *len = nullptr;
   std::vector<llvm::Value *> args = {query_parameters_ptr, codegen.Const32(index)};
   switch (type_id) {

@@ -430,9 +430,8 @@ void OAHashTable::Init(CodeGen &codegen, llvm::Value *ht_ptr) const {
   codegen.Call(OAHashTableProxy::Init, {ht_ptr, key_size, value_size, initial_size});
 }
 
-void OAHashTable::ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                                const std::vector<Value> &key, ProbeCallback &probe_callback,
-                                InsertCallback &insert_callback) const {
+void OAHashTable::ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &key,
+                                ProbeCallback &probe_callback, InsertCallback &insert_callback) const {
   auto key_found = [&codegen, &probe_callback](llvm::Value *data_ptr) {
     probe_callback.ProcessEntry(codegen, data_ptr);
   };
@@ -459,8 +458,8 @@ OAHashTable::ProbeResult OAHashTable::ProbeOrInsert(CodeGen &codegen, llvm::Valu
   return probe_result;
 }
 
-void OAHashTable::Insert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                         const std::vector<Value> &key, InsertCallback &insert_callback) const {
+void OAHashTable::Insert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &key,
+                         InsertCallback &insert_callback) const {
   auto key_found = [&codegen, &insert_callback](llvm::Value *data_ptr) {
     insert_callback.StoreValue(codegen, data_ptr);
   };

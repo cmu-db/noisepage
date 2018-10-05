@@ -139,8 +139,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, SingleColumnEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
     auto right_b_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 1);
-    auto b_col_minus_1 =
-        OpExpr(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER, std::move(right_b_col), ConstIntExpr(1));
+    auto b_col_minus_1 = OpExpr(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER,
+                                std::move(right_b_col), ConstIntExpr(1));
     auto left_a_eq_right_b = CmpEqExpr(std::move(left_a_col), std::move(b_col_minus_1));
 
     std::vector<codegen::WrappedTuple> results;
@@ -222,8 +222,8 @@ TEST_F(BlockNestedLoopJoinTranslatorTest, NonEqualityJoin) {
     bool left_side = true;
     auto left_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 0);
     auto left_b_col = ColRefExpr(::terrier::type::TypeId::INTEGER, left_side, 1);
-    auto left_a_pl_b =
-        OpExpr(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, std::move(left_a_col), std::move(left_b_col));
+    auto left_a_pl_b = OpExpr(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, std::move(left_a_col),
+                              std::move(left_b_col));
 
     auto right_a_col = ColRefExpr(::terrier::type::TypeId::INTEGER, !left_side, 0);
     auto left_a_eq_right_a = CmpGtExpr(std::move(left_a_pl_b), std::move(right_a_col));

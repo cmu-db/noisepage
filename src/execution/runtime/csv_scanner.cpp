@@ -23,9 +23,9 @@ namespace terrier::execution {
 
 namespace util {
 
-CSVScanner::CSVScanner(peloton::type::AbstractPool &pool, const std::string &file_path,
-                       const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func,
-                       void *opaque_state, char delimiter, char quote, char escape)
+CSVScanner::CSVScanner(peloton::type::AbstractPool &pool, const std::string &file_path, const type::Type *col_types,
+                       uint32_t num_cols, CSVScanner::Callback func, void *opaque_state, char delimiter, char quote,
+                       char escape)
     : memory_(pool),
       file_path_(file_path),
       file_(),
@@ -72,8 +72,8 @@ CSVScanner::~CSVScanner() {
 }
 
 void CSVScanner::Init(CSVScanner &scanner, executor::ExecutorContext &executor_context, const char *file_path,
-                      const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func,
-                      void *opaque_state, char delimiter, char quote, char escape) {
+                      const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func, void *opaque_state,
+                      char delimiter, char quote, char escape) {
   // Forward to constructor
   new (&scanner) CSVScanner(*executor_context.GetPool(), file_path, col_types, num_cols, func, opaque_state, delimiter,
                             quote, escape);
