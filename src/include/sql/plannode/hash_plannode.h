@@ -61,5 +61,4 @@ class HashPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(HashPlanNode);
 };
 
-}  // namespace planner
-}  // namespace peloton
+}  // namespace terrier::sql::plannode
