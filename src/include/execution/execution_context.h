@@ -6,17 +6,12 @@
 
 // TODO(Justin):
 // -replace with terrier/storage/varlen_pool.h?
-// -check about StorageManager replacement status
 
 namespace terrier {
 
 namespace transaction {
 class TransactionContext;
 }  // namespace transaction
-
-namespace storage {
-class StorageManager;
-}  // namespace storage
 
 namespace execution {
 
@@ -42,9 +37,6 @@ class ExecutionContext {
 
   /// Return the explicit set of parameters for this particular query execution
   const std::vector<type::Value> &GetParamValues() const;
-
-  /// Return the storage manager for the database
-  storage::StorageManager &GetStorageManager() const;
 
   /// Return the query parameters
   QueryParameters &GetParams();
@@ -90,8 +82,6 @@ class ExecutionContext {
   transaction::TransactionContext *transaction_;
   // All query parameters
   QueryParameters parameters_;
-  // The storage manager instance
-  storage::StorageManager *storage_manager_;
   // Temporary memory pool for allocations done during execution
   type::EphemeralPool pool_;
   // Container for all states of all thread participating in this execution

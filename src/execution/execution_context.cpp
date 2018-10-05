@@ -1,7 +1,5 @@
 #include "execution/execution_context.h"
 
-#include "storage/storage_manager.h"
-
 // TODO(Justin):
 // -figure out ephemeral pool replacement
 // -replace GetInstance with const ref arg?
@@ -19,14 +17,11 @@ namespace execution {
 ExecutionContext::ExecutionContext(transaction::TransactionContext *transaction, QueryParameters parameters)
     : transaction_(transaction),
       parameters_(std::move(parameters)),
-      storage_manager_(storage::StorageManager::GetInstance()),
       thread_states_(pool_) {}
 
 transaction::TransactionContext *ExecutionContext::GetTransaction() const { return transaction_; }
 
 const std::vector<type::Value> &ExecutionContext::GetParamValues() const { return parameters_.GetParameterValues(); }
-
-storage::StorageManager &ExecutionContext::GetStorageManager() const { return *storage_manager_; }
 
 QueryParameters &ExecutionContext::GetParams() { return parameters_; }
 

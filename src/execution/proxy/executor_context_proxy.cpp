@@ -18,8 +18,8 @@ namespace terrier::execution {
 // ThreadStates
 DEFINE_TYPE(ThreadStates, "executor::ThreadStates", pool, num_threads, state_size, states);
 
-DEFINE_METHOD(peloton::executor::ExecutionContext, ThreadStates, Reset);
-DEFINE_METHOD(peloton::executor::ExecutionContext, ThreadStates, Allocate);
+DEFINE_METHOD(terrier::executor::ExecutionContext, ThreadStates, Reset);
+DEFINE_METHOD(terrier::executor::ExecutionContext, ThreadStates, Allocate);
 
 // ExecutionContext
 DEFINE_TYPE(ExecutionContext, "executor::ExecutionContext", num_processed, txn, params, storage_manager, pool,
