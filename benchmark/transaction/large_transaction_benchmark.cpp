@@ -1,3 +1,4 @@
+#include <vector>
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
@@ -7,10 +8,9 @@ namespace terrier {
 
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
-
   const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size = 1000000;
-  const uint32_t num_txns = 100000;
+  const uint32_t num_txns = 500000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
@@ -23,8 +23,8 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, Throughput)(benchmark::State &stat
   const std::vector<double> update_select_ratio = {1.0, 0.0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                      &buffer_pool_, &generator_, false);
+    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
+                                           &block_store_, &buffer_pool_, &generator_, false);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
@@ -35,8 +35,5 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, Throughput)(benchmark::State &stat
   state.SetItemsProcessed(state.iterations() * num_txns);
 }
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, Throughput)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(1);
+BENCHMARK_REGISTER_F(LargeTransactionBenchmark, Throughput)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(5);
 }  // namespace terrier

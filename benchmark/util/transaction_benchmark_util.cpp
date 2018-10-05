@@ -82,8 +82,7 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions,
-                                                               uint32_t num_concurrent_txns) {
+uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   TestThreadPool thread_pool;
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
@@ -110,13 +109,13 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
 
   thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
 
-    // We only need to deallocate, and return, if gc is on, this loop is a no-op
-    for (RandomWorkloadTransaction *txn : txns) {
-      abort_count_++;
-      delete txn;
-    }
-    // This result is meaningless if bookkeeping is not turned on.
-    return abort_count_;
+  // We only need to deallocate, and return, if gc is on, this loop is a no-op
+  for (RandomWorkloadTransaction *txn : txns) {
+    abort_count_++;
+    delete txn;
+  }
+  // This result is meaningless if bookkeeping is not turned on.
+  return abort_count_;
 }
 
 void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
@@ -134,8 +133,8 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
   initial_txn_ = txn_manager_.BeginTransaction();
   byte *redo_buffer = nullptr;
 
-    redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
-    row_initializer_.InitializeRow(redo_buffer);
+  redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer_.ProjectedRowSize());
+  row_initializer_.InitializeRow(redo_buffer);
 
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo = reinterpret_cast<storage::ProjectedRow *>(redo_buffer);
