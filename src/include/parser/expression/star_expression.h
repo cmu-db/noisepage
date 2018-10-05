@@ -1,11 +1,11 @@
 #pragma once
 
-#include "type/expression/abstract_expression.h"
-#include "type/expression/expression_defs.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/expression_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -13,9 +13,9 @@ namespace expression {
  */
 class StarExpression : public AbstractExpression {
  public:
-  StarExpression() : AbstractExpression(ExpressionType::STAR, TypeId::INVALID) {}
+  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID) {}
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

@@ -1,11 +1,13 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "common/hash_util.h"
-#include "type/expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
 #include "type/value.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -18,7 +20,9 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value value to be held
    */
   explicit ConstantValueExpression(const type::Value &value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.GetType()), value_(value) {}
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.GetType(),
+                           std::vector<std::unique_ptr<AbstractExpression>>()),
+        value_(value) {}
 
   hash_t Hash() const override {
     ExpressionType expr = GetExpressionType();
@@ -48,5 +52,5 @@ class ConstantValueExpression : public AbstractExpression {
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

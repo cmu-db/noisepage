@@ -1,10 +1,11 @@
 #pragma once
-
-#include "type/expression/abstract_expression.h"
+#include <memory>
+#include <vector>
+#include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -17,14 +18,18 @@ class ParameterValueExpression : public AbstractExpression {
    * @param value_idx the offset of the parameter
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
-      : AbstractExpression(ExpressionType::VALUE_PARAMETER, TypeId::PARAMETER_OFFSET), value_idx_(value_idx) {}
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::PARAMETER_OFFSET,
+                           std::vector<std::unique_ptr<AbstractExpression>>()),
+        value_idx_(value_idx) {}
 
   AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
+
+  uint32_t GetValueIdx() { return value_idx_; }
 
  private:
   uint32_t value_idx_;
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

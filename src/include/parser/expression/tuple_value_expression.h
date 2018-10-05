@@ -1,12 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <string>
-#include "type/expression/abstract_expression.h"
-#include "type/expression/expression_defs.h"
+#include <vector>
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/expression_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -19,7 +21,8 @@ class TupleValueExpression : public AbstractExpression {
    * TODO(WAN): I feel like this should be renamed. Maybe parameters reordered too.
    */
   explicit TupleValueExpression(const std::string &&col_name, std::string &&table_name)
-      : AbstractExpression(ExpressionType::VALUE_TUPLE, TypeId::INVALID),
+      : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID,
+                           std::vector<std::unique_ptr<AbstractExpression>>()),
         col_name_(col_name),
         table_name_(table_name) {}
 
@@ -29,5 +32,5 @@ class TupleValueExpression : public AbstractExpression {
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

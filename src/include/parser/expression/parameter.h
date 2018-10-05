@@ -1,10 +1,8 @@
 #pragma once
-
 #include "type/type_id.h"
 
 namespace terrier {
-namespace type {
-
+namespace parser {
 namespace expression {
 
 /**
@@ -23,7 +21,7 @@ class Parameter {
    * @param type_id the SQL type ID
    * @param is_nullable whether this parameter is nullable
    */
-  Parameter(ParameterType type, TypeId type_id, bool is_nullable)
+  Parameter(ParameterType type, type::TypeId type_id, bool is_nullable)
       : type_(type), type_id_(type_id), is_nullable_(is_nullable) {}
 
   /**
@@ -32,7 +30,7 @@ class Parameter {
    * @param is_nullable whether the parameter is nullable
    * @return the new constant parameter
    */
-  static Parameter CreateConstantParameter(const TypeId type_id, const bool is_nullable) {
+  static Parameter CreateConstantParameter(const type::TypeId type_id, const bool is_nullable) {
     return Parameter(ParameterType::CONSTANT, type_id, is_nullable);
   }
 
@@ -42,7 +40,7 @@ class Parameter {
    * @param is_nullable whether the parameter is nullable
    * @return the new variable parameter
    */
-  static Parameter CreateVariableParameter(const TypeId type_id, const bool is_nullable) {
+  static Parameter CreateVariableParameter(const type::TypeId type_id, const bool is_nullable) {
     return Parameter(ParameterType::VARIABLE, type_id, is_nullable);
   }
 
@@ -56,7 +54,7 @@ class Parameter {
    * Return the SQL type ID.
    * @return SQL type ID
    */
-  TypeId GetTypeId() const { return type_id_; }
+  type::TypeId GetTypeId() const { return type_id_; }
 
   /**
    * Return whether the parameter is nullable.
@@ -66,10 +64,10 @@ class Parameter {
 
  private:
   const ParameterType type_;
-  const TypeId type_id_;
+  const type::TypeId type_id_;
   const bool is_nullable_;
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

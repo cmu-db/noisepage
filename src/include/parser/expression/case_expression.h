@@ -3,10 +3,11 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "type/expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/expression_defs.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -15,21 +16,17 @@ namespace expression {
 class CaseExpression : public AbstractExpression {
  public:
   /**
-   * A unique pointer to an abstract expression.
-   */
-  using AbsExprPtr = std::unique_ptr<AbstractExpression>;
-  /**
    * WHEN ... THEN ... clauses.
    */
   using WhenClause = struct {
     /**
      * The condition to be checked for this case expression.
      */
-    AbsExprPtr condition;
+    std::unique_ptr<AbstractExpression> condition;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    AbsExprPtr then;
+    std::unique_ptr<AbstractExpression> then;
   };
 
   /**
@@ -38,10 +35,11 @@ class CaseExpression : public AbstractExpression {
    * @param when_clauses list of when clauses
    * @param default_expr default expression for this case
    */
-  explicit CaseExpression(const TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
-                          AbsExprPtr &&default_expr)
-      : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type),
-        when_clauses_(std::move(when_clauses)),
+  explicit CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> *when_clauses,
+                          std::unique_ptr<AbstractExpression> default_expr)
+      : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type,
+                           std::vector<std::unique_ptr<AbstractExpression>>()),
+        when_clauses_(std::move(*when_clauses)),
         default_expr_(std::move(default_expr)) {}
 
   hash_t Hash() const override {
@@ -79,11 +77,12 @@ class CaseExpression : public AbstractExpression {
   AbstractExpression *Copy() const override {
     std::vector<WhenClause> copied_clauses;
     for (auto &clause : when_clauses_) {
-      copied_clauses.push_back(WhenClause{AbsExprPtr(clause.condition->Copy()), AbsExprPtr(clause.then->Copy())});
+      copied_clauses.push_back(WhenClause{std::unique_ptr<AbstractExpression>(clause.condition->Copy()),
+                                          std::unique_ptr<AbstractExpression>(clause.then->Copy())});
     }
-    return nullptr;
-    // return new CaseExpression(GetReturnValueType(), copied_clauses, default_expr_ == nullptr ? nullptr :
-    // AbsExprPtr(default_expr_->Copy()));
+    return new CaseExpression(
+        GetReturnValueType(), &copied_clauses,
+        default_expr_ == nullptr ? nullptr : std::unique_ptr<AbstractExpression>(default_expr_->Copy()));
   }
 
   /**
@@ -120,9 +119,9 @@ class CaseExpression : public AbstractExpression {
 
  private:
   std::vector<WhenClause> when_clauses_;
-  AbsExprPtr default_expr_;
+  std::unique_ptr<AbstractExpression> default_expr_;
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

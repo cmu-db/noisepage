@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace terrier::type::expression {
+namespace terrier::parser::expression {
 
 /**
  * All possible expression types.
@@ -73,4 +73,4 @@ enum class ExpressionType : uint8_t {
   CAST
 };
 
-}  // namespace terrier::type::expression
+}  // namespace terrier::parser::expression

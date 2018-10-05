@@ -1,7 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "type/expression/abstract_expression.h"
+#include <vector>
+#include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
@@ -9,7 +10,7 @@ namespace parser {
 class SelectStatement {};  // TODO(WAN): temporary until we get a real parser - why is it a parser class?
 }  // namespace parser
 
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -22,7 +23,8 @@ class SubqueryExpression : public AbstractExpression {
    * @param subselect the sub-select
    */
   explicit SubqueryExpression(const parser::SelectStatement *subselect)
-      : AbstractExpression(ExpressionType::ROW_SUBQUERY, TypeId::INVALID) {
+      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID,
+                           std::vector<std::unique_ptr<AbstractExpression>>()) {
     subselect_ = std::make_shared<parser::SelectStatement>(*subselect);
   }
 
@@ -42,5 +44,5 @@ class SubqueryExpression : public AbstractExpression {
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

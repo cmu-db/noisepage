@@ -1,12 +1,12 @@
 #pragma once
 
 #include <vector>
-#include "type/expression/abstract_expression.h"
-#include "type/expression/expression_defs.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/expression_defs.h"
 #include "type/value.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -32,5 +32,5 @@ class OperatorBinaryExpression : public AbstractExpression {
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

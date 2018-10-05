@@ -3,11 +3,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "type/expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
-namespace type {
+namespace parser {
 namespace expression {
 
 /**
@@ -18,7 +18,7 @@ class FunctionExpression : public AbstractExpression {
   /**
    * Instantiate a new function expression with the given name and children.
    */
-  explicit FunctionExpression(std::string &&func_name, const TypeId return_value_type,
+  explicit FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
                               const std::vector<AbstractExpression *> &children)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, children), func_name_(std::move(func_name)) {}
 
@@ -57,5 +57,5 @@ class FunctionExpression : public AbstractExpression {
 };
 
 }  // namespace expression
-}  // namespace type
+}  // namespace parser
 }  // namespace terrier

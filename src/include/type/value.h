@@ -247,7 +247,7 @@ class Value {
     /**
      * variable length strings, without a null terminator. Length specified by var_len
      */
-    char *varchar;
+    byte *varchar;
     // const char *const_varlen;
     // char *array;
   } value_;
