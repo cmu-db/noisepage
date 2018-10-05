@@ -20,9 +20,9 @@
 
 namespace terrier::execution {
 
-namespace executor {
-class ExecutorContext;
-}  // namespace executor
+namespace execution {
+class ExecutionContext;
+}  // namespace execution
 
 namespace type {
 class AbstractPool;
@@ -126,7 +126,7 @@ class CSVScanner {
    * @param escape The character that should appear before any data characters
    * that match the quote character.
    */
-  static void Init(CSVScanner &scanner, executor::ExecutorContext &executor_context, const char *file_path,
+  static void Init(CSVScanner &scanner, executor::ExecutionContext &executor_context, const char *file_path,
                    const type::Type *col_types, uint32_t num_cols, Callback func, void *opaque_state, char delimiter,
                    char quote, char escape);
 

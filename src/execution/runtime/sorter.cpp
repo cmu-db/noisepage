@@ -52,7 +52,7 @@ Sorter::~Sorter() {
             total_alloc / 1024.0);
 }
 
-void Sorter::Init(Sorter &sorter, executor::ExecutorContext &exec_ctx, ComparisonFunction func, uint32_t tuple_size) {
+void Sorter::Init(Sorter &sorter, executor::ExecutionContext &exec_ctx, ComparisonFunction func, uint32_t tuple_size) {
   new (&sorter) Sorter(*exec_ctx.GetPool(), func, tuple_size);
 }
 
@@ -122,7 +122,7 @@ struct MergeWork {
 // N splitter keys. For each splitter key, we find all input ranges and output
 // positions and construct a merge package. Merge packages are independent
 // pieces of work that are issued in parallel across a set of worker threads.
-void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset,
+void Sorter::SortParallel(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t sorter_offset,
                           common::WorkerPool &work_pool) {
   // Collect all sorter instances
   uint64_t num_tuples = 0;

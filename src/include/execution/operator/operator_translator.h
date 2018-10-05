@@ -108,8 +108,8 @@ class OperatorTranslator {
   // Return the code generator
   CodeGen &GetCodeGen() const;
 
-  // Load pointers to the ExecutorContext, Transaction, or StorageManager
-  llvm::Value *GetExecutorContextPtr() const;
+  // Load pointers to the ExecutionContext, Transaction, or StorageManager
+  llvm::Value *GetExecutionContextPtr() const;
   llvm::Value *GetTransactionPtr() const;
   llvm::Value *GetStorageManagerPtr() const;
   llvm::Value *GetThreadStatesPtr() const;

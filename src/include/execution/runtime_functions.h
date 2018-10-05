@@ -86,7 +86,7 @@ class RuntimeFunctions {
    * @param func The callback function that is provided a range of tile groups
    * to scan.
    */
-  static void ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+  static void ExecuteTableScan(void *query_state, executor::ExecutionContext::ThreadStates &thread_states,
                                uint32_t db_oid, uint32_t table_oid, void *func, common::WorkerPool &worker_pool);
   //      void (*scanner)(void *, void *, uint64_t, uint64_t));
 
@@ -98,7 +98,7 @@ class RuntimeFunctions {
    * @param thread_states The set of all thread states.
    * @param work_func Callback function called for each thread state.
    */
-  static void ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+  static void ExecutePerState(void *query_state, executor::ExecutionContext::ThreadStates &thread_states,
                               void (*work_func)(void *, void *), common::WorkerPool &worker_pool);
 
   //////////////////////////////////////////////////////////////////////////////

@@ -131,7 +131,7 @@ HashTable::~HashTable() {
   }
 }
 
-void HashTable::Init(HashTable &table, executor::ExecutorContext &exec_ctx, uint32_t key_size, uint32_t value_size) {
+void HashTable::Init(HashTable &table, executor::ExecutionContext &exec_ctx, uint32_t key_size, uint32_t value_size) {
   new (&table) HashTable(*exec_ctx.GetPool(), key_size, value_size);
 }
 
@@ -219,7 +219,7 @@ void HashTable::BuildLazy() {
   }
 }
 
-void HashTable::ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t hash_table_offset) {
+void HashTable::ReserveLazy(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t hash_table_offset) {
   // Determine the total number of tuples stored across each hash table
   uint64_t total_size = 0;
   for (uint32_t i = 0; i < thread_states.NumThreads(); i++) {

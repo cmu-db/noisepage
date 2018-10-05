@@ -26,8 +26,8 @@ ExpressionTranslator::ExpressionTranslator(const expression::AbstractExpression 
   }
 }
 
-llvm::Value *ExpressionTranslator::GetExecutorContextPtr() const {
-  return context_.GetExecutionConsumer().GetExecutorContextPtr(context_);
+llvm::Value *ExpressionTranslator::GetExecutionContextPtr() const {
+  return context_.GetExecutionConsumer().GetExecutionContextPtr(context_);
 }
 
 }  // namespace terrier::execution

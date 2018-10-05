@@ -26,7 +26,7 @@ namespace terrier::execution {
 // Constructor
 Query::Query(const planner::AbstractPlan &query_plan) : query_plan_(query_plan) {}
 
-void Query::Execute(executor::ExecutorContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats) {
+void Query::Execute(executor::ExecutionContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats) {
   CodeGen codegen{code_context_};
 
   llvm::Type *query_state_type = query_state_.GetType();

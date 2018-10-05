@@ -131,7 +131,7 @@ void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group, 
   PELOTON_ASSERT((last_col_idx != INVALID_OID) && (last_col_idx == (num_cols - 1)));
 }
 
-void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutionContext::ThreadStates &thread_states,
                                         uint32_t db_oid, uint32_t table_oid, void *func,
                                         common::WorkerPool &worker_pool) {
   //    void (*scanner)(void *, void *, uint64_t, uint64_t)) {
@@ -187,7 +187,7 @@ void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorCon
   latch.Await(0);
 }
 
-void RuntimeFunctions::ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
+void RuntimeFunctions::ExecutePerState(void *query_state, executor::ExecutionContext::ThreadStates &thread_states,
                                        void (*work_func)(void *, void *), common::WorkerPool &worker_pool) {
   // Create count down latch
   uint32_t num_tasks = thread_states.NumThreads();

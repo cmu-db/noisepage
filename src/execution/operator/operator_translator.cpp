@@ -24,8 +24,8 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlan &plan, Compil
 
 CodeGen &OperatorTranslator::GetCodeGen() const { return context_.GetCodeGen(); }
 
-llvm::Value *OperatorTranslator::GetExecutorContextPtr() const {
-  return context_.GetExecutionConsumer().GetExecutorContextPtr(context_);
+llvm::Value *OperatorTranslator::GetExecutionContextPtr() const {
+  return context_.GetExecutionConsumer().GetExecutionContextPtr(context_);
 }
 
 llvm::Value *OperatorTranslator::GetTransactionPtr() const {
