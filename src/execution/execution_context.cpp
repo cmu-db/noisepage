@@ -1,8 +1,6 @@
 #include "execution/execution_context.h"
 
 // TODO(Justin):
-// -figure out ephemeral pool replacement
-// -replace GetInstance with const ref arg?
 // -CACHELINE_SIZE
 
 namespace terrier {
@@ -14,16 +12,20 @@ namespace execution {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-ExecutionContext::ExecutionContext(transaction::TransactionContext *transaction, QueryParameters parameters)
-    : transaction_(transaction), parameters_(std::move(parameters)), thread_states_(pool_) {}
+ExecutionContext::ExecutionContext(transaction::TransactionContext *transaction,
+    transaction::TransactionManager *transaction_manager, QueryParameters parameters)
+    : transaction_(transaction), transaction_manager_(transaction_manager),
+    parameters_(std::move(parameters)), thread_states_(pool_) {}
 
 transaction::TransactionContext *ExecutionContext::GetTransaction() const { return transaction_; }
+
+transaction::TransactionManager *ExecutionContext::GetTransactionManager() const { return transaction_manager_; }
 
 const std::vector<type::Value> &ExecutionContext::GetParamValues() const { return parameters_.GetParameterValues(); }
 
 QueryParameters &ExecutionContext::GetParams() { return parameters_; }
 
-type::EphemeralPool *ExecutionContext::GetPool() { return &pool_; }
+storage::VarlenPool *ExecutionContext::GetPool() { return &pool_; }
 
 ExecutionContext::ThreadStates &ExecutionContext::GetThreadStates() { return thread_states_; }
 
@@ -33,7 +35,7 @@ ExecutionContext::ThreadStates &ExecutionContext::GetThreadStates() { return thr
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-ExecutionContext::ThreadStates::ThreadStates(type::EphemeralPool &pool)
+ExecutionContext::ThreadStates::ThreadStates(storage::VarlenPool &pool)
     : pool_(pool), num_threads_(0), state_size_(0), states_(nullptr) {}
 
 void ExecutionContext::ThreadStates::Reset(const uint32_t state_size) {

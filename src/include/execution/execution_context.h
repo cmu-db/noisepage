@@ -1,11 +1,9 @@
 #pragma once
 
 #include "execution/query_parameters.h"
-#include "type/ephemeral_pool.h"
+#include "storage/varlen_pool.h"
+#include "transaction/transaction_manager.h"
 #include "type/value.h"
-
-// TODO(Justin):
-// -replace with terrier/storage/varlen_pool.h?
 
 namespace terrier {
 
@@ -21,7 +19,8 @@ namespace execution {
 class ExecutionContext {
  public:
   /// Constructor
-  ExecutionContext(transaction::TransactionContext *transaction, QueryParameters parameters = {});
+  ExecutionContext(transaction::TransactionContext *transaction,
+      transaction::TransactionManager *transaction_manager, parameters = {});
 
   /// This class cannot be copy or move-constructed
   DISALLOW_COPY_AND_MOVE(ExecutionContext);
@@ -35,6 +34,9 @@ class ExecutionContext {
   /// Return the transaction for this particular query execution
   transaction::TransactionContext *GetTransaction() const;
 
+  /// Return the transaction manager.
+  transaction::TransactionManager *GetTransactionManager() const;
+
   /// Return the explicit set of parameters for this particular query execution
   const std::vector<type::Value> &GetParamValues() const;
 
@@ -42,11 +44,11 @@ class ExecutionContext {
   QueryParameters &GetParams();
 
   /// Return the memory pool for this particular query execution
-  type::EphemeralPool *GetPool();
+  storage::VarlenPool *GetPool();
 
   class ThreadStates {
    public:
-    explicit ThreadStates(type::EphemeralPool &pool);
+    explicit ThreadStates(storage::VarlenPool &pool);
 
     /// Reset the state space
     void Reset(uint32_t state_size);
@@ -66,7 +68,7 @@ class ExecutionContext {
     void ForEach(uint32_t element_offset, std::function<void(T *)> func) const;
 
    private:
-    type::EphemeralPool &pool_;
+    storage::VarlenPool &pool_;
     uint32_t num_threads_;
     uint32_t state_size_;
     char *states_;
@@ -80,10 +82,12 @@ class ExecutionContext {
  private:
   // The transaction context
   transaction::TransactionContext *transaction_;
+  // The transaction manager
+  transaction::TransactionManager *transaction_manager_;
   // All query parameters
   QueryParameters parameters_;
   // Temporary memory pool for allocations done during execution
-  type::EphemeralPool pool_;
+  storage::VarlenPool pool_;
   // Container for all states of all thread participating in this execution
   ThreadStates thread_states_;
 };
