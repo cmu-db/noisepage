@@ -17,6 +17,7 @@
 #include "execution/proxy/proxy.h"
 #include "execution/runtime_functions.h"
 #include "expression/abstract_expression.h"
+#include "common/worker_pool.h"
 
 namespace terrier::execution {
 
@@ -38,6 +39,9 @@ PROXY(Type) {
 };
 
 PROXY(RuntimeFunctions) {
+  DECLARE_MEMBER(0, char[sizeof(common::WorkerPool)], opaqueu);
+  DECLARE_TYPE;
+
   DECLARE_METHOD(HashMurmur3);
   DECLARE_METHOD(HashCrc64);
   DECLARE_METHOD(GetTileGroup);
