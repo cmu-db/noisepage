@@ -111,7 +111,7 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomWorkloadTransaction *txn : txns) {
-    abort_count_++;
+    if (txn->aborted_) abort_count_++;
     delete txn;
   }
   // This result is meaningless if bookkeeping is not turned on.
