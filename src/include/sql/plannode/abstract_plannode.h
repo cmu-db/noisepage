@@ -24,26 +24,26 @@ namespace terrier::sql::plannode {
 /**
  * Base class for all SQL plan nodes
  */
-class AbstractPlan {
+class AbstractPlanNode {
 
  public:
-  AbstractPlan();
+  AbstractPlanNode();
 
-  virtual ~AbstractPlan();
+  virtual ~AbstractPlanNode();
 
   //===--------------------------------------------------------------------===//
   // Children + Parent Helpers
   //===--------------------------------------------------------------------===//
 
-  void AddChild(std::unique_ptr<AbstractPlan> &&child);
+  void AddChild(std::unique_ptr<AbstractPlanNode> &&child);
 
-  const std::vector<std::unique_ptr<AbstractPlan>> &GetChildren() const;
+  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const;
 
   size_t GetChildrenSize() const { return children_.size(); }
 
-  const AbstractPlan *GetChild(uint32_t child_index) const;
+  const AbstractPlanNode *GetChild(uint32_t child_index) const;
 
-  const AbstractPlan *GetParent() const;
+  const AbstractPlanNode *GetParent() const;
 
   //===--------------------------------------------------------------------===//
   // Accessors
@@ -68,38 +68,38 @@ class AbstractPlan {
    */
   const std::string GetInfo() const;
 
-  virtual std::unique_ptr<AbstractPlan> Copy() const = 0;
+  virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
   virtual hash_t Hash() const;
 
-  virtual bool operator==(const AbstractPlan &rhs) const;
-  virtual bool operator!=(const AbstractPlan &rhs) const { return !(*this == rhs); }
+  virtual bool operator==(const AbstractPlanNode &rhs) const;
+  virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  protected:
   // only used by its derived classes (when deserialization)
-  AbstractPlan *Parent() const { return parent_; }
+  AbstractPlanNode *Parent() const { return parent_; }
 
  private:
   // A plan node can have multiple children
-  std::vector<std::unique_ptr<AbstractPlan>> children_;
+  std::vector<std::unique_ptr<AbstractPlanNode>> children_;
 
-  AbstractPlan *parent_ = nullptr;
+  AbstractPlanNode *parent_ = nullptr;
 
  private:
-  DISALLOW_COPY_AND_MOVE(AbstractPlan);
+  DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 
 class Equal {
  public:
-  bool operator()(const std::shared_ptr<planner::AbstractPlan> &a,
-                  const std::shared_ptr<planner::AbstractPlan> &b) const {
+  bool operator()(const std::shared_ptr<planner::AbstractPlanNode> &a,
+                  const std::shared_ptr<planner::AbstractPlanNode> &b) const {
     return *a.get() == *b.get();
   }
 };
 
 class Hash {
  public:
-  size_t operator()(const std::shared_ptr<planner::AbstractPlan> &plan) const {
+  size_t operator()(const std::shared_ptr<planner::AbstractPlanNode> &plan) const {
     return static_cast<size_t>(plan->Hash());
   }
 };

@@ -17,27 +17,27 @@
 
 namespace terrier::sql::plannode {
 
-AbstractPlan::AbstractPlan() {}
+AbstractPlanNode::AbstractPlanNode() {}
 
-AbstractPlan::~AbstractPlan() {}
+AbstractPlanNode::~AbstractPlanNode() {}
 
-void AbstractPlan::AddChild(std::unique_ptr<AbstractPlan> &&child) {
+void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) {
   children_.emplace_back(std::move(child));
 }
 
-const std::vector<std::unique_ptr<AbstractPlan>> &AbstractPlan::GetChildren()
+const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren()
     const {
   return children_;
 }
 
-const AbstractPlan *AbstractPlan::GetChild(uint32_t child_index) const {
+const AbstractPlanNode *AbstractPlanNode::GetChild(uint32_t child_index) const {
   PELOTON_ASSERT(child_index < children_.size());
   return children_[child_index].get();
 }
 
-const AbstractPlan *AbstractPlan::GetParent() const { return parent_; }
+const AbstractPlanNode *AbstractPlanNode::GetParent() const { return parent_; }
 
-hash_t AbstractPlan::Hash() const {
+hash_t AbstractPlanNode::Hash() const {
   hash_t hash = 0;
   for (auto &child : GetChildren()) {
     hash = HashUtil::CombineHashes(hash, child->Hash());
@@ -45,12 +45,12 @@ hash_t AbstractPlan::Hash() const {
   return hash;
 }
 
-bool AbstractPlan::operator==(const AbstractPlan &rhs) const {
+bool AbstractPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto num = GetChildren().size();
   if (num != rhs.GetChildren().size())
     return false;
   for (unsigned int i = 0; i < num; i++) {
-    if (*GetChild(i) != *(AbstractPlan *)rhs.GetChild(i))
+    if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i))
       return false;
   }
   return true;
