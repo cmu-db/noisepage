@@ -101,7 +101,7 @@ BENCHMARK_REGISTER_F(LargeTransactionBenchmark, MixedReadWrite)
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(5);
+    ->MinTime(10);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
