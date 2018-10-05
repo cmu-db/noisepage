@@ -15,9 +15,10 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <common/macros.h>
 
 #include "sql/plannode/plannode_defs.h"
-#include "util/hash_util.h"
+#include "common/hash_util.h"
 
 namespace terrier::sql::plannode {
 
@@ -69,7 +70,7 @@ class AbstractPlanNode {
 
   virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
-  virtual hash_t Hash() const;
+  virtual common::hash_t Hash() const;
 
   virtual bool operator==(const AbstractPlanNode &rhs) const;
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
@@ -98,8 +99,8 @@ class Equal {
 
 class Hash {
  public:
-  size_t operator()(const std::shared_ptr<AbstractPlanNode> &plan) const {
-    return static_cast<size_t>(plan->Hash());
+  common::hash_t operator()(const std::shared_ptr<AbstractPlanNode> &plan) const {
+    return static_cast<common::hash_t>(plan->Hash());
   }
 };
 
