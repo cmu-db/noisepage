@@ -26,7 +26,6 @@
 #include "storage/storage_manager.h"
 #include "storage/tile.h"
 #include "storage/tile_group.h"
-#include "threadpool/mono_queue_pool.h"
 
 namespace terrier::execution {
 
@@ -133,14 +132,11 @@ void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group, 
 }
 
 void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-                                        uint32_t db_oid, uint32_t table_oid, void *func) {
+                                        uint32_t db_oid, uint32_t table_oid, void *func, common::WorkerPool &worker_pool) {
   //    void (*scanner)(void *, void *, uint64_t, uint64_t)) {
   using ScanFunc = void (*)(void *, void *, uint64_t, uint64_t);
   auto *scanner = reinterpret_cast<ScanFunc>(func);
-
-  // The worker pool
-  auto &worker_pool = threadpool::MonoQueuePool::GetExecutionInstance();
-
+  
   // Pull out the data table
   auto *sm = storage::StorageManager::GetInstance();
   auto *table = sm->GetTableWithOid(db_oid, table_oid);
@@ -191,10 +187,7 @@ void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorCon
 }
 
 void RuntimeFunctions::ExecutePerState(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-                                       void (*work_func)(void *, void *)) {
-  // The worker pool
-  auto &worker_pool = threadpool::MonoQueuePool::GetExecutionInstance();
-
+                                       void (*work_func)(void *, void *), common::WorkerPool &worker_pool) {
   // Create count down latch
   uint32_t num_tasks = thread_states.NumThreads();
   common::synchronization::CountDownLatch latch{num_tasks};
