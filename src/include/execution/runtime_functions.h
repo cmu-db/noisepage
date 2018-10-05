@@ -15,8 +15,8 @@
 #include <cstdint>
 
 #include "common/internal_types.h"
-#include "executor/executor_context.h"
 #include "common/worker_pool.h"
+#include "executor/executor_context.h"
 
 namespace terrier::execution {
 

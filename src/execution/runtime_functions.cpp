@@ -132,11 +132,12 @@ void RuntimeFunctions::GetTileGroupLayout(const storage::TileGroup *tile_group, 
 }
 
 void RuntimeFunctions::ExecuteTableScan(void *query_state, executor::ExecutorContext::ThreadStates &thread_states,
-                                        uint32_t db_oid, uint32_t table_oid, void *func, common::WorkerPool &worker_pool) {
+                                        uint32_t db_oid, uint32_t table_oid, void *func,
+                                        common::WorkerPool &worker_pool) {
   //    void (*scanner)(void *, void *, uint64_t, uint64_t)) {
   using ScanFunc = void (*)(void *, void *, uint64_t, uint64_t);
   auto *scanner = reinterpret_cast<ScanFunc>(func);
-  
+
   // Pull out the data table
   auto *sm = storage::StorageManager::GetInstance();
   auto *table = sm->GetTableWithOid(db_oid, table_oid);
