@@ -22,9 +22,6 @@
 #include "bwtree/libcuckoo/cuckoohash_map.hh"
 #include "bwtree/stx_btree/btree_multimap.h"
 
-using stx::btree_multimap;
-using wangziqi2013::bwtree::BwTree;
-
 /*
  * class KeyComparator - Test whether BwTree supports context
  *                       sensitive key comparator
@@ -72,9 +69,9 @@ class KeyEqualityChecker {
   // KeyEqualityChecker(const KeyEqualityChecker &p_key_eq_obj) = delete;
 };
 
-using TreeType = BwTree<int64_t, int64_t, KeyComparator, KeyEqualityChecker>;
+using TreeType = wangziqi2013::bwtree::BwTree<int64_t, int64_t, KeyComparator, KeyEqualityChecker>;
 
-using BTreeType = btree_multimap<int64_t, int64_t, KeyComparator>;
+using BTreeType = stx::btree_multimap<int64_t, int64_t, KeyComparator>;
 using ARTType = art_tree;
 
 using LeafRemoveNode = typename TreeType::LeafRemoveNode;
