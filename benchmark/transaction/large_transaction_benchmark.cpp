@@ -17,6 +17,10 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   const uint32_t num_concurrent_txns_ = 6;
 };
 
+/**
+ * Run a TPCC-like workload (5 statements per txn, 40% update, 60% select). We can't interleave inserts in this
+ * framework yet so this it the best we can do.
+ */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) {
   uint64_t abort_count = 0;
@@ -36,6 +40,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
+/**
+ * Run a high number of statements with lots of updates to try to trigger aborts.
+ */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &state) {
   uint64_t abort_count = 0;
@@ -55,6 +62,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
+/**
+ * Single statement update throughput. Should have low abort rates.
+ */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::State &state) {
   uint64_t abort_count = 0;
@@ -74,6 +84,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
+/**
+ * Single statement update throughput. Should have no aborts.
+ */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::State &state) {
   uint64_t abort_count = 0;
@@ -93,10 +106,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(5);
+BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(5);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
     ->Unit(benchmark::kMillisecond)
