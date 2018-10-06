@@ -12,12 +12,12 @@
 
 #pragma once
 
+#include "execution/execution_context.h"
 #include "execution/proxy/pool_proxy.h"
 #include "execution/proxy/proxy.h"
 #include "execution/proxy/query_parameters_proxy.h"
 #include "execution/proxy/storage_manager_proxy.h"
 #include "execution/proxy/transaction_context_proxy.h"
-#include "execution/execution_context.h"
 
 namespace terrier::execution {
 

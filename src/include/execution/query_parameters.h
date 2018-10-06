@@ -6,7 +6,7 @@
 #include "type/type_id.h"
 #include "type/value_peeker.h"
 
-//TODO(Justin):
+// TODO(Justin):
 // -terrier::type::Value
 // -expression
 // -value_peeker

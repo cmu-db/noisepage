@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
 
@@ -20,7 +19,7 @@ namespace terrier::execution {
 
 namespace type {
 
-class Boolean : public SqlType, public Singleton<Boolean> {
+class Boolean : public SqlType {
  public:
   bool IsVariableLength() const override { return false; }
 
@@ -55,8 +54,6 @@ class Boolean : public SqlType, public Singleton<Boolean> {
   llvm::Value *Reify(CodeGen &codegen, const Value &bool_val) const;
 
  private:
-  friend class Singleton<Boolean>;
-
   Boolean();
 
  private:
