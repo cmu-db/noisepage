@@ -45,7 +45,7 @@ Value ComparisonTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) co
     case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
       return left.CompareGte(codegen, right);
     case ExpressionType::COMPARE_LIKE: {
-      type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception,
+      type::TypeSystem::InvocationContext ctx{.on_error = OnError::THROW_EXCEPTION,
                                               .executor_context = GetExecutionContextPtr()};
 
       type::Type left_type = left.GetType(), right_type = right.GetType();

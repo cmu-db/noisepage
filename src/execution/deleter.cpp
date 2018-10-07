@@ -22,12 +22,12 @@ void Deleter::Init(Deleter &deleter, storage::SqlTable *const table, execution::
 
 void Deleter::Delete(const storage::TupleSlot slot) {
   EXECUTION_LOG_TRACE("Deleting tuple {}, {} from SqlTable oid {} ", slot.GetBlock(), slot.GetOffset(),
-                      table_->GetOid());
+                      table_->Oid());
 
   auto *const txn = executor_context_->GetTransaction();
 
   if (!table_->Delete(txn, slot)) {
-    txn->SetTransactionResult(ResultType::FAILURE);
+    txn->SetTransactionResult(transaction::ResultType::FAILURE);
     return;
   }
 }

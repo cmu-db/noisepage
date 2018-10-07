@@ -280,7 +280,7 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallAddWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-    if (ctx.on_error == OnError::Exception) {
+    if (ctx.on_error == OnError::THROW_EXCEPTION) {
       codegen.ThrowIfOverflow(overflow_bit);
     }
 
@@ -307,7 +307,7 @@ Value Sub::Impl(CodeGen &codegen, const Value &left, const Value &right,
   llvm::Value *overflow_bit = nullptr;
   llvm::Value *result = codegen.CallSubWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-  if (ctx.on_error == OnError::Exception) {
+  if (ctx.on_error == OnError::THROW_EXCEPTION) {
     codegen.ThrowIfOverflow(overflow_bit);
   }
 
@@ -333,7 +333,7 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallMulWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-    if (ctx.on_error == OnError::Exception) {
+    if (ctx.on_error == OnError::THROW_EXCEPTION) {
       codegen.ThrowIfOverflow(overflow_bit);
     }
 
@@ -363,7 +363,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{SmallInt::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -381,7 +381,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 
@@ -416,7 +416,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{SmallInt::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -434,7 +434,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 
