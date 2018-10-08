@@ -135,7 +135,7 @@ TEST(ExpressionTests, ConjunctionTest) {
   children3.emplace_back(
       std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::Value(static_cast<boolean_t>(1)))));
   children3.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::Value(static_cast<boolean_t>(0)))));
+      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::Value(static_cast<boolean_t>(1)))));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, &children3);
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);

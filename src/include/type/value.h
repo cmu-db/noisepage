@@ -72,7 +72,7 @@ class Value {
    * @param data of the value
    * @param len in bytes of the data
    */
-  Value(const char *data, uint32_t len);
+  Value(const byte *data, uint32_t len);
 
   /**
    * Get the type of this value
