@@ -14,7 +14,7 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 6;
+  const uint32_t num_concurrent_txns_ = 4;
 };
 
 /**
