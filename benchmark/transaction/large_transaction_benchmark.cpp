@@ -9,7 +9,7 @@ namespace terrier {
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
   const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
-  const uint32_t initial_table_size = 1000;
+  const uint32_t initial_table_size = 1000000;
   const uint32_t num_txns = 500000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
@@ -50,8 +50,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
   const std::vector<double> update_select_ratio = {0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, false);
+    // use a smaller table to make aborts more likely
+    LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, update_select_ratio, &block_store_,
+                                           &buffer_pool_, &generator_, false);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
