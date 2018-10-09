@@ -1,5 +1,14 @@
 sudo: required
 language: cpp
+notifications:
+  webhooks:
+    urls:
+      - http://jenkins.db.cs.cmu.edu:8080/generic-webhook-trigger/invoke?token=5331146c7f6f99b995e8
+    on_success: always
+    on_failure: never
+    on_start: never
+    on_cancel: never
+    on_error: never
 matrix:
   fast_finish: true
   include:
@@ -28,47 +37,21 @@ matrix:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
         - docker cp . build:/repo
-# Release builds. Will be replaced by Jenkins.
-    - os: osx
-      osx_image: xcode9.4
-      compiler: clang
-      env:
-        - NAME="Mac [rel/clang]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off
-      install:
-        - echo 'y' | ./script/installation/packages.sh
-        - export LLVM_DIR=/usr/local/Cellar/llvm@6/6.0.1
+    # Coverage. Will be replaced by Jenkins.
     - os: linux
       dist: trusty
       env:
-       - NAME="Docker[rel/packages.sh]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
+      - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true
       install:
-        - docker pull ubuntu:18.04
-        - docker run -itd --name build ubuntu:18.04
-        - docker cp . build:/repo
-        - docker exec build /bin/sh -c "echo 'y' | /repo/script/installation/packages.sh"
-    - os: linux
-      dist: trusty
-      env:
-        - NAME="Docker[rel/Dockerfile]" CMAKE_BUILD_TYPE=release TERRIER_USE_ASAN=Off DOCKER=true
-      install:
-        - docker build -t cmu-db/terrier .
-        - docker run -itd --name build cmu-db/terrier
-        - docker cp . build:/repo
-# Coverage. Will be replaced by Jenkins.
-    - os: linux
-      dist: trusty
-      env:
-        - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true
-      install:
-        - docker build -t cmu-db/terrier .
-        - docker run -itd --name build cmu-db/terrier
-        - docker cp . build:/repo
+      - docker build -t cmu-db/terrier .
+      - docker run -itd --name build cmu-db/terrier
+      - docker cp . build:/repo
       before_script:
-        - docker exec build /bin/sh -c "apt-get -y install curl"
-        - docker exec build /bin/sh -c "mkdir -p /repo/build"
-        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
-        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
-        - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
+      - docker exec build /bin/sh -c "apt-get -y install curl"
+      - docker exec build /bin/sh -c "mkdir -p /repo/build"
+      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
+      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
+      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
@@ -77,7 +60,7 @@ before_script:
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
-      docker exec build /bin/sh -c "cd /repo/build && make check-lint" ;
+      docker exec build /bin/sh -c "cd /repo/build && make check-lint";
     else
       cd apidoc &&
       touch warnings.txt &&
@@ -95,9 +78,8 @@ before_script:
 
 script:
   - if [[ "$DOCKER" = true ]]; then
-      docker exec build /bin/sh -c "cd /repo/build && make" &&
-      docker exec build /bin/sh -c "cd /repo/build && make unittest" ;
+      docker exec build /bin/sh -c "cd /repo/build && make";
     else
-      ASAN_OPTIONS=detect_container_overflow=0 make &&
-      ASAN_OPTIONS=detect_container_overflow=0 make unittest ;
+      ASAN_OPTIONS=detect_container_overflow=0 make;
     fi
+

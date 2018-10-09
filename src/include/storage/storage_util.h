@@ -1,8 +1,14 @@
 #pragma once
 #include <unordered_map>
+#include <utility>
 #include "common/macros.h"
 #include "common/typedefs.h"
+#include "storage/block_layout.h"
 #include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}
 
 namespace terrier::storage {
 class ProjectedRow;
@@ -43,7 +49,8 @@ class StorageUtil {
    * @param size size of the attribute
    * @param projection_list_index the projection_list_index to copy to
    */
-  static void CopyWithNullCheck(const byte *from, ProjectedRow *to, uint8_t size, uint16_t projection_list_index);
+  template <class RowType>
+  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
@@ -63,7 +70,8 @@ class StorageUtil {
    * @param to projected row to copy into
    * @param projection_list_offset The projection_list index to copy to on the projected row.
    */
-  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, ProjectedRow *to,
+  template <class RowType>
+  static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, RowType *to,
                                      uint16_t projection_list_offset);
 
   /**
@@ -73,7 +81,8 @@ class StorageUtil {
    * @param from projected row to copy from
    * @param projection_list_offset The projection_list index to copy from on the projected row.
    */
-  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const ProjectedRow &from,
+  template <class RowType>
+  static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const RowType &from,
                                      uint16_t projection_list_offset);
 
   /**
@@ -87,7 +96,8 @@ class StorageUtil {
    * @param delta delta to apply
    * @param buffer buffer to apply delta into
    */
-  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, ProjectedRow *buffer);
+  template <class RowType>
+  static void ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *buffer);
 
   /**
    * Given an address offset, aligns it to the word_size
@@ -123,11 +133,11 @@ class StorageUtil {
   }
 
   /**
-   * Inspects an UndoRecord's ProjectedRow contents for a modification on the logical delete column
-   * @param undo UndoRecord to be inspected
-   * @return INSERT if UndoRecord's ProjectedRow represents an insert, DELETE if delta represents a delete, UPDATE
-   * otherwise
+   * Given a schema, returns both a BlockLayout for the storage layer, and a mapping between each column's oid and the
+   * corresponding column id in the storage layer/BlockLayout
+   * @param schema Schema to generate a BlockLayout from. Columns should all have unique oids
+   * @return pair of BlockLayout and a map between col_oid_t and col_id
    */
-  static DeltaRecordType CheckUndoRecordType(const UndoRecord &undo);
+  static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
 };
 }  // namespace terrier::storage
