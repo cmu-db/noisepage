@@ -101,7 +101,7 @@ class LargeTransactionBenchmarkObject {
    * @param buffer_pool the buffer pool to use for simulated transactions
    * @param generator the random generator to use for the test
    * @param gc_on whether gc is enabled
-   * @param bookkeeping whether correctness check is enabled
+   * @param log_manager pointer to the LogManager if enabled
    */
   LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
                                   uint32_t txn_length, std::vector<double> update_select_ratio,
