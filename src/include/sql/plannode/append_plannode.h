@@ -23,9 +23,11 @@ class AppendPlanNode : public AbstractPlanNode {
  public:
   AppendPlanNode() {}
 
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::APPEND; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
 
-  std::unique_ptr<AbstractPlanNode> Copy() const { return std::unique_ptr<AbstractPlanNode>(new AppendPlanNode()); }
+  std::unique_ptr<AbstractPlanNode> Copy() const override {
+    return std::unique_ptr<AbstractPlanNode>(new AppendPlanNode());
+  }
 
  private:
   DISALLOW_COPY_AND_MOVE(AppendPlanNode);
