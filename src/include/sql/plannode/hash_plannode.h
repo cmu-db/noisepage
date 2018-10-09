@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "abstract_plannode.h"
 #include "common/typedefs.h"
+#include "sql/plannode/abstract_plannode.h"
 
 namespace terrier::sql::plannode {
 
@@ -22,18 +22,15 @@ class HashPlanNode : public AbstractPlanNode {
   typedef const expression::AbstractExpression HashKeyType;
   typedef std::unique_ptr<HashKeyType> HashKeyPtrType;
 
-  HashPlanNode(std::vector<HashKeyPtrType> &hashkeys)
-      : hash_keys_(std::move(hashkeys)) {}
-  
+  HashPlanNode(std::vector<HashKeyPtrType> &hashkeys) : hash_keys_(std::move(hashkeys)) {}
+
   void GetOutputColumns(std::vector<col_oid_t> &columns) const override;
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
   const std::string GetInfo() const override { return "HashPlan"; }
 
-  inline const std::vector<HashKeyPtrType> &GetHashKeys() const {
-    return this->hash_keys_;
-  }
+  inline const std::vector<HashKeyPtrType> &GetHashKeys() const { return this->hash_keys_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     std::vector<HashKeyPtrType> copied_hash_keys;
@@ -46,13 +43,7 @@ class HashPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override {
-    return !(*this == rhs);
-  }
-
-  virtual void VisitParameters(codegen::QueryParametersMap &map,
-                               std::vector<type::Value> &values,
-                               const std::vector<type::Value> &values_from_user) override;
+  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   std::vector<HashKeyPtrType> hash_keys_;

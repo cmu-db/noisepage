@@ -26,7 +26,7 @@ void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) { chi
 const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren() const { return children_; }
 
 const AbstractPlanNode *AbstractPlanNode::GetChild(uint32_t child_index) const {
-  PELOTON_ASSERT(child_index < children_.size());
+  TERRIER_ASSERT(child_index < children_.size(), "Child index less than size");
   return children_[child_index].get();
 }
 

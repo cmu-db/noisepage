@@ -12,15 +12,15 @@
 
 #pragma once
 
+#include <common/macros.h>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <common/macros.h>
-#include <sstream>
 
-#include "abstract_plannode.h"
-#include "common/typedefs.h"
 #include "common/hash_util.h"
+#include "common/typedefs.h"
+#include "sql/plannode/abstract_plannode.h"
 
 namespace terrier::sql::plannode {
 
@@ -39,13 +39,6 @@ class LimitPlanNode : public AbstractPlanNode {
   size_t GetOffset() const { return offset_; }
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
-
-  const std::string GetInfo() const {
-    std::stringstream ss;
-    ss << "Limit[offset:" << offset_
-       << ", limit: " << limit_ << "]";
-    return ss.str();
-  }
 
   void GetOutputColumns(std::vector<col_oid_t> &columns) const override {
     TERRIER_ASSERT(GetChildrenSize() == 1, "LimitPlanNode expected to have one child");

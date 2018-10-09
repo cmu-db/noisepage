@@ -32,8 +32,6 @@ class SetOpPlanNode : public AbstractPlanNode {
 
   inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::SETOP; }
 
-  const std::string GetInfo() const { return "SetOpPlanNode"; }
-
   std::unique_ptr<AbstractPlanNode> Copy() const {
     return std::unique_ptr<AbstractPlanNode>(new SetOpPlanNode(set_op_));
   }
