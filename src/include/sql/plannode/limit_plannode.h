@@ -31,12 +31,9 @@ class LimitPlanNode : public AbstractPlanNode {
  public:
   LimitPlanNode(size_t limit, size_t offset) : limit_(limit), offset_(offset) {}
 
-  /// This class cannot be copied or moved
-  DISALLOW_COPY_AND_MOVE(LimitPlanNode);
-
-  size_t GetLimit() const { return limit_; }
-
-  size_t GetOffset() const { return offset_; }
+  ///////////////////////////////////////////////////////////////////
+  // Interface API
+  ///////////////////////////////////////////////////////////////////
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 
@@ -65,9 +62,20 @@ class LimitPlanNode : public AbstractPlanNode {
     return (limit_ == other.limit_ && offset_ == other.offset_ && AbstractPlanNode::operator==(rhs));
   }
 
+  ///////////////////////////////////////////////////////////////////
+  // PlanNode Specific API
+  ///////////////////////////////////////////////////////////////////
+
+  size_t GetLimit() const { return limit_; }
+
+  size_t GetOffset() const { return offset_; }
+
  private:
   const size_t limit_;
   const size_t offset_;
+
+  /// This class cannot be copied or moved
+  DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
 
 }  // namespace terrier::sql::plannode

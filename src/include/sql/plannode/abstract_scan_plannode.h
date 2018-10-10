@@ -93,13 +93,13 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    *
    * @return
    */
-  int64_t GetLimitNumber() const { return limit_number_; }
+  size_t GetLimitNumber() const { return limit_number_; }
 
   /**
    *
    * @return
    */
-  int64_t GetLimitOffset() const { return limit_offset_; }
+  size_t GetLimitOffset() const { return limit_offset_; }
 
  protected:
   /**
@@ -126,13 +126,13 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    *
    * @param limit
    */
-  void SetLimitNumber(int64_t limit) { limit_number_ = limit; }
+  void SetLimitNumber(size_t limit) { limit_number_ = limit; }
 
   /**
    *
    * @param offset
    */
-  void SetLimitOffset(int64_t offset) { limit_offset_ = offset; }
+  void SetLimitOffset(size_t offset) { limit_offset_ = offset; }
 
  private:
   /**
@@ -169,12 +169,12 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * how many tuples should be returned
    */
-  int64_t limit_number_ = 0;
+  size_t limit_number_ = 0;
 
   /**
    * offset means from which point
    */
-  int64_t limit_offset_ = 0;
+  size_t limit_offset_ = 0;
 
  private:
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
