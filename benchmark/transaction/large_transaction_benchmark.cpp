@@ -27,7 +27,7 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   const uint32_t initial_table_size = 1000000;
   const uint32_t num_txns = 100000;
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 250000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
   volatile bool run_gc_ = false;
@@ -56,7 +56,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, false);
+                                           &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
@@ -81,7 +81,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
   for (auto _ : state) {
     // use a smaller table to make aborts more likely
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, false);
+                                           &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
@@ -106,7 +106,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
   for (auto _ : state) {
     // don't need any initial tuples
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, update_select_ratio, &block_store_, &buffer_pool_,
-                                           &generator_, false);
+                                           &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
@@ -130,7 +130,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, false);
+                                           &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
@@ -154,7 +154,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, false);
+                                           &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
