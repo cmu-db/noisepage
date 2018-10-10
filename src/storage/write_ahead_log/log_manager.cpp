@@ -1,18 +1,16 @@
 #include "storage/write_ahead_log/log_manager.h"
-#include <list>
 
 namespace terrier::storage {
 void LogManager::Process() {
-  flush_queue_latch_.Lock();
-  if (flush_queue_.empty()) {
-    flush_queue_latch_.Unlock();
-    return;
-  }
-  std::queue<RecordBufferSegment *, std::list<RecordBufferSegment *>> local_flush_queue(std::move(flush_queue_));
-  flush_queue_latch_.Unlock();
-  while (!local_flush_queue.empty()) {
-    RecordBufferSegment *buffer = local_flush_queue.front();
-    local_flush_queue.pop();
+  while (true) {
+    RecordBufferSegment *buffer;
+    // In a short critical section, try to dequeue an item
+    {
+      common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
+      if (flush_queue_.empty()) return;
+      buffer = flush_queue_.front();
+      flush_queue_.pop();
+    }
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
       if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
