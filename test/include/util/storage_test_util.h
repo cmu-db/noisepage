@@ -5,12 +5,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/schema.h"
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "type/type_id.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
 
@@ -67,10 +69,9 @@ struct StorageTestUtil {
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
-    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS,
-                   "There should be at least 3 cols (first is version, second is logical delete).");
+    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
     // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(3, max_cols)(*generator);
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     attr_sizes[0] = 8;
     attr_sizes[1] = 8;
@@ -117,8 +118,8 @@ struct StorageTestUtil {
                                                            Random *const generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
-    uint16_t num_cols =
-        std::uniform_int_distribution<uint16_t>(1, static_cast<uint16_t>(layout.NumColumns() - 2))(*generator);
+    uint16_t num_cols = std::uniform_int_distribution<uint16_t>(
+        1, static_cast<uint16_t>(layout.NumColumns() - NUM_RESERVED_COLUMNS))(*generator);
 
     std::vector<col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
@@ -139,8 +140,9 @@ struct StorageTestUtil {
     return {layout, ProjectionListRandomColumns(layout, generator)};
   }
 
-  static bool ProjectionListEqual(const storage::BlockLayout &layout, const storage::ProjectedRow *const one,
-                                  const storage::ProjectedRow *const other) {
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqual(const storage::BlockLayout &layout, const RowType1 *const one,
+                                  const RowType2 *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
       if (one->ColumnIds()[projection_list_index] != other->ColumnIds()[projection_list_index]) return false;
@@ -164,7 +166,8 @@ struct StorageTestUtil {
     return true;
   }
 
-  static void PrintRow(const storage::ProjectedRow &row, const storage::BlockLayout &layout) {
+  template <class RowType>
+  static void PrintRow(const RowType &row, const storage::BlockLayout &layout) {
     printf("num_cols: %u\n", row.NumColumns());
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       col_id_t col_id = row.ColumnIds()[i];

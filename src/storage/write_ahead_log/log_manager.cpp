@@ -3,7 +3,7 @@
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
     if (flush_queue_.empty()) return;
     RecordBufferSegment *buffer = flush_queue_.front();
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
@@ -17,7 +17,7 @@ void LogManager::Process() {
 
 void LogManager::Flush() {
   out_.Flush();
-  common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
   for (timestamp_t txn : commits_in_buffer_) {
     auto it = callbacks_.find(txn);
     TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
@@ -38,6 +38,12 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       WriteValue(record_body->GetTupleSlot());
       // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
       Write(record_body->Delta(), record_body->Delta()->Size());
+      break;
+    }
+    case LogRecordType::DELETE: {
+      auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
+      WriteValue(record_body->GetDataTable()->TableOid());
+      WriteValue(record_body->GetTupleSlot());
       break;
     }
     case LogRecordType::COMMIT:

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/typedefs.h"
+
 namespace terrier::type {
 /**
  * All of our possible SQL types
