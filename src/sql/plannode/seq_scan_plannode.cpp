@@ -20,7 +20,7 @@ hash_t SeqScanPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   hash_t hash = HashUtil::Hash(&type);
 
-  hash = HashUtil::CombineHashes(hash, GetTable()->Hash());
+  hash = HashUtil::CombineHashes(hash, GetTableId()->Hash());
   if (GetPredicate() != nullptr) {
     hash = HashUtil::CombineHashes(hash, GetPredicate()->Hash());
   }
@@ -39,11 +39,11 @@ bool SeqScanPlanNode::operator==(const AbstractPlan &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
   auto &other = static_cast<const planner::SeqScanPlanNode &>(rhs);
-  auto *table = GetTable();
-  auto *other_table = other.GetTable();
+  auto table = GetTableId();
+  auto other_table = other.GetTableId();
   TERRIER_ASSERT(table, "Unexpected null table");
   TERRIER_ASSERT(other_table, "Unexpected null table");
-  if (*table != *other_table) return false;
+  if (table != other_table) return false;
 
   // Predicate
   auto *pred = GetPredicate();
