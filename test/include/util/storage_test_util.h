@@ -5,12 +5,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/schema.h"
 #include "common/typedefs.h"
 #include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "type/type_id.h"
 #include "util/random_test_util.h"
 #include "util/test_thread_pool.h"
 
