@@ -28,9 +28,13 @@ class SetOpPlanNode : public AbstractPlanNode {
  public:
   SetOpPlanNode(SetOpType set_op) : set_op_(set_op) {}
 
+  /**
+   * Get the SetOpType for this plan node.
+   * @return
+   */
   SetOpType GetSetOpType() const { return set_op_; }
 
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::SETOP; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const {
     return std::unique_ptr<AbstractPlanNode>(new SetOpPlanNode(set_op_));

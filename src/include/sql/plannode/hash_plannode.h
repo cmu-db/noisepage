@@ -17,6 +17,9 @@
 
 namespace terrier::sql::plannode {
 
+/**
+ * Hash Plan Node
+ */
 class HashPlanNode : public AbstractPlanNode {
  public:
   typedef const expression::AbstractExpression HashKeyType;
@@ -27,8 +30,6 @@ class HashPlanNode : public AbstractPlanNode {
   void GetOutputColumns(std::vector<col_oid_t> &columns) const override;
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
-
-  const std::string GetInfo() const override { return "HashPlan"; }
 
   inline const std::vector<HashKeyPtrType> &GetHashKeys() const { return this->hash_keys_; }
 
