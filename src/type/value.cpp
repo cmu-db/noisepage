@@ -1,4 +1,4 @@
-#include "type/value.h"
+#include <type/value.h>
 #include <cstring>
 #include <string>
 #include "type/type_id.h"
@@ -23,12 +23,12 @@ Value::Value(const Value &other) {
   value_ = other.value_;
 }
 
-// scalar constructors
-Value::Value(boolean_t value) {
+Value::Value(TypeId type_id, bool value) {
   value_.boolean = value;
   type_id_ = TypeId::BOOLEAN;
 }
 
+// scalar constructors
 Value::Value(int8_t value) {
   value_.tinyint = value;
   type_id_ = TypeId::TINYINT;
