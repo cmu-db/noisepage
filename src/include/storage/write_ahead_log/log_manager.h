@@ -46,7 +46,7 @@ class LogManager {
    * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *buffer) {
-    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
     flush_queue_.push(buffer);
   }
 
@@ -61,7 +61,7 @@ class LogManager {
    *                 on resources.
    */
   void RegisterTransactionFlushedCallback(timestamp_t txn_begin, const std::function<void()> &callback) {
-    common::SpinLatch::ScopedSpinLatch guard(&log_manager_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
     auto ret UNUSED_ATTRIBUTE = callbacks_.emplace(txn_begin, callback);
     TERRIER_ASSERT(ret.second, "Insertion failed, callback is already registered for given transaction");
   }
@@ -87,7 +87,7 @@ class LogManager {
   RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
-  common::SpinLatch log_manager_latch_;
+  common::SpinLatch flush_queue_latch_, callbacks_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   // optimization we applied to the GC queue.
   std::queue<RecordBufferSegment *> flush_queue_;
