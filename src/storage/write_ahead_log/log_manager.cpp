@@ -1,4 +1,5 @@
 #include "storage/write_ahead_log/log_manager.h"
+#include <list>
 
 namespace terrier::storage {
 void LogManager::Process() {
@@ -7,7 +8,7 @@ void LogManager::Process() {
     flush_queue_latch_.Unlock();
     return;
   }
-  std::queue<RecordBufferSegment *> local_flush_queue(std::move(flush_queue_));
+  std::queue<RecordBufferSegment *, std::list<RecordBufferSegment *>> local_flush_queue(std::move(flush_queue_));
   flush_queue_latch_.Unlock();
   while (!local_flush_queue.empty()) {
     RecordBufferSegment *buffer = local_flush_queue.front();

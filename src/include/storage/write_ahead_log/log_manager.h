@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <list>
 #include <queue>
 #include <string>
 #include <unordered_map>
@@ -90,7 +91,7 @@ class LogManager {
   common::SpinLatch flush_queue_latch_, callbacks_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   // optimization we applied to the GC queue.
-  std::queue<RecordBufferSegment *> flush_queue_;
+  std::queue<RecordBufferSegment *, std::list<RecordBufferSegment *>> flush_queue_;
   std::unordered_map<timestamp_t, std::function<void()>> callbacks_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
