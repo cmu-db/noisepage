@@ -17,10 +17,6 @@ using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
- *
- * The transaction can be initialized to store enough information to allow for correctness checking, or take care
- * of transaction recycling when GC is not turned on. Disable correctness record-keeping for test cases where you
- * don't care about correctness.
  */
 class RandomWorkloadTransaction {
  public:
@@ -36,8 +32,7 @@ class RandomWorkloadTransaction {
   ~RandomWorkloadTransaction();
 
   /**
-   * Randomly updates a tuple, using the given generator as source of randomness. Operation is logged if correctness
-   * check is turned on in the calling test object.
+   * Randomly updates a tuple, using the given generator as source of randomness.
    *
    * @tparam Random the type of random generator to use
    * @param generator the random generator to use
@@ -46,8 +41,16 @@ class RandomWorkloadTransaction {
   void RandomUpdate(Random *generator);
 
   /**
-   * Randomly selects a tuple, using the given generator as source of randomness. Operation is logged if correctness
-   * check is turned on in the calling test object.
+   * Randomly inserts a tuple, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomInsert(Random *generator);
+
+  /**
+   * Randomly selects a tuple, using the given generator as source of randomness.
    *
    * @tparam Random the type of random generator to use
    * @param generator the random generator to use
@@ -56,8 +59,7 @@ class RandomWorkloadTransaction {
   void RandomSelect(Random *generator);
 
   /**
-   * Finish the simulation of this transaction. The underlying transaction will either commit or abort, and necessary
-   * logs are taken if correctness check is turned on.
+   * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
    */
   void Finish();
 
@@ -83,8 +85,7 @@ class RandomWorkloadTransaction {
 
 /**
  * A LargeTransactionTest bootstraps a table, and runs randomly generated workloads concurrently against the table to
- * simulate a real run of the system. This works with or without gc, and comes with optional correctness checks.
- * Correctness checks add significant memory and performance overhead.
+ * simulate a real run of the system. This works with or without gc.
  *
  * So far we only do updates and selects, as inserts and deletes are not given much special meaning without the index.
  */
@@ -95,8 +96,8 @@ class LargeTransactionBenchmarkObject {
    * @param max_columns the max number of columns in the generated test table
    * @param initial_table_size number of tuples the table should have
    * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+   * @param update_select_ratio the ratio of inserts vs. updates vs. select in the generated transaction
+   *                             (e.g. {0.0, 0.3, 0.7} will be 0% inserts, 30% updates, and 70% reads)
    * @param block_store the block store to use for the underlying data table
    * @param buffer_pool the buffer pool to use for simulated transactions
    * @param generator the random generator to use for the test
@@ -104,7 +105,7 @@ class LargeTransactionBenchmarkObject {
    * @param log_manager pointer to the LogManager if enabled
    */
   LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes, uint32_t initial_table_size,
-                                  uint32_t txn_length, std::vector<double> update_select_ratio,
+                                  uint32_t txn_length, std::vector<double> operation_ratio,
                                   storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
                                   std::default_random_engine *generator, bool gc_on,
                                   storage::LogManager *log_manager = LOGGING_DISABLED);
@@ -142,7 +143,7 @@ class LargeTransactionBenchmarkObject {
 
   friend class RandomWorkloadTransaction;
   uint32_t txn_length_;
-  std::vector<double> update_select_ratio_;
+  std::vector<double> operation_ratio_;
   std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;

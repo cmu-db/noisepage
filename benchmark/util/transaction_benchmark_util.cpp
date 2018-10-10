@@ -41,6 +41,23 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 }
 
 template <class Random>
+void RandomWorkloadTransaction::RandomInsert(Random *generator) {
+  if (aborted_) return;
+  std::vector<col_id_t> insert_col_ids = StorageTestUtil::ProjectionListAllColumns(test_object_->layout_);
+  storage::ProjectedRowInitializer initializer(test_object_->layout_, insert_col_ids);
+  auto *insert_buffer = buffer_;
+  storage::ProjectedRow *insert = initializer.InitializeRow(insert_buffer);
+
+  StorageTestUtil::PopulateRandomRow(insert, test_object_->layout_, 0.0, generator);
+  storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *insert);
+  // TODO(Tianyu): Hardly efficient, but will do for testing.
+  if (test_object_->wal_on_) {
+    auto *record = txn_->StageWrite(nullptr, inserted, initializer);
+    TERRIER_MEMCPY(record->Delta(), insert, insert->Size());
+  }
+}
+
+template <class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot selected =
@@ -59,13 +76,13 @@ void RandomWorkloadTransaction::Finish() {
 
 LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
                                                                  uint32_t initial_table_size, uint32_t txn_length,
-                                                                 std::vector<double> update_select_ratio,
+                                                                 std::vector<double> operation_ratio,
                                                                  storage::BlockStore *block_store,
                                                                  storage::RecordBufferSegmentPool *buffer_pool,
                                                                  std::default_random_engine *generator, bool gc_on,
                                                                  storage::LogManager *log_manager)
     : txn_length_(txn_length),
-      update_select_ratio_(std::move(update_select_ratio)),
+      operation_ratio_(std::move(operation_ratio)),
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, layout_version_t(0)),
@@ -121,9 +138,10 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
 void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
+  auto insert = [&] { txn->RandomInsert(&thread_generator); };
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
-  RandomTestUtil::InvokeWorkloadWithDistribution({update, select}, update_select_ratio_, &thread_generator,
+  RandomTestUtil::InvokeWorkloadWithDistribution({insert, update, select}, operation_ratio_, &thread_generator,
                                                  txn_length_);
   txn->Finish();
 }

@@ -86,6 +86,8 @@ class TransactionContext {
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
    * The change can either be copied into this space, or written in the space and then used to change the DataTable.
+   * // TODO(Matt): this isn't ideal for Insert since have to call that first and then log it after have a TupleSlot,
+   * but it is safe and correct from WAL standpoint
    * @param table the DataTable that this record changes
    * @param slot the slot that this record changes
    * @param initializer the initializer to use for the underlying record
