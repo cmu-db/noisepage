@@ -30,7 +30,7 @@ class TupleAccessStrategyTestObject {
     storage::TupleSlot slot;
     // There should always be enough slots.
     EXPECT_TRUE(tested.Allocate(block, &slot));
-    EXPECT_TRUE(tested.ColumnNullBitmap(block, PRESENCE_COLUMN_ID)->Test(slot.GetOffset()));
+    EXPECT_TRUE(tested.Allocated(slot));
 
     // Generate a random ProjectedRow to insert
     storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
@@ -82,12 +82,10 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
 
     storage::TupleSlot slot;
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
-    std::vector<bool> nulls(layout.NumCols());
+    std::vector<bool> nulls(layout.NumColumns());
     std::bernoulli_distribution coin(0.5);
-    // primary key always not null
-    nulls[0] = false;
     // Randomly set some columns to be not null
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
+    for (uint16_t col = 0; col < layout.NumColumns(); col++) {
       if (coin(generator)) {
         nulls[col] = true;
       } else {
@@ -96,14 +94,14 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
       }
     }
 
-    for (uint16_t col = 0; col < layout.NumCols(); col++) {
+    for (uint16_t col = 0; col < layout.NumColumns(); col++) {
       // Either the field is null and the access returns nullptr,
       // or the field is not null and the access ptr is not null
       EXPECT_TRUE((tested.AccessWithNullCheck(slot, col_id_t(col)) != nullptr) ^ nulls[col]);
     }
 
     // Flip non-null columns to null should result in returning of nullptr.
-    for (uint16_t col = 1; col < layout.NumCols(); col++) {
+    for (uint16_t col = 1; col < layout.NumColumns(); col++) {
       if (!nulls[col]) tested.SetNull(slot, col_id_t(col));
       EXPECT_TRUE(tested.AccessWithNullCheck(slot, col_id_t(col)) == nullptr);
     }
@@ -152,9 +150,9 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
     // Skip header
-    void *lower_bound = tested.ColumnNullBitmap(raw_block_, PRESENCE_COLUMN_ID);
+    void *lower_bound = tested.ColumnNullBitmap(raw_block_, VERSION_POINTER_COLUMN_ID);
     void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
-    for (uint16_t offset = 0; offset < layout.NumCols(); offset++) {
+    for (uint16_t offset = 0; offset < layout.NumColumns(); offset++) {
       col_id_t col_id(offset);
       // This test should be robust against any future paddings, since
       // we are checking for non-overlapping ranges and not hard-coded
@@ -170,7 +168,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     }
     // check that the last column does not go out of the block
     uint32_t last_column_size =
-        layout.NumSlots() * layout.AttrSize(col_id_t(static_cast<uint16_t>(layout.NumCols() - 1)));
+        layout.NumSlots() * layout.AttrSize(col_id_t(static_cast<uint16_t>(layout.NumColumns() - 1)));
     StorageTestUtil::CheckInBounds(StorageTestUtil::IncrementByBytes(lower_bound, last_column_size), lower_bound,
                                    upper_bound);
   }
@@ -191,7 +189,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     // test layout, not the content.
     tested.InitializeRawBlock(raw_block_, layout_version_t(0));
 
-    for (uint16_t i = 0; i < layout.NumCols(); i++) {
+    for (uint16_t i = 0; i < layout.NumColumns(); i++) {
       col_id_t col_id(i);
       StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col_id), layout.AttrSize(col_id));
       StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col_id), 8);
@@ -271,7 +269,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
       auto remove = [&] {
         if (slots[id].empty()) return;
         auto elem = RandomTestUtil::UniformRandomElement(&(slots[id]), &generator);
-        tested.SetNull(*elem, PRESENCE_COLUMN_ID);
+        tested.Deallocate(*elem);
         tuples[id].erase(*elem);
         slots[id].erase(elem);
       };

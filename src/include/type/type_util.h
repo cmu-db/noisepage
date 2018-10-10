@@ -1,5 +1,8 @@
 #pragma once
 
+#include "common/typedefs.h"
+#include "type/type_id.h"
+
 namespace terrier::type {
 
 /**

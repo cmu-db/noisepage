@@ -319,7 +319,7 @@ class RedoBuffer {
    * @param log_manager the log manager this redo buffer talks to, or nullptr if logging is disabled
    * @param buffer_pool The buffer pool to draw buffer segments from. Must be the same buffer pool the log manager uses.
    */
-  explicit RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
+  RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
       : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
 
   /**
@@ -333,14 +333,9 @@ class RedoBuffer {
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
    * can be written to this redo buffer after the function returns.
+   * @param committed whether the transaction holding this RedoBuffer is committed
    */
-  void Finish();
-
-  /**
-   * Discards the content of the redo buffer. No further entries can be written to this redo buffe after the
-   * function returns.
-   */
-  void Discard();
+  void Finalize(bool committed);
 
  private:
   LogManager *const log_manager_;

@@ -6,6 +6,7 @@
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
+// TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
  * A projected row is a partial row image of a tuple. It also encodes
  * a projection list that allows for reordering of the columns. Its in-memory
@@ -56,11 +57,13 @@ class PACKED ProjectedRow {
   uint16_t NumColumns() const { return num_cols_; }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
@@ -118,6 +121,16 @@ class PACKED ProjectedRow {
     Bitmap().Set(offset, true);
   }
 
+  /**
+   * Check if the attribute in the ProjectedRow is null
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return true if null, false otherwise
+   */
+  bool IsNull(const uint16_t offset) const {
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    return !Bitmap().Test(offset);
+  }
+
  private:
   friend class ProjectedRowInitializer;
   uint32_t size_;
@@ -155,9 +168,10 @@ class ProjectedRowInitializer {
    * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
    * utilization and performance. Make no assumption about the ordering of these elements and always consult either
    * the initializer or the populated ProjectedRow for the true ordering.
+   * @warning col_ids must be a set (no repeats)
    *
    * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
   ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 
@@ -176,7 +190,7 @@ class ProjectedRowInitializer {
   /**
    * @return number of columns in the projection list
    */
-  uint16_t NumCols() const { return static_cast<uint16_t>(col_ids_.size()); }
+  uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
 
   /**
    * @return column ids at the given offset in the projection list

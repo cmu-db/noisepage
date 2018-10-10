@@ -5,11 +5,12 @@
 namespace terrier::storage {
 
 TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
-    : layout_(std::move(layout)), column_offsets_(layout_.NumCols()) {
+    : layout_(std::move(layout)), column_offsets_(layout_.NumColumns()) {
   // Calculate the start position of each column
   // we use 64-bit vectorized scans on bitmaps.
-  uint32_t acc_offset = StorageUtil::PadUpToSize(sizeof(uint64_t), layout_.HeaderSize());
-  for (uint16_t i = 0; i < layout_.NumCols(); i++) {
+  uint32_t acc_offset = layout_.HeaderSize();
+  TERRIER_ASSERT(acc_offset % sizeof(uint64_t) == 0, "size of a header should already be padded to aligned to 8 bytes");
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) {
     column_offsets_[i] = acc_offset;
     uint32_t column_size =
         layout_.AttrSize(col_id_t(i)) * layout_.NumSlots()  // content
@@ -26,17 +27,18 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout_.NumSlots();
 
-  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrOffets()[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets()[i] = column_offsets_[i];
 
-  result->NumAttrs(layout_) = layout_.NumCols();
+  result->NumAttrs(layout_) = layout_.NumColumns();
 
-  for (uint16_t i = 0; i < layout_.NumCols(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
 
-  result->Column(PRESENCE_COLUMN_ID)->PresenceBitmap()->UnsafeClear(layout_.NumSlots());
+  result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
+  result->Column(VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
 }
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
-  common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(block, PRESENCE_COLUMN_ID);
+  common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
   const uint32_t start = block->num_records_;
 
   if (start == layout_.NumSlots()) return false;
