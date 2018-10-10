@@ -4,7 +4,10 @@ namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
     flush_queue_latch_.Lock();
-    if (flush_queue_.empty()) return;
+    if (flush_queue_.empty()) {
+      flush_queue_latch_.Unlock();
+      return;
+    }
     RecordBufferSegment *buffer = flush_queue_.front();
     flush_queue_.pop();
     flush_queue_latch_.Unlock();
