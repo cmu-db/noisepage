@@ -2,15 +2,16 @@
 
 namespace terrier::storage {
 void LogManager::Process() {
-  while (true) {
-    flush_queue_latch_.Lock();
-    if (flush_queue_.empty()) {
-      flush_queue_latch_.Unlock();
-      return;
-    }
-    RecordBufferSegment *buffer = flush_queue_.front();
-    flush_queue_.pop();
+  flush_queue_latch_.Lock();
+  if (flush_queue_.empty()) {
     flush_queue_latch_.Unlock();
+    return;
+  }
+  std::queue<RecordBufferSegment *> local_flush_queue(std::move(flush_queue_));
+  flush_queue_latch_.Unlock();
+  while (!local_flush_queue.empty()) {
+    RecordBufferSegment *buffer = local_flush_queue.front();
+    local_flush_queue.pop();
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
       if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
