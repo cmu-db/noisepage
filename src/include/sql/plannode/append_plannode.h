@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "abstract_plannode.h"
+#include "sql/plannode/abstract_plannode.h"
 
 namespace terrier::sql::plannode {
 
@@ -25,11 +25,7 @@ class AppendPlanNode : public AbstractPlanNode {
 
   inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::APPEND; }
 
-  const std::string GetInfo() const { return "AppendPlanNode"; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(new AppendPlanNode());
-  }
+  std::unique_ptr<AbstractPlanNode> Copy() const { return std::unique_ptr<AbstractPlanNode>(new AppendPlanNode()); }
 
  private:
   DISALLOW_COPY_AND_MOVE(AppendPlanNode);

@@ -20,6 +20,11 @@
 #include "common/typedefs.h"
 #include "sql/plannode/abstract_plannode.h"
 
+namespace terrier::sql::expression {
+class AbstractExpression;
+class AttributeInfo;
+}  // namespace terrier::sql::expression
+
 namespace terrier::sql::plannode {
 
 /**
@@ -27,53 +32,77 @@ namespace terrier::sql::plannode {
  */
 class AbstractScanPlanNode : public AbstractPlanNode {
  public:
-  // We should add an empty constructor to support an empty object
-  AbstractScanPlanNode() : target_table_(nullptr), predicate_(nullptr), parallel_(false) {}
+  /**
+   *
+   * @param target_table
+   * @param predicate
+   * @param column_ids
+   * @param parallel
+   */
+  AbstractScanPlanNode(table_oid_t target_table, expression::AbstractExpression *predicate,
+                       const std::vector<col_oid_t> &column_ids, bool parallel, bool is_for_update)
+      : target_table_(target_table),
+        predicate_(predicate),
+        column_ids_(column_ids),
+        parallel_(parallel),
+        is_for_update_(is_for_update) {}
 
-  AbstractScanPlanNode(storage::DataTable *table, expression::AbstractExpression *predicate,
-                       const std::vector<oid_t> &column_ids, bool parallel)
-      : target_table_(table), predicate_(predicate), column_ids_(column_ids), parallel_(parallel) {}
+  /**
+   *
+   * @return
+   */
+  const expression::AbstractExpression *GetPredicate() const { return predicate_.get(); }
 
-  // const expression::AbstractExpression *GetPredicate() const { return predicate_.get(); }
-
+  /**
+   * Retrieve the list of output column oids
+   * @return
+   */
   const std::vector<col_oid_t> &GetColumnIds() const { return column_ids_; }
 
-  void GetOutputColumns(std::vector<oid_t> &columns) const override {
-    columns.resize(GetColumnIds().size());
-    std::iota(columns.begin(), columns.end(), 0);
-  }
+  /**
+   * Retrieve the list of AttributeInfo objectds for this node's output columns
+   * @param ais
+   */
+  virtual const std::vector<const expression::AttributeInfo> GetAttributes() const { return attributes_; }
 
-  virtual void GetAttributes(std::vector<const AttributeInfo *> &ais) const {
-    for (const auto &ai : attributes_) {
-      ais.push_back(&ai);
-    }
-  }
-
+  /**
+   * Returns true if this scan is marking tuples that it reads for updating
+   * in the transaction.
+   * @return
+   */
   bool IsForUpdate() const { return is_for_update_; }
 
+  /**
+   * Returns true if this is a parallel scan operator
+   * @return
+   */
   bool IsParallel() const { return parallel_; }
 
  protected:
-  void AddColumnId(oid_t col_id) { column_ids_.push_back(col_id); }
+  /**
+   *
+   * @param col_id
+   */
+  void AddColumnId(col_oid_t col_id) { column_ids_.push_back(col_id); }
 
+  /**
+   *
+   * @param predicate
+   */
   void SetPredicate(expression::AbstractExpression *predicate) {
     predicate_ = std::unique_ptr<expression::AbstractExpression>(predicate);
   }
 
-  void SetForUpdateFlag(bool flag) { is_for_update_ = flag; }
-
-  const std::string GetPredicateInfo() const { return predicate_ != nullptr ? predicate_->GetInfo() : ""; }
-
  private:
   // Target table for this scan
-  table_oid_t target_table;
+  table_oid_t target_table_;
 
   // Selection predicate. We remove const to make it used when deserialization
   std::unique_ptr<expression::AbstractExpression> predicate_;
 
   // Columns to be added to output
   std::vector<col_oid_t> column_ids_;
-  std::vector<AttributeInfo> attributes_;
+  std::vector<expression::AttributeInfo> attributes_;
 
   // Are the tuples produced by this plan intended for update?
   bool is_for_update_ = false;

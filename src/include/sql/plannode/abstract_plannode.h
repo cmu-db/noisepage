@@ -12,14 +12,14 @@
 
 #pragma once
 
+#include <common/macros.h>
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <common/macros.h>
 
-#include "sql/plannode/plannode_defs.h"
-#include "common/typedefs.h"
 #include "common/hash_util.h"
+#include "common/typedefs.h"
+#include "sql/plannode/plannode_defs.h"
 
 namespace terrier::sql::plannode {
 
@@ -61,14 +61,8 @@ class AbstractPlanNode {
   // Utilities
   //===--------------------------------------------------------------------===//
 
-  //TODO: Determine if the col_oid_t is actually the col_id or the column offset
+  // TODO: Determine if the col_oid_t is actually the col_id or the column offset
   virtual void GetOutputColumns(std::vector<col_oid_t> &columns) const {}
-
-  /**
-   * Get a string representation for debugging
-   * @return
-   */
-  const std::string GetInfo() const;
 
   virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
@@ -76,10 +70,6 @@ class AbstractPlanNode {
 
   virtual bool operator==(const AbstractPlanNode &rhs) const;
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
-
- protected:
-  // only used by its derived classes (when deserialization)
-  AbstractPlanNode *Parent() const { return parent_; }
 
  private:
   // A plan node can have multiple children
