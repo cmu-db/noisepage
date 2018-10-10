@@ -3,15 +3,16 @@
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
+    flush_queue_latch_.Lock();
     if (flush_queue_.empty()) return;
     RecordBufferSegment *buffer = flush_queue_.front();
+    flush_queue_.pop();
+    flush_queue_latch_.Unlock();
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
       if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
     }
     buffer_pool_->Release(buffer);
-    flush_queue_.pop();
   }
 }
 
