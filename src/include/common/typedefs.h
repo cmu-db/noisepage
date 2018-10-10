@@ -217,6 +217,7 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(col_oid_t, uint32_t);
 STRONG_TYPEDEF(table_oid_t, uint32_t);
+STRONG_TYPEDEF(index_oid_t, uint32_t);
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
