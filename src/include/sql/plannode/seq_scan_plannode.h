@@ -33,8 +33,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SEQSCAN; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    auto *new_plan =
-        new SeqScanPlanNode(GetTableId(), GetPredicate()->Copy(), GetOutputColumnIds(), IsParallel());
+    auto *new_plan = new SeqScanPlanNode(GetTableId(), GetPredicate()->Copy(), GetOutputColumnIds(), IsParallel());
     return std::unique_ptr<AbstractPlanNode>(new_plan);
   }
 

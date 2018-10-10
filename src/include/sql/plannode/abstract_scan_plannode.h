@@ -39,47 +39,36 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param output_column_ids
    * @param parallel
    */
-  AbstractScanPlanNode(table_oid_t target_table,
-                       expression::AbstractExpression *predicate,
-                       const std::vector<col_oid_t> &output_column_ids,
-                       bool parallel)
+  AbstractScanPlanNode(table_oid_t target_table, expression::AbstractExpression *predicate,
+                       const std::vector<col_oid_t> &output_column_ids, bool parallel)
       : target_table_(target_table),
         predicate_(predicate),
         output_column_ids_(output_column_ids),
         parallel_(parallel) {}
 
-
   /**
    * Return the table id that this scan node targets
    * @return
    */
-  const table_oid_t GetTableId() const {
-    return target_table_;
-  }
+  const table_oid_t GetTableId() const { return target_table_; }
 
   /**
    *
    * @return
    */
-  const expression::AbstractExpression *GetPredicate() const {
-    return predicate_.get();
-  }
+  const expression::AbstractExpression *GetPredicate() const { return predicate_.get(); }
 
   /**
    * Retrieve the list of output column oids
    * @return
    */
-  const std::vector<col_oid_t> &GetOutputColumnIds() const {
-    return output_column_ids_;
-  }
+  const std::vector<col_oid_t> &GetOutputColumnIds() const { return output_column_ids_; }
 
   /**
    * Retrieve the list of AttributeInfo objectds for this node's output columns
    * @param ais
    */
-  virtual const std::vector<const expression::AttributeInfo> GetOutputColumnAttributes() const {
-    return attributes_;
-  }
+  virtual const std::vector<const expression::AttributeInfo> GetOutputColumnAttributes() const { return attributes_; }
 
   /**
    * Returns true if this scan is marking tuples that it reads for updating
@@ -117,9 +106,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    *
    * @param col_id
    */
-  void AddOutputColumnId(col_oid_t col_id) {
-    output_column_ids_.push_back(col_id);
-  }
+  void AddOutputColumnId(col_oid_t col_id) { output_column_ids_.push_back(col_id); }
 
   /**
    *
@@ -148,7 +135,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   void SetLimitOffset(int64_t offset) { limit_offset_ = offset; }
 
  private:
-
   /**
    * Target table for this scan
    */

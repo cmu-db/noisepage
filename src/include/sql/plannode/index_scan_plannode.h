@@ -16,18 +16,15 @@
 #include <string>
 #include <vector>
 
-#include "sql/plannode/plannode_defs.h"
 #include "sql/plannode/abstract_scan_plannode.h"
+#include "sql/plannode/plannode_defs.h"
 
 namespace terrier::sql::plannode {
 
 class IndexScanPlanNode : public AbstractScanPlanNode {
  public:
-
-  IndexScanPlanNode(table_oid_t table,
-                expression::AbstractExpression *predicate,
-                const std::vector<col_oid_t> &column_ids,
-                bool is_parallel)
+  IndexScanPlanNode(table_oid_t table, expression::AbstractExpression *predicate,
+                    const std::vector<col_oid_t> &column_ids, bool is_parallel)
       : AbstractScanPlanNode(table, predicate, column_ids, is_parallel) {}
 
   ~IndexScanPlanNode() {
@@ -40,9 +37,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   // Interface API
   ///////////////////////////////////////////////////////////////////
 
-  PlanNodeType GetPlanNodeType() const override {
-    return PlanNodeType::INDEXSCAN;
-  }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     std::vector<expression::AbstractExpression *> new_runtime_keys;
@@ -50,8 +45,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       new_runtime_keys.push_back(key->Copy());
     }
 
-    IndexScanPlanNode *new_plan = new IndexScanPlanNode(
-        GetTableId(), GetPredicate()->Copy(), GetOutputColumnIds(), IsParallel());
+    IndexScanPlanNode *new_plan =
+        new IndexScanPlanNode(GetTableId(), GetPredicate()->Copy(), GetOutputColumnIds(), IsParallel());
 
     // FIXME: Need to copy the other internal members
 
@@ -73,33 +68,25 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * (i.e., only for indexed column in the base table)
    * @return
    */
-  const std::vector<col_oid_t> &GetTupleColumnIds() const {
-    return tuple_column_ids_;
-  }
+  const std::vector<col_oid_t> &GetTupleColumnIds() const { return tuple_column_ids_; }
 
   /**
    *
    * @return
    */
-  const std::vector<col_oid_t> &GetKeyColumnIds() const {
-    return key_column_ids_;
-  }
+  const std::vector<col_oid_t> &GetKeyColumnIds() const { return key_column_ids_; }
 
   /**
    *
    * @return
    */
-  const std::vector<ExpressionType> &GetExprTypes() const {
-    return expr_types_;
-  }
+  const std::vector<ExpressionType> &GetExprTypes() const { return expr_types_; }
 
   /**
    *
    * @return
    */
-  const std::vector<expression::AbstractExpression *> &GetRunTimeKeys() const {
-    return runtime_keys_;
-  }
+  const std::vector<expression::AbstractExpression *> &GetRunTimeKeys() const { return runtime_keys_; }
 
   /**
    *
@@ -195,5 +182,4 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 
-}  // namespace planner
-}  // namespace peloton
+}  // namespace terrier::sql::plannode
