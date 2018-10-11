@@ -11,5 +11,5 @@ class TransactionContext;
 // background thread (GC). This structure can be replace with something faster if it becomes a measurable performance
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
-typedef void (*callback_fn)(void *);
+using callback_fn = void (*)(void *);
 }  // namespace terrier::transaction

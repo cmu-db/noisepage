@@ -15,7 +15,7 @@
 namespace terrier {
 struct TestCallbacks {
   TestCallbacks() = delete;
-  static void EmptyCallback(void *) {}
+  static void EmptyCallback(void * /*unused*/) {}
 };
 
 class LargeTransactionTestObject;
