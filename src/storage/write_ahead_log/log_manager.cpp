@@ -7,7 +7,7 @@ void LogManager::Process() {
     // In a short critical section, try to dequeue an item
     {
       common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-      if (flush_queue_.empty()) return;
+      if (flush_queue_.empty()) break;
       buffer = flush_queue_.front();
       flush_queue_.pop();
     }
@@ -20,10 +20,11 @@ void LogManager::Process() {
     }
     buffer_pool_->Release(buffer);
   }
+  Flush();
 }
 
 void LogManager::Flush() {
-  out_.Flush();
+  out_.Persist();
   for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
@@ -38,7 +39,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       WriteValue(record_body->GetDataTable()->TableOid());
       WriteValue(record_body->GetTupleSlot());
       // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
-      Write(record_body->Delta(), record_body->Delta()->Size());
+      out_.BufferWrite(record_body->Delta(), record_body->Delta()->Size());
       break;
     }
     case LogRecordType::DELETE: {
@@ -50,18 +51,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     case LogRecordType::COMMIT:
       WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
   }
-}
-
-void LogManager::Write(const void *data, uint32_t size) {
-  if (!out_.CanBuffer(size)) Flush();
-  if (!out_.CanBuffer(size)) {
-    // This write is too large to fit into a buffer, we need to write directly without a buffer,
-    // but no flush is necessary since the commit records are always small enough to be buffered
-    out_.WriteUnsynced(data, size);
-    return;
-  }
-  // Write can be buffered
-  out_.BufferWrite(data, size);
 }
 
 }  // namespace terrier::storage

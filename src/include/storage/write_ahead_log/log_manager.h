@@ -1,9 +1,9 @@
 #pragma once
 
-#include <functional>
 #include <queue>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "common/spin_latch.h"
 #include "common/typedefs.h"
@@ -52,9 +52,9 @@ class LogManager {
   }
 
   /**
-   * Process all the accumulated log records and serialize them out to disk. Flush can happen immediately or later
-   * depending on the state of the LogManager, and an explicit call to Flush() is required for any guarantee. (Beware
-   * the performance consequences of calling flush too frequently) This method should only be called from a dedicated
+   * Process all the accumulated log records and serialize them out to disk. A flush will always happen at the end.
+   * (Beware the performance consequences of calling flush too frequently) This method should only be called from a
+   * dedicated
    * logging thread.
    */
   void Process();
@@ -62,6 +62,8 @@ class LogManager {
   /**
    * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
    * transactions are also invoked when possible. This method should only be called from a dedicated logging thread.
+   *
+   * Usually this method is called from Process(), but can also be called by itself if need be.
    */
   void Flush();
 
@@ -82,11 +84,9 @@ class LogManager {
 
   void SerializeRecord(const LogRecord &record);
 
-  void Write(const void *data, uint32_t size);
-
   template <class T>
   void WriteValue(const T &val) {
-    Write(&val, sizeof(T));
+    out_.BufferWrite(&val, sizeof(T));
   }
 };
 }  // namespace terrier::storage
