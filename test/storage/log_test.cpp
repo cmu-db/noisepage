@@ -47,7 +47,8 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto txn_begin = in->ReadValue<timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
       auto txn_commit = in->ReadValue<timestamp_t>();
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit);
+      // Okay to fill in null since nobody will invoke the callback
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();

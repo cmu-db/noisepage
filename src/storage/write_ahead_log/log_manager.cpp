@@ -13,7 +13,10 @@ void LogManager::Process() {
     }
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
-      if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
+      if (record.RecordType() == LogRecordType::COMMIT) {
+        auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
+        commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
+      }
     }
     buffer_pool_->Release(buffer);
   }
@@ -21,13 +24,7 @@ void LogManager::Process() {
 
 void LogManager::Flush() {
   out_.Flush();
-  common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
-  for (timestamp_t txn : commits_in_buffer_) {
-    auto it = callbacks_.find(txn);
-    TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
-    it->second();
-    callbacks_.erase(it);
-  }
+  for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
 
