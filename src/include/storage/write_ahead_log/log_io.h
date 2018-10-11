@@ -108,7 +108,7 @@ class BufferedLogWriter {
    * Flush any buffered writes and call fsync to make sure that all writes are consistent.
    */
   void Persist() {
-    Flush();
+    FlushBuffer();
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
   }
 
@@ -121,7 +121,7 @@ class BufferedLogWriter {
 
   void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 
-  void Flush() {
+  void FlushBuffer() {
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
   }
