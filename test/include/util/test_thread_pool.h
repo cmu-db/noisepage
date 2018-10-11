@@ -18,15 +18,6 @@ namespace terrier {
  */
 class TestThreadPool {
  public:
-  TestThreadPool() : thread_pool_{nullptr} {}
-
-  ~TestThreadPool() {
-    if (thread_pool_ != nullptr) {
-      thread_pool_->Shutdown();
-      delete thread_pool_;
-    }
-  }
-
   /**
    * Execute the workload with the specified number of threads and wait for them to finish before
    * returning. This can be done repeatedly if desired. Threads will be reused.
@@ -36,23 +27,21 @@ class TestThreadPool {
    * @param repeat the number of times this should be done.
    */
   void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
-    thread_pool_ = new common::WorkerPool("test_pool", num_threads, {});
+    common::WorkerPool thread_pool("test_pool", num_threads, {});
     for (uint32_t i = 0; i < repeat; i++) {
       // add the jobs to the queue
       for (uint32_t j = 0; j < num_threads; j++) {
-        thread_pool_->SubmitTask([j, &workload] { workload(j); });
+        thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
-      thread_pool_->WaitUtilFinish();
+      thread_pool.WaitUtilFinish();
     }
+    thread_pool.Shutdown();
   }
 
   /**
    * @return the number of concurrent threads supported on this machine, or 0 if not well-defined.
    */
   static uint32_t HardwareConcurrency() noexcept { return std::thread::hardware_concurrency(); }
-
- private:
-  common::WorkerPool *thread_pool_;
 };
 
 }  // namespace terrier
