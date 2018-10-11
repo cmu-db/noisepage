@@ -1,5 +1,8 @@
 #include "storage/storage_util.h"
 #include <unordered_map>
+#include <utility>
+#include <vector>
+#include "catalog/schema.h"
 #include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
@@ -127,4 +130,71 @@ uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset
   const uint32_t remainder = offset % word_size;
   return remainder == 0 ? offset : offset + word_size - remainder;
 }
+
+std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
+  uint16_t num_8_byte_attrs = NUM_RESERVED_COLUMNS;
+  uint16_t num_4_byte_attrs = 0;
+  uint16_t num_2_byte_attrs = 0;
+  uint16_t num_1_byte_attrs = 0;
+
+  // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
+  std::vector<uint8_t> attr_sizes({8});
+  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
+                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+
+  // First pass through to accumulate the counts of each attr_size
+  for (const auto &column : schema.GetColumns()) {
+    attr_sizes.push_back(column.GetAttrSize());
+    switch (column.GetAttrSize()) {
+      case 8:
+        num_8_byte_attrs++;
+        break;
+      case 4:
+        num_4_byte_attrs++;
+        break;
+      case 2:
+        num_2_byte_attrs++;
+        break;
+      case 1:
+        num_1_byte_attrs++;
+        break;
+      default:
+        break;
+    }
+  }
+
+  TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
+                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
+                 "Number of attr_sizes does not match the sum of attr counts.");
+
+  // Initialize the offsets for each attr_size
+  uint16_t offset_8_byte_attrs = NUM_RESERVED_COLUMNS;
+  uint16_t offset_4_byte_attrs = num_8_byte_attrs;
+  auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
+  auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
+
+  ColumnMap col_oid_to_id;
+  // Build the map from Schema columns to underlying columns
+  for (const auto &column : schema.GetColumns()) {
+    switch (column.GetAttrSize()) {
+      case 8:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_8_byte_attrs++);
+        break;
+      case 4:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_4_byte_attrs++);
+        break;
+      case 2:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_2_byte_attrs++);
+        break;
+      case 1:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return {storage::BlockLayout(attr_sizes), col_oid_to_id};
+}
+
 }  // namespace terrier::storage

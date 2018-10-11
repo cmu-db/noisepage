@@ -156,11 +156,13 @@ class PACKED ProjectedColumns {
   uint16_t NumColumns() const { return num_cols_; }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
@@ -205,7 +207,6 @@ class PACKED ProjectedColumns {
  private:
   friend class ProjectedColumnsInitializer;
   uint32_t size_;
-  // TODO(Tianyu): Do I need to store this or will the caller always have access to the initializer?
   uint32_t max_tuples_;
   uint32_t num_tuples_;
   uint16_t num_cols_;
@@ -215,22 +216,20 @@ class PACKED ProjectedColumns {
   const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
 };
 
-// TODO(Tianyu): The argument for separate initializer/container class is less strong here than for
-// ProjectedRow. We are putting this here anyway for now for the sake of consistency.
 /**
  * A ProjectedColumnsInitializer calculates and stores information on how to initialize ProjectedColumns
  * for a specific layout. The interface is analogous to @see ProjectedRowInitializer
  */
 class ProjectedColumnsInitializer {
  public:
-  // TODO(Tianyu): num tuples or size in bytes?
   /**
    *  Constructs a ProjectedColumnsInitializer. Calculates the size of this ProjectedColumns, including all members,
    *  values, bitmaps, and potential padding, and the offsets to jump to for each value. This information is cached for
    *  repeated initialization. The semantics is analogous to @see ProjectedRowInitializer.
    * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    * @param max_tuples max number of tuples the ProjectedColumns should hold
+   * @warning col_ods must be a set (no repeats)
    */
   ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids, uint32_t max_tuples);
 
