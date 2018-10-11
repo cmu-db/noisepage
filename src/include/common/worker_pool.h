@@ -65,6 +65,11 @@ class WorkerPool {
     finished_cv_.wait(lock, [this] { return busy_workers_ == 0; });
   }
 
+  /**
+   * Add a task to the task queue.
+   * @tparam F
+   * @param func
+   */
   template <typename F>
   inline void SubmitTask(const F &func) {
     if (!is_running_) {
@@ -73,6 +78,15 @@ class WorkerPool {
     std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
     task_queue_.emplace(std::move(func));
     task_cv_.notify_one();
+  }
+
+  /**
+   * Block until all the tasks in the task queue has finished.
+   */
+  void WaitUtilFinish() {
+    std::unique_lock<std::mutex> lock(task_lock_);
+    // wait for all the tasks to complete
+    finished_cv_.wait(lock, [this] { return busy_workers_ == 0 && task_queue_.empty(); });
   }
   /**
    * @brief Access the number of worker threads in this pool
