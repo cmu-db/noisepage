@@ -15,14 +15,23 @@ namespace terrier::common {
 using TaskQueue = std::queue<std::function<void()>>;
 
 /**
- * @brief A worker pool that maintains a group of worker threads. This pool is
- * restartable, meaning it can be started again after it has been shutdown.
- * Calls to Startup() and Shutdown() are thread-safe and idempotent.
+ * A worker pool that maintains a group of worker threads and a task queue.
+ *
+ * As soon as there is a task in the task queue, a worker thread will be
+ * assigned to run that task. A task must be a function that takes no argument.
+ * After a worker finishes a task, it will eagerly try to get a new task.
+ *
+ * This pool is restartable, meaning it can be started again after it has been
+ * shutdown. Calls to Startup() and Shutdown() are thread-safe.
  */
 class WorkerPool {
  public:
   /**
-   * Initialize the worker pool.
+   * Initialize the worker pool. Once the number of worker is set by the constructor
+   * it cannot be changed.
+   *
+   * After initialization of the worker pool with a given task queue, worker threads
+   * do NOT start running. Need call StartUp() to start working on tasks.
    *
    * @param pool_name the name of the worker pool
    * @param num_workers the number of workers in this pool
@@ -46,7 +55,8 @@ class WorkerPool {
   }
 
   /**
-   * @brief Start this worker pool. Thread-safe and idempotent.
+   * Start the worker pool. If the task queue is empty or we run out of tasks,
+   * workers will be put into sleep.
    */
   void Startup() {
     is_running_ = true;
@@ -56,7 +66,8 @@ class WorkerPool {
   }
 
   /**
-   * @brief Shutdown this worker pool. Thread-safe and idempotent.
+   * It tells all worker threads to finish their current task and stop working.
+   * No more tasks will be consumed. It waits until all worker threads stop working.
    */
   void Shutdown() {
     is_running_ = false;
@@ -66,9 +77,11 @@ class WorkerPool {
   }
 
   /**
-   * Add a task to the task queue.
-   * @tparam F
-   * @param func
+   * Add a task to the task queue and inform worker threads.
+   *
+   * Side effect: If the pool has been shutdown, calling SubmitTask will automatically
+   * re-startup the pool and resume to work.
+   * @param func the new task
    */
   template <typename F>
   inline void SubmitTask(const F &func) {
@@ -81,17 +94,18 @@ class WorkerPool {
   }
 
   /**
-   * Block until all the tasks in the task queue has finished.
+   * Block until all the tasks in the task queue has been completed
    */
   void WaitUtilFinish() {
     std::unique_lock<std::mutex> lock(task_lock_);
     // wait for all the tasks to complete
     finished_cv_.wait(lock, [this] { return busy_workers_ == 0 && task_queue_.empty(); });
   }
+
   /**
-   * @brief Access the number of worker threads in this pool
+   * Get the number of worker threads in this pool
    *
-   * @return The number of worker threads assigned to this pool
+   * @return The number of worker threads
    */
   uint32_t NumWorkers() const { return num_workers_; }
 

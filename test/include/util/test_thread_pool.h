@@ -52,7 +52,7 @@ class TestThreadPool {
   static uint32_t HardwareConcurrency() noexcept { return std::thread::hardware_concurrency(); }
 
  private:
-  common::WorkerPool *thread_pool_{nullptr};
+  common::WorkerPool *thread_pool_;
 };
 
 }  // namespace terrier
