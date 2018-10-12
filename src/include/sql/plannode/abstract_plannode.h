@@ -10,6 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+/*
+ * TODO: Figure out how to handle the replacement of VisitParameters. We need somewhere to store expression parameters
+ * if we want the PlanNode objects to be stateless
+*/
+
 #pragma once
 
 #include <cstdint>

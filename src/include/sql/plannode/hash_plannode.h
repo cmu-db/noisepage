@@ -10,6 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+
+/*
+ * TODO: Expressions,
+ */
 #pragma once
 
 #include "abstract_plannode.h"
@@ -49,10 +53,6 @@ class HashPlanNode : public AbstractPlanNode {
   bool operator!=(const AbstractPlanNode &rhs) const override {
     return !(*this == rhs);
   }
-
-  virtual void VisitParameters(codegen::QueryParametersMap &map,
-                               std::vector<type::Value> &values,
-                               const std::vector<type::Value> &values_from_user) override;
 
  private:
   std::vector<HashKeyPtrType> hash_keys_;
