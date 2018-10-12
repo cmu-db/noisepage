@@ -100,9 +100,11 @@ class BufferedLogWriter {
    */
   void BufferWrite(const void *data, uint32_t size) {
     if (!CanBuffer(size)) FlushBuffer();
-    if (!CanBuffer(size))
+    // If we still do not have buffer space after flush, the write is too large to be buffered. We should bypass the
+    // buffer and write directly to disk
+    if (!CanBuffer(size)) {
       WriteUnsynced(data, size);
-    else {
+    } else {
       TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
       TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
       buffer_size_ += size;
