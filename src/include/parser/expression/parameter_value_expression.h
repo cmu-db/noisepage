@@ -24,6 +24,10 @@ class ParameterValueExpression : public AbstractExpression {
 
   AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
 
+  /**
+   * Returns the offset in the expression.
+   * @return offset in the expression
+   */
   uint32_t GetValueIdx() { return value_idx_; }
 
  private:

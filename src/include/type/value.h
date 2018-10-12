@@ -250,7 +250,12 @@ class Value {
     byte *varchar;
     // const char *const_varlen;
     // char *array;
-  } value_;
+  };
+
+  /**
+   * the value held
+   */
+  Val value_;
 
   /**
    * length of varchar type

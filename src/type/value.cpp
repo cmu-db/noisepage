@@ -69,13 +69,13 @@ Value::Value(const std::string &value) {
   type_id_ = TypeId::VARCHAR;
   // we don't want the null terminator
   size_t str_len = value.length() - 1;
-  value_.varchar = static_cast<char *>(malloc(str_len));
+  value_.varchar = static_cast<byte *>(malloc(str_len));
   memcpy(const_cast<char *>(value.data()), value_.varchar, str_len);
 }
 
 Value::Value(const char *data, uint32_t len) {
   type_id_ = TypeId::VARBINARY;
-  value_.varchar = static_cast<char *>(malloc(len));
+  value_.varchar = static_cast<byte *>(malloc(len));
   memcpy(const_cast<char *>(data), value_.varchar, len);
 }
 

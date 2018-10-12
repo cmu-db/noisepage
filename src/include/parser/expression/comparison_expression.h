@@ -19,8 +19,7 @@ class ComparisonExpression : public AbstractExpression {
   /**
    * Instantiates a new comparison expression.
    * @param cmp_type type of comparison
-   * @param left left operand
-   * @param right right operand
+   * @param children vector containing exactly two children, left then right
    */
   explicit ComparisonExpression(const ExpressionType cmp_type,
                                 std::vector<std::unique_ptr<AbstractExpression>> *children)

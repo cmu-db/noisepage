@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/expression_defs.h"
 #include "type/type_id.h"
@@ -13,7 +15,12 @@ namespace expression {
  */
 class StarExpression : public AbstractExpression {
  public:
-  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID) {}
+  /**
+   * Instantiates a new star expression, e.g. as in COUNT(*)
+   */
+  StarExpression()
+      : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID,
+                           std::vector<std::unique_ptr<AbstractExpression>>()) {}
 };
 
 }  // namespace expression

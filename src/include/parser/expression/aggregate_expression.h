@@ -19,7 +19,7 @@ class AggregateExpression : public AbstractExpression {
   /**
    * Instantiates a new aggregate expression.
    * @param type type of aggregate expression
-   * @param child child to be added
+   * @param children children to be added
    */
   explicit AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)) {}

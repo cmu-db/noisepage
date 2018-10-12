@@ -19,8 +19,7 @@ class ConjunctionExpression : public AbstractExpression {
   /**
    * Instantiates a new conjunction expression.
    * @param cmp_type type of conjunction
-   * @param left left operand
-   * @param right right operand
+   * @param children vector containing exactly two children, left then right
    */
   explicit ConjunctionExpression(const ExpressionType cmp_type,
                                  std::vector<std::unique_ptr<AbstractExpression>> *children)

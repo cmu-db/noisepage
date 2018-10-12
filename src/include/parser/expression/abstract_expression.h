@@ -11,11 +11,6 @@
 #include "type/value.h"
 
 namespace terrier {
-
-namespace codegen {
-class QueryParametersMap;
-}  // namespace codegen
-
 namespace parser {
 namespace expression {
 
