@@ -99,9 +99,14 @@ class BufferedLogWriter {
    * @param size number of bytes to write
    */
   void BufferWrite(const void *data, uint32_t size) {
-    TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
-    TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
-    buffer_size_ += size;
+    if (!CanBuffer(size)) FlushBuffer();
+    if (!CanBuffer(size))
+      WriteUnsynced(data, size);
+    else {
+      TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
+      TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
+      buffer_size_ += size;
+    }
   }
 
   /**
