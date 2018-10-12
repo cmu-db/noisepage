@@ -58,7 +58,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
-  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads_ = 4;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure

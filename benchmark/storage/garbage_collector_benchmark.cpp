@@ -4,16 +4,15 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
-#include "util/transaction_test_util.h"
+#include "util/transaction_benchmark_util.h"
 
 namespace terrier {
 
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
   const uint32_t txn_length = 5;
-  const std::vector<double> update_select_ratio = {1, 0};
-  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
-  const uint16_t max_columns = 3;
+  const std::vector<double> update_select_ratio = {0, 1, 0};
+  const uint32_t num_concurrent_txns = 4;
   const uint32_t initial_table_size = 100000;
   const uint32_t num_txns = 100000;
   storage::BlockStore block_store_{1000, 1000};
@@ -29,8 +28,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                      &buffer_pool_, &generator_, true, false);
+    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
+                                           &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn
@@ -68,8 +67,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionTestObject tested(max_columns, initial_table_size, txn_length, update_select_ratio, &block_store_,
-                                      &buffer_pool_, &generator_, true, false);
+    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
+                                           &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTxnManager());
 
     // clean up insert txn
