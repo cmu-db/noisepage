@@ -57,11 +57,13 @@ class PACKED ProjectedRow {
   uint16_t NumColumns() const { return num_cols_; }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   col_id_t *ColumnIds() { return reinterpret_cast<col_id_t *>(varlen_contents_); }
 
   /**
+   * @warning don't use these above the storage layer, they have no meaning
    * @return pointer to the start of the array of column ids
    */
   const col_id_t *ColumnIds() const { return reinterpret_cast<const col_id_t *>(varlen_contents_); }
@@ -166,9 +168,10 @@ class ProjectedRowInitializer {
    * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
    * utilization and performance. Make no assumption about the ordering of these elements and always consult either
    * the initializer or the populated ProjectedRow for the true ordering.
+   * @warning col_ids must be a set (no repeats)
    *
    * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
   ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 

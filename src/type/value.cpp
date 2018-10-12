@@ -1,4 +1,4 @@
-#include "type/value.h"
+#include <type/value.h>
 #include <cstring>
 #include <string>
 #include "type/type_id.h"
@@ -23,12 +23,12 @@ Value::Value(const Value &other) {
   value_ = other.value_;
 }
 
-// scalar constructors
-Value::Value(boolean_t value) {
+Value::Value(TypeId type_id, bool value) {
   value_.boolean = value;
   type_id_ = TypeId::BOOLEAN;
 }
 
+// scalar constructors
 Value::Value(int8_t value) {
   value_.tinyint = value;
   type_id_ = TypeId::TINYINT;
@@ -73,10 +73,10 @@ Value::Value(const std::string &value) {
   memcpy(const_cast<char *>(value.data()), value_.varchar, str_len);
 }
 
-Value::Value(const char *data, uint32_t len) {
+Value::Value(const byte *data, uint32_t len) {
   type_id_ = TypeId::VARBINARY;
   value_.varchar = static_cast<byte *>(malloc(len));
-  memcpy(const_cast<char *>(data), value_.varchar, len);
+  memcpy(const_cast<byte *>(data), value_.varchar, len);
 }
 
 bool Value::operator==(const Value &rhs) const {

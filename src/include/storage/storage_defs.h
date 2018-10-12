@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
@@ -18,7 +19,7 @@ namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID col_id_t(0)
-#define NUM_RESERVED_COLUMNS 1
+#define NUM_RESERVED_COLUMNS 1u
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
@@ -139,6 +140,9 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
+
+using ColumnMap = std::unordered_map<col_oid_t, col_id_t>;
+using ProjectionMap = std::unordered_map<col_oid_t, uint16_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas

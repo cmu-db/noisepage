@@ -7,11 +7,13 @@
 #include "type/type_id.h"
 
 namespace terrier::type {
-
+class ValueFactory;
 /**
  * Container for a variable type value.
  */
 class Value {
+  friend class terrier::type::ValueFactory;
+
  public:
   ~Value();
   /**
@@ -21,58 +23,11 @@ class Value {
   Value(const Value &other);
 
   /**
-   * Create a boolean value
-   * @param value
-   */
-  explicit Value(boolean_t value);
-  /**
-   * create a tinyint value
-   * @param value
-   */
-  explicit Value(int8_t value);
-  /**
-   * create a smallint value
-   * @param value
-   */
-  explicit Value(int16_t value);
-  /**
-   * Create an integer value
-   * @param value
-   */
-  explicit Value(int32_t value);
-  /**
-   * Create a bigint value
-   * @param value
-   */
-  explicit Value(int64_t value);
-  /**
-   * Create a double value
-   * @param value
-   */
-  explicit Value(double value);
-  /**
-   * Create a timestamp value
-   * @param value
-   */
-  explicit Value(timestamp_t value);
-  /**
-   * Create a date value
-   * @param value
-   */
-  explicit Value(date_t value);
-
-  /**
-   * Create a varchar value. Will be stored without a null terminator, with adjusted length.
-   * @param value - string.
-   */
-  explicit Value(const std::string &value);
-
-  /**
    * Create a varbinary value
    * @param data of the value
    * @param len in bytes of the data
    */
-  Value(const char *data, uint32_t len);
+  Value(const byte *data, uint32_t len);
 
   /**
    * Get the type of this value
@@ -85,7 +40,7 @@ class Value {
    * Get contents of a boolean value
    * @return boolean_t
    */
-  const boolean_t *GetBooleanValue() const {
+  const bool *GetBooleanValue() const {
     TERRIER_ASSERT(type_id_ == TypeId::BOOLEAN, "The type must be a boolean");
     return &value_.boolean;
   }
@@ -209,13 +164,59 @@ class Value {
 
  protected:
   /**
+   * Create a boolean value
+   */
+  Value(TypeId type_id, bool value);
+  /**
+   * create a tinyint value
+   * @param value
+   */
+  explicit Value(int8_t value);
+  /**
+   * create a smallint value
+   * @param value
+   */
+  explicit Value(int16_t value);
+  /**
+   * Create an integer value
+   * @param value
+   */
+  explicit Value(int32_t value);
+  /**
+   * Create a bigint value
+   * @param value
+   */
+  explicit Value(int64_t value);
+  /**
+   * Create a double value
+   * @param value
+   */
+  explicit Value(double value);
+  /**
+   * Create a timestamp value
+   * @param value
+   */
+  explicit Value(timestamp_t value);
+  /**
+   * Create a date value
+   * @param value
+   */
+  explicit Value(date_t value);
+
+  /**
+   * Create a varchar value. Will be stored without a null terminator, with adjusted length.
+   * @param value - string.
+   */
+  explicit Value(const std::string &value);
+  /**
    * Holds the type and value
    */
   union Val {
     /**
      * booleans
      */
-    boolean_t boolean;
+    // boolean_t boolean;
+    bool boolean;
     /**
      * tiny integers
      */

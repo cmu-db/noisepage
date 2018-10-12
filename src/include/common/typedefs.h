@@ -215,7 +215,7 @@ STRONG_TYPEDEF(boolean_t, int8_t);
 // TODO(Matt): consider namespacing strong typedefs so we have storage::col_id_t and catalog::col_oid_t
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(col_oid_t, uint32_t);
-STRONG_TYPEDEF(date_t, int32_t);
+STRONG_TYPEDEF(date_t, uint32_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 STRONG_TYPEDEF(table_oid_t, uint32_t);
 STRONG_TYPEDEF(timestamp_t, uint64_t);

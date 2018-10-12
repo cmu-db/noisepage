@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "common/typedefs.h"
 
 namespace terrier::type {
 /**
