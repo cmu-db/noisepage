@@ -1,22 +1,10 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// deleter.h
-//
-// Identification: src/include/execution/deleter.h
-//
-// Copyright (c) 2015-2017, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <cstdint>
 
 #include "common/macros.h"
 
-namespace terrier::execution {
+namespace terrier {
 
 namespace concurrency {
 class TransactionContext;
@@ -27,8 +15,11 @@ class ExecutionContext;
 }  // namespace execution
 
 namespace storage {
-class DataTable;
+class SqlTable;
+class TupleSlot;
 }  // namespace storage
+
+namespace execution {
 
 // This class handles deletion of tuples from generated code. It mainly exists
 // to avoid passing along table information through translators. Instead, this
@@ -36,26 +27,27 @@ class DataTable;
 class Deleter {
  public:
   // Constructor
-  Deleter(storage::DataTable *table, executor::ExecutionContext *executor_context);
+  Deleter(storage::SqlTable *table, execution::ExecutionContext *executor_context);
 
   // Initializer this deleter instance using the provided transaction and table.
   // All tuples to be deleted occur within the provided transaction are from
   // the provided table
-  static void Init(Deleter &deleter, storage::DataTable *table, executor::ExecutionContext *executor_context);
+  static void Init(Deleter &deleter, storage::SqlTable *table, execution::ExecutionContext *executor_context);
 
   // Delete the tuple within the provided tile group ID (unique) at the provided
   // offset from the start of the tile group.
-  void Delete(uint32_t tile_group_id, uint32_t tuple_offset);
+  void Delete(storage::TupleSlot slot);
 
  private:
   // The table the tuples are deleted from
-  storage::DataTable *table_;
+  storage::SqlTable *const table_;
 
   // The executor context with which the current execution happens
-  executor::ExecutionContext *executor_context_;
+  execution::ExecutionContext *const executor_context_;
 
  private:
   DISALLOW_COPY_AND_MOVE(Deleter);
 };
 
-}  // namespace terrier::execution
+}  // namespace execution
+}  // namespace terrier

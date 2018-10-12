@@ -534,7 +534,7 @@ void Aggregation::FinalizeValues(CodeGen &codegen, llvm::Value *space, std::vect
         Value count_casted = count.CastTo(codegen, type::Decimal::Instance());
 
         // Compute the average
-        Value final_val = sum_casted.Div(codegen, count_casted, OnError::ReturnNull);
+        Value final_val = sum_casted.Div(codegen, count_casted, OnError::RETURN_NULL);
 
         // append final value to result vector
         final_vals.push_back(final_val);

@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include "common/internal_types.h"
 #include "execution/codegen.h"
 #include "execution/type/type.h"
+#include "execution/execution_defs.h"
 
 namespace terrier::execution {
 
@@ -75,11 +75,11 @@ class Value {
   // Mathematical functions
   //===--------------------------------------------------------------------===//
 
-  Value Add(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
-  Value Sub(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
-  Value Mul(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
-  Value Div(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
-  Value Mod(CodeGen &codegen, const Value &other, const OnError on_error = OnError::Exception) const;
+  Value Add(CodeGen &codegen, const Value &other, OnError on_error = OnError::THROW_EXCEPTION) const;
+  Value Sub(CodeGen &codegen, const Value &other, OnError on_error = OnError::THROW_EXCEPTION) const;
+  Value Mul(CodeGen &codegen, const Value &other, OnError on_error = OnError::THROW_EXCEPTION) const;
+  Value Div(CodeGen &codegen, const Value &other, OnError on_error = OnError::THROW_EXCEPTION) const;
+  Value Mod(CodeGen &codegen, const Value &other, OnError on_error = OnError::THROW_EXCEPTION) const;
   Value Min(CodeGen &codegen, const Value &other) const;
   Value Max(CodeGen &codegen, const Value &other) const;
 

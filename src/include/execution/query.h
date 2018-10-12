@@ -92,7 +92,8 @@ class Query {
    * @param consumer Stores the result.
    * @param stats Handy struct to collect various runtime timing statistics
    */
-  void Execute(executor::ExecutionContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats = nullptr);
+  void Execute(executor::ExecutionContext &executor_context, ExecutionConsumer &consumer,
+               RuntimeStats *stats = nullptr);
 
   //////////////////////////////////////////////////////////////////////////////
   ///
