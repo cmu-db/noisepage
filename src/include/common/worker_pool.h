@@ -118,7 +118,6 @@ class WorkerPool {
       }
     } else {
       workers_.resize(num);
-
     }
     num_workers_ = num;
   }
