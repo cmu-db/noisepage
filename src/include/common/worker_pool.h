@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 #include "macros.h"
+#include "spin_latch.h"
 
 namespace terrier::common {
 
@@ -39,9 +40,7 @@ class WorkerPool {
    * @param task_queue a queue of tasks
    */
   WorkerPool(uint32_t num_workers, TaskQueue task_queue)
-      : num_workers_(num_workers),
-        is_running_(false),
-        task_queue_(std::move(task_queue)) {}
+      : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)) {}
 
   /**
    * Destructor. Wake up all workers and let them finish before it's destroyed.
@@ -85,7 +84,7 @@ class WorkerPool {
   template <typename F>
   void SubmitTask(const F &func) {
     TERRIER_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
-    std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
+    std::unique_lock<std::mutex> lock(task_lock_);
     task_queue_.emplace(std::move(func));
     task_cv_.notify_one();
   }
@@ -105,6 +104,24 @@ class WorkerPool {
    * @return The number of worker threads
    */
   uint32_t NumWorkers() const { return num_workers_; }
+
+  /**
+   * Change the number of worker threads. It can only be done when the thread pool
+   * if not running.
+   *
+   * @param num the number of worker threads.
+   */
+  void SetNumWorkers(uint32_t num) {
+    TERRIER_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
+    if (num > num_workers_) {
+      for (uint32_t i = 0; i < num - num_workers_; i++) {
+        AddThread();
+      }
+      num_workers_ = num;
+    } else {
+      workers_.resize(num);
+    }
+  }
 
  private:
   // The worker threads
