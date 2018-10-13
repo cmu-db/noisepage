@@ -27,7 +27,7 @@ class TestThreadPool {
    * @param repeat the number of times this should be done.
    */
   void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
-    common::WorkerPool thread_pool("test_pool", num_threads, {});
+    common::WorkerPool thread_pool(num_threads, {});
     for (uint32_t i = 0; i < repeat; i++) {
       // add the jobs to the queue
       for (uint32_t j = 0; j < num_threads; j++) {

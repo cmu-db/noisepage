@@ -38,9 +38,8 @@ class WorkerPool {
    * @param num_workers the number of workers in this pool
    * @param task_queue a queue of tasks
    */
-  WorkerPool(std::string pool_name, uint32_t num_workers, TaskQueue task_queue)
-      : pool_name_(std::move(pool_name)),
-        num_workers_(num_workers),
+  WorkerPool(uint32_t num_workers, TaskQueue task_queue)
+      : num_workers_(num_workers),
         is_running_(false),
         task_queue_(std::move(task_queue)) {}
 
@@ -108,8 +107,6 @@ class WorkerPool {
   uint32_t NumWorkers() const { return num_workers_; }
 
  private:
-  // The name of this pool
-  std::string pool_name_;
   // The worker threads
   std::vector<std::thread> workers_;
   // The number of worker threads
