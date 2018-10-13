@@ -44,9 +44,11 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     // sees this record.
     byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
+
   } else {
     // TODO(Tianyu): Is this the right thing to do?
     callback(callback_arg);
+
   }
   // Signal to the log manager that we are ready to be logged out
   txn->redo_buffer_.Finalize(true);
@@ -59,7 +61,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
-
 
   return commit_time;
 }
