@@ -48,7 +48,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   } else {
     // TODO(Tianyu): Is this the right thing to do?
     callback(callback_arg);
-
   }
   // Signal to the log manager that we are ready to be logged out
   txn->redo_buffer_.Finalize(true);
@@ -79,7 +78,6 @@ void TransactionManager::Abort(TransactionContext *const txn) {
     TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
-
 }
 
 timestamp_t TransactionManager::OldestTransactionStartTime() const {
@@ -115,9 +113,11 @@ void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoR
       for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
         storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
       break;
-    case storage::DeltaRecordType::INSERT:table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+    case storage::DeltaRecordType::INSERT:
+      table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
       break;
-    case storage::DeltaRecordType::DELETE:table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+    case storage::DeltaRecordType::DELETE:
+      table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
   }
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
