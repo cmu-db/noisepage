@@ -9,6 +9,7 @@
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
+#include "macros.h"
 
 namespace terrier::common {
 
@@ -78,16 +79,13 @@ class WorkerPool {
 
   /**
    * Add a task to the task queue and inform worker threads.
+   * You can only submit tasks after the thread pool has started up.
    *
-   * Side effect: If the pool has been shutdown, calling SubmitTask will automatically
-   * re-startup the pool and resume to work.
    * @param func the new task
    */
   template <typename F>
-  inline void SubmitTask(const F &func) {
-    if (!is_running_) {
-      Startup();
-    }
+  void SubmitTask(const F &func) {
+    TERRIER_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
     std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
     task_queue_.emplace(std::move(func));
     task_cv_.notify_one();
