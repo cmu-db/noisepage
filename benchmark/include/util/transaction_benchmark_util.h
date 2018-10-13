@@ -11,6 +11,11 @@
 #include "util/test_harness.h"
 
 namespace terrier {
+struct TestCallbacks {
+  TestCallbacks() = delete;
+  static void EmptyCallback(void * /*unused*/) {}
+};
+
 class LargeTransactionBenchmarkObject;
 class RandomWorkloadTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
