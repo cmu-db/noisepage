@@ -29,6 +29,8 @@ class MultiTheadTestUtil {
    */
   static void RunThreadsUntilFinish(common::WorkerPool *thread_pool, uint32_t num_threads,
                                     const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
+    // Shut the thread_pool down to set the number of threads
+    thread_pool->Shutdown();
     thread_pool->SetNumWorkers(num_threads);
     for (uint32_t i = 0; i < repeat; i++) {
       thread_pool->Startup();

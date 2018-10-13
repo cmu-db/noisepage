@@ -31,15 +31,16 @@ class WorkerPool {
    * Initialize the worker pool. Once the number of worker is set by the constructor
    * it cannot be changed.
    *
-   * After initialization of the worker pool with a given task queue, worker threads
-   * do NOT start running. Need call StartUp() to start working on tasks.
+   * After initialization, the worker pool automatically starts up.
    *
    * @param num_workers the number of workers in this pool
    * @param task_queue a queue of tasks
    */
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   WorkerPool(uint32_t num_workers = 1, TaskQueue task_queue = TaskQueue())
-      : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)) {}
+      : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)) {
+    Startup();
+  }
 
   /**
    * Destructor. Wake up all workers and let them finish before it's destroyed.
@@ -162,7 +163,7 @@ class WorkerPool {
         // we lock again to notify that we're done
         lock.lock();
         --busy_workers_;
-        finished_cv_.notify_one();
+        finished_cv_.notify_all();
       }
     });
   }

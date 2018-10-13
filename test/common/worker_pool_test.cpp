@@ -14,7 +14,6 @@ namespace terrier {
 TEST(WorkerPoolTests, BasicTest) {
   common::TaskQueue tasks;
   common::WorkerPool thread_pool(5, tasks);
-  thread_pool.Startup();
   std::atomic<int> counter(0);
 
   int var1 = 1;
