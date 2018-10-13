@@ -8,7 +8,7 @@
 #include "common/container/concurrent_bitmap.h"
 #include "gtest/gtest.h"
 #include "util/container_test_util.h"
-#include "util/test_thread_pool.h"
+#include "util/multithread_test_util.h"
 
 namespace terrier {
 
@@ -164,11 +164,10 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosSizeTest) {
 // The test attempts to concurrently flip every bit from 0 to 1 using FirstUnsetPos
 // NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
-  TestThreadPool thread_pool;
   std::default_random_engine generator;
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 10000;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
@@ -184,7 +183,8 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
       }
     };
 
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and
     // then sort the results
@@ -209,11 +209,10 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
 // This is equivalent to grabbing a free slot if used in an allocator
 // NOLINTNEXTLINE
 TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
-  TestThreadPool thread_pool;
   std::default_random_engine generator;
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 100000;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
@@ -225,7 +224,8 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
         if (bitmap->Flip(i, false)) elements[thread_id].push_back(i);
     };
 
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and
     // then sort the results

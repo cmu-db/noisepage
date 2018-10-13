@@ -4,8 +4,8 @@
 #include "common/typedefs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
+#include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -34,7 +34,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads_ = MultiTheadTestUtil::HardwareConcurrency();
   const uint32_t num_blocks_ = num_inserts_ / layout_.NumSlots();
   const uint64_t block_store_reuse_limit_ = num_blocks_;
 
@@ -79,7 +79,6 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // Insert the num_inserts_ of tuples into Blocks concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
-  TestThreadPool thread_pool;
   storage::TupleAccessStrategy tested(layout_);
 
   // NOLINTNEXTLINE
@@ -99,7 +98,8 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
         }
       };
 
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      common::WorkerPool thread_pool;
+      MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
     for (uint32_t i = 0; i < num_blocks_; i++) {

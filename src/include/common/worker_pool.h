@@ -9,8 +9,7 @@
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
-#include "macros.h"
-#include "spin_latch.h"
+#include "common/macros.h"
 
 namespace terrier::common {
 
@@ -39,7 +38,8 @@ class WorkerPool {
    * @param num_workers the number of workers in this pool
    * @param task_queue a queue of tasks
    */
-  WorkerPool(uint32_t num_workers, TaskQueue task_queue)
+  // NOLINTNEXTLINE  lint thinks it has only one arguement
+  WorkerPool(uint32_t num_workers = 1, TaskQueue task_queue = TaskQueue())
       : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)) {}
 
   /**

@@ -16,7 +16,7 @@ namespace terrier {
 /**
  * Thread pool for use in tests to avoid creating and destroying a ton of threads when running multiple iterations
  */
-class TestThreadPool {
+class MultiTheadTestUtil {
  public:
   /**
    * Execute the workload with the specified number of threads and wait for them to finish before
@@ -26,16 +26,18 @@ class TestThreadPool {
    * @param workload the task the thread should run
    * @param repeat the number of times this should be done.
    */
-  void RunThreadsUntilFinish(uint32_t num_threads, const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
-    common::WorkerPool thread_pool(num_threads, {});
+  static void RunThreadsUntilFinish(common::WorkerPool *thread_pool, uint32_t num_threads,
+                                    const std::function<void(uint32_t)> &workload, uint32_t repeat = 1) {
+    thread_pool->SetNumWorkers(num_threads);
     for (uint32_t i = 0; i < repeat; i++) {
+      thread_pool->Startup();
       // add the jobs to the queue
-      for (uint32_t j = 0; j < num_threads; j++) {
-        thread_pool.SubmitTask([j, &workload] { workload(j); });
+      for (uint32_t j = 0; j < thread_pool->NumWorkers(); j++) {
+        thread_pool->SubmitTask([j, &workload] { workload(j); });
       }
-      thread_pool.WaitUntilAllFinished();
+      thread_pool->WaitUntilAllFinished();
+      thread_pool->Shutdown();
     }
-    thread_pool.Shutdown();
   }
 
   /**

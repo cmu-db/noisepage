@@ -1,9 +1,9 @@
 #include "storage/varlen_pool.h"
 #include <vector>
 #include "gtest/gtest.h"
+#include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -35,8 +35,7 @@ void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
 // expected value, and no overlapping)
 // NOLINTNEXTLINE
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
-  TestThreadPool thread_pool;
-  const uint32_t repeat = 100, num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t repeat = 100, num_threads = MultiTheadTestUtil::HardwareConcurrency();
   for (uint32_t i = 0; i < repeat; i++) {
     storage::VarlenPool pool;
     std::vector<std::vector<storage::VarlenEntry *>> entries(num_threads);
@@ -66,8 +65,8 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate}, {0.2, 0.8}, &generator, 100);
     };
-
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Concat all the entries we have
     std::vector<storage::VarlenEntry *> all_entries;

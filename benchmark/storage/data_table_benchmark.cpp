@@ -7,8 +7,8 @@
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -58,7 +58,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
-  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads_ = MultiTheadTestUtil::HardwareConcurrency();
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
@@ -98,7 +98,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
 // Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state) {
-  TestThreadPool thread_pool;
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_, layout_version_t(0));
@@ -107,7 +106,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, LOGGING_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
-    thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 
   state.SetItemsProcessed(state.iterations() * num_inserts_);
@@ -160,7 +160,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
 // Read the num_reads_ of tuples in a random order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &state) {
-  TestThreadPool thread_pool;
   storage::DataTable read_table(&block_store_, layout_, layout_version_t(0));
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
@@ -185,7 +184,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
       for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)
         read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
-    thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 
   state.SetItemsProcessed(state.iterations() * num_reads_);

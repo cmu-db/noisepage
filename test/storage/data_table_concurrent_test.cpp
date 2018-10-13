@@ -3,9 +3,9 @@
 #include <vector>
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
+#include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 class FakeTransaction {
@@ -84,11 +84,10 @@ struct DataTableConcurrentTests : public TerrierTest {
 // Therefore all transactions should successfully insert their tuples, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
-  TestThreadPool thread_pool;
   const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, layout_version_t(0));
@@ -101,8 +100,8 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
       std::default_random_engine thread_generator(id);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) fake_txns[id]->InsertRandomTuple(&thread_generator);
     };
-
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
@@ -121,10 +120,9 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 // Therefore only one transaction should win, which is what we test for.
 // NOLINTNEXTLINE
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
-  TestThreadPool thread_pool;
   const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, layout_version_t(0));
@@ -147,8 +145,8 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
       else
         fail++;
     };
-
-    thread_pool.RunThreadsUntilFinish(num_threads, workload);
+    common::WorkerPool thread_pool;
+    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     EXPECT_EQ(1, success);
     EXPECT_EQ(num_threads - 1, fail);
   }

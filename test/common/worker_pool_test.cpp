@@ -4,8 +4,8 @@
 
 #include "common/worker_pool.h"
 #include "gtest/gtest.h"
+#include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -13,7 +13,7 @@ namespace terrier {
 // NOLINTNEXTLINE
 TEST(WorkerPoolTests, BasicTest) {
   common::TaskQueue tasks;
-  common::WorkerPool thread_pool("test-pool", 5, tasks);
+  common::WorkerPool thread_pool(5, tasks);
   thread_pool.Startup();
   std::atomic<int> counter(0);
 
