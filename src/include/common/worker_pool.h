@@ -92,7 +92,7 @@ class WorkerPool {
   /**
    * Block until all the tasks in the task queue has been completed
    */
-  void WaitUtilFinish() {
+  void WaitUntilAllFinished() {
     std::unique_lock<std::mutex> lock(task_lock_);
     // wait for all the tasks to complete
     finished_cv_.wait(lock, [this] { return busy_workers_ == 0 && task_queue_.empty(); });

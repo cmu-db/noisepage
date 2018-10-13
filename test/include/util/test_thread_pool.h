@@ -33,7 +33,7 @@ class TestThreadPool {
       for (uint32_t j = 0; j < num_threads; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
-      thread_pool.WaitUtilFinish();
+      thread_pool.WaitUntilAllFinished();
     }
     thread_pool.Shutdown();
   }
