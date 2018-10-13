@@ -34,7 +34,6 @@ class WorkerPool {
    * After initialization of the worker pool with a given task queue, worker threads
    * do NOT start running. Need call StartUp() to start working on tasks.
    *
-   * @param pool_name the name of the worker pool
    * @param num_workers the number of workers in this pool
    * @param task_queue a queue of tasks
    */
@@ -117,10 +116,11 @@ class WorkerPool {
       for (uint32_t i = 0; i < num - num_workers_; i++) {
         AddThread();
       }
-      num_workers_ = num;
     } else {
       workers_.resize(num);
+
     }
+    num_workers_ = num;
   }
 
  private:
