@@ -71,7 +71,7 @@ void RandomWorkloadTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_, [] {});
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
 LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
@@ -165,7 +165,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     }
     last_checked_version_.emplace_back(inserted, nullptr);
   }
-  txn_manager_.Commit(initial_txn_, [] {});
+  txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
   // cleanup if not keeping track of all the inserts.
   delete[] redo_buffer;
 }
