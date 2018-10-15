@@ -3,9 +3,6 @@ pipeline {
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
     }
-    triggers {
-        GenericTrigger(causeString: 'Travis builds succeeded', token: '5331146c7f6f99b995e8')
-    }
     stages {
         stage('Build') {
             parallel {
