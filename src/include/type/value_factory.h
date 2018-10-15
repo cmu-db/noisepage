@@ -8,6 +8,9 @@
 
 namespace terrier::type {
 
+/**
+ * Factory class for creating Value instances.
+ */
 class ValueFactory {
  public:
   /**
