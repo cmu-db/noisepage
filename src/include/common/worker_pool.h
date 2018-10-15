@@ -38,7 +38,7 @@ class WorkerPool {
    */
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   WorkerPool(uint32_t num_workers = 1, TaskQueue task_queue = TaskQueue())
-      : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)) {
+      : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)), busy_workers_{0} {
     Startup();
   }
 
@@ -133,7 +133,7 @@ class WorkerPool {
   // The queue where workers pick up tasks
   TaskQueue task_queue_;
 
-  uint32_t busy_workers_ = 0;
+  uint32_t busy_workers_;
 
   std::mutex task_lock_;
 

@@ -22,7 +22,8 @@ class MultiTheadTestUtil {
    * Execute the workload with the specified number of threads and wait for them to finish before
    * returning. This can be done repeatedly if desired. Threads will be reused.
    *
-   * @param thread_pool the thread pool for running workloads
+   * @param thread_pool the thread pool for running workloads. It should be a clean thread_pool where no tasks
+   * has been assigned yet.
    * @param num_threads number of threads to use for execution
    * @param workload the task the thread should run
    * @param repeat the number of times this should be done.
