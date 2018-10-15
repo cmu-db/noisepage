@@ -34,7 +34,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads_ = 4;
   const uint32_t num_blocks_ = num_inserts_ / layout_.NumSlots();
   const uint64_t block_store_reuse_limit_ = num_blocks_;
 
