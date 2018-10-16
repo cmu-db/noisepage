@@ -33,6 +33,7 @@ class TestConfig(object):
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
+                               "logging_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
@@ -712,6 +713,7 @@ class RunMicroBenchmarks(object):
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
+                               "logging_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
