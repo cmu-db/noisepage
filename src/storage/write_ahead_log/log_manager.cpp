@@ -3,27 +3,29 @@
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    if (flush_queue_.empty()) return;
-    RecordBufferSegment *buffer = flush_queue_.front();
+    RecordBufferSegment *buffer;
+    // In a short critical section, try to dequeue an item
+    {
+      common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
+      if (flush_queue_.empty()) break;
+      buffer = flush_queue_.front();
+      flush_queue_.pop();
+    }
     for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       SerializeRecord(record);
-      if (record.RecordType() == LogRecordType::COMMIT) commits_in_buffer_.push_back(record.TxnBegin());
+      if (record.RecordType() == LogRecordType::COMMIT) {
+        auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
+        commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
+      }
     }
     buffer_pool_->Release(buffer);
-    flush_queue_.pop();
   }
+  Flush();
 }
 
 void LogManager::Flush() {
-  out_.Flush();
-  common::SpinLatch::ScopedSpinLatch guard(&callbacks_latch_);
-  for (timestamp_t txn : commits_in_buffer_) {
-    auto it = callbacks_.find(txn);
-    TERRIER_ASSERT(it != callbacks_.end(), "committing transaction does not have a registered callback for flush");
-    it->second();
-    callbacks_.erase(it);
-  }
+  out_.Persist();
+  for (auto &callback : commits_in_buffer_) callback.first(callback.second);
   commits_in_buffer_.clear();
 }
 
@@ -37,7 +39,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       WriteValue(record_body->GetDataTable()->TableOid());
       WriteValue(record_body->GetTupleSlot());
       // TODO(Tianyu): Need to inline varlen or other things, and figure out a better representation.
-      Write(record_body->Delta(), record_body->Delta()->Size());
+      out_.BufferWrite(record_body->Delta(), record_body->Delta()->Size());
       break;
     }
     case LogRecordType::DELETE: {
@@ -49,18 +51,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     case LogRecordType::COMMIT:
       WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
   }
-}
-
-void LogManager::Write(const void *data, uint32_t size) {
-  if (!out_.CanBuffer(size)) Flush();
-  if (!out_.CanBuffer(size)) {
-    // This write is too large to fit into a buffer, we need to write directly without a buffer,
-    // but no flush is necessary since the commit records are always small enough to be buffered
-    out_.WriteUnsynced(data, size);
-    return;
-  }
-  // Write can be buffered
-  out_.BufferWrite(data, size);
 }
 
 }  // namespace terrier::storage
