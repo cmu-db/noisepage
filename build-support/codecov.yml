@@ -1,7 +1,7 @@
-ignore:
-  - "benchmark/.*"
-  - "test/.*"
-  - "third_party/.*"
-  - "src/main/.*"
 fixes:
   - "/repo/::"
+ignore:
+  - "/benchmark"
+  - "/test"
+  - "/third_party"
+  - "/src/main"
