@@ -28,14 +28,13 @@ matrix:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
         - docker cp . build:/repo
-    # Coverage. Will be replaced by Jenkins.
     - os: linux
       dist: trusty
       env:
-      - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true SH=bash
+      - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true ci_env=`bash <(curl -s https://codecov.io/env)`
       install:
       - docker build -t cmu-db/terrier .
-      - docker run $ci_env -itd --name build cmu-db/terrier
+      - docker run -itd --name build cmu-db/terrier
       - docker cp . build:/repo
       before_script:
       - docker exec build /bin/sh -c "apt-get -y install curl"
@@ -44,11 +43,8 @@ matrix:
       - docker exec build /bin/sh -c "cd /repo/build && make -j"
       - docker exec build /bin/sh -c "cd /repo/build && make unittest"
       script:
-      # request codecov to detect CI environment to pass through to docker
-      - ci_env=`bash <(curl -s https://codecov.io/env)`
       - echo "$ci_env"
       - docker exec "$ci_env" build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
-      - docker exec build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
