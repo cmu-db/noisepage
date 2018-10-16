@@ -19,10 +19,10 @@
 
 namespace terrier::execution {
 
-namespace executor {
-class ExecutorContext;
+namespace execution {
+class ExecutionContext;
 struct ExecutionResult;
-}  // namespace executor
+}  // namespace execution
 
 namespace planner {
 class AbstractPlan;
@@ -53,7 +53,7 @@ class Query {
   // We use this handy class for the parameters to the llvm functions
   // to avoid complex casting and pointer manipulation
   struct FunctionArguments {
-    executor::ExecutorContext *executor_context;
+    executor::ExecutionContext *executor_context;
     char *consumer_arg;
     char rest[0];
   } PACKED;
@@ -92,7 +92,8 @@ class Query {
    * @param consumer Stores the result.
    * @param stats Handy struct to collect various runtime timing statistics
    */
-  void Execute(executor::ExecutorContext &executor_context, ExecutionConsumer &consumer, RuntimeStats *stats = nullptr);
+  void Execute(executor::ExecutionContext &executor_context, ExecutionConsumer &consumer,
+               RuntimeStats *stats = nullptr);
 
   //////////////////////////////////////////////////////////////////////////////
   ///

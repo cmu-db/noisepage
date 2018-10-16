@@ -220,7 +220,7 @@ TEST_F(HashTableTest, ParallelMerge) {
   constexpr uint32_t to_insert = 20000;
 
   // Allocate hash tables for each thread
-  executor::ExecutorContext exec_ctx{nullptr};
+  executor::ExecutionContext exec_ctx{nullptr};
 
   auto &thread_states = exec_ctx.GetThreadStates();
   thread_states.Reset(sizeof(codegen::util::HashTable));

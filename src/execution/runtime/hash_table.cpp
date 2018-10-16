@@ -131,7 +131,7 @@ HashTable::~HashTable() {
   }
 }
 
-void HashTable::Init(HashTable &table, executor::ExecutorContext &exec_ctx, uint32_t key_size, uint32_t value_size) {
+void HashTable::Init(HashTable &table, executor::ExecutionContext &exec_ctx, uint32_t key_size, uint32_t value_size) {
   new (&table) HashTable(*exec_ctx.GetPool(), key_size, value_size);
 }
 
@@ -153,7 +153,7 @@ char *HashTable::InsertLazy(uint64_t hash) {
     directory_[0] = entry;
     directory_[1] = entry;
   } else {
-    PELOTON_ASSERT(directory_[1] != nullptr);
+    TERRIER_ASSERT(directory_[1] != nullptr, "Should have been initialized with directory[0].");
     directory_[1]->next = entry;
     directory_[1] = entry;
   }
@@ -219,7 +219,7 @@ void HashTable::BuildLazy() {
   }
 }
 
-void HashTable::ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t hash_table_offset) {
+void HashTable::ReserveLazy(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t hash_table_offset) {
   // Determine the total number of tuples stored across each hash table
   uint64_t total_size = 0;
   for (uint32_t i = 0; i < thread_states.NumThreads(); i++) {
@@ -266,14 +266,14 @@ void HashTable::MergeLazyUnfinished(HashTable &other) {
   ::peloton::atomic_add(&num_elems_, other.NumElements());
 
   // Transfer all allocated memory blocks in the other table into this one
-  PELOTON_ASSERT(&memory_ == &other.memory_);
+  TERRIER_ASSERT(&memory_ == &other.memory_, "Same memory starting location required.");
   other.num_elems_ = other.capacity_ = 0;
   other.entry_buffer_.TransferMemoryBlocks(entry_buffer_);
 }
 
 void HashTable::Resize() {
   // Sanity check
-  PELOTON_ASSERT(NeedsResize());
+  TERRIER_ASSERT(NeedsResize(), "Make sure we actually need to resize!");
 
   // Double the capacity
   capacity_ *= 2;

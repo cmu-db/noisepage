@@ -22,8 +22,8 @@ ExecutionConsumer::ExecutionConsumer() : executor_ctx_type_(nullptr) {}
 void ExecutionConsumer::Prepare(CompilationContext &compilation_ctx) {
   CodeGen &codegen = compilation_ctx.GetCodeGen();
   QueryState &query_state = compilation_ctx.GetQueryState();
-  executor_ctx_type_ = ExecutorContextProxy::GetType(codegen);
-  executor_ctx_id_ = query_state.RegisterState("executorContext", executor_ctx_type_->getPointerTo());
+  executor_ctx_type_ = ExecutionContextProxy::GetType(codegen);
+  executor_ctx_id_ = query_state.RegisterState("ExecutionContext", executor_ctx_type_->getPointerTo());
 }
 
 void ExecutionConsumer::InitializePipelineState(PipelineContext &pipeline_ctx) {
@@ -39,34 +39,34 @@ void ExecutionConsumer::ConsumeResult(ConsumerContext &context, RowBatch &batch)
   batch.Iterate(context.GetCodeGen(), [this, &context](RowBatch::Row &row) { ConsumeResult(context, row); });
 }
 
-llvm::Value *ExecutionConsumer::GetExecutorContextPtr(CompilationContext &compilation_ctx) {
+llvm::Value *ExecutionConsumer::GetExecutionContextPtr(CompilationContext &compilation_ctx) {
   QueryState &query_state = compilation_ctx.GetQueryState();
   return query_state.LoadStateValue(compilation_ctx.GetCodeGen(), executor_ctx_id_);
 }
 
 llvm::Value *ExecutionConsumer::GetTransactionPtr(CompilationContext &compilation_ctx) {
   CodeGen &codegen = compilation_ctx.GetCodeGen();
-  auto *exec_ctx_ptr = GetExecutorContextPtr(compilation_ctx);
+  auto *exec_ctx_ptr = GetExecutionContextPtr(compilation_ctx);
   auto *addr = codegen->CreateConstInBoundsGEP2_32(executor_ctx_type_, exec_ctx_ptr, 0, 1);
   return codegen->CreateLoad(addr, "transactionPtr");
 }
 
 llvm::Value *ExecutionConsumer::GetStorageManagerPtr(CompilationContext &compilation_ctx) {
   CodeGen &codegen = compilation_ctx.GetCodeGen();
-  auto *exec_ctx_ptr = GetExecutorContextPtr(compilation_ctx);
+  auto *exec_ctx_ptr = GetExecutionContextPtr(compilation_ctx);
   auto *addr = codegen->CreateConstInBoundsGEP2_32(executor_ctx_type_, exec_ctx_ptr, 0, 3);
   return codegen->CreateLoad(addr, "storageMgrPtr");
 }
 
 llvm::Value *ExecutionConsumer::GetQueryParametersPtr(CompilationContext &compilation_ctx) {
   CodeGen &codegen = compilation_ctx.GetCodeGen();
-  auto *exec_ctx_ptr = GetExecutorContextPtr(compilation_ctx);
+  auto *exec_ctx_ptr = GetExecutionContextPtr(compilation_ctx);
   return codegen->CreateConstInBoundsGEP2_32(executor_ctx_type_, exec_ctx_ptr, 0, 2, "queryParamsPtr");
 }
 
 llvm::Value *ExecutionConsumer::GetThreadStatesPtr(CompilationContext &compilation_ctx) {
   CodeGen &codegen = compilation_ctx.GetCodeGen();
-  auto *exec_ctx_ptr = GetExecutorContextPtr(compilation_ctx);
+  auto *exec_ctx_ptr = GetExecutionContextPtr(compilation_ctx);
   return codegen->CreateConstInBoundsGEP2_32(executor_ctx_type_, exec_ctx_ptr, 0, 5, "threadStatesPtr");
 }
 

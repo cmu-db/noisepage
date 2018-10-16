@@ -256,7 +256,7 @@ include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${TBB_LIBRARIES})
 
 # Boost filesystem
-find_package(Boost COMPONENTS filesystem REQUIRED)
+find_package(Boost COMPONENTS system REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 

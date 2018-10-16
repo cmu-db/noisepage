@@ -30,7 +30,7 @@ namespace terrier::execution {
 
 namespace type {
 
-class Invalid : public SqlType, public Singleton<Invalid> {
+class Invalid : public SqlType {
  public:
   bool IsVariableLength() const override { throw Exception{"INVALID type know if it is variable in length"}; }
 
@@ -64,8 +64,6 @@ class Invalid : public SqlType, public Singleton<Invalid> {
   const TypeSystem &GetTypeSystem() const override { throw Exception{"INVALID type doesn't have a type system"}; }
 
  private:
-  friend class Singleton<Invalid>;
-
   Invalid() : SqlType(::terrier::type::TypeId::INVALID) {}
 };
 

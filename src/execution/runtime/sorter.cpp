@@ -17,7 +17,7 @@
 
 #include "common/synchronization/count_down_latch.h"
 #include "common/timer.h"
-#include "threadpool/mono_queue_pool.h"
+#include "common/worker_pool.h"
 
 namespace terrier::execution {
 
@@ -41,7 +41,7 @@ Sorter::~Sorter() {
   for (const auto &iter : blocks_) {
     void *block = iter.first;
     total_alloc += iter.second;
-    PELOTON_ASSERT(block != nullptr);
+    TERRIER_ASSERT(block != nullptr, "Block cannot be null.");
     memory_.Free(block);
   }
   buffer_pos_ = buffer_end_ = nullptr;
@@ -52,7 +52,7 @@ Sorter::~Sorter() {
             total_alloc / 1024.0);
 }
 
-void Sorter::Init(Sorter &sorter, executor::ExecutorContext &exec_ctx, ComparisonFunction func, uint32_t tuple_size) {
+void Sorter::Init(Sorter &sorter, executor::ExecutionContext &exec_ctx, ComparisonFunction func, uint32_t tuple_size) {
   new (&sorter) Sorter(*exec_ctx.GetPool(), func, tuple_size);
 }
 
@@ -122,7 +122,8 @@ struct MergeWork {
 // N splitter keys. For each splitter key, we find all input ranges and output
 // positions and construct a merge package. Merge packages are independent
 // pieces of work that are issued in parallel across a set of worker threads.
-void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t sorter_offset) {
+void Sorter::SortParallel(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t sorter_offset,
+                          common::WorkerPool &work_pool) {
   // Collect all sorter instances
   uint64_t num_tuples = 0;
   std::vector<Sorter *> sorters;
@@ -130,9 +131,6 @@ void Sorter::SortParallel(const executor::ExecutorContext::ThreadStates &thread_
     sorters.push_back(sorter);
     num_tuples += sorter->NumTuples();
   });
-
-  // The worker pool we use to execute parallel work
-  auto &work_pool = threadpool::MonoQueuePool::GetExecutionInstance();
 
   // The main comparison function to compare two tuples
   auto comp = [this](char *l, char *r) { return cmp_func_(l, r) < 0; };
@@ -302,7 +300,7 @@ void Sorter::MakeRoomForNewTuple() {
     return;
   }
 
-  PELOTON_ASSERT(next_alloc_size_ >= tuple_size_);
+  TERRIER_ASSERT(next_alloc_size_ >= tuple_size_, "Ensure we actually need to make room.");
 
   LOG_TRACE("Allocating block of size %.2lf KB ...", next_alloc_size_ / 1024.0);
 

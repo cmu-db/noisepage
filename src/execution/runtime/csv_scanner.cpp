@@ -71,7 +71,7 @@ CSVScanner::~CSVScanner() {
   }
 }
 
-void CSVScanner::Init(CSVScanner &scanner, executor::ExecutorContext &executor_context, const char *file_path,
+void CSVScanner::Init(CSVScanner &scanner, executor::ExecutionContext &executor_context, const char *file_path,
                       const type::Type *col_types, uint32_t num_cols, CSVScanner::Callback func, void *opaque_state,
                       char delimiter, char quote, char escape) {
   // Forward to constructor
@@ -133,7 +133,7 @@ bool CSVScanner::NextBuffer() {
 }
 
 void CSVScanner::AppendToLineBuffer(const char *data, uint32_t len) {
-  PELOTON_ASSERT(len > 0);
+  TERRIER_ASSERT(len > 0, "Must append a positive length.");
 
   // Short-circuit if we're not appending any data
   if (len == 0) {

@@ -277,7 +277,7 @@ double BloomFilterCodegenTest::ExecuteJoin(std::string query, concurrency::Trans
     planner::BindingContext context;
     plan->PerformBinding(context);
 
-    executor::ExecutorContext executor_context{txn};
+    executor::ExecutionContext executor_context{txn};
 
     // Use simple CountConsumer since we don't care about the result
     codegen::CountingConsumer consumer;

@@ -55,7 +55,7 @@ struct CastDecimal : public TypeSystem::CastHandleNull {
 
   // Cast the given decimal value into the provided type
   Value Impl(CodeGen &codegen, const Value &value, const type::Type &to_type) const override {
-    PELOTON_ASSERT(SupportsTypes(value.GetType(), to_type));
+    TERRIER_ASSERT(SupportsTypes(value.GetType(), to_type), "We must support the desired types.");
     PELOTON_ASSERT(!to_type.nullable);
 
     llvm::Type *val_type = nullptr, *len_type = nullptr;
@@ -311,7 +311,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{Decimal::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -329,7 +329,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 
@@ -364,7 +364,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{Decimal::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -382,7 +382,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 

@@ -21,7 +21,7 @@ namespace terrier::execution {
 ComparisonTranslator::ComparisonTranslator(const expression::ComparisonExpression &comparison,
                                            CompilationContext &context)
     : ExpressionTranslator(comparison, context) {
-  PELOTON_ASSERT(comparison.GetChildrenSize() == 2);
+  TERRIER_ASSERT(comparison.GetChildrenSize() == 2, "Must have exactly two children.");
 }
 
 // Produce the result of performing the comparison of left and right values
@@ -45,13 +45,13 @@ Value ComparisonTranslator::DeriveValue(CodeGen &codegen, RowBatch::Row &row) co
     case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
       return left.CompareGte(codegen, right);
     case ExpressionType::COMPARE_LIKE: {
-      type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception,
-                                              .executor_context = GetExecutorContextPtr()};
+      type::TypeSystem::InvocationContext ctx{.on_error = OnError::THROW_EXCEPTION,
+                                              .executor_context = GetExecutionContextPtr()};
 
       type::Type left_type = left.GetType(), right_type = right.GetType();
       auto *binary_op =
           type::TypeSystem::GetBinaryOperator(OperatorId::Like, left_type, left_type, right_type, right_type);
-      PELOTON_ASSERT(binary_op);
+      TERRIER_ASSERT(binary_op != nullptr, "Binary operator cannot be null.");
       return binary_op->Eval(codegen, left.CastTo(codegen, left_type), right.CastTo(codegen, right_type), ctx);
     }
     default: {

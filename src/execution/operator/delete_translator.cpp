@@ -45,7 +45,7 @@ void DeleteTranslator::InitializeQueryState() {
 
   // Call Deleter.Init(txn, table)
   llvm::Value *deleter = LoadStatePtr(deleter_state_id_);
-  codegen.Call(DeleterProxy::Init, {deleter, table_ptr, GetExecutorContextPtr()});
+  codegen.Call(DeleterProxy::Init, {deleter, table_ptr, GetExecutionContextPtr()});
 }
 
 void DeleteTranslator::Produce() const {

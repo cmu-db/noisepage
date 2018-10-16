@@ -26,7 +26,7 @@
 
 namespace terrier::execution {
 
-void Updater::Init(storage::DataTable *table, executor::ExecutorContext *executor_context, Target *target_vector,
+void Updater::Init(storage::DataTable *table, executor::ExecutionContext *executor_context, Target *target_vector,
                    uint32_t target_vector_size) {
   PELOTON_ASSERT(table != nullptr && executor_context != nullptr && target_vector != nullptr);
   table_ = table;

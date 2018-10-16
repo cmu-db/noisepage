@@ -20,7 +20,7 @@ namespace terrier::execution {
 ArithmeticTranslator::ArithmeticTranslator(const expression::OperatorExpression &arithmetic,
                                            CompilationContext &context)
     : ExpressionTranslator(arithmetic, context) {
-  PELOTON_ASSERT(arithmetic.GetChildrenSize() == 2);
+  TERRIER_ASSERT(arithmetic.GetChildrenSize() == 2, "Must have exactly two children.");
 }
 
 // Produce the value that is the result of codegening the expression

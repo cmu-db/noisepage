@@ -135,12 +135,12 @@ Value Value::Mod(CodeGen &codegen, const Value &other, OnError on_error) const {
 
 // Logical AND
 Value Value::LogicalAnd(CodeGen &codegen, const Value &other) const {
-  return CallBinaryOp(codegen, OperatorId::LogicalAnd, other, OnError::Exception);
+  return CallBinaryOp(codegen, OperatorId::LogicalAnd, other, OnError::THROW_EXCEPTION);
 }
 
 // Logical OR
 Value Value::LogicalOr(CodeGen &codegen, const Value &other) const {
-  return CallBinaryOp(codegen, OperatorId::LogicalOr, other, OnError::Exception);
+  return CallBinaryOp(codegen, OperatorId::LogicalOr, other, OnError::THROW_EXCEPTION);
 }
 
 // TODO: Min/Max need to handle NULL
@@ -244,7 +244,7 @@ Value Value::CallUnaryOp(CodeGen &codegen, OperatorId op_id) const {
   PELOTON_ASSERT(unary_op != nullptr);
 
   // Setup the invocation context
-  type::TypeSystem::InvocationContext ctx{.on_error = OnError::Exception, .executor_context = nullptr};
+  type::TypeSystem::InvocationContext ctx{.on_error = OnError::THROW_EXCEPTION, .executor_context = nullptr};
 
   // Invoke
   return unary_op->Eval(codegen, *this, ctx);

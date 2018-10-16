@@ -42,7 +42,7 @@ void CSVScanTranslator::InitializeQueryState() {
 
   // Arguments
   llvm::Value *scanner_ptr = LoadStatePtr(scanner_id_);
-  llvm::Value *exec_ctx_ptr = GetExecutorContextPtr();
+  llvm::Value *exec_ctx_ptr = GetExecutionContextPtr();
   llvm::Value *file_path = codegen.ConstString(scan.GetFileName(), "filePath");
 
   auto num_cols = static_cast<uint32_t>(output_attributes_.size());

@@ -147,7 +147,7 @@ OrderByTranslator::OrderByTranslator(const planner::OrderByPlan &plan, Compilati
   // Now consider the sort columns
   const auto &sort_col_ais = plan.GetSortKeyAIs();
   const auto &sort_col_ids = plan.GetSortKeys();
-  PELOTON_ASSERT(!sort_col_ids.empty());
+  TERRIER_ASSERT(!sort_col_ids.empty(), "Sort column IDs must have documents.");
 
   for (uint32_t i = 0; i < sort_col_ais.size(); i++) {
     const auto *ai = sort_col_ais[i];
@@ -180,7 +180,7 @@ OrderByTranslator::OrderByTranslator(const planner::OrderByPlan &plan, Compilati
 
 void OrderByTranslator::InitializeQueryState() {
   auto *sorter_ptr = LoadStatePtr(sorter_id_);
-  auto *exec_ctx_ptr = GetExecutorContextPtr();
+  auto *exec_ctx_ptr = GetExecutionContextPtr();
   sorter_.Init(GetCodeGen(), sorter_ptr, exec_ctx_ptr, compare_func_);
 }
 
@@ -335,7 +335,7 @@ void OrderByTranslator::InitializePipelineState(PipelineContext &pipeline_ctx) {
   if (pipeline_ctx.GetPipeline() == child_pipeline_ && pipeline_ctx.IsParallel()) {
     CodeGen &codegen = GetCodeGen();
     auto *sorter_ptr = pipeline_ctx.LoadStatePtr(codegen, thread_sorter_id_);
-    auto *exec_ctx_ptr = GetExecutorContextPtr();
+    auto *exec_ctx_ptr = GetExecutionContextPtr();
     sorter_.Init(codegen, sorter_ptr, exec_ctx_ptr, compare_func_);
   }
 }

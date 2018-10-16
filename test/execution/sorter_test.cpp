@@ -110,7 +110,7 @@ TEST_F(SorterTest, BenchmarkSorter) {
 
 TEST_F(SorterTest, ParallelSortTest) {
   // A fake executor context associated to no transaction
-  executor::ExecutorContext ctx(nullptr);
+  executor::ExecutionContext ctx(nullptr);
 
   uint32_t num_threads = 4;
 

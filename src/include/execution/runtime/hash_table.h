@@ -60,7 +60,7 @@ class HashTable {
    * @param key_size The size of the keys in bytes
    * @param value_size The size of the values in bytes
    */
-  static void Init(HashTable &table, executor::ExecutorContext &exec_ctx, uint32_t key_size, uint32_t value_size);
+  static void Init(HashTable &table, executor::ExecutionContext &exec_ctx, uint32_t key_size, uint32_t value_size);
 
   /**
    * Clean up all resources allocated by the provided table
@@ -116,7 +116,7 @@ class HashTable {
    * @param hash_table_offset The offset into each state where the thread-local
    * hash table can be found.
    */
-  void ReserveLazy(const executor::ExecutorContext::ThreadStates &thread_states, uint32_t hash_table_offset);
+  void ReserveLazy(const executor::ExecutionContext::ThreadStates &thread_states, uint32_t hash_table_offset);
 
   /**
    * This function is called to "merge" the contents of the provided hash table

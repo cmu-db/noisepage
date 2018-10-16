@@ -137,7 +137,7 @@ llvm::Value *FunctionBuilder::GetArgumentByName(std::string name) {
 }
 
 llvm::Value *FunctionBuilder::GetArgumentByPosition(uint32_t index) {
-  PELOTON_ASSERT(index < func_->arg_size());
+  TERRIER_ASSERT(index < func_->arg_size(), "Index must be valid.");
   uint32_t pos = 0;
   for (auto arg_iter = func_->arg_begin(), end = func_->arg_end(); arg_iter != end; ++arg_iter, ++pos) {
     if (pos == index) {
@@ -218,7 +218,7 @@ void FunctionBuilder::ReturnAndFinish(llvm::Value *ret) {
   if (ret != nullptr) {
     codegen->CreateRet(ret);
   } else {
-    PELOTON_ASSERT(func_->getReturnType()->isVoidTy());
+    TERRIER_ASSERT(func_->getReturnType()->isVoidTy(), "Function must return void type.");
     codegen->CreateRetVoid();
   }
 
@@ -234,7 +234,7 @@ void FunctionBuilder::ReturnAndFinish(llvm::Value *ret) {
 
   // Restore previous function construction state in the code context
   if (previous_insert_point_ != nullptr) {
-    PELOTON_ASSERT(previous_function_ != nullptr);
+    TERRIER_ASSERT(previous_function_ != nullptr, "Previous function cannot be null.");
     codegen->SetInsertPoint(previous_insert_point_);
     code_context_.SetCurrentFunction(previous_function_);
   }

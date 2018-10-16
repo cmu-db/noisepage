@@ -166,8 +166,8 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join, Compil
   }
 
   // Make sure the key types are equal
-  PELOTON_ASSERT(left_key_type.size() == right_key_type.size());
-  PELOTON_ASSERT(std::equal(left_key_type.begin(), left_key_type.end(), right_key_type.begin()));
+  TERRIER_ASSERT(left_key_type.size() == right_key_type.size(), "Key type sizes must be equal.");
+  TERRIER_ASSERT(std::equal(left_key_type.begin(), left_key_type.end(), right_key_type.begin()), "Same keys needed.");
 
   // Collect (unique) attributes that are stored in hash-table
   std::unordered_set<const planner::AttributeInfo *> left_key_ais;
@@ -205,7 +205,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlan &join, Compil
 
 // Initialize the hash-table instance
 void HashJoinTranslator::InitializeQueryState() {
-  hash_table_.Init(GetCodeGen(), GetExecutorContextPtr(), LoadStatePtr(hash_table_id_));
+  hash_table_.Init(GetCodeGen(), GetExecutionContextPtr(), LoadStatePtr(hash_table_id_));
   if (GetJoinPlan().IsBloomFilterEnabled()) {
     bloom_filter_.Init(GetCodeGen(), LoadStatePtr(bloom_filter_id_), EstimateCardinalityLeft());
   }
@@ -370,7 +370,7 @@ void HashJoinTranslator::RegisterPipelineState(PipelineContext &pipeline_ctx) {
 void HashJoinTranslator::InitializePipelineState(PipelineContext &pipeline_ctx) {
   if (pipeline_ctx.IsParallel() && IsLeftPipeline(pipeline_ctx.GetPipeline())) {
     CodeGen &codegen = GetCodeGen();
-    hash_table_.Init(codegen, GetExecutorContextPtr(), pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_));
+    hash_table_.Init(codegen, GetExecutionContextPtr(), pipeline_ctx.LoadStatePtr(codegen, hash_table_tl_id_));
   }
 }
 

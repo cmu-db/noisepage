@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "common/singleton.h"
 #include "execution/type/sql_type.h"
 #include "execution/type/type_system.h"
 
@@ -20,7 +19,7 @@ namespace terrier::execution {
 
 namespace type {
 
-class TinyInt : public SqlType, public Singleton<TinyInt> {
+class TinyInt : public SqlType {
  public:
   bool IsVariableLength() const override { return false; }
 
@@ -39,8 +38,6 @@ class TinyInt : public SqlType, public Singleton<TinyInt> {
   const TypeSystem &GetTypeSystem() const override { return type_system_; }
 
  private:
-  friend class Singleton<TinyInt>;
-
   TinyInt();
 
  private:

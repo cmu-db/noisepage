@@ -171,7 +171,7 @@ struct Abs : public TypeSystem::UnaryOperatorHandleNull {
   Type ResultType(UNUSED_ATTRIBUTE const Type &val_type) const override { return Type{BigInt::Instance()}; }
 
   Value Impl(CodeGen &codegen, const Value &val, const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
     // The BigInt subtraction implementation
     Sub sub;
     // Zero place-holder
@@ -193,7 +193,7 @@ struct Negate : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
 
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallSubWithOverflow(codegen.Const64(0), val.GetValue(), overflow_bit);
@@ -215,7 +215,7 @@ struct Floor : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
     return cast.Impl(codegen, val, Decimal::Instance());
   }
 };
@@ -230,7 +230,7 @@ struct Ceil : public TypeSystem::UnaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &val,
              UNUSED_ATTRIBUTE const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsType(val.GetType()));
+    TERRIER_ASSERT(SupportsType(val.GetType()), "We must support the desired type.");
     return cast.Impl(codegen, val, Decimal::Instance());
   }
 };
@@ -270,13 +270,13 @@ struct Add : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do addition
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallAddWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-    if (ctx.on_error == OnError::Exception) {
+    if (ctx.on_error == OnError::THROW_EXCEPTION) {
       codegen.ThrowIfOverflow(overflow_bit);
     }
 
@@ -296,13 +296,13 @@ Type Sub::ResultType(UNUSED_ATTRIBUTE const Type &left_type, UNUSED_ATTRIBUTE co
 
 Value Sub::Impl(CodeGen &codegen, const Value &left, const Value &right,
                 const TypeSystem::InvocationContext &ctx) const {
-  PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+  TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
   // Do subtraction
   llvm::Value *overflow_bit = nullptr;
   llvm::Value *result = codegen.CallSubWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-  if (ctx.on_error == OnError::Exception) {
+  if (ctx.on_error == OnError::THROW_EXCEPTION) {
     codegen.ThrowIfOverflow(overflow_bit);
   }
 
@@ -322,13 +322,13 @@ struct Mul : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // Do multiplication
     llvm::Value *overflow_bit = nullptr;
     llvm::Value *result = codegen.CallMulWithOverflow(left.GetValue(), right.GetValue(), overflow_bit);
 
-    if (ctx.on_error == OnError::Exception) {
+    if (ctx.on_error == OnError::THROW_EXCEPTION) {
       codegen.ThrowIfOverflow(overflow_bit);
     }
 
@@ -349,7 +349,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // First, check if the divisor is zero
     auto *div0 = codegen->CreateICmpEQ(right.GetValue(), codegen.Const64(0));
@@ -358,7 +358,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{BigInt::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -376,7 +376,7 @@ struct Div : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 
@@ -402,7 +402,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
   Value Impl(CodeGen &codegen, const Value &left, const Value &right,
              const TypeSystem::InvocationContext &ctx) const override {
-    PELOTON_ASSERT(SupportsTypes(left.GetType(), right.GetType()));
+    TERRIER_ASSERT(SupportsTypes(left.GetType(), right.GetType()), "We must support the desired types.");
 
     // First, check if the divisor is zero
     auto *div0 = codegen->CreateICmpEQ(right.GetValue(), codegen.Const64(0));
@@ -411,7 +411,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
     auto result = Value{BigInt::Instance()};
 
-    if (ctx.on_error == OnError::ReturnNull) {
+    if (ctx.on_error == OnError::RETURN_NULL) {
       Value default_val, division_result;
       lang::If is_div0{codegen, div0, "div0"};
       {
@@ -429,7 +429,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
       // Build PHI
       result = is_div0.BuildPHI(default_val, division_result);
 
-    } else if (ctx.on_error == OnError::Exception) {
+    } else if (ctx.on_error == OnError::THROW_EXCEPTION) {
       // If the caller **does** care about the error, generate the exception
       codegen.ThrowIfDivideByZero(div0);
 
