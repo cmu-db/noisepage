@@ -207,7 +207,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
-    const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+    const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
@@ -223,7 +223,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
         test_objs[id].TryInsertFakeTuple(layout, tested, raw_block_, &(tuples[id]), &thread_generator);
     };
 
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second), tested, layout, entry.first);
@@ -247,7 +247,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
-    const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+    const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
@@ -277,7 +277,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
       RandomTestUtil::InvokeWorkloadWithDistribution({insert, remove}, {0.7, 0.3}, &generator,
                                                      layout.NumSlots() / num_threads);
     };
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
         StorageTestUtil::CheckTupleEqual(*(entry.second), tested, layout, entry.first);

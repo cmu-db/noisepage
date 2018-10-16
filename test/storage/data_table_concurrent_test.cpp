@@ -87,7 +87,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 10000;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
@@ -101,7 +101,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
       std::default_random_engine thread_generator(id);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) fake_txns[id]->InsertRandomTuple(&thread_generator);
     };
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     storage::ProjectedRowInitializer select_initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     auto *select_buffer = common::AllocationUtil::AllocateAligned(select_initializer.ProjectedRowSize());
     for (auto &fake_txn : fake_txns) {
@@ -122,7 +122,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
 TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint32_t num_iterations = 100;
   const uint16_t max_columns = 20;
-  const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
@@ -146,7 +146,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
       else
         fail++;
     };
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     EXPECT_EQ(1, success);
     EXPECT_EQ(num_threads - 1, fail);
   }

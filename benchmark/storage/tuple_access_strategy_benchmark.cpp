@@ -34,7 +34,7 @@ class TupleAccessStrategyBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_threads_ = MultiTheadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads_ = MultiThreadTestUtil::HardwareConcurrency();
   const uint32_t num_blocks_ = num_inserts_ / layout_.NumSlots();
   const uint64_t block_store_reuse_limit_ = num_blocks_;
 
@@ -99,7 +99,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
       };
 
       common::WorkerPool thread_pool;
-      MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
     for (uint32_t i = 0; i < num_blocks_; i++) {

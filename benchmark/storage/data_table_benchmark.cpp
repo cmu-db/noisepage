@@ -58,7 +58,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
-  const uint32_t num_threads_ = MultiTheadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads_ = MultiThreadTestUtil::HardwareConcurrency();
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
@@ -107,7 +107,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
     common::WorkerPool thread_pool;
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 
   state.SetItemsProcessed(state.iterations() * num_inserts_);
@@ -185,7 +185,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
         read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
     common::WorkerPool thread_pool;
-    MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 
   state.SetItemsProcessed(state.iterations() * num_reads_);

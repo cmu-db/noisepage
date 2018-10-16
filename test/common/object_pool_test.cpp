@@ -125,6 +125,6 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     for (auto *ptr : ptrs) tested.Release(ptr->Release(tid));
   };
   common::WorkerPool thread_pool;
-  MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, MultiTheadTestUtil::HardwareConcurrency(), workload, 100);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, MultiThreadTestUtil::HardwareConcurrency(), workload, 100);
 }
 }  // namespace terrier

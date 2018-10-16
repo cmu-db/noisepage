@@ -12,7 +12,7 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {1, 0};
-  const uint32_t num_concurrent_txns = MultiTheadTestUtil::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   const uint16_t max_columns = 3;
   const uint32_t initial_table_size = 100000;
   const uint32_t num_txns = 100000;

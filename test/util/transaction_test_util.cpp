@@ -134,7 +134,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
     };
   }
   common::WorkerPool thread_pool;
-  MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
 
   if (!bookkeeping_) {
     // We only need to deallocate, and return, if gc is on, this loop is a no-op
