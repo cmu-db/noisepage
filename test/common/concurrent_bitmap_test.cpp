@@ -168,6 +168,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 10000;
   const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool;
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
@@ -183,7 +184,6 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
       }
     };
 
-    common::WorkerPool thread_pool;
     MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and
@@ -213,6 +213,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 100000;
   const uint32_t num_threads = MultiTheadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool;
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
@@ -224,7 +225,6 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
         if (bitmap->Flip(i, false)) elements[thread_id].push_back(i);
     };
 
-    common::WorkerPool thread_pool;
     MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Coalesce the thread-local result vectors into one vector, and

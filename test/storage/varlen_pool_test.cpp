@@ -36,6 +36,7 @@ void CheckNotOverlapping(storage::VarlenEntry *a, storage::VarlenEntry *b) {
 // NOLINTNEXTLINE
 TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
   const uint32_t repeat = 100, num_threads = MultiTheadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool;
   for (uint32_t i = 0; i < repeat; i++) {
     storage::VarlenPool pool;
     std::vector<std::vector<storage::VarlenEntry *>> entries(num_threads);
@@ -65,7 +66,6 @@ TEST(VarlenPoolTests, ConcurrentCorrectnessTest) {
 
       RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate}, {0.2, 0.8}, &generator, 100);
     };
-    common::WorkerPool thread_pool;
     MultiTheadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
     // Concat all the entries we have
