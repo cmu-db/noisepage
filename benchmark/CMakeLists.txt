@@ -10,3 +10,4 @@ target_link_libraries(benchmark_util benchmark)
 add_dependencies(benchmark_util gtest)
 
 add_subdirectory(storage)
+add_subdirectory(transaction)
