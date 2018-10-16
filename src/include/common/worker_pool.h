@@ -163,7 +163,9 @@ class WorkerPool {
         // we lock again to notify that we're done
         lock.lock();
         --busy_workers_;
-        finished_cv_.notify_all();
+        // We use notify_one because only the main thread(worker pool)
+        // needs to need when a thread is finished.
+        finished_cv_.notify_one();
       }
     });
   }
