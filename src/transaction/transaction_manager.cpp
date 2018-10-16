@@ -31,25 +31,41 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
     commit_time = time_++;
     for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
+
+    txn->TxnId().store(commit_time);
+    // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
+    // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
+    // transaction's commit record to disk.
+    if (log_manager_ != LOGGING_DISABLED) {
+      // At this point the commit has already happened for the rest of the system.
+      // Here we will manually add a commit record and flush the buffer to ensure the logger
+      // sees this record.
+      byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
+      storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
+    }
+
+    // TODO(Tianyu):
+    // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
+    // to the log manager. Otherwise there are rare races where:
+    // transaction 1        transaction 2
+    //   begin
+    //   write a
+    //   commit
+    //                          begin
+    //                          read a
+    //                          ...
+    //                          commit
+    //                          add to log manager queue
+    //  add to queue
+    //
+    //  Where transaction 2's commit can be logged out before transaction 1. If the system crashes between txn 2's
+    //  commit is written out and txn 1's commit is written out, we are toast.
+    //  Make sure you solve this problem before you remove this latch for whatever reason.
+    txn->redo_buffer_.Finalize(true);
   }
 
-  txn->TxnId().store(commit_time);
-  // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
-  // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
-  // transaction's commit record to disk.
-  if (log_manager_ != LOGGING_DISABLED) {
-    // At this point the commit has already happened for the rest of the system.
-    // Here we will manually add a commit record and flush the buffer to ensure the logger
-    // sees this record.
-    byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
-
-  } else {
-    // TODO(Tianyu): Is this the right thing to do?
-    callback(callback_arg);
-  }
-  // Signal to the log manager that we are ready to be logged out
-  txn->redo_buffer_.Finalize(true);
+  // TODO(Tianyu): Is this the right thing to do?
+  if (log_manager_ == LOGGING_DISABLED) callback(callback_arg);
 
   {
     // In a critical section, remove this transaction from the table of running transactions
