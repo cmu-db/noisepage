@@ -23,14 +23,14 @@
 
 namespace terrier::sql::plannode {
 
-class CreateFunctionPlan : public AbstractPlanNode {
+class CreateFunctionPlanNode : public AbstractPlanNode {
  public:
-  CreateFunctionPlan() = delete;
+  CreateFunctionPlanNode() = delete;
 
   // TODO: Temporary fix to handle Copy()
-  explicit CreateFunctionPlan(std::string func);
+  explicit CreateFunctionPlanNode(std::string func);
 
-  explicit CreateFunctionPlan(parser::CreateFunctionStatement *parse_tree);
+  explicit CreateFunctionPlanNode(parser::CreateFunctionStatement *parse_tree);
 
   inline PlanNodeType GetPlanNodeType() const {
     return PlanNodeType::CREATE_FUNC;
@@ -41,7 +41,7 @@ class CreateFunctionPlan : public AbstractPlanNode {
   // TODO: This looks like a hack
   std::unique_ptr<AbstractPlanNode> Copy() const {
     return std::unique_ptr<AbstractPlanNode>(
-        new CreateFunctionPlan("UDF function"));
+        new CreateFunctionPlanNode("UDF function"));
   }
 
   inline std::string GetFunctionName() const { return function_name; }
