@@ -93,52 +93,45 @@ class BufferedLogWriter {
   void Close() { PosixIoWrappers::Close(out_); }
 
   /**
-   * Check if the internal buffer of this BufferedLogWriter has enough space for the specified number of bytes. If the
-   * call returns false, the caller is responsible for either flushing the buffer and handle accordingly or use the
-   * non-buffered version for writes that are too large.
-   *
-   * @param size number of bytes to check for
-   * @return if the internal buffer can hold the given number of bytes.
-   */
-  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
-
-  /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
-   * update is only written out when the BufferedLogWriter is flushed. It is the caller's responsibility to check
-   * before hand with @see CanBuffer that the write can be buffered into the BufferedLogWriter.
+   * update is only written out when the BufferedLogWriter is persisted.
    * @param data memory location of the bytes to write
    * @param size number of bytes to write
    */
   void BufferWrite(const void *data, uint32_t size) {
-    TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
-    TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
-    buffer_size_ += size;
+    if (!CanBuffer(size)) FlushBuffer();
+    // If we still do not have buffer space after flush, the write is too large to be buffered. We should bypass the
+    // buffer and write directly to disk
+    if (!CanBuffer(size)) {
+      WriteUnsynced(data, size);
+    } else {
+      TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
+      TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
+      buffer_size_ += size;
+    }
   }
-
-  /**
-   * Write directly to the file, without buffer, the given amount of bytes from the given location in memory. This
-   * method should only be called on objects that are too large to be buffered, as calling this on every small write
-   * would be slow. Additionally, there is no guarantee on the write being persistent on method exist until a call to
-   * Flush().
-   *
-   * @param data memory location of the bytes to write
-   * @param size number of bytes to write
-   */
-  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 
   /**
    * Flush any buffered writes and call fsync to make sure that all writes are consistent.
    */
-  void Flush() {
-    WriteUnsynced(buffer_, buffer_size_);
+  void Persist() {
+    FlushBuffer();
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
-    buffer_size_ = 0;
   }
 
  private:
   int out_;  // fd of the output files
   char buffer_[BUFFER_SIZE];
   uint32_t buffer_size_ = 0;
+
+  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
+
+  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
+
+  void FlushBuffer() {
+    WriteUnsynced(buffer_, buffer_size_);
+    buffer_size_ = 0;
+  }
 };
 
 /**

@@ -32,6 +32,7 @@ class TestConfig(object):
         # benchmark executables to run
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
+                               "large_transaction_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
@@ -463,6 +464,11 @@ class GBBenchResult(object):
         self.timestamp = timestamp
         return
 
+    def add_timestamp(self, timestamp):
+        """ timestamp: as a datetime """
+        self.timestamp = timestamp
+        return
+
     def get_suite_name(self):
         """ Return test suite name """
         return self.suite_name
@@ -710,6 +716,7 @@ class RunMicroBenchmarks(object):
         # list of benchmarks to run
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
+                               "large_transaction_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
@@ -916,7 +923,11 @@ class ReferenceValue(object):
         elif self.reference_type in ["history", "lax"]:
             assert self.ref_ips
             ips_low, ips_high = self._get_ips_range()
-            self.result = (ips_low <= self.ips) and (self.ips <= ips_high)
+            # we used to check: (ips_low <= self.ips <= ips_high)
+            # which enforces consistency, but fails a run when performance
+            # enhancing changes are made. So, disallow low performance,
+            # but allow higher
+            self.result = (ips_low <= self.ips)
 
         # also set percentage different from reference
         assert self.ips
