@@ -71,4 +71,16 @@ enum class SetOpType {
   // clang-format on
 };
 
+/*
+ * Join types
+ */
+enum class JoinType {
+  INVALID = INVALID_TYPE_ID,  // invalid join type
+  LEFT = 1,                   // left
+  RIGHT = 2,                  // right
+  INNER = 3,                  // inner
+  OUTER = 4,                  // outer
+  SEMI = 5                    // IN+Subquery is SEMI
+};
+
 }  // namespace terrier::sql::plannode
