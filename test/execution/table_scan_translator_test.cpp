@@ -90,13 +90,20 @@ class TableScanTranslatorTest : public PelotonCodeGenTest {
     // Columns and schema
     const bool is_inlined = true;
     std::vector<catalog::Column> cols = {
-        {::terrier::type::TypeId::BOOLEAN, type::Type::GetTypeSize(::terrier::type::TypeId::BOOLEAN), "COL_A", is_inlined},
-        {::terrier::type::TypeId::TINYINT, type::Type::GetTypeSize(::terrier::type::TypeId::TINYINT), "COL_B", is_inlined},
-        {::terrier::type::TypeId::SMALLINT, type::Type::GetTypeSize(::terrier::type::TypeId::SMALLINT), "COL_C", is_inlined},
-        {::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER), "COL_D", is_inlined},
-        {::terrier::type::TypeId::BIGINT, type::Type::GetTypeSize(::terrier::type::TypeId::BIGINT), "COL_E", is_inlined},
-        {::terrier::type::TypeId::DECIMAL, type::Type::GetTypeSize(::terrier::type::TypeId::DECIMAL), "COL_F", is_inlined},
-        {::terrier::type::TypeId::TIMESTAMP, type::Type::GetTypeSize(::terrier::type::TypeId::TIMESTAMP), "COL_G", is_inlined},
+        {::terrier::type::TypeId::BOOLEAN, type::Type::GetTypeSize(::terrier::type::TypeId::BOOLEAN), "COL_A",
+         is_inlined},
+        {::terrier::type::TypeId::TINYINT, type::Type::GetTypeSize(::terrier::type::TypeId::TINYINT), "COL_B",
+         is_inlined},
+        {::terrier::type::TypeId::SMALLINT, type::Type::GetTypeSize(::terrier::type::TypeId::SMALLINT), "COL_C",
+         is_inlined},
+        {::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER), "COL_D",
+         is_inlined},
+        {::terrier::type::TypeId::BIGINT, type::Type::GetTypeSize(::terrier::type::TypeId::BIGINT), "COL_E",
+         is_inlined},
+        {::terrier::type::TypeId::DECIMAL, type::Type::GetTypeSize(::terrier::type::TypeId::DECIMAL), "COL_F",
+         is_inlined},
+        {::terrier::type::TypeId::TIMESTAMP, type::Type::GetTypeSize(::terrier::type::TypeId::TIMESTAMP), "COL_G",
+         is_inlined},
         {::terrier::type::TypeId::DATE, type::Type::GetTypeSize(::terrier::type::TypeId::DATE), "COL_H", is_inlined},
         {::terrier::type::TypeId::VARCHAR, 25, "COL_I", !is_inlined}};
     std::unique_ptr<catalog::Schema> schema{new catalog::Schema(cols)};
@@ -326,8 +333,8 @@ TEST_F(TableScanTranslatorTest, ScanWithAddPredicate) {
   // a + 1
   auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *a_plus_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp, const_1_exp);
+  auto *a_plus_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER,
+                                                      a_col_exp, const_1_exp);
 
   // b = a + 1
   auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
@@ -361,8 +368,8 @@ TEST_F(TableScanTranslatorTest, ScanWithAddColumnsPredicate) {
   // a + b
   auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
   auto *b_rhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
-  auto *a_plus_b = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER, a_col_exp,
-                                                      b_rhs_col_exp);
+  auto *a_plus_b = new expression::OperatorExpression(ExpressionType::OPERATOR_PLUS, ::terrier::type::TypeId::INTEGER,
+                                                      a_col_exp, b_rhs_col_exp);
 
   // b = a + b
   auto *b_lhs_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
@@ -396,8 +403,8 @@ TEST_F(TableScanTranslatorTest, ScanWithSubtractPredicate) {
   // b - 1
   auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *b_minus_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER, b_col_exp, const_1_exp);
+  auto *b_minus_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_MINUS, ::terrier::type::TypeId::INTEGER,
+                                                       b_col_exp, const_1_exp);
 
   // a = b - 1
   auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
@@ -537,8 +544,8 @@ TEST_F(TableScanTranslatorTest, ScanWithModuloPredicate) {
   // b % 1
   auto *b_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 1);
   auto *const_1_exp = ConstIntExpr(1).release();
-  auto *b_mod_1 =
-      new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, ::terrier::type::TypeId::DECIMAL, b_col_exp, const_1_exp);
+  auto *b_mod_1 = new expression::OperatorExpression(ExpressionType::OPERATOR_MOD, ::terrier::type::TypeId::DECIMAL,
+                                                     b_col_exp, const_1_exp);
 
   // a = b % 1
   auto *a_col_exp = new expression::TupleValueExpression(::terrier::type::TypeId::INTEGER, 0, 0);
@@ -612,8 +619,9 @@ TEST_F(TableScanTranslatorTest, MultiLayoutScan) {
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr < col_count; col_itr++) {
-    auto column = catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
-                                  "FIELD" + std::to_string(col_itr), is_inlined);
+    auto column =
+        catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
+                        "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);
   }

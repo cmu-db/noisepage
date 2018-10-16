@@ -206,8 +206,7 @@ llvm::Value *CompactStorage::StoreValues(CodeGen &codegen, llvm::Value *area_sta
 // Load the values stored compactly at the provided storage area into the
 // provided vector
 //===----------------------------------------------------------------------===//
-llvm::Value *CompactStorage::LoadValues(CodeGen &codegen, llvm::Value *area_start,
-                                        std::vector<Value> &output) const {
+llvm::Value *CompactStorage::LoadValues(CodeGen &codegen, llvm::Value *area_start, std::vector<Value> &output) const {
   const uint32_t nitems = static_cast<uint32_t>(schema_.size());
   std::vector<llvm::Value *> vals{nitems}, lengths{nitems}, nulls{nitems};
 

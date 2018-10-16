@@ -55,8 +55,8 @@ TEST_F(GroupByTranslatorTest, SingleColumnGrouping) {
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::BIGINT, 8, "COUNT_A"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+      {{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::BIGINT, 8, "COUNT_A"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
@@ -109,9 +109,10 @@ TEST_F(GroupByTranslatorTest, MultiColumnGrouping) {
   std::vector<oid_t> gb_cols = {0, 1};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"},
-                                                                            {::terrier::type::TypeId::INTEGER, 4, "COL_B"},
-                                                                            {::terrier::type::TypeId::BIGINT, 8, "COUNT_*"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{
+      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"},
+                           {::terrier::type::TypeId::INTEGER, 4, "COL_B"},
+                           {::terrier::type::TypeId::BIGINT, 8, "COUNT_*"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
@@ -164,8 +165,8 @@ TEST_F(GroupByTranslatorTest, AverageAggregation) {
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+      {{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
@@ -211,8 +212,8 @@ TEST_F(GroupByTranslatorTest, AggregationWithOutputPredicate) {
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+      {{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) The predicate on the average aggregate
   auto *x_exp = new expression::TupleValueExpression(::terrier::type::TypeId::DECIMAL, 0, 1);
@@ -264,8 +265,8 @@ TEST_F(GroupByTranslatorTest, AggregationWithInputPredciate) {
   std::vector<oid_t> gb_cols = {0};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+      {{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
@@ -318,7 +319,8 @@ TEST_F(GroupByTranslatorTest, SingleCountStar) {
   std::vector<oid_t> gb_cols = {};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema({{::terrier::type::TypeId::BIGINT, 8, "COUNT_A"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{
+      new catalog::Schema({{::terrier::type::TypeId::BIGINT, 8, "COUNT_A"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(
@@ -367,8 +369,8 @@ TEST_F(GroupByTranslatorTest, MinAndMax) {
   std::vector<oid_t> gb_cols = {};
 
   // 4) The output schema
-  std::shared_ptr<const catalog::Schema> output_schema{
-      new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "MAX_A"}, {::terrier::type::TypeId::INTEGER, 4, "MIN_B"}})};
+  std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+      {{::terrier::type::TypeId::INTEGER, 4, "MAX_A"}, {::terrier::type::TypeId::INTEGER, 4, "MIN_B"}})};
 
   // 5) Finally, the aggregation node
   std::unique_ptr<planner::AbstractPlan> agg_plan{new planner::AggregatePlan(

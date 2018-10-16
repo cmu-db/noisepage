@@ -178,9 +178,8 @@ class HashTable {
   virtual void Init(CodeGen &codegen, llvm::Value *ht_ptr) const;
   virtual void Init(CodeGen &codegen, llvm::Value *exec_ctx, llvm::Value *ht_ptr) const;
 
-  virtual void ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
-                             const std::vector<Value> &key, ProbeCallback &probe_callback,
-                             InsertCallback &insert_callback) const;
+  virtual void ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash, const std::vector<Value> &key,
+                             ProbeCallback &probe_callback, InsertCallback &insert_callback) const;
 
   virtual ProbeResult ProbeOrInsert(CodeGen &codegen, llvm::Value *ht_ptr, llvm::Value *hash,
                                     const std::vector<Value> &key) const;

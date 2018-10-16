@@ -155,7 +155,7 @@ Sorter::SorterAccess::Row &Sorter::SorterAccess::GetRow(llvm::Value *row_idx) {
 }
 
 Value Sorter::SorterAccess::LoadRowValue(CodeGen &codegen, Sorter::SorterAccess::Row &row,
-                                                  uint32_t column_index) const {
+                                         uint32_t column_index) const {
   if (row.row_pos_ == nullptr) {
     auto *addr = codegen->CreateInBoundsGEP(codegen.CharPtrType(), start_pos_, row.row_idx_);
     row.row_pos_ = codegen->CreateLoad(addr);

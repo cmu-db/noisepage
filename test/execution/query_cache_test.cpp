@@ -150,8 +150,8 @@ class QueryCacheTest : public PelotonCodeGenTest {
     std::vector<oid_t> gb_cols = {0};
 
     // 4) The output schema
-    std::shared_ptr<const catalog::Schema> output_schema{
-        new catalog::Schema({{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
+    std::shared_ptr<const catalog::Schema> output_schema{new catalog::Schema(
+        {{::terrier::type::TypeId::INTEGER, 4, "COL_A"}, {::terrier::type::TypeId::DECIMAL, 8, "AVG(COL_B)"}})};
 
     // 5) The predicate on the average aggregate
     auto *x_exp = new expression::TupleValueExpression(::terrier::type::TypeId::DECIMAL, 0, 1);

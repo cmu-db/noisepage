@@ -168,8 +168,9 @@ void PelotonCodeGenTest::CreateAndLoadTableWithLayout(peloton::LayoutType layout
   std::vector<catalog::Column> columns;
 
   for (oid_t col_itr = 0; col_itr <= column_count; col_itr++) {
-    auto column = catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
-                                  "FIELD" + std::to_string(col_itr), is_inlined);
+    auto column =
+        catalog::Column(::terrier::type::TypeId::INTEGER, type::Type::GetTypeSize(::terrier::type::TypeId::INTEGER),
+                        "FIELD" + std::to_string(col_itr), is_inlined);
 
     columns.push_back(column);
   }

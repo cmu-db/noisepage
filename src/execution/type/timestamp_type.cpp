@@ -128,7 +128,7 @@ struct Now : public TypeSystem::NoArgOperator {
 
 // Implicit casts
 std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::DATE,
-                                                            ::terrier::type::TypeId::TIMESTAMP};
+                                                              ::terrier::type::TypeId::TIMESTAMP};
 
 // clang-format off
 // Explicit casts

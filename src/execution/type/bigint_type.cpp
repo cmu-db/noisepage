@@ -451,7 +451,7 @@ struct Modulo : public TypeSystem::BinaryOperatorHandleNull {
 
 // Implicit casts
 std::vector<::terrier::type::TypeId> kImplicitCastingTable = {::terrier::type::TypeId::BIGINT,
-                                                            ::terrier::type::TypeId::DECIMAL};
+                                                              ::terrier::type::TypeId::DECIMAL};
 
 // clang-format off
 // Explicit casts
