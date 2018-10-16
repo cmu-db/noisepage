@@ -38,6 +38,8 @@ class LoggingBenchmark : public benchmark::Fixture {
     delete gc_;
   }
 
+  void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
+
   const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size = 1000000;
   const uint32_t num_txns = 100000;
@@ -217,22 +219,22 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(5);
+BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(5);
+    ->MinTime(2);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(5);
+    ->MinTime(1);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(5);
+    ->MinTime(1);
 }  // namespace terrier
