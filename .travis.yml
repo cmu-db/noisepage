@@ -34,19 +34,18 @@ matrix:
       env:
       - NAME="Docker[Coverage/Dockerfile]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=Off DOCKER=true
       install:
-      - docker build -t cmu-db/terrier .
-      - docker run -itd --name build cmu-db/terrier
-      - docker cp . build:/repo
-      before_script:
       # request codecov to detect CI environment to pass through to docker
       - ci_env=`bash <(curl -s https://codecov.io/env)`
-      - echo "$ci_env"
+      - docker build -t cmu-db/terrier .
+      - docker run "$ci_env" -itd --name build cmu-db/terrier
+      - docker cp . build:/repo
+      before_script:
       - docker exec build /bin/sh -c "apt-get -y install curl"
       - docker exec build /bin/sh -c "mkdir -p /repo/build"
       - docker exec build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
       - docker exec build /bin/sh -c "cd /repo/build && make -j"
       - docker exec build /bin/sh -c "cd /repo/build && make unittest"
-      - docker exec "$ci_env" build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
+      - docker exec build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
