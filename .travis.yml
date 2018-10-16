@@ -45,7 +45,7 @@ matrix:
       - docker exec build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
       - docker exec build /bin/sh -c "cd /repo/build && make"
       - docker exec build /bin/sh -c "cd /repo/build && make unittest"
-      - docker exec -e ci_env="$ci_env" build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
+      - docker exec "$ci_env" build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
