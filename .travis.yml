@@ -38,11 +38,14 @@ matrix:
       - docker run -itd --name build cmu-db/terrier
       - docker cp . build:/repo
       before_script:
+      # request codecov to detect CI environment to pass through to docker
+      - ci_env=`bash <(curl -s https://codecov.io/env)`
       - docker exec build /bin/sh -c "apt-get -y install curl"
       - docker exec build /bin/sh -c "mkdir -p /repo/build"
-      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
-      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
-      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
+      - docker exec build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
+      - docker exec build /bin/sh -c "cd /repo/build && make"
+      - docker exec build /bin/sh -c "cd /repo/build && make unittest"
+      - docker exec -e ci_env="$ci_env" build /bin/sh -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then

@@ -1,0 +1,5 @@
+ignore:
+  - "benchmark"
+  - "test"
+  - "third_party"
+  - "src/main"
