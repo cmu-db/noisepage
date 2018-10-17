@@ -22,9 +22,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-void TransactionManager::LogCommit(TransactionContext *txn,
-                                   timestamp_t commit_time,
-                                   callback_fn callback,
+void TransactionManager::LogCommit(TransactionContext *txn, timestamp_t commit_time, callback_fn callback,
                                    void *callback_arg) {
   txn->TxnId().store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
@@ -39,8 +37,7 @@ void TransactionManager::LogCommit(TransactionContext *txn,
 }
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn,
-                                                              transaction::callback_fn callback,
-                                                              void *callback_arg) {
+                                                              transaction::callback_fn callback, void *callback_arg) {
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
@@ -51,8 +48,7 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
 }
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn,
-                                                              transaction::callback_fn callback,
-                                                              void *callback_arg) {
+                                                              transaction::callback_fn callback, void *callback_arg) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu):
@@ -146,9 +142,11 @@ void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoR
       for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
         storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
       break;
-    case storage::DeltaRecordType::INSERT:table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+    case storage::DeltaRecordType::INSERT:
+      table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
       break;
-    case storage::DeltaRecordType::DELETE:table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+    case storage::DeltaRecordType::DELETE:
+      table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
   }
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
