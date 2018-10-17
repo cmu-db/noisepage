@@ -95,7 +95,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
 }
 
 /**
- * Single statement update throughput. Should have no aborts.
+ * Single statement insert throughput. Should have no aborts.
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::State &state) {
@@ -144,7 +144,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
 }
 
 /**
- * Single statement update throughput. Should have no aborts.
+ * Single statement select throughput. Should have no aborts.
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::State &state) {

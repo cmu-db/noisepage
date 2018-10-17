@@ -143,9 +143,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
-    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(tested.GetTxnManager());
     StartLogging();
     uint64_t elapsed_ms;
@@ -191,7 +190,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
 }
 
 /**
- * Single statement update throughput. Should have no aborts.
+ * Single statement select throughput. Should have no aborts.
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &state) {
