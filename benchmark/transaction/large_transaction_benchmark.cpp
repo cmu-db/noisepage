@@ -105,8 +105,8 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // don't need any initial tuples
-    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_, &buffer_pool_,
-                                           &generator_, true);
+    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
+                                           &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
