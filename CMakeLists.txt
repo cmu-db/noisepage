@@ -290,7 +290,11 @@ if (${CLANG_TIDY_FOUND})
       -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
       -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
       )
-  add_dependencies(check-clang-tidy benchmark gtest)                        # clang-tidy needs their headers to exist
+  if (TERRIER_BUILD_BENCHMARKS)
+    add_dependencies(check-clang-tidy benchmark gtest)                  # clang-tidy needs their headers to exist
+  elseif (TERRIER_BUILD_TESTS)
+    add_dependencies(check-clang-tidy gtest)                            # clang-tidy needs their headers to exist
+  endif()
 
 endif ()
 
