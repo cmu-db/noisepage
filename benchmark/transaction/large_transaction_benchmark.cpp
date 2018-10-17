@@ -52,10 +52,10 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 5;
-  const std::vector<double> update_select_ratio = {0.1, 0.4, 0.5};
+  const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
@@ -76,11 +76,11 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 40;
-  const std::vector<double> update_select_ratio = {0.0, 0.8, 0.2};
+  const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // use a smaller table to make aborts more likely
-    LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, update_select_ratio, &block_store_,
+    LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
@@ -101,11 +101,11 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 1;
-  const std::vector<double> update_select_ratio = {1, 0, 0};
+  const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // don't need any initial tuples
-    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, update_select_ratio, &block_store_, &buffer_pool_,
+    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_, &buffer_pool_,
                                            &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
@@ -126,10 +126,10 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 1;
-  const std::vector<double> update_select_ratio = {0, 1, 0};
+  const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
@@ -150,10 +150,10 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
 BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::State &state) {
   uint64_t abort_count = 0;
   const uint32_t txn_length = 1;
-  const std::vector<double> update_select_ratio = {0, 0, 1};
+  const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
     uint64_t elapsed_ms;
