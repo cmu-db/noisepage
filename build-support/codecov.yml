@@ -1,7 +1,5 @@
-fixes:
-  - "/repo/::"
 ignore:
-  - "/benchmark"
-  - "/test"
-  - "/third_party"
-  - "/src/main"
+  - "benchmark/"
+  - "test/"
+  - "third_party/"
+  - "src/main/"
