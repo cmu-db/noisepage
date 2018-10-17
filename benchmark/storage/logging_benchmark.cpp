@@ -143,8 +143,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
-    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, update_select_ratio, &block_store_, &buffer_pool_,
+                                           &generator_, true, log_manager_);
     StartGC(tested.GetTxnManager());
     StartLogging();
     uint64_t elapsed_ms;
