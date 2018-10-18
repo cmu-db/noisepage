@@ -21,7 +21,7 @@ class OperatorExpression : public AbstractExpression {
    * @param return_value_type return type of the operator
    * @param children vector containing arguments to the operator left to right
    */
-  explicit OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
+  OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                               std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(expression_type, return_value_type, std::move(*children)) {}
 

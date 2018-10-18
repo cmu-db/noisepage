@@ -21,7 +21,7 @@ class AggregateExpression : public AbstractExpression {
    * @param type type of aggregate expression
    * @param children children to be added
    */
-  explicit AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
+  AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)) {}
 
   AbstractExpression *Copy() const override { return new AggregateExpression(*this); }

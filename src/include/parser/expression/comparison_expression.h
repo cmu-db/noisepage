@@ -21,14 +21,14 @@ class ComparisonExpression : public AbstractExpression {
    * @param cmp_type type of comparison
    * @param children vector containing exactly two children, left then right
    */
-  explicit ComparisonExpression(const ExpressionType cmp_type,
+  ComparisonExpression(const ExpressionType cmp_type,
                                 std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(*children)) {}
 
   AbstractExpression *Copy() const override {
     std::vector<std::unique_ptr<AbstractExpression>> children;
-    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(0)));
-    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(1)));
+    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(0)->Copy()));
+    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(1)->Copy()));
     return new ComparisonExpression(GetExpressionType(), &children);
   }
 };

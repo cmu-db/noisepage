@@ -20,7 +20,7 @@ class TupleValueExpression : public AbstractExpression {
    * Creates a tuple value expression with the given column and table name.
    * TODO(WAN): I feel like this should be renamed. Maybe parameters reordered too.
    */
-  explicit TupleValueExpression(const std::string &&col_name, std::string &&table_name)
+   TupleValueExpression(const std::string &&col_name, std::string &&table_name)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID,
                            std::vector<std::unique_ptr<AbstractExpression>>()),
         col_name_(col_name),

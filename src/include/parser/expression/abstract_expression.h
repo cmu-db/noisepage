@@ -66,7 +66,7 @@ class AbstractExpression {
     }
 
     for (size_t i = 0; i < children_.size(); i++) {
-      if (*children_[i].get() != *rhs.children_[i].get()) {
+      if (*children_[i] != *rhs.children_[i]) {
         return false;
       }
     }
