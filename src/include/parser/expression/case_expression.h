@@ -36,7 +36,7 @@ class CaseExpression : public AbstractExpression {
    * @param default_expr default expression for this case
    */
   CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> *when_clauses,
-                          std::unique_ptr<AbstractExpression> default_expr)
+                 std::unique_ptr<AbstractExpression> default_expr)
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type,
                            std::vector<std::unique_ptr<AbstractExpression>>()),
         when_clauses_(std::move(*when_clauses)),

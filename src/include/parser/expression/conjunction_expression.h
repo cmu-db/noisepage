@@ -21,8 +21,7 @@ class ConjunctionExpression : public AbstractExpression {
    * @param cmp_type type of conjunction
    * @param children vector containing exactly two children, left then right
    */
-  ConjunctionExpression(const ExpressionType cmp_type,
-                                 std::vector<std::unique_ptr<AbstractExpression>> *children)
+  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(*children)) {}
 
   AbstractExpression *Copy() const override {

@@ -22,8 +22,8 @@ class FunctionExpression : public AbstractExpression {
    * @param return_value_type function return value type
    * @param children children arguments for the function
    */
-   FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
-                              std::vector<std::unique_ptr<AbstractExpression>> *children)
+  FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
+                     std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(*children)),
         func_name_(std::move(func_name)) {}
 

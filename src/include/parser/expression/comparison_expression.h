@@ -21,8 +21,7 @@ class ComparisonExpression : public AbstractExpression {
    * @param cmp_type type of comparison
    * @param children vector containing exactly two children, left then right
    */
-  ComparisonExpression(const ExpressionType cmp_type,
-                                std::vector<std::unique_ptr<AbstractExpression>> *children)
+  ComparisonExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(*children)) {}
 
   AbstractExpression *Copy() const override {

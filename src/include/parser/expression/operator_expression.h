@@ -22,7 +22,7 @@ class OperatorExpression : public AbstractExpression {
    * @param children vector containing arguments to the operator left to right
    */
   OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                              std::vector<std::unique_ptr<AbstractExpression>> *children)
+                     std::vector<std::unique_ptr<AbstractExpression>> *children)
       : AbstractExpression(expression_type, return_value_type, std::move(*children)) {}
 
   AbstractExpression *Copy() const override { return new OperatorExpression(*this); }
