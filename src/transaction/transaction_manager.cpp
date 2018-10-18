@@ -22,8 +22,8 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-void TransactionManager::LogCommit(TransactionContext *txn, timestamp_t commit_time, callback_fn callback,
-                                   void *callback_arg) {
+void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
+                                   const callback_fn callback, void *const callback_arg) {
   txn->TxnId().store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
     // At this point the commit has already happened for the rest of the system.
@@ -36,8 +36,8 @@ void TransactionManager::LogCommit(TransactionContext *txn, timestamp_t commit_t
   txn->redo_buffer_.Finalize(true);
 }
 
-timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn,
-                                                              transaction::callback_fn callback, void *callback_arg) {
+timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
+                                                              void *const callback_arg) {
   // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
@@ -47,8 +47,8 @@ timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext
   return commit_time;
 }
 
-timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn,
-                                                              transaction::callback_fn callback, void *callback_arg) {
+timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
+                                                              void *const callback_arg) {
   common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
   const timestamp_t commit_time = time_++;
   // TODO(Tianyu):
