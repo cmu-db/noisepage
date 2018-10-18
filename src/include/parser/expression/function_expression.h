@@ -36,13 +36,11 @@ class FunctionExpression : public AbstractExpression {
   const std::string &GetFuncName() const { return func_name_; }
 
  protected:
-  // TODO(WAN): clang-tidy wants me to =default, how does that work?
   /**
    * Copy constructs a function expression.
    * @param other function expression to be copied.
    */
-  // NOLINTNEXTLINE
-  FunctionExpression(const FunctionExpression &other) : AbstractExpression(other), func_name_(other.func_name_) {}
+  FunctionExpression(const FunctionExpression &other) = default;
 
  private:
   std::string func_name_;
