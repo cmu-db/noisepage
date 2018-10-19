@@ -22,7 +22,7 @@ class TupleValueExpression : public AbstractExpression {
    */
   TupleValueExpression(const std::string &&col_name, std::string &&table_name)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type::TypeId::INVALID,
-                           std::vector<std::unique_ptr<AbstractExpression>>()),
+                           std::vector<std::shared_ptr<AbstractExpression>>()),
         col_name_(col_name),
         table_name_(table_name) {}
 

@@ -9,7 +9,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * An AggregateExpression is only used for parsing, planning and optimizing.
@@ -21,12 +20,13 @@ class AggregateExpression : public AbstractExpression {
    * @param type type of aggregate expression
    * @param children children to be added
    */
-  AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
+  AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)) {}
 
-  AbstractExpression *Copy() const override { return new AggregateExpression(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::unique_ptr<AbstractExpression>(new AggregateExpression(*this));
+  }
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

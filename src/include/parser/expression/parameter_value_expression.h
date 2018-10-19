@@ -6,7 +6,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents a parameter's offset in an expression.
@@ -19,13 +18,14 @@ class ParameterValueExpression : public AbstractExpression {
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
       : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::PARAMETER_OFFSET,
-                           std::vector<std::unique_ptr<AbstractExpression>>()),
+                           std::vector<std::shared_ptr<AbstractExpression>>()),
         value_idx_(value_idx) {}
 
-  AbstractExpression *Copy() const override { return new ParameterValueExpression(value_idx_); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::unique_ptr<AbstractExpression>(new ParameterValueExpression(value_idx_));
+  }
 
   /**
-   * Returns the offset in the expression.
    * @return offset in the expression
    */
   uint32_t GetValueIdx() { return value_idx_; }
@@ -34,6 +34,5 @@ class ParameterValueExpression : public AbstractExpression {
   uint32_t value_idx_;
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

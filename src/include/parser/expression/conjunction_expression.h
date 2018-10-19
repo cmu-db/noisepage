@@ -9,7 +9,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents a logical conjunction expression.
@@ -21,17 +20,16 @@ class ConjunctionExpression : public AbstractExpression {
    * @param cmp_type type of conjunction
    * @param children vector containing exactly two children, left then right
    */
-  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> *children)
-      : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(*children)) {}
+  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+      : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
-  AbstractExpression *Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(0)->Copy()));
-    children.emplace_back(std::unique_ptr<AbstractExpression>(GetChild(1)->Copy()));
-    return new ConjunctionExpression(GetExpressionType(), &children);
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<std::shared_ptr<AbstractExpression>> children;
+    children.emplace_back(GetChild(0)->Copy());
+    children.emplace_back(GetChild(1)->Copy());
+    return std::unique_ptr<AbstractExpression>(new ConjunctionExpression(GetExpressionType(), std::move(children)));
   }
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

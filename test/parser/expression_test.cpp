@@ -118,26 +118,20 @@ TEST(ExpressionTests, BasicTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionTest) {
-  std::vector<std::unique_ptr<AbstractExpression>> children1;
-  children1.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true))));
-  children1.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(false))));
-  auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, &children1);
+  std::vector<std::shared_ptr<AbstractExpression>> children1;
+  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(true)));
+  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(false)));
+  auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
-  std::vector<std::unique_ptr<AbstractExpression>> children2;
-  children2.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true))));
-  children2.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(false))));
-  auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, &children2);
+  std::vector<std::shared_ptr<AbstractExpression>> children2;
+  children2.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(true)));
+  children2.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(false)));
+  auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children2));
 
-  std::vector<std::unique_ptr<AbstractExpression>> children3;
-  children3.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true))));
-  children3.emplace_back(
-      std::unique_ptr<AbstractExpression>(new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true))));
-  auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, &children3);
+  std::vector<std::shared_ptr<AbstractExpression>> children3;
+  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(true)));
+  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::ValueFactory::GetBooleanValue(true)));
+  auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
   EXPECT_FALSE(*c_expr_1 == *c_expr_3);

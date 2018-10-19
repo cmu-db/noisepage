@@ -9,7 +9,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents an operator.
@@ -22,12 +21,13 @@ class OperatorExpression : public AbstractExpression {
    * @param children vector containing arguments to the operator left to right
    */
   OperatorExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::unique_ptr<AbstractExpression>> *children)
-      : AbstractExpression(expression_type, return_value_type, std::move(*children)) {}
+                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+      : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
-  AbstractExpression *Copy() const override { return new OperatorExpression(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::unique_ptr<AbstractExpression>(new OperatorExpression(*this));
+  }
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

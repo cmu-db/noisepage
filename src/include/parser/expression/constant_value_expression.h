@@ -8,7 +8,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents a logical constant expression.
@@ -21,7 +20,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   explicit ConstantValueExpression(const type::Value &value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.GetType(),
-                           std::vector<std::unique_ptr<AbstractExpression>>()),
+                           std::vector<std::shared_ptr<AbstractExpression>>()),
         value_(value) {}
 
   hash_t Hash() const override {
@@ -39,11 +38,12 @@ class ConstantValueExpression : public AbstractExpression {
 
   bool operator!=(const AbstractExpression &rhs) const override { return !(*this == rhs); }
 
-  AbstractExpression *Copy() const override { return new ConstantValueExpression(GetValue()); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::unique_ptr<AbstractExpression>(new ConstantValueExpression(GetValue()));
+  }
 
   /**
-   * Returns the constant value stored in this constant value expression.
-   * @return the value of the constant
+   * @return the constant value stored in this expression
    */
   type::Value GetValue() const { return value_; }
 
@@ -51,6 +51,5 @@ class ConstantValueExpression : public AbstractExpression {
   type::Value value_;
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

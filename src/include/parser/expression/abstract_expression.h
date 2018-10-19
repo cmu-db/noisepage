@@ -12,7 +12,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * An abstract parser expression. Dumb and immutable.
@@ -27,7 +26,7 @@ class AbstractExpression {
    * @param children the list of children for this node
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::unique_ptr<AbstractExpression>> &&children)
+                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
 
   /**
@@ -37,7 +36,7 @@ class AbstractExpression {
   AbstractExpression(const AbstractExpression &other)
       : expression_type_(other.expression_type_), return_value_type_(other.return_value_type_) {
     for (auto const &child : other.children_) {
-      children_.emplace_back(std::unique_ptr<AbstractExpression>(child->Copy()));
+      children_.emplace_back(child->Copy());
     }
   }
 
@@ -84,39 +83,44 @@ class AbstractExpression {
   /**
    * Creates a copy of the current AbstractExpression.
    */
-  virtual AbstractExpression *Copy() const { return new AbstractExpression(*this); }
+  virtual std::unique_ptr<AbstractExpression> Copy() const {
+    std::vector<std::shared_ptr<AbstractExpression>> children;
+    for (auto const &child : children_) {
+      children.emplace_back(child->Copy());
+    }
+    return std::unique_ptr<AbstractExpression>(
+        new AbstractExpression(expression_type_, return_value_type_, std::move(children)));
+  }
 
   /**
-   * Returns the expression type.
-   * @return the type of this expression
+   * @return type of this expression
    */
   ExpressionType GetExpressionType() const { return expression_type_; }
 
   /**
-   * Returns the return value type.
-   * @return the type of the return value
+   * @return type of the return value
    */
   type::TypeId GetReturnValueType() const { return return_value_type_; }
 
   /**
-   * Return the number of children in this abstract expression.
-   * @return number of children
+   * @return number of children in this abstract expression
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
-   * Returns a child of the abstract expression.
-   * @param index index of child, NOT BOUNDS CHECKED
-   * @return child
+   * @param index index of child
+   * @return child of abstract expression at that index
    */
-  AbstractExpression *GetChild(size_t index) const { return children_[index].get(); }
+  std::shared_ptr<AbstractExpression> GetChild(size_t index) const {
+    TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
+    return children_[index];
+  }
 
  private:
   const ExpressionType expression_type_;                       // type of current expression
   const type::TypeId return_value_type_;                       // type of return value
-  std::vector<std::unique_ptr<AbstractExpression>> children_;  // list of children
+  std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

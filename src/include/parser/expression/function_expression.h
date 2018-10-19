@@ -9,7 +9,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents a logical function expression.
@@ -23,14 +22,15 @@ class FunctionExpression : public AbstractExpression {
    * @param children children arguments for the function
    */
   FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
-                     std::vector<std::unique_ptr<AbstractExpression>> *children)
-      : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(*children)),
+                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+      : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
-  AbstractExpression *Copy() const override { return new FunctionExpression(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::unique_ptr<AbstractExpression>(new FunctionExpression(*this));
+  }
 
   /**
-   * Returns the name of the function.
    * @return function name
    */
   const std::string &GetFuncName() const { return func_name_; }
@@ -59,6 +59,5 @@ class FunctionExpression : public AbstractExpression {
   // bool is_udf_;
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

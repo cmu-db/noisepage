@@ -3,7 +3,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Stores parameter metadata, e.g. type.
@@ -45,19 +44,16 @@ class Parameter {
   }
 
   /**
-   * Return the parameter type (constant or variable).
-   * @return parameter type
+   * @return parameter type (constant or variable)
    */
   ParameterType GetParameterType() const { return type_; }
 
   /**
-   * Return the SQL type ID.
    * @return SQL type ID
    */
   type::TypeId GetTypeId() const { return type_id_; }
 
   /**
-   * Return whether the parameter is nullable.
    * @return true if parameter is nullable, false otherwise
    */
   bool IsNullable() const { return is_nullable_; }
@@ -68,6 +64,5 @@ class Parameter {
   const bool is_nullable_;
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier

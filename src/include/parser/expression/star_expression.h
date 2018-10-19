@@ -8,7 +8,6 @@
 
 namespace terrier {
 namespace parser {
-namespace expression {
 
 /**
  * Represents a star, e.g. COUNT(*).
@@ -20,9 +19,8 @@ class StarExpression : public AbstractExpression {
    */
   StarExpression()
       : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID,
-                           std::vector<std::unique_ptr<AbstractExpression>>()) {}
+                           std::vector<std::shared_ptr<AbstractExpression>>()) {}
 };
 
-}  // namespace expression
 }  // namespace parser
 }  // namespace terrier
