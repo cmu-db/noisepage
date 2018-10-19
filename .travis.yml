@@ -44,13 +44,14 @@ matrix:
       - docker exec build /bin/sh -c "cd /repo/build && make unittest -j"
       - docker exec build /bin/sh -c "cd /repo/build && lcov --directory . --capture --output-file coverage.info" # capture coverage info
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '/usr/*' --output-file coverage.info" # filter out system
+      - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '*/build/*' --output-file coverage.info" # filter out build
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '*/third_party/*' --output-file coverage.info" # filter out third_party
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '*/benchmark/*' --output-file coverage.info" # filter out benchmark
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '*/test/*' --output-file coverage.info" # filter out test
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '*/src/main/*' --output-file coverage.info" # filter out main
       - docker exec build /bin/sh -c "cd /repo/build && lcov --list coverage.info" # debug info
       script:
-      - docker exec build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash)"
+      - docker exec build /bin/bash -c "cd /repo/build && bash <(curl -s https://codecov.io/bash) -X gcov"
 
 before_script:
   - if [[ "$DOCKER" = true ]]; then
