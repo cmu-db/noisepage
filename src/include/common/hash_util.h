@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+#include "common/typedefs.h"
+namespace terrier::common {
 
-namespace terrier {
-
-using hash_t = std::size_t;
+using hash_t = uint64_t;
 
 /**
  * An utility class containing hash functions.
@@ -16,6 +16,9 @@ class HashUtil {
   static const hash_t prime_factor = 10000019;
 
  public:
+  // Static utility class
+  HashUtil() = delete;
+
   /**
    * Hashes length number of bytes.
    * Source:
@@ -25,10 +28,10 @@ class HashUtil {
    * @param length number of bytes
    * @return hash
    */
-  static inline hash_t HashBytes(const char *bytes, const size_t length) {
+  static hash_t HashBytes(const byte *bytes, const uint64_t length) {
     hash_t hash = length;
-    for (size_t i = 0; i < length; ++i) {
-      hash = ((hash << 5) ^ (hash >> 27)) ^ bytes[i];
+    for (uint64_t i = 0; i < length; ++i) {
+      hash = ((hash << 5) ^ (hash >> 27)) ^ static_cast<uint8_t>(bytes[i]);
     }
     return hash;
   }
@@ -39,11 +42,11 @@ class HashUtil {
    * @param r right hash
    * @return combined hash
    */
-  static inline hash_t CombineHashes(const hash_t l, const hash_t r) {
+  static hash_t CombineHashes(const hash_t l, const hash_t r) {
     hash_t both[2];
     both[0] = l;
     both[1] = r;
-    return HashBytes(reinterpret_cast<char *>(both), sizeof(hash_t) * 2);
+    return HashBytes(reinterpret_cast<byte *>(both), sizeof(hash_t) * 2);
   }
 
   /**
@@ -52,31 +55,20 @@ class HashUtil {
    * @param r right hash
    * @return sum of two hashes
    */
-  static inline hash_t SumHashes(const hash_t l, const hash_t r) {
+  static hash_t SumHashes(const hash_t l, const hash_t r) {
     return (l % prime_factor + r % prime_factor) % prime_factor;
   }
 
   /**
-   * Hash what pointer ptr is pointing to.
+   * Hash the given object by value.
    * @tparam T type to be hashed
-   * @param ptr pointer to object to be hashed
+   * @param ptr object to be hashed
    * @return hash of object
    */
   template <typename T>
-  static inline hash_t Hash(const T *ptr) {
-    return HashBytes(reinterpret_cast<const char *>(ptr), sizeof(T));
-  }
-
-  /**
-   * Hash the pointer ptr itself.
-   * @tparam T type of pointer to be hashed
-   * @param ptr pointer to be hashed
-   * @return hash of pointer
-   */
-  template <typename T>
-  static inline hash_t HashPtr(const T *ptr) {
-    return HashBytes(static_cast<char *>(&ptr), sizeof(void *));
+  static hash_t Hash(const T &obj) {
+    return HashBytes(reinterpret_cast<const byte *>(&obj), sizeof(T));
   }
 };
 
-}  // namespace terrier
+}  // namespace terrier::common

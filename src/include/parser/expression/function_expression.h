@@ -7,8 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * Represents a logical function expression.
@@ -26,25 +25,17 @@ class FunctionExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::unique_ptr<AbstractExpression>(new FunctionExpression(*this));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<FunctionExpression>(*this); }
 
   /**
    * @return function name
    */
   const std::string &GetFuncName() const { return func_name_; }
 
- protected:
-  /**
-   * Copy constructs a function expression.
-   * @param other function expression to be copied.
-   */
-  FunctionExpression(const FunctionExpression &other) = default;
-
  private:
   std::string func_name_;
 
+  // TODO(Tianyu): Why the hell are these things in the parser nodes anyway? Parsers are dumb. They don't know shit.
   // TODO(WAN): doesn't appear in postgres parser code
   // std::vector<TypeId> func_arg_types_;
 
@@ -59,5 +50,4 @@ class FunctionExpression : public AbstractExpression {
   // bool is_udf_;
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

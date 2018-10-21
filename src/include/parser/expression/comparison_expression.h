@@ -4,11 +4,10 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/expression_defs.h"
+#include "parser/expression_defs.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * Represents a logical comparison expression.
@@ -23,13 +22,7 @@ class ComparisonExpression : public AbstractExpression {
   ComparisonExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::shared_ptr<AbstractExpression>> children;
-    children.emplace_back(GetChild(0)->Copy());
-    children.emplace_back(GetChild(1)->Copy());
-    return std::unique_ptr<AbstractExpression>(new ComparisonExpression(GetExpressionType(), std::move(children)));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ComparisonExpression>(*this); }
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

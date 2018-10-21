@@ -6,13 +6,11 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
-#include "parser/expression/expression_defs.h"
+#include "parser/expression_defs.h"
 #include "type/type_id.h"
 #include "type/value.h"
 
-namespace terrier {
-namespace parser {
-
+namespace terrier::parser {
 /**
  * An abstract parser expression. Dumb and immutable.
  */
@@ -33,12 +31,7 @@ class AbstractExpression {
    * Copy constructs an abstract expression.
    * @param other the abstract expression to be copied
    */
-  AbstractExpression(const AbstractExpression &other)
-      : expression_type_(other.expression_type_), return_value_type_(other.return_value_type_) {
-    for (auto const &child : other.children_) {
-      children_.emplace_back(child->Copy());
-    }
-  }
+  AbstractExpression(const AbstractExpression &other) = default;
 
  public:
   virtual ~AbstractExpression() = default;
@@ -46,10 +39,10 @@ class AbstractExpression {
   /**
    * Hashes the current abstract expression.
    */
-  virtual hash_t Hash() const {
-    hash_t hash = HashUtil::Hash(&expression_type_);
+  virtual common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(expression_type_);
     for (auto const &child : children_) {
-      hash = HashUtil::CombineHashes(hash, child->Hash());
+      hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     return hash;
   }
@@ -63,13 +56,11 @@ class AbstractExpression {
     if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size()) {
       return false;
     }
-
     for (size_t i = 0; i < children_.size(); i++) {
       if (*children_[i] != *rhs.children_[i]) {
         return false;
       }
     }
-
     return true;
   }
 
@@ -78,19 +69,14 @@ class AbstractExpression {
    * @param rhs other
    * @return true if the two expressions are not logically equal
    */
-  virtual bool operator!=(const AbstractExpression &rhs) const { return !(*this == rhs); }
+  virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
   /**
-   * Creates a copy of the current AbstractExpression.
+   * Creates a (shallow) copy of the current AbstractExpression.
    */
-  virtual std::unique_ptr<AbstractExpression> Copy() const {
-    std::vector<std::shared_ptr<AbstractExpression>> children;
-    for (auto const &child : children_) {
-      children.emplace_back(child->Copy());
-    }
-    return std::unique_ptr<AbstractExpression>(
-        new AbstractExpression(expression_type_, return_value_type_, std::move(children)));
-  }
+  // It is incorrect to supply a default implementation here since that will return an object
+  // of base type AbstractExpression instead of the desired non-abstract type.
+  virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
 
   /**
    * @return type of this expression
@@ -111,7 +97,7 @@ class AbstractExpression {
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  std::shared_ptr<AbstractExpression> GetChild(size_t index) const {
+  std::shared_ptr<AbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return children_[index];
   }
@@ -121,6 +107,19 @@ class AbstractExpression {
   const type::TypeId return_value_type_;                       // type of return value
   std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
 };
+}  // namespace terrier::parser
 
-}  // namespace parser
-}  // namespace terrier
+namespace std {
+/**
+ * Implements std::hash for abstract expressions
+ */
+template <>
+struct hash<terrier::parser::AbstractExpression> {
+  /**
+   * Hashes the given expression
+   * @param expr the expression to hash
+   * @return hash code of the given expression
+   */
+  size_t operator()(const terrier::parser::AbstractExpression &expr) const { return expr.Hash(); }
+};
+}  // namespace std

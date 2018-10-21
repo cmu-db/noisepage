@@ -4,11 +4,10 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/expression_defs.h"
+#include "parser/expression_defs.h"
 #include "type/value.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * Represents an operator.
@@ -24,10 +23,7 @@ class OperatorExpression : public AbstractExpression {
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::unique_ptr<AbstractExpression>(new OperatorExpression(*this));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<OperatorExpression>(*this); }
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

@@ -3,8 +3,20 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "parser/expression/case_expression.h"
+#include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
+#include "parser/expression/operator_expression.h"
+#include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/star_expression.h"
+#include "parser/expression/subquery_expression.h"
+#include "parser/expression/tuple_value_expression.h"
+#include "parser/parameter.h"
+
 #include "type/value.h"
 #include "type/value_factory.h"
 

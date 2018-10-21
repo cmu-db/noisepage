@@ -4,11 +4,10 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/expression_defs.h"
+#include "parser/expression_defs.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * An AggregateExpression is only used for parsing, planning and optimizing.
@@ -23,10 +22,7 @@ class AggregateExpression : public AbstractExpression {
   AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::unique_ptr<AbstractExpression>(new AggregateExpression(*this));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<AggregateExpression>(*this); }
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
