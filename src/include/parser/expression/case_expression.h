@@ -27,8 +27,17 @@ class CaseExpression : public AbstractExpression {
      */
     std::shared_ptr<AbstractExpression> then;
 
+    /**
+     * Equality check
+     * @param rhs the other WhenClause to compare to
+     * @return if the two are equal
+     */
     bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
-
+    /**
+     * Inequality check
+     * @param rhs the other WhenClause to compare toz
+     * @return if the two are not equal
+     */
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
   };
 
