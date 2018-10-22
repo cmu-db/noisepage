@@ -54,7 +54,7 @@ __thread bool		proc_exit_inprogress = false;
 
 
 /* local functions */
-static void proc_exit_prepare(int code);
+//static void proc_exit_prepare(int code);
 
 
 /* ----------------------------------------------------------------

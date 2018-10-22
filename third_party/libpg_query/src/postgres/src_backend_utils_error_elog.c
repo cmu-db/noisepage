@@ -123,7 +123,7 @@
 #define _(x) err_gettext(x)
 
 static const char *err_gettext(const char *str) pg_attribute_format_arg(1);
-static void set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str);
+//static void set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str);
 
 /* Global variables */
 __thread ErrorContextCallback *error_context_stack = NULL;
@@ -167,10 +167,10 @@ __thread emit_log_hook_type emit_log_hook = NULL;
 
 
 
-static void write_syslog(int level, const char *line);
+//static void write_syslog(int level, const char *line);
 #endif
 
-static void write_console(const char *line, int len);
+//static void write_console(const char *line, int len);
 
 #ifdef WIN32
 extern char *event_source;
@@ -206,20 +206,20 @@ static int	recursion_depth = 0;	/* to detect actual recursion */
 	} while (0)
 
 
-static const char *process_log_prefix_padding(const char *p, int *padding);
-static void log_line_prefix(StringInfo buf, ErrorData *edata);
+//static const char *process_log_prefix_padding(const char *p, int *padding);
+//static void log_line_prefix(StringInfo buf, ErrorData *edata);
 static void send_message_to_server_log(ErrorData *edata);
 static void send_message_to_frontend(ErrorData *edata);
 static char *expand_fmt_string(const char *fmt, ErrorData *edata);
 static const char *useful_strerror(int errnum);
 static const char *get_errno_symbol(int errnum);
-static const char *error_severity(int elevel);
-static void append_with_tabs(StringInfo buf, const char *str);
+//static const char *error_severity(int elevel);
+//static void append_with_tabs(StringInfo buf, const char *str);
 static bool is_log_level_output(int elevel, int log_min_level);
-static void write_pipe_chunks(char *data, int len, int dest);
-static void write_csvlog(ErrorData *edata);
-static void setup_formatted_log_time(void);
-static void setup_formatted_start_time(void);
+//static void write_pipe_chunks(char *data, int len, int dest);
+//static void write_csvlog(ErrorData *edata);
+//static void setup_formatted_log_time(void);
+//static void setup_formatted_start_time(void);
 
 
 /*

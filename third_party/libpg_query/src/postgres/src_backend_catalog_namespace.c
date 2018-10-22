@@ -197,13 +197,13 @@ typedef struct
 
 
 /* Local functions */
-static void recomputeNamespacePath(void);
-static void InitTempTableNamespace(void);
-static void RemoveTempRelations(Oid tempNamespaceId);
-static void RemoveTempRelationsCallback(int code, Datum arg);
-static void NamespaceCallback(Datum arg, int cacheid, uint32 hashvalue);
-static bool MatchNamedCall(HeapTuple proctup, int nargs, List *argnames,
-			   int **argnumbers);
+//static void recomputeNamespacePath(void);
+//static void InitTempTableNamespace(void);
+//static void RemoveTempRelations(Oid tempNamespaceId);
+//static void RemoveTempRelationsCallback(int code, Datum arg);
+//static void NamespaceCallback(Datum arg, int cacheid, uint32 hashvalue);
+//static bool MatchNamedCall(HeapTuple proctup, int nargs, List *argnames,
+//			   int **argnumbers);
 
 /* These don't really need to appear in any header file */
 Datum		pg_table_is_visible(PG_FUNCTION_ARGS);

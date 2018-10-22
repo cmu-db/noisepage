@@ -160,7 +160,7 @@ appendStringInfoVA(StringInfo str, const char *fmt, va_list args)
 void
 appendStringInfoString(StringInfo str, const char *s)
 {
-	appendBinaryStringInfo(str, s, strlen(s));
+	appendBinaryStringInfo(str, s, (int) strlen(s));
 }
 
 /*

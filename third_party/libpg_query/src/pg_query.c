@@ -39,8 +39,8 @@ void pg_query_exit_memory_context(MemoryContext ctx)
 
 	MemoryContextDelete(ctx);
 
-    MemoryContext error_ctx = ErrorContext;
-    MemoryContext top_ctx = TopMemoryContext;
+    //MemoryContext error_ctx = ErrorContext;
+    //MemoryContext top_ctx = TopMemoryContext;
 
 //    TopMemoryContext = NULL;
 //    ErrorContext = NULL;

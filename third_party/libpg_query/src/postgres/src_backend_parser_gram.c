@@ -24557,7 +24557,7 @@ YYLTYPE yylloc;
   yyssp++;
 
  yysetstate:
-  *yyssp = yystate;
+  *yyssp = (int16_t) yystate;
 
   if (yyss + yystacksize - 1 <= yyssp)
     {
@@ -27080,7 +27080,7 @@ yyreduce:
 #line 2798 "gram.y"
     {
 					CreateStmt *n = makeNode(CreateStmt);
-					(yyvsp[(4) - (11)].range)->relpersistence = (yyvsp[(2) - (11)].ival);
+					(yyvsp[(4) - (11)].range)->relpersistence = (char) (yyvsp[(2) - (11)].ival);
 					n->relation = (yyvsp[(4) - (11)].range);
 					n->tableElts = (yyvsp[(6) - (11)].list);
 					n->inhRelations = (yyvsp[(8) - (11)].list);
@@ -27098,7 +27098,7 @@ yyreduce:
 #line 2815 "gram.y"
     {
 					CreateStmt *n = makeNode(CreateStmt);
-					(yyvsp[(7) - (14)].range)->relpersistence = (yyvsp[(2) - (14)].ival);
+					(yyvsp[(7) - (14)].range)->relpersistence = (char) (yyvsp[(2) - (14)].ival);
 					n->relation = (yyvsp[(7) - (14)].range);
 					n->tableElts = (yyvsp[(9) - (14)].list);
 					n->inhRelations = (yyvsp[(11) - (14)].list);
@@ -27116,7 +27116,7 @@ yyreduce:
 #line 2831 "gram.y"
     {
 					CreateStmt *n = makeNode(CreateStmt);
-					(yyvsp[(4) - (10)].range)->relpersistence = (yyvsp[(2) - (10)].ival);
+					(yyvsp[(4) - (10)].range)->relpersistence = (char) (yyvsp[(2) - (10)].ival);
 					n->relation = (yyvsp[(4) - (10)].range);
 					n->tableElts = (yyvsp[(7) - (10)].list);
 					n->inhRelations = NIL;
@@ -27135,7 +27135,7 @@ yyreduce:
 #line 2848 "gram.y"
     {
 					CreateStmt *n = makeNode(CreateStmt);
-					(yyvsp[(7) - (13)].range)->relpersistence = (yyvsp[(2) - (13)].ival);
+					(yyvsp[(7) - (13)].range)->relpersistence = (char) (yyvsp[(2) - (13)].ival);
 					n->relation = (yyvsp[(7) - (13)].range);
 					n->tableElts = (yyvsp[(10) - (13)].list);
 					n->inhRelations = NIL;
@@ -27445,7 +27445,7 @@ yyreduce:
 					n->pktable			= (yyvsp[(2) - (5)].range);
 					n->fk_attrs			= NIL;
 					n->pk_attrs			= (yyvsp[(3) - (5)].list);
-					n->fk_matchtype		= (yyvsp[(4) - (5)].ival);
+					n->fk_matchtype		=  (char) (yyvsp[(4) - (5)].ival);
 					n->fk_upd_action	= (char) ((yyvsp[(5) - (5)].ival) >> 8);
 					n->fk_del_action	= (char) ((yyvsp[(5) - (5)].ival) & 0xFF);
 					n->skip_validation  = false;
@@ -27677,7 +27677,7 @@ yyreduce:
 					n->pktable			= (yyvsp[(7) - (11)].range);
 					n->fk_attrs			= (yyvsp[(4) - (11)].list);
 					n->pk_attrs			= (yyvsp[(8) - (11)].list);
-					n->fk_matchtype		= (yyvsp[(9) - (11)].ival);
+					n->fk_matchtype		= (char) (yyvsp[(9) - (11)].ival);
 					n->fk_upd_action	= (char) ((yyvsp[(10) - (11)].ival) >> 8);
 					n->fk_del_action	= (char) ((yyvsp[(10) - (11)].ival) & 0xFF);
 					processCASbits((yyvsp[(11) - (11)].ival), (yylsp[(11) - (11)]), "FOREIGN KEY",
@@ -27937,7 +27937,7 @@ yyreduce:
 					ctas->is_select_into = false;
 					ctas->if_not_exists = false;
 					/* cram additional flags into the IntoClause */
-					(yyvsp[(4) - (7)].into)->rel->relpersistence = (yyvsp[(2) - (7)].ival);
+					(yyvsp[(4) - (7)].into)->rel->relpersistence = (char) (yyvsp[(2) - (7)].ival);
 					(yyvsp[(4) - (7)].into)->skipData = !((yyvsp[(7) - (7)].boolean));
 					(yyval.node) = (Node *) ctas;
 				;}
@@ -27953,7 +27953,7 @@ yyreduce:
 					ctas->is_select_into = false;
 					ctas->if_not_exists = true;
 					/* cram additional flags into the IntoClause */
-					(yyvsp[(7) - (10)].into)->rel->relpersistence = (yyvsp[(2) - (10)].ival);
+					(yyvsp[(7) - (10)].into)->rel->relpersistence = (char) (yyvsp[(2) - (10)].ival);
 					(yyvsp[(7) - (10)].into)->skipData = !((yyvsp[(10) - (10)].boolean));
 					(yyval.node) = (Node *) ctas;
 				;}
@@ -27998,7 +27998,7 @@ yyreduce:
 					ctas->is_select_into = false;
 					ctas->if_not_exists = false;
 					/* cram additional flags into the IntoClause */
-					(yyvsp[(5) - (8)].into)->rel->relpersistence = (yyvsp[(2) - (8)].ival);
+					(yyvsp[(5) - (8)].into)->rel->relpersistence = (char) (yyvsp[(2) - (8)].ival);
 					(yyvsp[(5) - (8)].into)->skipData = !((yyvsp[(8) - (8)].boolean));
 					(yyval.node) = (Node *) ctas;
 				;}
@@ -28014,7 +28014,7 @@ yyreduce:
 					ctas->is_select_into = false;
 					ctas->if_not_exists = true;
 					/* cram additional flags into the IntoClause */
-					(yyvsp[(8) - (11)].into)->rel->relpersistence = (yyvsp[(2) - (11)].ival);
+					(yyvsp[(8) - (11)].into)->rel->relpersistence = (char) (yyvsp[(2) - (11)].ival);
 					(yyvsp[(8) - (11)].into)->skipData = !((yyvsp[(11) - (11)].boolean));
 					(yyval.node) = (Node *) ctas;
 				;}
@@ -28059,7 +28059,7 @@ yyreduce:
 #line 3572 "gram.y"
     {
 					CreateSeqStmt *n = makeNode(CreateSeqStmt);
-					(yyvsp[(4) - (5)].range)->relpersistence = (yyvsp[(2) - (5)].ival);
+					(yyvsp[(4) - (5)].range)->relpersistence = (char) (yyvsp[(2) - (5)].ival);
 					n->sequence = (yyvsp[(4) - (5)].range);
 					n->options = (yyvsp[(5) - (5)].list);
 					n->ownerId = InvalidOid;
@@ -28072,7 +28072,7 @@ yyreduce:
 #line 3582 "gram.y"
     {
 					CreateSeqStmt *n = makeNode(CreateSeqStmt);
-					(yyvsp[(7) - (8)].range)->relpersistence = (yyvsp[(2) - (8)].ival);
+					(yyvsp[(7) - (8)].range)->relpersistence = (char) (yyvsp[(2) - (8)].ival);
 					n->sequence = (yyvsp[(7) - (8)].range);
 					n->options = (yyvsp[(8) - (8)].list);
 					n->ownerId = InvalidOid;
@@ -29386,8 +29386,8 @@ yyreduce:
 					n->funcname = (yyvsp[(12) - (15)].list);
 					n->args = (yyvsp[(14) - (15)].list);
 					n->row = (yyvsp[(8) - (15)].boolean);
-					n->timing = (yyvsp[(4) - (15)].ival);
-					n->events = intVal(linitial((yyvsp[(5) - (15)].list)));
+					n->timing = (char) (yyvsp[(4) - (15)].ival);
+					n->events = (int16_t) intVal(linitial((yyvsp[(5) - (15)].list)));
 					n->columns = (List *) lsecond((yyvsp[(5) - (15)].list));
 					n->whenClause = (yyvsp[(9) - (15)].node);
 					n->isconstraint  = FALSE;
@@ -29408,7 +29408,7 @@ yyreduce:
 					n->args = (yyvsp[(19) - (20)].list);
 					n->row = TRUE;
 					n->timing = TRIGGER_TYPE_AFTER;
-					n->events = intVal(linitial((yyvsp[(6) - (20)].list)));
+					n->events = (int16_t) intVal(linitial((yyvsp[(6) - (20)].list)));
 					n->columns = (List *) lsecond((yyvsp[(6) - (20)].list));
 					n->whenClause = (yyvsp[(14) - (20)].node);
 					n->isconstraint  = TRUE;
@@ -29448,8 +29448,8 @@ yyreduce:
   case 686:
 #line 4757 "gram.y"
     {
-					int		events1 = intVal(linitial((yyvsp[(1) - (3)].list)));
-					int		events2 = intVal(linitial((yyvsp[(3) - (3)].list)));
+					int		events1 = (int) intVal(linitial((yyvsp[(1) - (3)].list)));
+					int		events2 = (int) intVal(linitial((yyvsp[(3) - (3)].list)));
 					List   *columns1 = (List *) lsecond((yyvsp[(1) - (3)].list));
 					List   *columns2 = (List *) lsecond((yyvsp[(3) - (3)].list));
 
@@ -34507,7 +34507,7 @@ yyreduce:
     {
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = (yyvsp[(4) - (9)].range);
-					n->view->relpersistence = (yyvsp[(2) - (9)].ival);
+					n->view->relpersistence = (char) (yyvsp[(2) - (9)].ival);
 					n->aliases = (yyvsp[(5) - (9)].list);
 					n->query = (yyvsp[(8) - (9)].node);
 					n->replace = false;
@@ -34522,7 +34522,7 @@ yyreduce:
     {
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = (yyvsp[(6) - (11)].range);
-					n->view->relpersistence = (yyvsp[(4) - (11)].ival);
+					n->view->relpersistence = (char) (yyvsp[(4) - (11)].ival);
 					n->aliases = (yyvsp[(7) - (11)].list);
 					n->query = (yyvsp[(10) - (11)].node);
 					n->replace = true;
@@ -34537,7 +34537,7 @@ yyreduce:
     {
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = (yyvsp[(5) - (12)].range);
-					n->view->relpersistence = (yyvsp[(2) - (12)].ival);
+					n->view->relpersistence = (char) (yyvsp[(2) - (12)].ival);
 					n->aliases = (yyvsp[(7) - (12)].list);
 					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, (yyvsp[(11) - (12)].node));
 					n->replace = false;
@@ -34557,7 +34557,7 @@ yyreduce:
     {
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = (yyvsp[(7) - (14)].range);
-					n->view->relpersistence = (yyvsp[(4) - (14)].ival);
+					n->view->relpersistence = (char) (yyvsp[(4) - (14)].ival);
 					n->aliases = (yyvsp[(9) - (14)].list);
 					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, (yyvsp[(13) - (14)].node));
 					n->replace = true;
@@ -35344,7 +35344,7 @@ yyreduce:
 					ctas->relkind = OBJECT_TABLE;
 					ctas->is_select_into = false;
 					/* cram additional flags into the IntoClause */
-					(yyvsp[(4) - (9)].into)->rel->relpersistence = (yyvsp[(2) - (9)].ival);
+					(yyvsp[(4) - (9)].into)->rel->relpersistence = (char) (yyvsp[(2) - (9)].ival);
 					(yyvsp[(4) - (9)].into)->skipData = !((yyvsp[(9) - (9)].boolean));
 					(yyval.node) = (Node *) ctas;
 				;}
@@ -41163,7 +41163,7 @@ makeAConst(Value *v, int location)
 			break;
 
 		case T_Integer:
-			n = makeIntConst(v->val.ival, location);
+			n = makeIntConst((int) v->val.ival, location);
 			break;
 
 		case T_String:

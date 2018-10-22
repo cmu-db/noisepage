@@ -12,6 +12,18 @@
 #define _GNU_SOURCE // Necessary to get asprintf (which is a GNU extension)
 #include <stdio.h>
 
+/* Write formatted output to a string dynamically allocated with `malloc'.
+   Store the address of the string in *PTR.  */
+extern int vasprintf (char **__restrict __ptr, const char *__restrict __f,
+                      _G_va_list __arg)
+     __THROWNL __attribute__ ((__format__ (__printf__, 2, 0))) __wur;
+extern int __asprintf (char **__restrict __ptr,
+                       const char *__restrict __fmt, ...)
+     __THROWNL __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
+extern int asprintf (char **__restrict __ptr,
+                     const char *__restrict __fmt, ...)
+     __THROWNL __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
+
 typedef struct {
   PLpgSQL_function *func;
   PgQueryError* error;
@@ -80,7 +92,7 @@ static void plpgsql_compile_error_callback(void *arg)
 static PLpgSQL_function *compile_create_function_stmt(CreateFunctionStmt* stmt)
 {
 	char *func_name;
-    char *proc_source;
+    char *proc_source = 0;
 	PLpgSQL_function *function;
 	ErrorContextCallback plerrcontext;
 	PLpgSQL_variable *var;
@@ -88,7 +100,8 @@ static PLpgSQL_function *compile_create_function_stmt(CreateFunctionStmt* stmt)
 	MemoryContext func_cxt;
 	int			i;
 	PLpgSQL_rec *rec;
-    const ListCell *lc, *lc2, *lc3;
+    //const ListCell *lc, *lc2, *lc3;
+    const ListCell *lc, *lc3;
     bool is_trigger = false;
     bool is_setof = false;
 
@@ -424,7 +437,8 @@ PgQueryPlpgsqlParseResult pg_query_parse_plpgsql(const char* input)
     		func_json = plpgsqlToJSON(func_and_error.func);
             plpgsql_free_function_memory(func_and_error.func);
 
-            asprintf(&new_out, "%s%s,\n", result.plpgsql_funcs, func_json);
+            int asp_result =asprintf(&new_out, "%s%s,\n", result.plpgsql_funcs, func_json);
+	    (void) asp_result;
             free(result.plpgsql_funcs);
             result.plpgsql_funcs = new_out;
 

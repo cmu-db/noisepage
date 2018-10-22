@@ -80,9 +80,9 @@ downcase_truncate_identifier(const char *ident, int len, bool warn)
 		unsigned char ch = (unsigned char) ident[i];
 
 		if (ch >= 'A' && ch <= 'Z')
-			ch += 'a' - 'A';
+			ch = (char) (ch + 'a' - 'A');
 		else if (enc_is_single_byte && IS_HIGHBIT_SET(ch) && isupper(ch))
-			ch = tolower(ch);
+			ch = (unsigned char) tolower(ch);
 		result[i] = (char) ch;
 	}
 	result[i] = '\0';

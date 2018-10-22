@@ -341,7 +341,7 @@ AllocSetFreeIndex(Size size)
 
 	if (size > (1 << ALLOC_MINBITS))
 	{
-		tsize = (size - 1) >> ALLOC_MINBITS;
+		tsize = (unsigned int) ((size - 1) >> ALLOC_MINBITS);
 
 		/*
 		 * At this point we need to obtain log2(tsize)+1, ie, the number of

@@ -32,7 +32,7 @@
 #include "utils/lsyscache.h"
 
 
-static bool expression_returns_set_walker(Node *node, void *context);
+//static bool expression_returns_set_walker(Node *node, void *context);
 static int	leftmostLoc(int loc1, int loc2);
 
 

@@ -707,34 +707,34 @@ plpgsql_free_function_memory(PLpgSQL_function *func)
  **********************************************************************/
 
 
-static void dump_ind(void);
-static void dump_stmt(PLpgSQL_stmt *stmt);
-static void dump_block(PLpgSQL_stmt_block *block);
-static void dump_assign(PLpgSQL_stmt_assign *stmt);
-static void dump_if(PLpgSQL_stmt_if *stmt);
-static void dump_case(PLpgSQL_stmt_case *stmt);
-static void dump_loop(PLpgSQL_stmt_loop *stmt);
-static void dump_while(PLpgSQL_stmt_while *stmt);
-static void dump_fori(PLpgSQL_stmt_fori *stmt);
-static void dump_fors(PLpgSQL_stmt_fors *stmt);
-static void dump_forc(PLpgSQL_stmt_forc *stmt);
-static void dump_foreach_a(PLpgSQL_stmt_foreach_a *stmt);
-static void dump_exit(PLpgSQL_stmt_exit *stmt);
-static void dump_return(PLpgSQL_stmt_return *stmt);
-static void dump_return_next(PLpgSQL_stmt_return_next *stmt);
-static void dump_return_query(PLpgSQL_stmt_return_query *stmt);
-static void dump_raise(PLpgSQL_stmt_raise *stmt);
-static void dump_assert(PLpgSQL_stmt_assert *stmt);
-static void dump_execsql(PLpgSQL_stmt_execsql *stmt);
-static void dump_dynexecute(PLpgSQL_stmt_dynexecute *stmt);
-static void dump_dynfors(PLpgSQL_stmt_dynfors *stmt);
-static void dump_getdiag(PLpgSQL_stmt_getdiag *stmt);
-static void dump_open(PLpgSQL_stmt_open *stmt);
-static void dump_fetch(PLpgSQL_stmt_fetch *stmt);
-static void dump_cursor_direction(PLpgSQL_stmt_fetch *stmt);
-static void dump_close(PLpgSQL_stmt_close *stmt);
-static void dump_perform(PLpgSQL_stmt_perform *stmt);
-static void dump_expr(PLpgSQL_expr *expr);
+//static void dump_ind(void);
+//static void dump_stmt(PLpgSQL_stmt *stmt);
+//static void dump_block(PLpgSQL_stmt_block *block);
+//static void dump_assign(PLpgSQL_stmt_assign *stmt);
+//static void dump_if(PLpgSQL_stmt_if *stmt);
+//static void dump_case(PLpgSQL_stmt_case *stmt);
+//static void dump_loop(PLpgSQL_stmt_loop *stmt);
+//static void dump_while(PLpgSQL_stmt_while *stmt);
+//static void dump_fori(PLpgSQL_stmt_fori *stmt);
+//static void dump_fors(PLpgSQL_stmt_fors *stmt);
+//static void dump_forc(PLpgSQL_stmt_forc *stmt);
+//static void dump_foreach_a(PLpgSQL_stmt_foreach_a *stmt);
+//static void dump_exit(PLpgSQL_stmt_exit *stmt);
+//static void dump_return(PLpgSQL_stmt_return *stmt);
+//static void dump_return_next(PLpgSQL_stmt_return_next *stmt);
+//static void dump_return_query(PLpgSQL_stmt_return_query *stmt);
+//static void dump_raise(PLpgSQL_stmt_raise *stmt);
+//static void dump_assert(PLpgSQL_stmt_assert *stmt);
+//static void dump_execsql(PLpgSQL_stmt_execsql *stmt);
+//static void dump_dynexecute(PLpgSQL_stmt_dynexecute *stmt);
+//static void dump_dynfors(PLpgSQL_stmt_dynfors *stmt);
+//static void dump_getdiag(PLpgSQL_stmt_getdiag *stmt);
+//static void dump_open(PLpgSQL_stmt_open *stmt);
+//static void dump_fetch(PLpgSQL_stmt_fetch *stmt);
+//static void dump_cursor_direction(PLpgSQL_stmt_fetch *stmt);
+//static void dump_close(PLpgSQL_stmt_close *stmt);
+//static void dump_perform(PLpgSQL_stmt_perform *stmt);
+//static void dump_expr(PLpgSQL_expr *expr);
 
 
 

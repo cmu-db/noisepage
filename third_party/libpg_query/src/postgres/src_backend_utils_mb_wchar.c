@@ -425,7 +425,7 @@ pg_wchar2euc_with_len(const pg_wchar *from, unsigned char *to, int len)
 	{
 		unsigned char c;
 
-		if ((c = (*from >> 24)))
+		if ((c = (unsigned char) (*from >> 24)))
 		{
 			*to++ = c;
 			*to++ = (*from >> 16) & 0xff;
@@ -433,14 +433,14 @@ pg_wchar2euc_with_len(const pg_wchar *from, unsigned char *to, int len)
 			*to++ = *from & 0xff;
 			cnt += 4;
 		}
-		else if ((c = (*from >> 16)))
+		else if ((c = (unsigned char)(*from >> 16)))
 		{
 			*to++ = c;
 			*to++ = (*from >> 8) & 0xff;
 			*to++ = *from & 0xff;
 			cnt += 3;
 		}
-		else if ((c = (*from >> 8)))
+		else if ((c = (unsigned char)(*from >> 8)))
 		{
 			*to++ = c;
 			*to++ = *from & 0xff;
@@ -448,7 +448,7 @@ pg_wchar2euc_with_len(const pg_wchar *from, unsigned char *to, int len)
 		}
 		else
 		{
-			*to++ = *from;
+			*to++ = (unsigned char) *from;
 			cnt++;
 		}
 		from++;
@@ -549,25 +549,25 @@ unicode_to_utf8(pg_wchar c, unsigned char *utf8string)
 {
 	if (c <= 0x7F)
 	{
-		utf8string[0] = c;
+		utf8string[0] = (unsigned char) c;
 	}
 	else if (c <= 0x7FF)
 	{
-		utf8string[0] = 0xC0 | ((c >> 6) & 0x1F);
-		utf8string[1] = 0x80 | (c & 0x3F);
+		utf8string[0] = (unsigned char) (0xC0 | ((c >> 6) & 0x1F));
+		utf8string[1] = (unsigned char) (0x80 | (c & 0x3F));
 	}
 	else if (c <= 0xFFFF)
 	{
-		utf8string[0] = 0xE0 | ((c >> 12) & 0x0F);
-		utf8string[1] = 0x80 | ((c >> 6) & 0x3F);
-		utf8string[2] = 0x80 | (c & 0x3F);
+		utf8string[0] = (unsigned char) (0xE0 | ((c >> 12) & 0x0F));
+		utf8string[1] = (unsigned char) (0x80 | ((c >> 6) & 0x3F));
+		utf8string[2] = (unsigned char) (0x80 | (c & 0x3F));
 	}
 	else
 	{
-		utf8string[0] = 0xF0 | ((c >> 18) & 0x07);
-		utf8string[1] = 0x80 | ((c >> 12) & 0x3F);
-		utf8string[2] = 0x80 | ((c >> 6) & 0x3F);
-		utf8string[3] = 0x80 | (c & 0x3F);
+		utf8string[0] = (unsigned char) (0xF0 | ((c >> 18) & 0x07));
+		utf8string[1] = (unsigned char) (0x80 | ((c >> 12) & 0x3F));
+		utf8string[2] = (unsigned char) (0x80 | ((c >> 6) & 0x3F));
+		utf8string[3] = (unsigned char) (0x80 | (c & 0x3F));
 	}
 
 	return utf8string;
@@ -1010,7 +1010,7 @@ pg_wchar2single_with_len(const pg_wchar *from, unsigned char *to, int len)
 
 	while (len > 0 && *from)
 	{
-		*to++ = *from++;
+		*to++ = (unsigned char) *from++;
 		len--;
 		cnt++;
 	}

@@ -52,7 +52,7 @@ ScanKeywordLookup(const char *text,
 	const ScanKeyword *low;
 	const ScanKeyword *high;
 
-	len = strlen(text);
+	len = (int) strlen(text);
 	/* We assume all keywords are shorter than NAMEDATALEN. */
 	if (len >= NAMEDATALEN)
 		return NULL;
@@ -66,7 +66,8 @@ ScanKeywordLookup(const char *text,
 		char		ch = text[i];
 
 		if (ch >= 'A' && ch <= 'Z')
-			ch += 'a' - 'A';
+			ch = (char) (ch + 'a' - 'A');
+			//ch += 'a' - 'A';
 		word[i] = ch;
 	}
 	word[len] = '\0';

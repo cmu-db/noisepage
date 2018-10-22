@@ -196,25 +196,25 @@ static int	UseNewLine = 0;		/* Use EOF as query delimiters */
  *		decls for routines only used in this file
  * ----------------------------------------------------------------
  */
-static int	InteractiveBackend(StringInfo inBuf);
-static int	interactive_getc(void);
-static int	SocketBackend(StringInfo inBuf);
-static int	ReadCommand(StringInfo inBuf);
-static void forbidden_in_wal_sender(char firstchar);
-static List *pg_rewrite_query(Query *query);
-static bool check_log_statement(List *stmt_list);
-static int	errdetail_execute(List *raw_parsetree_list);
-static int	errdetail_params(ParamListInfo params);
-static int	errdetail_abort(void);
-static int	errdetail_recovery_conflict(void);
-static void start_xact_command(void);
-static void finish_xact_command(void);
-static bool IsTransactionExitStmt(Node *parsetree);
-static bool IsTransactionExitStmtList(List *parseTrees);
-static bool IsTransactionStmtList(List *parseTrees);
-static void drop_unnamed_stmt(void);
-static void SigHupHandler(SIGNAL_ARGS);
-static void log_disconnections(int code, Datum arg);
+//static int	InteractiveBackend(StringInfo inBuf);
+//static int	interactive_getc(void);
+//static int	SocketBackend(StringInfo inBuf);
+//static int	ReadCommand(StringInfo inBuf);
+//static void forbidden_in_wal_sender(char firstchar);
+//static List *pg_rewrite_query(Query *query);
+//static bool check_log_statement(List *stmt_list);
+//static int	errdetail_execute(List *raw_parsetree_list);
+//static int	errdetail_params(ParamListInfo params);
+//static int	errdetail_abort(void);
+//static int	errdetail_recovery_conflict(void);
+//static void start_xact_command(void);
+//static void finish_xact_command(void);
+//static bool IsTransactionExitStmt(Node *parsetree);
+//static bool IsTransactionExitStmtList(List *parseTrees);
+//static bool IsTransactionStmtList(List *parseTrees);
+//static void drop_unnamed_stmt(void);
+//static void SigHupHandler(SIGNAL_ARGS);
+//static void log_disconnections(int code, Datum arg);
 
 
 /* ----------------------------------------------------------------

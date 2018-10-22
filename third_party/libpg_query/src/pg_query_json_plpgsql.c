@@ -250,7 +250,7 @@ dump_if_elsif(StringInfo str, PLpgSQL_if_elsif *node)
 static void
 dump_case(StringInfo str, PLpgSQL_stmt_case *node)
 {
-	ListCell   *l;
+	//ListCell   *l;
 
 	WRITE_NODE_TYPE("PLpgSQL_stmt_case");
 

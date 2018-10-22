@@ -359,3 +359,5 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
+#add_subdirectory(third_party/libpg_query)
+

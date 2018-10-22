@@ -34,10 +34,10 @@
 
 #define MAX_INT32_LEN 11
 
-static char *format_type_internal(Oid type_oid, int32 typemod,
-					 bool typemod_given, bool allow_invalid,
-					 bool force_qualify);
-static char *printTypmod(const char *typname, int32 typmod, Oid typmodout);
+//static char *format_type_internal(Oid type_oid, int32 typemod,
+//					 bool typemod_given, bool allow_invalid,
+//					 bool force_qualify);
+//static char *printTypmod(const char *typname, int32 typmod, Oid typmodout);
 
 
 /*

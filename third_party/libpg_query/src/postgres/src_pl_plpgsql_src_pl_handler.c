@@ -33,9 +33,9 @@
 #include "utils/syscache.h"
 
 
-static bool plpgsql_extra_checks_check_hook(char **newvalue, void **extra, GucSource source);
-static void plpgsql_extra_warnings_assign_hook(const char *newvalue, void *extra);
-static void plpgsql_extra_errors_assign_hook(const char *newvalue, void *extra);
+//static bool plpgsql_extra_checks_check_hook(char **newvalue, void **extra, GucSource source);
+//static void plpgsql_extra_warnings_assign_hook(const char *newvalue, void *extra);
+//static void plpgsql_extra_errors_assign_hook(const char *newvalue, void *extra);
 
 ;
 

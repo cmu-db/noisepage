@@ -134,23 +134,23 @@ extern bool optimize_bounded_sort;
 
 
 
-static void do_serialize(char **destptr, Size *maxbytes, const char *fmt,...) pg_attribute_printf(3, 4);
+//static void do_serialize(char **destptr, Size *maxbytes, const char *fmt,...) pg_attribute_printf(3, 4);
 
-static void set_config_sourcefile(const char *name, char *sourcefile,
-					  int sourceline);
-static bool call_bool_check_hook(struct config_bool * conf, bool *newval,
-					 void **extra, GucSource source, int elevel);
-static bool call_int_check_hook(struct config_int * conf, int *newval,
-					void **extra, GucSource source, int elevel);
-static bool call_real_check_hook(struct config_real * conf, double *newval,
-					 void **extra, GucSource source, int elevel);
-static bool call_string_check_hook(struct config_string * conf, char **newval,
-					   void **extra, GucSource source, int elevel);
-static bool call_enum_check_hook(struct config_enum * conf, int *newval,
-					 void **extra, GucSource source, int elevel);
+//static void set_config_sourcefile(const char *name, char *sourcefile,
+//					  int sourceline);
+//static bool call_bool_check_hook(struct config_bool * conf, bool *newval,
+//					 void **extra, GucSource source, int elevel);
+//static bool call_int_check_hook(struct config_int * conf, int *newval,
+//					void **extra, GucSource source, int elevel);
+//static bool call_real_check_hook(struct config_real * conf, double *newval,
+//					 void **extra, GucSource source, int elevel);
+//static bool call_string_check_hook(struct config_string * conf, char **newval,
+//					   void **extra, GucSource source, int elevel);
+//static bool call_enum_check_hook(struct config_enum * conf, int *newval,
+//					 void **extra, GucSource source, int elevel);
 
-static bool check_log_destination(char **newval, void **extra, GucSource source);
-static void assign_log_destination(const char *newval, void *extra);
+//static bool check_log_destination(char **newval, void **extra, GucSource source);
+//static void assign_log_destination(const char *newval, void *extra);
 
 #ifdef HAVE_SYSLOG
 
@@ -158,41 +158,41 @@ static void assign_log_destination(const char *newval, void *extra);
 static int	syslog_facility = 0;
 #endif
 
-static void assign_syslog_facility(int newval, void *extra);
-static void assign_syslog_ident(const char *newval, void *extra);
-static void assign_session_replication_role(int newval, void *extra);
-static bool check_temp_buffers(int *newval, void **extra, GucSource source);
-static bool check_bonjour(bool *newval, void **extra, GucSource source);
-static bool check_ssl(bool *newval, void **extra, GucSource source);
-static bool check_stage_log_stats(bool *newval, void **extra, GucSource source);
-static bool check_log_stats(bool *newval, void **extra, GucSource source);
-static bool check_canonical_path(char **newval, void **extra, GucSource source);
-static bool check_timezone_abbreviations(char **newval, void **extra, GucSource source);
-static void assign_timezone_abbreviations(const char *newval, void *extra);
-static void pg_timezone_abbrev_initialize(void);
-static const char *show_archive_command(void);
-static void assign_tcp_keepalives_idle(int newval, void *extra);
-static void assign_tcp_keepalives_interval(int newval, void *extra);
-static void assign_tcp_keepalives_count(int newval, void *extra);
-static const char *show_tcp_keepalives_idle(void);
-static const char *show_tcp_keepalives_interval(void);
-static const char *show_tcp_keepalives_count(void);
-static bool check_maxconnections(int *newval, void **extra, GucSource source);
-static bool check_max_worker_processes(int *newval, void **extra, GucSource source);
-static bool check_autovacuum_max_workers(int *newval, void **extra, GucSource source);
-static bool check_autovacuum_work_mem(int *newval, void **extra, GucSource source);
-static bool check_effective_io_concurrency(int *newval, void **extra, GucSource source);
-static void assign_effective_io_concurrency(int newval, void *extra);
-static void assign_pgstat_temp_directory(const char *newval, void *extra);
-static bool check_application_name(char **newval, void **extra, GucSource source);
-static void assign_application_name(const char *newval, void *extra);
-static bool check_cluster_name(char **newval, void **extra, GucSource source);
-static const char *show_unix_socket_permissions(void);
-static const char *show_log_file_mode(void);
+//static void assign_syslog_facility(int newval, void *extra);
+//static void assign_syslog_ident(const char *newval, void *extra);
+//static void assign_session_replication_role(int newval, void *extra);
+//static bool check_temp_buffers(int *newval, void **extra, GucSource source);
+//static bool check_bonjour(bool *newval, void **extra, GucSource source);
+//static bool check_ssl(bool *newval, void **extra, GucSource source);
+//static bool check_stage_log_stats(bool *newval, void **extra, GucSource source);
+//static bool check_log_stats(bool *newval, void **extra, GucSource source);
+//static bool check_canonical_path(char **newval, void **extra, GucSource source);
+//static bool check_timezone_abbreviations(char **newval, void **extra, GucSource source);
+//static void assign_timezone_abbreviations(const char *newval, void *extra);
+//static void pg_timezone_abbrev_initialize(void);
+//static const char *show_archive_command(void);
+//static void assign_tcp_keepalives_idle(int newval, void *extra);
+//static void assign_tcp_keepalives_interval(int newval, void *extra);
+//static void assign_tcp_keepalives_count(int newval, void *extra);
+//static const char *show_tcp_keepalives_idle(void);
+//static const char *show_tcp_keepalives_interval(void);
+//static const char *show_tcp_keepalives_count(void);
+//static bool check_maxconnections(int *newval, void **extra, GucSource source);
+//static bool check_max_worker_processes(int *newval, void **extra, GucSource source);
+//static bool check_autovacuum_max_workers(int *newval, void **extra, GucSource source);
+//static bool check_autovacuum_work_mem(int *newval, void **extra, GucSource source);
+//static bool check_effective_io_concurrency(int *newval, void **extra, GucSource source);
+//static void assign_effective_io_concurrency(int newval, void *extra);
+//static void assign_pgstat_temp_directory(const char *newval, void *extra);
+//static bool check_application_name(char **newval, void **extra, GucSource source);
+//static void assign_application_name(const char *newval, void *extra);
+//static bool check_cluster_name(char **newval, void **extra, GucSource source);
+//static const char *show_unix_socket_permissions(void);
+//static const char *show_log_file_mode(void);
 
 /* Private functions in guc-file.l that need to be called from guc.c */
-static ConfigVariable *ProcessConfigFileInternal(GucContext context,
-						  bool applySettings, int elevel);
+//static ConfigVariable *ProcessConfigFileInternal(GucContext context,
+//						  bool applySettings, int elevel);
 
 
 /*
@@ -544,25 +544,25 @@ typedef struct
 	/* 1 when in main transaction */
 
 
-static int	guc_var_compare(const void *a, const void *b);
-static int	guc_name_compare(const char *namea, const char *nameb);
-static void InitializeGUCOptionsFromEnvironment(void);
-static void InitializeOneGUCOption(struct config_generic * gconf);
-static void push_old_value(struct config_generic * gconf, GucAction action);
-static void ReportGUCOption(struct config_generic * record);
-static void reapply_stacked_values(struct config_generic * variable,
-					   struct config_string * pHolder,
-					   GucStack *stack,
-					   const char *curvalue,
-					   GucContext curscontext, GucSource cursource);
-static void ShowGUCConfigOption(const char *name, DestReceiver *dest);
-static void ShowAllGUCConfig(DestReceiver *dest);
-static char *_ShowOption(struct config_generic * record, bool use_units);
-static bool validate_option_array_item(const char *name, const char *value,
-						   bool skipIfNoPermissions);
-static void write_auto_conf_file(int fd, const char *filename, ConfigVariable *head_p);
-static void replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
-						  const char *name, const char *value);
+//static int	guc_var_compare(const void *a, const void *b);
+//static int	guc_name_compare(const char *namea, const char *nameb);
+//static void InitializeGUCOptionsFromEnvironment(void);
+//static void InitializeOneGUCOption(struct config_generic * gconf);
+//static void push_old_value(struct config_generic * gconf, GucAction action);
+//static void ReportGUCOption(struct config_generic * record);
+//static void reapply_stacked_values(struct config_generic * variable,
+//					   struct config_string * pHolder,
+//					   GucStack *stack,
+//					   const char *curvalue,
+//					   GucContext curscontext, GucSource cursource);
+//static void ShowGUCConfigOption(const char *name, DestReceiver *dest);
+//static void ShowAllGUCConfig(DestReceiver *dest);
+//static char *_ShowOption(struct config_generic * record, bool use_units);
+//static bool validate_option_array_item(const char *name, const char *value,
+//						   bool skipIfNoPermissions);
+//static void write_auto_conf_file(int fd, const char *filename, ConfigVariable *head_p);
+//static void replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
+//						  const char *name, const char *value);
 
 
 /*

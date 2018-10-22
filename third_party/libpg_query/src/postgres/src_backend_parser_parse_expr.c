@@ -90,48 +90,48 @@ __thread bool		operator_precedence_warning = false;
 
 
 
-static Node *transformExprRecurse(ParseState *pstate, Node *expr);
-static Node *transformParamRef(ParseState *pstate, ParamRef *pref);
-static Node *transformAExprOp(ParseState *pstate, A_Expr *a);
-static Node *transformAExprOpAny(ParseState *pstate, A_Expr *a);
-static Node *transformAExprOpAll(ParseState *pstate, A_Expr *a);
-static Node *transformAExprDistinct(ParseState *pstate, A_Expr *a);
-static Node *transformAExprNullIf(ParseState *pstate, A_Expr *a);
-static Node *transformAExprOf(ParseState *pstate, A_Expr *a);
-static Node *transformAExprIn(ParseState *pstate, A_Expr *a);
-static Node *transformAExprBetween(ParseState *pstate, A_Expr *a);
-static Node *transformBoolExpr(ParseState *pstate, BoolExpr *a);
-static Node *transformFuncCall(ParseState *pstate, FuncCall *fn);
-static Node *transformMultiAssignRef(ParseState *pstate, MultiAssignRef *maref);
-static Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
-static Node *transformSubLink(ParseState *pstate, SubLink *sublink);
-static Node *transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
-				   Oid array_type, Oid element_type, int32 typmod);
-static Node *transformRowExpr(ParseState *pstate, RowExpr *r);
-static Node *transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c);
-static Node *transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m);
-static Node *transformXmlExpr(ParseState *pstate, XmlExpr *x);
-static Node *transformXmlSerialize(ParseState *pstate, XmlSerialize *xs);
-static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
-static Node *transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr);
-static Node *transformColumnRef(ParseState *pstate, ColumnRef *cref);
-static Node *transformWholeRowRef(ParseState *pstate, RangeTblEntry *rte,
-					 int location);
-static Node *transformIndirection(ParseState *pstate, Node *basenode,
-					 List *indirection);
-static Node *transformTypeCast(ParseState *pstate, TypeCast *tc);
-static Node *transformCollateClause(ParseState *pstate, CollateClause *c);
-static Node *make_row_comparison_op(ParseState *pstate, List *opname,
-					   List *largs, List *rargs, int location);
-static Node *make_row_distinct_op(ParseState *pstate, List *opname,
-					 RowExpr *lrow, RowExpr *rrow, int location);
-static Expr *make_distinct_op(ParseState *pstate, List *opname,
-				 Node *ltree, Node *rtree, int location);
-static int	operator_precedence_group(Node *node, const char **nodename);
-static void emit_precedence_warnings(ParseState *pstate,
-						 int opgroup, const char *opname,
-						 Node *lchild, Node *rchild,
-						 int location);
+//static Node *transformExprRecurse(ParseState *pstate, Node *expr);
+//static Node *transformParamRef(ParseState *pstate, ParamRef *pref);
+//static Node *transformAExprOp(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprOpAny(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprOpAll(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprDistinct(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprNullIf(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprOf(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprIn(ParseState *pstate, A_Expr *a);
+//static Node *transformAExprBetween(ParseState *pstate, A_Expr *a);
+//static Node *transformBoolExpr(ParseState *pstate, BoolExpr *a);
+//static Node *transformFuncCall(ParseState *pstate, FuncCall *fn);
+//static Node *transformMultiAssignRef(ParseState *pstate, MultiAssignRef *maref);
+//static Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
+//static Node *transformSubLink(ParseState *pstate, SubLink *sublink);
+//static Node *transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
+//				   Oid array_type, Oid element_type, int32 typmod);
+//static Node *transformRowExpr(ParseState *pstate, RowExpr *r);
+//static Node *transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c);
+//static Node *transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m);
+//static Node *transformXmlExpr(ParseState *pstate, XmlExpr *x);
+//static Node *transformXmlSerialize(ParseState *pstate, XmlSerialize *xs);
+//static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
+//static Node *transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr);
+//static Node *transformColumnRef(ParseState *pstate, ColumnRef *cref);
+//static Node *transformWholeRowRef(ParseState *pstate, RangeTblEntry *rte,
+//					 int location);
+//static Node *transformIndirection(ParseState *pstate, Node *basenode,
+//					 List *indirection);
+//static Node *transformTypeCast(ParseState *pstate, TypeCast *tc);
+//static Node *transformCollateClause(ParseState *pstate, CollateClause *c);
+//static Node *make_row_comparison_op(ParseState *pstate, List *opname,
+//					   List *largs, List *rargs, int location);
+//static Node *make_row_distinct_op(ParseState *pstate, List *opname,
+//					 RowExpr *lrow, RowExpr *rrow, int location);
+//static Expr *make_distinct_op(ParseState *pstate, List *opname,
+//				 Node *ltree, Node *rtree, int location);
+//static int	operator_precedence_group(Node *node, const char **nodename);
+//static void emit_precedence_warnings(ParseState *pstate,
+//						 int opgroup, const char *opname,
+//						 Node *lchild, Node *rchild,
+//						 int location);
 
 
 /*

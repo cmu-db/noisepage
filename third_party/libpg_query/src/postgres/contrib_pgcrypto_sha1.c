@@ -260,15 +260,17 @@ sha1_pad(struct sha1_ctxt * ctxt)
 	if (padlen < 8)
 	{
 		memset(&ctxt->m.b8[padstart], 0, padlen);
-		COUNT += padlen;
-		COUNT %= 64;
+		//COUNT += padlen;
+		//COUNT %= 64;
+		COUNT = (COUNT + padlen) % 64;
 		sha1_step(ctxt);
 		padstart = COUNT % 64;	/* should be 0 */
 		padlen = 64 - padstart; /* should be 64 */
 	}
 	memset(&ctxt->m.b8[padstart], 0, padlen - 8);
-	COUNT += (padlen - 8);
-	COUNT %= 64;
+	//COUNT += (padlen - 8);
+	//COUNT %= 64;
+	COUNT = (COUNT + padlen - 8) % 64;
 #ifdef WORDS_BIGENDIAN
 	PUTPAD(ctxt->c.b8[0]);
 	PUTPAD(ctxt->c.b8[1]);
@@ -309,8 +311,9 @@ sha1_loop(struct sha1_ctxt * ctxt, const uint8 *input0, size_t len)
 
 		copysiz = (gaplen < len - off) ? gaplen : len - off;
 		memmove(&ctxt->m.b8[gapstart], &input[off], copysiz);
-		COUNT += copysiz;
-		COUNT %= 64;
+		//COUNT += copysiz;
+		//COUNT %= 64;
+		COUNT = (COUNT + copysiz) % 64;
 		ctxt->c.b64[0] += copysiz * 8;
 		if (COUNT % 64 == 0)
 			sha1_step(ctxt);

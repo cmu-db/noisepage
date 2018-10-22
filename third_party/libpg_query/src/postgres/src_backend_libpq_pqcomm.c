@@ -139,7 +139,7 @@
 
 
 /* Internal functions */
-static void socket_comm_reset(void);
+/*static void socket_comm_reset(void);
 static void socket_close(int code, Datum arg);
 static void socket_set_nonblocking(bool nonblocking);
 static int	socket_flush(void);
@@ -156,7 +156,7 @@ static void socket_set_nonblocking(bool nonblocking);
 #ifdef HAVE_UNIX_SOCKETS
 static int	Lock_AF_UNIX(char *unixSocketDir, char *unixSocketPath);
 static int	Setup_AF_UNIX(char *sock_path);
-#endif   /* HAVE_UNIX_SOCKETS */
+#endif   *//* HAVE_UNIX_SOCKETS */
 
 
 

@@ -8618,12 +8618,12 @@ __thread bool			standard_conforming_strings = true;
  * this should be done in the first such rule, else yylloc will point
  * into the middle of the token.
  */
-#define SET_YYLLOC()  (*(yylloc) = yytext - yyextra->scanbuf)
+#define SET_YYLLOC()  (*(yylloc) = (int) (yytext - yyextra->scanbuf))
 
 /*
  * Advance yylloc by the given number of bytes.
  */
-#define ADVANCE_YYLLOC(delta)  ( *(yylloc) += (delta) )
+#define ADVANCE_YYLLOC(delta)  ( *(yylloc) += (int) (delta) )
 
 #define startlit()  ( yyextra->literallen = 0 )
 static void addlit(char *ytext, int yleng, core_yyscan_t yyscanner);
@@ -9234,7 +9234,7 @@ case 12:
 YY_RULE_SETUP
 #line 458 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case 13:
@@ -9441,7 +9441,7 @@ case 31:
 YY_RULE_SETUP
 #line 589 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case 32:
@@ -9449,14 +9449,14 @@ case 32:
 YY_RULE_SETUP
 #line 592 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
 #line 595 "scan.l"
 {
-					pg_wchar c = strtoul(yytext+2, NULL, 16);
+					pg_wchar c = (unsigned int) strtoul(yytext+2, NULL, 16);
 
 					check_escape_warning(yyscanner);
 
@@ -9475,7 +9475,7 @@ case 34:
 YY_RULE_SETUP
 #line 610 "scan.l"
 {
-					pg_wchar c = strtoul(yytext+2, NULL, 16);
+					pg_wchar c = (unsigned int) strtoul(yytext+2, NULL, 16);
 
 					if (!is_utf16_surrogate_second(c))
 						yyerror("invalid Unicode surrogate pair");
@@ -9538,7 +9538,7 @@ case 39:
 YY_RULE_SETUP
 #line 648 "scan.l"
 {
-					unsigned char c = strtoul(yytext+1, NULL, 8);
+					unsigned char c = (unsigned char) strtoul(yytext+1, NULL, 8);
 
 					check_escape_warning(yyscanner);
 					addlitchar(c, yyscanner);
@@ -9550,7 +9550,7 @@ case 40:
 YY_RULE_SETUP
 #line 656 "scan.l"
 {
-					unsigned char c = strtoul(yytext+2, NULL, 16);
+					unsigned char c = (unsigned char) strtoul(yytext+2, NULL, 16);
 
 					check_escape_warning(yyscanner);
 					addlitchar(c, yyscanner);
@@ -9620,8 +9620,8 @@ YY_RULE_SETUP
 						 * the $... part to the output, but put back the final
 						 * $ for rescanning.  Consider $delim$...$junk$delim$
 						 */
-						addlit(yytext, yyleng-1, yyscanner);
-						yyless(yyleng-1);
+						addlit(yytext, (int) yyleng-1, yyscanner);
+						yyless((int) yyleng-1);
 					}
 				}
 	YY_BREAK
@@ -9630,14 +9630,14 @@ case 46:
 YY_RULE_SETUP
 #line 706 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
 #line 709 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case 48:
@@ -9719,7 +9719,7 @@ case YY_STATE_EOF(xuiend):
 					if (yyextra->literallen == 0)
 						yyerror("zero-length delimited identifier");
 					ident = litbuf_udeescape('\\', yyscanner);
-					identlen = strlen(ident);
+					identlen = (int) strlen(ident);
 					if (identlen >= NAMEDATALEN)
 						truncate_identifier(ident, identlen, true);
 					yylval->str = ident;
@@ -9745,7 +9745,7 @@ YY_RULE_SETUP
 						yyerror("invalid Unicode escape character");
 					}
 					ident = litbuf_udeescape(yytext[yyleng - 2], yyscanner);
-					identlen = strlen(ident);
+					identlen = (int) strlen(ident);
 					if (identlen >= NAMEDATALEN)
 						truncate_identifier(ident, identlen, true);
 					yylval->str = ident;
@@ -9764,7 +9764,7 @@ case 58:
 YY_RULE_SETUP
 #line 789 "scan.l"
 {
-					addlit(yytext, yyleng, yyscanner);
+					addlit(yytext, (int) yyleng, yyscanner);
 				}
 	YY_BREAK
 case YY_STATE_EOF(xd):
@@ -9782,7 +9782,7 @@ YY_RULE_SETUP
 					/* throw back all but the initial u/U */
 					yyless(1);
 					/* and treat it as {identifier} */
-					ident = downcase_truncate_identifier(yytext, yyleng, true);
+					ident = downcase_truncate_identifier(yytext, (int) yyleng, true);
 					yylval->str = ident;
 					return IDENT;
 				}
@@ -9879,7 +9879,7 @@ YY_RULE_SETUP
 					 * Note that slash-star or dash-dash at the first
 					 * character will match a prior rule, not this one.
 					 */
-					int		nchars = yyleng;
+					int		nchars = (int) yyleng;
 					char   *slashstar = strstr(yytext, "/*");
 					char   *dashdash = strstr(yytext, "--");
 
@@ -9892,7 +9892,7 @@ YY_RULE_SETUP
 					else if (!slashstar)
 						slashstar = dashdash;
 					if (slashstar)
-						nchars = slashstar - yytext;
+						nchars = (int) (slashstar - yytext);
 
 					/*
 					 * For SQL compatibility, '+' and '-' cannot be the
@@ -9935,7 +9935,7 @@ YY_RULE_SETUP
 
           if (yytext[0] != '?' && strchr(yytext, '?'))
             /* Lex up to just before the ? character */
-            nchars = strchr(yytext, '?') - yytext;
+            nchars = (int) (strchr(yytext, '?') - yytext);
 
 					SET_YYLLOC();
 
@@ -9972,7 +9972,7 @@ YY_RULE_SETUP
 #line 953 "scan.l"
 {
 					SET_YYLLOC();
-					yylval->ival = atol(yytext + 1);
+					yylval->ival = (int) atol(yytext + 1);
 					return PARAM;
 				}
 	YY_BREAK
@@ -9998,7 +9998,7 @@ YY_RULE_SETUP
 #line 968 "scan.l"
 {
 					/* throw back the .., and treat as integer */
-					yyless(yyleng-2);
+					yyless((int)yyleng-2);
 					SET_YYLLOC();
 					return process_integer_literal(yytext, yylval);
 				}
@@ -10022,7 +10022,7 @@ YY_RULE_SETUP
 					 * but since this case will almost certainly lead to a
 					 * syntax error anyway, we don't bother to distinguish.
 					 */
-					yyless(yyleng-1);
+					yyless((int) yyleng-1);
 					SET_YYLLOC();
 					yylval->str = pstrdup(yytext);
 					return FCONST;
@@ -10033,7 +10033,7 @@ YY_RULE_SETUP
 #line 991 "scan.l"
 {
 					/* throw back the [Ee][+-], and proceed as above */
-					yyless(yyleng-2);
+					yyless((int) yyleng-2);
 					SET_YYLLOC();
 					yylval->str = pstrdup(yytext);
 					return FCONST;
@@ -10059,7 +10059,7 @@ YY_RULE_SETUP
 					if (keyword != NULL)
 					{
             if (keyword_text[yyleng - 1] == '\0')
-              yyless(yyleng - 1);
+              yyless((int) yyleng - 1);
 						yylval->keyword = keyword->name;
 						return keyword->value;
 					}
@@ -10068,7 +10068,7 @@ YY_RULE_SETUP
 					 * No.  Convert the identifier to lower case, and truncate
 					 * if necessary.
 					 */
-					ident = downcase_truncate_identifier(yytext, yyleng, true);
+					ident = downcase_truncate_identifier(yytext, (int) yyleng, true);
 					yylval->str = ident;
 					return IDENT;
 				}
@@ -10390,7 +10390,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
     static yy_state_type yy_try_NUL_trans  (yy_state_type yy_current_state , yyscan_t yyscanner)
 {
 	register int yy_is_jam;
-    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner; /* This var may be unused depending upon options. */
+    //struct yyguts_t * yyg = (struct yyguts_t*)yyscanner; /* This var may be unused depending upon options. */
 
 	register int yy_c = 256;
 	register yyconst struct yy_trans_info *yy_trans_info;
@@ -11175,7 +11175,7 @@ process_integer_literal(const char *token, YYSTYPE *lval)
 		lval->str = pstrdup(token);
 		return FCONST;
 	}
-	lval->ival = val;
+	lval->ival = (int) val;
 	return ICONST;
 }
 
@@ -11392,7 +11392,7 @@ litbuf_udeescape(unsigned char escape, core_yyscan_t yyscanner)
 	 * codes; but it's probably not worth the trouble, since this isn't
 	 * likely to be a performance-critical path.
 	 */
-	pg_verifymbstr(new, out - new, false);
+	pg_verifymbstr(new, (int) (out - new), false);
 	return new;
 }
 

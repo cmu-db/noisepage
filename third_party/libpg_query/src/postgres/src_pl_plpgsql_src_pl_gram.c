@@ -1932,7 +1932,7 @@ yyparse (void)
   yyssp++;
 
  yysetstate:
-  *yyssp = yystate;
+  *yyssp = (yytype_int16) yystate;
 
   if (yyss + yystacksize - 1 <= yyssp)
     {
@@ -4925,7 +4925,7 @@ read_sql_construct(int until,
 	pfree(ds.data);
 
 	if (valid_sql)
-		check_sql_expr(expr->query, startlocation, strlen(sqlstart));
+		check_sql_expr(expr->query, startlocation, (int) strlen(sqlstart));
 
 	return expr;
 }

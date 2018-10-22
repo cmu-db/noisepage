@@ -376,50 +376,50 @@ static DNSServiceRef bonjour_sdref = NULL;
 /*
  * postmaster.c - function prototypes
  */
-static void CloseServerPorts(int status, Datum arg);
-static void unlink_external_pid_file(int status, Datum arg);
-static void getInstallationPaths(const char *argv0);
-static void checkDataDir(void);
-static Port *ConnCreate(int serverFd);
-static void ConnFree(Port *port);
-static void reset_shared(int port);
-static void SIGHUP_handler(SIGNAL_ARGS);
-static void pmdie(SIGNAL_ARGS);
-static void reaper(SIGNAL_ARGS);
-static void sigusr1_handler(SIGNAL_ARGS);
-static void startup_die(SIGNAL_ARGS);
-static void dummy_handler(SIGNAL_ARGS);
-static void StartupPacketTimeoutHandler(void);
-static void CleanupBackend(int pid, int exitstatus);
-static bool CleanupBackgroundWorker(int pid, int exitstatus);
-static void HandleChildCrash(int pid, int exitstatus, const char *procname);
-static void LogChildExit(int lev, const char *procname,
-			 int pid, int exitstatus);
-static void PostmasterStateMachine(void);
-static void BackendInitialize(Port *port);
-static void BackendRun(Port *port) pg_attribute_noreturn();
-static void ExitPostmaster(int status) pg_attribute_noreturn();
-static int	ServerLoop(void);
-static int	BackendStartup(Port *port);
-static int	ProcessStartupPacket(Port *port, bool SSLdone);
-static void processCancelRequest(Port *port, void *pkt);
-static int	initMasks(fd_set *rmask);
-static void report_fork_failure_to_client(Port *port, int errnum);
-static CAC_state canAcceptConnections(void);
-static long PostmasterRandom(void);
-static void RandomSalt(char *md5Salt);
-static void signal_child(pid_t pid, int signal);
-static bool SignalSomeChildren(int signal, int targets);
-static void TerminateChildren(int signal);
+//static void CloseServerPorts(int status, Datum arg);
+//static void unlink_external_pid_file(int status, Datum arg);
+//static void getInstallationPaths(const char *argv0);
+//static void checkDataDir(void);
+//static Port *ConnCreate(int serverFd);
+//static void ConnFree(Port *port);
+//static void reset_shared(int port);
+//static void SIGHUP_handler(SIGNAL_ARGS);
+//static void pmdie(SIGNAL_ARGS);
+//static void reaper(SIGNAL_ARGS);
+//static void sigusr1_handler(SIGNAL_ARGS);
+//static void startup_die(SIGNAL_ARGS);
+//static void dummy_handler(SIGNAL_ARGS);
+//static void StartupPacketTimeoutHandler(void);
+//static void CleanupBackend(int pid, int exitstatus);
+//static bool CleanupBackgroundWorker(int pid, int exitstatus);
+//static void HandleChildCrash(int pid, int exitstatus, const char *procname);
+//static void LogChildExit(int lev, const char *procname,
+//			 int pid, int exitstatus);
+//static void PostmasterStateMachine(void);
+//static void BackendInitialize(Port *port);
+//static void BackendRun(Port *port) pg_attribute_noreturn();
+//static void ExitPostmaster(int status) pg_attribute_noreturn();
+//static int	ServerLoop(void);
+//static int	BackendStartup(Port *port);
+//static int	ProcessStartupPacket(Port *port, bool SSLdone);
+//static void processCancelRequest(Port *port, void *pkt);
+//static int	initMasks(fd_set *rmask);
+//static void report_fork_failure_to_client(Port *port, int errnum);
+//static CAC_state canAcceptConnections(void);
+//static long PostmasterRandom(void);
+//static void RandomSalt(char *md5Salt);
+//static void signal_child(pid_t pid, int signal);
+//static bool SignalSomeChildren(int signal, int targets);
+//static void TerminateChildren(int signal);
 
 #define SignalChildren(sig)			   SignalSomeChildren(sig, BACKEND_TYPE_ALL)
 
-static int	CountChildren(int target);
-static void maybe_start_bgworker(void);
-static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
-static pid_t StartChildProcess(AuxProcType type);
-static void StartAutovacuumWorker(void);
-static void InitPostmasterDeathWatchHandle(void);
+//static int	CountChildren(int target);
+//static void maybe_start_bgworker(void);
+//static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
+//static pid_t StartChildProcess(AuxProcType type);
+//static void StartAutovacuumWorker(void);
+//static void InitPostmasterDeathWatchHandle(void);
 
 /*
  * Archiver is allowed to start up at the current postmaster state?
