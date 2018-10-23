@@ -30,7 +30,9 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
+    bool is_read_only = txn->undo_buffer_.Empty();
+    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
+        is_read_only);
   }
   // Signal to the log manager that we are ready to be logged out
   txn->redo_buffer_.Finalize(true);
