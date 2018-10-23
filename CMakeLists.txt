@@ -198,21 +198,6 @@ if (TERRIER_GENERATE_COVERAGE)
   endif ()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-
-  include(Coveralls)
-
-  file(GLOB_RECURSE COVERAGE_SRCS
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-      )
-
-  set(COVERAGE_UPLOAD ON)
-
-  coveralls_setup(
-      "${COVERAGE_SRCS}"
-      "${COVERAGE_UPLOAD}"
-      "${CMAKE_MODULE_PATH}"
-  )
 endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
