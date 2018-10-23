@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "common/printable.h"
 #include "internal_types.h"
 #include "type/value.h"
 
@@ -21,7 +20,7 @@ namespace terrier {
 //===----------------------------------------------------------------------===//
 // Generic tuple interface
 //===----------------------------------------------------------------------===//
-class AbstractTuple : public Printable {
+class AbstractTuple {
  public:
   virtual ~AbstractTuple() = default;
 

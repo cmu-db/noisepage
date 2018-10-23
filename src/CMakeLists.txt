@@ -27,5 +27,5 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp include/common/container_tuple.h include/common/abstract_tuple.h include/common/printable.h include/common/exception.h include/common/internal_types.h include/common/item_pointer.h include/common/platform.h include/common/singleton.h include/common/timer.h include/common/synchronization/readwrite_latch.h include/common/synchronization/count_down_latch.h)
+add_executable(terrier main/terrier.cpp include/common/container_tuple.h include/common/abstract_tuple.h include/common/exception.h include/common/internal_types.h include/common/item_pointer.h include/common/platform.h include/common/singleton.h include/common/timer.h include/common/synchronization/readwrite_latch.h include/common/synchronization/count_down_latch.h)
 target_link_libraries(terrier terrier_shared)

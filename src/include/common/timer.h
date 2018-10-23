@@ -15,8 +15,6 @@
 #include <chrono>
 #include <sstream>
 
-#include "common/printable.h"
-
 namespace terrier {
 
 //===--------------------------------------------------------------------===//
@@ -28,7 +26,7 @@ typedef std::chrono::high_resolution_clock clock_;
 typedef std::chrono::time_point<clock_> time_point_;
 
 template <typename ResolutionRatio = std::ratio<1> >
-class Timer : public terrier::Printable {
+class Timer {
  public:
   Timer() : elapsed_(0), total_(0), invocations_(0) {}
 
