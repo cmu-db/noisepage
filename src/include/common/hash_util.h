@@ -62,7 +62,7 @@ class HashUtil {
   /**
    * Hash the given object by value.
    * @tparam T type to be hashed
-   * @param ptr object to be hashed
+   * @param obj object to be hashed
    * @return hash of object
    */
   template <typename T>
