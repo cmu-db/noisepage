@@ -14,7 +14,7 @@ namespace terrier::storage {
  */
 class TupleAccessStrategy {
  private:
-  /**
+  /*
    * A mini block stores individual columns. Mini block layout:
    * ----------------------------------------------------
    * | null-bitmap (pad up to size of attr) | val1 | val2 | ... |
@@ -23,18 +23,13 @@ class TupleAccessStrategy {
    */
   struct MiniBlock {
     MEM_REINTERPRETATION_ONLY(MiniBlock)
-    /**
-     * @param layout the layout of this block
-     * @return a pointer to the start of the column. (use as an array)
-     */
+    // return a pointer to the start of the column. (use as an array)
     byte *ColumnStart(const BlockLayout &layout, const col_id_t col_id) {
       return StorageUtil::AlignedPtr(layout.AttrSize(col_id),
                                      varlen_contents_ + common::RawBitmap::SizeInBytes(layout.NumSlots()));
     }
 
-    /**
-     * @return The null-bitmap of this column
-     */
+    // return The null-bitmap of this column
     common::RawConcurrentBitmap *NullBitmap() {
       return reinterpret_cast<common::RawConcurrentBitmap *>(varlen_contents_);
     }
@@ -44,7 +39,7 @@ class TupleAccessStrategy {
     byte varlen_contents_[0];
   };
 
-  /**
+  /*
    * Block Header layout:
    * ------------------------------------------------------------------------------------------
    * | layout_version | num_records | num_slots | attr_offsets[num_attributes] 32-bit fields  |
@@ -64,52 +59,32 @@ class TupleAccessStrategy {
    * block size to be 1 MB and columns to be less than 65535 (max uint16_t)
    */
   struct Block {
-    /**
-     * A block is always reinterpreted from a raw piece of memory
-     * and should never be initialized, copied, moved, or on the stack.
-     */
     MEM_REINTERPRETATION_ONLY(Block)
 
-    /**
-     * @param offset offset representing the column
-     * @return the miniblock for the column at the given offset.
-     */
+    // return the miniblock for the column at the given offset.
     MiniBlock *Column(const col_id_t col_id) {
       byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[!col_id];
       return reinterpret_cast<MiniBlock *>(head);
     }
 
-    /**
-     * @param layout layout of the block
-     * @return reference to the bitmap for slots. Use as a member
-     */
+    // return reference to the bitmap for slots. Use as a member
     common::RawConcurrentBitmap *SlotAllocationBitmap(const BlockLayout &layout) {
       return reinterpret_cast<common::RawConcurrentBitmap *>(
           StorageUtil::AlignedPtr(sizeof(uint64_t), AttrSizes(layout) + NumAttrs(layout)));
     }
 
-    /**
-     * @return reference to num_slots. Use as a member.
-     */
+    // return reference to num_slots. Use as a member.
     uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
 
-    /**
-     * @return reference to attr_offsets. Use as an array.
-     */
+    // return reference to attr_offsets. Use as an array.
     uint32_t *AttrOffets() { return &NumSlots() + 1; }
 
-    /**
-     * @param layout layout of the block
-     * @return reference to num_attrs. Use as a member.
-     */
+    // return reference to num_attrs. Use as a member.
     uint16_t &NumAttrs(const BlockLayout &layout) {
       return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumColumns());
     }
 
-    /**
-     * @param layout layout of the block
-     * @return reference to attr_sizes. Use as an array.
-     */
+    // return reference to attr_sizes. Use as an array.
     uint8_t *AttrSizes(const BlockLayout &layout) { return reinterpret_cast<uint8_t *>(&NumAttrs(layout) + 1); }
 
     RawBlock block_;
