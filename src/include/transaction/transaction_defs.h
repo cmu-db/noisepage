@@ -1,6 +1,7 @@
 #pragma once
 
 #include <forward_list>
+#include "common/typedefs.h"
 namespace terrier::transaction {
 class TransactionContext;
 // Explicitly define the underlying structure of std::queue as std::list since we believe the default (std::deque) may
@@ -10,16 +11,5 @@ class TransactionContext;
 // background thread (GC). This structure can be replace with something faster if it becomes a measurable performance
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
-
-enum class ResultType {
-  // TODO(Tianyu): Most of these seem unnecessary and broken. Refactor later.
-  INVALID = 0,  // invalid result type
-  SUCCESS,
-  FAILURE,
-  ABORTED,  // aborted
-  NOOP,     // no op
-  UNKNOWN,
-  QUEUING,
-  TO_ABORT,
-};
+using callback_fn = void (*)(void *);
 }  // namespace terrier::transaction

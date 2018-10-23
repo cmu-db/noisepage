@@ -8,14 +8,13 @@ namespace terrier::common {
  */
 struct Constants {
   /**
-   * Block/RawBlock size, in bytes.
+   * Block/RawBlock size, in bytes. Must be a power of 2.
    */
-  static const uint32_t BLOCK_SIZE = 1048576u;  // Should only ever be a power of 2.
+  static const uint32_t BLOCK_SIZE = 1 << 20;
   /**
    * Buffer segment size, in bytes.
    */
-  // TODO(Tianyu): Size of this buffer can probably be tuned in later optimization runs.
-  static const uint32_t BUFFER_SEGMENT_SIZE = 1 << 15;
+  static const uint32_t BUFFER_SEGMENT_SIZE = 1 << 12;
   /**
    * Maximum number of columns a table is allowed to have.
    */

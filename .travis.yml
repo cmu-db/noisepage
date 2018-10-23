@@ -1,14 +1,5 @@
 sudo: required
 language: cpp
-notifications:
-  webhooks:
-    urls:
-      - http://jenkins.db.cs.cmu.edu:8080/generic-webhook-trigger/invoke?token=5331146c7f6f99b995e8
-    on_success: always
-    on_failure: never
-    on_start: never
-    on_cancel: never
-    on_error: never
 matrix:
   fast_finish: true
   include:
@@ -49,7 +40,7 @@ matrix:
       before_script:
       - docker exec build /bin/sh -c "apt-get -y install curl"
       - docker exec build /bin/sh -c "mkdir -p /repo/build"
-      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=On .."
+      - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=ON  -DTERRIER_BUILD_BENCHMARKS=OFF .."
       - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make"
       - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" build /bin/sh -c "cd /repo/build && make coveralls"
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 /**
@@ -253,12 +254,17 @@ class CommitRecord {
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
    * @param txn_commit the commit timestamp of the transaction that generated this log record
+   * @param callback function pointer of the callback to invoke when commit is
+   * @param callback_arg a void * argument that can be passed to the callback function when invoked
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit) {
+  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit,
+                               transaction::callback_fn callback, void *callback_arg) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
+    body->callback_ = callback;
+    body->callback_arg_ = callback_arg;
     return result;
   }
 
@@ -267,7 +273,19 @@ class CommitRecord {
    */
   timestamp_t CommitTime() const { return txn_commit_; }
 
+  /**
+   * @return function pointer of the transaction callback
+   */
+  transaction::callback_fn Callback() const { return callback_; }
+
+  /**
+   * @return argument to the transaction callback
+   */
+  void *CallbackArg() const { return callback_arg_; }
+
  private:
   timestamp_t txn_commit_;
+  transaction::callback_fn callback_;
+  void *callback_arg_;
 };
 }  // namespace terrier::storage
