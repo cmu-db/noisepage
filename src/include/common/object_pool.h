@@ -58,8 +58,9 @@ class ObjectPool {
    */
   T *Get() {
     SpinLatch::ScopedSpinLatch guard(&latch_);
-    if (reuse_queue_.empty() && current_size_ >= size_limit_) throw std::length_error(
-        "Number of objects allocated by object pool has reached size limit: " + std::to_string(size_limit_) + ".\n");
+    if (reuse_queue_.empty() && current_size_ >= size_limit_)
+      throw std::length_error(
+          "Number of objects allocated by object pool has reached size limit: " + std::to_string(size_limit_) + ".\n");
     T *result = nullptr;
     if (reuse_queue_.empty()) {
       result = alloc_.New();  // result could be null because the allocator may not find enough memory space

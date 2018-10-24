@@ -34,6 +34,46 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
   }
 }
 
+// Allocate more memory space than the object pool and expect exceptions
+// NOLINTNEXTLINE
+TEST(ObjectPoolTests, ExceedLimitTest) {
+  const uint32_t repeat = 1;
+  const uint64_t size_limit = 10;
+  const uint64_t reuse_limit = 10;
+  for (uint32_t iter = 0; iter < repeat; iter++) {
+    common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
+
+    // Get 11 objects
+    std::vector<uint32_t *> objects;
+    for (uint32_t i = 1; i <= 11; i++) {
+      uint32_t *cur_ptr = nullptr;
+      try {
+        cur_ptr = tested.Get();
+        if (i == 11) {
+          // free memory before we fail
+          tested.Release(cur_ptr);
+          for (auto &ptr : objects) tested.Release(ptr);
+          FAIL() << "Expect std::length_error.";
+        }
+        objects.push_back(cur_ptr);
+      } catch (const std::length_error &e) {
+        // got length error
+        if (i <= 10) {
+          // free memory before we fail
+          for (auto &ptr : objects) tested.Release(ptr);
+          FAIL() << "Unexpected std::length_error";
+        }
+      } catch (...) {
+        // free memory before we fail
+        for (auto &ptr : objects) tested.Release(ptr);
+        FAIL() << "Unexpected exceptions";
+      }
+    }
+    // Free Memory
+    for (auto &ptr : objects) tested.Release(ptr);
+  }
+}
+
 // Reset the size of the object pool
 // NOLINTNEXTLINE
 TEST(ObjectPoolTests, ResetLimitTest) {
@@ -61,7 +101,7 @@ TEST(ObjectPoolTests, ResetLimitTest) {
     }
 
     // I should get an exception
-    EXPECT_THROW(tested.Get(), common::NoMoreObjectException);
+    EXPECT_THROW(tested.Get(), std::length_error);
 
     // free memory
     for (auto &it : ptrs) tested.Release(it);
@@ -104,7 +144,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     auto allocate = [&] {
       try {
         ptrs.push_back(tested.Get()->Use(tid));
-      } catch (common::NoMoreObjectException) {
+      } catch (std::length_error) {
         // Since threads are alloc and free in random order, object pool could possibly have no object to hand out.
         // When this occurs, we just do nothing. The purpose of this test is to test object pool concurrently and
         // check correctness. We just skip and do nothing. The object pool will eventually have objects when other
