@@ -62,7 +62,7 @@ TEST_F(ObjectPoolTests, ExceedLimitTest) {
         EXPECT_NO_THROW(cur_ptr = tested_.Get());
         if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
       } else {
-        EXPECT_THROW(cur_ptr = tested_.Get(), std::length_error);
+        EXPECT_THROW(cur_ptr = tested_.Get(), common::NoMoreObjectException);
         if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
       }
     }
@@ -96,7 +96,7 @@ TEST_F(ObjectPoolTests, ResetLimitTest) {
     }
 
     // I should get an exception
-    EXPECT_THROW(tested.Get(), std::length_error);
+    EXPECT_THROW(tested.Get(), common::NoMoreObjectException);
 
     // free memory
     for (auto &it : ptrs) tested.Release(it);
@@ -139,7 +139,7 @@ TEST_F(ObjectPoolTests, ConcurrentCorrectnessTest) {
     auto allocate = [&] {
       try {
         ptrs.push_back(tested.Get()->Use(tid));
-      } catch (std::length_error) {
+      } catch (common::NoMoreObjectException) {
         // Since threads are alloc and free in random order, object pool could possibly have no object to hand out.
         // When this occurs, we just do nothing. The purpose of this test is to test object pool concurrently and
         // check correctness. We just skip and do nothing. The object pool will eventually have objects when other

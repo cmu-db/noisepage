@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <string>
 #include <utility>
 #include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
@@ -8,6 +9,43 @@
 #include "common/typedefs.h"
 
 namespace terrier::common {
+// TODO(Yangjun): this class should be moved somewhere else.
+/**
+ * An exception thrown by object pools when they reach their size limits and
+ * cannot give more memory space for objects.
+ */
+class NoMoreObjectException : public std::exception {
+ public:
+  /**
+   * Construct an exception that can be thrown by a object pool
+   * @param limit the object pool limit size
+   */
+  explicit NoMoreObjectException(uint64_t limit)
+      : message_("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit) + ".\n") {}
+  /**
+   * Describe the exception.
+   * @return a string of exception description
+   */
+  const char *what() const noexcept override { return message_.c_str(); }
+
+ private:
+  std::string message_;
+};
+/**
+ * An exception thrown by object pools when the allocator fails to fetch memory
+ * space. This can happen when the caller asks for an object, the object pool
+ * doesn't have reusable object and the underlying allocator fails to get new
+ * memory due to system running out of memory
+ */
+class AllocatorFailureException : public std::exception {
+ public:
+  /**
+   * Describe the exception.
+   * @return a string of exception description
+   */
+  const char *what() const noexcept override { return "Allocator fails to allocate memory.\n"; }
+};
+
 /**
  * Object pool for memory allocation.
  *
@@ -52,15 +90,13 @@ class ObjectPool {
 
   /**
    * Returns a piece of memory to hold an object of T.
-   * @throw std::length_error if the object pool has reached the limit of how many objects it may hand out.
-   * @throw std::runtime_error if the allocator fails to return a valid memory address.
+   * @throw NoMoreObjectException if the object pool has reached the limit of how many objects it may hand out.
+   * @throw AllocatorFailureException if the allocator fails to return a valid memory address.
    * @return pointer to memory that can hold T
    */
   T *Get() {
     SpinLatch::ScopedSpinLatch guard(&latch_);
-    if (reuse_queue_.empty() && current_size_ >= size_limit_)
-      throw std::length_error(
-          "Number of objects allocated by object pool has reached size limit: " + std::to_string(size_limit_) + ".\n");
+    if (reuse_queue_.empty() && current_size_ >= size_limit_) throw NoMoreObjectException(size_limit_);
     T *result = nullptr;
     if (reuse_queue_.empty()) {
       result = alloc_.New();  // result could be null because the allocator may not find enough memory space
@@ -71,7 +107,7 @@ class ObjectPool {
       alloc_.Reuse(result);
     }
     // If result is nullptr. The call to alloc_.New() failed (i.e. can't allocate more memory from the system).
-    if (result == nullptr) throw std::runtime_error("Allocator returned nullptr.\n");
+    if (result == nullptr) throw AllocatorFailureException();
     TERRIER_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
     return result;
   }
