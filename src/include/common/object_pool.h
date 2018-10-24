@@ -53,13 +53,13 @@ class ObjectPool {
   /**
    * Returns a piece of memory to hold an object of T.
    * @throw std::length_error if the object pool has reached the limit of how many objects it may hand out.
-   * @throw AllocatorFailureException if the allocator fails to return a valid memory address.
+   * @throw std::runtime_error if the allocator fails to return a valid memory address.
    * @return pointer to memory that can hold T
    */
   T *Get() {
     SpinLatch::ScopedSpinLatch guard(&latch_);
     if (reuse_queue_.empty() && current_size_ >= size_limit_) throw std::length_error(
-        "Object Pool have no object to hand out. Exceed size limit " + std::to_string(size_limit_) + ".\n");
+        "Number of objects allocated by object pool has reached size limit: " + std::to_string(size_limit_) + ".\n");
     T *result = nullptr;
     if (reuse_queue_.empty()) {
       result = alloc_.New();  // result could be null because the allocator may not find enough memory space
@@ -71,8 +71,8 @@ class ObjectPool {
     }
     // If result is nullptr, either the call to alloc_.New() failed (i.e. can't allocate more memory from the system)
     // or somehow an invalid address got put on the reuse queue.
-    if (result == nullptr) throw std::runtime_error("Allocator returned invalid memory address.\n");
-    TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
+    if (result == nullptr) throw std::runtime_error("Allocator returned nullptr.\n");
+    TERRIER_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
     return result;
   }
 
