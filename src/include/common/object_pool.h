@@ -70,8 +70,7 @@ class ObjectPool {
       reuse_queue_.pop();
       alloc_.Reuse(result);
     }
-    // If result is nullptr, either the call to alloc_.New() failed (i.e. can't allocate more memory from the system)
-    // or somehow an invalid address got put on the reuse queue.
+    // If result is nullptr. The call to alloc_.New() failed (i.e. can't allocate more memory from the system).
     if (result == nullptr) throw std::runtime_error("Allocator returned nullptr.\n");
     TERRIER_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
     return result;
@@ -132,6 +131,7 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
+    TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
     SpinLatch::ScopedSpinLatch guard(&latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
