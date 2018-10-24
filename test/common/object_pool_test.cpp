@@ -55,7 +55,6 @@ TEST(ObjectPoolTests, ExceedLimitTest) {
           for (auto &ptr : objects) tested.Release(ptr);
           FAIL() << "Expect std::length_error when attempting to get object from pool with size limit " << size_limit
                  << " and " << i - 1 << " objects already allocated.";
-          ;
         }
         objects.push_back(cur_ptr);
       } catch (const std::length_error &e) {
