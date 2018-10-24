@@ -6,13 +6,25 @@
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
+#include "util/test_harness.h"
 #include "util/test_thread_pool.h"
 
 namespace terrier {
 
+struct ObjectPoolTests : public TerrierTest {
+  std::vector<uint32_t *> objects_;
+  common::ObjectPool<uint32_t> tested_{1, 1};
+
+ protected:
+  void TearDown() override {
+    for (auto &ptr : objects_) tested_.Release(ptr);
+    objects_.clear();
+    TerrierTest::TearDown();
+  }
+};
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
-TEST(ObjectPoolTests, SimpleReuseTest) {
+TEST_F(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 1;
   const uint64_t reuse_limit = 1;
@@ -36,48 +48,30 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 
 // Allocate more memory space than the object pool and expect exceptions
 // NOLINTNEXTLINE
-TEST(ObjectPoolTests, ExceedLimitTest) {
+TEST_F(ObjectPoolTests, ExceedLimitTest) {
   const uint32_t repeat = 1;
   const uint64_t size_limit = 10;
   const uint64_t reuse_limit = size_limit;
   for (uint32_t iter = 0; iter < repeat; iter++) {
-    common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
-
+    tested_.SetSizeLimit(size_limit);
+    tested_.SetReuseLimit(reuse_limit);
     // Get 11 objects
-    std::vector<uint32_t *> objects;
     for (uint32_t i = 1; i <= size_limit + 1; i++) {
       uint32_t *cur_ptr = nullptr;
-      try {
-        cur_ptr = tested.Get();
-        if (i == size_limit + 1) {
-          // free memory before we fail
-          tested.Release(cur_ptr);
-          for (auto &ptr : objects) tested.Release(ptr);
-          FAIL() << "Expect std::length_error when attempting to get object from pool with size limit " << size_limit
-                 << " and " << i - 1 << " objects already allocated.";
-        }
-        objects.push_back(cur_ptr);
-      } catch (const std::length_error &e) {
-        // got length error
-        if (i <= 10) {
-          // free memory before we fail
-          for (auto &ptr : objects) tested.Release(ptr);
-          FAIL() << "Unexpected std::length_error; object pool has not allocated to its size limit yet.";
-        }
-      } catch (...) {
-        // free memory before we fail
-        for (auto &ptr : objects) tested.Release(ptr);
-        FAIL() << "Unexpected exceptions";
+      if (i <= size_limit) {
+        EXPECT_NO_THROW(cur_ptr = tested_.Get());
+        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
+      } else {
+        EXPECT_THROW(cur_ptr = tested_.Get(), std::length_error);
+        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
       }
     }
-    // Free Memory
-    for (auto &ptr : objects) tested.Release(ptr);
   }
 }
 
 // Reset the size of the object pool
 // NOLINTNEXTLINE
-TEST(ObjectPoolTests, ResetLimitTest) {
+TEST_F(ObjectPoolTests, ResetLimitTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 10;
   for (uint32_t iteration = 0; iteration < repeat; ++iteration) {
@@ -129,7 +123,7 @@ class ObjectPoolTestType {
 // This test generates random workload and sees if the pool gives out
 // the same pointer to two threads at the same time.
 // NOLINTNEXTLINE
-TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
+TEST_F(ObjectPoolTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
 
   const uint64_t size_limit = 100;
