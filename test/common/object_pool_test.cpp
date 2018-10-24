@@ -39,21 +39,23 @@ TEST(ObjectPoolTests, SimpleReuseTest) {
 TEST(ObjectPoolTests, ExceedLimitTest) {
   const uint32_t repeat = 1;
   const uint64_t size_limit = 10;
-  const uint64_t reuse_limit = 10;
+  const uint64_t reuse_limit = size_limit;
   for (uint32_t iter = 0; iter < repeat; iter++) {
     common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
 
     // Get 11 objects
     std::vector<uint32_t *> objects;
-    for (uint32_t i = 1; i <= 11; i++) {
+    for (uint32_t i = 1; i <= size_limit + 1; i++) {
       uint32_t *cur_ptr = nullptr;
       try {
         cur_ptr = tested.Get();
-        if (i == 11) {
+        if (i == size_limit + 1) {
           // free memory before we fail
           tested.Release(cur_ptr);
           for (auto &ptr : objects) tested.Release(ptr);
-          FAIL() << "Expect std::length_error.";
+          FAIL() << "Expect std::length_error when attempting to get object from pool with size limit " << size_limit
+                 << " and " << i - 1 << " objects already allocated.";
+          ;
         }
         objects.push_back(cur_ptr);
       } catch (const std::length_error &e) {
@@ -61,7 +63,7 @@ TEST(ObjectPoolTests, ExceedLimitTest) {
         if (i <= 10) {
           // free memory before we fail
           for (auto &ptr : objects) tested.Release(ptr);
-          FAIL() << "Unexpected std::length_error";
+          FAIL() << "Unexpected std::length_error; object pool has not allocated to its size limit yet.";
         }
       } catch (...) {
         // free memory before we fail
