@@ -33,6 +33,7 @@ class TestConfig(object):
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
+                               "logging_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # how many historical values are "required".
@@ -52,12 +53,7 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 12,
-            },
-
-            {"project" :  "pa_terrier",
-             "branch" : "micro_bench",
-             "min_build" :  19,
+             "min_build" : 28,
             },
         ]
         return
@@ -717,6 +713,7 @@ class RunMicroBenchmarks(object):
         self.benchmark_list = ["data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
+                               "logging_benchmark",
                                "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
@@ -1066,8 +1063,7 @@ if __name__ == "__main__":
         branch = repo_dict.get("branch")
         min_build = repo_dict.get("min_build")
 
-        kwargs = {"min_build" : min_build,
-                  "status_filter" : "SUCCESS" }
+        kwargs = {"min_build" : min_build }
         builds = h.get_builds(project, branch, **kwargs)
 
         for build in builds:
