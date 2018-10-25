@@ -183,7 +183,7 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
 
 // This test attempts to simulate a TPC-C-like scenario.
 // NOLINTNEXTLINE
-TEST_F(LargeGCTests, TPCCWithGC) {
+TEST_F(LargeGCTests, TPCCishWithGC) {
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
@@ -205,7 +205,7 @@ TEST_F(LargeGCTests, TPCCWithGC) {
 
 // This test duplicates the previous one with a higher number of thread swapouts.
 // NOLINTNEXTLINE
-TEST_F(LargeGCTests, TPCCHighThreadWithGC) {
+TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
   const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();

@@ -39,12 +39,11 @@ class TransactionManager {
   /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
-   * @param callback callback function that the transaction manager will execute as soon as all log records of the
-   *                 given transaction is flushed out. Needless to say, short callbacks that delegates work
-   *                 to a different thread is preferable.
+   * @param callback function pointer of the callback to invoke when commit is
+   * @param callback_arg a void * argument that can be passed to the callback function when invoked
    * @return commit timestamp of this transaction
    */
-  timestamp_t Commit(TransactionContext *txn, const std::function<void()> &callback);
+  timestamp_t Commit(TransactionContext *txn, transaction::callback_fn callback, void *callback_arg);
 
   /**
    * Aborts a transaction, rolling back its changes (if any).
@@ -92,6 +91,15 @@ class TransactionManager {
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
+
+  timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
+                                            void *callback_arg);
+
+  timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
+                                            void *callback_arg);
+
+  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
+                 void *callback_arg);
 
   void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
 };

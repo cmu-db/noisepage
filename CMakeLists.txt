@@ -198,21 +198,6 @@ if (TERRIER_GENERATE_COVERAGE)
   endif ()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-
-  include(Coveralls)
-
-  file(GLOB_RECURSE COVERAGE_SRCS
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-      )
-
-  set(COVERAGE_UPLOAD ON)
-
-  coveralls_setup(
-      "${COVERAGE_SRCS}"
-      "${COVERAGE_UPLOAD}"
-      "${CMAKE_MODULE_PATH}"
-  )
 endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
@@ -290,7 +275,11 @@ if (${CLANG_TIDY_FOUND})
       -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
       -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
       )
-  add_dependencies(check-clang-tidy benchmark gtest)                        # clang-tidy needs their headers to exist
+  if (TERRIER_BUILD_BENCHMARKS)
+    add_dependencies(check-clang-tidy benchmark gtest)                  # clang-tidy needs their headers to exist
+  elseif (TERRIER_BUILD_TESTS)
+    add_dependencies(check-clang-tidy gtest)                            # clang-tidy needs their headers to exist
+  endif()
 
 endif ()
 
