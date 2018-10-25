@@ -22,61 +22,75 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
+void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
+                                   const callback_fn callback, void *const callback_arg) {
+  txn->TxnId().store(commit_time);
+  if (log_manager_ != LOGGING_DISABLED) {
+    // At this point the commit has already happened for the rest of the system.
+    // Here we will manually add a commit record and flush the buffer to ensure the logger
+    // sees this record.
+    byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
+    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
+  }
+  // Signal to the log manager that we are ready to be logged out
+  txn->redo_buffer_.Finalize(true);
+}
+
+timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
+                                                              void *const callback_arg) {
+  // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
+  const timestamp_t commit_time = time_++;
+  // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
+  // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
+  // transaction's commit record to disk.
+  LogCommit(txn, commit_time, callback, callback_arg);
+  return commit_time;
+}
+
+timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
+                                                              void *const callback_arg) {
+  common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
+  const timestamp_t commit_time = time_++;
+  // TODO(Tianyu):
+  // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
+  // to the log manager. Otherwise there are rare races where:
+  // transaction 1        transaction 2
+  //   begin
+  //   write a
+  //   commit
+  //                          begin
+  //                          read a
+  //                          ...
+  //                          commit
+  //                          add to log manager queue
+  //  add to queue
+  //
+  //  Where transaction 2's commit can be logged out before transaction 1. If the system crashes between txn 2's
+  //  commit is written out and txn 1's commit is written out, we are toast.
+  //  Make sure you solve this problem before you remove this latch for whatever reason.
+  LogCommit(txn, commit_time, callback, callback_arg);
+  // flip all timestamps to be committed
+  for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
+
+  return commit_time;
+}
+
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
-  // TODO(Tianyu): Potentially don't need to get a commit time for read-only txns
-  timestamp_t commit_time;
-  {
-    // In a critical section where no new transactions are allowed to begin, flip all timestamps to be committed
-    common::SharedLatch::ScopedExclusiveLatch guard(&commit_latch_);
-    commit_time = time_++;
-    for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
-
-    txn->TxnId().store(commit_time);
-    // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
-    // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
-    // transaction's commit record to disk.
-    if (log_manager_ != LOGGING_DISABLED) {
-      // At this point the commit has already happened for the rest of the system.
-      // Here we will manually add a commit record and flush the buffer to ensure the logger
-      // sees this record.
-      byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-      storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg);
-    }
-
-    // TODO(Tianyu):
-    // WARNING: This operation has to happen in the critical section to make sure that commits appear in serial order
-    // to the log manager. Otherwise there are rare races where:
-    // transaction 1        transaction 2
-    //   begin
-    //   write a
-    //   commit
-    //                          begin
-    //                          read a
-    //                          ...
-    //                          commit
-    //                          add to log manager queue
-    //  add to queue
-    //
-    //  Where transaction 2's commit can be logged out before transaction 1. If the system crashes between txn 2's
-    //  commit is written out and txn 1's commit is written out, we are toast.
-    //  Make sure you solve this problem before you remove this latch for whatever reason.
-    txn->redo_buffer_.Finalize(true);
-  }
-
-  // TODO(Tianyu): Is this the right thing to do?
-  if (log_manager_ == LOGGING_DISABLED) callback(callback_arg);
-
+  timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
+                                                 : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
     const timestamp_t start_time = txn->StartTime();
     size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
-
-  return commit_time;
+  if (log_manager_ == LOGGING_DISABLED) callback(callback_arg);
+  return result;
 }
 
 void TransactionManager::Abort(TransactionContext *const txn) {
