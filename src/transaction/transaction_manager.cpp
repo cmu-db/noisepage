@@ -32,7 +32,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-        is_read_only);
+                                      is_read_only);
   }
   // Signal to the log manager that we are ready to be logged out
   txn->redo_buffer_.Finalize(true);
