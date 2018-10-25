@@ -70,9 +70,13 @@ class WorkerPool {
    */
   void Shutdown() {
     is_running_ = false;
-    std::unique_lock<std::mutex> lock(task_lock_);
-    // wait for all the threads to finish
-    finished_cv_.wait(lock, [this] { return busy_workers_ == 0; });
+    // tell everyone to stop working
+    task_cv_.notify_all();
+    for (auto &worker : workers_) {
+      worker.join();
+    }
+    workers_.clear();
+    num_workers_ = 0;
   }
 
   /**
@@ -84,8 +88,10 @@ class WorkerPool {
   template <typename F>
   void SubmitTask(const F &func) {
     TERRIER_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
-    std::unique_lock<std::mutex> lock(task_lock_);
-    task_queue_.emplace(std::move(func));
+    {
+      std::unique_lock<std::mutex> lock(task_lock_);
+      task_queue_.emplace(std::move(func));
+    }
     task_cv_.notify_one();
   }
 
@@ -95,7 +101,10 @@ class WorkerPool {
   void WaitUntilAllFinished() {
     std::unique_lock<std::mutex> lock(task_lock_);
     // wait for all the tasks to complete
-    finished_cv_.wait(lock, [this] { return busy_workers_ == 0 && task_queue_.empty(); });
+    while (!(busy_workers_ == 0 && task_queue_.empty())) {
+      // notification can happen before wait starts. So we need to wake up periodically even without notification
+      finished_cv_.wait_for(lock, std::chrono::milliseconds(200));
+    }
   }
 
   /**
@@ -113,13 +122,6 @@ class WorkerPool {
    */
   void SetNumWorkers(uint32_t num) {
     TERRIER_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
-    if (num > num_workers_) {
-      for (uint32_t i = 0; i < num - num_workers_; i++) {
-        AddThread();
-      }
-    } else {
-      workers_.resize(num);
-    }
     num_workers_ = num;
   }
 
@@ -143,28 +145,30 @@ class WorkerPool {
 
   void AddThread() {
     workers_.emplace_back([this] {
+      std::function<void(void)> task;
+
       // keep the thread alive
       while (true) {
-        // grab the lock
-        std::unique_lock<std::mutex> lock(task_lock_);
-        // try to get work
-        task_cv_.wait(lock, [this] { return !is_running_ || !task_queue_.empty(); });
-        // woke up! time to work or time to die?
-        if (!is_running_) {
-          break;
+        {
+          // grab the lock
+          std::unique_lock<std::mutex> lock(task_lock_);
+          while (is_running_ && task_queue_.empty()) {
+            // need to consider the case the notification sent before waits.
+            task_cv_.wait_for(lock, std::chrono::milliseconds(200));
+          }
+          if (!is_running_) {
+            // we are shutting down.
+            return;
+          }
+          if (task_queue_.empty()) {
+            // no task do nothing
+          }
+          task = std::move(task_queue_.front());
+          task_queue_.pop();
+          ++busy_workers_;
         }
-        // grab the work
-        ++busy_workers_;
-        auto task = std::move(task_queue_.front());
-        task_queue_.pop();
-        // release the lock while we work
-        lock.unlock();
         task();
-        // we lock again to notify that we're done
-        lock.lock();
         --busy_workers_;
-        // We use notify_one because only the main thread(worker pool)
-        // needs to need when a thread is finished.
         finished_cv_.notify_one();
       }
     });
