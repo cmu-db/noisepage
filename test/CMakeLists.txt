@@ -10,5 +10,6 @@ target_link_libraries(test_util ${TERRIER_LINK_LIBS})
 add_dependencies(test_util gtest)
 
 add_subdirectory(common)
+add_subdirectory(parser)
 add_subdirectory(storage)
 add_subdirectory(transaction)

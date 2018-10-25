@@ -340,24 +340,25 @@ include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 set(TERRIER_LINK_LIBS
     ${TERRIER_LINK_LIBS}
-    ${PTHREAD_LIBRARY})
+    ${PTHREAD_LIBRARY}
+    pg_query)
 
 set(TERRIER_TEST_LINK_LIBS
     test_util
     terrier_static
     gtest
     gtest_main
+    pg_query
     ${CMAKE_DL_LIBS})
 
 set(TERRIER_BENCHMARK_LINK_LIBS
     test_util
     benchmark_util
     terrier_static
-    gtest)
+    gtest
+    pg_query)
 
 # ---[ Subdirectories
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
-#add_subdirectory(third_party/libpg_query)
-
