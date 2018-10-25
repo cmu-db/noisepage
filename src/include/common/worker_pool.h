@@ -122,6 +122,13 @@ class WorkerPool {
    */
   void SetNumWorkers(uint32_t num) {
     TERRIER_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
+    if (num > num_workers_) {
+      for (uint32_t i = 0; i < num - num_workers_; i++) {
+        AddThread();
+      }
+    } else {
+      workers_.resize(num);
+    }
     num_workers_ = num;
   }
 
