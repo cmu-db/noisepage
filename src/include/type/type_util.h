@@ -38,9 +38,8 @@ class TypeUtil {
       case TypeId::ARRAY:
         return 0;
       default:
-        break;
+        throw std::runtime_error("Unknown type.");
     }
-    throw std::runtime_error("Unknown type.");
   }
 };
 
