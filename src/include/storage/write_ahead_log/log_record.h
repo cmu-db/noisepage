@@ -256,6 +256,7 @@ class CommitRecord {
    * @param txn_commit the commit timestamp of the transaction that generated this log record
    * @param callback function pointer of the callback to invoke when commit is
    * @param callback_arg a void * argument that can be passed to the callback function when invoked
+   * @param is_read_only indicates whether the transaction generating this log record is read-only or not
    * @return pointer to the initialized log record, always equal in value to the given head
    */
   static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit,
