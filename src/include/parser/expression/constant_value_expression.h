@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include "common/hash_util.h"
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/value.h"
 

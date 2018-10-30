@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"

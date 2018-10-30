@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
