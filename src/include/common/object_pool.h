@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <string>
 #include <utility>
 #include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
@@ -19,18 +20,17 @@ class NoMoreObjectException : public std::exception {
    * Construct an exception that can be thrown by a object pool
    * @param limit the object pool limit size
    */
-  explicit NoMoreObjectException(uint64_t limit) : limit_(limit) {}
+  explicit NoMoreObjectException(uint64_t limit)
+      : message_("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit) + ".\n") {}
 
   /**
    * Describe the exception.
    * @return a string of exception description
    */
-  const char *what() const noexcept override {
-    return ("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit_) + ".\n").c_str();
-  }
+  const char *what() const noexcept override { return message_.c_str(); }
 
  private:
-  uint64_t limit_;
+  std::string message_;
 };
 
 /**
