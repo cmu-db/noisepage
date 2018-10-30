@@ -76,21 +76,23 @@ TEST_F(ObjectPoolTests, ExceedLimitTest) {
 TEST_F(ObjectPoolTests, ResetLimitTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 10;
+  const uint64_t reuse_limit = size_limit;
   for (uint32_t iteration = 0; iteration < repeat; ++iteration) {
-    common::ObjectPool<uint32_t> tested(size_limit, size_limit);
+    tested_.SetReuseLimit(reuse_limit);
+    tested_.SetSizeLimit(size_limit);
     std::unordered_set<uint32_t *> used_ptrs;
 
     // The reuse_queue should have a size of size_limit
-    for (uint32_t i = 0; i < size_limit; ++i) used_ptrs.insert(tested.Get());
-    for (auto &it : used_ptrs) tested.Release(it);
+    for (uint32_t i = 0; i < size_limit; ++i) used_ptrs.insert(tested_.Get());
+    for (auto &it : used_ptrs) tested_.Release(it);
 
-    tested.SetReuseLimit(size_limit / 2);
-    EXPECT_TRUE(tested.SetSizeLimit(size_limit / 2));
+    tested_.SetReuseLimit(size_limit / 2);
+    EXPECT_TRUE(tested_.SetSizeLimit(size_limit / 2));
 
     std::vector<uint32_t *> ptrs;
     for (uint32_t i = 0; i < size_limit / 2; ++i) {
       // the first half should be reused pointers
-      uint32_t *ptr = tested.Get();
+      uint32_t *ptr = tested_.Get();
       EXPECT_FALSE(used_ptrs.find(ptr) == used_ptrs.end());
 
       // store the pointer to free later
@@ -98,10 +100,13 @@ TEST_F(ObjectPoolTests, ResetLimitTest) {
     }
 
     // I should get an exception
-    EXPECT_THROW(tested.Get(), common::NoMoreObjectException);
+    EXPECT_THROW(tested_.Get(), common::NoMoreObjectException);
 
     // free memory
-    for (auto &it : ptrs) tested.Release(it);
+    for (auto &it : ptrs) tested_.Release(it);
+
+    // reset state
+    tested_.SetReuseLimit(0);
   }
 }
 
