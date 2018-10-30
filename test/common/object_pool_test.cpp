@@ -48,28 +48,28 @@ TEST_F(ObjectPoolTests, SimpleReuseTest) {
   }
 }
 
-// Allocate more memory space than the object pool and expect exceptions
-// NOLINTNEXTLINE
-TEST_F(ObjectPoolTests, ExceedLimitTest) {
-  const uint32_t repeat = 1;
-  const uint64_t size_limit = 10;
-  const uint64_t reuse_limit = size_limit;
-  for (uint32_t iter = 0; iter < repeat; iter++) {
-    tested_.SetSizeLimit(size_limit);
-    tested_.SetReuseLimit(reuse_limit);
-    // Get 11 objects
-    for (uint32_t i = 1; i <= size_limit + 1; i++) {
-      uint32_t *cur_ptr = nullptr;
-      if (i <= size_limit) {
-        EXPECT_NO_THROW(cur_ptr = tested_.Get());
-        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
-      } else {
-        EXPECT_THROW(cur_ptr = tested_.Get(), common::NoMoreObjectException);
-        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
-      }
-    }
-  }
-}
+//// Allocate more memory space than the object pool and expect exceptions
+//// NOLINTNEXTLINE
+// TEST_F(ObjectPoolTests, ExceedLimitTest) {
+//  const uint32_t repeat = 1;
+//  const uint64_t size_limit = 10;
+//  const uint64_t reuse_limit = size_limit;
+//  for (uint32_t iter = 0; iter < repeat; iter++) {
+//    tested_.SetSizeLimit(size_limit);
+//    tested_.SetReuseLimit(reuse_limit);
+//    // Get 11 objects
+//    for (uint32_t i = 1; i <= size_limit + 1; i++) {
+//      uint32_t *cur_ptr = nullptr;
+//      if (i <= size_limit) {
+//        EXPECT_NO_THROW(cur_ptr = tested_.Get());
+//        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
+//      } else {
+//        EXPECT_THROW(cur_ptr = tested_.Get(), common::NoMoreObjectException);
+//        if (cur_ptr != nullptr) objects_.push_back(cur_ptr);
+//      }
+//    }
+//  }
+//}
 
 // Reset the size of the object pool
 // NOLINTNEXTLINE
