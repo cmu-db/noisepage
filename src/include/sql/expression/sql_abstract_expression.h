@@ -6,17 +6,15 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
-#include "parser/sql_node_visitor.h"
 #include "parser/expression_defs.h"
-#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 #include "type/value.h"
 
-namespace terrier::parser {
+namespace terrier::sql {
 /**
- * An abstract parser expression. Dumb and immutable.
+ * An abstract sql expression
  */
-class AbstractExpression {
+class SqlAbstractExpression {
  protected:
   /**
    * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
@@ -25,18 +23,18 @@ class AbstractExpression {
    * @param return_value_type the type of the expression's value
    * @param children the list of children for this node
    */
-  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  SqlAbstractExpression(const parser::ExpressionType expression_type, const type::TypeId return_value_type,
+                        std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
 
   /**
    * Copy constructs an abstract expression.
    * @param other the abstract expression to be copied
    */
-  AbstractExpression(const AbstractExpression &other) = default;
+  SqlAbstractExpression(const SqlAbstractExpression &other) = default;
 
  public:
-  virtual ~AbstractExpression() = default;
+  virtual ~SqlAbstractExpression() = default;
 
   /**
    * Hashes the current abstract expression.
@@ -54,7 +52,7 @@ class AbstractExpression {
    * @param rhs other
    * @return true if the two expressions are logically equal
    */
-  virtual bool operator==(const AbstractExpression &rhs) const {
+  virtual bool operator==(const SqlAbstractExpression &rhs) const {
     if (expression_type_ != rhs.expression_type_ || children_.size() != rhs.children_.size()) {
       return false;
     }
@@ -71,29 +69,19 @@ class AbstractExpression {
    * @param rhs other
    * @return true if the two expressions are not logically equal
    */
-  virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
+  virtual bool operator!=(const SqlAbstractExpression &rhs) const { return !operator==(rhs); }
 
   /**
-   * Creates a (shallow) copy of the current AbstractExpression.
+   * Creates a (shallow) copy of the current SqlAbstractExpression.
    */
   // It is incorrect to supply a default implementation here since that will return an object
-  // of base type AbstractExpression instead of the desired non-abstract type.
-  virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
-
-  virtual std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *) = 0;
-
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> AcceptChildren(SqlNodeVisitor *v) {
-    std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_children;
-    for (auto &child : children_) {
-      sql_children.push_back(child->Accept(v));
-    }
-    return sql_children;
-  }
+  // of base type SqlAbstractExpression instead of the desired non-abstract type.
+  virtual std::unique_ptr<SqlAbstractExpression> Copy() const = 0;
 
   /**
    * @return type of this expression
    */
-  ExpressionType GetExpressionType() const { return expression_type_; }
+  parser::ExpressionType GetExpressionType() const { return expression_type_; }
 
   /**
    * @return type of the return value
@@ -109,29 +97,29 @@ class AbstractExpression {
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  std::shared_ptr<AbstractExpression> GetChild(uint64_t index) const {
+  std::shared_ptr<SqlAbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return children_[index];
   }
 
  private:
-  const ExpressionType expression_type_;                       // type of current expression
+  const parser::ExpressionType expression_type_;                       // type of current expression
   const type::TypeId return_value_type_;                       // type of return value
-  std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
+  std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
 };
-}  // namespace terrier::parser
+}  // namespace terrier::sql
 
 namespace std {
 /**
  * Implements std::hash for abstract expressions
  */
 template <>
-struct hash<terrier::parser::AbstractExpression> {
+struct hash<terrier::sql::SqlAbstractExpression> {
   /**
    * Hashes the given expression
    * @param expr the expression to hash
    * @return hash code of the given expression
    */
-  size_t operator()(const terrier::parser::AbstractExpression &expr) const { return expr.Hash(); }
+  size_t operator()(const terrier::sql::SqlAbstractExpression &expr) const { return expr.Hash(); }
 };
 }  // namespace std

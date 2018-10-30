@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
@@ -21,6 +22,8 @@ class StarExpression : public AbstractExpression {
     // TODO(Tianyu): This really should be a singleton object
     return std::make_unique<StarExpression>(*this);
   }
+
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 }  // namespace terrier::parser

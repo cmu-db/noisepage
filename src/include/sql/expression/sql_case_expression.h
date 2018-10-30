@@ -4,15 +4,15 @@
 #include <utility>
 #include <vector>
 #include "common/macros.h"
-#include "parser/expression/abstract_expression.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::parser {
+namespace terrier::sql {
 
 /**
  * Represents a logical case expression.
  */
-class CaseExpression : public AbstractExpression {
+class SqlCaseExpression : public SqlAbstractExpression {
  public:
   /**
    * WHEN ... THEN ... clauses.
@@ -21,11 +21,11 @@ class CaseExpression : public AbstractExpression {
     /**
      * The condition to be checked for this case expression.
      */
-    std::shared_ptr<AbstractExpression> condition;
+    std::shared_ptr<SqlAbstractExpression> condition;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    std::shared_ptr<AbstractExpression> then;
+    std::shared_ptr<SqlAbstractExpression> then;
 
     /**
      * Equality check
@@ -47,14 +47,14 @@ class CaseExpression : public AbstractExpression {
    * @param when_clauses list of when clauses
    * @param default_expr default expression for this case
    */
-  CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
-                 std::shared_ptr<AbstractExpression> default_expr)
-      : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
+  SqlCaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
+                    std::shared_ptr<SqlAbstractExpression> default_expr)
+      : SqlAbstractExpression(parser::ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
         default_expr_(std::move(default_expr)) {}
 
   common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
+    common::hash_t hash = SqlAbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
       hash = common::HashUtil::CombineHashes(hash, clause.condition->Hash());
       hash = common::HashUtil::CombineHashes(hash, clause.then->Hash());
@@ -65,9 +65,9 @@ class CaseExpression : public AbstractExpression {
     return hash;
   }
 
-  bool operator==(const AbstractExpression &rhs) const override {
+  bool operator==(const SqlAbstractExpression &rhs) const override {
     if (GetExpressionType() != rhs.GetExpressionType()) return false;
-    auto const &other = dynamic_cast<const CaseExpression &>(rhs);
+    auto const &other = dynamic_cast<const SqlCaseExpression &>(rhs);
     auto clause_size = GetWhenClauseSize();
     if (clause_size != other.GetWhenClauseSize()) return false;
 
@@ -81,9 +81,7 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<CaseExpression>(*this); }
-
-  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlCaseExpression>(*this); }
 
   /**
    * @return the number of when clauses
@@ -94,7 +92,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of when clause to get
    * @return condition at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseCondition(size_t index) const {
+  std::shared_ptr<SqlAbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index].condition;
   }
@@ -103,7 +101,7 @@ class CaseExpression : public AbstractExpression {
    * @param index index of when clause to get
    * @return result at that index
    */
-  std::shared_ptr<AbstractExpression> GetWhenClauseResult(size_t index) const {
+  std::shared_ptr<SqlAbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return when_clauses_[index].then;
   }
@@ -111,11 +109,11 @@ class CaseExpression : public AbstractExpression {
   /**
    * @return default clause, if it exists
    */
-  std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+  std::shared_ptr<SqlAbstractExpression> GetDefaultClause() const { return default_expr_; }
 
  private:
   std::vector<WhenClause> when_clauses_;
-  std::shared_ptr<AbstractExpression> default_expr_;
+  std::shared_ptr<SqlAbstractExpression> default_expr_;
 };
 
-}  // namespace terrier::parser
+}  // namespace terrier::sql

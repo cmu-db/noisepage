@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "type/value.h"
@@ -24,6 +25,8 @@ class OperatorExpression : public AbstractExpression {
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<OperatorExpression>(*this); }
+
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 }  // namespace terrier::parser

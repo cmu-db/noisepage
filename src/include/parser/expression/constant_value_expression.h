@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include "common/hash_util.h"
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/value.h"
 
@@ -33,6 +34,8 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConstantValueExpression>(*this); }
+
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return the constant value stored in this expression

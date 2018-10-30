@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "parser/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -26,6 +27,8 @@ class FunctionExpression : public AbstractExpression {
         func_name_(std::move(func_name)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<FunctionExpression>(*this); }
+
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return function name
