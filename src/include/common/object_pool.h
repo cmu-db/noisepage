@@ -92,7 +92,7 @@ class ObjectPool {
 
   /**
    * Returns a piece of memory to hold an object of T.
-   * @throw NoMoreObjectException if the object pool fails to fetch memory.
+   * @throw NoMoreObjectException if the object pool has reached the limit of how many objects it may hand out.
    * @throw AllocatorFailureException if the allocator fails to return a valid memory address.
    * @return pointer to memory that can hold T
    */
