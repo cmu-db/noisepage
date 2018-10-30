@@ -25,7 +25,7 @@ class ConjunctionExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConjunctionExpression>(*this); }
 
-  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Accept(SqlNodeVisitor *v) override { return v->Visit(this); }
 };
 
 }  // namespace terrier::parser

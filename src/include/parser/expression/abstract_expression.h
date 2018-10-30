@@ -80,12 +80,13 @@ class AbstractExpression {
   // of base type AbstractExpression instead of the desired non-abstract type.
   virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
 
-  virtual std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *) = 0;
+  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Accept(SqlNodeVisitor *) = 0;
 
   virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> AcceptChildren(SqlNodeVisitor *v) {
     std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_children;
     for (auto &child : children_) {
-      sql_children.push_back(child->Accept(v));
+      std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_child = child->Accept(v);
+      sql_children.insert(sql_children.end(), sql_child.begin(), sql_child.end());
     }
     return sql_children;
   }
