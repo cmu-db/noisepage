@@ -29,21 +29,22 @@ TEST_F(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 1;
   const uint64_t reuse_limit = 1;
-  common::ObjectPool<uint32_t> tested(size_limit, reuse_limit);
+  tested_.SetSizeLimit(size_limit);
+  tested_.SetReuseLimit(reuse_limit);
 
   // Put a pointer on the the reuse queue
   // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
   // NOLINTNEXTLINE
-  uint32_t *reused_ptr = tested.Get();
+  uint32_t *reused_ptr = tested_.Get();
   // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer
   // NOLINTNEXTLINE
-  tested.Release(reused_ptr);
+  tested_.Release(reused_ptr);
 
   // clang-tidy thinks gtest-printers will DefaultPrintTo the released pointer here too
   // NOLINTNEXTLINE
   for (uint32_t i = 0; i < repeat; i++) {
-    EXPECT_EQ(tested.Get(), reused_ptr);
-    tested.Release(reused_ptr);
+    EXPECT_EQ(tested_.Get(), reused_ptr);
+    tested_.Release(reused_ptr);
   }
 }
 
