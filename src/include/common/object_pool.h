@@ -168,6 +168,7 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
+    TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
     SpinLatch::ScopedSpinLatch guard(&latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
