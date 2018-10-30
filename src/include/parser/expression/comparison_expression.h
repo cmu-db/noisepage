@@ -23,6 +23,8 @@ class ComparisonExpression : public AbstractExpression {
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ComparisonExpression>(*this); }
+
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 }  // namespace terrier::parser

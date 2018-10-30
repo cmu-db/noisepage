@@ -83,6 +83,8 @@ class CaseExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<CaseExpression>(*this); }
 
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return the number of when clauses
    */

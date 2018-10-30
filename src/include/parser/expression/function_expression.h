@@ -27,6 +27,8 @@ class FunctionExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<FunctionExpression>(*this); }
 
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return function name
    */

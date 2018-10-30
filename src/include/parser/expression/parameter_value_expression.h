@@ -23,6 +23,8 @@ class ParameterValueExpression : public AbstractExpression {
     return std::make_unique<ParameterValueExpression>(*this);
   }
 
+  std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
   /**
    * @return offset in the expression
    */

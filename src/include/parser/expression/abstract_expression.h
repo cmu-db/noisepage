@@ -6,7 +6,9 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "parser/sql_node_visitor.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 #include "type/value.h"
 
@@ -76,7 +78,17 @@ class AbstractExpression {
    */
   // It is incorrect to supply a default implementation here since that will return an object
   // of base type AbstractExpression instead of the desired non-abstract type.
-  virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
+  virtual std::shared_ptr<AbstractExpression> Copy() const = 0;
+
+  virtual std::shared_ptr<sql::SqlAbstractExpression> Accept(SqlNodeVisitor *) = 0;
+
+  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> AcceptChildren(SqlNodeVisitor *v) {
+    std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_children;
+    for (auto &child : children_) {
+      sql_children.push_back(child->Accept(v));
+    }
+    return sql_children;
+  }
 
   /**
    * @return type of this expression
