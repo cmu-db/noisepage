@@ -16,6 +16,8 @@ struct ObjectPoolTests : public TerrierTest {
   common::ObjectPool<uint32_t> tested_{1, 1};
 
  protected:
+  void SetUp() override { TerrierTest::SetUp(); }
+
   void TearDown() override {
     for (auto &ptr : objects_) tested_.Release(ptr);
     objects_.clear();
