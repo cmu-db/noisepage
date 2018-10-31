@@ -6,7 +6,6 @@
 #include "common/object_pool.h"
 #include "gtest/gtest.h"
 #include "util/random_test_util.h"
-#include "util/test_harness.h"
 #include "util/test_thread_pool.h"
 
 namespace terrier {
