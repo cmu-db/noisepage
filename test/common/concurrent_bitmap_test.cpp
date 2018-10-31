@@ -168,7 +168,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 10000;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  common::WorkerPool thread_pool;
+  common::WorkerPool thread_pool(num_threads, {});
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
@@ -213,7 +213,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   const uint32_t num_iters = 100;
   const uint32_t max_elements = 100000;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  common::WorkerPool thread_pool;
+  common::WorkerPool thread_pool(num_threads, {});
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);

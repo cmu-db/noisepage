@@ -37,7 +37,7 @@ class WorkerPool {
    * @param task_queue a queue of tasks
    */
   // NOLINTNEXTLINE  lint thinks it has only one arguement
-  WorkerPool(uint32_t num_workers = 1, TaskQueue task_queue = TaskQueue())
+  WorkerPool(uint32_t num_workers, TaskQueue task_queue)
       : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)), busy_workers_{0} {
     Startup();
   }

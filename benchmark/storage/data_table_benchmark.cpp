@@ -106,7 +106,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       transaction::TransactionContext txn(timestamp_t(0), timestamp_t(0), &buffer_pool_, LOGGING_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
-    common::WorkerPool thread_pool;
+    common::WorkerPool thread_pool(num_threads_, {});
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 
@@ -184,7 +184,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
       for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)
         read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
-    common::WorkerPool thread_pool;
+    common::WorkerPool thread_pool(num_threads_, {});
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   }
 

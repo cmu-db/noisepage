@@ -98,7 +98,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
         }
       };
 
-      common::WorkerPool thread_pool;
+      common::WorkerPool thread_pool(num_threads_, {});
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore

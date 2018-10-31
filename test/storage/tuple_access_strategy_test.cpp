@@ -203,7 +203,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
 TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
-  common::WorkerPool thread_pool;
+  common::WorkerPool thread_pool(1, {});
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
@@ -243,7 +243,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
-  common::WorkerPool thread_pool;
+  common::WorkerPool thread_pool(1, {});
   for (uint32_t i = 0; i < repeat; i++) {
     // We want to test relatively common cases with large numbers of slots
     // in a block. This allows us to test out more inter-leavings.
