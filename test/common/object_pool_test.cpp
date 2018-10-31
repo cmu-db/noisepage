@@ -27,7 +27,7 @@ struct ObjectPoolTests : public TerrierTest {
 
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
-TEST_F(ObjectPoolTests, SimpleReuseTest) {
+TEST(ObjectPoolTests, SimpleReuseTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 1;
   const uint64_t reuse_limit = 1;
@@ -74,7 +74,7 @@ TEST_F(ObjectPoolTests, SimpleReuseTest) {
 
 // Reset the size of the object pool
 // NOLINTNEXTLINE
-TEST_F(ObjectPoolTests, ResetLimitTest) {
+TEST(ObjectPoolTests, ResetLimitTest) {
   const uint32_t repeat = 10;
   const uint64_t size_limit = 10;
   for (uint32_t iteration = 0; iteration < repeat; ++iteration) {
@@ -126,7 +126,7 @@ class ObjectPoolTestType {
 // This test generates random workload and sees if the pool gives out
 // the same pointer to two threads at the same time.
 // NOLINTNEXTLINE
-TEST_F(ObjectPoolTests, ConcurrentCorrectnessTest) {
+TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   TestThreadPool thread_pool;
 
   const uint64_t size_limit = 100;
