@@ -60,16 +60,16 @@ class SqlNodeVisitor {
   virtual void Visit(AnalyzeStatement *){};
   virtual void Visit(ExplainStatement *){};
 
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(ComparisonExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(AggregateExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(CaseExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(ConjunctionExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(ConstantValueExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(FunctionExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(OperatorExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(ParameterValueExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(StarExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(TupleValueExpression *expr);
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Visit(SubqueryExpression *expr);
+  virtual void Visit(ComparisonExpression *expr);
+  virtual void Visit(AggregateExpression *expr);
+  virtual void Visit(CaseExpression *expr);
+  virtual void Visit(ConjunctionExpression *expr);
+  virtual void Visit(ConstantValueExpression *expr);
+  virtual void Visit(FunctionExpression *expr);
+  virtual void Visit(OperatorExpression *expr);
+  virtual void Visit(ParameterValueExpression *expr);
+  virtual void Visit(StarExpression *expr);
+  virtual void Visit(TupleValueExpression *expr);
+  virtual void Visit(SubqueryExpression *expr);
 };
 }  // namespace terrier::parser

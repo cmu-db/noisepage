@@ -28,7 +28,7 @@ class TupleValueExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TupleValueExpression>(*this); }
 
-  std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Accept(SqlNodeVisitor *v) override { return v->Visit(this); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
   const std::string col_name_;

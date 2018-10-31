@@ -12,38 +12,38 @@
 #include "parser/expression/subquery_expression.h"
 
 namespace terrier::parser {
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(ComparisonExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(ComparisonExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(AggregateExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(AggregateExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(CaseExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(CaseExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(ConjunctionExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(ConjunctionExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(ConstantValueExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(ConstantValueExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(FunctionExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(FunctionExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(OperatorExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(OperatorExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(ParameterValueExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(ParameterValueExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(StarExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(StarExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(TupleValueExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(TupleValueExpression *expr) {
+  expr->AcceptChildren(this);
 }
-std::vector<std::shared_ptr<sql::SqlAbstractExpression>> SqlNodeVisitor::Visit(SubqueryExpression *expr) {
-  return expr->AcceptChildren(this);
+void SqlNodeVisitor::Visit(SubqueryExpression *expr) {
+  expr->AcceptChildren(this);
 }
 
 }  // namespace terrier::parser

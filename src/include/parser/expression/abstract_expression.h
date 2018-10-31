@@ -8,7 +8,6 @@
 #include "common/json.h"
 #include "parser/sql_node_visitor.h"
 #include "parser/expression_defs.h"
-#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 #include "type/value.h"
 
@@ -80,15 +79,12 @@ class AbstractExpression {
   // of base type AbstractExpression instead of the desired non-abstract type.
   virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
 
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> Accept(SqlNodeVisitor *) = 0;
+  virtual void Accept(SqlNodeVisitor *) = 0;
 
-  virtual std::vector<std::shared_ptr<sql::SqlAbstractExpression>> AcceptChildren(SqlNodeVisitor *v) {
-    std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_children;
+  virtual void AcceptChildren(SqlNodeVisitor *v) {
     for (auto &child : children_) {
-      std::vector<std::shared_ptr<sql::SqlAbstractExpression>> sql_child = child->Accept(v);
-      sql_children.insert(sql_children.end(), sql_child.begin(), sql_child.end());
+      child->Accept(v);
     }
-    return sql_children;
   }
 
   /**
