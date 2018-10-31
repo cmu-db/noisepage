@@ -59,9 +59,12 @@ class WorkerPool {
    */
   void Startup() {
     is_running_ = true;
+    // Create enough workers if necessary
     while (workers_.size() < num_workers_) {
       AddThread();
     }
+    // Cut down the number of workers if we have too many workers
+    if (workers_.size() > num_workers_) workers_.resize(num_workers_);
   }
 
   /**
@@ -76,7 +79,6 @@ class WorkerPool {
       worker.join();
     }
     workers_.clear();
-    num_workers_ = 0;
   }
 
   /**
@@ -122,13 +124,6 @@ class WorkerPool {
    */
   void SetNumWorkers(uint32_t num) {
     TERRIER_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
-    if (num > num_workers_) {
-      for (uint32_t i = 0; i < num - num_workers_; i++) {
-        AddThread();
-      }
-    } else {
-      workers_.resize(num);
-    }
     num_workers_ = num;
   }
 
@@ -169,6 +164,7 @@ class WorkerPool {
           }
           if (task_queue_.empty()) {
             // no task do nothing
+            continue;
           }
           task = std::move(task_queue_.front());
           task_queue_.pop();
@@ -177,6 +173,7 @@ class WorkerPool {
         // We don't hold locks at this point
         task();
         --busy_workers_;
+        // In theory, we don need to be notified.
         finished_cv_.notify_one();
       }
     });
