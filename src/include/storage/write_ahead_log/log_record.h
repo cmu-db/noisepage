@@ -256,15 +256,17 @@ class CommitRecord {
    * @param txn_commit the commit timestamp of the transaction that generated this log record
    * @param callback function pointer of the callback to invoke when commit is
    * @param callback_arg a void * argument that can be passed to the callback function when invoked
+   * @param is_read_only indicates whether the transaction generating this log record is read-only or not
    * @return pointer to the initialized log record, always equal in value to the given head
    */
   static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit,
-                               transaction::callback_fn callback, void *callback_arg) {
+                               transaction::callback_fn callback, void *callback_arg, bool is_read_only) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
     body->callback_ = callback;
     body->callback_arg_ = callback_arg;
+    body->is_read_only_ = is_read_only;
     return result;
   }
 
@@ -283,9 +285,15 @@ class CommitRecord {
    */
   void *CallbackArg() const { return callback_arg_; }
 
+  /**
+   * @return true if and only if the transaction generating this commit record was read-only
+   */
+  bool IsReadOnly() const { return is_read_only_; }
+
  private:
   timestamp_t txn_commit_;
   transaction::callback_fn callback_;
   void *callback_arg_;
+  bool is_read_only_;
 };
 }  // namespace terrier::storage
