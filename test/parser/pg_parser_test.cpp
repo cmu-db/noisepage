@@ -9,6 +9,8 @@ namespace terrier::parser {
 /**
  * A very basic test, to verify that we can invoke the parser in libpg_query.
  */
+
+// NOLINTNEXTLINE
 TEST(PGParserTests, BasicTest) {
   PgQueryInternalParsetreeAndError result;
 
