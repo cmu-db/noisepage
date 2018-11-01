@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "pg_query.h"
 #include "pg_query_internal.h"
 #include "pg_query_json_plpgsql.h"
@@ -14,6 +16,7 @@
 
 /* Write formatted output to a string dynamically allocated with `malloc'.
    Store the address of the string in *PTR.  */
+/*
 extern int vasprintf (char **__restrict __ptr, const char *__restrict __f,
                       _G_va_list __arg)
      __THROWNL __attribute__ ((__format__ (__printf__, 2, 0))) __wur;
@@ -23,6 +26,7 @@ extern int __asprintf (char **__restrict __ptr,
 extern int asprintf (char **__restrict __ptr,
                      const char *__restrict __fmt, ...)
      __THROWNL __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
+*/
 
 typedef struct {
   PLpgSQL_function *func;
