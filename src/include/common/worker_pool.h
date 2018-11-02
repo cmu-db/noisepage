@@ -58,7 +58,11 @@ class WorkerPool {
    * workers will be put into sleep.
    */
   void Startup() {
-    is_running_ = true;
+    {
+      std::lock_guard lock(task_lock_);
+      is_running_ = true;
+    }
+
     // Create enough workers if necessary
     while (workers_.size() < num_workers_) {
       AddThread();
@@ -72,7 +76,10 @@ class WorkerPool {
    * No more tasks will be consumed. It waits until all worker threads stop working.
    */
   void Shutdown() {
-    is_running_ = false;
+    {
+      std::lock_guard<std::mutex> lock(task_lock_);
+      is_running_ = false;
+    }
     // tell everyone to stop working
     task_cv_.notify_all();
     for (auto &worker : workers_) {
@@ -166,14 +173,12 @@ class WorkerPool {
           if (!is_running_) {
             // we are shutting down.
             return;
+          } else {
+            // has a new task
+            task = std::move(task_queue_.front());
+            task_queue_.pop();
+            ++busy_workers_;
           }
-          if (task_queue_.empty()) {
-            // no task do nothing
-            continue;
-          }
-          task = std::move(task_queue_.front());
-          task_queue_.pop();
-          ++busy_workers_;
         }
         // We don't hold locks at this point
         task();
