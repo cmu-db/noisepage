@@ -133,7 +133,7 @@ class WorkerPool {
   // The number of worker threads
   uint32_t num_workers_;
   // Flag indicating whether the pool is running
-  std::atomic_bool is_running_;
+  bool is_running_;
   // The queue where workers pick up tasks
   TaskQueue task_queue_;
 
