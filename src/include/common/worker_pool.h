@@ -91,7 +91,7 @@ class WorkerPool {
   void SubmitTask(const F &func) {
     TERRIER_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
     {
-      std::unique_lock<std::mutex> lock(task_lock_);
+      std::lock_guard<std::mutex> lock(task_lock_);
       task_queue_.emplace(std::move(func));
     }
     task_cv_.notify_one();
@@ -103,10 +103,13 @@ class WorkerPool {
   void WaitUntilAllFinished() {
     std::unique_lock<std::mutex> lock(task_lock_);
     // wait for all the tasks to complete
-    while (!(busy_workers_ == 0 && task_queue_.empty())) {
-      // notification can happen before wait starts. So we need to wake up periodically even without notification
-      finished_cv_.wait_for(lock, std::chrono::milliseconds(200));
-    }
+
+    // Note: Notifications can happen before wait starts.
+    // If finished_cv_ missed all notifications, then when it grabs the lock, the condition must be true so it won't
+    // deadlock.
+    // As long as finished_cv_ received at least one notification, it must receive that last worker's notification so
+    // the predicate will evaluate to true
+    finished_cv_.wait(lock, [&] { return busy_workers_ == 0 && task_queue_.empty(); });
   }
 
   /**
@@ -154,10 +157,12 @@ class WorkerPool {
         {
           // grab the lock
           std::unique_lock<std::mutex> lock(task_lock_);
-          while (is_running_ && task_queue_.empty()) {
-            // need to consider the case the notification sent before waits.
-            task_cv_.wait_for(lock, std::chrono::milliseconds(200));
-          }
+          // task_cv_ is notified by new tasks and shutdown command
+          // Notifications can get lost
+          //  1) missed shutdown messages: the thread will wake up after it grabs the lock because it's not running
+          //  2) missed new task: the thread will wake up after it grabs the lock because the queue is not empty
+          // need to consider the case the notification sent before waits.
+          task_cv_.wait(lock, [&] { return !is_running_ || !task_queue_.empty(); });
           if (!is_running_) {
             // we are shutting down.
             return;
@@ -174,10 +179,10 @@ class WorkerPool {
         task();
         {
           // hold the lock for updating the counter
-          std::unique_lock<std::mutex> lock(task_lock_);
+          std::lock_guard<std::mutex> lock(task_lock_);
           --busy_workers_;
-          finished_cv_.notify_one();
         }
+        finished_cv_.notify_one();
       }
     });
   }
