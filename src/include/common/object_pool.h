@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <string>
 #include <utility>
 #include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
@@ -19,20 +20,17 @@ class NoMoreObjectException : public std::exception {
    * Construct an exception that can be thrown by a object pool
    * @param limit the object pool limit size
    */
-  explicit NoMoreObjectException(uint64_t limit) : limit_(limit) {}
-
+  explicit NoMoreObjectException(uint64_t limit)
+      : message_("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit) + ".\n") {}
   /**
    * Describe the exception.
    * @return a string of exception description
    */
-  const char *what() const noexcept override {
-    return ("Object Pool have no object to hand out. Exceed size limit " + std::to_string(limit_) + ".\n").c_str();
-  }
+  const char *what() const noexcept override { return message_.c_str(); }
 
  private:
-  uint64_t limit_;
+  std::string message_;
 };
-
 /**
  * An exception thrown by object pools when the allocator fails to fetch memory
  * space. This can happen when the caller asks for an object, the object pool
@@ -92,7 +90,7 @@ class ObjectPool {
 
   /**
    * Returns a piece of memory to hold an object of T.
-   * @throw NoMoreObjectException if the object pool fails to fetch memory.
+   * @throw NoMoreObjectException if the object pool has reached the limit of how many objects it may hand out.
    * @throw AllocatorFailureException if the allocator fails to return a valid memory address.
    * @return pointer to memory that can hold T
    */
@@ -108,8 +106,9 @@ class ObjectPool {
       reuse_queue_.pop();
       alloc_.Reuse(result);
     }
+    // If result is nullptr. The call to alloc_.New() failed (i.e. can't allocate more memory from the system).
     if (result == nullptr) throw AllocatorFailureException();
-    TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
+    TERRIER_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
     return result;
   }
 
@@ -168,6 +167,7 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
+    TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
     SpinLatch::ScopedSpinLatch guard(&latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
