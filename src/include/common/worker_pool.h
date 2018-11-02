@@ -173,12 +173,11 @@ class WorkerPool {
           if (!is_running_) {
             // we are shutting down.
             return;
-          } else {
-            // has a new task
-            task = std::move(task_queue_.front());
-            task_queue_.pop();
-            ++busy_workers_;
           }
+          // has a new task
+          task = std::move(task_queue_.front());
+          task_queue_.pop();
+          ++busy_workers_;
         }
         // We don't hold locks at this point
         task();
