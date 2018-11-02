@@ -137,7 +137,7 @@ class WorkerPool {
   // The queue where workers pick up tasks
   TaskQueue task_queue_;
 
-  std::atomic<uint32_t> busy_workers_;
+  uint32_t busy_workers_;
 
   std::mutex task_lock_;
 
@@ -172,9 +172,12 @@ class WorkerPool {
         }
         // We don't hold locks at this point
         task();
-        --busy_workers_;
-        // In theory, we don need to be notified.
-        finished_cv_.notify_one();
+        {
+          // hold the lock for updating the counter
+          std::unique_lock<std::mutex> lock(task_lock_);
+          --busy_workers_;
+          finished_cv_.notify_one();
+        }
       }
     });
   }
