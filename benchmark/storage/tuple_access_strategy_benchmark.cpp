@@ -80,7 +80,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::State &state) {
   storage::TupleAccessStrategy tested(layout_);
-
+  common::WorkerPool thread_pool(num_threads_, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_blocks_; i++) {
@@ -97,8 +97,6 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
           StorageTestUtil::InsertTuple(*redo_, tested, layout_, slot);
         }
       };
-
-      common::WorkerPool thread_pool(num_threads_, {});
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     // return all of the used blocks to the BlockStore
