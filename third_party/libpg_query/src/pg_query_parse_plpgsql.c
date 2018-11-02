@@ -1,3 +1,4 @@
+// Necessary to get asprintf (which is a GNU extension)
 #define _GNU_SOURCE
 
 #include "pg_query.h"
@@ -11,22 +12,7 @@
 #include <nodes/parsenodes.h>
 #include <nodes/nodeFuncs.h>
 
-#define _GNU_SOURCE // Necessary to get asprintf (which is a GNU extension)
 #include <stdio.h>
-
-/* Write formatted output to a string dynamically allocated with `malloc'.
-   Store the address of the string in *PTR.  */
-/*
-extern int vasprintf (char **__restrict __ptr, const char *__restrict __f,
-                      _G_va_list __arg)
-     __THROWNL __attribute__ ((__format__ (__printf__, 2, 0))) __wur;
-extern int __asprintf (char **__restrict __ptr,
-                       const char *__restrict __fmt, ...)
-     __THROWNL __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
-extern int asprintf (char **__restrict __ptr,
-                     const char *__restrict __fmt, ...)
-     __THROWNL __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
-*/
 
 typedef struct {
   PLpgSQL_function *func;
