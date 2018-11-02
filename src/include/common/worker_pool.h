@@ -111,11 +111,7 @@ class WorkerPool {
     std::unique_lock<std::mutex> lock(task_lock_);
     // wait for all the tasks to complete
 
-    // Note: Notifications can happen before wait starts.
-    // If finished_cv_ missed all notifications, then when it grabs the lock, the condition must be true so it won't
-    // deadlock.
-    // As long as finished_cv_ received at least one notification, it must receive that last worker's notification so
-    // the predicate will evaluate to true
+    // If finished_cv_ is notified by worker threads. Lost notify can happen.
     finished_cv_.wait(lock, [&] { return busy_workers_ == 0 && task_queue_.empty(); });
   }
 
@@ -164,17 +160,13 @@ class WorkerPool {
         {
           // grab the lock
           std::unique_lock<std::mutex> lock(task_lock_);
-          // task_cv_ is notified by new tasks and shutdown command
-          // Notifications can get lost
-          //  1) missed shutdown messages: the thread will wake up after it grabs the lock because it's not running
-          //  2) missed new task: the thread will wake up after it grabs the lock because the queue is not empty
-          // need to consider the case the notification sent before waits.
+          // task_cv_ is notified by new tasks and shutdown command, but lost notify can happen.
           task_cv_.wait(lock, [&] { return !is_running_ || !task_queue_.empty(); });
           if (!is_running_) {
             // we are shutting down.
             return;
           }
-          // has a new task
+          // Grab a new task
           task = std::move(task_queue_.front());
           task_queue_.pop();
           ++busy_workers_;
@@ -186,6 +178,7 @@ class WorkerPool {
           std::lock_guard<std::mutex> lock(task_lock_);
           --busy_workers_;
         }
+        // After completing the task, we only need to tell the master thread
         finished_cv_.notify_one();
       }
     });
