@@ -10,8 +10,6 @@
 
 namespace terrier::parser {
 
-namespace expression {
-
 /**
  * Represents a logical tuple value.
  */
@@ -33,7 +31,5 @@ class TupleValueExpression : public AbstractExpression {
   const std::string col_name_;
   const std::string table_name_;
 };
-
-}  // namespace expression
 
 }  // namespace terrier::parser
