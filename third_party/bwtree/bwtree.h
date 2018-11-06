@@ -38,9 +38,9 @@
 #include <inttypes.h>
 using NodeID = uint64_t;
 
-#include "storage/bwtree/atomic_stack.h"
-#include "storage/bwtree/bloom_filter.h"
-#include "storage/bwtree/sorted_small_set.h"
+#include "bwtree/atomic_stack.h"
+#include "bwtree/bloom_filter.h"
+#include "bwtree/sorted_small_set.h"
 
 // We use this to control from the compiler
 #ifndef BWTREE_NODEBUG

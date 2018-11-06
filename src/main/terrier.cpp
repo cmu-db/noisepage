@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include "bwtree/bwtree.h"
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
@@ -9,7 +10,6 @@
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
-#include "storage/bwtree/bwtree.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
