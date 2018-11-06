@@ -120,6 +120,7 @@ class PostgresParser {
   static std::unique_ptr<TableRef> RangeVarTransform(RangeVar *root);
   static std::unique_ptr<TableRef> RangeSubselectTransform(RangeSubselect *root);
 
+  /*
   // CREATE statements
   static std::unique_ptr<SQLStatement> CreateTransform(CreateStmt *root);
   static std::unique_ptr<SQLStatement> CreateDatabaseTransform(CreateDatabaseStmt *root);
@@ -131,6 +132,7 @@ class PostgresParser {
     std::vector<std::unique_ptr<ColumnDefinition>> fks;
   };
   static ColumnDefTransResult ColumnDefTransform(ColumnDef *root);
+  */
 
   // INSERT statements
   static std::unique_ptr<InsertStatement> InsertTransform(InsertStmt *root);

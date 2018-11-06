@@ -91,18 +91,20 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
       result = SelectTransform(reinterpret_cast<SelectStmt *>(node));
       break;
     }
-    case T_CreateStmt: {
-      result = CreateTransform(reinterpret_cast<CreateStmt *>(node));
-      break;
-    }
-    case T_CreatedbStmt: {
-      result = CreateDatabaseTransform(reinterpret_cast<CreateDatabaseStmt *>(node));
-      break;
-    }
-    case T_CreateFunctionStmt: {
-      result = CreateFunctionTransform(reinterpret_cast<CreateFunctionStmt *>(node));
-      break;
-    }
+      /*
+      case T_CreateStmt: {
+        result = CreateTransform(reinterpret_cast<CreateStmt *>(node));
+        break;
+      }
+      case T_CreatedbStmt: {
+        result = CreateDatabaseTransform(reinterpret_cast<CreateDatabaseStmt *>(node));
+        break;
+      }
+      case T_CreateFunctionStmt: {
+        result = CreateFunctionTransform(reinterpret_cast<CreateFunctionStmt *>(node));
+        break;
+      }
+       */
     case T_InsertStmt: {
       result = InsertTransform(reinterpret_cast<InsertStmt *>(node));
       break;
@@ -1001,7 +1003,7 @@ std::unique_ptr<TableRef> PostgresParser::RangeSubselectTransform(RangeSubselect
   auto result = TableRef::CreateTableRefBySelect(alias, std::move(select));
   return result;
 }
-
+/*
 // Postgres.CreateStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) {
   RangeVar *relation = root->relation;
@@ -1273,7 +1275,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
 
   return {std::move(result), std::move(foreign_keys)};
 }
-
+*/
 std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(InsertStmt *root) {
   TERRIER_ASSERT(root->selectStmt != nullptr, "Selects from table or directly selects some values.");
 
