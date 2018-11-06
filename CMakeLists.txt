@@ -329,7 +329,7 @@ include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 # needed for BwTree
 if (CMAKE_COMPILER_IS_GNUCXX)
-  set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic papi)
+  set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic)
 endif()
 
 set(TERRIER_LINK_LIBS
