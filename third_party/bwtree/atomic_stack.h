@@ -2,8 +2,7 @@
 #include <cassert>
 #include <cstddef>
 
-namespace peloton {
-namespace index {
+namespace third_party::bwtree {
 
 /*
  * class VersionedPointer - Pointer with a version number
@@ -343,5 +342,4 @@ class AtomicStack {
   }
 };
 
-}  // namespace index
-}  // namespace peloton
+}

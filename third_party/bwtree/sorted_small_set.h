@@ -1,8 +1,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace peloton {
-namespace index {
+namespace third_party::bwtree {
 
 /*
  * class SortedSmallSet - An implementation of small sorted set with known
@@ -142,5 +141,4 @@ class SortedSmallSet {
   inline void Invalidate() { end_p = start_p; }
 };
 
-}  // namespace index
-}  // namespace peloton
+}

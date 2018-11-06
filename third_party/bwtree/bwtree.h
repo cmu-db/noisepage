@@ -71,13 +71,7 @@ using NodeID = uint64_t;
   template <typename KeyType, typename ValueType, typename KeyComparator, typename KeyEqualityChecker, \
             typename KeyHashFunc, typename ValueEqualityChecker, typename ValueHashFunc>
 
-#ifdef BWTREE_PELOTON
-namespace peloton {
-namespace index {
-#else
-namespace wangziqi2013 {
-namespace bwtree {
-#endif
+namespace third_party::index {
 
 // This could not be set as a macro since we will change the flag inside
 // the testing framework
@@ -569,11 +563,11 @@ class BwTree : public BwTreeBase {
   // KeyType-NodeID pair
   using KeyNodeIDPair = std::pair<KeyType, NodeID>;
   using KeyNodeIDPairSet = std::unordered_set<KeyNodeIDPair, KeyNodeIDPairHashFunc, KeyNodeIDPairEqualityChecker>;
-  using KeyNodeIDPairBloomFilter = BloomFilter<KeyNodeIDPair, KeyNodeIDPairEqualityChecker, KeyNodeIDPairHashFunc>;
+  using KeyNodeIDPairBloomFilter = bwtree::BloomFilter<KeyNodeIDPair, KeyNodeIDPairEqualityChecker, KeyNodeIDPairHashFunc>;
 
   // KeyType-ValueType pair
   using KeyValuePair = std::pair<KeyType, ValueType>;
-  using KeyValuePairBloomFilter = BloomFilter<KeyValuePair, KeyValuePairEqualityChecker, KeyValuePairHashFunc>;
+  using KeyValuePairBloomFilter = bwtree::BloomFilter<KeyValuePair, KeyValuePairEqualityChecker, KeyValuePairHashFunc>;
 
   using ValueSet = std::unordered_set<ValueType, ValueHashFunc, ValueEqualityChecker>;
 
@@ -3471,7 +3465,7 @@ class BwTree : public BwTreeBase {
       return this->key_eq_obj(idn_1->item.first, idn_2->item.first);
     };
 
-    SortedSmallSet<const InnerDataNode *, decltype(f1), decltype(f2)> sss{data_node_list, f1, f2};
+    bwtree::SortedSmallSet<const InnerDataNode *, decltype(f1), decltype(f2)> sss{data_node_list, f1, f2};
 
     // The effect of this function is a consolidation into inner node
     InnerNode *inner_node_p = reinterpret_cast<InnerNode *>(
@@ -3805,10 +3799,10 @@ class BwTree : public BwTreeBase {
     const ValueType *present_set_data_p[set_max_size];
     const ValueType *deleted_set_data_p[set_max_size];
 
-    BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
+    bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
                                                                             value_hash_obj};
 
-    BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
+    bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
                                                                             value_hash_obj};
 
     int start_index = 0;
@@ -4157,10 +4151,10 @@ class BwTree : public BwTreeBase {
     const ValueType *present_set_data_p[set_max_size];
     const ValueType *deleted_set_data_p[set_max_size];
 
-    BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
+    bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
                                                                             value_hash_obj};
 
-    BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
+    bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
                                                                             value_hash_obj};
 
     while (1) {
@@ -4371,7 +4365,7 @@ class BwTree : public BwTreeBase {
 
     // Declare an sss object with the previously declared comparators and
     // null equality checkers (not used)
-    SortedSmallSet<const LeafDataNode *, decltype(f1), decltype(f2)> sss{sss_data_p, f1, f2};
+    bwtree::SortedSmallSet<const LeafDataNode *, decltype(f1), decltype(f2)> sss{sss_data_p, f1, f2};
 
     /////////////////////////////////////////////////////////////////
     // Start collecting values!
@@ -6425,7 +6419,7 @@ class BwTree : public BwTreeBase {
       return this->KeyCmpEqual(idn_1->item.first, idn_2->item.first);
     };
 
-    SortedSmallSet<const InnerDataNode *, decltype(f1), decltype(f2)> sss{data_node_list, f1, f2};
+    bwtree::SortedSmallSet<const InnerDataNode *, decltype(f1), decltype(f2)> sss{data_node_list, f1, f2};
 
     while (1) {
       NodeType type = node_p->GetType();
@@ -7063,7 +7057,7 @@ class BwTree : public BwTreeBase {
 
   // This list holds free NodeID which was removed by remove delta
   // We recycle NodeID in epoch manager
-  AtomicStack<NodeID, MAPPING_TABLE_SIZE> free_node_id_list;
+  bwtree::AtomicStack<NodeID, MAPPING_TABLE_SIZE> free_node_id_list;
 
   std::atomic<uint64_t> insert_op_count;
   std::atomic<uint64_t> insert_abort_count;
@@ -8723,5 +8717,4 @@ class BwTree : public BwTreeBase {
 
 };  // class BwTree
 
-}  // End index/bwtree namespace
-}  // End peloton/wangziqi2013 namespace
+}

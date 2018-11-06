@@ -4,15 +4,7 @@
 
 #define BLOOM_FILTER_ENABLED
 
-// disable deprecated register keyword warning for clang
-#ifdef __APPLE__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-register"
-#endif
-
-namespace peloton {
-namespace index {
-
+namespace third_party::bwtree {
 /*
  * class BloomFilter
  */
@@ -168,9 +160,4 @@ class BloomFilter {
   inline bool Exists(const ValueType &value) { return __ExistsScalar(value); }
 };
 
-}  // namespace index
-}  // namespace peloton
-
-#ifdef __APPLE__
-#pragma clang diagnostic pop
-#endif
+}
