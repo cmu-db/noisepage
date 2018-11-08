@@ -62,14 +62,14 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
-    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer update_initializer(layout, update_col_ids);
     auto *row_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *row = update_initializer.InitializeRow(row_buffer);
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
-      uint8_t attr_size = layout.AttrSize(col_id_t(static_cast<uint16_t>(i + 1)));
+      uint8_t attr_size = layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1)));
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -99,14 +99,14 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
+    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     storage::TupleSlot slot;
     EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < layout.NumColumns(); ++i) {
-      col_id_t col_id(i);
+      storage::col_id_t col_id(i);
       uint8_t attr_size = layout.AttrSize(col_id);
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
@@ -137,7 +137,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
 
     // the old row
-    std::vector<col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, all_col_ids);
     auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
@@ -146,7 +146,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // store the values as a reference
     std::vector<std::pair<byte *, uint64_t>> copy;
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
-      col_id_t col_id(i);
+      storage::col_id_t col_id(i);
       byte *ptr = old->AccessWithNullCheck(i);
       if (ptr != nullptr)
         copy.emplace_back(
@@ -156,7 +156,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     }
 
     // the delta change to apply
-    std::vector<col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+    std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
     storage::ProjectedRowInitializer rand_initializer(layout, rand_col_ids);
     auto *delta_buffer = common::AllocationUtil::AllocateAligned(rand_initializer.ProjectedRowSize());
     storage::ProjectedRow *delta = rand_initializer.InitializeRow(delta_buffer);
@@ -166,7 +166,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     storage::StorageUtil::ApplyDelta(layout, *delta, old);
     // check changes has been applied
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumColumns(); ++delta_col_offset) {
-      col_id_t col = rand_initializer.ColId(delta_col_offset);
+      storage::col_id_t col = rand_initializer.ColId(delta_col_offset);
       auto old_col_offset =
           static_cast<uint16_t>(!col - NUM_RESERVED_COLUMNS);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
@@ -181,13 +181,13 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     }
 
     // check whether other cols have been polluted
-    std::unordered_set<col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
+    std::unordered_set<storage::col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
       if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
         byte *ptr = old->AccessWithNullCheck(i);
         EXPECT_EQ(ptr, copy[i].first);
         if (ptr != nullptr) {
-          col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
+          storage::col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
           EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), ptr), copy[i].second);
         }
       }
@@ -208,7 +208,7 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
         CatalogTestUtil::RandomSchema(static_cast<uint16_t>(max_columns - NUM_RESERVED_COLUMNS), &generator_);
     const auto layout_and_col_map = storage::StorageUtil::BlockLayoutFromSchema(schema);
     const storage::BlockLayout layout = layout_and_col_map.first;
-    const std::unordered_map<col_oid_t, col_id_t> column_map = layout_and_col_map.second;
+    const std::unordered_map<col_oid_t, storage::col_id_t> column_map = layout_and_col_map.second;
 
     // BlockLayout should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
     // about the storage layer's reserved columns
@@ -219,16 +219,17 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
 
     // Verify that the BlockLayout's columns are sorted by attribute size in descending order
     for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
-      EXPECT_GE(layout.AttrSize(col_id_t(i)), layout.AttrSize(col_id_t(static_cast<uint16_t>(i + 1))));
+      EXPECT_GE(layout.AttrSize(storage::col_id_t(i)),
+                layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1))));
     }
 
     // Verify the contents of the column_map
     for (const auto &i : column_map) {
       const col_oid_t col_oid = i.first;
-      const col_id_t col_id = i.second;
+      const storage::col_id_t col_id = i.second;
 
       // Column id should not map to either of the reserved columns
-      EXPECT_NE(col_id, col_id_t(0));
+      EXPECT_NE(col_id, storage::col_id_t(0));
       // Find the Column in the Schema corresponding to the current oid
       auto schema_column =
           std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),

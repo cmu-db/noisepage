@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/allocator.h"
 #include "common/stat_registry.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -36,9 +36,10 @@ int main() {
   terrier::storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   terrier::storage::BlockStore block_store_{1000, 100};
   terrier::storage::BlockLayout block_layout_({4, 8});
-  const std::vector<terrier::col_id_t> col_ids = {terrier::col_id_t{0}, terrier::col_id_t{1}};
-  terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::layout_version_t{0});
-  terrier::timestamp_t timestamp(0);
+  const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{0},
+                                                           terrier::storage::col_id_t{1}};
+  terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
+  terrier::transaction::timestamp_t timestamp(0);
   auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
   auto init = terrier::storage::ProjectedRowInitializer(block_layout_, col_ids);
   auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());

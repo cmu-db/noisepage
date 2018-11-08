@@ -22,7 +22,7 @@ TEST(valueTests, BasicTest) {
   // bigint
   // double
   // timestamp
-  timestamp_t timestamp_value = static_cast<timestamp_t>(0);
+  type::timestamp_t timestamp_value = static_cast<type::timestamp_t>(0);
   Value pv_timestamp = ValueFactory::GetTimeStampValue(timestamp_value);
   EXPECT_TRUE(pv_timestamp.GetTimestampValue() == timestamp_value);
   // date

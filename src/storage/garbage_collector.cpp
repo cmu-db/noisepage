@@ -27,7 +27,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 }
 
 uint32_t GarbageCollector::ProcessDeallocateQueue() {
-  const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
+  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
   uint32_t txns_processed = 0;
   transaction::TransactionContext *txn = nullptr;
 
@@ -46,7 +46,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue() {
-  const timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
+  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
