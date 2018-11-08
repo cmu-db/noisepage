@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "storage/projected_row.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 class DataTable;
@@ -27,12 +28,12 @@ class UndoRecord {
   /**
    * @return Timestamp up to which the old projected row was visible.
    */
-  std::atomic<timestamp_t> &Timestamp() { return timestamp_; }
+  std::atomic<transaction::timestamp_t> &Timestamp() { return timestamp_; }
 
   /**
    * @return Timestamp up to which the old projected row was visible.
    */
-  const std::atomic<timestamp_t> &Timestamp() const { return timestamp_; }
+  const std::atomic<transaction::timestamp_t> &Timestamp() const { return timestamp_; }
 
   /**
    * @return the type of this undo record
@@ -100,7 +101,7 @@ class UndoRecord {
    * @param table the DataTable this UndoRecord points to
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *InitializeInsert(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+  static UndoRecord *InitializeInsert(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::INSERT;
@@ -120,7 +121,7 @@ class UndoRecord {
    * @param table the DataTable this UndoRecord points to
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *InitializeDelete(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+  static UndoRecord *InitializeDelete(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
     result->type_ = DeltaRecordType::DELETE;
@@ -141,7 +142,7 @@ class UndoRecord {
    * @param initializer the initializer to use for the embedded ProjectedRow
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *InitializeUpdate(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+  static UndoRecord *InitializeUpdate(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table, const ProjectedRowInitializer &initializer) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
@@ -167,7 +168,7 @@ class UndoRecord {
    * @param redo the redo changes to be applied
    * @return pointer to the initialized UndoRecord
    */
-  static UndoRecord *InitializeUpdate(byte *const head, const timestamp_t timestamp, const TupleSlot slot,
+  static UndoRecord *InitializeUpdate(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
                                       DataTable *const table, const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
@@ -185,7 +186,7 @@ class UndoRecord {
  private:
   DeltaRecordType type_;
   std::atomic<UndoRecord *> next_;
-  std::atomic<timestamp_t> timestamp_;
+  std::atomic<transaction::timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of UndoRecord (plus actual ProjectedRow) is also
