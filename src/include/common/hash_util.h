@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 namespace terrier::common {
 
 using hash_t = uint64_t;

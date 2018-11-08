@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 #include "common/hash_util.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/varlen_pool.h"
 #include "type/type_id.h"
 
