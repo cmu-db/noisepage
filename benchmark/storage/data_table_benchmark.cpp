@@ -165,7 +165,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
-  
+
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
