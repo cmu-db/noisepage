@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/constants.h"
 #include "common/macros.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
@@ -96,9 +96,9 @@ class Schema {
    * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const col_id_t col_id) const {
+  Column GetColumn(const storage::col_id_t col_id) const {
     TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
-    return columns_[static_cast<uint16_t>(col_id)];
+    return columns_[!col_id];
   }
   /**
    * @return description of this SQL table's schema as a collection of Columns

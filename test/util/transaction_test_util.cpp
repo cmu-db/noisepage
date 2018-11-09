@@ -28,7 +28,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
-  std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
+  std::vector<storage::col_id_t> update_col_ids =
+      StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
   auto *update_buffer =
       test_object_->bookkeeping_ ? common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize()) : buffer_;
@@ -91,7 +92,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
       layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
-      table_(block_store, layout_, layout_version_t(0)),
+      table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       wal_on_(log_manager != LOGGING_DISABLED),
@@ -157,7 +158,7 @@ void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTra
   TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
   VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
   // make sure table_version is updated
-  timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
+  transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
   // Only need to check that reads make sense?
   for (RandomWorkloadTransaction *txn : *commits) CheckTransactionReadCorrect(txn, snapshots);
 
@@ -230,7 +231,7 @@ VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
     std::vector<RandomWorkloadTransaction *> *txns) {
   VersionedSnapshots result;
   // empty starting version
-  TableSnapshot *prev = &(result.emplace(timestamp_t(0), TableSnapshot()).first->second);
+  TableSnapshot *prev = &(result.emplace(transaction::timestamp_t(0), TableSnapshot()).first->second);
   // populate with initial image of the table
   for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
 
@@ -244,12 +245,12 @@ VersionedSnapshots LargeTransactionTestObject::ReconstructVersionedTable(
 
 void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTransaction *txn,
                                                              const VersionedSnapshots &snapshots) {
-  timestamp_t start_time = txn->start_time_;
+  transaction::timestamp_t start_time = txn->start_time_;
   // this version is the most recent future update
   auto ret = snapshots.upper_bound(start_time);
   // Go to the version visible to this txn
   --ret;
-  timestamp_t version_timestamp = ret->first;
+  transaction::timestamp_t version_timestamp = ret->first;
   const TableSnapshot &before_snapshot = ret->second;
   EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
   for (auto &entry : txn->selects_) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "type/type_id.h"
 
 namespace terrier::type {
