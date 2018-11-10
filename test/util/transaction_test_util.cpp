@@ -265,4 +265,77 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
     entry.second = snapshot.find(entry.first)->second;
   }
 }
+
+LargeTransactionTestObject::Builder::Builder() : max_columns(default_max_columns),
+    initial_table_size(default_initial_table_size),
+    txn_length(default_txn_length),
+    block_store(default_block_store), buffer_pool(default_buffer_pool), generator(default_generator),
+    gc_on(default_gc_on), bookkeeping(default_bookkeeping), log_manager(default_log_manager)
+{
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_max_columns(uint16_t max_columns) {
+  this->max_columns = max_columns;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_initial_table_size(uint32_t initial_table_size) {
+  this->initial_table_size = initial_table_size;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_txn_length(uint32_t txn_length) {
+  this->txn_length = txn_length;
+  return *this;
+}
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_update_select_ratio(std::vector<double> update_select_ratio) {
+  this->update_select_ratio = update_select_ratio;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_block_store(storage::BlockStore *block_store) {
+  this->block_store = block_store;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_buffer_pool(storage::RecordBufferSegmentPool *buffer_pool) {
+  this->buffer_pool = buffer_pool;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_generator(std::default_random_engine *generator) {
+  this->generator = generator;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_gc_on(bool gc_on) {
+  this->gc_on = gc_on;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_bookkeeping(bool bookkeeping) {
+  this->bookkeeping = bookkeeping;
+  return *this;
+}
+
+LargeTransactionTestObject::Builder
+        &LargeTransactionTestObject::Builder::set_log_manager(storage::LogManager *log_manager) {
+  this->log_manager = log_manager;
+  return *this;
+}
+
+LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
+  return LargeTransactionTestObject(max_columns, initial_table_size, txn_length, update_select_ratio,
+          block_store, buffer_pool, generator, gc_on, bookkeeping, log_manager);
+}
+
 }  // namespace terrier
