@@ -81,6 +81,7 @@ std::vector<std::unique_ptr<SQLStatement>> PostgresParser::ListTransform(List *r
 }
 
 std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
+  // is this a valid case or is it an error and should throw an exception?
   if (node == nullptr) {
     return nullptr;
   }
@@ -169,6 +170,80 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
         result = TransactionTransform((TransactionStmt *)stmt);
         break;
     */
+
+  // updatede by both ?
+  /*
+  case T_InsertStmt: {
+    result = InsertTransform(reinterpret_cast<InsertStmt *>(node));
+    break;
+  }
+
+
+                case T_IndexStmt:
+                  result = CreateIndexTransform(reinterpret_cast<IndexStmt *>(stmt));
+                  break;
+
+
+                case T_CreateTrigStmt:
+                  result = CreateTriggerTransform(reinterpret_cast<CreateTrigStmt *>(stmt));
+                  break;
+
+                case T_CreateSchemaStmt:
+                  result =
+                      CreateSchemaTransform(reinterpret_cast<CreateSchemaStmt *>(stmt));
+                  break;
+
+                case T_ViewStmt:
+                  result = CreateViewTransform(reinterpret_cast<ViewStmt *>(stmt));
+                  break;
+     */
+
+               case T_UpdateStmt: {
+                  result = UpdateTransform(reinterpret_cast<UpdateStmt *>(node));
+                  break;
+	            }
+
+                case T_DeleteStmt: {
+                  result = DeleteTransform(reinterpret_cast<DeleteStmt *>(node));
+                  break;
+                }
+     /*
+
+                case T_DropStmt:
+                  result = DropTransform((DropStmt *)stmt);
+                  break;
+                case T_DropdbStmt:
+                  result = DropDatabaseTransform((DropDatabaseStmt *)stmt);
+                  break;
+                case T_TruncateStmt:
+                  result = TruncateTransform((TruncateStmt *)stmt);
+                  break;
+                case T_TransactionStmt:
+                  result = TransactionTransform((TransactionStmt *)stmt);
+                  break;
+                case T_ExecuteStmt:
+                  result = ExecuteTransform((ExecuteStmt *)stmt);
+                  break;
+                case T_PrepareStmt:
+                  result = PrepareTransform((PrepareStmt *)stmt);
+                  break;
+                case T_CopyStmt:
+                  result = CopyTransform((CopyStmt *)stmt);
+                  break;
+                case T_VacuumStmt:
+                  result = VacuumTransform((VacuumStmt *)stmt);
+                  break;
+                case T_VariableSetStmt:
+                  result = VariableSetTransform((VariableSetStmt *)stmt);
+                  break; */
+
+		  /*
+    // updated by both?
+    case T_ExplainStmt:
+      result = ExplainTransform(reinterpret_cast<ExplainStmt *>(node));
+      break;
+		  */
+		  
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
       std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Statement type %d unsupported.\n", node->type);
@@ -446,7 +521,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AExprTransform for type %hhu unsupported.\n", target_type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AExprTransform for type %hhu unsupported.\n", static_cast<int>(target_type));
       throw NotImplementedException(msg);
     }
   }
@@ -1083,11 +1158,13 @@ std::unique_ptr<TableRef> PostgresParser::RangeSubselectTransform(RangeSubselect
   return result;
 }
 
+/*
 std::unique_ptr<SQLStatement> PostgresParser::ExplainTransform(ExplainStmt *root) {
   auto real_sql_stmt = NodeTransform(root->query);
   auto result = std::make_unique<ExplainStatement>(std::move(real_sql_stmt));
   return result;
 }
+ */
 
 std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(CopyStmt *root) {
   static constexpr char kDelimiterTok[] = "delimiter";
@@ -1742,10 +1819,53 @@ std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(DropStmt *root
     table_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val.str;
   }
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, "");
-
+  
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kTable, if_exists);
   return result;
+}  
+
+  // TODO: delete or find right merge location
+  // was part of original DropIndexTransform... not needed in new code?
+  //    result->SetIndexName(
+  // reinterpret_cast<value *>(list->head->data.ptr_value)->val.str);
+  // }
+  //   return result;
+  // }
+
+std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt *truncate_stmt) {
+  std::unique_ptr<DeleteStatement> result;
+
+  /* TODO: review
+   * AFAIK the target is a single table.
+   * The code below walks a list but only the last item will be saved. Either the list walk is unnecessary,
+   * or the results produced are wrong, and should be a vector.
+   */
+
+  for (auto cell = truncate_stmt->relations->head; cell != nullptr; cell = cell->next) {
+    auto table_ref = RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value));
+
+    //result->table_ref_.reset(
+    //    RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value)));
+    break;
+  }
+  //TODO  - fix
+  return result;
 }
+
+
+/*
+std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *root) {
+  auto result = new ExecuteStatement();
+  result->name = root->name;
+  if (root->params != nullptr) try {
+      result->parameters = ParamListTransform(root->params);
+    } catch (NotImplementedException e) {
+      delete result;
+      throw e;
+    }
+  return result;
+}
+ */
 
 std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(DropStmt *root) {
   auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);
@@ -1891,6 +2011,78 @@ std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> P
   return result;
 }
 
+std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ExplainStmt *explain_stmt) {
+  std::unique_ptr<ExplainStatement> result;
+
+  auto query = NodeTransform(explain_stmt->query);
+  result = std::make_unique<ExplainStatement>(std::move(query));
+  return result;
+}
+
+std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(DeleteStmt *delete_stmt) {
+  std::unique_ptr<DeleteStatement> result;
+
+  auto table = RangeVarTransform(delete_stmt->relation);
+  auto where = WhereTransform(delete_stmt->whereClause);
+
+  result = std::make_unique<DeleteStatement>(std::move(table), std::move(where));
+  return result;
+}
+
+std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(
+    TransactionStmt *transaction_statement) {
+  std::unique_ptr<TransactionStatement> result;
+
+  switch (transaction_statement->kind) {
+    case TRANS_STMT_BEGIN: {
+      result = std::make_unique<TransactionStatement>(TransactionStatement::kBegin);
+      break;
+    }
+    case TRANS_STMT_COMMIT: {
+      result = std::make_unique<TransactionStatement>(TransactionStatement::kCommit);
+      break;
+    }
+    case TRANS_STMT_ROLLBACK: {
+      result = std::make_unique<TransactionStatement>(TransactionStatement::kRollback);
+      break;
+    }
+    default: {
+      char msg[MAX_EXCEPTION_MSG_LEN];
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TRANSACTION statement type %d not supported yet:\n",
+                    transaction_statement->kind);
+      throw NotImplementedException(msg);
+    }
+  }
+  return result;
+}
+
+/*
+ * TODO:
+ * - rethrow or add message to exceptions?
+ */
+std::vector<std::unique_ptr<parser::UpdateClause>> *PostgresParser::UpdateTargetTransform(List *root) {
+  auto result = new std::vector<std::unique_ptr<parser::UpdateClause>>();
+  for (auto cell = root->head; cell != NULL; cell = cell->next) {
+    auto update_clause = new UpdateClause();
+    ResTarget *target = (ResTarget *)(cell->data.ptr_value);
+    update_clause->column = target->name;
+    try {
+      update_clause->value = std::move(ExprTransform(target->val));
+    } catch (NotImplementedException e) {
+      delete result;
+
+      // TODO: include target name and value in exception text?
+      char msg[MAX_EXCEPTION_MSG_LEN];
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Exception in UpdateTargetTransform:\n%s", e.what());
+      throw NotImplementedException(msg);
+    }
+    //result->push_back(std::move(cur_result));
+    result->push_back(std::unique_ptr<UpdateClause>(update_clause));
+  }
+
+  return result;
+}
+
 std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(PrepareStmt *root) {
   auto name = root->name;
   auto query = NodeTransform(root->query);
@@ -1918,6 +2110,19 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(VacuumStmt *ro
     }
   }
 
+  return result;
+}
+ 
+std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(UpdateStmt *update_stmt) {
+  std::unique_ptr<UpdateStatement> result;
+
+  auto table = RangeVarTransform(update_stmt->relation);
+  auto clauses = UpdateTargetTransform(update_stmt->targetList);
+  auto where = WhereTransform(update_stmt->whereClause);
+
+  result = std::make_unique<UpdateStatement>(std::move(table),
+					     std::move(*clauses),
+					     std::move(where));
   return result;
 }
 

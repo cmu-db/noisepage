@@ -9,7 +9,8 @@
 namespace terrier {
 namespace parser {
 
-using OrderType = enum { kOrderAsc, kOrderDesc };
+enum OrderType { kOrderAsc, kOrderDesc };
+using terrier::parser::OrderType;
 
 /**
  * Describes OrderBy clause in a select statement.

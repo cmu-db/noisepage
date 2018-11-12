@@ -2,8 +2,7 @@
 
 #include "parser/sql_statement.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * Represents the SQL "EXPLAIN ..."
@@ -19,5 +18,27 @@ class ExplainStatement : public SQLStatement {
   std::unique_ptr<SQLStatement> real_sql_stmt_;
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
+
+//namespace terrier::parser {
+//
+///**
+// * @class ExplainStatement
+// * @brief Represents "EXPLAIN <query>"
+// */
+//class ExplainStatement : public SQLStatement {
+// public:
+//  ExplainStatement(std::unique_ptr<SQLStatement> query)
+//    : SQLStatement(StatementType::EXPLAIN),
+//      real_sql_stmt_(std::move(query)) {}
+//  
+//  ExplainStatement() : SQLStatement(StatementType::EXPLAIN) {}
+//  virtual ~ExplainStatement() {}
+//
+//  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+//
+//  std::unique_ptr<parser::SQLStatement> real_sql_stmt_;
+//};
+//
+//}  // namespace terrier::parser
+

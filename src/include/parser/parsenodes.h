@@ -763,7 +763,7 @@ using VacuumStmt = struct VacuumStmt {
   List *va_cols;      /* list of column names, or NIL for all */
 };
 
-using VariableSetKind = enum {
+enum VariableSetKind {
   VAR_SET_VALUE,   /* SET var = value */
   VAR_SET_DEFAULT, /* SET var TO DEFAULT */
   VAR_SET_CURRENT, /* SET var FROM CURRENT */
@@ -779,6 +779,23 @@ using VariableSetStmt = struct VariableSetStmt {
   List *args;    /* List of A_Const nodes */
   bool is_local; /* SET LOCAL? */
 };
+
+//using VariableSetKind  = enum {
+//  VAR_SET_VALUE,   /* SET var = value */
+//  VAR_SET_DEFAULT, /* SET var TO DEFAULT */
+//  VAR_SET_CURRENT, /* SET var FROM CURRENT */
+//  VAR_SET_MULTI,   /* special case for SET TRANSACTION ... */
+//  VAR_RESET,       /* RESET var */
+//  VAR_RESET_ALL    /* RESET ALL */
+//};
+
+//using VariableSetStmt = struct VariableSetStmt {
+//  NodeTag type;
+//  VariableSetKind kind;
+//  char *name;    /* variable to be set */
+//  List *args;    /* List of A_Const nodes */
+//  bool is_local; /* SET LOCAL? */
+//};
 
 using VariableShowStmt = struct VariableShowStmt {
   NodeTag type;
