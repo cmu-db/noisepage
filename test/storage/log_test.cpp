@@ -44,9 +44,9 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
-    auto txn_begin = in->ReadValue<timestamp_t>();
+    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
-      auto txn_commit = in->ReadValue<timestamp_t>();
+      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
@@ -105,13 +105,13 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   EndGC();
   EndLogging();
 
-  std::unordered_map<timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTranasctionTest
       // harness probably needs some refactor (later after wal is in)
       // This the initial setup transaction
@@ -178,7 +178,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
       delete[] reinterpret_cast<byte *>(log_record);

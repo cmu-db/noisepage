@@ -44,19 +44,19 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
       storage::TupleAccessStrategy tested(layout);
       TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block_, layout_version_t(0));
+      tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
       // get data table
-      storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
+      storage::DataTable data_table(&block_store_, layout, storage::layout_version_t(0));
 
       // get tuple slot
       storage::TupleSlot slot;
       EXPECT_TRUE(tested.Allocate(raw_block_, &slot));
 
       // compute the size of the buffer
-      const std::vector<col_id_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
+      const std::vector<storage::col_id_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
       storage::ProjectedRowInitializer initializer(layout, col_ids);
-      timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
+      transaction::timestamp_t time = static_cast<transaction::timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
       storage::UndoRecord *record =
           storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, initializer);
@@ -81,10 +81,10 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
-    tested.InitializeRawBlock(raw_block_, layout_version_t(0));
+    tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     // generate a random projectedRow
-    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedRowInitializer initializer(layout, update_col_ids);
     auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
@@ -92,7 +92,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // projected row
 
     // get data table
-    storage::DataTable data_table(&block_store_, layout, layout_version_t(0));
+    storage::DataTable data_table(&block_store_, layout, storage::layout_version_t(0));
 
     // get tuple slot
     storage::TupleSlot slot;
@@ -100,7 +100,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
 
     // compute the size of the buffer
     uint32_t size = storage::UndoRecord::Size(*redo);
-    timestamp_t time = static_cast<timestamp_t>(timestamp_dist_(generator_));
+    transaction::timestamp_t time = static_cast<transaction::timestamp_t>(timestamp_dist_(generator_));
     auto *record_buffer = common::AllocationUtil::AllocateAligned(size);
     storage::UndoRecord *record = storage::UndoRecord::InitializeUpdate(record_buffer, time, slot, &data_table, *redo);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout, record->Delta(), redo));

@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <unordered_set>
 #include "common/spin_latch.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::storage {
 

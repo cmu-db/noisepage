@@ -22,7 +22,7 @@ class LargeTransactionTestObject;
 class RandomWorkloadTransaction;
 using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
-using VersionedSnapshots = std::map<timestamp_t, TableSnapshot>;
+using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 // {committed, aborted}
 using SimulationResult = std::pair<std::vector<RandomWorkloadTransaction *>, std::vector<RandomWorkloadTransaction *>>;
 
@@ -76,10 +76,10 @@ class RandomWorkloadTransaction {
    */
   void Finish();
 
-  timestamp_t BeginTimestamp() const { return start_time_; }
+  transaction::timestamp_t BeginTimestamp() const { return start_time_; }
 
-  timestamp_t CommitTimestamp() const {
-    if (aborted_) return timestamp_t(static_cast<uint64_t>(-1));
+  transaction::timestamp_t CommitTimestamp() const {
+    if (aborted_) return transaction::timestamp_t(static_cast<uint64_t>(-1));
     return commit_time_;
   }
 
@@ -91,7 +91,7 @@ class RandomWorkloadTransaction {
   transaction::TransactionContext *txn_;
   // extra bookkeeping for correctness checks
   bool aborted_;
-  timestamp_t start_time_, commit_time_;
+  transaction::timestamp_t start_time_, commit_time_;
   std::vector<TupleEntry> selects_;
   std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> updates_;
   byte *buffer_;
