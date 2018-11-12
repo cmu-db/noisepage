@@ -205,45 +205,90 @@ struct ColumnDefinition {
 };
 
 /**
- * Represents the sql "CREATE TABLE ..."
+ * Represents the sql "CREATE ..."
  */
 class CreateStatement : public TableRefStatement {
+  // TODO(WAN): just inherit from CreateStatement instead of dumping members here..
  public:
   enum CreateType { kTable, kDatabase, kIndex, kTrigger, kSchema, kView };
 
-  CreateStatement(std::unique_ptr<TableInfo> table_info, CreateType type,
+  // CREATE TABLE, CREATE DATABASE
+  CreateStatement(std::unique_ptr<TableInfo> table_info, CreateType create_type,
                   std::vector<std::unique_ptr<ColumnDefinition>> columns,
                   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
-        type_(type),
+        create_type_(create_type),
         columns_(std::move(columns)),
         foreign_keys_(std::move(foreign_keys)) {}
+
+  // CREATE INDEX
+  CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
+                  std::vector<std::string> index_attrs)
+      : TableRefStatement(StatementType::CREATE, std::move(table_info)),
+        create_type_(kIndex),
+        index_type_(index_type),
+        unique_index_(unique),
+        index_name_(std::move(index_name)),
+        index_attrs_(std::move(index_attrs)) {}
+
+  // CREATE SCHEMA
+  CreateStatement(std::unique_ptr<TableInfo> table_info, bool if_not_exists)
+      : TableRefStatement(StatementType::CREATE, std::move(table_info)),
+        create_type_(kSchema),
+        if_not_exists_(if_not_exists) {}
+
+  // CREATE TRIGGER
+  CreateStatement(std::unique_ptr<TableInfo> table_info, std::string trigger_name,
+                  std::vector<std::string> trigger_funcnames, std::vector<std::string> trigger_args,
+                  std::vector<std::string> trigger_columns, std::unique_ptr<AbstractExpression> trigger_when,
+                  int16_t trigger_type)
+      : TableRefStatement(StatementType::CREATE, std::move(table_info)),
+        create_type_(kTrigger),
+        trigger_name_(std::move(trigger_name)),
+        trigger_funcnames_(std::move(trigger_funcnames)),
+        trigger_args_(std::move(trigger_args)),
+        trigger_columns_(std::move(trigger_columns)),
+        trigger_when_(std::move(trigger_when)),
+        trigger_type_(trigger_type) {}
+
+  // CREATE VIEW
+  CreateStatement(std::string view_name, std::unique_ptr<SelectStatement> view_query)
+      : TableRefStatement(StatementType::CREATE, nullptr),
+        create_type_(kView),
+        view_name_(std::move(view_name)),
+        view_query_(std::move(view_query)) {}
 
   ~CreateStatement() override = default;
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  CreateType type_;
-  bool if_not_exists = false;
+  // ALL
+  const CreateType create_type_;
 
-  std::vector<std::unique_ptr<ColumnDefinition>> columns_;
-  std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys_;
+  // CREATE TABLE, CREATE DATABASE
+  const std::vector<std::unique_ptr<ColumnDefinition>> columns_;
+  const std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys_;
 
-  std::vector<std::string> index_attrs;
-  IndexType index_type;
-  std::string index_name;
+  // CREATE INDEX
+  const IndexType index_type_ = IndexType::INVALID;
+  const bool unique_index_ = false;
+  const std::string index_name_;
+  const std::vector<std::string> index_attrs_;
 
-  std::string view_name;
-  std::unique_ptr<SelectStatement> view_query;
+  // CREATE SCHEMA
+  const bool if_not_exists_ = false;
 
-  bool unique = false;
+  // CREATE TRIGGER
+  const std::string trigger_name_;
+  const std::vector<std::string> trigger_funcnames_;
+  const std::vector<std::string> trigger_args_;
+  const std::vector<std::string> trigger_columns_;
+  const std::unique_ptr<AbstractExpression> trigger_when_;
+  const int16_t trigger_type_ = 0;  // information about row, timing, events, access by pg_trigger
 
-  std::string trigger_name;
-  std::vector<std::string> trigger_funcname;
-  std::vector<std::string> trigger_args;
-  std::vector<std::string> trigger_columns;
-  std::unique_ptr<AbstractExpression> trigger_when;
-  int16_t trigger_type;  // information about row, timing, events, access by pg_trigger
+  // TODO(WAN): this really does not belong here
+  const std::string view_name_;
+  const std::unique_ptr<SelectStatement> view_query_;
 };
 
 }  // namespace parser

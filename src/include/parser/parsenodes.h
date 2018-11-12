@@ -14,7 +14,7 @@
 
 using SetOperation = enum SetOperation { SETOP_NONE = 0, SETOP_UNION, SETOP_INTERSECT, SETOP_EXCEPT };
 
-using Alias =  struct Alias {
+using Alias = struct Alias {
   NodeTag type;
   char *aliasname; /* aliased rel name (never qualified) */
   List *colnames;  /* optional list of column aliases */
@@ -28,9 +28,7 @@ using InhOption = enum InhOption {
 
 using BoolExprType = enum BoolExprType { AND_EXPR, OR_EXPR, NOT_EXPR };
 
-using Expr = struct Expr {
-  NodeTag type;
-};
+using Expr = struct Expr { NodeTag type; };
 
 /*
  * SubLink
@@ -83,7 +81,7 @@ using Expr = struct Expr {
  * The CTE_SUBLINK case never occurs in actual SubLink nodes, but it is used
  * in SubPlans generated for WITH subqueries.
  */
-using SubLinkType =  enum SubLinkType {
+using SubLinkType = enum SubLinkType {
   EXISTS_SUBLINK,
   ALL_SUBLINK,
   ANY_SUBLINK,
@@ -425,8 +423,8 @@ using CreateStmt = struct CreateStmt {
 };
 
 using ConstrType = enum ConstrType /* types of constraints */
-{ CONSTR_NULL,          // not standard SQL, but a lot of people
-                        // expect it
+{ CONSTR_NULL,                     // not standard SQL, but a lot of people
+                                   // expect it
   CONSTR_NOTNULL,
   CONSTR_DEFAULT,
   CONSTR_CHECK,
@@ -681,7 +679,7 @@ using DefElemAction = enum DefElemAction {
   DEFELEM_DROP
 };
 
-using  DefElem = struct DefElem {
+using DefElem = struct DefElem {
   NodeTag type;
   char *defnamespace; /* NULL if unqualified name */
   char *defname;
@@ -690,7 +688,7 @@ using  DefElem = struct DefElem {
   int location;            /* parse location, or -1 if none/unknown */
 };
 
-using  CopyStmt = struct CopyStmt {
+using CopyStmt = struct CopyStmt {
   NodeTag type;
   RangeVar *relation; /* the relation to copy */
   Node *query;        /* the SELECT query to copy */
@@ -765,7 +763,7 @@ using VacuumStmt = struct VacuumStmt {
   List *va_cols;      /* list of column names, or NIL for all */
 };
 
-using VariableSetKind  = enum {
+using VariableSetKind = enum {
   VAR_SET_VALUE,   /* SET var = value */
   VAR_SET_DEFAULT, /* SET var TO DEFAULT */
   VAR_SET_CURRENT, /* SET var FROM CURRENT */

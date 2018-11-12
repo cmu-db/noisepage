@@ -70,6 +70,22 @@ enum class InsertType {
   SELECT = 2                  // select
 };
 
+enum class ExternalFileFormat {
+  CSV,
+};
+
+// CREATE FUNCTION helpers
+
+enum class PLType {
+  INVALID = INVALID_TYPE_ID,
+  PL_PGSQL = 1,  // UDF language: Pl_PGSQL
+  PL_C = 2       // UDF language: PL_C
+};
+
+enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 };
+
+// Exceptions
+
 class ParserException : public std::exception {
  public:
   explicit ParserException(std::string &&message) : message_(std::move(message)) {}
