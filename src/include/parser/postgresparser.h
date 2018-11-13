@@ -193,8 +193,6 @@ class PostgresParser {
    */
     static std::unique_ptr<DeleteStatement> DeleteTransform(DeleteStmt *delete_stmt);
 
-
-
     static std::unique_ptr<DeleteStatement> TruncateTransform(
       TruncateStmt *truncate_stmt);
 

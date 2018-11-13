@@ -156,94 +156,22 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
       result = CreateViewTransform(reinterpret_cast<ViewStmt *>(node));
       break;
     }
-    /*
-      case T_UpdateStmt:  // TODO(pakhtar)
-        result = UpdateTransform((UpdateStmt *)stmt);
-        break;
-      case T_DeleteStmt:  // TODO(pakhtar)
-        result = DeleteTransform((DeleteStmt *)stmt);
-        break;
-      case T_TruncateStmt: // TODO(pakhtar) (delete statements are needed)
-        result = TruncateTransform((TruncateStmt *)stmt);
-        break;
-      case T_TransactionStmt:  // TODO(pakhtar)
-        result = TransactionTransform((TransactionStmt *)stmt);
-        break;
-    */
-
-  // updatede by both ?
-  /*
-  case T_InsertStmt: {
-    result = InsertTransform(reinterpret_cast<InsertStmt *>(node));
-    break;
-  }
-
-
-                case T_IndexStmt:
-                  result = CreateIndexTransform(reinterpret_cast<IndexStmt *>(stmt));
-                  break;
-
-
-                case T_CreateTrigStmt:
-                  result = CreateTriggerTransform(reinterpret_cast<CreateTrigStmt *>(stmt));
-                  break;
-
-                case T_CreateSchemaStmt:
-                  result =
-                      CreateSchemaTransform(reinterpret_cast<CreateSchemaStmt *>(stmt));
-                  break;
-
-                case T_ViewStmt:
-                  result = CreateViewTransform(reinterpret_cast<ViewStmt *>(stmt));
-                  break;
-     */
-
-               case T_UpdateStmt: {
-                  result = UpdateTransform(reinterpret_cast<UpdateStmt *>(node));
-                  break;
-	            }
-
-                case T_DeleteStmt: {
-                  result = DeleteTransform(reinterpret_cast<DeleteStmt *>(node));
-                  break;
-                }
-     /*
-
-                case T_DropStmt:
-                  result = DropTransform((DropStmt *)stmt);
-                  break;
-                case T_DropdbStmt:
-                  result = DropDatabaseTransform((DropDatabaseStmt *)stmt);
-                  break;
-                case T_TruncateStmt:
-                  result = TruncateTransform((TruncateStmt *)stmt);
-                  break;
-                case T_TransactionStmt:
-                  result = TransactionTransform((TransactionStmt *)stmt);
-                  break;
-                case T_ExecuteStmt:
-                  result = ExecuteTransform((ExecuteStmt *)stmt);
-                  break;
-                case T_PrepareStmt:
-                  result = PrepareTransform((PrepareStmt *)stmt);
-                  break;
-                case T_CopyStmt:
-                  result = CopyTransform((CopyStmt *)stmt);
-                  break;
-                case T_VacuumStmt:
-                  result = VacuumTransform((VacuumStmt *)stmt);
-                  break;
-                case T_VariableSetStmt:
-                  result = VariableSetTransform((VariableSetStmt *)stmt);
-                  break; */
-
-		  /*
-    // updated by both?
-    case T_ExplainStmt:
-      result = ExplainTransform(reinterpret_cast<ExplainStmt *>(node));
+    case T_TruncateStmt: {
+      result = TruncateTransform(reinterpret_cast<TruncateStmt *>(node));
       break;
-		  */
-		  
+    }
+    case T_TransactionStmt: {
+      result = TransactionTransform(reinterpret_cast<TransactionStmt *>(node));
+      break;
+    }
+    case T_UpdateStmt: {
+      result = UpdateTransform(reinterpret_cast<UpdateStmt *>(node));
+      break;
+    }
+    case T_DeleteStmt: {
+      result = DeleteTransform(reinterpret_cast<DeleteStmt *>(node));
+      break;
+    }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
       std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Statement type %d unsupported.\n", node->type);

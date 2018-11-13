@@ -41,7 +41,27 @@ class ParserTestBase : public TerrierTest {
   }
 
   PostgresParser pgparser;
-};  
+};
+
+// NOLINTNEXTLINE  
+TEST_F(ParserTestBase, DropDBTest) {
+  auto stmts = pgparser.BuildParseTree("DROP DATABASE test_db;");
+  EXPECT_EQ(stmts.size(), 1);
+  
+  auto drop_stmt = reinterpret_cast<DropStatement *>(stmts[0].get());
+  EXPECT_EQ(drop_stmt->type_, DropStatement::DropType::kDatabase);
+  EXPECT_EQ(drop_stmt->GetDatabaseName(), "test_db");  
+}
+  
+// NOLINTNEXTLINE  
+TEST_F(ParserTestBase, DropTableTest) {
+  auto stmts = pgparser.BuildParseTree("DROP TABLE test_db;");
+  EXPECT_EQ(stmts.size(), 1);
+  
+  auto drop_stmt = reinterpret_cast<DropStatement *>(stmts[0].get());
+  EXPECT_EQ(drop_stmt->type_, DropStatement::DropType::kTable);  
+  EXPECT_EQ(drop_stmt->GetTableName(), "test_db");
+}  
 
 /**
  * A basic test for select statements.
@@ -73,5 +93,8 @@ TEST_F(ParserTestBase, UpdateTest) {
   // check expression here
   EXPECT_EQ(update_stmt->where_, nullptr);
 }
+
+// NOLINTNEXTLINE
+
 
 }  // namespace terrier::parser
