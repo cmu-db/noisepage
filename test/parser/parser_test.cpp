@@ -80,6 +80,20 @@ TEST_F(ParserTestBase, SelectTest) {
   EXPECT_EQ(select_stmt->select_[0]->GetExpressionType(), ExpressionType::STAR);
 }
 
+/**
+ * A basic test for TRUNCATE
+ */
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, TruncateTest) {
+  auto stmts = pgparser.BuildParseTree("TRUNCATE TABLE test_db;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::DELETE);
+  
+  auto  delete_stmt = reinterpret_cast<DeleteStatement *>(stmts[0].get());
+  EXPECT_EQ(delete_stmt->table_ref_->table_info_->table_name_, "test_db");  
+  EXPECT_EQ(delete_stmt->expr_, nullptr);
+}
+
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, UpdateTest) {    
   auto stmts = pgparser.BuildParseTree("UPDATE students SET grade = 1.0;");

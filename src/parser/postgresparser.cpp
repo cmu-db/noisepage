@@ -1763,12 +1763,19 @@ std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(DropStmt *root
 std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt *truncate_stmt) {
   std::unique_ptr<DeleteStatement> result;
 
+  //TERRIER_ASSERT(truncate_stmt->relations->length == 1, "Single table only");
+
+  auto cell = truncate_stmt->relations->head;
+  auto table_ref = RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value));
+  result = std::make_unique<DeleteStatement>(std::move(table_ref));
+
   /* TODO: review
    * AFAIK the target is a single table.
    * The code below walks a list but only the last item will be saved. Either the list walk is unnecessary,
    * or the results produced are wrong, and should be a vector.
    */
 
+  /*
   for (auto cell = truncate_stmt->relations->head; cell != nullptr; cell = cell->next) {
     auto table_ref = RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value));
 
@@ -1776,24 +1783,10 @@ std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt 
     //    RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value)));
     break;
   }
+   */
   //TODO  - fix
   return result;
 }
-
-
-/*
-std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *root) {
-  auto result = new ExecuteStatement();
-  result->name = root->name;
-  if (root->params != nullptr) try {
-      result->parameters = ParamListTransform(root->params);
-    } catch (NotImplementedException e) {
-      delete result;
-      throw e;
-    }
-  return result;
-}
- */
 
 std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(DropStmt *root) {
   auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);

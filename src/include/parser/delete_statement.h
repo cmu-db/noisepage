@@ -21,6 +21,11 @@ class DeleteStatement : public SQLStatement {
         table_ref_(std::move(table)),
         expr_(std::move(expr)){};
 
+  DeleteStatement(std::unique_ptr<TableRef> table)
+      : SQLStatement(StatementType::DELETE),
+        table_ref_(std::move(table)),
+        expr_(nullptr){};
+
   DeleteStatement()
       : SQLStatement(StatementType::DELETE),
         table_ref_(nullptr),
@@ -28,18 +33,18 @@ class DeleteStatement : public SQLStatement {
 
   virtual ~DeleteStatement() {}
 
-  /*
-  std::string GetTableName() const { return table_ref->GetTableName(); }
+  // std::string GetTableName() const { return table_ref_->GetTableName(); }
 
+  /*
   inline void TryBindDatabaseName(std::string default_database_name) {
     if (table_ref != nullptr)
       table_ref->TryBindDatabaseName(default_database_name);
   }
-
-  std::string GetDatabaseName() const { return table_ref->GetDatabaseName(); }
-
-  std::string GetSchemaName() const { return table_ref->GetSchemaName(); }
   */
+
+  //std::string GetDatabaseName() const { return table_ref_->GetDatabaseName(); }
+
+  //std::string GetSchemaName() const { return table_ref_->GetSchemaName(); }
 
   virtual void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
