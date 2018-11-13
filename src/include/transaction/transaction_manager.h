@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <unordered_set>
 #include <utility>
 #include "common/shared_latch.h"
 #include "common/spin_latch.h"
@@ -85,8 +85,8 @@ class TransactionManager {
   common::SharedLatch commit_latch_;
 
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
-  std::map<timestamp_t, TransactionContext *> curr_running_txns_;
-  mutable common::SpinLatch running_txns_table_latch_;
+  std::unordered_set<timestamp_t> curr_running_txns_;
+  mutable common::SpinLatch curr_running_txns_set_latch_;
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
