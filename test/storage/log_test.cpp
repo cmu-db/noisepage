@@ -98,7 +98,9 @@ class WriteAheadLoggingTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  LargeTransactionTestObject tested(5, 1, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder().setMaxColumns(5).setInitialTableSize(1)
+          .setTxnLength(5).setUpdateSelectRatio({0.5, 0.5}).setBlockStore(&block_store_).setBufferPool(&pool_)
+          .setGenerator(&generator_).setBookkeeping(true).setGcOn(true).setLogManager(&log_manager_).build();
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);

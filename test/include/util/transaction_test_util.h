@@ -109,7 +109,74 @@ class LargeTransactionTestObject {
   /**
    * Builder class for LargeTransactionTestObject
    */
-  class Builder;
+  class Builder {
+
+    public:
+      Builder(){}
+
+      Builder &setMaxColumns(uint16_t max_columns) {
+          this->builder_max_columns_ = max_columns;
+          return *this;
+      }
+
+      Builder &setInitialTableSize(uint32_t initial_table_size) {
+          this->builder_initial_table_size_ = initial_table_size;
+          return *this;
+      }
+
+      Builder &setTxnLength(uint32_t txn_length) {
+          this->builder_txn_length_ = txn_length;
+          return *this;
+      }
+      Builder &setUpdateSelectRatio(std::vector<double> update_select_ratio) {
+          this->builder_update_select_ratio_ = std::move(update_select_ratio);
+          return *this;
+      }
+
+      Builder &setBlockStore(storage::BlockStore *block_store) {
+          this->builder_block_store_ = block_store;
+          return *this;
+      }
+
+      Builder &setBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
+          this->builder_buffer_pool_ = buffer_pool;
+          return *this;
+      }
+
+      Builder &setGenerator(std::default_random_engine *generator) {
+          this->builder_generator_ = generator;
+          return *this;
+      }
+
+      Builder &setGcOn(bool gc_on) {
+          this->builder_gc_on_ = gc_on;
+          return *this;
+      }
+
+      Builder &setBookkeeping(bool bookkeeping) {
+          this->builder_bookkeeping_ = bookkeeping;
+          return *this;
+      }
+
+      Builder &setLogManager(storage::LogManager *log_manager) {
+          this->builder_log_manager_ = log_manager;
+          return *this;
+      }
+
+      LargeTransactionTestObject build();
+
+    private:
+        uint16_t builder_max_columns_ = 25;
+        uint32_t builder_initial_table_size_ = 25;
+        uint32_t builder_txn_length_ = 25;
+        std::vector<double> builder_update_select_ratio_;
+        storage::BlockStore *builder_block_store_ = nullptr;
+        storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
+        std::default_random_engine *builder_generator_ = nullptr;
+        bool builder_gc_on_ = TRUE;
+        bool builder_bookkeeping_ = TRUE;
+        storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
+  };
 
     /**
    * Initializes a test object with the given configuration
@@ -197,54 +264,5 @@ class LargeTransactionTestObject {
   std::vector<TupleEntry> last_checked_version_;
   // so we don't have to calculate these over and over again
   storage::ProjectedRowInitializer row_initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
-};
-
-class LargeTransactionTestObject::Builder {
-  private:
-    uint16_t max_columns;
-    uint32_t initial_table_size;
-    uint32_t txn_length;
-    std::vector<double> update_select_ratio;
-    storage::BlockStore *block_store;
-    storage::RecordBufferSegmentPool *buffer_pool;
-    std::default_random_engine *generator;
-    bool gc_on;
-    bool bookkeeping;
-    storage::LogManager *log_manager;
-
-    static constexpr uint16_t default_max_columns = 25;
-    static constexpr uint32_t default_initial_table_size = 25;
-    static constexpr uint32_t default_txn_length = 25;
-    static constexpr storage::BlockStore *default_block_store = nullptr;
-    static constexpr storage::RecordBufferSegmentPool *default_buffer_pool = nullptr;
-    static constexpr std::default_random_engine *default_generator = nullptr;
-    static constexpr bool default_gc_on = TRUE;
-    static constexpr bool default_bookkeeping = TRUE;
-    static constexpr storage::LogManager *default_log_manager = LOGGING_DISABLED;    
-
-  public:
-    Builder();
-
-    Builder &set_max_columns(uint16_t max_columns);
-
-    Builder &set_initial_table_size(uint32_t initial_table_size);
-
-    Builder &set_txn_length(uint32_t txn_length);
-
-    Builder &set_update_select_ratio(std::vector<double> update_select_ratio);
-
-    Builder &set_block_store(storage::BlockStore *block_store);
-
-    Builder &set_buffer_pool(storage::RecordBufferSegmentPool *buffer_pool);
-
-    Builder &set_generator(std::default_random_engine *generator);
-
-    Builder &set_gc_on(bool gc_on);
-
-    Builder &set_bookkeeping(bool bookkeeping);
-
-    Builder &set_log_manager(storage::LogManager *log_manager);
-
-    LargeTransactionTestObject build();
 };
 }  // namespace terrier
