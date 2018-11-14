@@ -173,8 +173,8 @@ class LargeTransactionTestObject {
         storage::BlockStore *builder_block_store_ = nullptr;
         storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
         std::default_random_engine *builder_generator_ = nullptr;
-        bool builder_gc_on_ = TRUE;
-        bool builder_bookkeeping_ = TRUE;
+        bool builder_gc_on_ = true;
+        bool builder_bookkeeping_ = true;
         storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
   };
 
