@@ -33,6 +33,33 @@ class SqlAbstractExpression {
    */
   SqlAbstractExpression(const SqlAbstractExpression &other) = default;
 
+  template<class ConcreteType>
+  class Builder {
+   public:
+    virtual ~Builder() = default;
+
+    ConcreteType &SetExpressionType(parser::ExpressionType expression_type) {
+      expression_type_ = expression_type;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    ConcreteType &SetReturnValueType(type::TypeId return_value_type) {
+      return_value_type_ = return_value_type_;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    ConcreteType &AddChild(std::shared_ptr<SqlAbstractExpression> child) {
+      children_.emplace_back(std::move(child));
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+   protected:
+    const parser::ExpressionType expression_type_;                       // type of current expression
+    const type::TypeId return_value_type_;                       // type of return value
+    std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
+  };
+
+
  public:
   virtual ~SqlAbstractExpression() = default;
 

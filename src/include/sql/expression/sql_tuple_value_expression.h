@@ -26,6 +26,28 @@ class SqlTupleValueExpression : public SqlAbstractExpression {
 
   std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlTupleValueExpression>(*this); }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetColName(std::string col_name) {
+      col_name_ = col_name;
+      return *this;
+    }
+
+    Builder &SetTableName(sstd::string table_name) {
+      table_name_ = table_name;
+      return *this;
+    }
+
+    std::shared_ptr<SqlTupleValueExpression> Build() {
+      return std::shared_ptr<SqlTupleValueExpression>(new SqlTupleValueExpression(col_name_, table_name_);
+    }
+
+   private:
+    const std::string col_name_;
+    const std::string table_name_;
+  };
+  friend class Builder;
+
  private:
   const std::string col_name_;
   const std::string table_name_;

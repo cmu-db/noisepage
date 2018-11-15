@@ -39,6 +39,22 @@ class SqlConstantValueExpression : public SqlAbstractExpression {
    */
   type::Value GetValue() const { return value_; }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetValue(type::Value value) {
+      value_ = value;
+      return *this;
+    }
+
+    std::shared_ptr<SqlConstantValueExpression> Build() {
+      return std::shared_ptr<SqlConstantValueExpression>(new SqlConstantValueExpression(value_));
+    }
+
+   private:
+    type::Value value_;
+  };
+  friend class Builder;
+
  private:
   type::Value value_;
 };

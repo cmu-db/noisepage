@@ -23,6 +23,14 @@ class SqlAggregateExpression : public SqlAbstractExpression {
       : SqlAbstractExpression(type, type::TypeId::INVALID, std::move(children)) {}
 
   std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlAggregateExpression>(*this); }
+
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    std::shared_ptr<SqlAggregateExpression> Build() {
+      return std::shared_ptr<SqlAggregateExpression>(
+          new SqlAggregateExpression(expression_type_, std::move(children_));
+    }
+  };
 };
 
 }  // namespace terrier::parser

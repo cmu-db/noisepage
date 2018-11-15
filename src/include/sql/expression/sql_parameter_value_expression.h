@@ -28,6 +28,22 @@ class SqlParameterValueExpression : public SqlAbstractExpression {
    */
   uint32_t GetValueIdx() { return value_idx_; }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetValueIdx(uint32_t value_idx) {
+      value_idx_ = value_idx;
+      return *this;
+    }
+
+    std::shared_ptr<SqlParameterValueExpression> Build() {
+      return std::shared_ptr<SqlParameterValueExpression>(new SqlParameterValueExpression(value_idx_));
+    }
+
+   private:
+    uint32_t value_idx_;
+  };
+  friend class Builder;
+
  private:
   // TODO(Tianyu): Can we get a better name for this?
   uint32_t value_idx_;

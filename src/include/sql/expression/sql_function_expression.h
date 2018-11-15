@@ -32,6 +32,22 @@ class SqlFunctionExpression : public SqlAbstractExpression {
    */
   const std::string &GetFuncName() const { return func_name_; }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetFuncName(std::string func_name) {
+      func_name_ = func_name;
+      return *this;
+    }
+
+    std::shared_ptr<SqlFunctionExpression> Build() {
+      return std::shared_ptr<SqlFunctionExpression>(new SqlFunctionExpression(func_name_, return_value_type_, std::move(children_)));
+    }
+
+   private:
+    std::string func_name_;
+  };
+  friend class Builder;
+
  private:
   std::string func_name_;
 };

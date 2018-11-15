@@ -111,6 +111,28 @@ class SqlCaseExpression : public SqlAbstractExpression {
    */
   std::shared_ptr<SqlAbstractExpression> GetDefaultClause() const { return default_expr_; }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetWhenClauses(std::vector<WhenClause> when_clauses) {
+      when_clauses_ = when_clauses;
+      return *this;
+    }
+
+    Builder &SetDefaultExpr(std::shared_ptr<SqlAbstractExpression> default_expr) {
+      default_expr_ = default_expr;
+      return *this;
+    }
+
+    std::shared_ptr<SqlCaseExpression> Build() {
+      return std::shared_ptr<SqlCaseExpression>(new SqlCaseExpression(return_value_type_, std::move(when_clauses_),default_expr_));
+    }
+
+   private:
+    std::vector<WhenClause> when_clauses_;
+    std::shared_ptr<SqlAbstractExpression> default_expr_;
+  };
+  friend class Builder;
+
  private:
   std::vector<WhenClause> when_clauses_;
   std::shared_ptr<SqlAbstractExpression> default_expr_;

@@ -31,6 +31,22 @@ class SqlSubqueryExpression : public SqlAbstractExpression {
    */
   std::shared_ptr<sql::SelectStatement> GetSubselect() { return subselect_; }
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    Builder &SetSubselec(std::shared_ptr<sql::SelectStatement> subselect) {
+      subselect_ = subselect;
+      return *this;
+    }
+
+    std::shared_ptr<SqlSubqueryExpression> Build() {
+      return std::shared_ptr<SqlSubqueryExpression>(new SqlSubqueryExpression(subselect_));
+    }
+
+   private:
+    std::shared_ptr<sql::SelectStatement> subselect_;
+  };
+  friend class Builder;
+
  private:
   std::shared_ptr<sql::SelectStatement> subselect_;
 };

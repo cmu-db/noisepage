@@ -23,6 +23,13 @@ class SqlComparisonExpression : public SqlAbstractExpression {
       : SqlAbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlComparisonExpression>(*this); }
-};
 
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    std::shared_ptr<SqlComparisonExpression> Build() {
+      return std::shared_ptr<SqlComparisonExpression>(
+          new SqlComparisonExpression(expression_type_, std::move(children_));
+    }
+  };
+};
 }  // namespace terrier::sql

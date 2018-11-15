@@ -24,6 +24,15 @@ class SqlOperatorExpression : public SqlAbstractExpression {
       : SqlAbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
   std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlOperatorExpression>(*this); }
+
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    std::shared_ptr<SqlOperatorExpression> Build() {
+      return std::shared_ptr<SqlOperatorExpression>(
+          new SqlOperatorExpression(expression_type_, return_value_type_, std::move(children_));
+    }
+  };
+
 };
 
 }  // namespace terrier::sql

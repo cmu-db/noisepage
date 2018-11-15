@@ -21,6 +21,14 @@ class SqlStarExpression : public SqlAbstractExpression {
     // TODO(Tianyu): This really should be a singleton object
     return std::make_unique<SqlStarExpression>(*this);
   }
+
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    std::shared_ptr<SqlStarExpression> Build() {
+      return std::shared_ptr<SqlStarExpression>(
+          new SqlStarExpression();
+    }
+  };
 };
 
 }  // namespace terrier::sql
