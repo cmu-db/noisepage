@@ -24,10 +24,17 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder().setMaxColumns(max_columns)
-            .setInitialTableSize(initial_table_size).setTxnLength(txn_length).setUpdateSelectRatio(update_select_ratio)
-            .setBlockStore(&block_store_).setBufferPool(&buffer_pool_).setGenerator(&generator_).setGcOn(false)
-            .setBookkeeping(true).build();
+    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                            .setMaxColumns(max_columns)
+                                            .setInitialTableSize(initial_table_size)
+                                            .setTxnLength(txn_length)
+                                            .setUpdateSelectRatio(update_select_ratio)
+                                            .setBlockStore(&block_store_)
+                                            .setBufferPool(&buffer_pool_)
+                                            .setGenerator(&generator_)
+                                            .setGcOn(false)
+                                            .setBookkeeping(true)
+                                            .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);
     for (auto w : result.first) delete w;

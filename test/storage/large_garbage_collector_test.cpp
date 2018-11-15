@@ -55,10 +55,17 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const std::vector<double> update_select_ratio = {0.5, 0.5};
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
-    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder().setMaxColumns(max_columns)
-            .setInitialTableSize(initial_table_size).setTxnLength(txn_length).setUpdateSelectRatio(update_select_ratio)
-            .setBlockStore(&block_store_).setBufferPool(&buffer_pool_).setGenerator(&generator_).setGcOn(true)
-            .setBookkeeping(true).build();
+    LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                            .setMaxColumns(max_columns)
+                                            .setInitialTableSize(initial_table_size)
+                                            .setTxnLength(txn_length)
+                                            .setUpdateSelectRatio(update_select_ratio)
+                                            .setBlockStore(&block_store_)
+                                            .setBufferPool(&buffer_pool_)
+                                            .setGenerator(&generator_)
+                                            .setGcOn(true)
+                                            .setBookkeeping(true)
+                                            .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
       auto result = tested.SimulateOltp(batch_size, num_concurrent_txns);
