@@ -103,15 +103,33 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   return txns_processed;
 }
 
+bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn,
+                                         UndoRecord *const undo_record) const {
+  DataTable *&table = undo_record->Table();
+  // if this UndoRecord has already been processed, we can skip it
+  if (table == nullptr) return true;
+  // no point in trying to reclaim slots or do any further operation if cannot safely unlink
+  if (!UnlinkUndoRecord(txn, undo_record)) return false;
+  // This should always succeed or be a no-op
+  ReclaimSlotIfDelete(undo_record);
+  // TODO(Tianyu): Can also check for varlen and log the access for hotness check in this pass
+  // mark the record as fully processed
+  table = nullptr;
+  return true;
+}
+
+void GarbageCollector::ReclaimSlotIfDelete(UndoRecord *undo_record) const {
+  if (undo_record->Type() == DeltaRecordType::DELETE)
+    undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
+}
+
 bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
                                         UndoRecord *const undo_record) const {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
                  "This undo_record does not belong to this txn.");
+  TERRIER_ASSERT(undo_record->Table() != nullptr, "This undo record has already been processed previously");
+
   DataTable *table = undo_record->Table();
-  if (table == nullptr) {
-    // This UndoRecord has already been unlinked, so we can skip it
-    return true;
-  }
   const TupleSlot slot = undo_record->Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
 
@@ -123,7 +141,6 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
     // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
     if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
       // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
-      undo_record->Table() = nullptr;
       return true;
     }
     // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
@@ -148,7 +165,6 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
     // Update the next pointer to unlink the UndoRecord
     curr->Next().store(next->Next().load());
     // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
-    undo_record->Table() = nullptr;
     return true;
   }
 
@@ -156,5 +172,4 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   // target UndoRecord not yet being committed)
   return false;
 }
-
 }  // namespace terrier::storage
