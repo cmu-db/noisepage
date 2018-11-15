@@ -112,7 +112,7 @@ class LargeTransactionTestObject {
   class Builder {
 
     public:
-      Builder(){}
+      Builder() = default;
 
       Builder &setMaxColumns(uint16_t max_columns) {
           this->builder_max_columns_ = max_columns;
