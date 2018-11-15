@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "common/object_pool.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"

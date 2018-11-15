@@ -44,11 +44,13 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
-    auto txn_begin = in->ReadValue<timestamp_t>();
+    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
-      auto txn_commit = in->ReadValue<timestamp_t>();
-      // Okay to fill in null since nobody will invoke the callback
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr);
+      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+      // Okay to fill in null since nobody will invoke the callback.
+      // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
+      // not read-only.
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();
@@ -66,7 +68,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   }
 
   std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool pool_{1000, 100};
+  storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
   storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
   std::thread log_thread_;
@@ -95,21 +97,22 @@ class WriteAheadLoggingTests : public TerrierTest {
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
+  // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
+  LargeTransactionTestObject tested(5, 1, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndGC();
   EndLogging();
 
-  std::unordered_map<timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == timestamp_t(0)) {
-      // TODO(Tianyu): This is hacky, but it will be a pain to extract the intiail transaction. The LargeTranasctionTest
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+      // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTranasctionTest
       // harness probably needs some refactor (later after wal is in)
       // This the initial setup transaction
       delete[] reinterpret_cast<byte *>(log_record);
@@ -137,12 +140,56 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), update_it->second, redo->Delta()));
+      delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
     delete[] reinterpret_cast<byte *>(log_record);
   }
-  // TODO(Tianyu): You will need to account for read-only transactions once we stop logging them out.
-  EXPECT_TRUE(txns_map.empty());  // all transactions should have been logged out
+
+  // Ensure that the only committed transactions which remain in txns_map are read-only, because any other committing
+  // transaction will generate a commit record and will be erased from txns_map in the checks above, if log records are
+  // properly being written out. If at this point, there is exists any transaction in txns_map which made updates, then
+  // something went wrong with logging. Read-only transactions do not generate commit records, so they will remain in
+  // txns_map.
+  for (const auto &kv_pair : txns_map) {
+    EXPECT_TRUE(kv_pair.second->Updates()->empty());
+  }
+  unlink(LOG_FILE_NAME);
+  for (auto *txn : result.first) delete txn;
+  for (auto *txn : result.second) delete txn;
+}
+
+// This test simulates a series of read-only transactions, and then reads the generated log file back in to ensure that
+// read-only transactions do not generate any log records, as they are not necessary for recovery.
+// NOLINTNEXTLINE
+TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
+  // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
+  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, false,
+                                    &log_manager_);
+  StartLogging(10);
+  StartGC(tested.GetTxnManager(), 10);
+  auto result = tested.SimulateOltp(100, 4);
+  EndGC();
+  EndLogging();
+
+  // Read-only workload has completed. Read the log file back in to check that no records were produced for these
+  // transactions.
+  int log_records_count = 0;
+  storage::BufferedLogReader in(LOG_FILE_NAME);
+  while (in.HasMore()) {
+    storage::LogRecord *log_record = ReadNextRecord(&in);
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+      // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
+      // testing framework changes, fix this.
+      delete[] reinterpret_cast<byte *>(log_record);
+      continue;
+    }
+
+    log_records_count += 1;
+    delete[] reinterpret_cast<byte *>(log_record);
+  }
+
+  EXPECT_EQ(log_records_count, 0);
   unlink(LOG_FILE_NAME);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
