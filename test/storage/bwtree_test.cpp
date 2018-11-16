@@ -9,9 +9,15 @@
 namespace terrier {
 
 struct BwTreeTests : public TerrierTest {
-  void SetUp() final {}
+  TreeType *GetEmptyTree() const {
+    TreeType *t1 = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
 
-  void TearDown() final {}
+    // By default let is serve single thread (i.e. current one)
+    // and assign gc_id = 0 to the current thread
+    t1->UpdateThreadLocal(1);
+    t1->AssignGCID(0);
+    return t1;
+  }
 };
 
 /**
@@ -73,4 +79,11 @@ TEST_F(BwTreeTests, SortedSmallSetTest) {
   // Clean up
   delete[] buffer;
 }
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, BasicTest) {
+  auto *tree = GetEmptyTree();
+  delete tree;
+}
+
 }  // namespace terrier
