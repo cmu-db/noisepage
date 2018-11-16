@@ -10,7 +10,7 @@ namespace terrier {
 
 struct BwTreeTests : public TerrierTest {
   TreeType *GetEmptyTree() const {
-    TreeType *t1 = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
+    auto *t1 = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
 
     // By default let is serve single thread (i.e. current one)
     // and assign gc_id = 0 to the current thread
@@ -59,7 +59,7 @@ TEST_F(BwTreeTests, BloomFilterTest) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, SortedSmallSetTest) {
   const uint32_t num_inserts = 100;
-  uint32_t *buffer = new uint32_t[num_inserts];
+  auto *buffer = new uint32_t[num_inserts];
 
   // Generate randomly permuted input
   std::vector<uint32_t> inserts;
