@@ -27,7 +27,7 @@ class CheckConfig(object):
         """ Any path matching one of the ignore_pats regular expressions,
             denotes that we do NOT want to run clang-tidy on that item.
         """
-        self.ignore_pats = [".*/third_party/libpg_query/.*", ]
+        self.ignore_pats = [".*/third_party/.*", ]
         return
 
     def should_skip(self, path):
