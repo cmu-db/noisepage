@@ -259,4 +259,154 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   delete tree;
 }
 
+/**
+ * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/basic_test.cpp and
+ * https://github.com/wangziqi2013/BwTree/blob/master/test/main.cpp
+ *
+ * Test Basic Insert/Delete/GetValue with different patterns and multi thread
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, Interleaved) {
+  const int basic_test_key_num = 128 * 1024;
+
+  TestThreadPool thread_pool;
+  auto *tree = GetEmptyTree();
+
+  /*
+   * InsertTest1() - Each threads inserts in its own consecutive key subspace
+   *
+   * The intervals of each thread does not intersect, therefore contention
+   * is very small and this test is supposed to be very fast
+   *
+   * |---- thread 0 ----|---- thread 1----|----thread 2----| .... |---- thread n----|
+   */
+  auto InsertTest1 = [&](uint32_t id) {
+    for (int i = id * basic_test_key_num; i < static_cast<int>(id + 1) * basic_test_key_num; i++) {
+      tree->Insert(i, i + 1);
+      tree->Insert(i, i + 2);
+      tree->Insert(i, i + 3);
+      tree->Insert(i, i + 4);
+    }
+  };
+
+  /*
+   * DeleteTest1() - Same pattern as InsertTest1()
+   */
+  auto DeleteTest1 = [&](uint32_t id) {
+    for (int i = id * basic_test_key_num; i < static_cast<int>(id + 1) * basic_test_key_num; i++) {
+      tree->Delete(i, i + 1);
+      tree->Delete(i, i + 2);
+      tree->Delete(i, i + 3);
+      tree->Delete(i, i + 4);
+    }
+  };
+
+  /*
+   * InsertTest2() - All threads collectively insert on the key space
+   *
+   * | t0 t1 t2 t3 .. tn | t0 t1 t2 t3 .. tn | t0 t1 .. | .. |  ... tn |
+   *
+   * This test is supposed to be slower since the contention is very high
+   * between different threads
+   */
+  auto InsertTest2 = [&](uint32_t id) {
+    for (int i = 0; i < basic_test_key_num; i++) {
+      int key = num_threads_ * i + id;
+
+      tree->Insert(key, key + 1);
+      tree->Insert(key, key + 2);
+      tree->Insert(key, key + 3);
+      tree->Insert(key, key + 4);
+    }
+  };
+
+  /*
+   * DeleteTest2() - The same pattern as InsertTest2()
+   */
+  auto DeleteTest2 = [&](uint32_t id) {
+    for (int i = 0; i < basic_test_key_num; i++) {
+      int key = num_threads_ * i + id;
+
+      tree->Delete(key, key + 1);
+      tree->Delete(key, key + 2);
+      tree->Delete(key, key + 3);
+      tree->Delete(key, key + 4);
+    }
+  };
+
+  /*
+   * DeleteGetValueTest() - Verifies all values have been deleted
+   *
+   * This function verifies on key_num * thread_num key space
+   */
+  auto DeleteGetValueTest = [&]() {
+    for (int i = 0; i < basic_test_key_num * num_threads_; i++) {
+      auto value_set = tree->GetValue(i);
+
+      EXPECT_EQ(value_set.size(), 0);
+    }
+  };
+
+  /*
+   * InsertGetValueTest() - Verifies all values have been inserted
+   */
+  auto InsertGetValueTest = [&]() {
+    for (int i = 0; i < basic_test_key_num * num_threads_; i++) {
+      auto value_set = tree->GetValue(i);
+
+      EXPECT_EQ(value_set.size(), 4);
+    }
+  };
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
+  tree->UpdateThreadLocal(1);
+
+  InsertGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
+  tree->UpdateThreadLocal(1);
+
+  DeleteGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
+  tree->UpdateThreadLocal(1);
+
+  InsertGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
+  tree->UpdateThreadLocal(1);
+
+  DeleteGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
+  tree->UpdateThreadLocal(1);
+
+  InsertGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
+  tree->UpdateThreadLocal(1);
+
+  DeleteGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
+  tree->UpdateThreadLocal(1);
+
+  InsertGetValueTest();
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
+  tree->UpdateThreadLocal(1);
+
+  DeleteGetValueTest();
+
+  delete tree;
+}
+
 }  // namespace terrier
