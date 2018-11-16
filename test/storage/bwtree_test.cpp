@@ -9,7 +9,14 @@
 namespace terrier {
 
 struct BwTreeTests : public TerrierTest {
-  void SetUp() { third_party::bwtree::print_flag = false; }
+  void SetUp() override {
+    TerrierTest::SetUp();
+    third_party::bwtree::print_flag = false;
+  }
+
+  void TearDown() override {
+    TerrierTest::TearDown();
+  }
 
   /**
    * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
