@@ -93,12 +93,6 @@ TEST_F(BwTreeTests, SortedSmallSet) {
   delete[] buffer;
 }
 
-// NOLINTNEXTLINE
-TEST_F(BwTreeTests, Basic) {
-  auto *tree = GetEmptyTree();
-  delete tree;
-}
-
 /**
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
  */
@@ -209,6 +203,53 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
 
     EXPECT_EQ(s.size(), 1);
     EXPECT_EQ(*s.begin(), i);
+  }
+
+  delete tree;
+}
+
+/**
+ * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/mixed_test.cpp
+ *
+ * Multithreaded insert-delete contention test
+ *
+ * This test focuses on corner cases where insert and delete happens
+ * concurrently on the same key
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ConcurrentMixed) {
+  // This defines the key space (0 ~ (1M - 1))
+  const size_t key_num = 1024 * 1024;
+
+  TestThreadPool thread_pool;
+  auto *tree = GetEmptyTree();
+
+  auto workload = [&](uint32_t id) {
+    tree->AssignGCID(id);
+
+    if ((id % 2) == 0) {
+      for (int i = 0; i < key_num; i++) {
+        int key = num_threads_ * i + id;
+
+        tree->Insert(key, key);
+      }
+    } else {
+      for (int i = 0; i < key_num; i++) {
+        int key = num_threads_ * i + id - 1;
+
+        while (!tree->Delete(key, key)) {
+        }
+      }
+    }
+  };
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+  tree->UpdateThreadLocal(1);
+
+  // Verifies that all values are deleted after mixed test
+  for (int i = 0; i < key_num * num_threads_; i++) {
+    EXPECT_EQ(tree->GetValue(i).size(), 0);
   }
 
   delete tree;
