@@ -14,9 +14,7 @@ struct BwTreeTests : public TerrierTest {
     third_party::bwtree::print_flag = false;
   }
 
-  void TearDown() override {
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { TerrierTest::TearDown(); }
 
   /**
    * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
@@ -37,7 +35,7 @@ struct BwTreeTests : public TerrierTest {
  * Modified to have Inserts live on the heap, because that's required according to Ziqi
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, BloomFilterTest) {
+TEST_F(BwTreeTests, BloomFilter) {
   std::vector<uint32_t *> loose_pointers;
   const uint32_t *buffer[256];
 
@@ -69,7 +67,7 @@ TEST_F(BwTreeTests, BloomFilterTest) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/stl_test/sorted_small_set_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, SortedSmallSetTest) {
+TEST_F(BwTreeTests, SortedSmallSet) {
   const uint32_t num_inserts = 100;
   auto *buffer = new uint32_t[num_inserts];
 
@@ -93,8 +91,83 @@ TEST_F(BwTreeTests, SortedSmallSetTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, BasicTest) {
+TEST_F(BwTreeTests, Basic) {
   auto *tree = GetEmptyTree();
+  delete tree;
+}
+
+/**
+ * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ForwardIterator) {
+  auto *tree = GetEmptyTree();
+  const int key_num = 1024 * 1024;
+
+  // First insert from 0 to 1 million
+  for (int i = 0; i < key_num; i++) {
+    tree->Insert(i, i);
+  }
+
+  auto it = tree->Begin();
+
+  int64_t i = 0;
+  while (!it.IsEnd()) {
+    EXPECT_EQ(it->first, it->second);
+    EXPECT_EQ(it->first, i);
+
+    i++;
+    it++;
+  }
+
+  EXPECT_EQ(i, key_num);
+
+  auto it2 = tree->Begin(key_num - 1);
+  auto it3 = it2;
+
+  it2++;
+  EXPECT_TRUE(it2.IsEnd());
+
+  EXPECT_EQ(it3->first, key_num - 1);
+
+  auto it4 = tree->Begin(key_num + 1);
+  EXPECT_TRUE(it4.IsEnd());
+
+  delete tree;
+}
+
+/**
+ * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ReverseIterator) {
+  auto *tree = GetEmptyTree();
+  const int key_num = 1024 * 1024;
+
+  // First insert from 0 to 1 million
+  for (int i = 0; i < key_num; i++) {
+    tree->Insert(i, i);
+  }
+
+  auto it = tree->Begin(key_num - 1);
+
+  EXPECT_TRUE(!it.IsEnd());
+  EXPECT_TRUE(!it.IsBegin());
+
+  // This does not test Begin()
+  int64_t key = key_num - 1;
+  while (!it.IsBegin()) {
+    EXPECT_EQ(it->first, it->second);
+    EXPECT_EQ(it->first, key);
+    key--;
+    it--;
+  }
+
+  // Test for Begin()
+  EXPECT_EQ(it->first, it->second);
+  EXPECT_EQ(it->first, key);
+  EXPECT_EQ(key, 0);
+
   delete tree;
 }
 
