@@ -235,9 +235,9 @@ bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accesso
 
 bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::TransactionContext *const txn) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
-  const timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const timestamp_t txn_id = txn->TxnId().load();
-  const timestamp_t start_time = txn->StartTime();
+  const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
+  const transaction::timestamp_t txn_id = txn->TxnId().load();
+  const transaction::timestamp_t start_time = txn->StartTime();
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&

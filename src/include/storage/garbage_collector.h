@@ -65,7 +65,7 @@ class GarbageCollector {
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
-  timestamp_t last_unlinked_;
+  transaction::timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked

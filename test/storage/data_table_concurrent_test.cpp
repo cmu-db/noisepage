@@ -11,7 +11,8 @@ namespace terrier {
 class FakeTransaction {
  public:
   FakeTransaction(const storage::BlockLayout &layout, storage::DataTable *table, const double null_bias,
-                  const timestamp_t start_time, const timestamp_t txn_id, storage::RecordBufferSegmentPool *buffer_pool)
+                  const transaction::timestamp_t start_time, const transaction::timestamp_t txn_id,
+                  storage::RecordBufferSegmentPool *buffer_pool)
       : layout_(layout),
         table_(table),
         null_bias_(null_bias),
@@ -38,7 +39,7 @@ class FakeTransaction {
   template <class Random>
   bool RandomlyUpdateTuple(const storage::TupleSlot slot, Random *generator) {
     // generate random update
-    std::vector<col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
+    std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
     storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
@@ -91,12 +92,13 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
-    storage::DataTable tested(&block_store_, layout, layout_version_t(0));
+    storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
     std::vector<std::unique_ptr<FakeTransaction>> fake_txns;
     for (uint32_t thread = 0; thread < num_threads; thread++)
       // timestamps are irrelevant for inserts
-      fake_txns.emplace_back(std::make_unique<FakeTransaction>(layout, &tested, null_ratio_(generator_), timestamp_t(0),
-                                                               timestamp_t(0), &buffer_pool_));
+      fake_txns.emplace_back(std::make_unique<FakeTransaction>(layout, &tested, null_ratio_(generator_),
+                                                               transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                                               &buffer_pool_));
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) fake_txns[id]->InsertRandomTuple(&thread_generator);
@@ -127,17 +129,18 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_columns, &generator_);
-    storage::DataTable tested(&block_store_, layout, layout_version_t(0));
-    FakeTransaction insert_txn(layout, &tested, null_ratio_(generator_), timestamp_t(0), timestamp_t(1), &buffer_pool_);
+    storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
+    FakeTransaction insert_txn(layout, &tested, null_ratio_(generator_), transaction::timestamp_t(0),
+                               transaction::timestamp_t(1), &buffer_pool_);
     // Insert one tuple, the timestamp needs to show committed
     storage::TupleSlot slot = insert_txn.InsertRandomTuple(&generator_);
 
     std::vector<std::unique_ptr<FakeTransaction>> fake_txns;
     for (uint64_t thread = 0; thread < num_threads; thread++)
       // need negative timestamp to denote uncommitted
-      fake_txns.emplace_back(std::make_unique<FakeTransaction>(layout, &tested, null_ratio_(generator_), timestamp_t(2),
-                                                               timestamp_t(static_cast<uint64_t>(-thread - 1)),
-                                                               &buffer_pool_));
+      fake_txns.emplace_back(std::make_unique<FakeTransaction>(
+          layout, &tested, null_ratio_(generator_), transaction::timestamp_t(2),
+          transaction::timestamp_t(static_cast<uint64_t>(-thread - 1)), &buffer_pool_));
     std::atomic<uint32_t> success = 0, fail = 0;
     auto workload = [&](uint32_t id) {
       std::default_random_engine thread_generator(id);
