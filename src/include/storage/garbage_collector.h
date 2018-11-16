@@ -53,7 +53,7 @@ class GarbageCollector {
 
   bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
-  void ReclaimSlotIfDelete(UndoRecord *undo_record) const;
+  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
