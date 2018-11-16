@@ -9,6 +9,11 @@
 namespace terrier {
 
 struct BwTreeTests : public TerrierTest {
+  void SetUp() { third_party::bwtree::print_flag = false; }
+
+  /**
+   * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
+   */
   TreeType *GetEmptyTree() const {
     auto *t1 = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
 

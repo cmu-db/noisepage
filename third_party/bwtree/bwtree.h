@@ -71,7 +71,7 @@ using NodeID = uint64_t;
   template <typename KeyType, typename ValueType, typename KeyComparator, typename KeyEqualityChecker, \
             typename KeyHashFunc, typename ValueEqualityChecker, typename ValueHashFunc>
 
-namespace third_party::index {
+namespace third_party::bwtree {
 
 // This could not be set as a macro since we will change the flag inside
 // the testing framework

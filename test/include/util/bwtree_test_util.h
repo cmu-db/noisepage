@@ -54,6 +54,6 @@ struct BwTreeTestUtil {
 };
 
 using TreeType =
-    third_party::index::BwTree<int64_t, int64_t, BwTreeTestUtil::KeyComparator, BwTreeTestUtil::KeyEqualityChecker>;
+    third_party::bwtree::BwTree<int64_t, int64_t, BwTreeTestUtil::KeyComparator, BwTreeTestUtil::KeyEqualityChecker>;
 
 }  // namespace terrier
