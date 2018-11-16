@@ -5,6 +5,7 @@
 #include "bwtree/sorted_small_set.h"
 #include "util/bwtree_test_util.h"
 #include "util/test_harness.h"
+#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -28,6 +29,8 @@ struct BwTreeTests : public TerrierTest {
     t1->AssignGCID(0);
     return t1;
   }
+
+  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
 };
 
 /**
@@ -167,6 +170,46 @@ TEST_F(BwTreeTests, ReverseIterator) {
   EXPECT_EQ(it->first, it->second);
   EXPECT_EQ(it->first, key);
   EXPECT_EQ(key, 0);
+
+  delete tree;
+}
+
+/**
+ * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/random_pattern_test.cpp
+ */
+// NOLINTNEXTLINE
+TEST_F(BwTreeTests, ConcurrentRandomInsert) {
+  // This defines the key space (0 ~ (1M - 1))
+  const size_t key_num = 1024 * 1024;
+  std::atomic<size_t> insert_success_counter;
+
+  TestThreadPool thread_pool;
+  auto *tree = GetEmptyTree();
+
+  // Inserts in a 1M key space randomly until all keys has been inserted
+  auto workload = [&](uint32_t id) {
+    tree->AssignGCID(id);
+    std::default_random_engine thread_generator(id);
+    std::uniform_int_distribution<int> uniform_dist(0, key_num - 1);
+
+    while (insert_success_counter.load() < key_num) {
+      int key = uniform_dist(thread_generator);
+
+      if (tree->Insert(key, key)) insert_success_counter.fetch_add(1);
+    }
+  };
+
+  tree->UpdateThreadLocal(num_threads_);
+  thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+  tree->UpdateThreadLocal(1);
+
+  // Verifies whether random insert is correct
+  for (int i = 0; i < key_num; i++) {
+    auto s = tree->GetValue(i);
+
+    EXPECT_EQ(s.size(), 1);
+    EXPECT_EQ(*s.begin(), i);
+  }
 
   delete tree;
 }
