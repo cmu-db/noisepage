@@ -25,13 +25,13 @@ struct BwTreeTests : public TerrierTest {
    * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
    */
   TreeType *GetEmptyTree() const {
-    auto *t1 = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
+    auto *tree = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
 
     // By default let is serve single thread (i.e. current one)
     // and assign gc_id = 0 to the current thread
-    t1->UpdateThreadLocal(1);
-    t1->AssignGCID(0);
-    return t1;
+    tree->UpdateThreadLocal(1);
+    tree->AssignGCID(0);
+    return tree;
   }
 
   const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
@@ -179,14 +179,15 @@ TEST_F(BwTreeTests, ReverseIterator) {
 TEST_F(BwTreeTests, ConcurrentRandomInsert) {
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
-  std::atomic<size_t> insert_success_counter;
+  std::atomic<size_t> insert_success_counter = 0;
 
   TestThreadPool thread_pool;
   auto *tree = GetEmptyTree();
 
   // Inserts in a 1M key space randomly until all keys has been inserted
   auto workload = [&](uint32_t id) {
-    tree->AssignGCID(id);
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     std::default_random_engine thread_generator(id);
     std::uniform_int_distribution<int> uniform_dist(0, key_num - 1);
 
@@ -195,9 +196,10 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
 
       if (tree->Insert(key, key)) insert_success_counter.fetch_add(1);
     }
+    tree->UnregisterThread(gcid);
   };
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
@@ -229,8 +231,8 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   auto *tree = GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
-    tree->AssignGCID(id);
-
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     if ((id % 2) == 0) {
       for (uint32_t i = 0; i < key_num; i++) {
         int key = num_threads_ * i + id;
@@ -245,9 +247,10 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
         }
       }
     }
+    tree->UnregisterThread(gcid);
   };
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
@@ -281,24 +284,30 @@ TEST_F(BwTreeTests, Interleaved) {
    * |---- thread 0 ----|---- thread 1----|----thread 2----| .... |---- thread n----|
    */
   auto InsertTest1 = [&](uint32_t id) {
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     for (uint32_t i = id * basic_test_key_num; i < static_cast<uint32_t>(id + 1) * basic_test_key_num; i++) {
       tree->Insert(i, i + 1);
       tree->Insert(i, i + 2);
       tree->Insert(i, i + 3);
       tree->Insert(i, i + 4);
     }
+    tree->UnregisterThread(gcid);
   };
 
   /*
    * DeleteTest1() - Same pattern as InsertTest1()
    */
   auto DeleteTest1 = [&](uint32_t id) {
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     for (uint32_t i = id * basic_test_key_num; i < static_cast<uint32_t>(id + 1) * basic_test_key_num; i++) {
       tree->Delete(i, i + 1);
       tree->Delete(i, i + 2);
       tree->Delete(i, i + 3);
       tree->Delete(i, i + 4);
     }
+    tree->UnregisterThread(gcid);
   };
 
   /*
@@ -310,6 +319,8 @@ TEST_F(BwTreeTests, Interleaved) {
    * between different threads
    */
   auto InsertTest2 = [&](uint32_t id) {
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     for (uint32_t i = 0; i < basic_test_key_num; i++) {
       uint32_t key = num_threads_ * i + id;
 
@@ -318,12 +329,15 @@ TEST_F(BwTreeTests, Interleaved) {
       tree->Insert(key, key + 3);
       tree->Insert(key, key + 4);
     }
+    tree->UnregisterThread(gcid);
   };
 
   /*
    * DeleteTest2() - The same pattern as InsertTest2()
    */
   auto DeleteTest2 = [&](uint32_t id) {
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     for (uint32_t i = 0; i < basic_test_key_num; i++) {
       uint32_t key = num_threads_ * i + id;
 
@@ -332,6 +346,7 @@ TEST_F(BwTreeTests, Interleaved) {
       tree->Delete(key, key + 3);
       tree->Delete(key, key + 4);
     }
+    tree->UnregisterThread(gcid);
   };
 
   /*
@@ -358,49 +373,49 @@ TEST_F(BwTreeTests, Interleaved) {
     }
   };
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
   tree->UpdateThreadLocal(1);
 
@@ -419,11 +434,9 @@ TEST_F(BwTreeTests, EpochManager) {
   TestThreadPool thread_pool;
   auto *tree = GetEmptyTree();
 
-  std::atomic<uint32_t> thread_finished;
-
-  thread_finished = 1;
-
   auto workload = [&](uint32_t id) {
+    const uint32_t gcid = id + 1;
+    tree->AssignGCID(gcid);
     const uint32_t iterations = 100;
     for (uint32_t i = 0; i < iterations; i++) {
       auto node = tree->epoch_manager.JoinEpoch();
@@ -434,10 +447,10 @@ TEST_F(BwTreeTests, EpochManager) {
 
       tree->epoch_manager.LeaveEpoch(node);
     }
-    thread_finished.fetch_add(1);
+    tree->UnregisterThread(gcid);
   };
 
-  tree->UpdateThreadLocal(num_threads_);
+  tree->UpdateThreadLocal(num_threads_ + 1);
   thread_pool.RunThreadsUntilFinish(num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
