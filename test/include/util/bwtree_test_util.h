@@ -51,9 +51,22 @@ struct BwTreeTestUtil {
 
     KeyEqualityChecker() = delete;
   };
-};
 
-using TreeType =
-    third_party::bwtree::BwTree<int64_t, int64_t, BwTreeTestUtil::KeyComparator, BwTreeTestUtil::KeyEqualityChecker>;
+  using TreeType =
+      third_party::bwtree::BwTree<int64_t, int64_t, BwTreeTestUtil::KeyComparator, BwTreeTestUtil::KeyEqualityChecker>;
+
+  /**
+   * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
+   */
+  static TreeType *GetEmptyTree() {
+    auto *tree = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
+
+    // By default let is serve single thread (i.e. current one)
+    // and assign gc_id = 0 to the current thread
+    tree->UpdateThreadLocal(1);
+    tree->AssignGCID(0);
+    return tree;
+  }
+};
 
 }  // namespace terrier

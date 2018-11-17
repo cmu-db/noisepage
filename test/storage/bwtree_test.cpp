@@ -21,19 +21,6 @@ struct BwTreeTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
-  /**
-   * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/test_suite.cpp
-   */
-  TreeType *GetEmptyTree() const {
-    auto *tree = new TreeType{true, BwTreeTestUtil::KeyComparator{1}, BwTreeTestUtil::KeyEqualityChecker{1}};
-
-    // By default let is serve single thread (i.e. current one)
-    // and assign gc_id = 0 to the current thread
-    tree->UpdateThreadLocal(1);
-    tree->AssignGCID(0);
-    return tree;
-  }
-
   const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
 };
 
@@ -102,7 +89,7 @@ TEST_F(BwTreeTests, SortedSmallSet) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ForwardIterator) {
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
   // First insert from 0 to 1 million
@@ -142,7 +129,7 @@ TEST_F(BwTreeTests, ForwardIterator) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ReverseIterator) {
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
   // First insert from 0 to 1 million
@@ -182,7 +169,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
   std::atomic<size_t> insert_success_counter = 0;
 
   TestThreadPool thread_pool;
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   // Inserts in a 1M key space randomly until all keys has been inserted
   auto workload = [&](uint32_t id) {
@@ -228,7 +215,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   const uint32_t key_num = 1024 * 1024;
 
   TestThreadPool thread_pool;
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
@@ -273,7 +260,7 @@ TEST_F(BwTreeTests, Interleaved) {
   const uint32_t basic_test_key_num = 128 * 1024;
 
   TestThreadPool thread_pool;
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   /*
    * InsertTest1() - Each threads inserts in its own consecutive key subspace
@@ -432,7 +419,7 @@ TEST_F(BwTreeTests, Interleaved) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, EpochManager) {
   TestThreadPool thread_pool;
-  auto *tree = GetEmptyTree();
+  auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
