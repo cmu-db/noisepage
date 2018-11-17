@@ -41,7 +41,8 @@ if ("${UPPERCASE_BUILD_WARNING_LEVEL}" STREQUAL "CHECKIN")
   # Pre-checkin builds
   if ("${COMPILER_FAMILY}" STREQUAL "clang")
     set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wall -Wno-c++98-compat \
--Wno-c++98-compat-pedantic")
+-Wno-c++98-compat-pedantic -Wno-invalid-offsetof")
+  # TODO(Matt): remove the invalid-offsetof after moving to Xcode 10+ on Travis
 
   elseif ("${COMPILER_FAMILY}" STREQUAL "gcc")
     set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wall \
