@@ -25,15 +25,15 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .setMaxColumns(max_columns)
-                                            .setInitialTableSize(initial_table_size)
-                                            .setTxnLength(txn_length)
-                                            .setUpdateSelectRatio(update_select_ratio)
-                                            .setBlockStore(&block_store_)
-                                            .setBufferPool(&buffer_pool_)
-                                            .setGenerator(&generator_)
-                                            .setGcOn(false)
-                                            .setBookkeeping(true)
+                                            .SetMaxColumns(max_columns)
+                                            .SetInitialTableSize(initial_table_size)
+                                            .SetTxnLength(txn_length)
+                                            .SetUpdateSelectRatio(update_select_ratio)
+                                            .SetBlockStore(&block_store_)
+                                            .SetBufferPool(&buffer_pool_)
+                                            .SetGenerator(&generator_)
+                                            .SetGcOn(false)
+                                            .SetGcOn(true)
                                             .build();
     auto result = tested.SimulateOltp(num_txns, num_concurrent_txns);
     tested.CheckReadsCorrect(&result.first);

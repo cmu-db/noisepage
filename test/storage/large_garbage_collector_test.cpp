@@ -56,15 +56,15 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
   const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                            .setMaxColumns(max_columns)
-                                            .setInitialTableSize(initial_table_size)
-                                            .setTxnLength(txn_length)
-                                            .setUpdateSelectRatio(update_select_ratio)
-                                            .setBlockStore(&block_store_)
-                                            .setBufferPool(&buffer_pool_)
-                                            .setGenerator(&generator_)
-                                            .setGcOn(true)
-                                            .setBookkeeping(true)
+                                            .SetMaxColumns(max_columns)
+                                            .SetInitialTableSize(initial_table_size)
+                                            .SetTxnLength(txn_length)
+                                            .SetUpdateSelectRatio(update_select_ratio)
+                                            .SetBlockStore(&block_store_)
+                                            .SetBufferPool(&buffer_pool_)
+                                            .SetGenerator(&generator_)
+                                            .SetGcOn(true)
+                                            .SetGcOn(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {

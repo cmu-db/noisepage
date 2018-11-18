@@ -113,53 +113,53 @@ class LargeTransactionTestObject {
    public:
     Builder() = default;
 
-    Builder &setMaxColumns(uint16_t max_columns) {
-      this->builder_max_columns_ = max_columns;
+    Builder &SetMaxColumns(uint16_t max_columns) {
+      builder_max_columns_ = max_columns;
       return *this;
     }
 
-    Builder &setInitialTableSize(uint32_t initial_table_size) {
-      this->builder_initial_table_size_ = initial_table_size;
+    Builder &SetInitialTableSize(uint32_t initial_table_size) {
+      builder_initial_table_size_ = initial_table_size;
       return *this;
     }
 
-    Builder &setTxnLength(uint32_t txn_length) {
-      this->builder_txn_length_ = txn_length;
+    Builder &SetTxnLength(uint32_t txn_length) {
+      builder_txn_length_ = txn_length;
       return *this;
     }
 
-    Builder &setUpdateSelectRatio(std::vector<double> update_select_ratio) {
-      this->builder_update_select_ratio_ = std::move(update_select_ratio);
+    Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
+      builder_update_select_ratio_ = std::move(update_select_ratio);
       return *this;
     }
 
-    Builder &setBlockStore(storage::BlockStore *block_store) {
-      this->builder_block_store_ = block_store;
+    Builder &SetBlockStore(storage::BlockStore *block_store) {
+      builder_block_store_ = block_store;
       return *this;
     }
 
-    Builder &setBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
-      this->builder_buffer_pool_ = buffer_pool;
+    Builder &SetBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
+      builder_buffer_pool_ = buffer_pool;
       return *this;
     }
 
-    Builder &setGenerator(std::default_random_engine *generator) {
-      this->builder_generator_ = generator;
+    Builder &SetGenerator(std::default_random_engine *generator) {
+      builder_generator_ = generator;
       return *this;
     }
 
-    Builder &setGcOn(bool gc_on) {
-      this->builder_gc_on_ = gc_on;
+    Builder &SetGcOn(bool gc_on) {
+      builder_gc_on_ = gc_on;
       return *this;
     }
 
-    Builder &setBookkeeping(bool bookkeeping) {
-      this->builder_bookkeeping_ = bookkeeping;
+    Builder &SetBookkeeping(bool bookkeeping) {
+      builder_bookkeeping_ = bookkeeping;
       return *this;
     }
 
-    Builder &setLogManager(storage::LogManager *log_manager) {
-      this->builder_log_manager_ = log_manager;
+    Builder &SetLogManager(storage::LogManager *log_manager) {
+      builder_log_manager_ = log_manager;
       return *this;
     }
 
