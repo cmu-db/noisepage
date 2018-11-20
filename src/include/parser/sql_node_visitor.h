@@ -41,24 +41,24 @@ class SubqueryExpression;
 class SqlNodeVisitor {
  public:
   virtual ~SqlNodeVisitor() {};
-  virtual void Visit(JoinDefinition *) {}
-  virtual void Visit(TableRef *) {}
-  virtual void Visit(GroupByDescription *) {}
-  virtual void Visit(OrderDescription *) {}
-  virtual void Visit(LimitDescription *) {}
+  virtual void Visit(JoinDefinition *def) {}
+  virtual void Visit(TableRef *ref) {}
+  virtual void Visit(GroupByDescription *desc) {}
+  virtual void Visit(OrderDescription *desc) {}
+  virtual void Visit(LimitDescription *desc) {}
 
-  virtual void Visit(CreateStatement *) {}
-  virtual void Visit(CreateFunctionStatement *) {}
-  virtual void Visit(InsertStatement *) {}
-  virtual void Visit(DeleteStatement *) {}
-  virtual void Visit(DropStatement *) {}
-  virtual void Visit(PrepareStatement *) {}
-  virtual void Visit(ExecuteStatement *) {}
-  virtual void Visit(TransactionStatement *) {}
-  virtual void Visit(UpdateStatement *) {}
-  virtual void Visit(CopyStatement *) {}
-  virtual void Visit(AnalyzeStatement *){};
-  virtual void Visit(ExplainStatement *){};
+  virtual void Visit(CreateStatement *statement) {}
+  virtual void Visit(CreateFunctionStatement *statement) {}
+  virtual void Visit(InsertStatement *statement) {}
+  virtual void Visit(DeleteStatement *statement) {}
+  virtual void Visit(DropStatement *statement) {}
+  virtual void Visit(PrepareStatement *statement) {}
+  virtual void Visit(ExecuteStatement *statement) {}
+  virtual void Visit(TransactionStatement *statement) {}
+  virtual void Visit(UpdateStatement *statement) {}
+  virtual void Visit(CopyStatement *statement) {}
+  virtual void Visit(AnalyzeStatement *statement){};
+  virtual void Visit(ExplainStatement *statement){};
 
   virtual void Visit(ComparisonExpression *expr);
   virtual void Visit(AggregateExpression *expr);
