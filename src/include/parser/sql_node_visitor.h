@@ -40,7 +40,7 @@ class SubqueryExpression;
 
 class SqlNodeVisitor {
  public:
-  virtual ~SqlNodeVisitor() {};
+  virtual ~SqlNodeVisitor() = default;
   virtual void Visit(JoinDefinition *def) {}
   virtual void Visit(TableRef *ref) {}
   virtual void Visit(GroupByDescription *desc) {}
