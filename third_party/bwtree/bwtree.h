@@ -13,24 +13,13 @@
 #include <utility>
 #include <vector>
 
-/*
- * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
- *                  reduces performance
- */
-#define BWTREE_NODEBUG
-
-#include "common/macros.h"
-#include "loggers/index_logger.h"
-
-// This must be declared before all include directives
-using NodeID = uint64_t;
-
 #include "bwtree/atomic_stack.h"
 #include "bwtree/bloom_filter.h"
 #include "bwtree/sorted_small_set.h"
+#include "common/macros.h"
+#include "loggers/index_logger.h"
 
-// We use this to control from the compiler
-#ifndef BWTREE_NODEBUG
+#ifndef NDEBUG
 /*
  * BWTREE_DEBUG - This flag enables assertions that check for
  *                structural consistency
@@ -41,15 +30,11 @@ using NodeID = uint64_t;
 #endif
 
 /*
- * ALL_PUBLIC - This flag makes all private members become public
- *              to simplify debugging
- */
-#define ALL_PUBLIC
-
-/*
  * USE_OLD_EPOCH - This flag switches between old epoch and new epoch mechanism
  */
 #define USE_OLD_EPOCH
+
+using NodeID = uint64_t;
 
 /*
  * BWTREE_TEMPLATE_ARGUMENTS - Save some key strokes
@@ -59,10 +44,6 @@ using NodeID = uint64_t;
             typename KeyHashFunc, typename ValueEqualityChecker, typename ValueHashFunc>
 
 namespace third_party::bwtree {
-
-// This could not be set as a macro since we will change the flag inside
-// the testing framework
-extern bool print_flag;
 
 // This constant represents INVALID_NODE_ID which is used as an indication
 // that the node is actually the last node on that level
@@ -489,18 +470,8 @@ template <typename KeyType, typename ValueType, typename KeyComparator = std::le
           typename KeyEqualityChecker = std::equal_to<KeyType>, typename KeyHashFunc = std::hash<KeyType>,
           typename ValueEqualityChecker = std::equal_to<ValueType>, typename ValueHashFunc = std::hash<ValueType>>
 class BwTree : public BwTreeBase {
-/*
- * Private & Public declaration
- */
-#ifndef ALL_PUBLIC
- private:
-#else
  public:
-#endif
-  // This does not have to be the friend class of BwTree
   class EpochManager;
-
- public:
   class BaseNode;
   class NodeSnapshot;
 
@@ -510,14 +481,6 @@ class BwTree : public BwTreeBase {
   class KeyValuePairHashFunc;
   class KeyValuePairEqualityChecker;
 
-/*
- * private: Basic type definition
- */
-#ifndef ALL_PUBLIC
- private:
-#else
- public:
-#endif
   // KeyType-NodeID pair
   using KeyNodeIDPair = std::pair<KeyType, NodeID>;
   using KeyNodeIDPairSet = std::unordered_set<KeyNodeIDPair, KeyNodeIDPairHashFunc, KeyNodeIDPairEqualityChecker>;
@@ -2714,7 +2677,7 @@ class BwTree : public BwTreeBase {
   retry_traverse:
     TERRIER_ASSERT(!context_p->abort_flag, "Must retry traverse.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1);
+    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
 
     // This is the serialization point for reading/writing root node
@@ -2817,7 +2780,7 @@ class BwTree : public BwTreeBase {
   abort_traverse:
 #ifdef BWTREE_DEBUG
 
-    TERRIER_ASSERT(context_p->current_level >= 0);
+    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 
     context_p->current_level = -1;
 
@@ -4464,7 +4427,7 @@ class BwTree : public BwTreeBase {
    */
   static inline NodeSnapshot *GetLatestNodeSnapshot(Context *context_p) {
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 0);
+    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 #endif
 
     return &context_p->current_snapshot;
@@ -4483,7 +4446,7 @@ class BwTree : public BwTreeBase {
   inline NodeSnapshot *GetLatestParentNodeSnapshot(Context *context_p) {
 #ifdef BWTREE_DEBUG
     // Make sure the current node has a parent
-    TERRIER_ASSERT(context_p->current_level >= 1);
+    TERRIER_ASSERT(context_p->current_level >= 1, "Should still be default value.");
 #endif
     // This is the address of the parent node
     return &context_p->parent_snapshot;
@@ -4501,7 +4464,7 @@ class BwTree : public BwTreeBase {
    */
   inline bool IsOnLeftMostChild(Context *context_p) {
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 1);
+    TERRIER_ASSERT(context_p->current_level >= 1, "Must not be at root.");
 #endif
 
     return GetLatestParentNodeSnapshot(context_p)->node_p->GetLowKeyNodeID() ==
@@ -4532,7 +4495,7 @@ class BwTree : public BwTreeBase {
     INDEX_LOG_TRACE("Jumping to the left sibling");
 
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->HasParentNode());
+    TERRIER_ASSERT(context_p->HasParentNode(), "Must have a parent node.");
 #endif
 
     // Get last record which is the current node's context
@@ -4854,7 +4817,7 @@ class BwTree : public BwTreeBase {
   retry_traverse:
     TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1);
+    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
 
     NodeID start_node_id = root_id.load();
@@ -4899,7 +4862,7 @@ class BwTree : public BwTreeBase {
 
   abort_traverse:
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 0);
+    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
     context_p->current_level = -1;
     context_p->abort_counter++;
 #endif
@@ -4916,7 +4879,7 @@ class BwTree : public BwTreeBase {
   retry_traverse:
     TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1);
+    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
     // This is the serialization point for reading/writing root node
     NodeID child_node_id = root_id.load();
@@ -4995,7 +4958,7 @@ class BwTree : public BwTreeBase {
   abort_traverse:
 #ifdef BWTREE_DEBUG
 
-    TERRIER_ASSERT(context_p->current_level >= 0);
+    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 
     context_p->current_level = -1;
 
@@ -5364,7 +5327,7 @@ class BwTree : public BwTreeBase {
         }
 
 #ifdef BWTREE_DEBUG
-        TERRIER_ASSERT(context_p->current_level >= 0);
+        TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 #endif
 
         // If the parent snapshot has an invalid node ID then it must be the
@@ -5489,8 +5452,9 @@ class BwTree : public BwTreeBase {
               // InnerInsertNode) we need to abort and restart traversing
               const BaseNode *node_p = GetNode(found_item_p->second);
 
-              TERRIER_ASSERT(node_p->GetType() == NodeType::InnerRemoveType ||
-                             node_p->GetType() == NodeType::LeafRemoveType);
+              TERRIER_ASSERT(
+                  node_p->GetType() == NodeType::InnerRemoveType || node_p->GetType() == NodeType::LeafRemoveType,
+                  "See comment above.");
 
 #endif
 
@@ -6823,23 +6787,7 @@ class BwTree : public BwTreeBase {
     epoch_manager.PerformGarbageCollection();
   }
 
-/*
- * Private Method Implementation
- */
-#ifndef ALL_PUBLIC
- private:
-#else
  public:
-#endif
-
-/*
- * Data Member Definition
- */
-#ifndef ALL_PUBLIC
- private:
-#else
- public:
-#endif
   // Key comparator
   const KeyComparator key_cmp_obj;
 

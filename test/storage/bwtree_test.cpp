@@ -14,10 +14,7 @@ namespace terrier {
  * Please do not use these as a model for other tests within this repository.
  */
 struct BwTreeTests : public TerrierTest {
-  void SetUp() override {
-    TerrierTest::SetUp();
-    third_party::bwtree::print_flag = false;
-  }
+  void SetUp() override { TerrierTest::SetUp(); }
 
   void TearDown() override { TerrierTest::TearDown(); }
 
