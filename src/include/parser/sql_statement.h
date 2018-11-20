@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
-
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
@@ -28,7 +28,7 @@ struct TableInfo {
  */
 class SQLStatement {
  public:
-  explicit SQLStatement(StatementType type) : stmt_type_(type){};
+  explicit SQLStatement(StatementType type) : stmt_type_(type) {}
 
   virtual ~SQLStatement() = default;
 

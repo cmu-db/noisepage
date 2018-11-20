@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <utility>
 #include <vector>
 
 #include "common/sql_node_visitor.h"

@@ -25,6 +25,9 @@ class TupleValueExpression : public AbstractExpression {
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
+  std::string GetColumnName() { return col_name_; }
+  std::string GetTableName() { return table_name_; }
+
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TupleValueExpression>(*this); }
 
  private:

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "common/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"

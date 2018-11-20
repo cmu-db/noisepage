@@ -1,6 +1,9 @@
 #pragma once
 
-// #include "common/logger.h"
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -17,23 +20,16 @@ namespace terrier::parser {
 class DeleteStatement : public SQLStatement {
  public:
   DeleteStatement(std::unique_ptr<TableRef> table, std::unique_ptr<AbstractExpression> expr)
-       : SQLStatement(StatementType::DELETE),
-        table_ref_(std::move(table)),
-        expr_(std::move(expr)){};
+      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(std::move(expr)) {}
 
-  DeleteStatement(std::unique_ptr<TableRef> table)
-      : SQLStatement(StatementType::DELETE),
-        table_ref_(std::move(table)),
-        expr_(nullptr){};
+  explicit DeleteStatement(std::unique_ptr<TableRef> table)
+      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(nullptr) {}
 
-  DeleteStatement()
-      : SQLStatement(StatementType::DELETE),
-        table_ref_(nullptr),
-        expr_(nullptr){};
+  DeleteStatement() : SQLStatement(StatementType::DELETE), table_ref_(nullptr), expr_(nullptr) {}
 
-  virtual ~DeleteStatement() {}
+  ~DeleteStatement() override = default;
 
-  // std::string GetTableName() const { return table_ref_->GetTableName(); }
+  std::string GetTableName() const { return table_ref_->GetTableName(); }
 
   /*
   inline void TryBindDatabaseName(std::string default_database_name) {
@@ -42,15 +38,14 @@ class DeleteStatement : public SQLStatement {
   }
   */
 
-  //std::string GetDatabaseName() const { return table_ref_->GetDatabaseName(); }
+  // std::string GetDatabaseName() const { return table_ref_->GetDatabaseName(); }
 
-  //std::string GetSchemaName() const { return table_ref_->GetSchemaName(); }
+  // std::string GetSchemaName() const { return table_ref_->GetSchemaName(); }
 
-  virtual void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   std::unique_ptr<TableRef> table_ref_;
   std::unique_ptr<AbstractExpression> expr_;
 };
 
 }  // namespace terrier::parser
-

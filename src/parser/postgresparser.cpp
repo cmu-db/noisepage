@@ -1,6 +1,10 @@
-#include <libpg_query/pg_list.h>
+#include <algorithm>
 #include <cstdio>
 #include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
@@ -23,16 +27,11 @@
 namespace terrier {
 namespace parser {
 
-constexpr int32_t MAX_EXCEPTION_MSG_LEN = 100;
+constexpr int32_t MAX_EXCEPTION_MSG_LEN = 150;
 
 PostgresParser::PostgresParser() = default;
 
 PostgresParser::~PostgresParser() = default;
-
-PostgresParser &PostgresParser::GetInstance() {
-  static PostgresParser parser;
-  return parser;
-}
 
 std::vector<std::unique_ptr<SQLStatement>> PostgresParser::BuildParseTree(const std::string &query_string) {
   auto text = query_string.c_str();
@@ -40,21 +39,28 @@ std::vector<std::unique_ptr<SQLStatement>> PostgresParser::BuildParseTree(const 
   auto result = pg_query_parse(text);
 
   if (result.error != nullptr) {
+    char msg[MAX_EXCEPTION_MSG_LEN];
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "%s at %d", result.error->message, result.error->cursorpos);
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
-
-    char msg[MAX_EXCEPTION_MSG_LEN];
-    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "%s at %d.\n", result.error->message, result.error->cursorpos);
     throw ParserException(msg);
   }
 
   std::vector<std::unique_ptr<SQLStatement>> transform_result;
   try {
     transform_result = ListTransform(result.tree);
-  } catch (const std::exception &e) {
+  } catch (const NotImplementedException &e) {
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
-    throw e;
+    char msg[MAX_EXCEPTION_MSG_LEN];
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "%s; query: %s", e.what(), query_string.c_str());
+    throw NotImplementedException(msg);
+  } catch (const ParserException &e) {
+    pg_query_parse_finish(ctx);
+    pg_query_free_parse_result(result);
+    char msg[MAX_EXCEPTION_MSG_LEN];
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "%s; query: %s", e.what(), query_string.c_str());
+    throw ParserException(msg);
   }
 
   pg_query_parse_finish(ctx);
@@ -66,14 +72,9 @@ std::vector<std::unique_ptr<SQLStatement>> PostgresParser::ListTransform(List *r
   std::vector<std::unique_ptr<SQLStatement>> result;
 
   if (root != nullptr) {
-    try {
-      for (auto cell = root->head; cell != nullptr; cell = cell->next) {
-        auto node = static_cast<Node *>(cell->data.ptr_value);
-        result.emplace_back(NodeTransform(node));
-      }
-    } catch (const std::exception &e) {
-      result.clear();
-      throw e;
+    for (auto cell = root->head; cell != nullptr; cell = cell->next) {
+      auto node = static_cast<Node *>(cell->data.ptr_value);
+      result.emplace_back(NodeTransform(node));
     }
   }
 
@@ -174,7 +175,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Statement type %d unsupported.\n", node->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Statement type %d unsupported.", node->type);
       throw NotImplementedException(msg);
     }
   }
@@ -230,7 +231,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Expression type %d unsupported.\n", node->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Expression type %d unsupported.", node->type);
       throw NotImplementedException(msg);
     }
   }
@@ -395,7 +396,7 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   }
 
   char msg[MAX_EXCEPTION_MSG_LEN];
-  std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ExpressionType %s unsupported.\n", str.c_str());
+  std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ExpressionType %s unsupported.", str.c_str());
   throw NotImplementedException(msg);
 }
 
@@ -449,7 +450,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AExprTransform for type %hhu unsupported.\n", static_cast<int>(target_type));
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AExprTransform for type %d unsupported.",
+                    static_cast<int>(target_type));
       throw NotImplementedException(msg);
     }
   }
@@ -458,36 +460,32 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
 // Postgres.BoolExpr -> terrier.ConjunctionExpression
 std::unique_ptr<AbstractExpression> PostgresParser::BoolExprTransform(BoolExpr *root) {
   std::unique_ptr<AbstractExpression> result;
+  std::vector<std::shared_ptr<AbstractExpression>> children;
   for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
-    std::vector<std::shared_ptr<AbstractExpression>> children;
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     children.emplace_back(ExprTransform(node));
-
-    switch (root->boolop) {
-      case AND_EXPR: {
-        if (children.size() == 2) {
-          result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
-        }
-        break;
-      }
-      case OR_EXPR: {
-        if (children.size() == 2) {
-          result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_OR, std::move(children));
-        }
-        break;
-      }
-      case NOT_EXPR: {
-        result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
-                                                      std::move(children));
-        break;
-      }
-      default: {
-        char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "BoolExprTransform for type %d unsupported.\n", root->boolop);
-        throw NotImplementedException(msg);
-      }
+  }
+  switch (root->boolop) {
+    case AND_EXPR: {
+      result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
+      break;
+    }
+    case OR_EXPR: {
+      result = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_OR, std::move(children));
+      break;
+    }
+    case NOT_EXPR: {
+      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
+                                                    std::move(children));
+      break;
+    }
+    default: {
+      char msg[MAX_EXCEPTION_MSG_LEN];
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "BoolExprTransform for type %d unsupported.", root->boolop);
+      throw NotImplementedException(msg);
     }
   }
+
   return result;
 }
 
@@ -549,7 +547,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ColumnRef type %d unsupported.\n", node->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ColumnRef type %d unsupported.", node->type);
       throw NotImplementedException(msg);
     }
   }
@@ -599,7 +597,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(FuncCall *
       result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children));
     } else {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Aggregation over multiple columns unsupported.\n");
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Aggregation over multiple columns unsupported.");
       throw NotImplementedException(msg);
     }
   }
@@ -637,7 +635,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ArgExpr type %d unsupported.\n", root->arg->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ArgExpr type %d unsupported.", root->arg->type);
       throw NotImplementedException(msg);
     }
   }
@@ -687,7 +685,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(SubLin
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Sublink type %d unsupported.\n", node->subLinkType);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Sublink type %d unsupported.", node->subLinkType);
       throw NotImplementedException(msg);
     }
   }
@@ -714,7 +712,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::TypeCastTransform(TypeCast *
     */
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TypeCast for type %d unsupported.\n", root->arg->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TypeCast for type %d unsupported.", root->arg->type);
       throw NotImplementedException(msg);
     }
   }
@@ -744,7 +742,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
      */
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Value type %d unsupported.\n", val.type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Value type %d unsupported.", val.type);
       throw NotImplementedException(msg);
     }
   }
@@ -784,7 +782,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Set operation %d unsupported.\n", root->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Set operation %d unsupported.", root->type);
       throw NotImplementedException(msg);
     }
   }
@@ -841,7 +839,7 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(SelectStmt *select_root)
         }
         default: {
           char msg[MAX_EXCEPTION_MSG_LEN];
-          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "FromType %d unsupported.\n", node->type);
+          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "FromType %d unsupported.", node->type);
           throw NotImplementedException(msg);
         }
       }
@@ -870,7 +868,7 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(SelectStmt *select_root)
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "FromType %d unsupported.\n", node->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "FromType %d unsupported.", node->type);
       throw NotImplementedException(msg);
     }
   }
@@ -927,17 +925,18 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
           }
           default: {
             char msg[MAX_EXCEPTION_MSG_LEN];
-            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "SortBy type %d unsupported\n", sort->sortby_dir);
+            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "SortBy type %d unsupported", sort->sortby_dir);
             throw NotImplementedException(msg);
           }
         }
 
         auto target = sort->node;
         exprs.emplace_back(ExprTransform(target));
+        break;
       }
       default: {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "OrderBy type %d unsupported\n", temp->type);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "OrderBy type %d unsupported", temp->type);
         throw NotImplementedException(msg);
       }
     }
@@ -986,7 +985,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "JoinType %d unsupported\n", root->jointype);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "JoinType %d unsupported", root->jointype);
       throw NotImplementedException(msg);
     }
   }
@@ -1008,7 +1007,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Left JoinArgType %d unsupported\n", root->larg->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Left JoinArgType %d unsupported", root->larg->type);
       throw NotImplementedException(msg);
     }
   }
@@ -1030,7 +1029,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Right JoinArgType %d unsupported\n", root->rarg->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Right JoinArgType %d unsupported", root->rarg->type);
       throw NotImplementedException(msg);
     }
   }
@@ -1047,7 +1046,7 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Join condition type %d unsupported\n", root->quals->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Join condition type %d unsupported", root->quals->type);
       throw NotImplementedException(msg);
     }
   }
@@ -1102,7 +1101,7 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(CopyStmt *root) {
 
   std::unique_ptr<TableRef> table;
   std::unique_ptr<SelectStatement> select_stmt;
-  if (root->relation) {
+  if (root->relation != nullptr) {
     table = RangeVarTransform(root->relation);
   } else {
     select_stmt = SelectTransform(reinterpret_cast<SelectStmt *>(root->query));
@@ -1139,8 +1138,8 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(CopyStmt *root) {
     }
   }
 
-  auto result = std::make_unique<CopyStatement>(std::move(table), std::move(select_stmt), std::move(file_path), format,
-                                                is_from, delimiter, quote, escape);
+  auto result = std::make_unique<CopyStatement>(std::move(table), std::move(select_stmt), file_path, format, is_from,
+                                                delimiter, quote, escape);
   return result;
 }
 
@@ -1194,16 +1193,15 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
             auto fk_update_action = CharToActionType(constraint->fk_upd_action);
             auto fk_match_type = CharToMatchType(constraint->fk_matchtype);
 
-            auto fk = std::make_unique<ColumnDefinition>(std::move(fk_sources), std::move(fk_sinks),
-                                                         std::move(fk_sink_table_name), fk_delete_action,
-                                                         fk_update_action, fk_match_type);
+            auto fk = std::make_unique<ColumnDefinition>(std::move(fk_sources), std::move(fk_sinks), fk_sink_table_name,
+                                                         fk_delete_action, fk_update_action, fk_match_type);
 
             foreign_keys.emplace_back(std::move(fk));
             break;
           }
           default: {
             char msg[MAX_EXCEPTION_MSG_LEN];
-            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Constraint %d unsupported\n", constraint->contype);
+            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Constraint %d unsupported", constraint->contype);
             throw NotImplementedException(msg);
           }
         }
@@ -1211,7 +1209,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
       }
       default: {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "tableElt type %d unsupported\n", node->type);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "tableElt type %d unsupported", node->type);
         throw NotImplementedException(msg);
       }
     }
@@ -1253,7 +1251,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunc
   std::vector<std::unique_ptr<FuncParameter>> func_parameters;
 
   for (auto cell = root->parameters->head; cell != nullptr; cell = cell->next) {
-    Node *node = reinterpret_cast<Node *>(cell->data.ptr_value);
+    auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     switch (node->type) {
       case T_FunctionParameter: {
         func_parameters.emplace_back(FunctionParameterTransform(reinterpret_cast<FunctionParameter *>(node)));
@@ -1298,7 +1296,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunc
         pl_type = PLType::PL_C;
       } else {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "PLType %s unsupported\n", lang);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "PLType %s unsupported", lang);
         throw NotImplementedException(msg);
       }
     }
@@ -1330,24 +1328,24 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(IndexStmt *ro
   char *access_method = root->accessMethod;
   IndexType index_type;
   // TODO(WAN): do we need to do case conversion?
-  if (strcmp(access_method, "INVALID") == 0) {
+  if (strcmp(access_method, "invalid") == 0) {
     index_type = IndexType::INVALID;
-  } else if ((strcmp(access_method, "BTREE") == 0) || (strcmp(access_method, "BWTREE") == 0)) {
+  } else if ((strcmp(access_method, "btree") == 0) || (strcmp(access_method, "bwtree") == 0)) {
     index_type = IndexType::BWTREE;
-  } else if (strcmp(access_method, "HASH") == 0) {
+  } else if (strcmp(access_method, "hash") == 0) {
     index_type = IndexType::HASH;
-  } else if (strcmp(access_method, "SKIPLIST") == 0) {
+  } else if (strcmp(access_method, "skiplist") == 0) {
     index_type = IndexType::SKIPLIST;
-  } else if (strcmp(access_method, "ART") == 0) {
+  } else if (strcmp(access_method, "art") == 0) {
     index_type = IndexType::ART;
   } else {
     char msg[MAX_EXCEPTION_MSG_LEN];
-    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "IndexType %s unsupported\n", access_method);
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "IndexType %s unsupported", access_method);
     throw NotImplementedException(msg);
   }
 
-  auto result = std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, std::move(index_name),
-                                                  std::move(index_attrs));
+  auto result =
+      std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name, std::move(index_attrs));
   return result;
 }
 
@@ -1367,7 +1365,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateSchemaTransform(CreateSchema
       }
       default: {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AuthRole %d unsupported\n", root->authrole->type);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "AuthRole %d unsupported", root->authrole->type);
         throw NotImplementedException(msg);
       }
     }
@@ -1380,7 +1378,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateSchemaTransform(CreateSchema
 
   if (root->schemaElts != nullptr) {
     char msg[MAX_EXCEPTION_MSG_LEN];
-    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "schema_element unsupported\n");
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "schema_element unsupported");
     throw NotImplementedException(msg);
   }
 
@@ -1398,7 +1396,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(CreateTrigS
   auto trigger_name = root->trigname;
 
   std::vector<std::string> trigger_funcnames;
-  if (root->funcname) {
+  if (root->funcname != nullptr) {
     for (auto cell = root->funcname->head; cell != nullptr; cell = cell->next) {
       std::string name = reinterpret_cast<value *>(cell->data.ptr_value)->val.str;
       trigger_funcnames.emplace_back(name);
@@ -1406,7 +1404,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(CreateTrigS
   }
 
   std::vector<std::string> trigger_args;
-  if (root->args) {
+  if (root->args != nullptr) {
     for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
       std::string arg = (reinterpret_cast<value *>(cell->data.ptr_value))->val.str;
       trigger_args.push_back(arg);
@@ -1414,7 +1412,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(CreateTrigS
   }
 
   std::vector<std::string> trigger_columns;
-  if (root->columns) {
+  if (root->columns != nullptr) {
     for (auto cell = root->columns->head; cell != nullptr; cell = cell->next) {
       std::string column = (reinterpret_cast<value *>(cell->data.ptr_value))->val.str;
       trigger_columns.push_back(column);
@@ -1432,9 +1430,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(CreateTrigS
   trigger_type |= root->timing;
   trigger_type |= root->events;
 
-  auto result = std::make_unique<CreateStatement>(std::move(table_info), std::move(trigger_name),
-                                                  std::move(trigger_funcnames), std::move(trigger_args),
-                                                  std::move(trigger_columns), std::move(trigger_when), trigger_type);
+  auto result = std::make_unique<CreateStatement>(std::move(table_info), trigger_name, std::move(trigger_funcnames),
+                                                  std::move(trigger_args), std::move(trigger_columns),
+                                                  std::move(trigger_when), trigger_type);
   return result;
 }
 
@@ -1450,12 +1448,12 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateViewTransform(ViewStmt *root
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "CREATE VIEW as query only supports SELECT\n");
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "CREATE VIEW as query only supports SELECT");
       throw NotImplementedException(msg);
     }
   }
 
-  auto result = std::make_unique<CreateStatement>(std::move(view_name), std::move(view_query));
+  auto result = std::make_unique<CreateStatement>(view_name, std::move(view_query));
   return result;
 }
 
@@ -1465,7 +1463,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
 
   // handle varlen
   size_t varlen = 0;
-  if (type_name->typmods) {
+  if (type_name->typmods != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods->head->data.ptr_value);
     switch (node->type) {
       case T_A_Const: {
@@ -1477,7 +1475,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
           }
           default: {
             char msg[MAX_EXCEPTION_MSG_LEN];
-            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "typmods %d unsupported\n", node_type);
+            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "typmods %d unsupported", node_type);
             throw NotImplementedException(msg);
           }
         }
@@ -1485,7 +1483,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
       }
       default: {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "typmods %d unsupported\n", node->type);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "typmods %d unsupported", node->type);
         throw NotImplementedException(msg);
       }
     }
@@ -1524,14 +1522,14 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
 
           if (constraint->pk_attrs == nullptr) {
             char msg[MAX_EXCEPTION_MSG_LEN];
-            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Foreign key columns unspecified\n");
+            std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Foreign key columns unspecified");
             throw NotImplementedException(msg);
-          } else {
-            auto attr_cell = constraint->pk_attrs->head;
-            auto attr_val = reinterpret_cast<value *>(attr_cell->data.ptr_value);
-            fk_sinks.emplace_back(attr_val->val.str);
-            fk_sources.emplace_back(root->colname);
           }
+
+          auto attr_cell = constraint->pk_attrs->head;
+          auto attr_val = reinterpret_cast<value *>(attr_cell->data.ptr_value);
+          fk_sinks.emplace_back(attr_val->val.str);
+          fk_sources.emplace_back(root->colname);
 
           auto fk_sink_table_name = constraint->pktable->relname;
           auto fk_delete_action = CharToActionType(constraint->fk_del_action);
@@ -1555,7 +1553,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
         }
         default: {
           char msg[MAX_EXCEPTION_MSG_LEN];
-          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Constraint %d unsupported\n", constraint->contype);
+          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Constraint %d unsupported", constraint->contype);
           throw NotImplementedException(msg);
         }
       }
@@ -1597,7 +1595,7 @@ std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(Functi
     data_type = Parameter::DataType::BOOL;
   } else {
     char msg[MAX_EXCEPTION_MSG_LEN];
-    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "DataType %s unsupported\n", name);
+    std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "DataType %s unsupported", name);
     throw NotImplementedException(msg);
   }
 
@@ -1658,10 +1656,18 @@ std::unique_ptr<AbstractExpression> PostgresParser::WhenTransform(Node *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "WHEN type %d unsupported\n", root->type);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "WHEN type %d unsupported", root->type);
       throw NotImplementedException(msg);
     }
   }
+  return result;
+}
+
+std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(DeleteStmt *root) {
+  std::unique_ptr<DeleteStatement> result;
+  auto table = RangeVarTransform(root->relation);
+  auto where = WhereTransform(root->whereClause);
+  result = std::make_unique<DeleteStatement>(std::move(table), std::move(where));
   return result;
 }
 
@@ -1682,7 +1688,7 @@ std::unique_ptr<DropStatement> PostgresParser::DropTransform(DropStmt *root) {
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Drop ObjectType %d unsupported\n", root->removeType);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Drop ObjectType %d unsupported", root->removeType);
       throw NotImplementedException(msg);
     }
   }
@@ -1701,7 +1707,7 @@ std::unique_ptr<DropStatement> PostgresParser::DropDatabaseTransform(DropDatabas
 std::unique_ptr<DropStatement> PostgresParser::DropIndexTransform(DropStmt *root) {
   // TODO(WAN): old system wanted to implement other options for drop index
 
-  std::string schema_name = "";
+  std::string schema_name;
   std::string index_name;
   auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);
   if (list->length == 2) {
@@ -1737,7 +1743,7 @@ std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(DropStmt *root
   auto if_exists = root->missing_ok;
 
   std::string table_name;
-  std::string schema_name = "";
+  std::string schema_name;
   auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);
   if (list->length == 2) {
     // list length is 2 when schema length is specified, e.g. DROP INDEX/TABLE A.B
@@ -1747,23 +1753,23 @@ std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(DropStmt *root
     table_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val.str;
   }
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, "");
-  
+
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kTable, if_exists);
   return result;
-}  
+}
 
-  // TODO: delete or find right merge location
-  // was part of original DropIndexTransform... not needed in new code?
-  //    result->SetIndexName(
-  // reinterpret_cast<value *>(list->head->data.ptr_value)->val.str);
-  // }
-  //   return result;
-  // }
+// TODO(pakhtar/wan): delete or find right merge location
+// was part of original DropIndexTransform... not needed in new code?
+//    result->SetIndexName(
+// reinterpret_cast<value *>(list->head->data.ptr_value)->val.str);
+// }
+//   return result;
+// }
 
 std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt *truncate_stmt) {
   std::unique_ptr<DeleteStatement> result;
 
-  //TERRIER_ASSERT(truncate_stmt->relations->length == 1, "Single table only");
+  // TERRIER_ASSERT(truncate_stmt->relations->length == 1, "Single table only");
 
   auto cell = truncate_stmt->relations->head;
   auto table_ref = RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value));
@@ -1784,16 +1790,16 @@ std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt 
     break;
   }
    */
-  //TODO  - fix
+  // TODO(pakhtar/wan)  - fix
   return result;
 }
 
 std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(DropStmt *root) {
   auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);
-  auto trigger_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val.str;
+  std::string trigger_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val.str;
 
   std::string table_name;
-  std::string schema_name = "";
+  std::string schema_name;
   // TODO(WAN): I suspect the old code is wrong and/or incomplete
   if (list->length == 3) {
     schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val.str;
@@ -1803,15 +1809,14 @@ std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(DropStmt *ro
   }
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, "");
 
-  auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kTrigger,
-                                                std::move(trigger_name));
+  auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kTrigger, trigger_name);
   return result;
 }
 
 std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *root) {
   auto name = root->name;
   auto params = ParamListTransform(root->params);
-  auto result = std::make_unique<ExecuteStatement>(std::move(name), std::move(params));
+  auto result = std::make_unique<ExecuteStatement>(name, std::move(params));
   return result;
 }
 
@@ -1842,12 +1847,19 @@ std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::ParamListTransf
       }
       default: {
         char msg[MAX_EXCEPTION_MSG_LEN];
-        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ExpressionType %d unsupported\n", param->type);
+        std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "ExpressionType %d unsupported", param->type);
         throw NotImplementedException(msg);
       }
     }
   }
 
+  return result;
+}
+
+std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ExplainStmt *root) {
+  std::unique_ptr<ExplainStatement> result;
+  auto query = NodeTransform(root->query);
+  result = std::make_unique<ExplainStatement>(std::move(query));
   return result;
 }
 
@@ -1921,7 +1933,7 @@ std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> P
          */
         default: {
           char msg[MAX_EXCEPTION_MSG_LEN];
-          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Value type %d unsupported\n", expr->type);
+          std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Value type %d unsupported", expr->type);
           throw NotImplementedException(msg);
         }
       }
@@ -1932,29 +1944,10 @@ std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> P
   return result;
 }
 
-std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ExplainStmt *explain_stmt) {
-  std::unique_ptr<ExplainStatement> result;
-
-  auto query = NodeTransform(explain_stmt->query);
-  result = std::make_unique<ExplainStatement>(std::move(query));
-  return result;
-}
-
-std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(DeleteStmt *delete_stmt) {
-  std::unique_ptr<DeleteStatement> result;
-
-  auto table = RangeVarTransform(delete_stmt->relation);
-  auto where = WhereTransform(delete_stmt->whereClause);
-
-  result = std::make_unique<DeleteStatement>(std::move(table), std::move(where));
-  return result;
-}
-
-std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(
-    TransactionStmt *transaction_statement) {
+std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(TransactionStmt *transaction_stmt) {
   std::unique_ptr<TransactionStatement> result;
 
-  switch (transaction_statement->kind) {
+  switch (transaction_stmt->kind) {
     case TRANS_STMT_BEGIN: {
       result = std::make_unique<TransactionStatement>(TransactionStatement::kBegin);
       break;
@@ -1969,38 +1962,22 @@ std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TRANSACTION statement type %d not supported yet:\n",
-                    transaction_statement->kind);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TRANSACTION statement type %d not supported yet",
+                    transaction_stmt->kind);
       throw NotImplementedException(msg);
     }
   }
   return result;
 }
 
-/*
- * TODO:
- * - rethrow or add message to exceptions?
- */
-std::vector<std::unique_ptr<parser::UpdateClause>> *PostgresParser::UpdateTargetTransform(List *root) {
-  auto result = new std::vector<std::unique_ptr<parser::UpdateClause>>();
-  for (auto cell = root->head; cell != NULL; cell = cell->next) {
-    auto update_clause = new UpdateClause();
-    ResTarget *target = (ResTarget *)(cell->data.ptr_value);
-    update_clause->column = target->name;
-    try {
-      update_clause->value = std::move(ExprTransform(target->val));
-    } catch (NotImplementedException e) {
-      delete result;
-
-      // TODO: include target name and value in exception text?
-      char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Exception in UpdateTargetTransform:\n%s", e.what());
-      throw NotImplementedException(msg);
-    }
-    //result->push_back(std::move(cur_result));
-    result->push_back(std::unique_ptr<UpdateClause>(update_clause));
+std::vector<std::unique_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetTransform(List *root) {
+  std::vector<std::unique_ptr<parser::UpdateClause>> result;
+  for (auto cell = root->head; cell != nullptr; cell = cell->next) {
+    auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
+    auto column = target->name;
+    auto value = ExprTransform(target->val);
+    result.push_back(std::make_unique<UpdateClause>(column, std::move(value)));
   }
-
   return result;
 }
 
@@ -2011,7 +1988,7 @@ std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(PrepareStmt *
   // TODO(WAN): why isn't this populated?
   std::vector<std::unique_ptr<ParameterValueExpression>> placeholders;
 
-  auto result = std::make_unique<PrepareStatement>(std::move(name), std::move(query), std::move(placeholders));
+  auto result = std::make_unique<PrepareStatement>(name, std::move(query), std::move(placeholders));
   return result;
 }
 
@@ -2026,14 +2003,14 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(VacuumStmt *ro
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Vacuum %d unsupported\n", root->options);
+      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "Vacuum %d unsupported", root->options);
       throw NotImplementedException(msg);
     }
   }
 
   return result;
 }
- 
+
 std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(UpdateStmt *update_stmt) {
   std::unique_ptr<UpdateStatement> result;
 
@@ -2041,9 +2018,7 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(UpdateStmt *upd
   auto clauses = UpdateTargetTransform(update_stmt->targetList);
   auto where = WhereTransform(update_stmt->whereClause);
 
-  result = std::make_unique<UpdateStatement>(std::move(table),
-					     std::move(*clauses),
-					     std::move(where));
+  result = std::make_unique<UpdateStatement>(std::move(table), std::move(clauses), std::move(where));
   return result;
 }
 

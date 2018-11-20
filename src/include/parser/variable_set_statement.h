@@ -14,7 +14,7 @@ class VariableSetStatement : public SQLStatement {
   // It was added to the parser to avoid connection error by Yuchen,
   // because JDBC on starting connection will send SET and require a response.
  public:
-  VariableSetStatement() : SQLStatement(StatementType::VARIABLE_SET){};
+  VariableSetStatement() : SQLStatement(StatementType::VARIABLE_SET) {}
   ~VariableSetStatement() override = default;
 
   void Accept(SqlNodeVisitor *v) override {}

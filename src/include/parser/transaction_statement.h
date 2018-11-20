@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/sql_statement.h"
 #include "common/sql_node_visitor.h"
+#include "parser/sql_statement.h"
 
 namespace terrier::parser {
 
@@ -17,13 +17,11 @@ class TransactionStatement : public SQLStatement {
     kRollback,
   };
 
-  TransactionStatement(CommandType type)
-      : SQLStatement(StatementType::TRANSACTION), type_(type) {}
+  explicit TransactionStatement(CommandType type) : SQLStatement(StatementType::TRANSACTION), type_(type) {}
 
-  virtual void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   CommandType type_;
 };
 
 }  // namespace terrier::parser
-

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 
@@ -39,7 +42,7 @@ class DropStatement : public TableRefStatement {
 
   ~DropStatement() override = default;
 
-  virtual void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   const DropType type_;
 

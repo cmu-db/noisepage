@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -30,7 +35,7 @@ struct Parameter {
     BOOLEAN
   };
 
-  explicit Parameter(DataType datatype) : datatype_(datatype){};
+  explicit Parameter(DataType datatype) : datatype_(datatype) {}
 
   virtual ~Parameter() = default;
 

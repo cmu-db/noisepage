@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
@@ -12,7 +17,7 @@ class AnalyzeStatement : public SQLStatement {
   AnalyzeStatement(std::unique_ptr<TableRef> analyze_table, std::unique_ptr<std::vector<std::string>> analyze_columns)
       : SQLStatement(StatementType::ANALYZE),
         analyze_table_(std::move(analyze_table)),
-        analyze_columns_(std::move(analyze_columns)){};
+        analyze_columns_(std::move(analyze_columns)) {}
 
   ~AnalyzeStatement() override = default;
 

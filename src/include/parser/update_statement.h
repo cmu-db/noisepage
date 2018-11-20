@@ -1,6 +1,9 @@
 #pragma once
 
-#include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
@@ -16,19 +19,12 @@ namespace parser {
  */
 class UpdateClause {
  public:
-  std::string column;
-  std::unique_ptr<AbstractExpression> value;
+  UpdateClause(std::string column, std::unique_ptr<AbstractExpression> value)
+      : column_(std::move(column)), value_(std::move(value)) {}
+  ~UpdateClause() = default;
 
-  ~UpdateClause() {}
-
-/*  UpdateClause *Copy() {
-    UpdateClause *new_clause = new UpdateClause();
-    std::string str(column);
-    new_clause->column = column;
-    AbstractExpression *new_expr = value->Copy();
-    new_clause->value.reset(new_expr);
-    return new_clause;
-  }*/
+  const std::string column_;
+  const std::unique_ptr<AbstractExpression> value_;
 };
 
 /**
@@ -37,29 +33,24 @@ class UpdateClause {
  */
 class UpdateStatement : public SQLStatement {
  public:
-  UpdateStatement(std::unique_ptr<TableRef> table,
-		  std::vector<std::unique_ptr<UpdateClause>> updates,
-		  std::unique_ptr<AbstractExpression> where)
-    : SQLStatement(StatementType::UPDATE),
-      table_(std::move(table)),
-      updates_(std::move(updates)),
-      where_(std::move(where)) {}
-  
-  UpdateStatement()
-      : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
+  UpdateStatement(std::unique_ptr<TableRef> table, std::vector<std::unique_ptr<UpdateClause>> updates,
+                  std::unique_ptr<AbstractExpression> where)
+      : SQLStatement(StatementType::UPDATE),
+        table_(std::move(table)),
+        updates_(std::move(updates)),
+        where_(std::move(where)) {}
 
-  virtual ~UpdateStatement() {}
+  UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
-  virtual void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  ~UpdateStatement() override = default;
 
-  //const std::string GetInfo(int num_indent) const override;
-  //const std::string GetInfo() const override;
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  // TODO: switch to char* instead of TableRef
+  // TODO(pakhtar/WAN): switch to char* instead of TableRef
   // obsolete comment?
-  std::unique_ptr<TableRef> table_;
-  std::vector<std::unique_ptr<UpdateClause>> updates_;
-  std::unique_ptr<AbstractExpression> where_ = nullptr;
+  const std::unique_ptr<TableRef> table_;
+  const std::vector<std::unique_ptr<UpdateClause>> updates_;
+  const std::unique_ptr<AbstractExpression> where_ = nullptr;
 };
 
 }  // namespace parser

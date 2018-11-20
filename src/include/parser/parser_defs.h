@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <string>
+#include <utility>
 
 namespace terrier {
 namespace parser {
@@ -88,7 +89,7 @@ enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 
 
 class ParserException : public std::exception {
  public:
-  explicit ParserException(std::string &&message) : message_(std::move(message)) {}
+  explicit ParserException(std::string message) : message_(std::move(message)) {}
 
   const char *what() const noexcept override { return message_.c_str(); }
 
@@ -98,7 +99,7 @@ class ParserException : public std::exception {
 
 class NotImplementedException : public std::exception {
  public:
-  explicit NotImplementedException(std::string &&message) : message_(std::move(message)) {}
+  explicit NotImplementedException(std::string message) : message_(std::move(message)) {}
 
   const char *what() const noexcept override { return message_.c_str(); }
 

@@ -1,11 +1,15 @@
 #pragma once
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/sql_node_visitor.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
-
-#include <algorithm>
 
 namespace terrier {
 namespace parser {

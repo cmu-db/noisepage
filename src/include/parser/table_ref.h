@@ -1,7 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
-
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/parser_defs.h"
@@ -61,6 +63,8 @@ struct TableRef {
   static std::unique_ptr<TableRef> CreateTableRefByJoin(std::unique_ptr<JoinDefinition> join) {
     return std::make_unique<TableRef>(std::move(join));
   }
+
+  std::string GetTableName() { return table_info_->table_name_; }
 
   const TableReferenceType type_;
   const std::string alias_;

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 #include "libpg_query/pg_query.h"
 #include "parser/parsenodes.h"
@@ -27,11 +30,6 @@ class PostgresParser {
  public:
   PostgresParser();
   ~PostgresParser();
-
-  /**
-   * @return static instance of the PostgresParser
-   */
-  static PostgresParser &GetInstance();
 
   /**
    * Builds the parse tree for the given query string.
@@ -147,7 +145,7 @@ class PostgresParser {
   static std::unique_ptr<AbstractExpression> WhenTransform(Node *root);
 
   // DELETE statements
-  // static std::unique_ptr<SQLStatement> DeleteTransform(DeleteStmt *root);
+  static std::unique_ptr<DeleteStatement> DeleteTransform(DeleteStmt *root);
 
   // DELETE helpers
   // static parser::DeleteStatement *TruncateTransform(TruncateStmt *root);
@@ -167,7 +165,7 @@ class PostgresParser {
   static std::vector<std::unique_ptr<AbstractExpression>> ParamListTransform(List *root);
 
   // EXPLAIN statements
-  // static std::unique_ptr<SQLStatement> ExplainTransform(ExplainStmt *root);
+  static std::unique_ptr<ExplainStatement> ExplainTransform(ExplainStmt *root);
 
   // INSERT statements
   static std::unique_ptr<InsertStatement> InsertTransform(InsertStmt *root);
@@ -179,31 +177,15 @@ class PostgresParser {
   // PREPARE statements
   static std::unique_ptr<PrepareStatement> PrepareTransform(PrepareStmt *root);
 
-  /**
-   * Converts an EXPLAIN statement from Postgres parser from to internal form
-   * @param explain_stmt from the postgres parser
-   * @return converted to parser::ExplainStatement
-   */
-  static std::unique_ptr<ExplainStatement> ExplainTransform(ExplainStmt *explain_stmt);
+  static std::unique_ptr<DeleteStatement> TruncateTransform(TruncateStmt *truncate_stmt);
 
   /**
-   * Converts a DELETE statement from Postgres parser from to internal form
-   * @param delete_stmt from the postgres parser
-   * @return converted to parser::DeleteStatement
+   * Converts a TRANSACTION statement from postgres parser form to internal form
+   *
+   * @param transaction_stmt from the postgres parser
+   * @return converted to parser::TransactionStatement
    */
-    static std::unique_ptr<DeleteStatement> DeleteTransform(DeleteStmt *delete_stmt);
-
-    static std::unique_ptr<DeleteStatement> TruncateTransform(
-      TruncateStmt *truncate_stmt);
-
-    /**
-     * Converts a TRANSACTION statement from postgres parser form to internal form
-     *
-     * @param transaction_stmt from the postgres parser
-     * @return converted to parser::TransactionStatement
-     */
-    static std::unique_ptr<TransactionStatement> TransactionTransform(
-        TransactionStmt *transaction_stmt);
+  static std::unique_ptr<TransactionStatement> TransactionTransform(TransactionStmt *transaction_stmt);
 
   // VACUUM statements as ANALYZE statements
   static std::unique_ptr<AnalyzeStatement> VacuumTransform(VacuumStmt *root);
@@ -217,7 +199,7 @@ class PostgresParser {
    * @param root list of targets
    * @return vector of update clauses
    */
-  static std::vector<std::unique_ptr<parser::UpdateClause>> *UpdateTargetTransform(List *root);
+  static std::vector<std::unique_ptr<parser::UpdateClause>> UpdateTargetTransform(List *root);
 
   /**
    * Converts an UPDATE statement from postgres parser form to our internal form.
@@ -230,7 +212,6 @@ class PostgresParser {
    * - returning a list
    */
   static std::unique_ptr<UpdateStatement> UpdateTransform(UpdateStmt *update_stmt);
-  
 };
 
 }  // namespace parser

@@ -48,8 +48,8 @@ class SqlNodeVisitor {
   virtual void Visit(parser::TransactionStatement *node) {}
   virtual void Visit(parser::UpdateStatement *node) {}
   virtual void Visit(parser::CopyStatement *node) {}
-  virtual void Visit(parser::AnalyzeStatement *node){};
-  virtual void Visit(parser::ExplainStatement *node){};
+  virtual void Visit(parser::AnalyzeStatement *node) {}
+  virtual void Visit(parser::ExplainStatement *node) {}
 };
 
 }  // namespace terrier

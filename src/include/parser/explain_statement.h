@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+
 #include "parser/sql_statement.h"
 
 namespace terrier::parser {
@@ -9,7 +12,7 @@ namespace terrier::parser {
  */
 class ExplainStatement : public SQLStatement {
  public:
-  ExplainStatement(std::unique_ptr<SQLStatement> real_sql_stmt)
+  explicit ExplainStatement(std::unique_ptr<SQLStatement> real_sql_stmt)
       : SQLStatement(StatementType::EXPLAIN), real_sql_stmt_(std::move(real_sql_stmt)) {}
   ~ExplainStatement() override = default;
 
@@ -20,18 +23,18 @@ class ExplainStatement : public SQLStatement {
 
 }  // namespace terrier::parser
 
-//namespace terrier::parser {
+// namespace terrier::parser {
 //
 ///**
 // * @class ExplainStatement
 // * @brief Represents "EXPLAIN <query>"
 // */
-//class ExplainStatement : public SQLStatement {
+// class ExplainStatement : public SQLStatement {
 // public:
 //  ExplainStatement(std::unique_ptr<SQLStatement> query)
 //    : SQLStatement(StatementType::EXPLAIN),
 //      real_sql_stmt_(std::move(query)) {}
-//  
+//
 //  ExplainStatement() : SQLStatement(StatementType::EXPLAIN) {}
 //  virtual ~ExplainStatement() {}
 //
@@ -41,4 +44,3 @@ class ExplainStatement : public SQLStatement {
 //};
 //
 //}  // namespace terrier::parser
-

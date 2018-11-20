@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "common/sql_node_visitor.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"

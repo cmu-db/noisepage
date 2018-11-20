@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "common/sql_node_visitor.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
@@ -29,16 +33,19 @@ class InsertStatement : public SQLStatement {
         table_ref_(std::move(table_ref)),
         insert_values_(std::move(insert_values)) {}
 
-  InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
+  explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
   ~InsertStatement() override = default;
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
+  std::string GetTableName() const { return table_ref_->GetTableName(); }
+
   const InsertType type_;
   const std::unique_ptr<std::vector<std::string>> columns_;
   const std::unique_ptr<TableRef> table_ref_;
   const std::unique_ptr<SelectStatement> select_;
+  // TODO(WAN): unsure about this one.
   const std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> insert_values_;
 };
 
