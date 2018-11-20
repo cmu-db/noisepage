@@ -1,24 +1,17 @@
 #pragma once
 
+#include <sys/mman.h>
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <chrono>
-#include <thread>
+#include <chrono>  // NOLINT
+#include <cinttypes>
+#include <cstddef>  // offsetof() is defined here
+#include <functional>
+#include <thread>  // NOLINT
 #include <unordered_set>
-// offsetof() is defined here
-#include <cstddef>
+#include <utility>
 #include <vector>
-
-#include <sys/mman.h>
-
-/*
- * BWTREE_PELOTON - Specifies whether Peloton-specific features are
- *                  Compiled or not
- *                  We strive to make BwTree a standalone and independent
- *                  module that can be plugged-and-played in any situation
- */
-#define BWTREE_PELOTON
 
 /*
  * BWTREE_NODEBUG - This flag disables usage of print_flag, which greatly
@@ -26,16 +19,10 @@
  */
 #define BWTREE_NODEBUG
 
-#ifdef BWTREE_PELOTON
-
-//#include "index/index.h"
-
-#endif
 #include "common/macros.h"
 #include "loggers/index_logger.h"
 
 // This must be declared before all include directives
-#include <inttypes.h>
 using NodeID = uint64_t;
 
 #include "bwtree/atomic_stack.h"
@@ -284,8 +271,6 @@ class BwTreeBase {
 
     // Free memory using original pointer rather than adjusted pointer
     free(original_p);
-
-    return;
   }
 
   /*
@@ -318,18 +303,12 @@ class BwTreeBase {
     for (size_t i = 0; i < thread_num; i++) {
       new (gc_metadata_p + i) PaddedGCMetadata{};
     }
-
-    return;
   }
 
   /*
    * SetThreadNum() - Sets number of threads manually
    */
-  void SetThreadNum(size_t p_thread_num) {
-    thread_num = p_thread_num;
-
-    return;
-  }
+  void SetThreadNum(size_t p_thread_num) { thread_num = p_thread_num; }
 
  public:
   /*
@@ -338,8 +317,6 @@ class BwTreeBase {
   BwTreeBase() : gc_metadata_p{nullptr}, original_p{nullptr}, thread_num{total_thread_num.load()}, epoch{0UL} {
     // Allocate memory for thread local data structure
     PrepareThreadLocal();
-
-    return;
   }
 
   /*
@@ -350,8 +327,6 @@ class BwTreeBase {
     DestroyThreadLocal();
 
     INDEX_LOG_TRACE("Finished destroying class BwTreeBase");
-
-    return;
   }
 
   /*
@@ -365,11 +340,7 @@ class BwTreeBase {
    *
    * This is mainly used for debugging
    */
-  inline void AssignGCID(int p_gc_id) {
-    gc_id = p_gc_id;
-
-    return;
-  }
+  inline void AssignGCID(int p_gc_id) { gc_id = p_gc_id; }
 
   /*
    * RegisterThread() - Registers a thread for GC for all instances of BwTree
@@ -392,11 +363,7 @@ class BwTreeBase {
    * approach is only suitable for thread pools where the number of threads
    * is fixed at startup time.
    */
-  static void RegisterThread() {
-    gc_id = total_thread_num.fetch_add(1);
-
-    return;
-  }
+  static void RegisterThread() { gc_id = total_thread_num.fetch_add(1); }
 
   /*
    * IncreaseEpoch() - Go to the next epoch by increasing the counter
@@ -404,11 +371,7 @@ class BwTreeBase {
    * Note that this should not be called by worker threads since
    * it will cause contention
    */
-  inline void IncreaseEpoch() {
-    epoch++;
-
-    return;
-  }
+  inline void IncreaseEpoch() { epoch++; }
 
   /*
    * UpdateLastActiveEpoch() - Updates the last active epoch field of thread
@@ -419,11 +382,7 @@ class BwTreeBase {
    * the thread local counter is updated, we know all references to shared
    * resources have been released
    */
-  inline void UpdateLastActiveEpoch() {
-    GetCurrentGCMetaData()->last_active_epoch = GetGlobalEpoch();
-
-    return;
-  }
+  inline void UpdateLastActiveEpoch() { GetCurrentGCMetaData()->last_active_epoch = GetGlobalEpoch(); }
 
   /*
    * UnregisterThread() - Unregisters a thread by setting its epoch to
@@ -563,7 +522,8 @@ class BwTree : public BwTreeBase {
   // KeyType-NodeID pair
   using KeyNodeIDPair = std::pair<KeyType, NodeID>;
   using KeyNodeIDPairSet = std::unordered_set<KeyNodeIDPair, KeyNodeIDPairHashFunc, KeyNodeIDPairEqualityChecker>;
-  using KeyNodeIDPairBloomFilter = bwtree::BloomFilter<KeyNodeIDPair, KeyNodeIDPairEqualityChecker, KeyNodeIDPairHashFunc>;
+  using KeyNodeIDPairBloomFilter =
+      bwtree::BloomFilter<KeyNodeIDPair, KeyNodeIDPairEqualityChecker, KeyNodeIDPairHashFunc>;
 
   // KeyType-ValueType pair
   using KeyValuePair = std::pair<KeyType, ValueType>;
@@ -887,19 +847,7 @@ class BwTree : public BwTreeBase {
      * Constructor - Initialize a context object into initial state
      */
     inline Context(const KeyType &p_search_key)
-        :
-#ifdef BWTREE_PELOTON
-
-          // Because earlier versions of g++ does not support
-          // initializer list so must use () form
-          search_key(p_search_key),
-
-#else
-
-          search_key{p_search_key},
-
-#endif
-
+        : search_key{p_search_key},
 #ifdef BWTREE_DEBUG
 
           abort_counter{0},
@@ -913,7 +861,7 @@ class BwTree : public BwTreeBase {
     /*
      * Destructor - Cleanup
      */
-    ~Context() {}
+    ~Context() = default;
 
     /*
      * Copy constructor - deleted
@@ -1044,13 +992,7 @@ class BwTree : public BwTreeBase {
      * All nodes that are neither inner nor leaf type are of
      * delta node type
      */
-    inline bool IsDeltaNode() const {
-      if (GetType() == NodeType::InnerType || GetType() == NodeType::LeafType) {
-        return false;
-      } else {
-        return true;
-      }
-    }
+    inline bool IsDeltaNode() const { return !(GetType() == NodeType::InnerType || GetType() == NodeType::LeafType); }
 
     /*
      * IsInnerNode() - Returns true if the node is an inner node
@@ -1129,7 +1071,7 @@ class BwTree : public BwTreeBase {
      * since the low key node ID for leaf node is not defined
      */
     inline NodeID GetLowKeyNodeID() const {
-      TERRIER_ASSERT(IsOnLeafDeltaChain() == false, "This should not be called on leaf nodes.");
+      TERRIER_ASSERT(!IsOnLeafDeltaChain(), "This should not be called on leaf nodes.");
 
       return metadata.low_key_p->second;
     }
@@ -1147,20 +1089,12 @@ class BwTree : public BwTreeBase {
     /*
      * SetLowKeyPair() - Sets the low key pair of metadata
      */
-    inline void SetLowKeyPair(const KeyNodeIDPair *p_low_key_p) {
-      metadata.low_key_p = p_low_key_p;
-
-      return;
-    }
+    inline void SetLowKeyPair(const KeyNodeIDPair *p_low_key_p) { metadata.low_key_p = p_low_key_p; }
 
     /*
      * SetHighKeyPair() - Sets the high key pair of metdtata
      */
-    inline void SetHighKeyPair(const KeyNodeIDPair *p_high_key_p) {
-      metadata.high_key_p = p_high_key_p;
-
-      return;
-    }
+    inline void SetHighKeyPair(const KeyNodeIDPair *p_high_key_p) { metadata.high_key_p = p_high_key_p; }
   };
 
   /*
@@ -1579,7 +1513,7 @@ class BwTree : public BwTreeBase {
     /*
      * Default Constructor - Fast path
      */
-    NodeSnapshot() {}
+    NodeSnapshot() = default;
 
     /*
      * IsLeaf() - Test whether current snapshot is on leaf delta chain
@@ -1681,11 +1615,11 @@ class BwTree : public BwTreeBase {
         return meta_p;
       }
 
-      char *new_chunk = new char[CHUNK_SIZE()];
+      auto *new_chunk = new char[CHUNK_SIZE()];
       AllocationMeta *expected = nullptr;
 
       // Prepare the new chunk's metadata field
-      AllocationMeta *new_meta_base = reinterpret_cast<AllocationMeta *>(new_chunk);
+      auto *new_meta_base = reinterpret_cast<AllocationMeta *>(new_chunk);
 
       // We initialize the allocation meta at lower end of the address
       // and let tail points to the first byte after this chunk, and the limit
@@ -1696,7 +1630,7 @@ class BwTree : public BwTreeBase {
       // Always CAS with nullptr such that we will never install/replace
       // a chunk that has already been installed here
       bool ret = next.compare_exchange_strong(expected, new_meta_base);
-      if (ret == true) {
+      if (ret) {
         return new_meta_base;
       }
 
@@ -1769,8 +1703,6 @@ class BwTree : public BwTreeBase {
 
         meta_p = next_p;
       }
-
-      return;
     }
   };
 
@@ -1843,8 +1775,6 @@ class BwTree : public BwTreeBase {
         // Manually calls destructor when the node is destroyed
         element_p->~ElementType();
       }
-
-      return;
     }
 
     /*
@@ -1862,8 +1792,6 @@ class BwTree : public BwTreeBase {
       // This finds the allocation header for this base node, and then
       // traverses the linked list
       ElasticNode::GetAllocationHeader(this)->Destroy();
-
-      return;
     }
 
     /*
@@ -1911,8 +1839,6 @@ class BwTree : public BwTreeBase {
 
       // Move it pointing to the enxt available slot, if not reached the end
       end++;
-
-      return;
     }
 
     /*
@@ -1928,8 +1854,6 @@ class BwTree : public BwTreeBase {
         PushBack(*copy_start_p);
         copy_start_p++;
       }
-
-      return;
     }
 
    public:
@@ -1958,7 +1882,7 @@ class BwTree : public BwTreeBase {
       // basic template + ElementType element size * (node size) + CHUNK_SIZE()
       // Note: do not make it constant since it is going to be modified
       // after being returned
-      char *alloc_base = new char[sizeof(ElasticNode) + size * sizeof(ElementType) + AllocationMeta::CHUNK_SIZE()];
+      auto *alloc_base = new char[sizeof(ElasticNode) + size * sizeof(ElementType) + AllocationMeta::CHUNK_SIZE()];
       TERRIER_ASSERT(alloc_base != nullptr, "Allocation failed.");
 
       // Initialize the AllocationMeta - tail points to the first byte inside
@@ -1969,7 +1893,7 @@ class BwTree : public BwTreeBase {
 
       // The first CHUNK_SIZE() byte is used by class AllocationMeta
       // and chunk data
-      ElasticNode *node_p = reinterpret_cast<ElasticNode *>(alloc_base + AllocationMeta::CHUNK_SIZE());
+      auto *node_p = reinterpret_cast<ElasticNode *>(alloc_base + AllocationMeta::CHUNK_SIZE());
 
       // Call placement new to initialize all that could be initialized
       new (node_p) ElasticNode{p_type, p_depth, p_item_count, p_low_key, p_high_key};
@@ -2089,11 +2013,11 @@ class BwTree : public BwTreeBase {
       auto copy_start_it = this->Begin() + split_item_index;
 
       // We need this to allocate enough space for the embedded array
-      int sibling_size = static_cast<int>(std::distance(copy_start_it, this->End()));
+      auto sibling_size = static_cast<int>(std::distance(copy_start_it, this->End()));
 
       // This sets metadata inside BaseNode by calling SetMetaData()
       // inside inner node constructor
-      InnerNode *inner_node_p = reinterpret_cast<InnerNode *>(ElasticNode<KeyNodeIDPair>::Get(
+      auto *inner_node_p = reinterpret_cast<InnerNode *>(ElasticNode<KeyNodeIDPair>::Get(
           sibling_size, NodeType::InnerType, 0, sibling_size, this->At(split_item_index), this->GetHighKeyPair()));
 
       // Call overloaded PushBack() to insert an array of elements
@@ -2156,7 +2080,7 @@ class BwTree : public BwTreeBase {
 
       // If iterator has reached the begin then we know there could not
       // be any split points
-      while ((it != this->Begin()) && (t->KeyCmpEqual(it->first, central_kvp.first) == true)) {
+      while ((it != this->Begin()) && t->KeyCmpEqual(it->first, central_kvp.first)) {
         it--;
       }
 
@@ -2175,7 +2099,7 @@ class BwTree : public BwTreeBase {
 
       // If iterator has reached the end then we know there could not
       // be any split points
-      while ((it != this->End()) && (t->KeyCmpEqual(it->first, central_kvp.first) == true)) {
+      while ((it != this->End()) && t->KeyCmpEqual(it->first, central_kvp.first)) {
         it++;
       }
 
@@ -2248,10 +2172,10 @@ class BwTree : public BwTreeBase {
       // reflected in split delta later in its caller)
       const KeyType &split_key = copy_start_it->first;
 
-      int sibling_size = static_cast<int>(std::distance(copy_start_it, copy_end_it));
+      auto sibling_size = static_cast<int>(std::distance(copy_start_it, copy_end_it));
 
       // This will call SetMetaData inside its constructor
-      LeafNode *leaf_node_p = reinterpret_cast<LeafNode *>(
+      auto *leaf_node_p = reinterpret_cast<LeafNode *>(
           ElasticNode<KeyValuePair>::Get(sibling_size, NodeType::LeafType, 0, sibling_size,
                                          std::make_pair(split_key, ~INVALID_NODE_ID), this->GetHighKeyPair()));
 
@@ -2333,12 +2257,10 @@ class BwTree : public BwTreeBase {
 
     // We could choose not to start GC thread inside the BwTree
     // in that case GC must be done by calling the interface
-    if (start_gc_thread == true) {
+    if (start_gc_thread) {
       INDEX_LOG_TRACE("Starting epoch manager thread...");
       epoch_manager.StartThread();
     }
-
-    return;
   }
 
   /*
@@ -2361,8 +2283,6 @@ class BwTree : public BwTreeBase {
 
     (void)node_count;
     INDEX_LOG_TRACE("Freed %lu tree nodes", node_count);
-
-    return;
   }
 
   /*
@@ -2386,8 +2306,6 @@ class BwTree : public BwTreeBase {
       // GC ID
       TERRIER_ASSERT(GetGCMetaData(i)->node_count == 0, "Not all nodes collected.");
     }
-
-    return;
   }
 
   /*
@@ -2411,8 +2329,6 @@ class BwTree : public BwTreeBase {
     // 3. Allocate a new array based on the new given size
     // Here all epoches are restored to 0
     PrepareThreadLocal();
-
-    return;
   }
 
   /*
@@ -2451,14 +2367,7 @@ class BwTree : public BwTreeBase {
    *
    * DO NOT call this in worker thread!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    */
-  inline void InvalidateNodeID(NodeID node_id) {
-    mapping_table[node_id] = nullptr;
-
-    // Next time if we need a node ID we just push back from this
-    // free_node_id_list.SingleThreadPush(node_id);
-
-    return;
-  }
+  inline void InvalidateNodeID(NodeID node_id) { mapping_table[node_id] = nullptr; }
 
   /*
    * FreeNodeByPointer() - Free all nodes currently in the tree
@@ -2582,7 +2491,7 @@ class BwTree : public BwTreeBase {
 
           return freed_count;
         case NodeType::InnerType: {
-          const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+          const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
           // Free NodeID one by one stored in its separator list
           // Even if they are already freed (e.g. a split delta has not
@@ -2633,21 +2542,6 @@ class BwTree : public BwTreeBase {
     first_leaf_id = GetNextNodeID();
     TERRIER_ASSERT(first_leaf_id == FIRST_LEAF_NODE_ID, "First leaf has incorrect leaf node id.");
 
-#ifdef BWTREE_PELOTON
-
-    // For the first inner node, it needs an empty low key
-    // the search procedure will not look at it and only use it
-    // if the search key could not be matched to anything after the first key
-    KeyNodeIDPair first_sep{KeyType(), first_leaf_id};
-
-    // Initially there is one element inside the root node
-    // so we set item count to be 1
-    // The high key is +Inf which is identified by INVALID_NODE_ID
-    InnerNode *root_node_p = reinterpret_cast<InnerNode *>(ElasticNode<KeyNodeIDPair>::Get(
-        1, NodeType::InnerType, 0, 1, first_sep, std::make_pair(KeyType(), INVALID_NODE_ID)));
-
-#else
-
     // For the first inner node, it needs an empty low key
     // the search procedure will not look at it and only use it
     // if the search key could not be matched to anything after the first key
@@ -2661,33 +2555,19 @@ class BwTree : public BwTreeBase {
                                                                       first_sep,  // Copy this as the first key
                                                                       std::make_pair(KeyType{}, INVALID_NODE_ID)));
 
-#endif
-
     root_node_p->PushBack(first_sep);
 
     INDEX_LOG_TRACE("root id = %" PRIu64 "; first leaf id = %" PRIu64 "", root_id.load(), first_leaf_id);
 
     InstallNewNode(root_id, root_node_p);
 
-// Initially there is no element inside the leaf node so we set element
-// count to be 0
-#ifdef BWTREE_PELOTON
-
-    LeafNode *left_most_leaf = reinterpret_cast<LeafNode *>(
-        ElasticNode<KeyValuePair>::Get(0, NodeType::LeafType, 0, 0, std::make_pair(KeyType(), INVALID_NODE_ID),
-                                       std::make_pair(KeyType(), INVALID_NODE_ID)));
-
-#else
-
+    // Initially there is no element inside the leaf node so we set element
+    // count to be 0
     LeafNode *left_most_leaf = reinterpret_cast<LeafNode *>(
         ElasticNode<KeyValuePair>::Get(0, NodeType::LeafType, 0, 0, std::make_pair(KeyType{}, INVALID_NODE_ID),
                                        std::make_pair(KeyType{}, INVALID_NODE_ID)));
 
-#endif
-
     InstallNewNode(first_leaf_id, left_most_leaf);
-
-    return;
   }
 
   /*
@@ -2701,7 +2581,7 @@ class BwTree : public BwTreeBase {
    * the mapping table rather than CAS with nullptr
    */
   void InitMappingTable() {
-    mapping_table = (std::atomic<const BaseNode *> *)mmap(NULL, 1024 * 1024 * 1024, PROT_READ | PROT_WRITE,
+    mapping_table = (std::atomic<const BaseNode *> *)mmap(nullptr, 1024 * 1024 * 1024, PROT_READ | PROT_WRITE,
                                                           MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     // If allocation fails, we throw an error because this is uncoverable
     // The upper level functions should either catch this exception
@@ -2716,8 +2596,6 @@ class BwTree : public BwTreeBase {
 
     INDEX_LOG_TRACE("Initializing mapping table.... size = %lu", MAPPING_TABLE_SIZE);
     INDEX_LOG_TRACE("Fast initialization: Do not set to zero");
-
-    return;
   }
 
   /*
@@ -2734,13 +2612,13 @@ class BwTree : public BwTreeBase {
     auto ret_pair = free_node_id_list.Pop();
 
     // If there is no free node id
-    if (ret_pair.first == false) {
+    if (!ret_pair.first) {
       // fetch_add() returns the old value and increase the atomic
       // automatically
       return next_unused_node_id.fetch_add(1);
-    } else {
-      return ret_pair.second;
     }
+
+    return ret_pair.second;
   }
 
   /*
@@ -2780,11 +2658,7 @@ class BwTree : public BwTreeBase {
    * This function does not return any value since we assume new node
    * installation would always succeed
    */
-  inline void InstallNewNode(NodeID node_id, const BaseNode *node_p) {
-    mapping_table[node_id] = node_p;
-
-    return;
-  }
+  inline void InstallNewNode(NodeID node_id, const BaseNode *node_p) { mapping_table[node_id] = node_p; }
 
   /*
    * GetNode() - Return the pointer mapped by a node ID
@@ -2839,7 +2713,7 @@ class BwTree : public BwTreeBase {
     const KeyValuePair *found_pair_p = nullptr;
 
   retry_traverse:
-    TERRIER_ASSERT(context_p->abort_flag == false, "Must retry traverse.");
+    TERRIER_ASSERT(!context_p->abort_flag, "Must retry traverse.");
 #ifdef BWTREE_DEBUG
     TERRIER_ASSERT(context_p->current_level == -1);
 #endif
@@ -2863,7 +2737,7 @@ class BwTree : public BwTreeBase {
     // There could be an abort here, and we could not directly jump
     // to Init state since we would like to do some clean up or
     // statistics after aborting
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       goto abort_traverse;
     }
 
@@ -2874,7 +2748,7 @@ class BwTree : public BwTreeBase {
 
       // Navigate could abort since it might go to another NodeID
       // if there is a split delta and the key is >= split key
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("Navigate Inner Node abort. ABORT");
 
         // If NavigateInnerNode() aborts then it returns INVALID_NODE_ID
@@ -2892,7 +2766,7 @@ class BwTree : public BwTreeBase {
       // during Navigate...Node()
       LoadNodeID(child_node_id, context_p);
 
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("LoadNodeID aborted. ABORT");
 
         goto abort_traverse;
@@ -2901,7 +2775,7 @@ class BwTree : public BwTreeBase {
       // This is the node we have just loaded
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
 
-      if (snapshot_p->IsLeaf() == true) {
+      if (snapshot_p->IsLeaf()) {
         INDEX_LOG_TRACE("The next node is a leaf");
 
         break;
@@ -2923,7 +2797,7 @@ class BwTree : public BwTreeBase {
       found_pair_p = NavigateLeafNode(context_p, *value_p, index_pair_p, unique_key);
     }
 
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       INDEX_LOG_TRACE(
           "NavigateLeafNode() or NavigateSiblingChain()"
           " aborts. ABORT");
@@ -3010,7 +2884,7 @@ class BwTree : public BwTreeBase {
 
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
 
-        if (context_p->abort_flag == true) {
+        if (context_p->abort_flag) {
           INDEX_LOG_TRACE("JumpToNodeID aborts(). ABORT");
 
           return;
@@ -3020,8 +2894,6 @@ class BwTree : public BwTreeBase {
         break;
       }
     } while (1);
-
-    return;
   }
 
   /*
@@ -3044,7 +2916,7 @@ class BwTree : public BwTreeBase {
                         snapshot_p->node_id);
 
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
-        if (context_p->abort_flag == true) {
+        if (context_p->abort_flag) {
           INDEX_LOG_TRACE("JumpToNodeID() aborts for BI. ABORT");
           return;
         }
@@ -3052,8 +2924,6 @@ class BwTree : public BwTreeBase {
         break;
       }
     }  // while(1)
-
-    return;
   }
 
   /*
@@ -3105,7 +2975,7 @@ class BwTree : public BwTreeBase {
                                std::make_pair(search_key, INVALID_NODE_ID), key_node_id_pair_cmp_obj) -
               1;
 
-    if (KeyCmpEqual(it->first, search_key) == true) {
+    if (KeyCmpEqual(it->first, search_key)) {
       // If search key is the low key then we know we should have already
       // gone left on the parent node
       TERRIER_ASSERT(it != inner_node_p->Begin(), "Should have already gone left on the parent node.");
@@ -3168,7 +3038,7 @@ class BwTree : public BwTreeBase {
     const BaseNode *node_p = snapshot_p->node_p;
 
     // Make sure the structure is valid
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == false, "Structure not valid.");
+    TERRIER_ASSERT(!snapshot_p->IsLeaf(), "Structure not valid.");
     TERRIER_ASSERT(snapshot_p->node_p != nullptr, "Structure not valid.");
 
     // For read only workload this is always true since we do not need
@@ -3189,7 +3059,7 @@ class BwTree : public BwTreeBase {
 
       switch (type) {
         case NodeType::InnerType: {
-          const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+          const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
           // We always use the ubound recorded inside the top of the
           // delta chain
@@ -3200,7 +3070,7 @@ class BwTree : public BwTreeBase {
           return target_id;
         }  // case InnerType
         case NodeType::InnerInsertType: {
-          const InnerInsertNode *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
 
           const KeyNodeIDPair &insert_item = insert_node_p->item;
           const KeyNodeIDPair &next_item = insert_node_p->next_item;
@@ -3224,7 +3094,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerInsertType
         case NodeType::InnerDeleteType: {
-          const InnerDeleteNode *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
 
           const KeyNodeIDPair &prev_item = delete_node_p->prev_item;
           const KeyNodeIDPair &next_item = delete_node_p->next_item;
@@ -3254,7 +3124,7 @@ class BwTree : public BwTreeBase {
           // Use the deleted key to do a divide - all keys less than
           // it is on the left of the index recorded in this InnerInsertNode
           // Otherwise it is to the right of it
-          if (KeyCmpGreaterEqual(search_key, delete_node_p->item.first) == true) {
+          if (KeyCmpGreaterEqual(search_key, delete_node_p->item.first)) {
             start_p = std::max(delete_node_p->location, start_p);
           } else {
             end_p = std::min(delete_node_p->location, end_p);
@@ -3266,7 +3136,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case InnerSplitType
         case NodeType::InnerMergeType: {
-          const InnerMergeNode *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
 
           const KeyType &merge_key = merge_node_p->delete_item.first;
 
@@ -3323,7 +3193,7 @@ class BwTree : public BwTreeBase {
    */
   NodeID NavigateInnerNodeBI(Context *context_p) {
     NavigateSiblingChainBI(context_p);
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       return INVALID_NODE_ID;
     }
 
@@ -3331,7 +3201,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == false, "Invalid node structure.");
+    TERRIER_ASSERT(!snapshot_p->IsLeaf(), "Invalid node structure.");
     TERRIER_ASSERT(snapshot_p->node_p != nullptr, "Invalid node structure.");
     INDEX_LOG_TRACE("Navigating inner node delta chain for BI...");
 
@@ -3347,7 +3217,7 @@ class BwTree : public BwTreeBase {
           return target_id;
         }
         case NodeType::InnerInsertType: {
-          const InnerInsertNode *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
 
           const KeyNodeIDPair &insert_item = insert_node_p->item;
           const KeyNodeIDPair &next_item = insert_node_p->next_item;
@@ -3368,7 +3238,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerInsertType
         case NodeType::InnerDeleteType: {
-          const InnerDeleteNode *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
 
           const KeyNodeIDPair &prev_item = delete_node_p->prev_item;
           const KeyNodeIDPair &next_item = delete_node_p->next_item;
@@ -3394,7 +3264,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case InnerSplitType
         case NodeType::InnerMergeType: {
-          const InnerMergeNode *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
 
           const KeyType &merge_key = merge_node_p->delete_item.first;
 
@@ -3468,7 +3338,7 @@ class BwTree : public BwTreeBase {
     bwtree::SortedSmallSet<const InnerDataNode *, decltype(f1), decltype(f2)> sss{data_node_list, f1, f2};
 
     // The effect of this function is a consolidation into inner node
-    InnerNode *inner_node_p = reinterpret_cast<InnerNode *>(
+    auto *inner_node_p = reinterpret_cast<InnerNode *>(
         ElasticNode<KeyNodeIDPair>::Get(node_p->GetItemCount(), NodeType::InnerType, p_depth, node_p->GetItemCount(),
                                         node_p->GetLowKeyPair(), node_p->GetHighKeyPair()));
 
@@ -3509,12 +3379,12 @@ class BwTree : public BwTreeBase {
     // keys that has already been splited
     const KeyNodeIDPair &high_key_pair = node_p->GetHighKeyPair();
 
-    while (1) {
+    while (true) {
       NodeType type = node_p->GetType();
 
       switch (type) {
         case NodeType::InnerType: {
-          const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+          const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
           // These two will be set according to the high key and
           // low key
@@ -3561,7 +3431,7 @@ class BwTree : public BwTreeBase {
             // the valid range of the array but still we return
             // the first element in the array
             while (sss_end_it >= sss.GetBegin()) {
-              if (key_cmp_obj((*sss_end_it)->item.first, high_key_pair.first) == true) {
+              if (static_cast<bool>(key_cmp_obj((*sss_end_it)->item.first, high_key_pair.first))) {
                 break;
               }
 
@@ -3574,24 +3444,25 @@ class BwTree : public BwTreeBase {
 
           // printf("%ld", sss.GetSize());
 
-          while (1) {
+          while (true) {
             bool sss_end_flag = (sss.GetBegin() == sss_end_it);
             bool array_end_flag = (copy_start_it == copy_end_it);
 
             // printf("sss_end_flag = %d; array_end_flag = %d", sss_end_flag,
             // array_end_flag);
 
-            if (sss_end_flag == true && array_end_flag == true) {
+            if (sss_end_flag && array_end_flag) {
               // Both are drained
               break;
-            } else if (sss_end_flag == true) {
+            }
+            if (sss_end_flag) {
               // If the sss has drained we continue to drain the array
               // This version of PushBack() takes two iterators and
               // insert from start to end - 1
               new_inner_node_p->PushBack(copy_start_it, copy_end_it);
 
               break;
-            } else if (array_end_flag == true) {
+            } else if (array_end_flag) {
               // Then we drain all elements inside the delta chain
               while (sss.GetBegin() != sss_end_it) {
                 // We could not pop here since we will use the value later
@@ -3618,12 +3489,12 @@ class BwTree : public BwTreeBase {
             // Next is the normal case: Both are not drained
             // we do a comparison of their leading elements
 
-            if (key_cmp_obj(copy_start_it->first, sss.GetFront()->item.first) == true) {
+            if (static_cast<bool>(key_cmp_obj(copy_start_it->first, sss.GetFront()->item.first))) {
               // If array element is less than data node list element
               new_inner_node_p->PushBack(*copy_start_it);
 
               copy_start_it++;
-            } else if (key_cmp_obj(sss.GetFront()->item.first, copy_start_it->first) == true) {
+            } else if (static_cast<bool>(key_cmp_obj(sss.GetFront()->item.first, copy_start_it->first))) {
               NodeType data_node_type = (sss.GetFront())->GetType();
 
               // Delta Insert with array not having that element
@@ -3664,7 +3535,7 @@ class BwTree : public BwTreeBase {
           return;
         }  // case InnerRemoveType
         case NodeType::InnerInsertType: {
-          const InnerInsertNode *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
 
           // delta nodes must be consistent with the most up-to-date
           // node high key
@@ -3680,7 +3551,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case InnerInsertType
         case NodeType::InnerDeleteType: {
-          const InnerDeleteNode *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
 
           // Since we do not allow any delta node under split node
           // this must be true
@@ -3702,7 +3573,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // case InnerSplitType
         case NodeType::InnerMergeType: {
-          const InnerMergeNode *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const InnerMergeNode *>(node_p);
 
           // NOTE: We alaways use the same metadata object which is the
           // one passed by the wrapper. Though node_p changes for each
@@ -3727,7 +3598,6 @@ class BwTree : public BwTreeBase {
 
     // Should not get to here
     TERRIER_ASSERT(false, "Should not get to here.");
-    return;
   }
 
   /*
@@ -3768,7 +3638,7 @@ class BwTree : public BwTreeBase {
     NavigateSiblingChain(context_p);
 
     // If navigating sibling chain aborts then abort here
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       return;
     }
 
@@ -3780,7 +3650,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == true, "Must be a leaf node.");
+    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     // We only collect values for this key
     const KeyType &search_key = context_p->search_key;
@@ -3800,10 +3670,10 @@ class BwTree : public BwTreeBase {
     const ValueType *deleted_set_data_p[set_max_size];
 
     bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
-                                                                            value_hash_obj};
+                                                                                    value_hash_obj};
 
     bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
-                                                                            value_hash_obj};
+                                                                                    value_hash_obj};
 
     int start_index = 0;
     int end_index = -1;
@@ -3813,7 +3683,7 @@ class BwTree : public BwTreeBase {
 
       switch (type) {
         case NodeType::LeafType: {
-          const LeafNode *leaf_node_p = static_cast<const LeafNode *>(node_p);
+          const auto *leaf_node_p = static_cast<const LeafNode *>(node_p);
 
           auto start_it = leaf_node_p->Begin() + start_index;
 
@@ -3831,8 +3701,8 @@ class BwTree : public BwTreeBase {
             // If the value has not been deleted then just insert
             // Note that here we use ValueSet, so need to extract value from
             // the key value pair
-            if (deleted_set.Exists(copy_start_it->second) == false) {
-              if (present_set.Exists(copy_start_it->second) == false) {
+            if (!deleted_set.Exists(copy_start_it->second)) {
+              if (!present_set.Exists(copy_start_it->second)) {
                 // Note: As an optimization, we do not have to Insert() the
                 // value element into present set here. Since we know it
                 // is already base leaf page, adding values into present set
@@ -3849,14 +3719,14 @@ class BwTree : public BwTreeBase {
           return;
         }
         case NodeType::LeafInsertType: {
-          const LeafInsertNode *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
 
           if (KeyCmpEqual(search_key, insert_node_p->item.first)) {
-            if (deleted_set.Exists(insert_node_p->item.second) == false) {
+            if (!deleted_set.Exists(insert_node_p->item.second)) {
               // We must do this, since inserted set does not detect for
               // duplication, and if the value has already been in present set
               // then we inserted the same value twice
-              if (present_set.Exists(insert_node_p->item.second) == false) {
+              if (!present_set.Exists(insert_node_p->item.second)) {
                 present_set.Insert(insert_node_p->item.second);
 
                 value_list.push_back(insert_node_p->item.second);
@@ -3873,10 +3743,10 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafInsertType
         case NodeType::LeafDeleteType: {
-          const LeafDeleteNode *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
 
           if (KeyCmpEqual(search_key, delete_node_p->item.first)) {
-            if (present_set.Exists(delete_node_p->item.second) == false) {
+            if (!present_set.Exists(delete_node_p->item.second)) {
               deleted_set.Insert(delete_node_p->item.second);
             }
           } else if (KeyCmpGreater(search_key, delete_node_p->item.first)) {
@@ -3898,7 +3768,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafMergeType: {
           INDEX_LOG_TRACE("Observed a merge node on leaf delta chain");
 
-          const LeafMergeNode *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
 
           // Decide which side we should choose
           // Using >= for separator key
@@ -3917,7 +3787,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafSplitType: {
           INDEX_LOG_TRACE("Observed a split node on leaf delta chain");
 
-          const LeafSplitNode *split_node_p = static_cast<const LeafSplitNode *>(node_p);
+          const auto *split_node_p = static_cast<const LeafSplitNode *>(node_p);
 
           // Do not need to go right here since we have already
           // done that on the top level
@@ -3936,7 +3806,6 @@ class BwTree : public BwTreeBase {
 
     // We cannot reach here
     TERRIER_ASSERT(false, "We cannot reach here.");
-    return;
   }
 
   /*
@@ -3965,7 +3834,7 @@ class BwTree : public BwTreeBase {
     NavigateSiblingChain(context_p);
 
     // If navigating sibling chain aborts then abort here
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       return nullptr;
     }
 
@@ -3976,7 +3845,7 @@ class BwTree : public BwTreeBase {
     // Snapshot pointer, node pointer, and metadata reference all need
     // updating once LoadNodeID() returns with success
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == true, "Must be a leaf node.");
+    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const BaseNode *node_p = snapshot_p->node_p;
 
@@ -3988,7 +3857,7 @@ class BwTree : public BwTreeBase {
 
       switch (type) {
         case NodeType::LeafType: {
-          const LeafNode *leaf_node_p = static_cast<const LeafNode *>(node_p);
+          const auto *leaf_node_p = static_cast<const LeafNode *>(node_p);
 
           // Here we know the search key < high key of current node
           // NOTE: We only compare keys here, so it will get to the first
@@ -4002,7 +3871,7 @@ class BwTree : public BwTreeBase {
             // We do not need to check any delete set here, since if the
             // value has been deleted earlier then this function would
             // already have returned
-            if (unique_key == true || ValueCmpEqual(scan_start_it->second, search_value)) {
+            if (unique_key || ValueCmpEqual(scan_start_it->second, search_value)) {
               // Since only Delete() will use this piece of information
               // we set exist flag to false to indicate that the value
               // has been invalidated
@@ -4026,10 +3895,10 @@ class BwTree : public BwTreeBase {
           return nullptr;
         }  // case LeafType
         case NodeType::LeafInsertType: {
-          const LeafInsertNode *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
 
           if (KeyCmpEqual(search_key, insert_node_p->item.first)) {
-            if (unique_key == true || ValueCmpEqual(insert_node_p->item.second, search_value)) {
+            if (unique_key || ValueCmpEqual(insert_node_p->item.second, search_value)) {
               // Only Delete() will use this
               // We just simply inherit from the first node
               *index_pair_p = insert_node_p->GetIndexPair();
@@ -4043,11 +3912,11 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafInsertType
         case NodeType::LeafDeleteType: {
-          const LeafDeleteNode *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
 
           // If the value was deleted then return false
           if (KeyCmpEqual(search_key, delete_node_p->item.first)) {
-            if (unique_key == true || ValueCmpEqual(delete_node_p->item.second, search_value)) {
+            if (unique_key || ValueCmpEqual(delete_node_p->item.second, search_value)) {
               // Only Insert() will use this
               // We just simply inherit from the first node
               *index_pair_p = delete_node_p->GetIndexPair();
@@ -4069,7 +3938,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafMergeType: {
           INDEX_LOG_TRACE("Observed a merge node on leaf delta chain");
 
-          const LeafMergeNode *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
 
           // Decide which side we should choose
           // Using >= for separator key
@@ -4088,7 +3957,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafSplitType: {
           INDEX_LOG_TRACE("Observed a split node on leaf delta chain");
 
-          const LeafSplitNode *split_node_p = static_cast<const LeafSplitNode *>(node_p);
+          const auto *split_node_p = static_cast<const LeafSplitNode *>(node_p);
 
           node_p = split_node_p->child_node_p;
 
@@ -4142,7 +4011,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == true, "Must be a leaf node.");
+    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const KeyType &search_key = context_p->search_key;
 
@@ -4152,32 +4021,33 @@ class BwTree : public BwTreeBase {
     const ValueType *deleted_set_data_p[set_max_size];
 
     bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> present_set{present_set_data_p, value_eq_obj,
-                                                                            value_hash_obj};
+                                                                                    value_hash_obj};
 
     bwtree::BloomFilter<ValueType, ValueEqualityChecker, ValueHashFunc> deleted_set{deleted_set_data_p, value_eq_obj,
-                                                                            value_hash_obj};
+                                                                                    value_hash_obj};
 
     while (1) {
       NodeType type = node_p->GetType();
 
       switch (type) {
         case NodeType::LeafType: {
-          const LeafNode *leaf_node_p = static_cast<const LeafNode *>(node_p);
+          const auto *leaf_node_p = static_cast<const LeafNode *>(node_p);
 
           auto copy_start_it = std::lower_bound(leaf_node_p->Begin(), leaf_node_p->End(),
                                                 std::make_pair(search_key, ValueType{}), key_value_pair_cmp_obj);
 
           while ((copy_start_it != leaf_node_p->End()) && (KeyCmpEqual(search_key, copy_start_it->first))) {
-            if (deleted_set.Exists(copy_start_it->second) == false) {
-              if (present_set.Exists(copy_start_it->second) == false) {
+            if (!deleted_set.Exists(copy_start_it->second)) {
+              if (!present_set.Exists(copy_start_it->second)) {
                 // If the predicate is satified by the value
                 // then return with predicate flag set to true
                 // Otherwise test for duplication
-                if (predicate(copy_start_it->second) == true) {
+                if (predicate(copy_start_it->second)) {
                   *predicate_satisfied = true;
 
                   return nullptr;
-                } else if (value_eq_obj(value, copy_start_it->second) == true) {
+                }
+                if (static_cast<bool>(value_eq_obj(value, copy_start_it->second))) {
                   // We will not insert anyway....
                   return &(*copy_start_it);
                 }
@@ -4199,20 +4069,21 @@ class BwTree : public BwTreeBase {
           return nullptr;
         }
         case NodeType::LeafInsertType: {
-          const LeafInsertNode *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
 
           if (KeyCmpEqual(search_key, insert_node_p->item.first)) {
-            if (deleted_set.Exists(insert_node_p->item.second) == false) {
-              if (present_set.Exists(insert_node_p->item.second) == false) {
+            if (!deleted_set.Exists(insert_node_p->item.second)) {
+              if (!present_set.Exists(insert_node_p->item.second)) {
                 present_set.Insert(insert_node_p->item.second);
 
                 // LeafInsertNode means this value exists
-                if (predicate(insert_node_p->item.second) == true) {
+                if (predicate(insert_node_p->item.second)) {
                   *predicate_satisfied = true;
 
                   // Could return here since we know the predicate is satisfied
                   return nullptr;
-                } else if (value_eq_obj(value, insert_node_p->item.second) == true) {
+                }
+                if (static_cast<bool>(value_eq_obj(value, insert_node_p->item.second))) {
                   // Could also return here since we know the value exists
                   // and we could not insert anyway
                   return &insert_node_p->item;
@@ -4226,10 +4097,10 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafInsertType
         case NodeType::LeafDeleteType: {
-          const LeafDeleteNode *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
 
           if (KeyCmpEqual(search_key, delete_node_p->item.first)) {
-            if (present_set.Exists(delete_node_p->item.second) == false) {
+            if (!present_set.Exists(delete_node_p->item.second)) {
               // Even if we know the value does not exist, we still need
               // to test all predicates to the leaf base node
               deleted_set.Insert(delete_node_p->item.second);
@@ -4249,7 +4120,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafMergeType: {
           INDEX_LOG_TRACE("Observed a merge node on leaf delta chain");
 
-          const LeafMergeNode *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
 
           if (KeyCmpGreaterEqual(search_key, merge_node_p->delete_item.first)) {
             INDEX_LOG_TRACE("Take leaf merge right branch");
@@ -4266,7 +4137,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafSplitType: {
           INDEX_LOG_TRACE("Observed a split node on leaf delta chain");
 
-          const LeafSplitNode *split_node_p = static_cast<const LeafSplitNode *>(node_p);
+          const auto *split_node_p = static_cast<const LeafSplitNode *>(node_p);
 
           node_p = split_node_p->child_node_p;
 
@@ -4299,7 +4170,7 @@ class BwTree : public BwTreeBase {
    * a valid LeafNode object before calling this function
    */
   LeafNode *CollectAllValuesOnLeaf(NodeSnapshot *snapshot_p, LeafNode *leaf_node_p = nullptr) {
-    TERRIER_ASSERT(snapshot_p->IsLeaf() == true, "Must be a leaf node.");
+    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const BaseNode *node_p = snapshot_p->node_p;
 
@@ -4346,7 +4217,8 @@ class BwTree : public BwTreeBase {
       // indices only needs sorting inside the range of the key
       if (this->key_cmp_obj(ldn1->item.first, ldn2->item.first)) {
         return true;
-      } else if (this->key_eq_obj(ldn1->item.first, ldn2->item.first)) {
+      }
+      if (this->key_eq_obj(ldn1->item.first, ldn2->item.first)) {
         return ldn1->GetIndexPair().first < ldn2->GetIndexPair().first;
       } else {
         return false;
@@ -4408,14 +4280,14 @@ class BwTree : public BwTreeBase {
     // NOTE: Low key for Leaf node and its delta chain is nullptr
     const KeyNodeIDPair &high_key_pair = node_p->GetHighKeyPair();
 
-    while (1) {
+    while (true) {
       NodeType type = node_p->GetType();
 
       switch (type) {
         // When we see a leaf node, just copy all keys together with
         // all values into the value set
         case NodeType::LeafType: {
-          const LeafNode *leaf_node_p = static_cast<const LeafNode *>(node_p);
+          const auto *leaf_node_p = static_cast<const LeafNode *>(node_p);
 
           // We compute end iterator based on the high key
           const KeyValuePair *copy_end_it;
@@ -4434,7 +4306,7 @@ class BwTree : public BwTreeBase {
           }
 
           // This is the index of the copy end it
-          int copy_end_index = static_cast<int>(copy_end_it - leaf_node_p->Begin());
+          auto copy_end_index = static_cast<int>(copy_end_it - leaf_node_p->Begin());
           int copy_start_index = 0;
 
           ///////////////////////////////////////////////////////////
@@ -4452,7 +4324,7 @@ class BwTree : public BwTreeBase {
             // the valid range of the array but still we return
             // the first element in the array
             while (sss_end_it >= sss.GetBegin()) {
-              if (key_cmp_obj((*sss_end_it)->item.first, high_key_pair.first) == true) {
+              if (static_cast<bool>(key_cmp_obj((*sss_end_it)->item.first, high_key_pair.first))) {
                 break;
               }
 
@@ -4510,7 +4382,7 @@ class BwTree : public BwTreeBase {
 
             // If the element has been overwritten by some of the deltas
             // just advance the pointer
-            if (item_overwritten == true) {
+            if (item_overwritten) {
               copy_start_index++;
             }
           }  // while sss has not reached the copy end
@@ -4521,9 +4393,9 @@ class BwTree : public BwTreeBase {
           return;
         }  // case LeafType
         case NodeType::LeafInsertType: {
-          const LeafInsertNode *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const LeafInsertNode *>(node_p);
 
-          if (delta_set.Exists(insert_node_p->item) == false) {
+          if (!delta_set.Exists(insert_node_p->item)) {
             delta_set.Insert(insert_node_p->item);
 
             sss.InsertNoDedup(insert_node_p);
@@ -4534,9 +4406,9 @@ class BwTree : public BwTreeBase {
           break;
         }  // case LeafInsertType
         case NodeType::LeafDeleteType: {
-          const LeafDeleteNode *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const LeafDeleteNode *>(node_p);
 
-          if (delta_set.Exists(delete_node_p->item) == false) {
+          if (!delta_set.Exists(delete_node_p->item)) {
             delta_set.Insert(delete_node_p->item);
 
             sss.InsertNoDedup(delete_node_p);
@@ -4553,14 +4425,14 @@ class BwTree : public BwTreeBase {
           [[fallthrough]];
         }  // case LeafRemoveType
         case NodeType::LeafSplitType: {
-          const LeafSplitNode *split_node_p = static_cast<const LeafSplitNode *>(node_p);
+          const auto *split_node_p = static_cast<const LeafSplitNode *>(node_p);
 
           node_p = split_node_p->child_node_p;
 
           break;
         }  // case LeafSplitType
         case NodeType::LeafMergeType: {
-          const LeafMergeNode *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
+          const auto *merge_node_p = static_cast<const LeafMergeNode *>(node_p);
 
           /**** RECURSIVE CALL ON LEFT AND RIGHT SUB-TREE ****/
           CollectAllValuesOnLeafRecursive(merge_node_p->child_node_p, sss, delta_set, new_leaf_node_p);
@@ -4576,8 +4448,6 @@ class BwTree : public BwTreeBase {
         }  // default
       }    // switch
     }      // while(1)
-
-    return;
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -4697,7 +4567,7 @@ class BwTree : public BwTreeBase {
 
     // Get its parent node
     NodeSnapshot *parent_snapshot_p = GetLatestParentNodeSnapshot(context_p);
-    TERRIER_ASSERT(parent_snapshot_p->IsLeaf() == false, "Parent cannot be a leaf node.");
+    TERRIER_ASSERT(!parent_snapshot_p->IsLeaf(), "Parent cannot be a leaf node.");
 
     // If the parent has changed then abort
     // This is to avoid missing InnerInsertNode which is fatal in our case
@@ -4722,7 +4592,7 @@ class BwTree : public BwTreeBase {
     // We need to pass in the low key of left sibling node
     JumpToNodeID(left_sibling_id, context_p);
 
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       INDEX_LOG_TRACE("JumpToLeftSibling()'s call to JumpToNodeID() ABORT");
 
       return;
@@ -4747,8 +4617,6 @@ class BwTree : public BwTreeBase {
 
       return;
     }
-
-    return;
   }
 
   /*
@@ -4780,8 +4648,6 @@ class BwTree : public BwTreeBase {
 
     context_p->current_snapshot.node_p = node_p;
     context_p->current_snapshot.node_id = node_id;
-
-    return;
   }
 
   /*
@@ -4822,8 +4688,6 @@ class BwTree : public BwTreeBase {
 
     snapshot_p->node_id = node_id;
     snapshot_p->node_p = node_p;
-
-    return;
   }
 
   /*
@@ -4859,7 +4723,7 @@ class BwTree : public BwTreeBase {
     // access
     FinishPartialSMO(context_p);
 
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       return;
     }
 
@@ -4867,10 +4731,6 @@ class BwTree : public BwTreeBase {
     TryConsolidateNode(context_p);
 
     AdjustNodeSize(context_p);
-
-    // Do not have to check for abort here because anyway we will return
-
-    return;
   }
 
   /*
@@ -4888,7 +4748,7 @@ class BwTree : public BwTreeBase {
 
     FinishPartialSMO(context_p);
 
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       return;
     }
 
@@ -4896,10 +4756,6 @@ class BwTree : public BwTreeBase {
     TryConsolidateNode(context_p);
 
     AdjustNodeSize(context_p);
-
-    // Do not have to check for abort here because anyway we will return
-
-    return;
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -4941,7 +4797,6 @@ class BwTree : public BwTreeBase {
     }  // switch
 
     TERRIER_ASSERT(false, "Cannot reach here.");
-    return;
   }
 
   /*
@@ -4971,8 +4826,6 @@ class BwTree : public BwTreeBase {
     // REMOVING THIS WOULD CAUSE ASSERTION FAILURE WHEN JUMPING
     // TO RIGHT SIBLING SINCEI IT CHECKS NODE ID
     context_p->current_snapshot.node_id = node_id;
-
-    return;
   }
 
   /*
@@ -4990,10 +4843,6 @@ class BwTree : public BwTreeBase {
     TakeNodeSnapshotReadOptimized(node_id, context_p);
 
     FinishPartialSMOReadOptimized(context_p);
-
-    // Do not need to check for abort flag here
-
-    return;
   }
 
   /*
@@ -5004,7 +4853,7 @@ class BwTree : public BwTreeBase {
    */
   void TraverseBI(Context *context_p) {
   retry_traverse:
-    TERRIER_ASSERT(context_p->abort_flag == false, "Abort flag should not be set.");
+    TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
     TERRIER_ASSERT(context_p->current_level == -1);
 #endif
@@ -5012,7 +4861,7 @@ class BwTree : public BwTreeBase {
     NodeID start_node_id = root_id.load();
     context_p->current_snapshot.node_id = INVALID_NODE_ID;
     LoadNodeID(start_node_id, context_p);
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       goto abort_traverse;
     }
 
@@ -5020,26 +4869,26 @@ class BwTree : public BwTreeBase {
 
     while (1) {
       NodeID child_node_id = NavigateInnerNodeBI(context_p);
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("Navigate Inner Node abort (BI). ABORT");
         TERRIER_ASSERT(child_node_id == INVALID_NODE_ID, "Invalid node id.");
         goto abort_traverse;
       }
 
       LoadNodeID(child_node_id, context_p);
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("LoadNodeID aborted (BI). ABORT");
         goto abort_traverse;
       }
 
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
-      if (snapshot_p->IsLeaf() == true) {
+      if (snapshot_p->IsLeaf()) {
         INDEX_LOG_TRACE("The next node is a leaf (BI)");
 
         // After reaching leaf level just traverse the sibling chain
         // and stop before the search key
         NavigateSiblingChainBI(context_p);
-        if (context_p->abort_flag == true) {
+        if (context_p->abort_flag) {
           INDEX_LOG_TRACE("NavigateSiblingChainBI() inside TraverseBI() aborts");
 
           goto abort_traverse;
@@ -5062,12 +4911,11 @@ class BwTree : public BwTreeBase {
     goto retry_traverse;
 
     TERRIER_ASSERT(false, "Cannot reach here.");
-    return;
   }
 
   void TraverseReadOptimized(Context *context_p, std::vector<ValueType> *value_list_p) {
   retry_traverse:
-    TERRIER_ASSERT(context_p->abort_flag == false, "Abort flag should not be set.");
+    TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
     TERRIER_ASSERT(context_p->current_level == -1);
 #endif
@@ -5076,7 +4924,7 @@ class BwTree : public BwTreeBase {
 
     LoadNodeIDReadOptimized(child_node_id, context_p);
 
-    if (context_p->abort_flag == true) {
+    if (context_p->abort_flag) {
       INDEX_LOG_TRACE("LoadNodeID aborted on loading root (RO)");
 
       goto abort_traverse;
@@ -5089,7 +4937,7 @@ class BwTree : public BwTreeBase {
 
       // Navigate could abort since it might go to another NodeID
       // if there is a split delta and the key is >= split key
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("Navigate Inner Node abort (RO)");
 
         // If NavigateInnerNode() aborts then it retrns INVALID_NODE_ID
@@ -5109,7 +4957,7 @@ class BwTree : public BwTreeBase {
       // (low key is always consistent)
       LoadNodeIDReadOptimized(child_node_id, context_p);
 
-      if (context_p->abort_flag == true) {
+      if (context_p->abort_flag) {
         INDEX_LOG_TRACE("LoadNodeID aborted (RO). ABORT");
 
         goto abort_traverse;
@@ -5118,12 +4966,12 @@ class BwTree : public BwTreeBase {
       // This is the node we have just loaded
       NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
 
-      if (snapshot_p->IsLeaf() == true) {
+      if (snapshot_p->IsLeaf()) {
         INDEX_LOG_TRACE("The next node is a leaf (RO)");
 
         NavigateLeafNode(context_p, *value_list_p);
 
-        if (context_p->abort_flag == true) {
+        if (context_p->abort_flag) {
           INDEX_LOG_TRACE("NavigateLeafNode aborts (RO). ABORT");
 
           goto abort_traverse;
@@ -5141,8 +4989,8 @@ class BwTree : public BwTreeBase {
       }
 
       // This does not work
-      //_mm_prefetch(&context_p->current_snapshot.node_p->GetLowKeyPair(),
-      //_MM_HINT_T0);
+      // _mm_prefetch(&context_p->current_snapshot.node_p->GetLowKeyPair(),
+      // _MM_HINT_T0);
     }  // while(1)
 
   abort_traverse:
@@ -5163,7 +5011,6 @@ class BwTree : public BwTreeBase {
     goto retry_traverse;
 
     TERRIER_ASSERT(false, "Cannot reach here.");
-    return;
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -5194,7 +5041,7 @@ class BwTree : public BwTreeBase {
     // CAS Index Term Insert Delta onto the parent node
     bool ret = InstallNodeToReplace(parent_snapshot_p->node_id, insert_node_p, parent_snapshot_p->node_p);
 
-    if (ret == true) {
+    if (ret) {
       INDEX_LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS succeeds",
                       GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
 
@@ -5205,20 +5052,21 @@ class BwTree : public BwTreeBase {
       ConsolidateNode(GetLatestNodeSnapshot(context_p));
 
       return true;
-    } else {
-      INDEX_LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64
-                      ") delta CAS failed. "
-                      "ABORT",
-                      GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
+    }
 
-      // Set abort, and remove the newly created node
-      context_p->abort_flag = true;
+    INDEX_LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64
+                    ") delta CAS failed. "
+                    "ABORT",
+                    GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
 
-      // Call destructor but do not free memory
-      insert_node_p->~InnerInsertNode();
+    // Set abort, and remove the newly created node
+    context_p->abort_flag = true;
 
-      return false;
-    }  // if CAS succeeds/fails
+    // Call destructor but do not free memory
+    insert_node_p->~InnerInsertNode();
+
+    return false;
+    // if CAS succeeds/fails
 
     TERRIER_ASSERT(false, "Cannot reach here.");
     return false;
@@ -5255,7 +5103,7 @@ class BwTree : public BwTreeBase {
     // step is to put the remove node into garbage chain
     // and also recycle the deleted NodeID since now no new thread
     // could access that NodeID until it is reused
-    if (ret == true) {
+    if (ret) {
       INDEX_LOG_TRACE("Index term delete delta installed, ID = %" PRIu64 "; ABORT", parent_snapshot_p->node_id);
 
       // The deleted node ID must resolve to a RemoveNode of either
@@ -5285,18 +5133,18 @@ class BwTree : public BwTreeBase {
       ConsolidateNode(GetLatestNodeSnapshot(context_p));
 
       return true;
-    } else {
-      INDEX_LOG_TRACE("Index term delete delta install failed. ABORT");
-
-      // DO NOT FORGET TO DELETE THIS
-      delete_node_p->~InnerDeleteNode();
-
-      // The caller just returns after this function, so do not have
-      // to branch on abort_flag after this function returns
-      context_p->abort_flag = true;
-
-      return false;
     }
+
+    INDEX_LOG_TRACE("Index term delete delta install failed. ABORT");
+
+    // DO NOT FORGET TO DELETE THIS
+    delete_node_p->~InnerDeleteNode();
+
+    // The caller just returns after this function, so do not have
+    // to branch on abort_flag after this function returns
+    context_p->abort_flag = true;
+
+    return false;
 
     TERRIER_ASSERT(false, "Cannot reach here.");
     return false;
@@ -5354,7 +5202,7 @@ class BwTree : public BwTreeBase {
         JumpToLeftSibling(context_p);
 
         // If this aborts then we propagate this to the state machine driver
-        if (context_p->abort_flag == true) {
+        if (context_p->abort_flag) {
           INDEX_LOG_TRACE("Jump to left sibling in Remove help along ABORT");
 
           // Here we are uncertain about the current status (it might have
@@ -5381,14 +5229,14 @@ class BwTree : public BwTreeBase {
         bool ret;
 
         // If we are currently on leaf, just post leaf merge delta
-        if (left_snapshot_p->IsLeaf() == true) {
+        if (left_snapshot_p->IsLeaf()) {
           ret = PostLeafMergeNode(left_snapshot_p, &merge_key, merge_right_branch, deleted_node_id, &merge_node_p);
         } else {
           ret = PostInnerMergeNode(left_snapshot_p, &merge_key, merge_right_branch, deleted_node_id, &merge_node_p);
         }
 
         // If CAS fails just abort and return
-        if (ret == true) {
+        if (ret) {
           INDEX_LOG_TRACE(
               "Merge delta CAS succeeds. "
               "Continue to finish merge SMO");
@@ -5440,12 +5288,12 @@ class BwTree : public BwTreeBase {
         NodeType type = snapshot_p->node_p->GetType();
 
         if (type == NodeType::InnerMergeType) {
-          const InnerMergeNode *merge_node_p = static_cast<const InnerMergeNode *>(snapshot_p->node_p);
+          const auto *merge_node_p = static_cast<const InnerMergeNode *>(snapshot_p->node_p);
 
           delete_item_p = &merge_node_p->delete_item;
           right_merge_p = merge_node_p->right_merge_p;
         } else if (type == NodeType::LeafMergeType) {
-          const LeafMergeNode *merge_node_p = static_cast<const LeafMergeNode *>(snapshot_p->node_p);
+          const auto *merge_node_p = static_cast<const LeafMergeNode *>(snapshot_p->node_p);
 
           delete_item_p = &merge_node_p->delete_item;
           right_merge_p = merge_node_p->right_merge_p;
@@ -5504,12 +5352,12 @@ class BwTree : public BwTreeBase {
         // NOTE: depth should not be read here, since we
         // need to know the depth on its parent node
         if (type == NodeType::InnerSplitType) {
-          const InnerSplitNode *split_node_p = static_cast<const InnerSplitNode *>(snapshot_p->node_p);
+          const auto *split_node_p = static_cast<const InnerSplitNode *>(snapshot_p->node_p);
 
           insert_item_p = &split_node_p->insert_item;
           next_item_p = &split_node_p->child_node_p->GetHighKeyPair();
         } else {
-          const LeafSplitNode *split_node_p = static_cast<const LeafSplitNode *>(snapshot_p->node_p);
+          const auto *split_node_p = static_cast<const LeafSplitNode *>(snapshot_p->node_p);
 
           insert_item_p = &split_node_p->insert_item;
           next_item_p = &split_node_p->child_node_p->GetHighKeyPair();
@@ -5521,7 +5369,7 @@ class BwTree : public BwTreeBase {
 
         // If the parent snapshot has an invalid node ID then it must be the
         // root node.
-        if (context_p->IsOnRootNode() == true) {
+        if (context_p->IsOnRootNode()) {
           /***********************************************************
            * Root splits (don't have to consolidate parent node)
            ***********************************************************/
@@ -5531,22 +5379,11 @@ class BwTree : public BwTreeBase {
           // If CAS fails we need to free the root ID
           NodeID new_root_id = GetNextNodeID();
 
-// InnerNode requires high key pair which is +Inf, INVALID NODE ID
-// low key pair will be set inside the constructor to be pointing
-// to the first element in the sep list
-// NOTE: Storage will be automatically reserved inside the
-// constructor
-#ifdef BWTREE_PELOTON
-
-          // This is the first item of the newly created InnerNode
-          // and also the low key for the newly created InnerNode
-          const KeyNodeIDPair first_item = std::make_pair(KeyType(), snapshot_p->node_id);
-
-          // Allocate an InnerNode with KeyNodeIDPair embedded
-          InnerNode *inner_node_p = reinterpret_cast<InnerNode *>(ElasticNode<KeyNodeIDPair>::Get(
-              2, NodeType::InnerType, 0, 2, first_item, std::make_pair(KeyType(), INVALID_NODE_ID)));
-
-#else
+          // InnerNode requires high key pair which is +Inf, INVALID NODE ID
+          // low key pair will be set inside the constructor to be pointing
+          // to the first element in the sep list
+          // NOTE: Storage will be automatically reserved inside the
+          // constructor
 
           // This is the first item of the newly created InnerNode
           // and also the low key for the InnerNode
@@ -5555,8 +5392,6 @@ class BwTree : public BwTreeBase {
           // Allocate an InnerNode with KeyNodeIDPair embedded
           InnerNode *inner_node_p = reinterpret_cast<InnerNode *>(ElasticNode<KeyNodeIDPair>::Get(
               2, NodeType::InnerType, 0, 2, first_item, std::make_pair(KeyType{}, INVALID_NODE_ID)));
-
-#endif
 
           // Add new element - one points to the current node (new second level
           // left most inner node), another points to its split sibling
@@ -5568,7 +5403,7 @@ class BwTree : public BwTreeBase {
           InstallNewNode(new_root_id, inner_node_p);
           bool ret = InstallRootNode(snapshot_p->node_id, new_root_id);
 
-          if (ret == true) {
+          if (ret) {
             INDEX_LOG_TRACE("Install root CAS succeeds");
 
             // After installing new root we abort in order to load
@@ -5576,25 +5411,26 @@ class BwTree : public BwTreeBase {
             context_p->abort_flag = true;
 
             return;
-          } else {
-            INDEX_LOG_TRACE("Install root CAS failed. ABORT");
+          }
 
-            // We need to make a new remove node and send it into EpochManager
-            // for recycling the NodeID
-            // Note that the remove node must not be created on inner_node_p
-            // since inner_node_p might be destroyed before remove node is
-            // destroyed since they are both put into the GC chain
-            const InnerRemoveNode *fake_remove_node_p = new InnerRemoveNode{new_root_id, inner_node_p};
+          INDEX_LOG_TRACE("Install root CAS failed. ABORT");
 
-            // Put the remove node into garbage chain, because
-            // we cannot call InvalidateNodeID() here
-            epoch_manager.AddGarbageNode(fake_remove_node_p);
-            epoch_manager.AddGarbageNode(inner_node_p);
+          // We need to make a new remove node and send it into EpochManager
+          // for recycling the NodeID
+          // Note that the remove node must not be created on inner_node_p
+          // since inner_node_p might be destroyed before remove node is
+          // destroyed since they are both put into the GC chain
+          const InnerRemoveNode *fake_remove_node_p = new InnerRemoveNode{new_root_id, inner_node_p};
 
-            context_p->abort_flag = true;
+          // Put the remove node into garbage chain, because
+          // we cannot call InvalidateNodeID() here
+          epoch_manager.AddGarbageNode(fake_remove_node_p);
+          epoch_manager.AddGarbageNode(inner_node_p);
 
-            return;
-          }  // if CAS succeeds/fails
+          context_p->abort_flag = true;
+
+          return;
+          // if CAS succeeds/fails
         } else {
           /***********************************************************
            * Index term insert for non-root nodes
@@ -5684,7 +5520,6 @@ class BwTree : public BwTreeBase {
     }  // switch
 
     TERRIER_ASSERT(false, "Cannot reach here.");
-    return;
   }
 
   /*
@@ -5693,21 +5528,19 @@ class BwTree : public BwTreeBase {
    * This function does not check delta chain size
    */
   inline void ConsolidateLeafNode(NodeSnapshot *snapshot_p) {
-    TERRIER_ASSERT(snapshot_p->node_p->IsOnLeafDeltaChain() == true, "Leaf node must be on delta chain.");
+    TERRIER_ASSERT(snapshot_p->node_p->IsOnLeafDeltaChain(), "Leaf node must be on delta chain.");
 
     LeafNode *leaf_node_p = CollectAllValuesOnLeaf(snapshot_p);
 
     bool ret = InstallNodeToReplace(snapshot_p->node_id, leaf_node_p, snapshot_p->node_p);
 
-    if (ret == true) {
+    if (ret) {
       epoch_manager.AddGarbageNode(snapshot_p->node_p);
 
       snapshot_p->node_p = leaf_node_p;
     } else {
       epoch_manager.AddGarbageNode(leaf_node_p);
     }
-
-    return;
   }
 
   /*
@@ -5716,21 +5549,19 @@ class BwTree : public BwTreeBase {
    * This function does not check for inner delta chain length
    */
   inline void ConsolidateInnerNode(NodeSnapshot *snapshot_p) {
-    TERRIER_ASSERT(snapshot_p->node_p->IsOnLeafDeltaChain() == false, "Inner node cannot be on delta chain.");
+    TERRIER_ASSERT(!snapshot_p->node_p->IsOnLeafDeltaChain(), "Inner node cannot be on delta chain.");
 
     InnerNode *inner_node_p = CollectAllSepsOnInner(snapshot_p);
 
     bool ret = InstallNodeToReplace(snapshot_p->node_id, inner_node_p, snapshot_p->node_p);
 
-    if (ret == true) {
+    if (ret) {
       epoch_manager.AddGarbageNode(snapshot_p->node_p);
 
       snapshot_p->node_p = inner_node_p;
     } else {
       epoch_manager.AddGarbageNode(inner_node_p);
     }
-
-    return;
   }
 
   /*
@@ -5745,13 +5576,11 @@ class BwTree : public BwTreeBase {
    * would not have any effect even if it fails
    */
   void ConsolidateNode(NodeSnapshot *snapshot_p) {
-    if (snapshot_p->node_p->IsOnLeafDeltaChain() == true) {
+    if (snapshot_p->node_p->IsOnLeafDeltaChain()) {
       ConsolidateLeafNode(snapshot_p);
     } else {
       ConsolidateInnerNode(snapshot_p);
     }  // if on leaf/inner node
-
-    return;
   }
 
   /*
@@ -5781,7 +5610,7 @@ class BwTree : public BwTreeBase {
 
     // We could only perform consolidation on delta node
     // because we want to see depth field
-    if (node_p->IsDeltaNode() == false) {
+    if (!node_p->IsDeltaNode()) {
       // The depth of base node may not be 0
       // since if we consolidate parent node to finish the partial SMO,
       // then parent node will have non-0 depth in order to avoid being too
@@ -5795,7 +5624,7 @@ class BwTree : public BwTreeBase {
     // If depth does not exceed threshold then we check recommendation flag
     int depth = node_p->GetDepth();
 
-    if (snapshot_p->IsLeaf() == true) {
+    if (snapshot_p->IsLeaf()) {
       if (depth < LEAF_DELTA_CHAIN_LENGTH_THRESHOLD) {
         return;
       }
@@ -5808,8 +5637,6 @@ class BwTree : public BwTreeBase {
     // After this point we decide to consolidate node
 
     ConsolidateNode(snapshot_p);
-
-    return;
   }
 
   /*
@@ -5830,8 +5657,8 @@ class BwTree : public BwTreeBase {
     const BaseNode *node_p = snapshot_p->node_p;
 
     // We do not adjust size for delta nodes
-    if (node_p->IsDeltaNode() == true) {
-      // TODO: If we want to strictly enforce the size of any node
+    if (node_p->IsDeltaNode()) {
+      // TODO(Ziqi): If we want to strictly enforce the size of any node
       // then we should aggressively consolidate here and always
       // Though it brings huge overhead because now we are consolidating
       // every node on the path
@@ -5841,8 +5668,8 @@ class BwTree : public BwTreeBase {
 
     NodeID node_id = snapshot_p->node_id;
 
-    if (snapshot_p->IsLeaf() == true) {
-      const LeafNode *leaf_node_p = static_cast<const LeafNode *>(node_p);
+    if (snapshot_p->IsLeaf()) {
+      const auto *leaf_node_p = static_cast<const LeafNode *>(node_p);
 
       // NOTE: We use key number as the size of the node
       // because using item count might result in a very unstable
@@ -5901,41 +5728,41 @@ class BwTree : public BwTreeBase {
         // Then CAS split delta into current node's NodeID
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
-        if (ret == true) {
+        if (ret) {
           INDEX_LOG_TRACE("Leaf split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds. ABORT", node_id,
                           new_node_id);
 
-          // TODO: WE ABORT HERE TO AVOID THIS THREAD POSTING ANYTHING
+          // TODO(Ziqi): WE ABORT HERE TO AVOID THIS THREAD POSTING ANYTHING
           // ON TOP OF IT WITHOUT HELPING ALONG AND ALSO BLOCKING OTHER
           // THREAD TO HELP ALONG
           context_p->abort_flag = true;
 
           return;
-        } else {
-          INDEX_LOG_TRACE("Leaf split delta CAS fails");
-
-          // Need to use the epoch manager to recycle NodeID
-          // Note that this node must not be created on new_leaf_node_p
-          // since they are both put into the GC chain, it is possible
-          // for new_leaf_node_p to be deleted first and then remove node
-          // is deleted
-          const LeafRemoveNode *fake_remove_node_p = new LeafRemoveNode{new_node_id, new_leaf_node_p};
-
-          // Must put both of them into GC chain since RemoveNode
-          // will not be followed by GC thread
-          epoch_manager.AddGarbageNode(fake_remove_node_p);
-          epoch_manager.AddGarbageNode(new_leaf_node_p);
-
-          // We have two nodes to delete here
-          split_node_p->~LeafSplitNode();
-
-          return;
         }
+
+        INDEX_LOG_TRACE("Leaf split delta CAS fails");
+
+        // Need to use the epoch manager to recycle NodeID
+        // Note that this node must not be created on new_leaf_node_p
+        // since they are both put into the GC chain, it is possible
+        // for new_leaf_node_p to be deleted first and then remove node
+        // is deleted
+        const LeafRemoveNode *fake_remove_node_p = new LeafRemoveNode{new_node_id, new_leaf_node_p};
+
+        // Must put both of them into GC chain since RemoveNode
+        // will not be followed by GC thread
+        epoch_manager.AddGarbageNode(fake_remove_node_p);
+        epoch_manager.AddGarbageNode(new_leaf_node_p);
+
+        // We have two nodes to delete here
+        split_node_p->~LeafSplitNode();
+
+        return;
 
       } else if (node_size <= LEAF_NODE_SIZE_LOWER_THRESHOLD) {
         // This might yield a false positive of left child
         // but correctness is not affected - sometimes the merge is delayed
-        if (IsOnLeftMostChild(context_p) == true) {
+        if (IsOnLeftMostChild(context_p)) {
           INDEX_LOG_TRACE("Left most leaf node cannot be removed");
 
           return;
@@ -5954,7 +5781,7 @@ class BwTree : public BwTreeBase {
 
         // If we could not block the parent then the parent has changed
         // (splitted, etc.)
-        if (abort_node_ret == true) {
+        if (abort_node_ret) {
           INDEX_LOG_TRACE("Blocked parent node (current node is leaf)");
         } else {
           INDEX_LOG_TRACE(
@@ -5970,7 +5797,7 @@ class BwTree : public BwTreeBase {
         const LeafRemoveNode *remove_node_p = new LeafRemoveNode{node_id, node_p};
 
         bool ret = InstallNodeToReplace(node_id, remove_node_p, node_p);
-        if (ret == true) {
+        if (ret) {
           INDEX_LOG_TRACE("LeafRemoveNode CAS succeeds. ABORT.");
 
           context_p->abort_flag = true;
@@ -5978,20 +5805,20 @@ class BwTree : public BwTreeBase {
           RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
 
           return;
-        } else {
-          INDEX_LOG_TRACE("LeafRemoveNode CAS failed");
-
-          delete remove_node_p;
-
-          context_p->abort_flag = true;
-
-          RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
-
-          return;
         }
+
+        INDEX_LOG_TRACE("LeafRemoveNode CAS failed");
+
+        delete remove_node_p;
+
+        context_p->abort_flag = true;
+
+        RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
+
+        return;
       }
     } else {  // If this is an inner node
-      const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+      const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
       size_t node_size = inner_node_p->GetSize();
 
@@ -6044,7 +5871,7 @@ class BwTree : public BwTreeBase {
         // Then CAS split delta into current node's NodeID
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
-        if (ret == true) {
+        if (ret) {
           INDEX_LOG_TRACE("Inner split delta (from %" PRIu64 " to %" PRIu64
                           ") CAS succeeds."
                           " ABORT",
@@ -6054,26 +5881,27 @@ class BwTree : public BwTreeBase {
           context_p->abort_flag = true;
 
           return;
-        } else {
-          INDEX_LOG_TRACE("Inner split delta CAS fails");
+        }
 
-          // Use the epoch manager to recycle NodeID in single threaded
-          // environment
-          // Note that this remove node should be created on existing node
-          // rather than on new_inner_node_p, since new_inner_node_p may
-          // be destroyed before fake_remove_node_p is destroyed
-          const InnerRemoveNode *fake_remove_node_p = new InnerRemoveNode{new_node_id, new_inner_node_p};
+        INDEX_LOG_TRACE("Inner split delta CAS fails");
 
-          epoch_manager.AddGarbageNode(fake_remove_node_p);
-          epoch_manager.AddGarbageNode(new_inner_node_p);
+        // Use the epoch manager to recycle NodeID in single threaded
+        // environment
+        // Note that this remove node should be created on existing node
+        // rather than on new_inner_node_p, since new_inner_node_p may
+        // be destroyed before fake_remove_node_p is destroyed
+        const InnerRemoveNode *fake_remove_node_p = new InnerRemoveNode{new_node_id, new_inner_node_p};
 
-          // Call destructor since it is allocated from the base InnerNode
-          split_node_p->~InnerSplitNode();
+        epoch_manager.AddGarbageNode(fake_remove_node_p);
+        epoch_manager.AddGarbageNode(new_inner_node_p);
 
-          return;
-        }  // if CAS fails
+        // Call destructor since it is allocated from the base InnerNode
+        split_node_p->~InnerSplitNode();
+
+        return;
+        // if CAS fails
       } else if (node_size <= INNER_NODE_SIZE_LOWER_THRESHOLD) {
-        if (context_p->IsOnRootNode() == true) {
+        if (context_p->IsOnRootNode()) {
           INDEX_LOG_TRACE("Root underflow - let it be");
 
           return;
@@ -6085,7 +5913,7 @@ class BwTree : public BwTreeBase {
         // result in CAS failing and aborting
 
         // We could not remove leftmost node
-        if (IsOnLeftMostChild(context_p) == true) {
+        if (IsOnLeftMostChild(context_p)) {
           INDEX_LOG_TRACE("Left most inner node cannot be removed");
 
           return;
@@ -6105,7 +5933,7 @@ class BwTree : public BwTreeBase {
 
         // If we could not block the parent then the parent has changed
         // (splitted, etc.)
-        if (abort_node_ret == true) {
+        if (abort_node_ret) {
           INDEX_LOG_TRACE("Blocked parent node (current node is inner)");
         } else {
           INDEX_LOG_TRACE(
@@ -6121,7 +5949,7 @@ class BwTree : public BwTreeBase {
         const InnerRemoveNode *remove_node_p = new InnerRemoveNode{node_id, node_p};
 
         bool ret = InstallNodeToReplace(node_id, remove_node_p, node_p);
-        if (ret == true) {
+        if (ret) {
           INDEX_LOG_TRACE("InnerRemoveNode CAS succeeds. ABORT");
 
           // We abort after installing a node remove delta
@@ -6133,24 +5961,22 @@ class BwTree : public BwTreeBase {
           RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
 
           return;
-        } else {
-          INDEX_LOG_TRACE("InnerRemoveNode CAS failed");
-
-          delete remove_node_p;
-
-          // We must abort here since otherwise it might cause
-          // merge nodes to underflow
-          context_p->abort_flag = true;
-
-          // Same as above
-          RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
-
-          return;
         }
+
+        INDEX_LOG_TRACE("InnerRemoveNode CAS failed");
+
+        delete remove_node_p;
+
+        // We must abort here since otherwise it might cause
+        // merge nodes to underflow
+        context_p->abort_flag = true;
+
+        // Same as above
+        RemoveAbortOnParent(parent_node_id, abort_node_p, abort_child_node_p);
+
+        return;
       }  // if split/remove
     }
-
-    return;
   }
 
   /*
@@ -6167,7 +5993,7 @@ class BwTree : public BwTreeBase {
 
     // This CAS must succeed since nobody except this thread could remove
     // the ABORT delta on parent node
-    TERRIER_ASSERT(ret == true,
+    TERRIER_ASSERT(ret,
                    "This CAS must succeed since nobody except this thread could remove the ABORT delta on parent node");
     (void)ret;
 
@@ -6185,8 +6011,6 @@ class BwTree : public BwTreeBase {
     // so that existing pointers to ABORT node remain valid
     // GC does not follow the delta chain of ABORT node
     epoch_manager.AddGarbageNode(abort_node_p);
-
-    return;
   }
 
   /*
@@ -6215,11 +6039,11 @@ class BwTree : public BwTreeBase {
     *abort_child_node_p_p = parent_node_p;
     *parent_node_id_p = parent_node_id;
 
-    InnerAbortNode *abort_node_p = new InnerAbortNode{parent_node_p};
+    auto *abort_node_p = new InnerAbortNode{parent_node_p};
 
     bool ret = InstallNodeToReplace(parent_node_id, abort_node_p, parent_node_p);
 
-    if (ret == true) {
+    if (ret) {
       INDEX_LOG_TRACE("Inner Abort node CAS succeeds");
 
       // Copy the new node to caller since after posting remove delta we will
@@ -6274,7 +6098,7 @@ class BwTree : public BwTreeBase {
         case NodeType::InnerInsertType: {
           const KeyNodeIDPair &insert_item = static_cast<const InnerInsertNode *>(node_p)->item;
 
-          if (KeyCmpEqual(insert_item.first, search_key) == true) {
+          if (KeyCmpEqual(insert_item.first, search_key)) {
             // Same key, same index
             *location = static_cast<const InnerInsertNode *>(node_p)->location;
 
@@ -6288,7 +6112,7 @@ class BwTree : public BwTreeBase {
         case NodeType::InnerDeleteType: {
           const KeyNodeIDPair &delete_item = static_cast<const InnerDeleteNode *>(node_p)->item;
 
-          if (KeyCmpEqual(delete_item.first, search_key) == true) {
+          if (KeyCmpEqual(delete_item.first, search_key)) {
             *location = static_cast<const InnerDeleteNode *>(node_p)->location;
 
             return nullptr;
@@ -6299,7 +6123,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerDeleteNode
         case NodeType::InnerType: {
-          const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+          const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
           // DO NOT REMOVE THIS!!!!!!
           // Unlike a NavigateInnerNode(Context *) which searches for child
@@ -6325,7 +6149,8 @@ class BwTree : public BwTreeBase {
             // This is special case since we could not compare the iterator
             // If the key does not exist then return nullptr
             return nullptr;
-          } else if (KeyCmpEqual(it->first, search_key) == false) {
+          }
+          if (!KeyCmpEqual(it->first, search_key)) {
             // If found the lower bound but keys are different
             // then also return nullptr
             return nullptr;
@@ -6352,7 +6177,7 @@ class BwTree : public BwTreeBase {
           const KeyNodeIDPair &delete_item = static_cast<const InnerMergeNode *>(node_p)->delete_item;
 
           // If the split key >= merge key then just go to the right branch
-          if (KeyCmpGreaterEqual(search_key, delete_item.first) == true) {
+          if (KeyCmpGreaterEqual(search_key, delete_item.first)) {
             node_p = static_cast<const InnerMergeNode *>(node_p)->right_merge_p;
           } else {
             node_p = static_cast<const InnerMergeNode *>(node_p)->child_node_p;
@@ -6402,7 +6227,7 @@ class BwTree : public BwTreeBase {
                    "First check that the node is always in the range of the inner node.");
 
     // We can only search for left sibling on inner delta chain
-    TERRIER_ASSERT(node_p->IsOnLeafDeltaChain() == false, "We can only search for left sibling on inner delta chain.");
+    TERRIER_ASSERT(!node_p->IsOnLeafDeltaChain(), "We can only search for left sibling on inner delta chain.");
 
     const InnerDataNode *data_node_list[node_p->GetDepth()];
 
@@ -6426,7 +6251,7 @@ class BwTree : public BwTreeBase {
 
       switch (type) {
         case NodeType::InnerType: {
-          const InnerNode *inner_node_p = static_cast<const InnerNode *>(node_p);
+          const auto *inner_node_p = static_cast<const InnerNode *>(node_p);
 
           ///////////////////////////////////////////////////////////
           // First find the nearest sep key <= search key on InnerNode
@@ -6467,7 +6292,8 @@ class BwTree : public BwTreeBase {
               counter++;
 
               continue;
-            } else if (it1 == inner_node_p->Begin()) {
+            }
+            if (it1 == inner_node_p->Begin()) {
               // We know the sss is not empty, so could always pop from it
               if (sss.GetFront()->GetType() == NodeType::InnerInsertType) {
                 left_item_p = &(sss.GetFront()->item);
@@ -6525,7 +6351,7 @@ class BwTree : public BwTreeBase {
           return left_item_p->second;
         }
         case NodeType::InnerInsertType: {
-          const InnerInsertNode *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
+          const auto *insert_node_p = static_cast<const InnerInsertNode *>(node_p);
 
           const KeyNodeIDPair &insert_item = insert_node_p->item;
 
@@ -6538,7 +6364,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerInsertType
         case NodeType::InnerDeleteType: {
-          const InnerDeleteNode *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
+          const auto *delete_node_p = static_cast<const InnerDeleteNode *>(node_p);
 
           const KeyNodeIDPair &delete_item = delete_node_p->item;
 
@@ -6551,7 +6377,7 @@ class BwTree : public BwTreeBase {
           break;
         }  // InnerDeleteType
         case NodeType::InnerSplitType: {
-          const InnerSplitNode *split_node_p = static_cast<const InnerSplitNode *>(node_p);
+          const auto *split_node_p = static_cast<const InnerSplitNode *>(node_p);
 
           node_p = split_node_p->child_node_p;
 
@@ -6577,7 +6403,7 @@ class BwTree : public BwTreeBase {
 
           bool ret = InstallNodeToReplace(snapshot_p->node_id, inner_node_p, snapshot_p->node_p);
 
-          if (ret == true) {
+          if (ret) {
             epoch_manager.AddGarbageNode(snapshot_p->node_p);
 
             snapshot_p->node_p = inner_node_p;
@@ -6629,7 +6455,7 @@ class BwTree : public BwTreeBase {
     bool ret = InstallNodeToReplace(node_id, merge_node_p, node_p);
 
     // If CAS fails we delete the node and return false
-    if (ret == false) {
+    if (!ret) {
       merge_node_p->~InnerMergeNode();
     } else {
       *node_p_p = merge_node_p;
@@ -6658,7 +6484,7 @@ class BwTree : public BwTreeBase {
     bool ret = InstallNodeToReplace(node_id, merge_node_p, node_p);
 
     // If CAS fails we delete the node and return false
-    if (ret == false) {
+    if (!ret) {
       merge_node_p->~LeafMergeNode();
     } else {
       *node_p_p = merge_node_p;
@@ -6713,23 +6539,23 @@ class BwTree : public BwTreeBase {
           LeafInlineAllocateOfType(LeafInsertNode, node_p, key, value, node_p, index_pair);
 
       bool ret = InstallNodeToReplace(node_id, insert_node_p, node_p);
-      if (ret == true) {
+      if (ret) {
         INDEX_LOG_TRACE("Leaf Insert delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
-      } else {
-        INDEX_LOG_TRACE("Leaf insert delta CAS failed");
+      }
+
+      INDEX_LOG_TRACE("Leaf insert delta CAS failed");
 
 #ifdef BWTREE_DEBUG
 
-        context.abort_counter++;
+      context.abort_counter++;
 
 #endif
 
-        insert_node_p->~LeafInsertNode();
-      }
+      insert_node_p->~LeafInsertNode();
 
 #ifdef BWTREE_DEBUG
 
@@ -6751,8 +6577,6 @@ class BwTree : public BwTreeBase {
 
     return true;
   }
-
-#ifdef BWTREE_PELOTON
 
   /*
    * ConditionalInsert() - Insert a key-value pair only if a given
@@ -6793,11 +6617,12 @@ class BwTree : public BwTreeBase {
       const KeyValuePair *item_p = NavigateLeafNode(&context, value, &index_pair, predicate, predicate_satisfied);
 
       // We do not insert anything if predicate is satisfied
-      if (*predicate_satisfied == true) {
+      if (*predicate_satisfied) {
         epoch_manager.LeaveEpoch(epoch_node_p);
 
         return false;
-      } else if (item_p != nullptr) {
+      }
+      if (item_p != nullptr) {
         epoch_manager.LeaveEpoch(epoch_node_p);
 
         return false;
@@ -6816,23 +6641,23 @@ class BwTree : public BwTreeBase {
           LeafInlineAllocateOfType(LeafInsertNode, node_p, key, value, node_p, index_pair);
 
       bool ret = InstallNodeToReplace(node_id, insert_node_p, node_p);
-      if (ret == true) {
+      if (ret) {
         INDEX_LOG_TRACE("Leaf Insert (cond.) delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
-      } else {
-        INDEX_LOG_TRACE("Leaf insert (cond.) delta CAS failed");
+      }
+
+      INDEX_LOG_TRACE("Leaf insert (cond.) delta CAS failed");
 
 #ifdef BWTREE_DEBUG
 
-        context.abort_counter++;
+      context.abort_counter++;
 
 #endif
 
-        insert_node_p->~LeafInsertNode();
-      }
+      insert_node_p->~LeafInsertNode();
 
 #ifdef BWTREE_DEBUG
 
@@ -6847,8 +6672,6 @@ class BwTree : public BwTreeBase {
 
     return true;
   }
-
-#endif
 
   /*
    * Delete() - Remove a key-value pair from the tree
@@ -6891,23 +6714,23 @@ class BwTree : public BwTreeBase {
           LeafInlineAllocateOfType(LeafDeleteNode, node_p, key, value, node_p, index_pair);
 
       bool ret = InstallNodeToReplace(node_id, delete_node_p, node_p);
-      if (ret == true) {
+      if (ret) {
         INDEX_LOG_TRACE("Leaf Delete delta CAS succeed");
 
         // If install is a success then just break from the loop
         // and return
         break;
-      } else {
-        INDEX_LOG_TRACE("Leaf Delete delta CAS failed");
+      }
 
-        delete_node_p->~LeafDeleteNode();
+      INDEX_LOG_TRACE("Leaf Delete delta CAS failed");
+
+      delete_node_p->~LeafDeleteNode();
 
 #ifdef BWTREE_DEBUG
 
-        context.abort_counter++;
+      context.abort_counter++;
 
 #endif
-      }
 
 #ifdef BWTREE_DEBUG
 
@@ -6943,8 +6766,6 @@ class BwTree : public BwTreeBase {
     TraverseReadOptimized(&context, &value_list);
 
     epoch_manager.LeaveEpoch(epoch_node_p);
-
-    return;
   }
 
   /*
@@ -7000,8 +6821,6 @@ class BwTree : public BwTreeBase {
     // This function creates a new epoch node, and then checks
     // epoch counter for exiatsing nodes.
     epoch_manager.PerformGarbageCollection();
-
-    return;
   }
 
 /*
@@ -7182,22 +7001,6 @@ class BwTree : public BwTreeBase {
 
       // This is used to notify the cleaner thread that it has ended
       exited_flag.store(false);
-
-// Initialize atomic counter to record how many
-// freed has been called inside epoch manager
-#ifdef BWTREE_DEBUG
-      freed_count = 0UL;
-      freed_id_count = 0UL;
-
-      // It is not 0UL since we create an initial epoch on initialization
-      epoch_created = 1UL;
-      epoch_freed = 0UL;
-
-      epoch_join = 0UL;
-      epoch_leave = 0UL;
-#endif
-
-      return;
     }
 
     /*
@@ -7290,8 +7093,6 @@ class BwTree : public BwTreeBase {
       } else {
         INDEX_LOG_TRACE("Mapping table is unmapped for Bw-Tree");
       }
-
-      return;
     }
 
     /*
@@ -7302,7 +7103,7 @@ class BwTree : public BwTreeBase {
     void CreateNewEpoch() {
       INDEX_LOG_TRACE("Creating new epoch...");
 
-      EpochNode *epoch_node_p = new EpochNode{};
+      auto *epoch_node_p = new EpochNode{};
 
       epoch_node_p->active_thread_count = 0;
       epoch_node_p->garbage_list_p = nullptr;
@@ -7316,12 +7117,6 @@ class BwTree : public BwTreeBase {
 
       // And then switch current epoch pointer
       current_epoch_p = epoch_node_p;
-
-#ifdef BWTREE_DEBUG
-      epoch_created++;
-#endif
-
-      return;
     }
 
 #ifdef USE_OLD_EPOCH
@@ -7345,7 +7140,7 @@ class BwTree : public BwTreeBase {
       EpochNode *epoch_p = current_epoch_p;
 
       // These two could be predetermined
-      GarbageNode *garbage_node_p = new GarbageNode;
+      auto *garbage_node_p = new GarbageNode;
       garbage_node_p->node_p = node_p;
 
       garbage_node_p->next_p = epoch_p->garbage_list_p.load();
@@ -7357,14 +7152,12 @@ class BwTree : public BwTreeBase {
         bool ret = epoch_p->garbage_list_p.compare_exchange_strong(garbage_node_p->next_p, garbage_node_p);
 
         // If CAS succeeds then just return
-        if (ret == true) {
+        if (ret) {
           break;
-        } else {
-          INDEX_LOG_TRACE("Add garbage node CAS failed. Retry");
         }
-      }  // while 1
 
-      return;
+        INDEX_LOG_TRACE("Add garbage node CAS failed. Retry");
+      }  // while 1
     }
 
     /*
@@ -7420,12 +7213,6 @@ class BwTree : public BwTreeBase {
       // This might return a negative value if the current epoch
       // is being cleaned
       epoch_p->active_thread_count.fetch_sub(1);
-
-#ifdef BWTREE_DEBUG
-      epoch_leave.fetch_add(1);
-#endif
-
-      return;
     }
 
     /*
@@ -7438,8 +7225,6 @@ class BwTree : public BwTreeBase {
     void PerformGarbageCollection() {
       ClearEpoch();
       CreateNewEpoch();
-
-      return;
     }
 
 #else  // #ifdef USE_OLD_EPOCH
@@ -7653,8 +7438,6 @@ class BwTree : public BwTreeBase {
             return;
         }  // switch
       }    // while 1
-
-      return;
     }
 
     /*
@@ -7748,8 +7531,6 @@ class BwTree : public BwTreeBase {
         // pointer to nullptr
         head_epoch_p = next_epoch_node_p;
       }  // while(1) through epoch nodes
-
-      return;
     }
 
     /*
@@ -7762,7 +7543,7 @@ class BwTree : public BwTreeBase {
       // We do not worry about race condition here
       // since even if we missed one we could always
       // hit the correct value on next try
-      while (exited_flag.load() == false) {
+      while (!exited_flag.load()) {
         // printf("Start new epoch cycle");
         PerformGarbageCollection();
 
@@ -7772,8 +7553,6 @@ class BwTree : public BwTreeBase {
       }
 
       INDEX_LOG_TRACE("exit flag is true; thread return");
-
-      return;
     }
 
     /*
@@ -7784,10 +7563,7 @@ class BwTree : public BwTreeBase {
      */
     void StartThread() {
       thread_p = new std::thread{[this]() { this->ThreadFunc(); }};
-
-      return;
     }
-
   };  // Epoch manager
 
   /*
@@ -7877,8 +7653,6 @@ class BwTree : public BwTreeBase {
     ~IteratorContext() {
       // Call destructor to destruct all KeyValuePairs stored in its array
       GetLeafNode()->~ElasticNode<KeyValuePair>();
-
-      return;
     }
 
    public:
@@ -7902,8 +7676,6 @@ class BwTree : public BwTreeBase {
     inline void IncRef() {
       ref_count++;
       TERRIER_ASSERT(ref_count != 0UL, "ref_count can't be 0.");
-
-      return;
     }
 
     /*
@@ -7939,8 +7711,6 @@ class BwTree : public BwTreeBase {
         // 2. Frees memory as char[]
         this->Destroy();
       }
-
-      return;
     }
 
     /*
@@ -7966,7 +7736,7 @@ class BwTree : public BwTreeBase {
 
       // This is the size of memory we wish to initialize for IteratorContext
       // plus data
-      IteratorContext *ic_p = reinterpret_cast<IteratorContext *>(new char[size]);
+      auto *ic_p = reinterpret_cast<IteratorContext *>(new char[size]);
       TERRIER_ASSERT(ic_p != nullptr, "Cannot be nullptr.");
 
       // Initialize class IteratorContext part
@@ -8000,8 +7770,6 @@ class BwTree : public BwTreeBase {
       // delete[] otherwise C++ will try to find the size of the array
       // and call d'tor for each element
       delete[] reinterpret_cast<char *>(this);
-
-      return;
     }
   };
 
@@ -8047,7 +7815,7 @@ class BwTree : public BwTreeBase {
       // Load the first leaf page
       const BaseNode *node_p = p_tree_p->GetNode(FIRST_LEAF_NODE_ID);
       TERRIER_ASSERT(node_p != nullptr, "leaf node cannot be nullptr.");
-      TERRIER_ASSERT(node_p->IsOnLeafDeltaChain() == true, "leaf node must be on the delta chain.");
+      TERRIER_ASSERT(node_p->IsOnLeafDeltaChain(), "leaf node must be on the delta chain.");
 
       // Allocate space for IteratorContext + LeafNode Metadata + LeafNode data
       ic_p = IteratorContext::Get(p_tree_p, node_p);
@@ -8064,8 +7832,6 @@ class BwTree : public BwTreeBase {
 
       // Leave epoch
       p_tree_p->epoch_manager.LeaveEpoch(epoch_node_p);
-
-      return;
     }
 
     /*
@@ -8079,8 +7845,6 @@ class BwTree : public BwTreeBase {
       // Load the corresponding page using the given key and store all its
       // data into the iterator's embedded leaf page
       LowerBound(p_tree_p, &start_key);
-
-      return;
     }
 
     /*
@@ -8094,8 +7858,6 @@ class BwTree : public BwTreeBase {
       // Increase its reference count since now two iterators
       // share one IteratorContext object
       other.ic_p->IncRef();
-
-      return;
     }
 
     /*
@@ -8275,13 +8037,10 @@ class BwTree : public BwTreeBase {
      *   3. Values are never compared
      */
     inline bool operator<(const ForwardIterator &other) const {
-      if (other.IsEnd() == true) {
-        if (IsEnd() == true) {
-          return false;
-        } else {
-          return true;
-        }
-      } else if (IsEnd() == true) {
+      if (other.IsEnd()) {
+        return !IsEnd();
+      }
+      if (IsEnd()) {
         return false;
       }
 
@@ -8304,15 +8063,9 @@ class BwTree : public BwTreeBase {
      *      to by kv_p
      */
     inline bool operator==(const ForwardIterator &other) const {
-      if (other.IsEnd() == true) {
-        if (IsEnd() == true) {
-          // Two end iterators are equal to each other
-          return true;
-        } else {
-          // Otherwise they are not equal
-          return false;
-        }
-      } else if (IsEnd() == true) {
+      if (other.IsEnd()) {
+        return IsEnd();
+      } else if (IsEnd()) {
         return false;
       }
 
@@ -8338,8 +8091,6 @@ class BwTree : public BwTreeBase {
       } else {
         TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
       }
-
-      return;
     }
 
     /*
@@ -8351,7 +8102,7 @@ class BwTree : public BwTreeBase {
      * If the iterator is end() iterator then we do nothing
      */
     inline ForwardIterator &operator++() {
-      if (IsEnd() == true) {
+      if (IsEnd()) {
         return *this;
       }
 
@@ -8367,7 +8118,7 @@ class BwTree : public BwTreeBase {
       // This filters out:
       //   (1) Pointers being nullptr
       //   (2) Real begin iterator
-      if (IsREnd() == true) {
+      if (IsREnd()) {
         return *this;
       }
 
@@ -8382,7 +8133,7 @@ class BwTree : public BwTreeBase {
      * For end() iterator we do not do anything but return the same iterator
      */
     inline ForwardIterator operator++(int) {
-      if (IsEnd() == true) {
+      if (IsEnd()) {
         return *this;
       }
 
@@ -8399,7 +8150,7 @@ class BwTree : public BwTreeBase {
      * PostFix operator-- - Move the iterator backward by one element
      */
     inline ForwardIterator operator--(int) {
-      if (IsREnd() == true) {
+      if (IsREnd()) {
         return *this;
       }
 
@@ -8449,7 +8200,7 @@ class BwTree : public BwTreeBase {
 
         NodeSnapshot *snapshot_p = BwTree::GetLatestNodeSnapshot(&context);
         const BaseNode *node_p = snapshot_p->node_p;
-        TERRIER_ASSERT(node_p->IsOnLeafDeltaChain() == true, "node must be on the delta chain.");
+        TERRIER_ASSERT(node_p->IsOnLeafDeltaChain(), "node must be on the delta chain.");
 
         // After this point, start_key_p from the last page becomes invalid
 
@@ -8489,7 +8240,8 @@ class BwTree : public BwTreeBase {
         // we have found the key or until we have reached end of tree
         if (kv_p != ic_p->GetLeafNode()->End()) {
           break;
-        } else if (IsEnd() == true) {
+        }
+        if (IsEnd()) {
           break;
         } else {
           // Must do a value copy since the current ic_p will be
@@ -8497,8 +8249,6 @@ class BwTree : public BwTreeBase {
           start_key = ic_p->GetLeafNode()->GetHighKeyPair().first;
         }
       }  // while(1)
-
-      return;
     }
 
     /*
@@ -8516,7 +8266,7 @@ class BwTree : public BwTreeBase {
     void MoveBackByOne() {
       TERRIER_ASSERT(kv_p != nullptr, "kv cannot be nullptr.");
       TERRIER_ASSERT(ic_p != nullptr, "iterator cannot be nullptr.");
-      TERRIER_ASSERT(IsREnd() == false, "cannot be at end.");
+      TERRIER_ASSERT(!IsREnd(), "cannot be at end.");
 
       // This is an invalid state
       TERRIER_ASSERT(kv_p != ic_p->GetLeafNode()->REnd(), "Invalid state.");
@@ -8526,9 +8276,10 @@ class BwTree : public BwTreeBase {
 
       kv_p--;
       // If there is no nodes to the left of the current node
-      if (IsREnd() == true) {
+      if (IsREnd()) {
         return;
-      } else if (kv_p != ic_p->GetLeafNode()->REnd()) {
+      }
+      if (kv_p != ic_p->GetLeafNode()->REnd()) {
         return;
       }
 
@@ -8553,9 +8304,9 @@ class BwTree : public BwTreeBase {
         // We must have reached a node whose low key is less than the
         // low key we used as the search key
         // Either it has a -Inf low key, or the low key could be compared
-        TERRIER_ASSERT((node_p->GetLowKeyPair().second == INVALID_NODE_ID) ||
-                           (tree_p->KeyCmpLess(node_p->GetLowKey(), low_key) == true),
-                       "reached an incorrect node.");
+        TERRIER_ASSERT(
+            (node_p->GetLowKeyPair().second == INVALID_NODE_ID) || tree_p->KeyCmpLess(node_p->GetLowKey(), low_key),
+            "reached an incorrect node.");
 
         // Release the current leaf page, and
         ic_p->DecRef();
@@ -8588,15 +8339,14 @@ class BwTree : public BwTreeBase {
           // If there is no low key (-Inf) then that's it
           if (node_p->GetLowKeyPair().second == INVALID_NODE_ID) {
             return;
-          } else {
-            low_key = ic_p->GetLeafNode()->GetLowKey();
           }
+
+          low_key = ic_p->GetLeafNode()->GetLowKey();
+
         } else {
           return;
         }
       }  // while(1)
-
-      return;
     }
 
     /*
@@ -8613,7 +8363,7 @@ class BwTree : public BwTreeBase {
       // We could not be on the last page, since before calling this
       // function whether we are on the last page should be
       // checked
-      TERRIER_ASSERT(IsEnd() == false, "We could not be on the last page.");
+      TERRIER_ASSERT(!IsEnd(), "We could not be on the last page.");
 
       kv_p++;
 
@@ -8622,7 +8372,7 @@ class BwTree : public BwTreeBase {
       if (kv_p == ic_p->GetLeafNode()->End()) {
         // If the current status after increment is End() then just exit and
         // does not go to the next page
-        if (IsEnd() == true) {
+        if (IsEnd()) {
           return;
         }
 
@@ -8630,8 +8380,6 @@ class BwTree : public BwTreeBase {
         // all references to the ic_p will be invalidated
         LowerBound(ic_p->GetTree(), &ic_p->GetLeafNode()->GetHighKeyPair().first);
       }
-
-      return;
     }
   };  // ForwardIterator
 
@@ -8645,7 +8393,7 @@ class BwTree : public BwTreeBase {
    * do not have to worry about thread identity issues
    */
   void AddGarbageNode(const BaseNode *node_p) {
-    GarbageNode *garbage_node_p = new GarbageNode{GetGlobalEpoch(), (void *)(node_p)};
+    auto *garbage_node_p = new GarbageNode{GetGlobalEpoch(), (void *)(node_p)};
     TERRIER_ASSERT(garbage_node_p != nullptr, "Allocation failed.");
 
     // Link this new node to the end of the linked list
@@ -8664,8 +8412,6 @@ class BwTree : public BwTreeBase {
       // Use current thread's gc id to perform GC
       PerformGC(gc_id);
     }
-
-    return;
   }
 
   /*
@@ -8711,10 +8457,7 @@ class BwTree : public BwTreeBase {
     if (first_p == nullptr) {
       GetGCMetaData(thread_id)->last_p = header_p;
     }
-
-    return;
   }
-
 };  // class BwTree
 
-}
+}  // namespace third_party::bwtree

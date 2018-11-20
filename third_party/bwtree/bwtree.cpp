@@ -11,4 +11,4 @@ thread_local int third_party::bwtree::BwTreeBase::gc_id = -1;
 
 std::atomic<size_t> third_party::bwtree::BwTreeBase::total_thread_num{0UL};
 
-}
+}  // namespace third_party::bwtree

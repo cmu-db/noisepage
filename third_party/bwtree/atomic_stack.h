@@ -2,6 +2,8 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace third_party::bwtree {
 
@@ -343,4 +345,4 @@ class AtomicStack {
   }
 };
 
-}
+}  // namespace third_party::bwtree

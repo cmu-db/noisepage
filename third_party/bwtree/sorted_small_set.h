@@ -118,7 +118,6 @@ class SortedSmallSet {
    */
   inline ValueType &PopFront() {
     assert(start_p < end_p);
-    ;
 
     return *(start_p++);
   }
@@ -143,4 +142,4 @@ class SortedSmallSet {
   inline void Invalidate() { end_p = start_p; }
 };
 
-}
+}  // namespace third_party::bwtree

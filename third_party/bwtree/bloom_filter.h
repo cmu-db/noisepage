@@ -160,4 +160,4 @@ class BloomFilter {
   inline bool Exists(const ValueType &value) { return __ExistsScalar(value); }
 };
 
-}
+}  // namespace third_party::bwtree
