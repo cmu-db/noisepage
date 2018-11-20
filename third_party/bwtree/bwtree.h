@@ -466,8 +466,7 @@ class BwTreeBase {
  *  - KeyComparator: "less than" relation comparator for KeyType
  *                   Returns true if "less than" relation holds
  *                   *** NOTE: THIS OBJECT DO NOT NEED TO HAVE A DEFAULT
- *                   CONSTRUCTOR. THIS MODIFICATION WAS MADE TO FIT
- *                   INTO Peloton's ARCHITECTURE
+ *                   CONSTRUCTOR.
  *                   Please refer to main.cpp, class KeyComparator for more
  *                   information on how to define a proper key comparator
  *
@@ -5306,6 +5305,7 @@ class BwTree : public BwTreeBase {
         const KeyNodeIDPair *location;
 
         // Find the deleted item
+        // NOLINTNEXTLINE
         const KeyNodeIDPair *found_pair_p = NavigateInnerNode(parent_snapshot_p, delete_item_p->first, &location);
 
         // If the item is found then next we post InnerDeleteNode
