@@ -12,6 +12,12 @@ file(GLOB_RECURSE SPDLOG_SOURCES
 list(APPEND TERRIER_SRCS ${SPDLOG_SOURCES})
 
 ###############################################
+# libpg_query 
+###############################################
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ libpg_query.a)
+
+###############################################
 # Terrier library
 ###############################################
 

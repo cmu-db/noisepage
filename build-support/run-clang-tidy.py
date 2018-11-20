@@ -48,6 +48,8 @@ import threading
 import traceback
 # import yaml   # TERRIER: not necessary if we don't want automatic fixes
 
+from run_clang_tidy_extra import CheckConfig
+
 is_py2 = sys.version[0] == '2'
 
 if is_py2:
@@ -161,6 +163,11 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
                                          tmpdir, build_path, args.header_filter,
                                          args.extra_arg, args.extra_arg_before,
                                          args.quiet, args.config)
+        cc = CheckConfig()
+        # name is the full path of the file for clang-tidy to check
+        if cc.should_skip(name):
+            queue.task_done()
+            continue
 
         proc = subprocess.Popen(invocation, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = proc.communicate()

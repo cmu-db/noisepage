@@ -24,7 +24,7 @@ class LogRecord {
   /**
    * @return begin timestamp of the transaction that generated this log record
    */
-  timestamp_t TxnBegin() const { return txn_begin_; }
+  transaction::timestamp_t TxnBegin() const { return txn_begin_; }
 
   /**
    * Get the underlying record body as a certain type, determined from RecordType().
@@ -59,7 +59,7 @@ class LogRecord {
    * @return pointer to the start of the initialized record header
    */
   static LogRecord *InitializeHeader(byte *const head, const LogRecordType type, const uint32_t size,
-                                     const timestamp_t txn_begin) {
+                                     const transaction::timestamp_t txn_begin) {
     auto *result = reinterpret_cast<LogRecord *>(head);
     result->type_ = type;
     result->size_ = size;
@@ -71,7 +71,7 @@ class LogRecord {
   /* Header common to all log records */
   LogRecordType type_;
   uint32_t size_;
-  timestamp_t txn_begin_;
+  transaction::timestamp_t txn_begin_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
   uint64_t varlen_contents_[0];
@@ -132,7 +132,7 @@ class RedoRecord {
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table,
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
                                const TupleSlot tuple_slot, const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
@@ -154,7 +154,7 @@ class RedoRecord {
    * @param tuple_slot
    * @return
    */
-  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const timestamp_t txn_begin,
+  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const transaction::timestamp_t txn_begin,
                                       DataTable *const table, TupleSlot tuple_slot) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
@@ -205,7 +205,8 @@ class DeleteRecord {
    * @param slot the tuple slot this delete applies to
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, DataTable *const table, TupleSlot slot) {
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
+                               TupleSlot slot) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::DELETE, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<DeleteRecord>();
     body->table_ = table;
@@ -256,22 +257,25 @@ class CommitRecord {
    * @param txn_commit the commit timestamp of the transaction that generated this log record
    * @param callback function pointer of the callback to invoke when commit is
    * @param callback_arg a void * argument that can be passed to the callback function when invoked
+   * @param is_read_only indicates whether the transaction generating this log record is read-only or not
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const timestamp_t txn_begin, const timestamp_t txn_commit,
-                               transaction::callback_fn callback, void *callback_arg) {
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
+                               const transaction::timestamp_t txn_commit, transaction::callback_fn callback,
+                               void *callback_arg, bool is_read_only) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
     body->callback_ = callback;
     body->callback_arg_ = callback_arg;
+    body->is_read_only_ = is_read_only;
     return result;
   }
 
   /**
    * @return the commit time of the transaction that generated this log record
    */
-  timestamp_t CommitTime() const { return txn_commit_; }
+  transaction::timestamp_t CommitTime() const { return txn_commit_; }
 
   /**
    * @return function pointer of the transaction callback
@@ -283,9 +287,15 @@ class CommitRecord {
    */
   void *CallbackArg() const { return callback_arg_; }
 
+  /**
+   * @return true if and only if the transaction generating this commit record was read-only
+   */
+  bool IsReadOnly() const { return is_read_only_; }
+
  private:
-  timestamp_t txn_commit_;
+  transaction::timestamp_t txn_commit_;
   transaction::callback_fn callback_;
   void *callback_arg_;
+  bool is_read_only_;
 };
 }  // namespace terrier::storage

@@ -10,7 +10,7 @@
 #include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -18,8 +18,14 @@ namespace terrier::storage {
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
-#define VERSION_POINTER_COLUMN_ID col_id_t(0)
+#define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
 #define NUM_RESERVED_COLUMNS 1u
+
+// Use byte for raw byte storage instead of char so string functions are explicitly disabled for those.
+using byte = std::byte;
+STRONG_TYPEDEF(col_id_t, uint16_t);
+STRONG_TYPEDEF(layout_version_t, uint32_t);
+
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy

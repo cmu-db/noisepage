@@ -1,7 +1,7 @@
 #pragma once
 #include <cerrno>
 #include <cstdlib>
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 namespace terrier::common {
 
 /**

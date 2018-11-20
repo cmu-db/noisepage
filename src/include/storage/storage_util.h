@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <utility>
 #include "common/macros.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 
