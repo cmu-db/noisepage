@@ -25,7 +25,9 @@ class SqlFunctionExpression : public SqlAbstractExpression {
       : SqlAbstractExpression(parser::ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
-  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlFunctionExpression>(*this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlFunctionExpression>(*this);
+  }
 
   /**
    * @return function name
@@ -40,7 +42,8 @@ class SqlFunctionExpression : public SqlAbstractExpression {
     }
 
     std::shared_ptr<SqlFunctionExpression> Build() {
-      return std::shared_ptr<SqlFunctionExpression>(new SqlFunctionExpression(func_name_, return_value_type_, std::move(children_)));
+      return std::shared_ptr<SqlFunctionExpression>(
+          new SqlFunctionExpression(func_name_, return_value_type_, std::move(children_)));
     }
 
    private:

@@ -3,8 +3,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "type/value.h"
 
 namespace terrier::sql {
@@ -23,7 +23,9 @@ class SqlOperatorExpression : public SqlAbstractExpression {
                         std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : SqlAbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
-  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlOperatorExpression>(*this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlOperatorExpression>(*this);
+  }
 
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
@@ -32,7 +34,6 @@ class SqlOperatorExpression : public SqlAbstractExpression {
           new SqlOperatorExpression(expression_type_, return_value_type_, std::move(children_));
     }
   };
-
 };
 
 }  // namespace terrier::sql

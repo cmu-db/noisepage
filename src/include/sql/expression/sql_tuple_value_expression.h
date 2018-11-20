@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier::sql {
@@ -24,7 +24,9 @@ class SqlTupleValueExpression : public SqlAbstractExpression {
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
-  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlTupleValueExpression>(*this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlTupleValueExpression>(*this);
+  }
 
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:

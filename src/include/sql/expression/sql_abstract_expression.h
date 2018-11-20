@@ -33,7 +33,7 @@ class SqlAbstractExpression {
    */
   SqlAbstractExpression(const SqlAbstractExpression &other) = default;
 
-  template<class ConcreteType>
+  template <class ConcreteType>
   class Builder {
    public:
     virtual ~Builder() = default;
@@ -54,11 +54,10 @@ class SqlAbstractExpression {
     }
 
    protected:
-    const parser::ExpressionType expression_type_;                       // type of current expression
-    const type::TypeId return_value_type_;                       // type of return value
+    const parser::ExpressionType expression_type_;                  // type of current expression
+    const type::TypeId return_value_type_;                          // type of return value
     std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
   };
-
 
  public:
   virtual ~SqlAbstractExpression() = default;
@@ -130,8 +129,8 @@ class SqlAbstractExpression {
   }
 
  private:
-  const parser::ExpressionType expression_type_;                       // type of current expression
-  const type::TypeId return_value_type_;                       // type of return value
+  const parser::ExpressionType expression_type_;                  // type of current expression
+  const type::TypeId return_value_type_;                          // type of return value
   std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
 };
 }  // namespace terrier::sql

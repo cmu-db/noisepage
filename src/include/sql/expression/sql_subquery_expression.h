@@ -20,7 +20,8 @@ class SqlSubqueryExpression : public SqlAbstractExpression {
    * @param subselect the sub-select
    */
   explicit SqlSubqueryExpression(std::shared_ptr<sql::SelectStatement> subselect)
-      : SqlAbstractExpression(parser::ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
+      : SqlAbstractExpression(parser::ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}),
+        subselect_(std::move(subselect)) {}
 
   std::unique_ptr<SqlAbstractExpression> Copy() const override {
     return std::make_unique<SqlSubqueryExpression>(*this);

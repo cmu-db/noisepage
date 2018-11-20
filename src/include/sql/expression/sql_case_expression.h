@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 #include "common/macros.h"
-#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 
 namespace terrier::sql {
 
@@ -124,7 +124,8 @@ class SqlCaseExpression : public SqlAbstractExpression {
     }
 
     std::shared_ptr<SqlCaseExpression> Build() {
-      return std::shared_ptr<SqlCaseExpression>(new SqlCaseExpression(return_value_type_, std::move(when_clauses_),default_expr_));
+      return std::shared_ptr<SqlCaseExpression>(
+          new SqlCaseExpression(return_value_type_, std::move(when_clauses_), default_expr_));
     }
 
    private:

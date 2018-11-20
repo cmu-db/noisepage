@@ -32,7 +32,9 @@ class SqlConstantValueExpression : public SqlAbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlConstantValueExpression>(*this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlConstantValueExpression>(*this);
+  }
 
   /**
    * @return the constant value stored in this expression

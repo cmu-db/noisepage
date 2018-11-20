@@ -3,8 +3,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier::sql {
@@ -19,10 +19,13 @@ class SqlComparisonExpression : public SqlAbstractExpression {
    * @param cmp_type type of comparison
    * @param children vector containing exactly two children, left then right
    */
-  SqlComparisonExpression(const parser::ExpressionType cmp_type, std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
+  SqlComparisonExpression(const parser::ExpressionType cmp_type,
+                          std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : SqlAbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
-  std::unique_ptr<SqlAbstractExpression> Copy() const override { return std::make_unique<SqlComparisonExpression>(*this); }
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlComparisonExpression>(*this);
+  }
 
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:

@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <vector>
-#include "sql/expression/sql_abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "sql/expression/sql_abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier::sql {
