@@ -56,8 +56,8 @@ class SqlNodeVisitor {
   virtual void Visit(TransactionStatement *statement) {}
   virtual void Visit(UpdateStatement *statement) {}
   virtual void Visit(CopyStatement *statement) {}
-  virtual void Visit(AnalyzeStatement *statement){};
-  virtual void Visit(ExplainStatement *statement){};
+  virtual void Visit(AnalyzeStatement *statement) {}
+  virtual void Visit(ExplainStatement *statement) {}
 
   virtual void Visit(ComparisonExpression *expr);
   virtual void Visit(AggregateExpression *expr);
