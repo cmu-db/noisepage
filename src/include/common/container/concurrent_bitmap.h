@@ -59,7 +59,7 @@ class RawConcurrentBitmap {
    * @return true if 1, false if 0
    */
   bool Test(const uint32_t pos) const {
-    return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
+    return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
   /**
@@ -80,7 +80,7 @@ class RawConcurrentBitmap {
    */
   bool Flip(const uint32_t pos, const bool expected_val) {
     const uint32_t element = pos / BYTE_SIZE;
-    auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
+    auto mask = static_cast<uint8_t>(LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
     for (uint8_t old_val = bits_[element]; static_cast<bool>(old_val & mask) == expected_val;
          old_val = bits_[element]) {
       uint8_t new_val = old_val ^ mask;
@@ -149,7 +149,7 @@ class RawConcurrentBitmap {
             }
             // if we're here, we have a valid position.
             // if it locates an unset bit, return it.
-            auto is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
+            auto is_set = static_cast<bool>(bits & LSB_ONE_HOT_MASK(pos));
             if (!is_set) {
               *out_pos = current_pos;
               return true;
@@ -160,6 +160,8 @@ class RawConcurrentBitmap {
         // e.g. the only free bit available was before start_pos
         // so we always want to increment our byte_pos to ensure progress
         byte_pos += 1;
+        // Also decrease bits_left, making sure that start_pos is taken into accound
+        bits_left -= BYTE_SIZE - (start_pos % BYTE_SIZE);
       }
     }
 
@@ -204,12 +206,8 @@ class RawConcurrentBitmap {
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
-      // prevent underflow
-      if (*bits_left < sizeof(T) * BYTE_SIZE) {
-        *bits_left = 0;
-      } else {
-        *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
-      }
+      // Assumes IsAlignedAndFits<T> is called before, so no need to check for underflow.
+      *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
       return false;
     }
     return true;

@@ -15,6 +15,8 @@ static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
 #define ONE_HOT_MASK(n) (1u << (BYTE_SIZE - (n)-1u))
 // n must be [0, 7], all 1 except for 0 on the nth bit
 #define ONE_COLD_MASK(n) (0xFF - ONE_HOT_MASK(n))
+// Like ONE_HOT_MASK but in LSB format. Used by the Arrow format
+#define LSB_ONE_HOT_MASK(n) (1u << n)
 
 namespace terrier::common {
 
