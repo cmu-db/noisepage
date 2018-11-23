@@ -42,6 +42,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
+//  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
@@ -85,7 +86,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
-
+  // TODO(Tianyu): Should we assume that we are inserting into a hot block by default?
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
   // inserts could have already created a new block, we need to use compare and swap
@@ -120,6 +121,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+//  slot.GetBlock()->controller_.WaitUntilHot();
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
   txn->StageDelete(this, slot);

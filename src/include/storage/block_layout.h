@@ -54,7 +54,7 @@ struct BlockLayout {
 
   // Cached values so that we don't have to iterate through attr_sizes_ every time.
   uint32_t tuple_size_;
-  // static_header_size is everything in the header that is not the bitmap (dependent in the number of slots)
+  // static_header_size is everything in the header that is not dependent in the number of slots in the header
   uint32_t static_header_size_;
   uint32_t num_slots_;
   // header is everything up to the first column

@@ -11,6 +11,7 @@
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -29,6 +30,8 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
+ *
+ * @warning If you change this please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
@@ -40,9 +43,13 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   std::atomic<uint32_t> num_records_;
   /**
+   * Access controller of this block
+   */
+  BlockAccessController controller_;
+  /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 };

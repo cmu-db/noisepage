@@ -24,6 +24,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->num_records_ = 0;
+  raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout_.NumSlots();
 
