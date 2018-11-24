@@ -114,16 +114,9 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   // TODO(Tianyu): Potentially this will get the access information to the observer late, but that
   // should be fine since the transformation is transactional and light-weight.
   if (observer_ != nullptr) observer_->ObserveWrite(table, undo_record->Slot());
-  // This should always succeed or be a no-op
-  ReclaimSlotIfDeleted(undo_record);
-  // TODO(Tianyu): Can also check for varlen and log the access for hotness check in this pass
   // mark the record as fully processed
   table = nullptr;
   return true;
-}
-
-void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
-  if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
 bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,

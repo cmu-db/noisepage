@@ -48,7 +48,7 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
 
   while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
     if (bitmap->Flip(pos, false)) {
-      *slot = TupleSlot(block, pos);
+      if (slot != nullptr) *slot = TupleSlot(block, pos);
       block->num_records_++;
       return true;
     }

@@ -26,10 +26,9 @@ uint32_t BlockLayout::ComputeTupleSize() const {
 }
 
 uint32_t BlockLayout::ComputeStaticHeaderSize() const {
-  auto unpadded_size =
-      static_cast<uint32_t>(sizeof(uint32_t) * 3 // layout_version, num_records, num_slots
-                            + sizeof(BlockAccessController)
-                            + NumColumns() * sizeof(uint32_t) + sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
+  auto unpadded_size = static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
+                                             + sizeof(BlockAccessController) + NumColumns() * sizeof(uint32_t) +
+                                             sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
   return StorageUtil::PadUpToSize(sizeof(uint64_t), unpadded_size);
 }
 

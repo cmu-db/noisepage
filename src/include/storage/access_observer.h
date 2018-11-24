@@ -18,7 +18,7 @@ class AccessObserver {
   void ObserveWrite(DataTable *table, TupleSlot slot);
 
  private:
-  uint64_t gc_epoch_ = 0; // estimate time using the number of times GC has run
+  uint64_t gc_epoch_ = 0;  // estimate time using the number of times GC has run
   // TODO(Tianyu): This is hardly a space efficient representation of blocks. However this should do
   // since we assume that only a small portion of the database will be hot
   // Here RawBlock * should suffice as a unique identifier of the block. Although a block can be

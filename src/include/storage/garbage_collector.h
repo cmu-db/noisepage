@@ -2,10 +2,10 @@
 
 #include <queue>
 #include <utility>
+#include "storage/access_observer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
-#include "storage/access_observer.h"
 
 namespace terrier::storage {
 
@@ -23,7 +23,7 @@ class GarbageCollector {
    * @param txn_manager pointer to the TransactionManager
    */
   // TODO(Tianyu): Remove nullptr default argument
-  GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer = nullptr)
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer = nullptr)
       : txn_manager_(txn_manager), last_unlinked_{0}, observer_(observer) {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");

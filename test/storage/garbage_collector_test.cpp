@@ -709,42 +709,4 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
-
-// TODO(Tianyu): This test should be fine for now as the reclamation makes little change to the
-// GC logic. We need to incorporate inserts and delets into the larger test framework to test
-// out its interaction with other transactions, however, and that is more involved.
-
-// Checks that GC is correctly reclaiming free slots.
-// NOLINTNEXTLINE
-TEST_F(GarbageCollectorTests, SlotReclamation) {
-  transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-  GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-  storage::GarbageCollector gc(&txn_manager);
-
-  auto *txn0 = txn_manager.BeginTransaction();
-  auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-  // Fill a block
-  for (uint32_t i = 0; i < tested.layout_.NumSlots(); i++) tested.table_.Insert(txn0, *insert_tuple);
-  EXPECT_EQ(tested.table_.NumSlots(), tested.layout_.NumSlots());
-  txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-
-  auto *txn1 = txn_manager.BeginTransaction();
-  // Delete a tuple, so there is an empty slot. Should always succeed
-  EXPECT_TRUE(tested.table_.Delete(txn1, *tested.table_.begin()));
-  txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
-  // Two garbage collection runs should free up the slot
-  EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
-  EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
-
-  auto *txn2 = txn_manager.BeginTransaction();
-  storage::TupleSlot slot = tested.table_.Insert(txn2, *insert_tuple);
-  // Should reuse the slot we deleted from and not grow the table.
-  EXPECT_EQ(tested.table_.NumSlots(), tested.layout_.NumSlots());
-  EXPECT_EQ(slot, *tested.table_.begin());
-  txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
-
-  // Clean-up
-  EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
-  EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
-}
 }  // namespace terrier

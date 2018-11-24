@@ -9,8 +9,7 @@ void AccessObserver::ObserveGCInvocation() {
     if (entry.first + COLD_DATA_EPOCH_THRESHOLD >= gc_epoch_) return;
     // Otherwise, we consider the block cold and can shove them into the compactor's queue for
     // processing
-    for (auto &pair : entry.second)
-      compactor_->PutInQueue(pair);
+    for (auto &pair : entry.second) compactor_->PutInQueue(pair);
   }
 }
 
