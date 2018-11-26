@@ -1,6 +1,7 @@
 #pragma once
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
@@ -89,9 +90,9 @@ class RedoRecord {
   MEM_REINTERPRETATION_ONLY(RedoRecord)
 
   /**
-   * @return pointer to the DataTable that this Redo is concerned with
+   * @return oid of the SQL table this redo is concerned with.
    */
-  DataTable *GetDataTable() const { return table_; }
+  table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
    * @return the tuple slot changed by this redo record
@@ -127,39 +128,18 @@ class RedoRecord {
    * Initialize an entire LogRecord (header included) to have an underlying redo record, using the parameters supplied
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table the DataTable that this Redo is concerned with
+   * @param table_oid the oid of the SQL Table this redo is concerned with
    * @param tuple_slot the tuple slot changed by this redo record
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, const table_oid_t table_oid,
                                const TupleSlot tuple_slot, const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_ = table;
+    body->table_oid_ = table_oid;
     body->tuple_slot_ = tuple_slot;
     initializer.InitializeRow(body->Delta());
-    return result;
-  }
-
-  /**
-   * TODO(Tianyu): Remove this as we clean up serialization
-   * Hacky back door for BufferedLogReader. Essentially, the current implementation dumps memory content straight out
-   * to disk, which we then read directly back into the projected row. After the serialization format is decided, write
-   * a real factory method for recovery.
-   * @param head
-   * @param size
-   * @param txn_begin
-   * @param table
-   * @param tuple_slot
-   * @return
-   */
-  static LogRecord *PartialInitialize(byte *const head, const uint32_t size, const transaction::timestamp_t txn_begin,
-                                      DataTable *const table, TupleSlot tuple_slot) {
-    LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, size, txn_begin);
-    auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_ = table;
-    body->tuple_slot_ = tuple_slot;
     return result;
   }
 
@@ -168,7 +148,7 @@ class RedoRecord {
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
   // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
   // just taking an oid.
-  DataTable *table_;
+  table_oid_t table_oid_;
   TupleSlot tuple_slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
@@ -185,6 +165,12 @@ static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo reco
 class DeleteRecord {
  public:
   MEM_REINTERPRETATION_ONLY(DeleteRecord)
+
+  /**
+   * @return oid of the SQL table this delete is concerned with.
+   */
+  table_oid_t GetTableOid() const { return table_oid_; }
+
   /**
    * @return type of record this type of body holds
    */
@@ -201,23 +187,18 @@ class DeleteRecord {
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table the data table this delete points to
+   * @param table_oid the oid of the SQL table this delete is concerned with
    * @param slot the tuple slot this delete applies to
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, DataTable *const table,
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, const table_oid_t table_oid,
                                TupleSlot slot) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::DELETE, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<DeleteRecord>();
-    body->table_ = table;
+    body->table_oid_ = table_oid;
     body->tuple_slot_ = slot;
     return result;
   }
-
-  /**
-   * @return pointer to the DataTable that this delete is concerned with
-   */
-  DataTable *GetDataTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this delete record
@@ -226,7 +207,7 @@ class DeleteRecord {
 
  private:
   // TODO(Tianyu): Change to oid maybe?
-  DataTable *table_;
+  table_oid_t table_oid_;
   TupleSlot tuple_slot_;
 };
 

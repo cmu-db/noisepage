@@ -88,5 +88,10 @@ class LogManager {
   void WriteValue(const T &val) {
     out_.BufferWrite(&val, sizeof(T));
   }
+
+  // TODO(Justin): Figure out where the right place to glue this functionality in is. Probably the catalog?
+  SqlTable *LookupSqlTableFromOid(table_oid_t table_oid) {
+    return nullptr;
+  }
 };
 }  // namespace terrier::storage

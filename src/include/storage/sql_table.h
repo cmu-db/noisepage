@@ -181,6 +181,15 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  // TODO(Justin): Implement this!
+  bool ColumnUsesVarlenPool(col_id_t col_id) const {
+    return false;
+  }
+
+  const BlockLayout *GetBlockLayout() {
+    return &(table_.layout);
+  }
+
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;

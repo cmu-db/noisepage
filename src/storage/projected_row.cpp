@@ -29,7 +29,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const terrier::storage::BlockLa
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
   // descending order in attribute size.
   std::sort(col_ids_.begin(), col_ids_.end(), std::less<>());
-  size_ = sizeof(ProjectedRow);  // size and num_col size
+  size_ = sizeof(ProjectedRow);  // size and num_cols size
   // space needed to store col_ids, must be padded up so that the following offsets are aligned
   size_ = StorageUtil::PadUpToSize(sizeof(uint32_t), size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint16_t)));
   // space needed to store value offsets, we don't need to pad as we're using a regular non-concurrent bitmap

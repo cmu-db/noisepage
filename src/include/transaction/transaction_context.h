@@ -97,7 +97,7 @@ class TransactionContext {
                                   const storage::ProjectedRowInitializer &initializer) {
     uint32_t size = storage::RedoRecord::Size(initializer);
     auto *log_record =
-        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot, initializer);
+        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table->TableOid(), slot, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 
@@ -108,7 +108,7 @@ class TransactionContext {
    */
   void StageDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     uint32_t size = storage::DeleteRecord::Size();
-    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
+    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table->TableOid(), slot);
   }
 
  private:

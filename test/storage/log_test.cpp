@@ -41,30 +41,32 @@ class WriteAheadLoggingTests : public TerrierTest {
   }
 
   storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in) {
-    auto size = in->ReadValue<uint32_t>();
-    byte *buf = common::AllocationUtil::AllocateAligned(size);
-    auto record_type = in->ReadValue<storage::LogRecordType>();
-    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
-    if (record_type == storage::LogRecordType::COMMIT) {
-      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
-      // Okay to fill in null since nobody will invoke the callback.
-      // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
-      // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
-    }
-    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
-    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
-    auto tuple_slot = in->ReadValue<storage::TupleSlot>();
-    auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
-                                                         // TODO(Tianyu): Hacky as hell
-                                                         nullptr, tuple_slot);
-    // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
-    // will obviously change in the future. Also, this is hacky as hell
-    auto delta_size = in->ReadValue<uint32_t>();
-    byte *dest =
-        reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
-    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
-    return result;
+   return nullptr;
+    // TODO(Justin): Fit this to new serialization format after it is complete.
+//    auto size = in->ReadValue<uint32_t>();
+//    byte *buf = common::AllocationUtil::AllocateAligned(size);
+//    auto record_type = in->ReadValue<storage::LogRecordType>();
+//    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
+//    if (record_type == storage::LogRecordType::COMMIT) {
+//      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+//      // Okay to fill in null since nobody will invoke the callback.
+//      // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
+//      // not read-only.
+//      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
+//    }
+//    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
+//    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();
+//    auto tuple_slot = in->ReadValue<storage::TupleSlot>();
+//    auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
+//                                                         // TODO(Tianyu): Hacky as hell
+//                                                         nullptr, tuple_slot);
+//    // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
+//    // will obviously change in the future. Also, this is hacky as hell
+//    auto delta_size = in->ReadValue<uint32_t>();
+//    byte *dest =
+//        reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
+//    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
+//    return result;
   }
 
   std::default_random_engine generator_;
