@@ -106,7 +106,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                                           .SetBlockStore(&block_store_)
                                           .SetBufferPool(&pool_)
                                           .SetGenerator(&generator_)
-                                          .SetBookkeeping(true)
+                                          .SetGcOn(true)
                                           .SetBookkeeping(true)
                                           .SetLogManager(&log_manager_)
                                           .build();
@@ -175,8 +175,19 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, false,
-                                    &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.0, 1.0})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(false)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
+
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);

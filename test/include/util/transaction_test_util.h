@@ -179,24 +179,6 @@ class LargeTransactionTestObject {
   };
 
   /**
-   * Initializes a test object with the given configuration
-   * @param max_columns the max number of columns in the generated test table
-   * @param initial_table_size number of tuples the table should have
-   * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
-   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
-   * @param block_store the block store to use for the underlying data table
-   * @param buffer_pool the buffer pool to use for simulated transactions
-   * @param generator the random generator to use for the test
-   * @param gc_on whether gc is enabled
-   * @param bookkeeping whether correctness check is enabled
-   */
-  LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
-                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
-                             storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager = LOGGING_DISABLED);
-
-  /**
    * Destructs a LargeTransactionTestObject
    */
   ~LargeTransactionTestObject();
@@ -234,6 +216,24 @@ class LargeTransactionTestObject {
   void CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits);
 
  private:
+  /**
+   * Initializes a test object with the given configuration
+   * @param max_columns the max number of columns in the generated test table
+   * @param initial_table_size number of tuples the table should have
+   * @param txn_length length of every simulated transaction, in number of operations (select or update)
+   * @param update_select_ratio the ratio of updates vs. select in the generated transaction
+   *                             (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+   * @param block_store the block store to use for the underlying data table
+   * @param buffer_pool the buffer pool to use for simulated transactions
+   * @param generator the random generator to use for the test
+   * @param gc_on whether gc is enabled
+   * @param bookkeeping whether correctness check is enabled
+   */
+  LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
+                             std::vector<double> update_select_ratio, storage::BlockStore *block_store,
+                             storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager = LOGGING_DISABLED);
+
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 
   template <class Random>
