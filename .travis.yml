@@ -10,7 +10,7 @@ matrix:
         - NAME="Mac [dbg/clang]" CMAKE_BUILD_TYPE=debug TERRIER_USE_ASAN=On
       install:
         - echo 'y' | ./script/installation/packages.sh
-        - export LLVM_DIR=/usr/local/Cellar/llvm@6/6.0.1
+        - export LLVM_DIR=/usr/local/Cellar/llvm@6/6.0.1_1
     - os: linux
       dist: trusty
       env:
