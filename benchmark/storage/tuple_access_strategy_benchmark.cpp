@@ -1,7 +1,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
@@ -60,7 +60,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
       TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block, layout_version_t(0));
+      tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
       for (uint32_t j = 0; j < layout_.NumSlots(); j++) {
         storage::TupleSlot slot;
         tested.Allocate(raw_block, &slot);
@@ -89,7 +89,7 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, ConcurrentInsert)(benchmark::St
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
       TERRIER_MEMSET(raw_block, 0, sizeof(storage::RawBlock));
-      tested.InitializeRawBlock(raw_block, layout_version_t(0));
+      tested.InitializeRawBlock(raw_block, storage::layout_version_t(0));
 
       auto workload = [&](uint32_t id) {
         for (uint32_t j = 0; j < layout_.NumSlots() / num_threads_; j++) {

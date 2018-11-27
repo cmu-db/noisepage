@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <string>
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "type/type_id.h"
 #include "type/value.h"
 
