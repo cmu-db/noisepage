@@ -15,14 +15,6 @@ class SelectStatement {};  // TODO(WAN): temporary until we get a real parser - 
  */
 class SqlSubqueryExpression : public SqlAbstractExpression {
  public:
-  /**
-   * Instantiates a new SubqueryExpression with the given sub-select from the parser.
-   * @param subselect the sub-select
-   */
-  explicit SqlSubqueryExpression(std::shared_ptr<sql::SelectStatement> subselect)
-      : SqlAbstractExpression(parser::ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}),
-        subselect_(std::move(subselect)) {}
-
   std::unique_ptr<SqlAbstractExpression> Copy() const override {
     return std::make_unique<SqlSubqueryExpression>(*this);
   }
@@ -49,7 +41,15 @@ class SqlSubqueryExpression : public SqlAbstractExpression {
   friend class Builder;
 
  private:
-  std::shared_ptr<sql::SelectStatement> subselect_;
+  const std::shared_ptr<sql::SelectStatement> subselect_;
+
+  /**
+   * Instantiates a new SubqueryExpression with the given sub-select from the parser.
+   * @param subselect the sub-select
+   */
+  explicit SqlSubqueryExpression(std::shared_ptr<sql::SelectStatement> subselect)
+      : SqlAbstractExpression(parser::ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}),
+        subselect_(std::move(subselect)) {}
 };
 
 }  // namespace terrier::sql

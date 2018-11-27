@@ -33,29 +33,47 @@ class SqlAbstractExpression {
    */
   SqlAbstractExpression(const SqlAbstractExpression &other) = default;
 
+  /**
+   * Builder class for constructing inherited expression types dynamically
+   */
   template <class ConcreteType>
   class Builder {
    public:
     virtual ~Builder() = default;
 
+    /**
+     * Set expression type
+     * @param expression_type
+     * @return the appropriate inherited builder
+     */
     ConcreteType &SetExpressionType(parser::ExpressionType expression_type) {
       expression_type_ = expression_type;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * Set return value type
+     * @param return_value_type
+     * @return the appropriate inherited builder
+     */
     ConcreteType &SetReturnValueType(type::TypeId return_value_type) {
       return_value_type_ = return_value_type;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * Add a child
+     * @param child child to be added
+     * @return the appriate inherited builder
+     */
     ConcreteType &AddChild(std::shared_ptr<SqlAbstractExpression> child) {
       children_.emplace_back(std::move(child));
       return *dynamic_cast<ConcreteType *>(this);
     }
 
    protected:
-    const parser::ExpressionType expression_type_;                  // type of current expression
-    const type::TypeId return_value_type_;                          // type of return value
+    parser::ExpressionType expression_type_;                  // type of current expression
+    type::TypeId return_value_type_;                          // type of return value
     std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
   };
 

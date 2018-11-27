@@ -13,6 +13,19 @@ namespace terrier::sql {
  * Represents an operator.
  */
 class SqlOperatorExpression : public SqlAbstractExpression {
+  std::unique_ptr<SqlAbstractExpression> Copy() const override {
+    return std::make_unique<SqlOperatorExpression>(*this);
+  }
+
+  class Builder : public SqlAbstractExpression::Builder<Builder> {
+   public:
+    std::shared_ptr<SqlOperatorExpression> Build() {
+      return std::shared_ptr<SqlOperatorExpression>(
+          new SqlOperatorExpression(expression_type_, return_value_type_, std::move(children_)));
+    }
+  };
+
+ private:
   /**
    * Instantiates a new unary operator.
    * @param expression_type type of operator
@@ -22,18 +35,6 @@ class SqlOperatorExpression : public SqlAbstractExpression {
   SqlOperatorExpression(const parser::ExpressionType expression_type, const type::TypeId return_value_type,
                         std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : SqlAbstractExpression(expression_type, return_value_type, std::move(children)) {}
-
-  std::unique_ptr<SqlAbstractExpression> Copy() const override {
-    return std::make_unique<SqlOperatorExpression>(*this);
-  }
-
-  class Builder : public SqlAbstractExpression::Builder<Builder> {
-   public:
-    std::shared_ptr<SqlOperatorExpression> Build() {
-      return std::shared_ptr<SqlOperatorExpression>(
-          new SqlOperatorExpression(expression_type_, return_value_type_, std::move(children_));
-    }
-  };
 };
 
 }  // namespace terrier::sql

@@ -13,13 +13,6 @@ namespace terrier::sql {
  */
 class SqlConstantValueExpression : public SqlAbstractExpression {
  public:
-  /**
-   * Instantiate a new constant value expression.
-   * @param value value to be held
-   */
-  explicit SqlConstantValueExpression(const type::Value &value)
-      : SqlAbstractExpression(parser::ExpressionType::VALUE_CONSTANT, value.GetType(), {}), value_(value) {}
-
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(SqlAbstractExpression::Hash(), value_.Hash());
   }
@@ -59,6 +52,13 @@ class SqlConstantValueExpression : public SqlAbstractExpression {
 
  private:
   type::Value value_;
+
+  /**
+   * Instantiate a new constant value expression.
+   * @param value value to be held
+   */
+  explicit SqlConstantValueExpression(const type::Value &value)
+      : SqlAbstractExpression(parser::ExpressionType::VALUE_CONSTANT, value.GetType(), {}), value_(value) {}
 };
 
 }  // namespace terrier::sql

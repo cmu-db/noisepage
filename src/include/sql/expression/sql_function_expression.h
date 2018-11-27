@@ -13,18 +13,6 @@ namespace terrier::sql {
  * Represents a logical function expression.
  */
 class SqlFunctionExpression : public SqlAbstractExpression {
- public:
-  /**
-   * Instantiate a new function expression with the given name and children.
-   * @param func_name function name
-   * @param return_value_type function return value type
-   * @param children children arguments for the function
-   */
-  SqlFunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
-                        std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
-      : SqlAbstractExpression(parser::ExpressionType::FUNCTION, return_value_type, std::move(children)),
-        func_name_(std::move(func_name)) {}
-
   std::unique_ptr<SqlAbstractExpression> Copy() const override {
     return std::make_unique<SqlFunctionExpression>(*this);
   }
@@ -52,7 +40,18 @@ class SqlFunctionExpression : public SqlAbstractExpression {
   friend class Builder;
 
  private:
-  std::string func_name_;
+  const std::string func_name_;
+
+  /**
+   * Instantiate a new function expression with the given name and children.
+   * @param func_name function name
+   * @param return_value_type function return value type
+   * @param children children arguments for the function
+   */
+  SqlFunctionExpression(const std::string func_name, const type::TypeId return_value_type,
+                        std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
+      : SqlAbstractExpression(parser::ExpressionType::FUNCTION, return_value_type, std::move(children)),
+        func_name_(std::move(func_name)) {}
 };
 
 }  // namespace terrier::sql

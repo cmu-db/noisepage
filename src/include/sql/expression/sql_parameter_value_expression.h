@@ -11,14 +11,6 @@ namespace terrier::sql {
  */
 class SqlParameterValueExpression : public SqlAbstractExpression {
  public:
-  /**
-   * Instantiates a new ParameterValueExpression with the given offset.
-   * @param value_idx the offset of the parameter
-   */
-  explicit SqlParameterValueExpression(const uint32_t value_idx)
-      : SqlAbstractExpression(parser::ExpressionType::VALUE_PARAMETER, type::TypeId::PARAMETER_OFFSET, {}),
-        value_idx_(value_idx) {}
-
   std::unique_ptr<SqlAbstractExpression> Copy() const override {
     return std::make_unique<SqlParameterValueExpression>(*this);
   }
@@ -46,7 +38,15 @@ class SqlParameterValueExpression : public SqlAbstractExpression {
 
  private:
   // TODO(Tianyu): Can we get a better name for this?
-  uint32_t value_idx_;
+  const uint32_t value_idx_;
+
+  /**
+   * Instantiates a new SqlParameterValueExpression with the given offset.
+   * @param value_idx the offset of the parameter
+   */
+  explicit SqlParameterValueExpression(const uint32_t value_idx)
+      : SqlAbstractExpression(parser::ExpressionType::VALUE_PARAMETER, type::TypeId::PARAMETER_OFFSET, {}),
+        value_idx_(value_idx) {}
 };
 
 }  // namespace terrier::sql

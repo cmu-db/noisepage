@@ -11,6 +11,7 @@ if (TERRIER_BUILD_TESTS)
     add_dependencies(test_util gtest)
     
     add_subdirectory(common)
+    add_subdirectory(expression)
     add_subdirectory(parser)
     add_subdirectory(storage)
     add_subdirectory(transaction)

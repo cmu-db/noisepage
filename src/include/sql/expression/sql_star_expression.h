@@ -12,11 +12,6 @@ namespace terrier::sql {
  */
 class SqlStarExpression : public SqlAbstractExpression {
  public:
-  /**
-   * Instantiates a new star expression, e.g. as in COUNT(*)
-   */
-  SqlStarExpression() : SqlAbstractExpression(parser::ExpressionType::STAR, type::TypeId::INVALID, {}) {}
-
   std::unique_ptr<SqlAbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
     return std::make_unique<SqlStarExpression>(*this);
@@ -24,11 +19,14 @@ class SqlStarExpression : public SqlAbstractExpression {
 
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
-    std::shared_ptr<SqlStarExpression> Build() {
-      return std::shared_ptr<SqlStarExpression>(
-          new SqlStarExpression();
-    }
+    std::shared_ptr<SqlStarExpression> Build() { return std::shared_ptr<SqlStarExpression>(new SqlStarExpression()); }
   };
+
+ private:
+  /**
+   * Instantiates a new star expression, e.g. as in COUNT(*)
+   */
+  SqlStarExpression() : SqlAbstractExpression(parser::ExpressionType::STAR, type::TypeId::INVALID, {}) {}
 };
 
 }  // namespace terrier::sql

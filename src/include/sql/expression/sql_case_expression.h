@@ -41,18 +41,6 @@ class SqlCaseExpression : public SqlAbstractExpression {
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
   };
 
-  /**
-   * Instantiate a new case expression.
-   * @param return_value_type return value of the case expression
-   * @param when_clauses list of when clauses
-   * @param default_expr default expression for this case
-   */
-  SqlCaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
-                    std::shared_ptr<SqlAbstractExpression> default_expr)
-      : SqlAbstractExpression(parser::ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
-        when_clauses_(std::move(when_clauses)),
-        default_expr_(std::move(default_expr)) {}
-
   common::hash_t Hash() const override {
     common::hash_t hash = SqlAbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
@@ -135,8 +123,20 @@ class SqlCaseExpression : public SqlAbstractExpression {
   friend class Builder;
 
  private:
-  std::vector<WhenClause> when_clauses_;
-  std::shared_ptr<SqlAbstractExpression> default_expr_;
+  const std::vector<WhenClause> when_clauses_;
+  const std::shared_ptr<SqlAbstractExpression> default_expr_;
+
+  /**
+   * Instantiate a new case expression.
+   * @param return_value_type return value of the case expression
+   * @param when_clauses list of when clauses
+   * @param default_expr default expression for this case
+   */
+  SqlCaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
+                    std::shared_ptr<SqlAbstractExpression> default_expr)
+      : SqlAbstractExpression(parser::ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
+        when_clauses_(std::move(when_clauses)),
+        default_expr_(std::move(default_expr)) {}
 };
 
 }  // namespace terrier::sql
