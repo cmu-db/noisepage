@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 #include <utility>
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "network/protocol_interpreter.h"
 #include "network/postgres_network_commands.h"
 #include "traffic_cop/tcop.h"

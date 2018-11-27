@@ -18,7 +18,7 @@
 #include "common/dedicated_thread_registry.h"
 #include "network/peloton_rpc_handler_task.h"
 #include "network/peloton_server.h"
-#include "settings/settings_manager.h"
+//#include "settings/settings_manager.h"
 
 #include "peloton_config.h"
 
@@ -83,19 +83,22 @@ unsigned long PelotonServer::SSLIdFunction(void) {
 }
 
 void PelotonServer::LoadSSLFileSettings() {
-  private_key_file_ = DATA_DIR + settings::SettingsManager::GetString(
-                                     settings::SettingId::private_key_file);
-  certificate_file_ = DATA_DIR + settings::SettingsManager::GetString(
-                                     settings::SettingId::certificate_file);
-  root_cert_file_ = DATA_DIR + settings::SettingsManager::GetString(
-                                   settings::SettingId::root_cert_file);
+  private_key_file_ = DATA_DIR + std::string("private_key");
+      //settings::SettingsManager::GetString(
+        //                             settings::SettingId::private_key_file);
+  certificate_file_ = DATA_DIR + std::string("cert_file");
+      //settings::SettingsManager::GetString(
+        //                             settings::SettingId::certificate_file);
+  root_cert_file_ = DATA_DIR + std::string("root_cert");
+      //settings::SettingsManager::GetString(
+        //                           settings::SettingId::root_cert_file);
 }
 
 void PelotonServer::SSLInit() {
-  if (!settings::SettingsManager::GetBool(settings::SettingId::ssl)) {
+  /*if (!settings::SettingsManager::GetBool(settings::SettingId::ssl)) {
     SetSSLLevel(SSLLevel::SSL_DISABLE);
     return;
-  }
+  }*/
 
   SetSSLLevel(SSLLevel::SSL_VERIIFY);
 
@@ -189,9 +192,10 @@ void PelotonServer::SSLInit() {
 }
 
 PelotonServer::PelotonServer() {
-  port_ = settings::SettingsManager::GetInt(settings::SettingId::port);
-  max_connections_ =
-      settings::SettingsManager::GetInt(settings::SettingId::max_connections);
+  port_ = 2888;
+      // settings::SettingsManager::GetInt(settings::SettingId::port);
+  max_connections_ = 250;
+      //settings::SettingsManager::GetInt(settings::SettingId::max_connections);
 
   // For logging purposes
   //  event_enable_debug_mode();
@@ -237,12 +241,12 @@ void PelotonServer::TrySslOperation(int (*func)(Ts...), Ts... arg) {
 PelotonServer &PelotonServer::SetupServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
-  if (settings::SettingsManager::GetString(
+  /*if (settings::SettingsManager::GetString(
           settings::SettingId::socket_family) != "AF_INET")
-    throw ConnectionException("Unsupported socket family");
+    throw ConnectionException("Unsupported socket family");*/
 
   struct sockaddr_in sin;
-  PELOTON_MEMSET(&sin, 0, sizeof(sin));
+  TERRIER_MEMSET(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(port_);
@@ -269,14 +273,14 @@ PelotonServer &PelotonServer::SetupServer() {
 }
 
 void PelotonServer::ServerLoop() {
-  if (settings::SettingsManager::GetBool(settings::SettingId::rpc_enabled)) {
+  /*if (settings::SettingsManager::GetBool(settings::SettingId::rpc_enabled)) {
     int rpc_port =
         settings::SettingsManager::GetInt(settings::SettingId::rpc_port);
     std::string address = "127.0.0.1:" + std::to_string(rpc_port);
     auto rpc_task = std::make_shared<PelotonRpcHandlerTask>(address.c_str());
     DedicatedThreadRegistry::GetInstance()
         .RegisterDedicatedThread<PelotonRpcHandlerTask>(this, rpc_task);
-  }
+  }*/
   dispatcher_task_->EventLoop();
 
   peloton_close(listen_fd_);

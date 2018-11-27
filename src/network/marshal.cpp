@@ -24,7 +24,7 @@ namespace network {
 inline void CheckOverflow(UNUSED_ATTRIBUTE InputPacket *rpkt,
                           UNUSED_ATTRIBUTE size_t size) {
   LOG_TRACE("request->len: %lu", rpkt->len);
-  PELOTON_ASSERT(rpkt->ptr + size - 1 < rpkt->len);
+  TERRIER_ASSERT(rpkt->ptr + size - 1 < rpkt->len);
 }
 
 int PacketGetInt(InputPacket *rpkt, uchar base) {
@@ -117,7 +117,7 @@ void GetStringToken(InputPacket *rpkt, std::string &result) {
 
 uchar *PacketCopyBytes(ByteBuf::const_iterator begin, int len) {
   uchar *result = new uchar[len];
-  PELOTON_MEMCPY(result, &(*begin), len);
+  TERRIER_MEMCPY(result, &(*begin), len);
   return result;
 }
 
@@ -282,7 +282,7 @@ size_t OldReadParamValue(
             for (size_t i = 0; i < sizeof(double); ++i) {
               buf = (buf << 8) | param[i];
             }
-            PELOTON_MEMCPY(&float_val, &buf, sizeof(double));
+            TERRIER_MEMCPY(&float_val, &buf, sizeof(double));
             bind_parameters[param_idx] = std::make_pair(
                 type::TypeId::DECIMAL, std::to_string(float_val));
             param_values[param_idx] =

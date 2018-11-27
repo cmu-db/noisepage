@@ -21,7 +21,7 @@
 
 #include "common/container/lock_free_queue.h"
 #include "common/exception.h"
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/notifiable_task.h"
 
 namespace peloton {
