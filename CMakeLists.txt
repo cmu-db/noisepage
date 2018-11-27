@@ -77,7 +77,7 @@ set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 # CMAKE OPTIONS
 ###################################################
 
-set(TERRIER_CXXFLAGS "" CACHE STRING
+set(TERRIER_CXXFLAGS "-I/usr/local/opt/openssl/include" CACHE STRING
     "Compiler flags to append when compiling Terrier")
 
 option(TERRIER_BUILD_STATIC
@@ -153,6 +153,13 @@ if (USE_GOLD)
     set(USE_GOLD OFF)
   endif ()
 endif ()
+
+
+# data directory for SSL
+set(DATA_DIR "${PROJECT_SOURCE_DIR}/data")
+
+# ---[ Config generation
+#configure_file(cmake/Templates/terrier_config.h.in "${PROJECT_BINARY_DIR}/terrier_config.h")
 
 ############################################################
 # Compiler flags
@@ -326,6 +333,7 @@ else()
 endif()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
+include_directories(${PROJECT_BINARY_DIR})
 
 # needed for BwTree
 if (CMAKE_COMPILER_IS_GNUCXX)
