@@ -20,7 +20,7 @@
 #include "network/network_types.h"
 #include "network/marshal.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -121,4 +121,4 @@ class SslSocketIoWrapper : public NetworkIoWrapper {
   SSL *conn_ssl_context_;
 };
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

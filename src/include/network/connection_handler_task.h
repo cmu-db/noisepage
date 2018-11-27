@@ -24,7 +24,7 @@
 #include "loggers/main_logger.h"
 #include "common/notifiable_task.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -75,4 +75,4 @@ class ConnectionHandlerTask : public NotifiableTask {
 };
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

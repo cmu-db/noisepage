@@ -40,7 +40,7 @@
 #include "tbb/concurrent_unordered_set.h"
 #include "tbb/concurrent_vector.h"
 
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/macros.h"
 #include "parser/pg_trigger.h"
 #include "type/type_id.h"
@@ -49,7 +49,7 @@
 #define EIGEN_DEFAULT_TO_ROW_MAJOR
 #include "eigen3/Eigen/Dense"
 
-namespace peloton {
+namespace terrier {
 
 class ItemPointer;
 struct ItemPointerHasher;
@@ -1472,4 +1472,4 @@ typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
     matrix_eig;
 typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::RowMajor> vector_eig;
 
-}  // namespace peloton
+}  // namespace terrier

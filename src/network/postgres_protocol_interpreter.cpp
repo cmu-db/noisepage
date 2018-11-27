@@ -20,7 +20,7 @@
 #define SSL_MESSAGE_VERNO 80877103
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
-namespace peloton {
+namespace terrier {
 namespace network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,
                                                 std::shared_ptr<WriteQueue> out,
@@ -218,7 +218,7 @@ void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter
   out.WriteReadyForQuery(NetworkTransactionStateType::IDLE);
 }
 
-void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter &out, peloton::ResultType status) {
+void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter &out, terrier::ResultType status) {
   const auto &query_type = state_.statement_->GetQueryType();
   switch (status) {
     case ResultType::FAILURE:
@@ -261,7 +261,7 @@ void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWrit
 }
 
 ResultType PostgresProtocolInterpreter::ExecQueryExplain(const std::string &query,
-                                                         peloton::parser::ExplainStatement &explain_stmt) {
+                                                         terrier::parser::ExplainStatement &explain_stmt) {
   std::unique_ptr<parser::SQLStatementList> unnamed_sql_stmt_list(
       new parser::SQLStatementList());
   unnamed_sql_stmt_list->PassInStatement(std::move(explain_stmt.real_sql_stmt));
@@ -284,7 +284,7 @@ ResultType PostgresProtocolInterpreter::ExecQueryExplain(const std::string &quer
   return status;
 }
 
-bool PostgresProtocolInterpreter::HardcodedExecuteFilter(peloton::QueryType query_type) {
+bool PostgresProtocolInterpreter::HardcodedExecuteFilter(terrier::QueryType query_type) {
   switch (query_type) {
     // Skip SET
     case QueryType::QUERY_SET:
@@ -308,4 +308,4 @@ bool PostgresProtocolInterpreter::HardcodedExecuteFilter(peloton::QueryType quer
   return true;
 }
 } // namespace network
-} // namespace peloton
+} // namespace terrier

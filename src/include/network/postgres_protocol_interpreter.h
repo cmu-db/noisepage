@@ -17,7 +17,7 @@
 #include "traffic_cop/tcop.h"
 #include "common/portal.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
@@ -76,4 +76,4 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 };
 
 } // namespace network
-} // namespace peloton
+} // namespace terrier

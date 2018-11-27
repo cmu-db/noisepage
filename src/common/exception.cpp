@@ -13,11 +13,11 @@
 
 #include "common/exception.h"
 
-namespace peloton {
+namespace terrier {
 
-std::ostream &operator<<(std::ostream &os, const peloton::Exception &e) {
+std::ostream &operator<<(std::ostream &os, const terrier::Exception &e) {
   os << e.exception_message_.c_str();
   return os;
 }
 
-}  // namespace peloton
+}  // namespace terrier

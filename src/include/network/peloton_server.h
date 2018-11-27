@@ -42,7 +42,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -138,4 +138,4 @@ class PelotonServer : public DedicatedThreadOwner {
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
 };
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

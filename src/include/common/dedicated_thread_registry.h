@@ -19,7 +19,7 @@
 #include "common/dedicated_thread_task.h"
 #include "common/dedicated_thread_owner.h"
 
-namespace peloton {
+namespace terrier {
 
 /**
  * Singleton class responsible for maintaining and dispensing long running
@@ -34,7 +34,7 @@ class DedicatedThreadRegistry {
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
     // owners are notified as this class should have the same life cycle
-    // as the entire peloton process.
+    // as the entire terrier process.
 
     for (auto &entry : thread_owners_table_) {
       for (auto &task : entry.second) {
@@ -79,4 +79,4 @@ class DedicatedThreadRegistry {
       thread_owners_table_;
 };
 
-}  // namespace peloton
+}  // namespace terrier

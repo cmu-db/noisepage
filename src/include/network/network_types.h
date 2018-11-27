@@ -12,7 +12,7 @@
 
 #pragma once
 
-namespace peloton {
+namespace terrier {
 namespace network {
 /**
  * States used by ConnectionHandle::StateMachine.
@@ -43,4 +43,4 @@ enum class Transition {
 };
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

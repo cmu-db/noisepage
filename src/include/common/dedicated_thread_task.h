@@ -12,7 +12,7 @@
 
 #pragma once
 
-namespace peloton {
+namespace terrier {
 /**
  * @brief Interface for a task to be run on a dedicated thread
  *
@@ -36,4 +36,4 @@ class DedicatedThreadTask {
    */
   virtual void RunTask() = 0;
 };
-}  // namespace peloton
+}  // namespace terrier

@@ -18,7 +18,7 @@
 #include "kj/debug.h"
 #include "peloton/capnp/peloton_service.capnp.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 class PelotonRpcServerImpl final : public PelotonService::Server {
  protected:
@@ -48,4 +48,4 @@ class PelotonRpcHandlerTask : public DedicatedThreadTask {
   const char *address_;
 };
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

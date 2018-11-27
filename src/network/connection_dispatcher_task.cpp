@@ -15,7 +15,7 @@
 
 #define MASTER_THREAD_ID (-1)
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
@@ -72,4 +72,4 @@ void ConnectionDispatcherTask::ExitLoop() {
 }
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

@@ -17,7 +17,7 @@
 
 
 #define BUFFER_INIT_SIZE 100
-namespace peloton {
+namespace terrier {
 namespace network {
 class InputPacket {
  public:
@@ -177,4 +177,4 @@ size_t OldReadParamValue(
     std::vector<type::Value> &param_values, std::vector<int16_t> &formats);
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

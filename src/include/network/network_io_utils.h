@@ -20,7 +20,7 @@
 #include "common/internal_types.h"
 #include "common/exception.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 #define _CAST(type, val) ((type)(val))
 /**
@@ -453,4 +453,4 @@ class WriteQueue {
 };
 
 } // namespace network
-} // namespace peloton
+} // namespace terrier

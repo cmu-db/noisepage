@@ -17,7 +17,7 @@
 #include "connection_handler_task.h"
 #include "network_types.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -66,4 +66,4 @@ class ConnectionDispatcherTask : public NotifiableTask {
 };
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

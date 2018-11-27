@@ -40,7 +40,7 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -193,4 +193,4 @@ class ConnectionHandle {
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 };
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

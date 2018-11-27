@@ -15,7 +15,7 @@
 #include "network/connection_handle.h"
 #include "network/peloton_server.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /**
@@ -50,4 +50,4 @@ class ConnectionHandleFactory {
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
 };
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier
