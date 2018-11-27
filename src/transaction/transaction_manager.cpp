@@ -16,7 +16,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
   auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_set_latch_);
+  common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
   const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
   return result;
@@ -83,7 +83,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   {
     // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_set_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const timestamp_t start_time = txn->StartTime();
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
@@ -103,7 +103,7 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   txn->redo_buffer_.Finalize(false);
   {
     // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_set_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const timestamp_t start_time = txn->StartTime();
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
@@ -112,14 +112,14 @@ void TransactionManager::Abort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::OldestTransactionStartTime() const {
-  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_set_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
   const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
   return result;
 }
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_set_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   TransactionQueue hand_to_gc(std::move(completed_txns_));
   TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
   return hand_to_gc;

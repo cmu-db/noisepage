@@ -86,7 +86,7 @@ class TransactionManager {
 
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
   std::unordered_set<timestamp_t> curr_running_txns_;
-  mutable common::SpinLatch curr_running_txns_set_latch_;
+  mutable common::SpinLatch curr_running_txns_latch_;
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
