@@ -1,4 +1,4 @@
-#include "parser/sql_node_visitor.h"
+#include "binder/sql_node_visitor.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/comparison_expression.h"

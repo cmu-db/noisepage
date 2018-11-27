@@ -4,10 +4,10 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression_defs.h"
-#include "parser/sql_node_visitor.h"
 #include "type/type_id.h"
 #include "type/value.h"
 

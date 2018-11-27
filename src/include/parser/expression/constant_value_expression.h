@@ -2,9 +2,9 @@
 
 #include <memory>
 #include <vector>
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/sql_node_visitor.h"
 #include "type/value.h"
 
 namespace terrier::parser {

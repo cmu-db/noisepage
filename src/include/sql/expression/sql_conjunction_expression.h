@@ -30,8 +30,7 @@ class ConjunctionExpression : public SqlAbstractExpression {
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     std::shared_ptr<ConjunctionExpression> Build() {
-      return std::shared_ptr<ConjunctionExpression>(
-          new ConjunctionExpression(expression_type_, std::move(children_));
+      return std::shared_ptr<ConjunctionExpression>(new ConjunctionExpression(expression_type_, std::move(children_)));
     }
   };
 };

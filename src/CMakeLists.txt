@@ -33,5 +33,5 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp include/parser/sql_node_visitor.h include/sql/expression/sql_abstract_expression.h include/sql/expression/sql_aggregate_expression.h include/sql/expression/sql_case_expression.h)
+add_executable(terrier main/terrier.cpp include/binder/sql_node_visitor.h include/sql/expression/sql_abstract_expression.h include/sql/expression/sql_aggregate_expression.h include/sql/expression/sql_case_expression.h)
 target_link_libraries(terrier terrier_shared)

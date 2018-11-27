@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/sql_node_visitor.h"
 #include "type/type_id.h"
 
 namespace terrier::parser {

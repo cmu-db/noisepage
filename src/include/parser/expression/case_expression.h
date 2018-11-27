@@ -3,10 +3,10 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "binder/sql_node_visitor.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
-#include "parser/sql_node_visitor.h"
 
 namespace terrier::parser {
 

@@ -44,7 +44,7 @@ class SqlAbstractExpression {
     }
 
     ConcreteType &SetReturnValueType(type::TypeId return_value_type) {
-      return_value_type_ = return_value_type_;
+      return_value_type_ = return_value_type;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
