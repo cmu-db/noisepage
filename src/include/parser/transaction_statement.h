@@ -11,17 +11,29 @@ namespace terrier::parser {
  */
 class TransactionStatement : public SQLStatement {
  public:
+  /**
+   * Command used in the transaction.
+   */
   enum CommandType {
     kBegin,
     kCommit,
     kRollback,
   };
 
+  /**
+   * @param type transaction command
+   */
   explicit TransactionStatement(CommandType type) : SQLStatement(StatementType::TRANSACTION), type_(type) {}
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  CommandType type_;
+  /**
+   * @return transaction command
+   */
+  CommandType GetTransactionType() { return type_; }
+
+ private:
+  const CommandType type_;
 };
 
 }  // namespace terrier::parser

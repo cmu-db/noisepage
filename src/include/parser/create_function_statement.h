@@ -19,6 +19,9 @@ namespace parser {
 struct Parameter {
   // TODO(WAN): there used to be a FuncParamMode that was never used?
 
+  /**
+   * Parameter data types.
+   */
   enum class DataType {
     INT,
     INTEGER,
@@ -35,62 +38,70 @@ struct Parameter {
     BOOLEAN
   };
 
+  /**
+   * @param datatype data type of the parameter
+   */
   explicit Parameter(DataType datatype) : datatype_(datatype) {}
 
   virtual ~Parameter() = default;
 
-  const DataType datatype_;
-
-  // TODO(WAN): why not just do this immediately upon parsing? move to defs?
   /**
-   * Returns the underlying type used to represent the datatype.
-   * @param datatype underlying type
-   * @return underying type
+   * @return data type of the parameter
    */
-  static type::TypeId GetValueType(DataType datatype) {
-    switch (datatype) {
-      case DataType::INT:
-      case DataType::INTEGER:
-        return type::TypeId::INTEGER;
-      case DataType::TINYINT:
-        return type::TypeId::TINYINT;
-      case DataType::SMALLINT:
-        return type::TypeId::SMALLINT;
-      case DataType::BIGINT:
-        return type::TypeId::BIGINT;
-      case DataType::DECIMAL:
-      case DataType::DOUBLE:
-      case DataType::FLOAT:
-        return type::TypeId::DECIMAL;
-      case DataType::CHAR:
-      case DataType::TEXT:
-      case DataType::VARCHAR:
-        return type::TypeId::VARCHAR;
-      case DataType::BOOL:
-      case DataType::BOOLEAN:
-        return type::TypeId::BOOLEAN;
-      default:
-        return type::TypeId::INVALID;
-    }
-  }
+  DataType GetDataType() { return datatype_; }
+
+ private:
+  const DataType datatype_;
 };
 
+/**
+ * Function return type.
+ */
 struct ReturnType : Parameter {
+  /**
+   * @param datatype data type of the parameter
+   */
   explicit ReturnType(DataType datatype) : Parameter(datatype) {}
   ~ReturnType() override = default;
 };
 
+/**
+ * Function parameter.
+ */
 struct FuncParameter : Parameter {
+  /**
+   * @param datatype data type of the parameter
+   * @param name name of the function parameter
+   */
   FuncParameter(DataType datatype, std::string name) : Parameter(datatype), name_(std::move(name)) {}
   ~FuncParameter() override = default;
+
+  /**
+   * @return function parameter name
+   */
+  std::string GetParamName() { return name_; }
+
+ private:
   const std::string name_;
 };
 
+/**
+ * Represents the sql "CREATE FUNCTION ...".
+ */
 class CreateFunctionStatement : public SQLStatement {
  public:
+  /**
+   * @param replace true if it should be replacing the old definition
+   * @param func_name function name
+   * @param func_body function body
+   * @param return_type function return type
+   * @param func_parameters function parameters
+   * @param pl_type UDF language type
+   * @param as_type executable or query string
+   */
   CreateFunctionStatement(bool replace, std::string func_name, std::vector<std::string> func_body,
-                          std::unique_ptr<ReturnType> return_type,
-                          std::vector<std::unique_ptr<FuncParameter>> func_parameters, PLType pl_type, AsType as_type)
+                          std::shared_ptr<ReturnType> return_type,
+                          std::vector<std::shared_ptr<FuncParameter>> func_parameters, PLType pl_type, AsType as_type)
       : SQLStatement(StatementType::CREATE_FUNC),
         replace_(replace),
         func_name_(std::move(func_name)),
@@ -102,11 +113,47 @@ class CreateFunctionStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
+  /**
+   * @return true if this function should replace existing definitions
+   */
+  bool ShouldReplace() { return replace_; }
+
+  /**
+   * @return function name
+   */
+  std::string GetFuncName() { return func_name_; }
+
+  /**
+   * @return return type
+   */
+  std::shared_ptr<ReturnType> GetFuncReturnType() { return return_type_; }
+
+  /**
+   * @return function body
+   */
+  std::vector<std::string> GetFuncBody() { return func_body_; }
+
+  /**
+   * @return function parameters
+   */
+  std::vector<std::shared_ptr<FuncParameter>> GetFuncParameters() { return func_parameters_; }
+
+  /**
+   * @return programming language type
+   */
+  PLType GetPLType() { return pl_type_; }
+
+  /**
+   * @return as type (executable or query string)
+   */
+  AsType GetAsType() { return as_type_; }
+
+ private:
   const bool replace_ = false;
   const std::string func_name_;
-  const std::unique_ptr<ReturnType> return_type_;
+  const std::shared_ptr<ReturnType> return_type_;
   const std::vector<std::string> func_body_;
-  const std::vector<std::unique_ptr<FuncParameter>> func_parameters_;
+  const std::vector<std::shared_ptr<FuncParameter>> func_parameters_;
   const PLType pl_type_;
   const AsType as_type_;
 };

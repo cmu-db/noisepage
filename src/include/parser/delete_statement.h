@@ -14,38 +14,41 @@ namespace terrier::parser {
 /**
  * @class DeleteStatement
  * @brief Represents "DELETE FROM students WHERE grade > 3.0"
- *
- * If expr == NULL => delete all rows (truncate)
  */
 class DeleteStatement : public SQLStatement {
  public:
-  DeleteStatement(std::unique_ptr<TableRef> table, std::unique_ptr<AbstractExpression> expr)
+  /**
+   * Delete all rows which match expr.
+   * @param table deletion target
+   * @param expr condition for deletion
+   */
+  DeleteStatement(std::shared_ptr<TableRef> table, std::shared_ptr<AbstractExpression> expr)
       : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(std::move(expr)) {}
 
-  explicit DeleteStatement(std::unique_ptr<TableRef> table)
+  /**
+   * Delete all rows (truncate).
+   * @param table deletion target
+   */
+  explicit DeleteStatement(std::shared_ptr<TableRef> table)
       : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(nullptr) {}
-
-  DeleteStatement() : SQLStatement(StatementType::DELETE), table_ref_(nullptr), expr_(nullptr) {}
 
   ~DeleteStatement() override = default;
 
-  std::string GetTableName() const { return table_ref_->GetTableName(); }
+  /**
+   * @return deletion target table
+   */
+  std::shared_ptr<TableRef> GetDeletionTable() const { return table_ref_; }
 
-  /*
-  inline void TryBindDatabaseName(std::string default_database_name) {
-    if (table_ref != nullptr)
-      table_ref->TryBindDatabaseName(default_database_name);
-  }
-  */
-
-  // std::string GetDatabaseName() const { return table_ref_->GetDatabaseName(); }
-
-  // std::string GetSchemaName() const { return table_ref_->GetSchemaName(); }
+  /**
+   * @return expression that represents deletion condition
+   */
+  std::shared_ptr<AbstractExpression> GetDeleteCondition() { return expr_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  std::unique_ptr<TableRef> table_ref_;
-  std::unique_ptr<AbstractExpression> expr_;
+ private:
+  std::shared_ptr<TableRef> table_ref_;
+  std::shared_ptr<AbstractExpression> expr_;
 };
 
 }  // namespace terrier::parser

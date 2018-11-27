@@ -20,6 +20,7 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
 #include "type/value_factory.h"
@@ -693,29 +694,14 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(SubLin
   return result;
 }
 
-// Postgres.TypeCast -> terrier.ConstantValueExpression | ...
+// Postgres.TypeCast -> terrier.TypeCastExpression
 std::unique_ptr<AbstractExpression> PostgresParser::TypeCastTransform(TypeCast *root) {
-  switch (root->arg->type) {
-    /*
-      TODO(WAN): we need typecast support to implement this
-    case T_A_Const: {
-      auto const_trans = ConstTransform(reinterpret_cast<A_Const *>(root->arg));
-      auto const_expr = dynamic_cast<ConstantValueExpression *>(const_trans.get());
-      auto source_value = const_expr->GetValue();
-      auto type_name = (reinterpret_cast<value *>(root->typeName->names->tail->data.ptr_value)->val.str;
-      auto type = ColumnDefinition::StrToValueType(type_name);
-      //auto val = cast source to type;
-      auto result = std::make_unique<ConstantValueExpression>(val);
-      return result;
-      break;
-    }
-    */
-    default: {
-      char msg[MAX_EXCEPTION_MSG_LEN];
-      std::snprintf(msg, MAX_EXCEPTION_MSG_LEN, "TypeCast for type %d unsupported.", root->arg->type);
-      throw NotImplementedException(msg);
-    }
-  }
+  auto type_name = reinterpret_cast<value *>(root->typeName->names->tail->data.ptr_value)->val.str;
+  auto type = ColumnDefinition::StrToValueType(type_name);
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  children.emplace_back(ExprTransform(root->arg));
+  auto result = std::make_unique<TypeCastExpression>(type, std::move(children));
+  return result;
 }
 
 // Postgres.value -> terrier.ConstantValueExpression
@@ -777,7 +763,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
     }
     case SETOP_UNION: {
       result = SelectTransform(root->larg);
-      result->union_select_ = SelectTransform(root->rarg);
+      result->SetUnionSelect(SelectTransform(root->rarg));
       break;
     }
     default: {
@@ -791,13 +777,13 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
 }
 
 // Postgres.SelectStmt.whereClause -> terrier.SelectStatement.select_
-std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
+std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
     throw ParserException("TargetTransform: error parsing SQL.");
   }
 
-  std::vector<std::unique_ptr<AbstractExpression>> result;
+  std::vector<std::shared_ptr<AbstractExpression>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     /*
@@ -825,7 +811,7 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(SelectStmt *select_root)
   // TODO(WAN): this codepath came from the old system. Can simplify?
 
   if (root->length > 1) {
-    std::vector<std::unique_ptr<TableRef>> refs;
+    std::vector<std::shared_ptr<TableRef>> refs;
     for (auto cell = root->head; cell != nullptr; cell = cell->next) {
       auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
       switch (node->type) {
@@ -882,7 +868,7 @@ std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(List *group
     return nullptr;
   }
 
-  std::vector<std::unique_ptr<AbstractExpression>> columns;
+  std::vector<std::shared_ptr<AbstractExpression>> columns;
   for (auto cell = group->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
     columns.emplace_back(ExprTransform(temp));
@@ -905,7 +891,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
   }
 
   std::vector<OrderType> types;
-  std::vector<std::unique_ptr<AbstractExpression>> exprs;
+  std::vector<std::shared_ptr<AbstractExpression>> exprs;
 
   for (auto cell = order->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -1153,8 +1139,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
 
   std::unordered_set<std::string> primary_keys;
 
-  std::vector<std::unique_ptr<ColumnDefinition>> columns;
-  std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
+  std::vector<std::shared_ptr<ColumnDefinition>> columns;
+  std::vector<std::shared_ptr<ColumnDefinition>> foreign_keys;
 
   for (auto cell = root->tableElts->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -1215,15 +1201,14 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
     }
   }
 
-  // TODO(WAN): had to un-const is_primary, this is hacky
-  // enforce primary keys
+  // TODO(WAN): had to un-const is_primary, this is hacky, are we not guaranteed anything about order of nodes?
   for (auto &column : columns) {
     // skip foreign key constraint
-    if (column->name_.empty()) {
+    if (column->GetColumnName().empty()) {
       continue;
     }
-    if (primary_keys.find(column->name_) != primary_keys.end()) {
-      column->is_primary_ = true;
+    if (primary_keys.find(column->GetColumnName()) != primary_keys.end()) {
+      column->SetPrimary(true);
     }
   }
 
@@ -1235,8 +1220,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
 // Postgres.CreateDatabaseStmt -> terrier.CreateStatement
 std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(CreateDatabaseStmt *root) {
   auto table_info = std::make_unique<TableInfo>("", "", root->dbname);
-  std::vector<std::unique_ptr<ColumnDefinition>> columns;
-  std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
+  std::vector<std::shared_ptr<ColumnDefinition>> columns;
+  std::vector<std::shared_ptr<ColumnDefinition>> foreign_keys;
   auto result = std::make_unique<CreateStatement>(std::move(table_info), CreateStatement::kDatabase, std::move(columns),
                                                   std::move(foreign_keys));
 
@@ -1248,7 +1233,7 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(Cr
 // Postgres.CreateFunctionStmt -> terrier.CreateFunctionStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunctionStmt *root) {
   bool replace = root->replace;
-  std::vector<std::unique_ptr<FuncParameter>> func_parameters;
+  std::vector<std::shared_ptr<FuncParameter>> func_parameters;
 
   for (auto cell = root->parameters->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -1492,7 +1477,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
   auto datatype_name = reinterpret_cast<value *>(type_name->names->tail->data.ptr_value)->val.str;
   auto datatype = ColumnDefinition::StrToDataType(datatype_name);
 
-  std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
+  std::vector<std::shared_ptr<ColumnDefinition>> foreign_keys;
 
   bool is_primary = false;
   bool is_not_null = false;
@@ -1820,8 +1805,8 @@ std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ExecuteStmt *
   return result;
 }
 
-std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::ParamListTransform(List *root) {
-  std::vector<std::unique_ptr<AbstractExpression>> result;
+std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::ParamListTransform(List *root) {
+  std::vector<std::shared_ptr<AbstractExpression>> result;
 
   if (root == nullptr) {
     return result;
@@ -1904,12 +1889,12 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 }
 
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
-std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> PostgresParser::ValueListsTransform(
+std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> PostgresParser::ValueListsTransform(
     List *root) {
-  std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> result;
+  std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> result;
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
-    std::vector<std::unique_ptr<AbstractExpression>> cur_result;
+    std::vector<std::shared_ptr<AbstractExpression>> cur_result;
 
     auto target = reinterpret_cast<List *>(value_list->data.ptr_value);
     for (auto cell = target->head; cell != nullptr; cell = cell->next) {
@@ -1970,13 +1955,13 @@ std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(Trans
   return result;
 }
 
-std::vector<std::unique_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetTransform(List *root) {
-  std::vector<std::unique_ptr<parser::UpdateClause>> result;
+std::vector<std::shared_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetTransform(List *root) {
+  std::vector<std::shared_ptr<parser::UpdateClause>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto column = target->name;
     auto value = ExprTransform(target->val);
-    result.push_back(std::make_unique<UpdateClause>(column, std::move(value)));
+    result.push_back(std::make_shared<UpdateClause>(column, std::move(value)));
   }
   return result;
 }
@@ -1986,7 +1971,7 @@ std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(PrepareStmt *
   auto query = NodeTransform(root->query);
 
   // TODO(WAN): why isn't this populated?
-  std::vector<std::unique_ptr<ParameterValueExpression>> placeholders;
+  std::vector<std::shared_ptr<ParameterValueExpression>> placeholders;
 
   auto result = std::make_unique<PrepareStatement>(name, std::move(query), std::move(placeholders));
   return result;

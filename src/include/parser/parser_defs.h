@@ -87,20 +87,38 @@ enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 
 
 // Exceptions
 
+/**
+ * Exception thrown while parsing.
+ */
 class ParserException : public std::exception {
  public:
+  /**
+   * @param message error message describing parser failure
+   */
   explicit ParserException(std::string message) : message_(std::move(message)) {}
 
+  /**
+   * @return error message describing parser failure
+   */
   const char *what() const noexcept override { return message_.c_str(); }
 
  private:
   std::string message_;
 };
 
+/**
+ * Exception thrown if we need a feature that is not yet implemented.
+ */
 class NotImplementedException : public std::exception {
  public:
+  /**
+   * @param message error message describing unimplemented feature
+   */
   explicit NotImplementedException(std::string message) : message_(std::move(message)) {}
 
+  /**
+   * @return error message describing unimplemented feature
+   */
   const char *what() const noexcept override { return message_.c_str(); }
 
  private:

@@ -17,7 +17,17 @@ namespace parser {
  */
 class CopyStatement : public SQLStatement {
  public:
-  CopyStatement(std::unique_ptr<TableRef> table, std::unique_ptr<SelectStatement> select_stmt, std::string file_path,
+  /**
+   * @param table table to copy from
+   * @param select_stmt select statement to copy from
+   * @param file_path path to output file
+   * @param format file format
+   * @param is_from true if FROM, false if TO
+   * @param delimiter delimiter to be used for copying
+   * @param quote quote character
+   * @param escape escape character
+   */
+  CopyStatement(std::shared_ptr<TableRef> table, std::shared_ptr<SelectStatement> select_stmt, std::string file_path,
                 ExternalFileFormat format, bool is_from, char delimiter, char quote, char escape)
       : SQLStatement(StatementType::COPY),
         table_(std::move(table)),
@@ -33,8 +43,49 @@ class CopyStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  const std::unique_ptr<TableRef> table_;
-  const std::unique_ptr<SelectStatement> select_stmt_;
+  /**
+   * @return copy table
+   */
+  std::shared_ptr<TableRef> GetCopyTable() { return table_; }
+
+  /**
+   * @return select statement
+   */
+  std::shared_ptr<SelectStatement> GetSelectStatement() { return select_stmt_; }
+
+  /**
+   * @return file path
+   */
+  std::string GetFilePath() { return file_path_; }
+
+  /**
+   * @return external file format
+   */
+  ExternalFileFormat GetExternalFileFormat() { return format_; }
+
+  /**
+   * @return true if FROM, false if TO
+   */
+  bool IsFrom() { return is_from_; }
+
+  /**
+   * @return delimiter
+   */
+  char GetDelimiter() { return delimiter_; }
+
+  /**
+   * @return quote char
+   */
+  char GetQuoteChar() { return quote_; }
+
+  /**
+   * @return escape char
+   */
+  char GetEscapeChar() { return escape_; }
+
+ private:
+  const std::shared_ptr<TableRef> table_;
+  const std::shared_ptr<SelectStatement> select_stmt_;
   const std::string file_path_;
   const ExternalFileFormat format_;
 

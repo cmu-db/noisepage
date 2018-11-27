@@ -19,8 +19,13 @@ namespace parser {
  */
 class PrepareStatement : public SQLStatement {
  public:
-  PrepareStatement(std::string name, std::unique_ptr<SQLStatement> query,
-                   std::vector<std::unique_ptr<ParameterValueExpression>> placeholders)
+  /**
+   * @param name prepared statement name
+   * @param query query to be prepared
+   * @param placeholders placeholder values
+   */
+  PrepareStatement(std::string name, std::shared_ptr<SQLStatement> query,
+                   std::vector<std::shared_ptr<ParameterValueExpression>> placeholders)
       : SQLStatement(StatementType::PREPARE),
         name_(std::move(name)),
         query_(std::move(query)),
@@ -28,39 +33,27 @@ class PrepareStatement : public SQLStatement {
 
   ~PrepareStatement() override = default;
 
-  /*
-
-   * @param vector of placeholders that the parser found
-   *
-   * When setting the placeholders we need to make sure that they are in the
-   *correct order.
-   * To ensure that, during parsing we store the character position use that to
-   *sort the list here.
-
-  void setPlaceholders(std::vector<void *> ph) {
-    for (void *e : ph) {
-      if (e != NULL)
-        placeholders.push_back(
-            std::unique_ptr<expression::ParameterValueExpression>(
-                (expression::ParameterValueExpression *)e));
-    }
-    // Sort by col-id
-    std::sort(placeholders.begin(), placeholders.end(),
-              [](const std::unique_ptr<expression::ParameterValueExpression> &i,
-                 const std::unique_ptr<expression::ParameterValueExpression> &j)
-                  -> bool { return (i->ival_ < j->ival_); });
-
-    // Set the placeholder id on the Expr. This replaces the previously stored
-    // column id
-    for (uint i = 0; i < placeholders.size(); ++i) placeholders[i]->ival_ = i;
-  }
-   */
-
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
+  /**
+   * @return prepared statement name
+   */
+  std::string GetName() { return name_; }
+
+  /**
+   * @return query
+   */
+  std::shared_ptr<SQLStatement> GetQuery() { return query_; }
+
+  /**
+   * @return placeholders
+   */
+  std::vector<std::shared_ptr<ParameterValueExpression>> GetPlaceholders() { return placeholders_; }
+
+ private:
   const std::string name_;
-  const std::unique_ptr<SQLStatement> query_;
-  const std::vector<std::unique_ptr<ParameterValueExpression>> placeholders_;
+  const std::shared_ptr<SQLStatement> query_;
+  const std::vector<std::shared_ptr<ParameterValueExpression>> placeholders_;
 };
 
 }  // namespace parser

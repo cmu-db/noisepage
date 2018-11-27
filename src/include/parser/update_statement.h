@@ -19,12 +19,27 @@ namespace parser {
  */
 class UpdateClause {
  public:
-  UpdateClause(std::string column, std::unique_ptr<AbstractExpression> value)
+  /**
+   * @param column column to be updated
+   * @param value value to update to
+   */
+  UpdateClause(std::string column, std::shared_ptr<AbstractExpression> value)
       : column_(std::move(column)), value_(std::move(value)) {}
   ~UpdateClause() = default;
 
+  /**
+   * @return column to be updated
+   */
+  std::string GetColumnName() { return column_; }
+
+  /**
+   * @return value to update to
+   */
+  std::shared_ptr<AbstractExpression> GetUpdateValue() { return value_; }
+
+ private:
   const std::string column_;
-  const std::unique_ptr<AbstractExpression> value_;
+  const std::shared_ptr<AbstractExpression> value_;
 };
 
 /**
@@ -33,8 +48,13 @@ class UpdateClause {
  */
 class UpdateStatement : public SQLStatement {
  public:
-  UpdateStatement(std::unique_ptr<TableRef> table, std::vector<std::unique_ptr<UpdateClause>> updates,
-                  std::unique_ptr<AbstractExpression> where)
+  /**
+   * @param table table to be updated
+   * @param updates update clauses
+   * @param where update conditions
+   */
+  UpdateStatement(std::shared_ptr<TableRef> table, std::vector<std::shared_ptr<UpdateClause>> updates,
+                  std::shared_ptr<AbstractExpression> where)
       : SQLStatement(StatementType::UPDATE),
         table_(std::move(table)),
         updates_(std::move(updates)),
@@ -46,11 +66,25 @@ class UpdateStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  // TODO(pakhtar/WAN): switch to char* instead of TableRef
-  // obsolete comment?
-  const std::unique_ptr<TableRef> table_;
-  const std::vector<std::unique_ptr<UpdateClause>> updates_;
-  const std::unique_ptr<AbstractExpression> where_ = nullptr;
+  /**
+   * @return update table target
+   */
+  std::shared_ptr<TableRef> GetUpdateTable() { return table_; }
+
+  /**
+   * @return update clauses
+   */
+  std::vector<std::shared_ptr<UpdateClause>> GetUpdateClauses() { return updates_; }
+
+  /**
+   * @return update condition
+   */
+  std::shared_ptr<AbstractExpression> GetUpdateCondition() { return where_; }
+
+ private:
+  const std::shared_ptr<TableRef> table_;
+  const std::vector<std::shared_ptr<UpdateClause>> updates_;
+  const std::shared_ptr<AbstractExpression> where_ = nullptr;
 };
 
 }  // namespace parser

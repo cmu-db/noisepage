@@ -14,19 +14,52 @@ namespace parser {
 
 class SelectStatement;
 
-// Definition of a join table
+/**
+ * Represents a join table.
+ */
 class JoinDefinition {
  public:
-  JoinDefinition(JoinType type, std::unique_ptr<TableRef> left, std::unique_ptr<TableRef> right,
-                 std::unique_ptr<AbstractExpression> condition)
+  /**
+   * @param type join type
+   * @param left left table
+   * @param right right table
+   * @param condition join condition
+   */
+  JoinDefinition(JoinType type, std::shared_ptr<TableRef> left, std::shared_ptr<TableRef> right,
+                 std::shared_ptr<AbstractExpression> condition)
       : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(std::move(condition)) {}
 
+  // TODO(WAN): not a SQLStatement?
+  /**
+   * @param v visitor
+   */
   void Accept(SqlNodeVisitor *v) { v->Visit(this); }
 
+  /**
+   * @return type of join
+   */
+  JoinType GetJoinType() { return type_; }
+
+  /**
+   * @return left table
+   */
+  std::shared_ptr<TableRef> GetLeftTable() { return left_; }
+
+  /**
+   * @return right table
+   */
+  std::shared_ptr<TableRef> GetRightTable() { return right_; }
+
+  /**
+   * @return join condition
+   */
+  std::shared_ptr<AbstractExpression> GetJoinCondition() { return condition_; }
+
+ private:
   const JoinType type_;
-  const std::unique_ptr<TableRef> left_;
-  const std::unique_ptr<TableRef> right_;
-  const std::unique_ptr<AbstractExpression> condition_;
+  const std::shared_ptr<TableRef> left_;
+  const std::shared_ptr<TableRef> right_;
+  const std::shared_ptr<AbstractExpression> condition_;
 };
 
 /**
@@ -36,47 +69,121 @@ struct TableRef {
  public:
   // TODO(WAN): was and is still a mess
 
-  TableRef(std::string alias, std::unique_ptr<TableInfo> table_info)
+  /**
+   * @param alias alias for table ref
+   * @param table_info table information to use in creation
+   */
+  TableRef(std::string alias, std::shared_ptr<TableInfo> table_info)
       : type_(TableReferenceType::NAME), alias_(std::move(alias)), table_info_(std::move(table_info)) {}
 
-  TableRef(std::string alias, std::unique_ptr<SelectStatement> select)
+  /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   */
+  TableRef(std::string alias, std::shared_ptr<SelectStatement> select)
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
-  explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
+  /**
+   * @param list table refs to use in creation
+   */
+  explicit TableRef(std::vector<std::shared_ptr<TableRef>> list)
       : type_(TableReferenceType::CROSS_PRODUCT), alias_(""), list_(std::move(list)) {}
 
-  explicit TableRef(std::unique_ptr<JoinDefinition> join)
+  /**
+   * @param join join definition to use in creation
+   */
+  explicit TableRef(std::shared_ptr<JoinDefinition> join)
       : type_(TableReferenceType::JOIN), alias_(""), join_(std::move(join)) {}
 
-  static std::unique_ptr<TableRef> CreateTableRefByName(std::string alias, std::unique_ptr<TableInfo> table_info) {
+  /**
+   * @param alias alias for table ref
+   * @param table_info table info to use in creation
+   * @return unique pointer to the created table ref
+   */
+  static std::unique_ptr<TableRef> CreateTableRefByName(std::string alias, std::shared_ptr<TableInfo> table_info) {
     return std::make_unique<TableRef>(alias, std::move(table_info));
   }
 
-  static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select) {
+  /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   * @return unique pointer to the created table ref
+   */
+  static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::shared_ptr<SelectStatement> select) {
     return std::make_unique<TableRef>(alias, std::move(select));
   }
 
-  static std::unique_ptr<TableRef> CreateTableRefByList(std::vector<std::unique_ptr<TableRef>> list) {
+  /**
+   * @param list table refs to use in creation
+   * @return unique pointer to the created table ref
+   */
+  static std::unique_ptr<TableRef> CreateTableRefByList(std::vector<std::shared_ptr<TableRef>> list) {
     return std::make_unique<TableRef>(std::move(list));
   }
 
-  static std::unique_ptr<TableRef> CreateTableRefByJoin(std::unique_ptr<JoinDefinition> join) {
+  /**
+   * @param join join definition to use in creation
+   * @return unique pointer to the created table ref
+   */
+  static std::unique_ptr<TableRef> CreateTableRefByJoin(std::shared_ptr<JoinDefinition> join) {
     return std::make_unique<TableRef>(std::move(join));
   }
 
-  std::string GetTableName() { return table_info_->table_name_; }
+  /**
+   * @param v visitor
+   */
+  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
 
+  /**
+   * @return table reference type
+   */
+  TableReferenceType GetTableReferenceType() { return type_; }
+
+  /**
+   * @return alias
+   */
+  std::string GetAlias() { return alias_; }
+
+  /**
+   * @return table name
+   */
+  std::string GetTableName() { return table_info_->GetTableName(); }
+
+  /**
+   * @return schema name
+   */
+  std::string GetSchemaName() { return table_info_->GetSchemaName(); }
+
+  /**
+   * @return database name
+   */
+  std::string GetDatabaseName() { return table_info_->GetDatabaseName(); }
+
+  /**
+   * @return select statement
+   */
+  std::shared_ptr<SelectStatement> GetSelect() { return select_; }
+
+  /**
+   * @return list of table references
+   */
+  std::vector<std::shared_ptr<TableRef>> GetList() { return list_; }
+
+  /**
+   * @return join
+   */
+  std::shared_ptr<JoinDefinition> GetJoin() { return join_; }
+
+ private:
   const TableReferenceType type_;
   const std::string alias_;
-  const std::unique_ptr<TableInfo> table_info_;
+  const std::shared_ptr<TableInfo> table_info_;
 
-  const std::unique_ptr<SelectStatement> select_;
+  const std::shared_ptr<SelectStatement> select_;
 
-  const std::vector<std::unique_ptr<TableRef>> list_;
+  const std::vector<std::shared_ptr<TableRef>> list_;
 
-  const std::unique_ptr<JoinDefinition> join_;
-
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  const std::shared_ptr<JoinDefinition> join_;
 };
 
 }  // namespace parser
