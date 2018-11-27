@@ -13,7 +13,7 @@
 #pragma once
 #include <string>
 
-namespace peloton{
+namespace terrier{
 
   int peloton_close(int fd);
 

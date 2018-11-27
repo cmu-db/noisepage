@@ -16,7 +16,7 @@
 #include <event2/thread.h>
 #include "common/event_util.h"
 
-namespace peloton {
+namespace terrier {
 
 /**
  * Convenient MACRO to use a method as a libevent callback function. Example
@@ -191,4 +191,4 @@ class NotifiableTask {
   std::unordered_set<struct event *> events_;
 };
 
-}  // namespace peloton
+}  // namespace terrier

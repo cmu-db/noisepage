@@ -31,7 +31,7 @@ The underlying socket layer has been evaluated to support (over a single connect
 
 Deployment and Testing
 
-    Build by using the standard peloton make and install
+    Build by using the standard terrier make and install
 
     The wire_server using wire_server binary (ex: > wire_server 57721). The wire_server behaves similarly to the Postgres Server.
 

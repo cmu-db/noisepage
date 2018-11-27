@@ -15,7 +15,7 @@
 #include "common/event_util.h"
 #include <cstring>
 
-namespace peloton {
+namespace terrier {
 
 NotifiableTask::NotifiableTask(size_t task_id) : task_id_(task_id) {
   base_ = EventUtil::EventBaseNew();
@@ -55,5 +55,5 @@ void NotifiableTask::UnregisterEvent(struct event *event) {
   events_.erase(event);
 }
 
-}  // namespace peloton
+}  // namespace terrier
 

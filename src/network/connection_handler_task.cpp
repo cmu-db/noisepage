@@ -14,7 +14,7 @@
 #include "network/connection_handle.h"
 #include "network/connection_handle_factory.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id)
@@ -58,4 +58,4 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, short) {
 }
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

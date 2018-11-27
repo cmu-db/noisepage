@@ -29,7 +29,7 @@ class name : public PostgresNetworkCommand {                               \
                           CallbackFunc) override;                          \
 }
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 class PostgresProtocolInterpreter;
@@ -83,4 +83,4 @@ DEFINE_COMMAND(CloseCommand, false);
 DEFINE_COMMAND(TerminateCommand, true);
 
 } // namespace network
-} // namespace peloton
+} // namespace terrier

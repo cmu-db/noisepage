@@ -3175,4 +3175,4 @@ std::string OperatorIdToString(OperatorId op_id) {
   }
 }
 
-}  // namespace peloton
+}  // namespace terrier

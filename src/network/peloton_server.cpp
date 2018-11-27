@@ -29,7 +29,7 @@
 #define MUTEX_UNLOCK(x) pthread_mutex_unlock(&(x))
 #define THREAD_ID pthread_self()
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 int PelotonServer::recent_connfd = -1;
@@ -299,4 +299,4 @@ void PelotonServer::Close() {
 void PelotonServer::SetPort(int new_port) { port_ = new_port; }
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

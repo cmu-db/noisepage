@@ -15,7 +15,7 @@
 #include "network/network_types.h"
 #include "network/network_io_utils.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 class ProtocolInterpreter {
@@ -29,4 +29,4 @@ class ProtocolInterpreter {
 };
 
 } // namespace network
-} // namespace peloton
+} // namespace terrier

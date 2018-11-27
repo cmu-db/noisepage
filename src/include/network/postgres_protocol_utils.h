@@ -16,7 +16,7 @@
 #include "common/statement.h"
 
 #define NULL_CONTENT_SIZE (-1)
-namespace peloton {
+namespace terrier {
 namespace network {
 
 // TODO(Tianyu): It looks very broken that this never changes.
@@ -279,4 +279,4 @@ class PostgresPacketWriter {
 };
 
 } // namespace network
-} // namespace peloton
+} // namespace terrier

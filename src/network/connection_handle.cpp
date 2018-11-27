@@ -21,7 +21,7 @@
 #include "common/utility.h"
 #include "settings/settings_manager.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 /*
@@ -111,7 +111,7 @@ DEF_TRANSITION_GRAPH
         ON(PROCEED) SET_STATE_TO(PROCESS) AND_INVOKE(Process)
         ON(NEED_READ) SET_STATE_TO(READ) AND_WAIT_ON_READ
         // This case happens only when we use SSL and are blocked on a write
-        // during handshake. From peloton's perspective we are still waiting
+        // during handshake. From terrier's perspective we are still waiting
         // for reads.
         ON(NEED_WRITE) SET_STATE_TO(READ) AND_WAIT_ON_WRITE
     END_STATE_DEF
@@ -127,7 +127,7 @@ DEF_TRANSITION_GRAPH
         ON(WAKEUP) SET_STATE_TO(PROCESS) AND_INVOKE(GetResult)
         ON(PROCEED) SET_STATE_TO(WRITE) AND_INVOKE(TryWrite)
         ON(NEED_READ) SET_STATE_TO(READ) AND_INVOKE(TryRead)
-        // Client connections are ignored while we wait on peloton
+        // Client connections are ignored while we wait on terrier
         // to execute the query
         ON(NEED_RESULT) SET_STATE_TO(PROCESS) AND_WAIT_ON_PELOTON
         ON(NEED_SSL_HANDSHAKE) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
@@ -224,4 +224,4 @@ Transition ConnectionHandle::TryCloseConnection() {
   return Transition::NONE;
 }
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

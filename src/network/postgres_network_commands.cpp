@@ -17,7 +17,7 @@
 #include "settings/settings_manager.h"
 #include "planner/abstract_plan.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 // TODO(Tianyu): This is a refactor in progress.
@@ -554,4 +554,4 @@ Transition TerminateCommand::Exec(PostgresProtocolInterpreter &,
   return Transition::TERMINATE;
 }
 } // namespace network
-} // namespace peloton
+} // namespace terrier

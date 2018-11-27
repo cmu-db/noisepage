@@ -15,7 +15,7 @@
 #include <thread>
 #include "common/dedicated_thread_task.h"
 
-namespace peloton {
+namespace terrier {
 /**
  * @brief DedicatedThreadOwner is the base class for all components that
  * needs to manage long running threads inside the system (e.g. GC, thread pool)
@@ -59,4 +59,4 @@ class DedicatedThreadOwner {
  private:
   size_t thread_count_ = 0;
 };
-}  // namespace peloton
+}  // namespace terrier

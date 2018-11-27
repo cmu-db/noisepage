@@ -20,7 +20,7 @@
 
 #include <netinet/in.h>
 
-namespace peloton {
+namespace terrier {
 namespace network {
 
 // checks for parsing overflows
@@ -318,4 +318,4 @@ size_t OldReadParamValue(
 }
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

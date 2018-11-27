@@ -14,7 +14,7 @@
 #include <utility>
 #include "network/connection_handle_factory.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task) {
   auto it = reusable_handles_.find(conn_fd);
@@ -37,4 +37,4 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   return reused_handle;
 }
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier

@@ -17,7 +17,7 @@
 #include <sys/file.h>
 #include "network/peloton_server.h"
 
-namespace peloton {
+namespace terrier {
 namespace network {
 Transition NetworkIoWrapper::FlushAllWrites() {
   for (; out_->FlushHead() != nullptr; out_->MarkHeadFlushed()) {
@@ -158,4 +158,4 @@ Transition SslSocketIoWrapper::Close() {
 }
 
 }  // namespace network
-}  // namespace peloton
+}  // namespace terrier
