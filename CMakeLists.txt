@@ -22,23 +22,23 @@ cmake_minimum_required(VERSION 3.2)
 # Extract Terrier version number
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/build-support/version.xml" POM_XML)
 string(REGEX MATCHALL
-        "\n<version>[^<]+</version>" TERRIER_VERSION_TAG "${POM_XML}")
+    "\n<version>[^<]+</version>" TERRIER_VERSION_TAG "${POM_XML}")
 string(REGEX REPLACE
-        "(\n<version>|</version>)" "" TERRIER_VERSION "${TERRIER_VERSION_TAG}")
+    "(\n<version>|</version>)" "" TERRIER_VERSION "${TERRIER_VERSION_TAG}")
 string(REGEX MATCH
-        "^[0-9]+\\.[0-9]+\\.[0-9]+" TERRIER_BASE_VERSION "${TERRIER_VERSION}")
+    "^[0-9]+\\.[0-9]+\\.[0-9]+" TERRIER_BASE_VERSION "${TERRIER_VERSION}")
 
 project(terrier
-        LANGUAGES CXX
-        VERSION "${TERRIER_BASE_VERSION}"
-        )
+    LANGUAGES CXX
+    VERSION "${TERRIER_BASE_VERSION}"
+    )
 
 set(TERRIER_VERSION_MAJOR "${terrier_VERSION_MAJOR}")
 set(TERRIER_VERSION_MINOR "${terrier_VERSION_MINOR}")
 set(TERRIER_VERSION_PATCH "${terrier_VERSION_PATCH}")
 if (TERRIER_VERSION_MAJOR STREQUAL "" OR
-        TERRIER_VERSION_MINOR STREQUAL "" OR
-        TERRIER_VERSION_PATCH STREQUAL "")
+    TERRIER_VERSION_MINOR STREQUAL "" OR
+    TERRIER_VERSION_PATCH STREQUAL "")
   MESSAGE(FATAL_ERROR "Failed to determine Terrier version from '${TERRIER_VERSION}'")
 endif ()
 
@@ -48,8 +48,8 @@ set(TERRIER_SO_VERSION "${TERRIER_VERSION_MINOR}")
 set(TERRIER_FULL_SO_VERSION "${TERRIER_SO_VERSION}.${TERRIER_VERSION_PATCH}.0")
 
 message(STATUS "Terrier version: "
-        "${TERRIER_VERSION_MAJOR}.${TERRIER_VERSION_MINOR}.${TERRIER_VERSION_PATCH} "
-        "(full: '${TERRIER_VERSION}')")
+    "${TERRIER_VERSION_MAJOR}.${TERRIER_VERSION_MINOR}.${TERRIER_VERSION_PATCH} "
+    "(full: '${TERRIER_VERSION}')")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
@@ -78,47 +78,47 @@ set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 ###################################################
 
 set(TERRIER_CXXFLAGS "" CACHE STRING
-        "Compiler flags to append when compiling Terrier")
+    "Compiler flags to append when compiling Terrier")
 
 option(TERRIER_BUILD_STATIC
-        "Build the libterrier static libraries"
-        ON)
+    "Build the libterrier static libraries"
+    ON)
 
 option(TERRIER_BUILD_SHARED
-        "Build the libterrier shared libraries"
-        ON)
+    "Build the libterrier shared libraries"
+    ON)
 
 option(TERRIER_TEST_MEMCHECK
-        "Run the test suite using valgrind --tool=memcheck"
-        OFF)
+    "Run the test suite using valgrind --tool=memcheck"
+    OFF)
 
 option(TERRIER_BUILD_TESTS
-        "Build the Terrier googletest unit tests"
-        ON)
+    "Build the Terrier googletest unit tests"
+    ON)
 
 option(TERRIER_BUILD_BENCHMARKS
-        "Build the Terrier micro benchmarks"
-        ON)
+    "Build the Terrier micro benchmarks"
+    ON)
 
 option(TERRIER_RPATH_ORIGIN
-        "Build Terrier libraries with RATH set to \$ORIGIN"
-        OFF)
+    "Build Terrier libraries with RATH set to \$ORIGIN"
+    OFF)
 
 option(TERRIER_INSTALL_NAME_RPATH
-        "Build Terrier libraries with install_name set to @rpath"
-        ON)
+    "Build Terrier libraries with install_name set to @rpath"
+    ON)
 
 option(TERRIER_GENERATE_COVERAGE
-        "Build with C++ code coverage enabled"
-        OFF)
+    "Build with C++ code coverage enabled"
+    OFF)
 
 option(TERRIER_VERBOSE_THIRDPARTY_BUILD
-        "If off, output from ExternalProjects will be logged to files rather than shown"
-        OFF)
+    "If off, output from ExternalProjects will be logged to files rather than shown"
+    OFF)
 
 option(TERRIER_VERBOSE_LINT
-        "If off, 'quiet' flags will be passed to linting tools"
-        OFF)
+    "If off, 'quiet' flags will be passed to linting tools"
+    OFF)
 
 if (NOT TERRIER_BUILD_TESTS)
   set(NO_TESTS 1)
@@ -213,13 +213,13 @@ endif ()
 if (UNIX)
 
   file(GLOB_RECURSE LINT_FILES
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-          "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
-          "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
-          )
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
+      )
 
   find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
   message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
@@ -228,11 +228,11 @@ if (UNIX)
   # Balancing act: cpplint.py takes a non-trivial time to launch,
   # so process 12 files per invocation, while still ensuring parallelism
   add_custom_target(check-lint echo ${LINT_FILES} | xargs -n12 -P8
-          ${CPPLINT_BIN}
-          --verbose=2 ${TERRIER_LINT_QUIET}
-          --linelength=120
-          --filter=-legal/copyright,-build/header_guard
-          )
+      ${CPPLINT_BIN}
+      --verbose=2 ${TERRIER_LINT_QUIET}
+      --linelength=120
+      --filter=-legal/copyright,-build/header_guard
+      )
 endif (UNIX)
 
 ###########################################################
@@ -242,27 +242,27 @@ endif (UNIX)
 # we modified the format script to take multiple args
 
 string(CONCAT FORMAT_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
-        )
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+    )
 
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        --fix
-        ${TERRIER_LINT_QUIET})
+    ${CLANG_FORMAT_BIN}
+    ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+    --source_dirs
+    ${FORMAT_DIRS}
+    --fix
+    ${TERRIER_LINT_QUIET})
 
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        ${TERRIER_LINT_QUIET})
+    ${CLANG_FORMAT_BIN}
+    ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+    --source_dirs
+    ${FORMAT_DIRS}
+    ${TERRIER_LINT_QUIET})
 
 ###########################################################
 # "make check-clang-tidy" target
@@ -271,10 +271,10 @@ if (${CLANG_TIDY_FOUND})
   # runs clang-tidy and exits with a non-zero exit code if any errors are found.
   # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
   add_custom_target(check-clang-tidy
-          ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
-          -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
-          -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-          )
+      ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
+      -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+      -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+      )
   if (TERRIER_BUILD_BENCHMARKS)
     add_dependencies(check-clang-tidy benchmark gtest)                  # clang-tidy needs their headers to exist
   elseif (TERRIER_BUILD_TESTS)
@@ -302,7 +302,7 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
     set(MORE_ARGS "-T")
   endif ()
   EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
-          ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
+      ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
 else ()
   set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
 endif ()
@@ -328,24 +328,24 @@ include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 
 set(TERRIER_LINK_LIBS
-        ${TERRIER_LINK_LIBS}
-        ${PTHREAD_LIBRARY}
-        pg_query)
+    ${TERRIER_LINK_LIBS}
+    ${PTHREAD_LIBRARY}
+    pg_query)
 
 set(TERRIER_TEST_LINK_LIBS
-        test_util
-        terrier_static
-        gtest
-        gtest_main
-        pg_query
-        ${CMAKE_DL_LIBS})
+    test_util
+    terrier_static
+    gtest
+    gtest_main
+    pg_query
+    ${CMAKE_DL_LIBS})
 
 set(TERRIER_BENCHMARK_LINK_LIBS
-        test_util
-        benchmark_util
-        terrier_static
-        gtest
-        pg_query)
+    test_util
+    benchmark_util
+    terrier_static
+    gtest
+    pg_query)
 
 # ---[ Subdirectories
 add_subdirectory(src)
