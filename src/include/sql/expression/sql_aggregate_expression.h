@@ -45,7 +45,7 @@ class SqlAggregateExpression : public SqlAbstractExpression {
 
     std::shared_ptr<SqlAggregateExpression> Build() {
       return std::shared_ptr<SqlAggregateExpression>(
-          new SqlAggregateExpression(value_idx_, col_oid_, std::move(expression_type_), std::move(children_)));
+          new SqlAggregateExpression(value_idx_, col_oid_, expression_type_, std::move(children_)));
     }
 
    private:
@@ -66,8 +66,8 @@ class SqlAggregateExpression : public SqlAbstractExpression {
   SqlAggregateExpression(int value_idx, col_oid_t col_oid, parser::ExpressionType type,
                          std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : SqlAbstractExpression(type, type::TypeId::INVALID, std::move(children)),
-        value_idx_(std::move(value_idx)),
-        col_oid_(std::move(col_oid)) {}
+        value_idx_(value_idx),
+        col_oid_(col_oid) {}
 };
 
 }  // namespace terrier::sql

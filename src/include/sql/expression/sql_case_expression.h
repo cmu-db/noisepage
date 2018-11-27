@@ -105,12 +105,12 @@ class SqlCaseExpression : public SqlAbstractExpression {
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetWhenClauses(std::vector<WhenClause> when_clauses) {
-      when_clauses_ = when_clauses;
+      when_clauses_ = std::move(when_clauses);
       return *this;
     }
 
     Builder &SetDefaultExpr(std::shared_ptr<SqlAbstractExpression> default_expr) {
-      default_expr_ = default_expr;
+      default_expr_ = std::move(default_expr);
       return *this;
     }
 

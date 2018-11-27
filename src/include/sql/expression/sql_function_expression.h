@@ -28,7 +28,7 @@ class SqlFunctionExpression : public SqlAbstractExpression {
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetFuncName(std::string func_name) {
-      func_name_ = func_name;
+      func_name_ = std::move(func_name);
       return *this;
     }
 
@@ -43,7 +43,7 @@ class SqlFunctionExpression : public SqlAbstractExpression {
   friend class Builder;
 
  private:
-  const std::string func_name_;
+  std::string func_name_;
 
   /**
    * Instantiate a new function expression with the given name and children.
@@ -51,7 +51,7 @@ class SqlFunctionExpression : public SqlAbstractExpression {
    * @param return_value_type function return value type
    * @param children children arguments for the function
    */
-  SqlFunctionExpression(const std::string func_name, const type::TypeId return_value_type,
+  SqlFunctionExpression(std::string func_name, const type::TypeId return_value_type,
                         std::vector<std::shared_ptr<SqlAbstractExpression>> &&children)
       : SqlAbstractExpression(parser::ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}

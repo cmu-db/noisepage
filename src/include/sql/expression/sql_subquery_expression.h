@@ -30,7 +30,7 @@ class SqlSubqueryExpression : public SqlAbstractExpression {
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetSubselec(std::shared_ptr<sql::SelectStatement> subselect) {
-      subselect_ = subselect;
+      subselect_ = std::move(subselect);
       return *this;
     }
 
