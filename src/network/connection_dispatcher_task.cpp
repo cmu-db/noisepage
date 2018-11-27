@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "network/connection_dispatcher_task.h"
+#include "common/init.h"
 
 #define MASTER_THREAD_ID (-1)
 
@@ -29,12 +30,12 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
   // TODO(tianyu) Figure out what this initialization logic is doing and
   // potentially rewrite
   // register thread to epoch manager.
-  if (concurrency::EpochManagerFactory::GetEpochType() ==
+  /*if (concurrency::EpochManagerFactory::GetEpochType() ==
       EpochType::DECENTRALIZED_EPOCH) {
     for (size_t task_id = 0; task_id < (size_t)num_handlers; task_id++) {
       concurrency::EpochManagerFactory::GetInstance().RegisterThread(task_id);
     }
-  }
+  }*/
 
   // create worker threads.
   for (int task_id = 0; task_id < num_handlers; task_id++) {

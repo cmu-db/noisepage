@@ -142,7 +142,7 @@ class NotifiableTask {
   void UpdateEvent(struct event *event, int fd, short flags,
                    event_callback_fn callback, void *arg,
                    const struct timeval *timeout = nullptr) {
-    PELOTON_ASSERT(!(events_.find(event) == events_.end()));
+    TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
     EventUtil::EventAssign(event, base_, fd, flags, callback, arg);
     EventUtil::EventAdd(event, timeout);
