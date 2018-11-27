@@ -13,7 +13,7 @@
 #include <utility>
 #include "type/value_factory.h"
 #include "common/internal_types.h"
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/macros.h"
 #include "network/network_types.h"
 #include "network/marshal.h"

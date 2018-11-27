@@ -31,7 +31,7 @@
 #include "common/container/lock_free_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/notifiable_task.h"
 #include "connection_dispatcher_task.h"
 #include "network_types.h"
