@@ -20,6 +20,9 @@ class SqlParameterValueExpression : public SqlAbstractExpression {
    */
   uint32_t GetValueIdx() { return value_idx_; }
 
+  /**
+   * Builder for building a SqlParameterValueExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetValueIdx(uint32_t value_idx) {

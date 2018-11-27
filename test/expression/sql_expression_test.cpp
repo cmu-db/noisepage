@@ -1,8 +1,8 @@
 #include <memory>
+#include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
-#include <tuple>
-#include <string>
 
 #include "gtest/gtest.h"
 
@@ -25,7 +25,7 @@ TEST(SqlExpressionTests, BasicTest) {
   // Buiild a SQL tuple value expression
   std::string column_name = "column name";
   std::string table_name = "table name";
-  std::tuple<db_oid_t, table_oid_t, col_oid_t> oid = std::make_tuple((db_oid_t) 1, (table_oid_t) 1, (col_oid_t) 1);
+  std::tuple<db_oid_t, table_oid_t, col_oid_t> oid = std::make_tuple((db_oid_t)1, (table_oid_t)1, (col_oid_t)1);
   auto sql_tuple_expression_builder = new SqlTupleValueExpression::Builder();
   sql_tuple_expression_builder->SetColName(column_name);
   sql_tuple_expression_builder->SetTableName(table_name);

@@ -18,6 +18,9 @@ class ConjunctionExpression : public SqlAbstractExpression {
     return std::make_unique<ConjunctionExpression>(*this);
   }
 
+  /**
+   * Builder for building a ConjunctionExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     std::shared_ptr<ConjunctionExpression> Build() {

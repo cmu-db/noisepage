@@ -99,6 +99,9 @@ class SqlCaseExpression : public SqlAbstractExpression {
    */
   std::shared_ptr<SqlAbstractExpression> GetDefaultClause() const { return default_expr_; }
 
+  /**
+   * Builder for building a SqlCaseExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetWhenClauses(std::vector<WhenClause> when_clauses) {

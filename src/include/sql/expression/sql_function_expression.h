@@ -22,6 +22,9 @@ class SqlFunctionExpression : public SqlAbstractExpression {
    */
   const std::string &GetFuncName() const { return func_name_; }
 
+  /**
+   * Builder for building a SqlFunctionExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetFuncName(std::string func_name) {

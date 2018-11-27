@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
@@ -24,8 +23,6 @@ class ComparisonExpression : public AbstractExpression {
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ComparisonExpression>(*this); }
-
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 }  // namespace terrier::parser

@@ -17,6 +17,9 @@ class SqlOperatorExpression : public SqlAbstractExpression {
     return std::make_unique<SqlOperatorExpression>(*this);
   }
 
+  /**
+   * Builder for building a SqlOperatorExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     std::shared_ptr<SqlOperatorExpression> Build() {

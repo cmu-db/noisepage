@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
@@ -83,8 +82,6 @@ class CaseExpression : public AbstractExpression {
   }
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<CaseExpression>(*this); }
-
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return the number of when clauses

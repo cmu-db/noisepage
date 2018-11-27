@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
@@ -27,8 +26,6 @@ class TupleValueExpression : public AbstractExpression {
         table_name_(std::move(table_name)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TupleValueExpression>(*this); }
-
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
   const std::string col_name_;

@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -23,8 +22,6 @@ class ParameterValueExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> Copy() const override {
     return std::make_unique<ParameterValueExpression>(*this);
   }
-
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return offset in the expression

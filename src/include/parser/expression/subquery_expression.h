@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -28,8 +27,6 @@ class SubqueryExpression : public AbstractExpression {
     // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
     return std::make_unique<SubqueryExpression>(*this);
   }
-
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return shared pointer to stored sub-select

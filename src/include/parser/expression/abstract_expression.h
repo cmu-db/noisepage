@@ -4,7 +4,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression_defs.h"
@@ -78,14 +77,6 @@ class AbstractExpression {
   // It is incorrect to supply a default implementation here since that will return an object
   // of base type AbstractExpression instead of the desired non-abstract type.
   virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
-
-  virtual void Accept(SqlNodeVisitor *) = 0;
-
-  virtual void AcceptChildren(SqlNodeVisitor *v) {
-    for (auto &child : children_) {
-      child->Accept(v);
-    }
-  }
 
   /**
    * @return type of this expression

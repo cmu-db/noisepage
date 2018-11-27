@@ -28,6 +28,9 @@ class SqlAggregateExpression : public SqlAbstractExpression {
    */
   const col_oid_t GetColOid() const { return col_oid_; }
 
+  /**
+   * Builder for building a SqlAggregateExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetValue(int value_idx) {

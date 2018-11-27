@@ -26,8 +26,7 @@ class SqlTupleValueExpression : public SqlAbstractExpression {
     // we need to know whether A.id is from A.id or B.id. In this case,
     // A.id and B.id have the same bound oids since they refer to the same table
     // but they have different table alias.
-    if ((table_name_.empty() ^ other.table_name_.empty()) || col_name_.empty() ^ other.col_name_.empty())
-      return false;
+    if ((table_name_.empty() ^ other.table_name_.empty()) || col_name_.empty() ^ other.col_name_.empty()) return false;
     bool res = obj_id_ == other.obj_id_;
     if (!table_name_.empty() && !other.table_name_.empty()) res = table_name_ == other.table_name_ && res;
     if (!col_name_.empty() && !other.col_name_.empty()) res = col_name_ == other.col_name_ && res;
@@ -47,6 +46,9 @@ class SqlTupleValueExpression : public SqlAbstractExpression {
 
   const std::tuple<db_oid_t, table_oid_t, col_oid_t> &GetOid() const { return obj_id_; }
 
+  /**
+   * Builder for building a SqlTupleValueExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetOid(std::tuple<db_oid_t, table_oid_t, col_oid_t> obj_id) {

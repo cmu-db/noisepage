@@ -34,6 +34,9 @@ class SqlConstantValueExpression : public SqlAbstractExpression {
    */
   type::Value GetValue() const { return value_; }
 
+  /**
+   * Builder for building a SqlConstantValueExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetValue(type::Value value) {

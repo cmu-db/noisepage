@@ -72,8 +72,8 @@ class SqlAbstractExpression {
     }
 
    protected:
-    parser::ExpressionType expression_type_;                  // type of current expression
-    type::TypeId return_value_type_;                          // type of return value
+    parser::ExpressionType expression_type_;                        // type of current expression
+    type::TypeId return_value_type_;                                // type of return value
     std::vector<std::shared_ptr<SqlAbstractExpression>> children_;  // list of children
   };
 

@@ -18,6 +18,9 @@ class SqlComparisonExpression : public SqlAbstractExpression {
     return std::make_unique<SqlComparisonExpression>(*this);
   }
 
+  /**
+   * Builder for building a SqlComparisonExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     std::shared_ptr<SqlComparisonExpression> Build() {

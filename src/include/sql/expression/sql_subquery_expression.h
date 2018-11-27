@@ -24,6 +24,9 @@ class SqlSubqueryExpression : public SqlAbstractExpression {
    */
   std::shared_ptr<sql::SelectStatement> GetSubselect() { return subselect_; }
 
+  /**
+   * Builder for building a SqlSubQueryExpression
+   */
   class Builder : public SqlAbstractExpression::Builder<Builder> {
    public:
     Builder &SetSubselec(std::shared_ptr<sql::SelectStatement> subselect) {
