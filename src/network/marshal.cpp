@@ -27,7 +27,7 @@ namespace network {
 inline void CheckOverflow(UNUSED_ATTRIBUTE InputPacket *rpkt,
                           UNUSED_ATTRIBUTE size_t size) {
   LOG_TRACE("request->len: %lu", rpkt->len);
-  TERRIER_ASSERT(rpkt->ptr + size - 1 < rpkt->len);
+  TERRIER_ASSERT(rpkt->ptr + size - 1 < rpkt->len, "Overflow in rpkt");
 }
 
 int PacketGetInt(InputPacket *rpkt, uchar base) {
