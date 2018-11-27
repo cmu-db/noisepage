@@ -78,7 +78,7 @@ class InputPacket {
   inline void InitializePacket() {
     this->begin = extended_buffer_.begin();
     this->end = extended_buffer_.end();
-    TERRIER_ASSERT(extended_buffer_.size() == len);
+    TERRIER_ASSERT(extended_buffer_.size() == len, "Invalid length");
     is_initialized = true;
   }
 
