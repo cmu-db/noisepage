@@ -2,7 +2,7 @@
 #include <vector>
 #include "common/constants.h"
 #include "common/object_pool.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "storage/undo_record.h"
 
 namespace terrier::storage {

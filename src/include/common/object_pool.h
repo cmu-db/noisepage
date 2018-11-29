@@ -6,7 +6,7 @@
 #include "common/allocator.h"
 #include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::common {
 // TODO(Yangjun): this class should be moved somewhere else.

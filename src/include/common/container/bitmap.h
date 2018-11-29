@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 
 #ifndef BYTE_SIZE
 #define BYTE_SIZE 8u
