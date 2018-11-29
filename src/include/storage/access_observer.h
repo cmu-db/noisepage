@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include "storage/storage_defs.h"
 
@@ -28,6 +29,7 @@ class AccessObserver {
   // Sorted table references by epoch. We can easily do range scans on this data structure to get
   // cold blocks given current epoch and some threshold for a block to be cold.
   std::map<uint64_t, std::unordered_map<RawBlock *, DataTable *>> table_references_by_epoch_;
+  std::unordered_set<RawBlock *> no_longer_insertable_;
   BlockCompactor *const compactor_;
 };
 

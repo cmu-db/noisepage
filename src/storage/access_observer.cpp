@@ -18,6 +18,8 @@ void AccessObserver::ObserveWrite(DataTable *table, TupleSlot slot) {
   // No-op if this is already referenced this epoch
   table_references_by_epoch_[gc_epoch_].emplace(block, table);
   auto last_referenced_epoch = last_touched_.find(block);
+  if (slot.GetOffset() == table->accessor_.GetBlockLayout().NumSlots())
+    no_longer_insertable_.insert(slot.GetBlock());
   // Do not remove if the block is accessed twice in a single epoch
   if (last_referenced_epoch != last_touched_.end() && last_referenced_epoch->second != gc_epoch_) {
     // Remove reference to last access's epoch as it is no longer the most recent access

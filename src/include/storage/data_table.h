@@ -232,6 +232,7 @@ class DataTable {
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
+  friend class AccessObserver;
   friend class BlockCompactor;
 
   BlockStore *const block_store_;

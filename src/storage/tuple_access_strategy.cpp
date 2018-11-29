@@ -23,7 +23,7 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
 void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
-  raw->num_records_ = 0;
+  raw->insert_head_ = 0;
   raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout_.NumSlots();
@@ -40,7 +40,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
-  const uint32_t start = block->num_records_;
+  const uint32_t start = block->insert_head_;
 
   if (start == layout_.NumSlots()) return false;
 
@@ -49,7 +49,6 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
     if (bitmap->Flip(pos, false)) {
       if (slot != nullptr) *slot = TupleSlot(block, pos);
-      block->num_records_++;
       return true;
     }
   }

@@ -16,10 +16,11 @@ class BlockCompactor {
   void ProcessCompactionQueue() {
     std::forward_list<std::pair<RawBlock *, DataTable *>> to_process = std::move(compaction_queue_);
     for (auto &entry : to_process) {
+      if (entry.first->insert_head_ != entry.second->accessor_.GetBlockLayout().NumSlots()) continue;
       BlockAccessController &controller = entry.first->controller_;
       // Then the last transactional access must be the compacting transaction, which we can safely ignore.
       if (controller.IsFrozen()) continue;
-      // We need to first run compaction, and then mark the block as freezing.
+      // We need to first run compaction, and then mark the block as frozen.
       transaction::TransactionContext *compacting_txn = txn_manager_.BeginTransaction();
       if (Compact(compacting_txn, entry)) {
         if (Gather(compacting_txn, entry)) {
@@ -43,12 +44,7 @@ class BlockCompactor {
     DataTable *table = entry.second;
     const TupleAccessStrategy &accessor = table->accessor_;
     const BlockLayout &layout = accessor.GetBlockLayout();
-    // We need to claim all the slots temporarily to stop any more inserts from going in. They will show
-    // up to external transactions as logically deleted anyways so it should be fine, and no other transactions can
-    // update it. It is also okay for us to not roll back this as eventually a compaction thread should get it.
-    // TODO(Tianyu): Is there a better way of doing this?
-    while (!accessor.Allocate(block, nullptr)) {}
-    TERRIER_ASSERT(block->num_records_ == layout.NumSlots(), "The block should be full to stop inserts from coming in");
+    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be full to stop inserts from coming in");
     std::vector<TupleSlot> filled, empty;
     // Scan through and identify empty slots
     for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {

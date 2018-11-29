@@ -218,7 +218,8 @@ class TupleAccessStrategy {
   void Deallocate(const TupleSlot slot) const {
     TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
-    slot.GetBlock()->num_records_--;
+    // TODO(Tianyu): Make explicit that this operation does not reset the insertion head, and the block
+    // is still considered "full" and will not be inserted into.
   }
 
   /**

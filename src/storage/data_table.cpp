@@ -99,6 +99,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     NewBlock(block);
   }
   InsertInto(txn, redo, result);
+  // TODO(Tianyu): Encapsulate this better
+  // Mark that the insert is done, so the compaction thread.
+  result.GetBlock()->insert_head_++;
   data_table_counter_.IncrementNumInsert(1);
   return result;
 }

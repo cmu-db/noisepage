@@ -41,7 +41,7 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Number of records.
    */
-  std::atomic<uint32_t> num_records_;
+  std::atomic<uint32_t> insert_head_;
   /**
    * Access controller of this block
    */
