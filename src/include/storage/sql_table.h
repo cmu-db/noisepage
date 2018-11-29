@@ -39,7 +39,7 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
+  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::sqltable_oid_t oid)
       : block_store_(store), oid_(oid) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
@@ -123,7 +123,7 @@ class SqlTable {
   /**
    * @return table's unique identifier
    */
-  catalog::table_oid_t Oid() const { return oid_; }
+  catalog::sqltable_oid_t Oid() const { return oid_; }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
@@ -170,20 +170,20 @@ class SqlTable {
   std::pair<ProjectedRowInitializer, ProjectionMap> InitializerForProjectedRow(
       const std::vector<catalog::col_oid_t> &col_oids) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicated in the col_ids!");
+                   "There should not be any duplicates in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
     ProjectedRowInitializer initializer(table_.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
-                   "ProjectionMap be the same number of columns as requested col_oids.");
+                   "ProjectionMap should be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
   }
 
  private:
   BlockStore *const block_store_;
-  const catalog::table_oid_t oid_;
+  const catalog::sqltable_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
