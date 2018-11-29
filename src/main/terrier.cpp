@@ -38,9 +38,9 @@ int main() {
 
   terrier::storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   terrier::storage::BlockStore block_store_{1000, 100};
-  terrier::storage::BlockLayout block_layout_({4, 8});
-  const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{0},
-                                                           terrier::storage::col_id_t{1}};
+  terrier::storage::BlockLayout block_layout_({8, 8, 8});
+  const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{1},
+                                                           terrier::storage::col_id_t{2}};
   terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
   auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
