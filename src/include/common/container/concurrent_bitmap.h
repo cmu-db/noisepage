@@ -160,7 +160,7 @@ class RawConcurrentBitmap {
         // e.g. the only free bit available was before start_pos
         // so we always want to increment our byte_pos to ensure progress
         byte_pos += 1;
-        // Also decrease bits_left, making sure that start_pos is taken into accound
+        // Also decrease bits_left, making sure that start_pos is taken into account
         bits_left -= BYTE_SIZE - (start_pos % BYTE_SIZE);
       }
     }
@@ -206,7 +206,9 @@ class RawConcurrentBitmap {
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
-      // Assumes IsAlignedAndFits<T> is called before, so no need to check for underflow.
+      // IsAlignedAndFits<T> is always called before FindUnsetBit.
+      // So we know that bits_left >= sizeof(T) * BYTE_SIZE.
+      // So there won't be an underflow here.
       *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
       return false;
     }
