@@ -5,12 +5,12 @@
 
 namespace terrier::storage {
 
-std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<col_oid_t> &col_oids) const {
+std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {
   TERRIER_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
   std::vector<col_id_t> col_ids;
 
   // Build the input to the initializer constructor
-  for (const col_oid_t col_oid : col_oids) {
+  for (const catalog::col_oid_t col_oid : col_oids) {
     TERRIER_ASSERT(table_.column_map.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
     const col_id_t col_id = table_.column_map.at(col_oid);
     col_ids.push_back(col_id);
