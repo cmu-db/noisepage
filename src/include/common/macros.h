@@ -3,8 +3,6 @@
 #include <cassert>
 #include <stdexcept>
 
-namespace terrier::common {
-
 //===--------------------------------------------------------------------===//
 // branch predictor hints
 //===--------------------------------------------------------------------===//
@@ -162,5 +160,3 @@ namespace terrier::common {
 #else
 #define GTEST_DEBUG_ONLY(TestName) TestName
 #endif
-
-}  // namespace terrier::common

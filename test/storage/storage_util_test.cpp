@@ -208,7 +208,7 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
         CatalogTestUtil::RandomSchema(static_cast<uint16_t>(max_columns - NUM_RESERVED_COLUMNS), &generator_);
     const auto layout_and_col_map = storage::StorageUtil::BlockLayoutFromSchema(schema);
     const storage::BlockLayout layout = layout_and_col_map.first;
-    const std::unordered_map<col_oid_t, storage::col_id_t> column_map = layout_and_col_map.second;
+    const std::unordered_map<catalog::col_oid_t, storage::col_id_t> column_map = layout_and_col_map.second;
 
     // BlockLayout should have number of columns as Schema + NUM_RESERVED_COLUMNS because Schema doesn't know anything
     // about the storage layer's reserved columns
@@ -225,7 +225,7 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
 
     // Verify the contents of the column_map
     for (const auto &i : column_map) {
-      const col_oid_t col_oid = i.first;
+      const catalog::col_oid_t col_oid = i.first;
       const storage::col_id_t col_id = i.second;
 
       // Column id should not map to either of the reserved columns
