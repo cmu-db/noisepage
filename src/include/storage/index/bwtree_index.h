@@ -24,16 +24,32 @@ DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
 template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
 class BwTreeIndex {
  private:
+  using bwtree = third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>;
+
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type)
-      : oid_{oid}, constraint_type_{constraint_type} {}
+      : oid_{oid},
+        constraint_type_{constraint_type},
+        key_comparator_{},
+        key_equality_checker_{},
+        key_hash_func_{},
+        bwtree_{new bwtree{false, key_comparator_, key_equality_checker_, key_hash_func_}} {}
+
+  ~BwTreeIndex() { delete bwtree_; }
+
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
-  third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc> *const bwtree_;
+  const KeyComparator key_comparator_;
+  const KeyEqualityChecker key_equality_checker_;
+  const KeyHashFunc key_hash_func_;
+  bwtree *const bwtree_;
 
+ public:
   bool Insert(const ProjectedRow &tuple, const TupleSlot location) {
+    TERRIER_ASSERT(constraint_type_ == ConstraintType::DEFAULT,
+                   "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromKey(tuple);
-    return bwtree_->Insert(index_key, location, HasUniqueKeys());
+    return bwtree_->Insert(index_key, location, false);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) {
@@ -44,6 +60,8 @@ class BwTreeIndex {
 
   bool ConditionalInsert(const ProjectedRow &tuple, const TupleSlot location,
                          std::function<bool(const void *)> predicate) {
+    TERRIER_ASSERT(constraint_type_ == ConstraintType::PRIMARY_KEY || constraint_type_ == ConstraintType::UNIQUE,
+                   "This Insert is designed for indexes with primary key or uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromKey(tuple);
 
@@ -63,11 +81,6 @@ class BwTreeIndex {
     return ret;
   }
 
-  bool HasUniqueKeys() const {
-    return constraint_type_ == ConstraintType::PRIMARY_KEY || constraint_type_ == ConstraintType::UNIQUE;
-  }
-
- public:
   class Builder {
    private:
     catalog::index_oid_t index_oid_;
