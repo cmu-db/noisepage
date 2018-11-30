@@ -12,11 +12,8 @@ namespace terrier::storage::index {
 
 // clang-format off
 #define IndexCounterMembers(f) \
-  f(uint64_t, NumSelect) \
-  f(uint64_t, NumUpdate) \
   f(uint64_t, NumInsert) \
-  f(uint64_t, NumDelete) \
-  f(uint64_t, NumNewBlock)
+  f(uint64_t, NumDelete)
 // clang-format on
 DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
 #undef IndexCounterMembers
@@ -34,8 +31,6 @@ class BwTreeIndex {
         key_hash_func_{},
         bwtree_{new bwtree{false, key_comparator_, key_equality_checker_, key_hash_func_}} {}
 
-  ~BwTreeIndex() { delete bwtree_; }
-
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
   const KeyComparator key_comparator_;
@@ -44,6 +39,8 @@ class BwTreeIndex {
   bwtree *const bwtree_;
 
  public:
+  ~BwTreeIndex() { delete bwtree_; }
+
   bool Insert(const ProjectedRow &tuple, const TupleSlot location) {
     TERRIER_ASSERT(constraint_type_ == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
@@ -91,7 +88,7 @@ class BwTreeIndex {
    public:
     Builder() = default;
 
-    void Build() const { auto stuffs = sql_table_->InitializerForProjectedRow(col_oids_); }
+    BwTreeIndex *Build() const { return new BwTreeIndex(index_oid_, constraint_type_); }
 
     Builder &SetOid(const catalog::index_oid_t index_oid) {
       index_oid_ = index_oid;
