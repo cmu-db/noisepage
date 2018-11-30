@@ -24,10 +24,11 @@ class BlockCompactor {
       transaction::TransactionContext *compacting_txn = txn_manager_.BeginTransaction();
       if (Compact(compacting_txn, entry)) {
         if (Gather(compacting_txn, entry)) {
-          DeallocateLogicallyDeletedTuples();
+          // TODO(Tianyu): I think this is safe if in update, we mark hot immediately before compare and swap.
+          // It should be correct, but double check
+          controller.MarkFrozen();
           // No need to wait for logs as this is a purely internal operation
           txn_manager_.Commit(compacting_txn, NoOp, nullptr);
-          controller.MarkFrozen();
           continue;
         }
       }
@@ -49,12 +50,14 @@ class BlockCompactor {
     // Scan through and identify empty slots
     for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
       TupleSlot slot(block, offset);
-      TERRIER_ASSERT(accessor.Allocated(slot), "All slots should already be allocated in the block at this point");
       // If there is a version pointer in the table, maybe it is not fully cold yet, so hands off
       if (table->AtomicallyReadVersionPtr(slot, accessor) != nullptr) return false;
-      // TODO(Tianyu): Here we are assuming that GC is NOT flipping logically deleted tuples back to claimable slots
-      // We will see if the slot is empty or not by checking the logically deleted bit
-      (accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID) ? empty : filled).push_back(slot);
+      bool allocated = accessor.Allocated(slot);
+      // A logically deleted column implies that some changes are happening since the GC put this block into the
+      // compaction queue. We should do anything to this block further.
+      if (allocated && accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID)) return false;
+      // Push this slots to be either in the list of empty slots of filled slots
+      (allocated ? empty : filled).push_back(slot);
     }
 
     // TODO(Tianyu): Fish out the thing from tests and use that
@@ -79,9 +82,9 @@ class BlockCompactor {
     return true;
   }
 
-  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) { return false; }
-
-  void DeallocateLogicallyDeletedTuples() {}
+  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) {
+    
+  }
 
   std::forward_list<std::pair<RawBlock *, DataTable *>> compaction_queue_;
   transaction::TransactionManager txn_manager_;

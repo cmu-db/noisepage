@@ -26,7 +26,7 @@ class StorageUtil {
    * an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
    *
    * @param attr_size the number of bytes to write. (one of {1, 2, 4, 8})
-   * @param val the byte value to write. Truncated if neccessary.
+   * @param val the byte value to write. Truncated if necessary.
    * @param pos the location to write to.
    */
   static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos);

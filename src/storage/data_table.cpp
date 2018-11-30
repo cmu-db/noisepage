@@ -42,7 +42,6 @@ bool DataTable::Update(transaction::TransactionContext *txn, TupleSlot slot, con
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
-  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
@@ -61,6 +60,8 @@ bool DataTable::Update(transaction::TransactionContext *txn, TupleSlot slot, con
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
+
+  slot.GetBlock()->controller_.WaitUntilHot();
 
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
@@ -99,18 +100,15 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     NewBlock(block);
   }
   InsertInto(txn, redo, result);
-  // TODO(Tianyu): Encapsulate this better
-  // Mark that the insert is done, so the compaction thread.
-  result.GetBlock()->insert_head_++;
   data_table_counter_.IncrementNumInsert(1);
   return result;
 }
 
 void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(
-      accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID) && AtomicallyReadVersionPtr(dest, accessor_) == nullptr,
-      "The slot needs to be logically deleted to every running transaction");
+  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID)
+                && AtomicallyReadVersionPtr(dest, accessor_) == nullptr,
+                "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
@@ -126,7 +124,7 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-  slot.GetBlock()->controller_.WaitUntilHot();
+
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
   txn->StageDelete(this, slot);
@@ -144,6 +142,7 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
+  slot.GetBlock()->controller_.WaitUntilHot();
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
     // TransactionManager's Rollback() and GC's Unlink logic

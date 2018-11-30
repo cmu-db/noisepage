@@ -166,6 +166,36 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
  * Types of LogRecords
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
+/**
+ * A varlen entry is stored as a pointer and a size in the data table.
+ *
+ */
+// TODO(Tianyu): This is pretty wasteful. While in theory 4 bytes of size suffices, we pad it to 8 bytes for
+// performance and ease of implementation with the rest of the system. (It is always assumed that one SQL level column
+// is mapped to one data table column). In the long run though, we might want to investigate solutions where the varlen
+// pointer and the size columns are stored in separate columns, so the size column can be 4 bytes.
+class VarlenEntry {
+ public:
+  byte *GetValue() const{
+    return content_;
+  }
+
+  uint64_t GetSize() const {
+    // We mask off the first sign bit, as that is used to denote whether a varlen is inlined
+    // in a contiguous buffer per block for arrow, which requires different GC behavior
+    return size_ & INT64_MAX;
+  }
+
+  bool IsInlined() const {
+    return static_cast<int64_t>(size_) < 0;
+  }
+
+  // TODO(Tianyu): Setters need to be implemented
+ private:
+  byte *content_;
+  uint64_t size_;
+};
+
 }  // namespace terrier::storage
 
 namespace std {

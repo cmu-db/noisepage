@@ -14,6 +14,7 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
+#include "storage/block_compactor.h"
 
 int main() {
   // initialize loggers
