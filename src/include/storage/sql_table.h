@@ -100,6 +100,10 @@ class SqlTable {
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
+
+    //txn->StageDelete(this, slot);
+    // TODO(Justin): Figure out why this doesn't compile. Something to do with forward
+    //  declaration.
     return table_.data_table->Delete(txn, slot);
   }
 

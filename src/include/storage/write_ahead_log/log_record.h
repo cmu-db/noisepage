@@ -90,9 +90,9 @@ class RedoRecord {
   MEM_REINTERPRETATION_ONLY(RedoRecord)
 
   /**
-   * @return oid of the SQL table this redo is concerned with.
+   * @return pointer to the SqlTable that this Redo is concerned with
    */
-  table_oid_t GetTableOid() const { return table_oid_; }
+  SqlTable *GetSqlTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this redo record
@@ -128,16 +128,16 @@ class RedoRecord {
    * Initialize an entire LogRecord (header included) to have an underlying redo record, using the parameters supplied
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table_oid the oid of the SQL Table this redo is concerned with
+   * @param table the SqlTable that this Redo is concerned with
    * @param tuple_slot the tuple slot changed by this redo record
    * @param initializer the initializer to use for the underlying
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, const table_oid_t table_oid,
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, SqlTable *const table,
                                const TupleSlot tuple_slot, const ProjectedRowInitializer &initializer) {
     LogRecord *result = LogRecord::InitializeHeader(head, LogRecordType::REDO, Size(initializer), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
-    body->table_oid_ = table_oid;
+    body->table_ = table;
     body->tuple_slot_ = tuple_slot;
     initializer.InitializeRow(body->Delta());
     return result;
@@ -148,7 +148,7 @@ class RedoRecord {
   // (varlen? compressed? from an outdated schema?) For now we just assume we can serialize everything out as-is,
   // and the reader still have access to the layout on recovery and can deserialize. This is why we are not
   // just taking an oid.
-  table_oid_t table_oid_;
+  SqlTable *table_;
   TupleSlot tuple_slot_;
   // This needs to be aligned to 8 bytes to ensure the real size of RedoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.
@@ -165,12 +165,6 @@ static_assert(sizeof(RedoRecord) % 8 == 0, "a projected row inside the redo reco
 class DeleteRecord {
  public:
   MEM_REINTERPRETATION_ONLY(DeleteRecord)
-
-  /**
-   * @return oid of the SQL table this delete is concerned with.
-   */
-  table_oid_t GetTableOid() const { return table_oid_; }
-
   /**
    * @return type of record this type of body holds
    */
@@ -187,18 +181,23 @@ class DeleteRecord {
    *
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
-   * @param table_oid the oid of the SQL table this delete is concerned with
+   * @param table the SQL table this delete points to
    * @param slot the tuple slot this delete applies to
    * @return pointer to the initialized log record, always equal in value to the given head
    */
-  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, const table_oid_t table_oid,
+  static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin, SqlTable *const table,
                                TupleSlot slot) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::DELETE, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<DeleteRecord>();
-    body->table_oid_ = table_oid;
+    body->table_ = table;
     body->tuple_slot_ = slot;
     return result;
   }
+
+  /**
+   * @return pointer to the SqlTable that this delete is concerned with
+   */
+  SqlTable *GetSqlTable() const { return table_; }
 
   /**
    * @return the tuple slot changed by this delete record
@@ -206,8 +205,7 @@ class DeleteRecord {
   TupleSlot GetTupleSlot() const { return tuple_slot_; }
 
  private:
-  // TODO(Tianyu): Change to oid maybe?
-  table_oid_t table_oid_;
+  SqlTable *table_;
   TupleSlot tuple_slot_;
 };
 

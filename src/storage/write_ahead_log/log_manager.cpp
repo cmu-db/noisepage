@@ -53,10 +53,11 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      WriteValue(record_body->GetTableOid());
+      auto *sql_table = record_body->GetSqlTable();
+      WriteValue(sql_table->Oid());
 
-      // TODO(Justin): Be careful about how tuple slot is intepreted during real recovery. Right now I think we kind of
-      // sidestep the issue with "bookkeeping".
+      // TODO(Justin): Be careful about how tuple slot is interpreted during real recovery. Right now I think we kind of
+      //  sidestep the issue with "bookkeeping".
       WriteValue(record_body->GetTupleSlot());
 
       auto *delta = record_body->Delta();
@@ -67,11 +68,6 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
 
       // Write out the null bitmap.
       out_.BufferWrite(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
-
-      // WARN: Functionality of getting SqlTable from oid has not been implemented yet!
-      // Assuming we can perform an equivalent lookup at recovery time after reading in the table oid, then we should be
-      // able to recreate the redo record.
-      auto *sql_table = LookupSqlTableFromOid(record_body->GetTableOid());
 
       // We need the block layout to determine the size of each attribute.
       auto *block_layout = sql_table->GetBlockLayout();
@@ -101,7 +97,8 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      WriteValue(record_body->GetTableOid());
+      auto *sql_table = record_body->GetSqlTable();
+      WriteValue(sql_table->Oid());
       WriteValue(record_body->GetTupleSlot());
       break;
     }
