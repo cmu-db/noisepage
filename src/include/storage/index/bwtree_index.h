@@ -4,6 +4,7 @@
 #include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
+#include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
