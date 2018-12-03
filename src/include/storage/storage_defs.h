@@ -145,8 +145,13 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
-
+/**
+ * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
+ */
 using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+/**
+ * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
+ */
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**

@@ -1,7 +1,8 @@
 #include <boost/functional/hash.hpp>
-#include <string>
+#include <cstring>
 
 #include "common/portable_endian.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::storage::index {
@@ -37,7 +38,7 @@ class CompactIntsKey {
 
  private:
   // This is the array we use for storing integers
-  unsigned char key_data[key_size_byte];
+  byte key_data[key_size_byte];
 
  private:
   /*
@@ -49,7 +50,7 @@ class CompactIntsKey {
    * i.e. MOV AX, WORD PTR [data]
    *      XCHG AH, AL
    */
-  inline static uint16_t TwoBytesToBigEndian(uint16_t data) { return htobe16(data); }
+  static uint16_t TwoBytesToBigEndian(const uint16_t data) { return htobe16(data); }
 
   /*
    * FourBytesToBigEndian() - Change 4 bytes to big endian format
@@ -60,71 +61,71 @@ class CompactIntsKey {
    * i.e. MOV EAX, WORD PTR [data]
    *      BSWAP EAX
    */
-  inline static uint32_t FourBytesToBigEndian(uint32_t data) { return htobe32(data); }
+  static uint32_t FourBytesToBigEndian(const uint32_t data) { return htobe32(data); }
 
   /*
    * EightBytesToBigEndian() - Change 8 bytes to big endian format
    *
    * This function uses BSWAP instruction
    */
-  inline static uint64_t EightBytesToBigEndian(uint64_t data) { return htobe64(data); }
+  static uint64_t EightBytesToBigEndian(const uint64_t data) { return htobe64(data); }
 
   /*
    * TwoBytesToHostEndian() - Converts back two byte integer to host byte order
    */
-  inline static uint16_t TwoBytesToHostEndian(uint16_t data) { return be16toh(data); }
+  static uint16_t TwoBytesToHostEndian(const uint16_t data) { return be16toh(data); }
 
   /*
    * FourBytesToHostEndian() - Converts back four byte integer to host byte
    * order
    */
-  inline static uint32_t FourBytesToHostEndian(uint32_t data) { return be32toh(data); }
+  static uint32_t FourBytesToHostEndian(const uint32_t data) { return be32toh(data); }
 
   /*
    * EightBytesToHostEndian() - Converts back eight byte integer to host byte
    * order
    */
-  inline static uint64_t EightBytesToHostEndian(uint64_t data) { return be64toh(data); }
+  static uint64_t EightBytesToHostEndian(const uint64_t data) { return be64toh(data); }
 
   /*
    * ToBigEndian() - Overloaded version for all kinds of integral data types
    */
 
-  inline static uint8_t ToBigEndian(uint8_t data) { return data; }
+  static uint8_t ToBigEndian(const uint8_t data) { return data; }
 
-  inline static uint8_t ToBigEndian(int8_t data) { return static_cast<uint8_t>(data); }
+  static uint8_t ToBigEndian(const int8_t data) { return static_cast<uint8_t>(data); }
 
-  inline static uint16_t ToBigEndian(uint16_t data) { return TwoBytesToBigEndian(data); }
+  static uint16_t ToBigEndian(const uint16_t data) { return TwoBytesToBigEndian(data); }
 
-  inline static uint16_t ToBigEndian(int16_t data) { return TwoBytesToBigEndian(static_cast<uint16_t>(data)); }
+  static uint16_t ToBigEndian(const int16_t data) { return TwoBytesToBigEndian(static_cast<uint16_t>(data)); }
 
-  inline static uint32_t ToBigEndian(uint32_t data) { return FourBytesToBigEndian(data); }
+  static uint32_t ToBigEndian(const uint32_t data) { return FourBytesToBigEndian(data); }
 
-  inline static uint32_t ToBigEndian(int32_t data) { return FourBytesToBigEndian(static_cast<uint32_t>(data)); }
+  static uint32_t ToBigEndian(const int32_t data) { return FourBytesToBigEndian(static_cast<uint32_t>(data)); }
 
-  inline static uint64_t ToBigEndian(uint64_t data) { return EightBytesToBigEndian(data); }
+  static uint64_t ToBigEndian(const uint64_t data) { return EightBytesToBigEndian(data); }
 
-  inline static uint64_t ToBigEndian(int64_t data) { return EightBytesToBigEndian(static_cast<uint64_t>(data)); }
+  static uint64_t ToBigEndian(const int64_t data) { return EightBytesToBigEndian(static_cast<uint64_t>(data)); }
 
   /*
    * ToHostEndian() - Converts big endian data to host format
    */
 
-  static inline uint8_t ToHostEndian(uint8_t data) { return data; }
+  static uint8_t ToHostEndian(const uint8_t data) { return data; }
 
-  static inline uint8_t ToHostEndian(int8_t data) { return static_cast<uint8_t>(data); }
+  static uint8_t ToHostEndian(const int8_t data) { return static_cast<uint8_t>(data); }
 
-  static inline uint16_t ToHostEndian(uint16_t data) { return TwoBytesToHostEndian(data); }
+  static uint16_t ToHostEndian(const uint16_t data) { return TwoBytesToHostEndian(data); }
 
-  static inline uint16_t ToHostEndian(int16_t data) { return TwoBytesToHostEndian(static_cast<uint16_t>(data)); }
+  static uint16_t ToHostEndian(const int16_t data) { return TwoBytesToHostEndian(static_cast<uint16_t>(data)); }
 
-  static inline uint32_t ToHostEndian(uint32_t data) { return FourBytesToHostEndian(data); }
+  static uint32_t ToHostEndian(const uint32_t data) { return FourBytesToHostEndian(data); }
 
-  static inline uint32_t ToHostEndian(int32_t data) { return FourBytesToHostEndian(static_cast<uint32_t>(data)); }
+  static uint32_t ToHostEndian(const int32_t data) { return FourBytesToHostEndian(static_cast<uint32_t>(data)); }
 
-  static inline uint64_t ToHostEndian(uint64_t data) { return EightBytesToHostEndian(data); }
+  static uint64_t ToHostEndian(const uint64_t data) { return EightBytesToHostEndian(data); }
 
-  static inline uint64_t ToHostEndian(int64_t data) { return EightBytesToHostEndian(static_cast<uint64_t>(data)); }
+  static uint64_t ToHostEndian(const int64_t data) { return EightBytesToHostEndian(static_cast<uint64_t>(data)); }
 
   /*
    * SignFlip() - Flips the highest bit of a given integral type
@@ -137,7 +138,7 @@ class CompactIntsKey {
    * not use the sign bit
    */
   template <typename IntType>
-  inline static IntType SignFlip(IntType data) {
+  static IntType SignFlip(IntType data) {
     // This sets 1 on the MSB of the corresponding type
     // NOTE: Must cast 0x1 to the correct type first
     // otherwise, 0x1 is treated as the signed int type, and after leftshifting
@@ -159,12 +160,12 @@ class CompactIntsKey {
   /*
    * ZeroOut() - Sets all bits to zero
    */
-  inline void ZeroOut() { memset(key_data, 0x00, key_size_byte); }
+  void ZeroOut() { TERRIER_MEMSET(key_data, 0x00, key_size_byte); }
 
   /*
    * GetRawData() - Returns the raw data array
    */
-  const unsigned char *GetRawData() const { return key_data; }
+  const byte *GetRawData() const { return key_data; }
 
   /*
    * AddInteger() - Adds a new integer into the compact form
@@ -174,7 +175,7 @@ class CompactIntsKey {
    * Otherwise the result is undefined
    */
   template <typename IntType>
-  inline void AddInteger(IntType data, size_t offset) {
+  void AddInteger(IntType data, size_t offset) {
     IntType sign_flipped = SignFlip<IntType>(data);
 
     // This function always returns the unsigned type
@@ -182,7 +183,7 @@ class CompactIntsKey {
     auto big_endian = ToBigEndian(sign_flipped);
 
     // This will almost always be optimized into single move
-    memcpy(key_data + offset, &big_endian, sizeof(IntType));
+    TERRIER_MEMCPY(key_data + offset, &big_endian, sizeof(IntType));
   }
 
   /*
@@ -192,13 +193,13 @@ class CompactIntsKey {
    *   uint8_t; uint16_t; uint32_t; uint64_t
    */
   template <typename IntType>
-  inline void AddUnsignedInteger(IntType data, size_t offset) {
+  void AddUnsignedInteger(IntType data, size_t offset) {
     // This function always returns the unsigned type
     // so we must use automatic type inference
     auto big_endian = ToBigEndian(data);
 
     // This will almost always be optimized into single move
-    memcpy(key_data + offset, &big_endian, sizeof(IntType));
+    TERRIER_MEMCPY(key_data + offset, &big_endian, sizeof(IntType));
   }
 
   /*
@@ -207,7 +208,7 @@ class CompactIntsKey {
    * This function has the same limitation as stated for AddInteger()
    */
   template <typename IntType>
-  inline IntType GetInteger(size_t offset) const {
+  IntType GetInteger(size_t offset) const {
     const auto *ptr = reinterpret_cast<const IntType *>(key_data + offset);
 
     // This always returns an unsigned number
@@ -222,7 +223,7 @@ class CompactIntsKey {
    * The same constraint about IntType applies
    */
   template <typename IntType>
-  inline IntType GetUnsignedInteger(size_t offset) {
+  IntType GetUnsignedInteger(size_t offset) {
     const IntType *ptr = reinterpret_cast<IntType *>(key_data + offset);
     auto host_endian = ToHostEndian(*ptr);
     return static_cast<IntType>(host_endian);
@@ -234,23 +235,19 @@ class CompactIntsKey {
    * This function has the same semantics as memcmp(). Negative result means
    * less than, positive result means greater than, and 0 means equal
    */
-  static inline int Compare(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
-    return memcmp(a.key_data, b.key_data, CompactIntsKey<KeySize>::key_size_byte);
+  static int Compare(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
+    return std::memcmp(a.key_data, b.key_data, CompactIntsKey<KeySize>::key_size_byte);
   }
 
   /*
    * LessThan() - Returns true if first is less than the second
    */
-  static inline bool LessThan(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
-    return Compare(a, b) < 0;
-  }
+  static bool LessThan(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) < 0; }
 
   /*
    * Equals() - Returns true if first is equivalent to the second
    */
-  static inline bool Equals(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
-    return Compare(a, b) == 0;
-  }
+  static bool Equals(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) == 0; }
 
  public:
   /**
@@ -300,7 +297,7 @@ class CompactIntsKey {
    * to determine the type of the column; another into the tuple to
    * get data
    */
-  //  inline size_t SetFromColumn(oid_t key_column_id, oid_t tuple_column_id, const catalog::Schema *key_schema,
+  //  size_t SetFromColumn(oid_t key_column_id, oid_t tuple_column_id, const catalog::Schema *key_schema,
   //                              const storage::Tuple *tuple, size_t offset) {
   //    // We act depending on the length of integer types
   //    type::TypeId column_type = key_schema->GetColumn(key_column_id).GetType();
@@ -359,7 +356,7 @@ class CompactIntsKey {
    * other column, it is not necessary to specify a vector of object IDs
    * to indicate index column
    */
-  //  inline void SetFromKey(const storage::Tuple *tuple) {
+  //  void SetFromKey(const storage::Tuple *tuple) {
   //    PELOTON_ASSERT(tuple != nullptr);
   //    PELOTON_ASSERT(tuple->GetSchema() != nullptr);
   //
@@ -406,7 +403,7 @@ class CompactIntsKey {
   //   * Argument "indices" maps the key column in the corresponding index to a
   //   * column in the given tuple
   //   */
-  //  inline void SetFromTuple(const storage::Tuple *tuple, const int *indices, const catalog::Schema *key_schema) {
+  //  void SetFromTuple(const storage::Tuple *tuple, const int *indices, const catalog::Schema *key_schema) {
   //    PELOTON_ASSERT(tuple != nullptr);
   //    PELOTON_ASSERT(indices != nullptr);
   //    PELOTON_ASSERT(key_schema != nullptr);
@@ -506,7 +503,7 @@ class CompactIntsComparator {
   /*
    * operator()() - Returns true if lhs < rhs
    */
-  inline bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
     return CompactIntsKey<KeySize>::LessThan(lhs, rhs);
   }
 };
@@ -521,7 +518,7 @@ class CompactIntsEqualityChecker {
   CompactIntsEqualityChecker() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
   CompactIntsEqualityChecker(const CompactIntsEqualityChecker &) = default;
 
-  inline bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
     return CompactIntsKey<KeySize>::Equals(lhs, rhs);
   }
 };
@@ -552,7 +549,7 @@ class CompactIntsHasher {
    * This function hashes integer key using 64 bit chunks. Chunks are
    * accumulated to the hash one by one. Since
    */
-  inline size_t operator()(const CompactIntsKey<KeySize> &p) const {
+  size_t operator()(const CompactIntsKey<KeySize> &p) const {
     size_t seed = 0UL;
     const auto *const ptr = reinterpret_cast<const size_t *const>(p.GetRawData());
 
