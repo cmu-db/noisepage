@@ -60,7 +60,7 @@ namespace terrier::common {
  * @tparam Tag a dummy class type to annotate the underlying type
  * @tparam IntType the underlying type
  */
-template<class Tag, typename IntType>
+template <class Tag, typename IntType>
 class StrongTypeAlias {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
@@ -215,7 +215,7 @@ namespace std {
  * Specialization of StrongTypeAlias for std::atomic<uint32_t>.
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
-template<class Tag, class IntType>
+template <class Tag, class IntType>
 struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
@@ -329,7 +329,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
  * @tparam Tag a dummy class type to annotate the underlying type.
  * @tparam T the underlying type.
  */
-template<class Tag, typename T>
+template <class Tag, typename T>
 struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the hash of the underlying type's contents.
@@ -344,7 +344,7 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
  * @tparam Tag a dummy class type to annotate the underlying type.
  * @tparam T the underlying type.
  */
-template<class Tag, class T>
+template <class Tag, class T>
 struct less<terrier::common::StrongTypeAlias<Tag, T>> {
   /**
    * @param x one value

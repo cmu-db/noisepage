@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include "bwtree/bwtree.h"
+#include "catalog/catalog.h"
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
@@ -59,4 +60,7 @@ int main() {
   // shutdown loggers
   spdlog::shutdown();
   main_stat_reg->Shutdown(false);
+
+  // catalog bootstrap
+  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>();
 }
