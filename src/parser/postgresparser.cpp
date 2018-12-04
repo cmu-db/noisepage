@@ -1100,27 +1100,31 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(CopyStmt *root) {
   ExternalFileFormat format = ExternalFileFormat::CSV;
   char quote = '"';
   char escape = '"';
-  for (ListCell *cell = root->options->head; cell != nullptr; cell = cell->next) {
-    auto def_elem = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+  if (root->options != nullptr) {
+    for (ListCell *cell = root->options->head; cell != nullptr; cell = cell->next) {
+      auto def_elem = reinterpret_cast<DefElem *>(cell->data.ptr_value);
 
-    if (strncmp(def_elem->defname, kFormatTok, sizeof(kFormatTok)) == 0) {
-      auto format_cstr = reinterpret_cast<value *>(def_elem->arg)->val.str;
-      // TODO(WAN): case sensitive?
-      if (strcmp(format_cstr, "CSV") == 0) {
-        format = ExternalFileFormat::CSV;
+      if (strncmp(def_elem->defname, kFormatTok, sizeof(kFormatTok)) == 0) {
+        auto format_cstr = reinterpret_cast<value *>(def_elem->arg)->val.str;
+        // lowercase
+        if (strcmp(format_cstr, "csv") == 0) {
+          format = ExternalFileFormat::CSV;
+        } else if (strcmp(format_cstr, "binary") == 0) {
+          format = ExternalFileFormat::BINARY;
+        }
       }
-    }
 
-    if (strncmp(def_elem->defname, kDelimiterTok, sizeof(kDelimiterTok)) == 0) {
-      delimiter = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
-    }
+      if (strncmp(def_elem->defname, kDelimiterTok, sizeof(kDelimiterTok)) == 0) {
+        delimiter = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
+      }
 
-    if (strncmp(def_elem->defname, kQuoteTok, sizeof(kQuoteTok)) == 0) {
-      quote = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
-    }
+      if (strncmp(def_elem->defname, kQuoteTok, sizeof(kQuoteTok)) == 0) {
+        quote = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
+      }
 
-    if (strncmp(def_elem->defname, kEscapeTok, sizeof(kEscapeTok)) == 0) {
-      escape = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
+      if (strncmp(def_elem->defname, kEscapeTok, sizeof(kEscapeTok)) == 0) {
+        escape = *(reinterpret_cast<value *>(def_elem->arg)->val.str);
+      }
     }
   }
 
@@ -1891,7 +1895,7 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
 std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> PostgresParser::ValueListsTransform(
     List *root) {
-  std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> result;
+  auto result = std::make_unique<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>>();
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
     std::vector<std::shared_ptr<AbstractExpression>> cur_result;
@@ -1923,7 +1927,7 @@ std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> P
         }
       }
     }
-    result->push_back(std::move(cur_result));
+    result->emplace_back(std::move(cur_result));
   }
 
   return result;
@@ -1985,6 +1989,7 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(VacuumStmt *ro
       auto analyze_table = root->relation != nullptr ? RangeVarTransform(root->relation) : nullptr;
       auto analyze_columns = ColumnNameTransform(root->va_cols);
       result = std::make_unique<AnalyzeStatement>(std::move(analyze_table), std::move(analyze_columns));
+      break;
     }
     default: {
       char msg[MAX_EXCEPTION_MSG_LEN];

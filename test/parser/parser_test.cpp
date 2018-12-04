@@ -20,23 +20,6 @@ class ParserTestBase : public TerrierTest {
    */
   void SetUp() override {}
 
-  /*
-  void InitBasicQueries() {
-    // Aggregate
-    queries.emplace_back("SELECT * FROM foo;");
-    queries.emplace_back("SELECT COUNT(*) FROM foo;");
-    queries.emplace_back("SELECT COUNT(DISTINCT id) FROM foo;");
-    queries.emplace_back("SELECT MAX(*) FROM foo;");
-    queries.emplace_back("SELECT MIN(*) FROM foo;");
-
-    // GROUP BY
-    queries.emplace_back("SELECT * FROM foo GROUP BY id,"
-                         "name HAVING id > 10;");
-
-    // queries.emplace_back("");
-  }
-  */
-
   void TearDown() override {
     // cleanup calls here
   }
@@ -49,6 +32,68 @@ class ParserTestBase : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, AnalyzeTest) {
+  auto stmts = pgparser.BuildParseTree("ANALYZE foo;");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::ANALYZE);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CopyTest) {
+  auto stmts = pgparser.BuildParseTree("COPY foo FROM STDIN WITH BINARY;");
+  auto copy_stmt = reinterpret_cast<CopyStatement *>(stmts[0].get());
+  EXPECT_EQ(copy_stmt->GetType(), StatementType::COPY);
+  EXPECT_EQ(copy_stmt->GetExternalFileFormat(), ExternalFileFormat::BINARY);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateTableTest) {
+  std::string query =
+      "CREATE TABLE Foo ("
+      "id INT NOT NULL UNIQUE, "
+      "b VARCHAR(255), "
+      "c INT8, "
+      "d INT2, "
+      "e TIMESTAMP, "
+      "f BOOL, "
+      "g BPCHAR, "
+      "h DOUBLE, "
+      "i REAL, "
+      "j NUMERIC, "
+      "k TEXT, "
+      "l TINYINT, "
+      "m VARBINARY, "
+      "n DATE, "
+      "PRIMARY KEY (id),"
+      "FOREIGN KEY (c_id) REFERENCES country (cid));";
+
+  auto stmts = pgparser.BuildParseTree(query);
+
+  query = "CREATE TABLE Foo (id BAZ, PRIMARY KEY (id));";
+  EXPECT_THROW(pgparser.BuildParseTree(query), parser::NotImplementedException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateViewTest) {
+  auto stmts = pgparser.BuildParseTree("CREATE VIEW foo AS SELECT * FROM bar WHERE baz = 1;");
+  auto create_stmt = reinterpret_cast<CreateStatement *>(stmts[0].get());
+
+  EXPECT_EQ(create_stmt->GetViewName(), "foo");
+  EXPECT_NE(create_stmt->GetViewQuery(), nullptr);
+  auto view_query = create_stmt->GetViewQuery().get();
+  EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "bar");
+  EXPECT_EQ(view_query->GetSelectColumns().size(), 1);
+  EXPECT_NE(view_query->GetSelectCondition(), nullptr);
+  EXPECT_EQ(view_query->GetSelectCondition()->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
+  EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
+  auto left_child = view_query->GetSelectCondition()->GetChild(0);
+  EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left_child.get())->GetColumnName(), "baz");
+  auto right_child = view_query->GetSelectCondition()->GetChild(1);
+  EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue().GetIntValue(), 1);
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropDBTest) {
   auto stmts = pgparser.BuildParseTree("DROP DATABASE test_db;");
   EXPECT_EQ(stmts.size(), 1);
@@ -56,6 +101,28 @@ TEST_F(ParserTestBase, DropDBTest) {
   auto drop_stmt = reinterpret_cast<DropStatement *>(stmts[0].get());
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kDatabase);
   EXPECT_EQ(drop_stmt->GetDatabaseName(), "test_db");
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, DropIndexTest) {
+  auto stmts = pgparser.BuildParseTree("DROP INDEX foo;");
+  EXPECT_EQ(stmts.size(), 1);
+
+  auto drop_stmt = reinterpret_cast<DropStatement *>(stmts[0].get());
+  EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kIndex);
+  EXPECT_EQ(drop_stmt->GetIndexName(), "foo");
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, DropSchemaTest) {
+  auto stmts = pgparser.BuildParseTree("DROP SCHEMA IF EXISTS foo CASCADE;");
+  EXPECT_EQ(stmts.size(), 1);
+
+  auto drop_stmt = reinterpret_cast<DropStatement *>(stmts[0].get());
+  EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSchema);
+  EXPECT_EQ(drop_stmt->GetSchemaName(), "foo");
+  EXPECT_TRUE(drop_stmt->IsCascade());
+  EXPECT_TRUE(drop_stmt->IsIfExists());
 }
 
 // NOLINTNEXTLINE
@@ -68,9 +135,24 @@ TEST_F(ParserTestBase, DropTableTest) {
   EXPECT_EQ(drop_stmt->GetTableName(), "test_db");
 }
 
-/**
- * A basic test for select statements.
- */
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, ExplainTest) {
+  auto stmts = pgparser.BuildParseTree("EXPLAIN SELECT * FROM foo;");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::EXPLAIN);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, GarbageTest) {
+  EXPECT_THROW(pgparser.BuildParseTree("blarglesnarf"), parser::ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree("SELECT;"), parser::ParserException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, InsertTest) {
+  auto stmts = pgparser.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
+  EXPECT_EQ(stmts.size(), 1);
+}
+
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SelectTest) {
   auto stmts = pgparser.BuildParseTree("SELECT * FROM foo;");
@@ -85,9 +167,20 @@ TEST_F(ParserTestBase, SelectTest) {
   EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 }
 
-/**
- * A basic test for TRUNCATE
- */
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, SelectUnionTest) {
+  auto stmts = pgparser.BuildParseTree("SELECT * FROM foo UNION SELECT * FROM bar;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, SubqueryTest) {
+  auto stmts = pgparser.BuildParseTree("SELECT * FROM foo WHERE id IN (SELECT id FROM foo WHERE x > 400)");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+}
+
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, TruncateTest) {
   auto stmts = pgparser.BuildParseTree("TRUNCATE TABLE test_db;");
@@ -106,8 +199,7 @@ TEST_F(ParserTestBase, UpdateTest) {
   EXPECT_EQ(stmts.size(), 1);
   EXPECT_EQ(stmts[0]->GetType(), StatementType::UPDATE);
 
-  auto stmt = std::move(stmts[0]);
-  auto update_stmt = reinterpret_cast<UpdateStatement *>(stmt.get());
+  auto update_stmt = reinterpret_cast<UpdateStatement *>(stmts[0].get());
   EXPECT_EQ(update_stmt->GetUpdateTable()->GetTableName(), "students");
   // check expression here
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);

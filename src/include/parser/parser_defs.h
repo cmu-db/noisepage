@@ -71,9 +71,7 @@ enum class InsertType {
   SELECT = 2                  // select
 };
 
-enum class ExternalFileFormat {
-  CSV,
-};
+enum class ExternalFileFormat { CSV, BINARY };
 
 // CREATE FUNCTION helpers
 
