@@ -12,7 +12,6 @@
 
 namespace terrier::storage {
 class GarbageCollector;
-class SqlTable;
 }
 
 namespace terrier::transaction {
@@ -94,7 +93,7 @@ class TransactionContext {
    * @param initializer the initializer to use for the underlying record
    * @return pointer to the initialized redo record.
    */
-  storage::RedoRecord *StageWrite(storage::SqlTable *const table, const storage::TupleSlot slot,
+  storage::RedoRecord *StageWrite(storage::DataTable *const table, const storage::TupleSlot slot,
                                   const storage::ProjectedRowInitializer &initializer) {
     uint32_t size = storage::RedoRecord::Size(initializer);
     auto *log_record =
@@ -107,7 +106,7 @@ class TransactionContext {
    * @param table the DataTable that this record changes
    * @param slot the slot that this record changes
    */
-  void StageDelete(storage::SqlTable *const table, const storage::TupleSlot slot) {
+  void StageDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     uint32_t size = storage::DeleteRecord::Size();
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
   }

@@ -53,8 +53,8 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      auto *sql_table = record_body->GetSqlTable();
-      WriteValue(sql_table->Oid());
+      auto *data_table = record_body->GetDataTable();
+      WriteValue(data_table->TableOid());
 
       // TODO(Justin): Be careful about how tuple slot is interpreted during real recovery. Right now I think we kind of
       //  sidestep the issue with "bookkeeping".
@@ -70,7 +70,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       out_.BufferWrite(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
 
       // We need the block layout to determine the size of each attribute.
-      auto *block_layout = sql_table->GetBlockLayout();
+      const auto &block_layout = data_table->GetBlockLayout();
       for (uint16_t i = 0; i < delta->NumColumns(); i++) {
         auto *column_value_address = delta->AccessWithNullCheck(i);
         if (column_value_address == nullptr) {
@@ -80,8 +80,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
         }
         col_id_t col_id = delta->ColumnIds()[i];
 
-        // WARN: Checking if a column uses the varlen pool has not been implemented yet!
-        if (sql_table->ColumnUsesVarlenPool(col_id)) {
+        if (block_layout.IsVarlen(col_id)) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
           auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
           // Serialize out the content field of the varlen entry.
@@ -90,15 +89,15 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets
           // of the delta record, we avoid serializing out any potential padding.
-          out_.BufferWrite(column_value_address, block_layout->AttrSize(col_id));
+          out_.BufferWrite(column_value_address, block_layout.AttrSize(col_id));
         }
       }
       break;
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      auto *sql_table = record_body->GetSqlTable();
-      WriteValue(sql_table->Oid());
+      auto *data_table = record_body->GetDataTable();
+      WriteValue(data_table->TableOid());
       WriteValue(record_body->GetTupleSlot());
       break;
     }
