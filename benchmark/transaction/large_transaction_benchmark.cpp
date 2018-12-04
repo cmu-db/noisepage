@@ -2,6 +2,7 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
+#include "storage/access_observer.h"
 #include "util/transaction_benchmark_util.h"
 
 namespace terrier {
@@ -9,7 +10,7 @@ namespace terrier {
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
   void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
+    gc_ = new storage::GarbageCollector(txn_manager, &obs_);
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -29,11 +30,12 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
+  const uint32_t num_concurrent_txns_ = 3;
 
  private:
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
+  storage::AccessObserver obs_{nullptr};
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
 
@@ -170,8 +172,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(3)
-    ->Repetitions(5);
+    ->MinTime(3);
 
 // BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
 //    ->Unit(benchmark::kMillisecond)
@@ -181,16 +182,15 @@ BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)
 // BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementInsert)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
-//    ->MinTime(5);
+//    ->MinTime(3);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(3)
-    ->Repetitions(5);
+    ->MinTime(3);
 
 // BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
-//    ->MinTime(5);
+//    ->MinTime(3);
 }  // namespace terrier

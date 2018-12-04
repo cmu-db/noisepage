@@ -14,7 +14,6 @@ class TransactionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
-
 // clang-format off
 #define DataTableCounterMembers(f) \
   f(uint64_t, NumSelect) \

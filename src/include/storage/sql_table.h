@@ -186,9 +186,6 @@ class SqlTable {
   const catalog::table_oid_t oid_;
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
-  // TODO(Tianyu): should we keep this?
-  // keep a (read-only) list of all the varlen col_ids for fast access by log manager, block compactor and gc
-  const std::vector<col_id_t> varlens_;
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap

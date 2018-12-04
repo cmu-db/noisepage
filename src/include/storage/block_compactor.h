@@ -83,7 +83,7 @@ class BlockCompactor {
   }
 
   bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) {
-    
+    return false;
   }
 
   std::forward_list<std::pair<RawBlock *, DataTable *>> compaction_queue_;

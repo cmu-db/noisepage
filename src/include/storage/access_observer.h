@@ -30,7 +30,7 @@ class AccessObserver {
   // cold blocks given current epoch and some threshold for a block to be cold.
   std::map<uint64_t, std::unordered_map<RawBlock *, DataTable *>> table_references_by_epoch_;
   std::unordered_set<RawBlock *> no_longer_insertable_;
-  BlockCompactor *const compactor_;
+  volatile int foo = 0;
+  BlockCompactor *const compactor_ UNUSED_ATTRIBUTE;
 };
-
 }  // namespace terrier::storage

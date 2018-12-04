@@ -104,7 +104,7 @@ class Schema {
    * @return description of this SQL table's schema as a collection of Columns
    */
   const std::vector<Column> &GetColumns() const { return columns_; }
-
+  
  private:
   const std::vector<Column> columns_;
 };
