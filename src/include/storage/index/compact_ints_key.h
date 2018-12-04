@@ -30,7 +30,7 @@ namespace terrier::storage::index {
  * Note: CompactIntsKey should always be aligned to 64 bit boundaries; There
  * are static assertion to enforce this rule
  */
-template <size_t KeySize>
+template <uint8_t KeySize>
 class CompactIntsKey {
  public:
   // This is the actual byte size of the key
@@ -153,7 +153,7 @@ class CompactIntsKey {
    * Constructor
    */
   CompactIntsKey() {
-    TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots.");
+    TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size.");
     ZeroOut();
   }
 
@@ -176,7 +176,7 @@ class CompactIntsKey {
    */
   template <typename IntType>
   void AddInteger(IntType data, size_t offset) {
-    IntType sign_flipped = SignFlip<IntType>(data);
+    auto sign_flipped = SignFlip<IntType>(data);
 
     // This function always returns the unsigned type
     // so we must use automatic type inference
