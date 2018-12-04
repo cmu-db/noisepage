@@ -1,11 +1,15 @@
 #include <boost/functional/hash.hpp>
 #include <cstring>
+#include <vector>
 
 #include "common/portable_endian.h"
+#include "storage/projected_row.h"
 #include "storage/storage_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::storage::index {
+
+template <uint8_t KeySize>
+class CompactIntsHasher;
 
 // This is the maximum number of 8-byte slots that we will pack into a single
 // CompactIntsKey template. You should not instantiate anything with more than this
@@ -32,15 +36,15 @@ namespace terrier::storage::index {
  */
 template <uint8_t KeySize>
 class CompactIntsKey {
- public:
+ private:
+  friend class CompactIntsHasher<KeySize>;
+
   // This is the actual byte size of the key
   static constexpr size_t key_size_byte = KeySize * 8UL;
 
- private:
   // This is the array we use for storing integers
   byte key_data[key_size_byte];
 
- private:
   /*
    * TwoBytesToBigEndian() - Change 2 bytes to big endian
    *
@@ -148,15 +152,6 @@ class CompactIntsKey {
     return data ^ mask;
   }
 
- public:
-  /*
-   * Constructor
-   */
-  CompactIntsKey() {
-    TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size.");
-    ZeroOut();
-  }
-
   /*
    * ZeroOut() - Sets all bits to zero
    */
@@ -166,6 +161,124 @@ class CompactIntsKey {
    * GetRawData() - Returns the raw data array
    */
   const byte *GetRawData() const { return key_data; }
+
+  /*
+   * GetInteger() - Extracts an integer from the given offset
+   *
+   * This function has the same limitation as stated for AddInteger()
+   */
+  template <typename IntType>
+  IntType GetInteger(size_t offset) const {
+    const auto *ptr = reinterpret_cast<const IntType *>(key_data + offset);
+
+    // This always returns an unsigned number
+    auto host_endian = ToHostEndian(*ptr);
+
+    return SignFlip<IntType>(static_cast<IntType>(host_endian));
+  }
+
+  /*
+   * GetUnsignedInteger() - Extracts an unsigned integer from the given offset
+   *
+   * The same constraint about IntType applies
+   */
+  template <typename IntType>
+  IntType GetUnsignedInteger(size_t offset) {
+    const IntType *ptr = reinterpret_cast<IntType *>(key_data + offset);
+    auto host_endian = ToHostEndian(*ptr);
+    return static_cast<IntType>(host_endian);
+  }
+
+  /*
+   * SetFromColumn() - Sets the value of a column into a given offset of
+   *                   this ints key
+   *
+   * This function returns a size_t which is the next starting offset.
+   *
+   * Note: Two column IDs are needed - one into the key schema which is used
+   * to determine the type of the column; another into the tuple to
+   * get data
+   */
+
+  void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
+                              const uint8_t attr_size, uint8_t *offset) {
+    const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
+    // TODO(Matt): this assertion may not stay true forever
+    TERRIER_ASSERT(stored_attr != nullptr, "Should not be trying to index a nullable attribute.");
+    switch (attr_size) {
+      case sizeof(int8_t): {
+        int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
+        AddInteger<int8_t>(data, offset);
+        *offset += sizeof(data);
+        break;
+      }
+      case sizeof(int16_t): {
+        int16_t data = *reinterpret_cast<const int16_t *>(stored_attr);
+        AddInteger<int16_t>(data, offset);
+        *offset += sizeof(data);
+        break;
+      }
+      case sizeof(int32_t): {
+        int32_t data = *reinterpret_cast<const int32_t *>(stored_attr);
+        AddInteger<int32_t>(data, offset);
+        *offset += sizeof(data);
+        break;
+      }
+      case sizeof(int64_t): {
+        int64_t data = *reinterpret_cast<const int64_t *>(stored_attr);
+        AddInteger<int64_t>(data, offset);
+        *offset += sizeof(data);
+        break;
+      }
+      default:
+        // Invalid attr size
+        throw std::runtime_error("Invalid key write value");
+    }
+  }
+
+ public:
+  /*
+   * Constructor
+   */
+  CompactIntsKey() {
+    TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size.");
+    ZeroOut();
+  }
+
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
+                           const std::vector<uint16_t> &attr_offsets) {
+    TERRIER_ASSERT(attr_sizes.size() == attr_offsets.size(), "attr_sizes and attr_offsets must be equal in size.");
+    TERRIER_ASSERT(attr_sizes.size() > 0, "attr_sizes has too few values.");
+    TERRIER_ASSERT(attr_sizes.size() <= INTSKEY_MAX_SLOTS, "attr_sizes has too many values for this type.");
+    TERRIER_ASSERT(attr_sizes.size() <= from.NumColumns(), "Key cannot have more attributes than the ProjectedRow.");
+    ZeroOut();
+
+    uint8_t offset = 0;
+    for (uint8_t i = 0; i < attr_offsets.size(); i++) {
+      CopyAttrFromProjection(from, attr_offsets[i], attr_sizes[i], offset);
+      TERRIER_ASSERT(offset <= key_size_byte, "offset went out of bounds");
+    }
+  }
+
+  /*
+   * Compare() - Compares two IntsType object of the same length
+   *
+   * This function has the same semantics as memcmp(). Negative result means
+   * less than, positive result means greater than, and 0 means equal
+   */
+  static int Compare(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
+    return std::memcmp(a.key_data, b.key_data, CompactIntsKey<KeySize>::key_size_byte);
+  }
+
+  /*
+   * LessThan() - Returns true if first is less than the second
+   */
+  static bool LessThan(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) < 0; }
+
+  /*
+   * Equals() - Returns true if first is equivalent to the second
+   */
+  static bool Equals(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) == 0; }
 
   /*
    * AddInteger() - Adds a new integer into the compact form
@@ -201,300 +314,12 @@ class CompactIntsKey {
     // This will almost always be optimized into single move
     TERRIER_MEMCPY(key_data + offset, &big_endian, sizeof(IntType));
   }
-
-  /*
-   * GetInteger() - Extracts an integer from the given offset
-   *
-   * This function has the same limitation as stated for AddInteger()
-   */
-  template <typename IntType>
-  IntType GetInteger(size_t offset) const {
-    const auto *ptr = reinterpret_cast<const IntType *>(key_data + offset);
-
-    // This always returns an unsigned number
-    auto host_endian = ToHostEndian(*ptr);
-
-    return SignFlip<IntType>(static_cast<IntType>(host_endian));
-  }
-
-  /*
-   * GetUnsignedInteger() - Extracts an unsigned integer from the given offset
-   *
-   * The same constraint about IntType applies
-   */
-  template <typename IntType>
-  IntType GetUnsignedInteger(size_t offset) {
-    const IntType *ptr = reinterpret_cast<IntType *>(key_data + offset);
-    auto host_endian = ToHostEndian(*ptr);
-    return static_cast<IntType>(host_endian);
-  }
-
-  /*
-   * Compare() - Compares two IntsType object of the same length
-   *
-   * This function has the same semantics as memcmp(). Negative result means
-   * less than, positive result means greater than, and 0 means equal
-   */
-  static int Compare(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
-    return std::memcmp(a.key_data, b.key_data, CompactIntsKey<KeySize>::key_size_byte);
-  }
-
-  /*
-   * LessThan() - Returns true if first is less than the second
-   */
-  static bool LessThan(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) < 0; }
-
-  /*
-   * Equals() - Returns true if first is equivalent to the second
-   */
-  static bool Equals(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) == 0; }
-
- public:
-  /**
-   * Prints the content of this key.
-   *
-   * IMPORTANT: This class should <b>not</b> override Printable
-   * because that adds an extra 8 bytes and it makes all the math
-   * above for doing fast comparisons fail.
-   *
-   * @return
-   */
-  //  const std::string GetInfo() const {
-  //    std::ostringstream os;
-  //    os << "CompactIntsKey<" << KeySize << "> - " << key_size_byte << " bytes" << std::endl;
-  //
-  //    // This is the current offset we are on printing the key
-  //    size_t offset = 0;
-  //    while (offset < key_size_byte) {
-  //      constexpr int byte_per_line = 16;
-  //      os << StringUtil::Format("0x%.8X    ", offset);
-  //
-  //      for (int i = 0; i < byte_per_line; i++) {
-  //        if (offset >= key_size_byte) {
-  //          break;
-  //        }
-  //        os << StringUtil::Format("%.2X ", key_data[offset]);
-  //        // Add a delimiter on the 8th byte
-  //        if (i == 7) {
-  //          os << "   ";
-  //        }
-  //        offset++;
-  //      }  // FOR
-  //      os << std::endl;
-  //    }  // WHILE
-  //
-  //    return (os.str());
-  //  }
-
- private:
-  /*
-   * SetFromColumn() - Sets the value of a column into a given offset of
-   *                   this ints key
-   *
-   * This function returns a size_t which is the next starting offset.
-   *
-   * Note: Two column IDs are needed - one into the key schema which is used
-   * to determine the type of the column; another into the tuple to
-   * get data
-   */
-  //  size_t SetFromColumn(oid_t key_column_id, oid_t tuple_column_id, const catalog::Schema *key_schema,
-  //                              const storage::Tuple *tuple, size_t offset) {
-  //    // We act depending on the length of integer types
-  //    type::TypeId column_type = key_schema->GetColumn(key_column_id).GetType();
-  //
-  //    switch (column_type) {
-  //      case type::TypeId::BIGINT: {
-  //        int64_t data = tuple->GetInlinedDataOfType<int64_t>(tuple_column_id);
-  //
-  //        AddInteger<int64_t>(data, offset);
-  //        offset += sizeof(data);
-  //
-  //        break;
-  //      }
-  //      case type::TypeId::INTEGER: {
-  //        int32_t data = tuple->GetInlinedDataOfType<int32_t>(tuple_column_id);
-  //
-  //        AddInteger<int32_t>(data, offset);
-  //        offset += sizeof(data);
-  //
-  //        break;
-  //      }
-  //      case type::TypeId::SMALLINT: {
-  //        int16_t data = tuple->GetInlinedDataOfType<int16_t>(tuple_column_id);
-  //
-  //        AddInteger<int16_t>(data, offset);
-  //        offset += sizeof(data);
-  //
-  //        break;
-  //      }
-  //      case type::TypeId::TINYINT: {
-  //        int8_t data = tuple->GetInlinedDataOfType<int8_t>(tuple_column_id);
-  //
-  //        AddInteger<int8_t>(data, offset);
-  //        offset += sizeof(data);
-  //
-  //        break;
-  //      }
-  //      default: {
-  //        throw IndexException(
-  //            "We currently only support a specific set of "
-  //            "column index sizes...");
-  //        break;
-  //      }  // default
-  //    }    // switch
-  //
-  //    return offset;
-  //  }
-
-  // The next are functions specific to Peloton
- public:
-  /*
-   * SetFromKey() - Sets the compact internal storage from a tuple
-   *                only comtaining key columns
-   *
-   * Since we assume this tuple only contains key columns and there is no
-   * other column, it is not necessary to specify a vector of object IDs
-   * to indicate index column
-   */
-  //  void SetFromKey(const storage::Tuple *tuple) {
-  //    PELOTON_ASSERT(tuple != nullptr);
-  //    PELOTON_ASSERT(tuple->GetSchema() != nullptr);
-  //
-  //    // Must clear previous result first
-  //    ZeroOut();
-  //
-  //    // This returns schema of the tuple
-  //    // Note that the schema must contain only integral type
-  //    const catalog::Schema *key_schema = tuple->GetSchema();
-  //
-  //    // Need this to loop through columns
-  //    oid_t column_count = key_schema->GetColumnCount();
-  //
-  //    // Use this to arrange bytes into the key
-  //    size_t offset = 0;
-  //
-  //    // **************************************************************
-  //    // NOTE: Avoid using tuple->GetValue()
-  //    // Because here what we need is:
-  //    //   (1) Type of the column;
-  //    //   (2) Integer value
-  //    // The former could be obtained in the schema, and the last is directly
-  //    // available from the inlined tuple data
-  //    // **************************************************************
-  //
-  //    // Loop from most significant column to least significant column
-  //    for (oid_t column_id = 0; column_id < column_count; column_id++) {
-  //      offset = SetFromColumn(column_id, column_id, key_schema, tuple, offset);
-  //
-  //      // We could either have it just after the array or inside the array
-  //      PELOTON_ASSERT(offset <= key_size_byte);
-  //    }
-  //
-  //    return;
-  //  }
-  //
-  //  /*
-  //   * SetFromTuple() - Sets an integer key from a tuple which contains a super
-  //   *                  set of columns
-  //   *
-  //   * We need an extra parameter telling us the subset of columns we would like
-  //   * include into the key.
-  //   *
-  //   * Argument "indices" maps the key column in the corresponding index to a
-  //   * column in the given tuple
-  //   */
-  //  void SetFromTuple(const storage::Tuple *tuple, const int *indices, const catalog::Schema *key_schema) {
-  //    PELOTON_ASSERT(tuple != nullptr);
-  //    PELOTON_ASSERT(indices != nullptr);
-  //    PELOTON_ASSERT(key_schema != nullptr);
-  //
-  //    ZeroOut();
-  //
-  //    oid_t column_count = key_schema->GetColumnCount();
-  //    size_t offset = 0;
-  //
-  //    for (oid_t key_column_id = 0; key_column_id < column_count; key_column_id++) {
-  //      // indices array maps key column to tuple column
-  //      // and it must have the same length as key schema
-  //      oid_t tuple_column_id = indices[key_column_id];
-  //
-  //      offset = SetFromColumn(key_column_id, tuple_column_id, key_schema, tuple, offset);
-  //      PELOTON_ASSERT(offset <= key_size_byte);
-  //    }
-  //
-  //    return;
-  //  }
-
-  /*
-   * GetTupleForComparison() - Returns a tuple object for comparing function
-   *
-   * Given a schema we extract all fields from the compact integer key
-   */
-  //  const storage::Tuple GetTupleForComparison(const catalog::Schema *key_schema) const {
-  //    PELOTON_ASSERT(key_schema != nullptr);
-  //
-  //    size_t offset = 0;
-  //    // Yes the tuple has an allocated chunk of memory and is not just a wrapper
-  //    storage::Tuple tuple(key_schema, true);
-  //    oid_t column_count = key_schema->GetColumnCount();
-  //
-  //    for (oid_t column_id = 0; column_id < column_count; column_id++) {
-  //      type::TypeId column_type = key_schema->GetColumn(column_id).GetType();
-  //
-  //      switch (column_type) {
-  //        case type::TypeId::BIGINT: {
-  //          int64_t data = GetInteger<int64_t>(offset);
-  //
-  //          tuple.SetValue(column_id, type::ValueFactory::GetBigIntValue(data));
-  //
-  //          offset += sizeof(data);
-  //
-  //          break;
-  //        }
-  //        case type::TypeId::INTEGER: {
-  //          int32_t data = GetInteger<int32_t>(offset);
-  //
-  //          tuple.SetValue(column_id, type::ValueFactory::GetIntegerValue(data));
-  //
-  //          offset += sizeof(data);
-  //
-  //          break;
-  //        }
-  //        case type::TypeId::SMALLINT: {
-  //          int16_t data = GetInteger<int16_t>(offset);
-  //
-  //          tuple.SetValue(column_id, type::ValueFactory::GetSmallIntValue(data));
-  //
-  //          offset += sizeof(data);
-  //
-  //          break;
-  //        }
-  //        case type::TypeId::TINYINT: {
-  //          int8_t data = GetInteger<int8_t>(offset);
-  //
-  //          tuple.SetValue(column_id, type::ValueFactory::GetTinyIntValue(data));
-  //
-  //          offset += sizeof(data);
-  //
-  //          break;
-  //        }
-  //        default: {
-  //          throw IndexException(
-  //              "We currently only support a specific set of "
-  //              "column index sizes...");
-  //          break;
-  //        }
-  //      }  // switch
-  //    }    // for
-  //
-  //    return tuple;
-  //  }
 };
 
 /*
  * class CompactIntsComparator - Compares two compact integer key
  */
-template <size_t KeySize>
+template <uint8_t KeySize>
 class CompactIntsComparator {
  public:
   CompactIntsComparator() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
@@ -512,7 +337,7 @@ class CompactIntsComparator {
  * class CompactIntsEqualityChecker - Compares whether two integer keys are
  *                                    equivalent
  */
-template <size_t KeySize>
+template <uint8_t KeySize>
 class CompactIntsEqualityChecker {
  public:
   CompactIntsEqualityChecker() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
@@ -529,7 +354,7 @@ class CompactIntsEqualityChecker {
  * This function assumes the length of the integer key is always multiples
  * of 64 bits (8 byte word).
  */
-template <size_t KeySize>
+template <uint8_t KeySize>
 class CompactIntsHasher {
  public:
   // Emphasize here that we want a 8 byte aligned object
