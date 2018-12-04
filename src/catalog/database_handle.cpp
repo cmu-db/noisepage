@@ -7,11 +7,4 @@
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::catalog {
-
-std::shared_ptr<DatabaseHandle> pg_database;
-
-DatabaseHandle::DatabaseHandle() {}
-
-void DatabaseHandle::BootStrap() {}
-}  // namespace terrier::catalog
+namespace terrier::catalog {}  // namespace terrier::catalog

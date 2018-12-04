@@ -17,8 +17,8 @@ std::atomic<uint32_t> oid_counter(0);
  * 3) insert terrier into pg_database, catalog tables into pg_table
  */
 Catalog::Catalog() {
-  LOG_INFO("Initializing catalog");
-  LOG_INFO("Creating pg_database ..");
+  LOG_INFO("Initializing catalog ...");
+  LOG_INFO("Creating pg_database table ..,");
   // need to create schema
   // pg_database has {oid, datname}
   table_oid_t pg_database_oid(oid_counter);
@@ -56,7 +56,7 @@ void Catalog::Bootstrap() {
 
   // create a projected row
 
-  // need a block layout
+  // get the block layout and a map from col_oid_t => col_id_t
   auto layout_pair = storage::StorageUtil::BlockLayoutFromSchema(Schema(cols_));
 
   // get col_id_t for the first column
@@ -73,7 +73,7 @@ void Catalog::Bootstrap() {
   byte *row_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
   storage::ProjectedRow *insert = initializer.InitializeRow(row_buffer);
 
-  //fill in the first attribute
+  // fill in the first attribute
   byte *first = insert->AccessForceNotNull(0);
   (*reinterpret_cast<uint32_t *>(first)) = oid_counter++;
 

@@ -16,7 +16,9 @@ class Catalog {
 
   void Bootstrap();
 
-  DatabaseHandle &GetDatabase(oid_t db_oid) { return db_map_[db_oid]; };
+  DatabaseHandle GetDatabase(transaction::TransactionContext *const txn,
+                             oid_t db_oid){// TODO: don't know how to do select
+                                           pg_database_->Select(txn, )};
 
   // Deconstruct the catalog database when destroying the catalog.
   ~Catalog() {
@@ -24,15 +26,13 @@ class Catalog {
   };
 
  private:
+  // block store to use
+  storage::BlockStore block_store_{100, 100};
+
   // need to create an actual table;
   // the schema for the pg_database;
   std::vector<Schema::Column> cols_;
-  storage::BlockStore block_store_{100, 100};
   storage::SqlTable *pg_database_;
-
-  // key: database oid
-  // value: database handlers
-  std::unordered_map<oid_t, DatabaseHandle> db_map_;
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;
