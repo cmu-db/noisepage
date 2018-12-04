@@ -248,7 +248,7 @@ class CompactIntsKey {
   void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
                            const std::vector<uint16_t> &attr_offsets) {
     TERRIER_ASSERT(attr_sizes.size() == attr_offsets.size(), "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() > 0, "attr_sizes has too few values.");
+    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
     TERRIER_ASSERT(attr_sizes.size() <= INTSKEY_MAX_SLOTS, "attr_sizes has too many values for this type.");
     TERRIER_ASSERT(attr_sizes.size() <= from.NumColumns(), "Key cannot have more attributes than the ProjectedRow.");
     ZeroOut();
