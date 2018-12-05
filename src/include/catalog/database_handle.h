@@ -12,7 +12,7 @@ class DatabaseHandle {
     DatabaseEntry(transaction::TransactionContext *txn, oid_t oid, storage::ProjectedRow *row)
         : txn_(txn), oid_(oid), row_(row){};
 
-    //    byte *GetValue(col_oid_t col){
+    //    byte *GetValue(col_oid_t col) {
     //
     //    }
 
@@ -27,35 +27,30 @@ class DatabaseHandle {
 
   // std::vector<NameSpaceHandle> GetNameSpaceHandles(oid_t ns_oid);
 
-  std::vector<DatabaseEntry> GetDatabaseEntries(transaction::TransactionContext *txn) {
-    std::vector<DatabaseEntry> results;
-    // get an initializer
-    // get the block layout and a map from col_oid_t => col_id_t
-    Schema schema = pg_database_->GetSchema();
-    auto layout_pair = storage::StorageUtil::BlockLayoutFromSchema(schema);
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, oid_t oid) {
+    // Each database handle can only see entry with the same oid
+    if (oid_ != oid) return nullptr;
 
-    // get all the
-    auto cols = schema.GetColumns();
-    std::vector<storage::col_id_t> col_ids;
-    for (auto &col : cols) {
-      col_ids.emplace_back(layout_pair.second[col.GetOid()]);
+    // TODO: we can cache this
+    // create columns
+    std::vector<col_oid_t> cols;
+    for (auto &c : pg_database_->GetSchema().GetColumns()) {
+      cols.emplace_back(c.GetOid());
     }
-    // get an initializer
-    storage::ProjectedRowInitializer initializer(layout_pair.first, col_ids);
-    // get a read_buffer
-    auto read_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    storage::ProjectedRow *read = initializer.InitializeRow(read_buffer);
+    auto row_pair = pg_database_->InitializerForProjectedRow(cols);
+
+    auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+    storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
 
     // try to get the row
     auto tuple_iter = pg_database_->begin();
     for (; tuple_iter != pg_database_->end(); tuple_iter++) {
       pg_database_->Select(txn, *tuple_iter, read);
-      if ((*reinterpret_cast<oid_t *>(read->AccessForceNotNull(0))) == oid_) {
-        results.emplace_back(txn, oid_, read);
+      if ((*reinterpret_cast<oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
+        return std::shared_ptr<DatabaseEntry>(new DatabaseEntry(txn, oid_, read));
       }
     }
-    TERRIER_ASSERT(results.size() == 1, "Should get only one database entry");
-    return results;
+    return nullptr;
   };
 
  private:
