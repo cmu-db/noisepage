@@ -33,6 +33,10 @@ class TransactionContext {
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
+
+  ~TransactionContext() {
+    for (byte *ptr : loose_ptrs_) delete[] ptr;
+  }
   /**
    * @return start time of this transaction
    */
@@ -118,5 +122,7 @@ class TransactionContext {
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
+  // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
+  std::vector<byte *> loose_ptrs_;
 };
 }  // namespace terrier::transaction

@@ -77,7 +77,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
-        all_unlinked = all_unlinked && UnlinkUndoRecord(txn, &undo_record);
+        all_unlinked = all_unlinked && ProcessUndoRecord(txn, &undo_record);
       }
       if (all_unlinked) {
         // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
@@ -103,6 +103,21 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   return txns_processed;
 }
 
+bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn,
+                                         UndoRecord *const undo_record) const {
+  DataTable *&table = undo_record->Table();
+  // if this UndoRecord has already been processed, we can skip it
+  if (table == nullptr) return true;
+  // no point in trying to reclaim slots or do any further operation if cannot safely unlink
+  if (!UnlinkUndoRecord(txn, undo_record)) return false;
+  // This is guaranteed to succeed
+  ReclaimSlotIfDeleted(undo_record);
+  ReclaimBufferIfVarlen(txn, undo_record);
+  // mark the record as fully processed
+  table = nullptr;
+  return true;
+}
+
 bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
                                         UndoRecord *const undo_record) const {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
@@ -121,11 +136,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
 
   if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
     // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
-      // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
-      undo_record->Table() = nullptr;
-      return true;
-    }
+    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) return true;
     // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   }
@@ -147,8 +158,6 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   if (transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
     // Update the next pointer to unlink the UndoRecord
     curr->Next().store(next->Next().load());
-    // Mark this UndoRecord as unlinked from the version chain by setting the table pointer to nullptr.
-    undo_record->Table() = nullptr;
     return true;
   }
 
@@ -157,4 +166,37 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   return false;
 }
 
+void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
+  if (undo_record->Type() == DeltaRecordType::DELETE)
+    undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
+}
+
+void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn,
+                                             UndoRecord *undo_record) const {
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  switch (undo_record->Type()) {
+    case DeltaRecordType::INSERT:return; // no possibility of outdated varlen to gc
+    case DeltaRecordType::DELETE:
+      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
+      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
+        col_id_t col_id(i);
+        // Okay to include version vector, as it is never varlen
+        if (layout.IsVarlen(col_id)) {
+          byte *field = accessor.AccessWithNullCheck(undo_record->Slot(), col_id);
+          if (field != nullptr) txn->loose_ptrs_.push_back(*reinterpret_cast<byte **>(field));
+        }
+      }
+      break;
+    case DeltaRecordType::UPDATE:
+      // TODO(Tianyu): This might be a really bad idea for large deltas...
+      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+        if (layout.IsVarlen(col_id)) {
+          byte *field = undo_record->Delta()->AccessWithNullCheck(i);
+          if (field != nullptr) txn->loose_ptrs_.push_back(*reinterpret_cast<byte **>(field));
+        }
+      }
+  }
+}
 }  // namespace terrier::storage
