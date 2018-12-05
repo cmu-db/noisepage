@@ -11,7 +11,7 @@ extern std::atomic<uint32_t> oid_counter;
 class Catalog {
  public:
   // Global Singleton
-  Catalog();
+  Catalog(transaction::TransactionManager *txn_manager);
 
   void Bootstrap();
 
@@ -21,6 +21,7 @@ class Catalog {
   ~Catalog() = default;
 
  private:
+  transaction::TransactionManager *txn_manager_;
   // block store to use
   storage::BlockStore block_store_{100, 100};
 

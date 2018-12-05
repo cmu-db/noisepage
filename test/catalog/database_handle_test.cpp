@@ -10,11 +10,10 @@ namespace terrier {
 struct DatabaseHandleTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
-    catalog_ = new catalog::Catalog();
-    // bootstrap catalog
-    catalog_->Bootstrap();
     // create a fake transaction
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, nullptr);
+    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
+
+    catalog_ = new catalog::Catalog(txn_manager_);
   }
 
   void TearDown() override {
@@ -39,7 +38,7 @@ TEST_F(DatabaseHandleTests, DatabaseEntryTest) {
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   EXPECT_TRUE(db_entry_ptr != nullptr);
 
-  // db_entry_ptr->
+  delete txn_;
 }
 
 }  // namespace terrier
