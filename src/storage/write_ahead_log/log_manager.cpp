@@ -41,15 +41,18 @@ void LogManager::Flush() {
 }
 
 void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
+  // First, serialize out fields common across all LogRecordType's.
+
   // Note: This is the in-memory size of the log record itself, i.e. inclusive of padding and not considering the size
   // of any potential varlen entries. It is logically different from the size of the serialized record, which the log
-  // manager generates in this function. In particular, these are values are very likely to differ when the
+  // manager generates in this function. In particular, the later value is very likely to be strictly smaller when the
   // LogRecordType is REDO. On recovery, the goal is to turn the serialized format back into an in-memory log record of
   // this size.
   WriteValue(record.Size());
 
   WriteValue(record.RecordType());
   WriteValue(record.TxnBegin());
+
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();

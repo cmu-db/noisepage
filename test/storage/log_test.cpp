@@ -152,8 +152,10 @@ class WriteAheadLoggingTests : public TerrierTest {
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  LargeTransactionTestObject tested(5, 1, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
+  // There are 5 columns. The table has 10 rows. Each transaction does 5 operations. The update-select ratio of
+  // operations is 50%-50%.
+  LargeTransactionTestObject tested(5, 10, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true,
+                                    &log_manager_);
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
