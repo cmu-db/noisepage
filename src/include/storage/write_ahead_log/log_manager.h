@@ -88,6 +88,5 @@ class LogManager {
   void WriteValue(const T &val) {
     out_.BufferWrite(&val, sizeof(T));
   }
-
 };
 }  // namespace terrier::storage

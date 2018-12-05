@@ -100,10 +100,6 @@ class SqlTable {
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
-
-    //txn->StageDelete(this, slot);
-    // TODO(Justin): Figure out why this doesn't compile. Something to do with forward
-    //  declaration.
     return table_.data_table->Delete(txn, slot);
   }
 
@@ -183,15 +179,6 @@ class SqlTable {
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
-  }
-
-  // TODO(Justin): Implement this!
-  bool ColumnUsesVarlenPool(col_id_t col_id) const {
-    return false;
-  }
-
-  const BlockLayout *GetBlockLayout() {
-    return &(table_.layout);
   }
 
  private:

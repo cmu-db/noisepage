@@ -1,5 +1,6 @@
-#include <unordered_map>
 #include <storage/varlen_pool.h>
+#include <unordered_map>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
@@ -41,7 +42,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     delete gc_;
   }
 
- storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout& block_layout) {
+  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     // TODO(Justin): Fit this to new serialization format after it is complete.
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
@@ -99,7 +100,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen entry of this many bytes.
-        auto* varlen_entry = varlen_pool_.Allocate(varlen_attribute_size);
+        auto *varlen_entry = varlen_pool_.Allocate(varlen_attribute_size);
         // Fill the entry with the next bytes from the log file.
         in->Read(varlen_entry->content_, varlen_entry->size_);
         // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
@@ -163,13 +164,13 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  const auto& block_layout = tested.Layout();
+  const auto &block_layout = tested.Layout();
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
-      // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTranasctionTest
-      // harness probably needs some refactor (later after wal is in)
-      // This the initial setup transaction
+      // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
+      //  harness probably needs some refactor (later after wal is in).
+      // This the initial setup transaction.
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
@@ -191,7 +192,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       // bookkeeping turned on
       auto *redo = log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
       // TODO(Tianyu): The DataTable field cannot be recreated from oid_t yet (we also don't really have oids),
-      // so we are not checking it
+      //  so we are not checking it.
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), update_it->second, redo->Delta()));
