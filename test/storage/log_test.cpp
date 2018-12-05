@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <storage/varlen_pool.h>
 
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
@@ -40,39 +41,90 @@ class WriteAheadLoggingTests : public TerrierTest {
     delete gc_;
   }
 
-  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in) {
-   return nullptr;
+ storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout& block_layout) {
     // TODO(Justin): Fit this to new serialization format after it is complete.
-//    auto size = in->ReadValue<uint32_t>();
-//    byte *buf = common::AllocationUtil::AllocateAligned(size);
-//    auto record_type = in->ReadValue<storage::LogRecordType>();
-//    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
-//    if (record_type == storage::LogRecordType::COMMIT) {
-//      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
-//      // Okay to fill in null since nobody will invoke the callback.
-//      // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
-//      // not read-only.
-//      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
-//    }
-//    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
-//    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();
-//    auto tuple_slot = in->ReadValue<storage::TupleSlot>();
-//    auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
-//                                                         // TODO(Tianyu): Hacky as hell
-//                                                         nullptr, tuple_slot);
-//    // TODO(Tianyu): For now, without inlined attributes, the delta portion is a straight memory copy. This
-//    // will obviously change in the future. Also, this is hacky as hell
-//    auto delta_size = in->ReadValue<uint32_t>();
-//    byte *dest =
-//        reinterpret_cast<byte *>(result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta()) + sizeof(uint32_t);
-//    in->Read(dest, delta_size - static_cast<uint32_t>(sizeof(uint32_t)));
-//    return result;
+    auto size = in->ReadValue<uint32_t>();
+    byte *buf = common::AllocationUtil::AllocateAligned(size);
+    auto record_type = in->ReadValue<storage::LogRecordType>();
+    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
+    if (record_type == storage::LogRecordType::COMMIT) {
+      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+      // Okay to fill in null since nobody will invoke the callback.
+      // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
+      // not read-only.
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
+    }
+    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible.
+    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
+    auto tuple_slot = in->ReadValue<storage::TupleSlot>();
+    if (record_type == storage::LogRecordType::DELETE) {
+      // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+      return storage::DeleteRecord::Initialize(buf, txn_begin, nullptr, tuple_slot);
+    }
+    // If code path reaches here, we have a REDO record.
+    auto num_cols = in->ReadValue<uint16_t>();
+
+    // TODO(Justin): Could do this with just one read of (sizeof(col_id_t) * num_cols) bytes, and then index in. That's
+    //  probably faster, but stick with the more naive way for now. We need a vector, not just a col_id_t[], because
+    //  that is what ProjectedRowInitializer needs.
+    std::vector<storage::col_id_t> col_ids(num_cols);
+    for (uint16_t i = 0; i < num_cols; i++) {
+      const auto col_id = in->ReadValue<storage::col_id_t>();
+      col_ids[i] = col_id;
+    }
+
+    // Initialize the redo record.
+    auto initializer = storage::ProjectedRowInitializer(block_layout, col_ids);
+    // TODO(Justin): set a pointer to the correct data table? Will this even be useful for recovery?
+    auto *result = storage::RedoRecord::Initialize(buf, txn_begin, nullptr, tuple_slot, initializer);
+    auto *delta = result->GetUnderlyingRecordBodyAs<storage::RedoRecord>()->Delta();
+
+    // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is
+    // read in. It doesn't populate the delta's bitmap yet. This will happen naturally as we proceed column-by-column.
+    auto bitmap_num_bytes = common::RawBitmap::SizeInBytes(num_cols);
+    auto *bitmap_buffer = new uint8_t[bitmap_num_bytes];
+    in->Read(bitmap_buffer, bitmap_num_bytes);
+    auto *bitmap = reinterpret_cast<common::RawBitmap *>(bitmap_buffer);
+
+    for (uint16_t i = 0; i < num_cols; i++) {
+      if (!bitmap->Test(i)) {
+        // Recall that 0 means null in our definition of a ProjectedRow's null bitmap.
+        delta->SetNull(i);
+        continue;
+      }
+
+      // The column is not null, so set the bitmap accordingly and get access to the column value.
+      auto *column_value_address = delta->AccessForceNotNull(i);
+      if (block_layout.IsVarlen(col_ids[i])) {
+        // Read how many bytes this varlen actually is.
+        const auto varlen_attribute_size = in->ReadValue<uint32_t>();
+        // Allocate a varlen entry of this many bytes.
+        auto* varlen_entry = varlen_pool_.Allocate(varlen_attribute_size);
+        // Fill the entry with the next bytes from the log file.
+        in->Read(varlen_entry->content_, varlen_entry->size_);
+        // The attribute value in the ProjectedRow will be a pointer to this varlen entry.
+        auto *dest = reinterpret_cast<storage::VarlenEntry **>(column_value_address);
+        // Set the value to be the address of the varlen_entry.
+        *dest = varlen_entry;
+      } else {
+        // For inlined attributes, just directly read into the ProjectedRow.
+        in->Read(column_value_address, block_layout.AttrSize(col_ids[i]));
+      }
+    }
+
+    // Free the memory allocated for the bitmap.
+    delete[] bitmap_buffer;
+
+    return result;
   }
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
   storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
+  storage::VarlenPool varlen_pool_;
+
+  // Members related to running gc / logging.
   std::thread log_thread_;
   bool logging_;
   volatile bool run_gc_ = false;
@@ -111,8 +163,9 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
+  const auto& block_layout = tested.Layout();
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in);
+    storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTranasctionTest
       // harness probably needs some refactor (later after wal is in)
@@ -179,7 +232,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in);
+    storage::LogRecord *log_record = ReadNextRecord(&in, tested.Layout());
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.

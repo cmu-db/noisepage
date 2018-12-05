@@ -72,17 +72,20 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       // We need the block layout to determine the size of each attribute.
       const auto &block_layout = data_table->GetBlockLayout();
       for (uint16_t i = 0; i < delta->NumColumns(); i++) {
-        auto *column_value_address = delta->AccessWithNullCheck(i);
+        const auto *column_value_address = delta->AccessWithNullCheck(i);
         if (column_value_address == nullptr) {
           // If the column in this REDO record is null, then there's nothing to serialize out. The bitmap contains all
           // the relevant information.
           continue;
         }
+        // Get the column id of the current column in the ProjectedRow.
         col_id_t col_id = delta->ColumnIds()[i];
 
         if (block_layout.IsVarlen(col_id)) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
-          auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
+          const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(*column_value_address);
+          // Serialize out length of the varlen entry.
+          WriteValue(varlen_entry->size_);
           // Serialize out the content field of the varlen entry.
           out_.BufferWrite(varlen_entry->content_, varlen_entry->size_);
         } else {
