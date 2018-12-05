@@ -44,7 +44,7 @@ struct BlockLayout {
    * @param col_id the column id to check for
    * @return if the given column id is varlen or not
    */
-  bool IsVarlen(col_id_t col_id) const { return static_cast<int8_t>(AttrSize(col_id)) < 0; }
+  bool IsVarlen(col_id_t col_id) const { return static_cast<int8_t>(attr_sizes_.at(!col_id)) < 0; }
 
   // TODO(Tianyu): Eventually we may also want to get all the varlen columns associated with a block layout in a method
   // as well, but we can implement it then.
