@@ -40,7 +40,7 @@ class SqlTable {
    * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid) {
+      : block_store_(store), oid_(oid), schema_(schema) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
               layout_and_map.second};
@@ -50,6 +50,8 @@ class SqlTable {
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
+
+  catalog::Schema &GetSchema() { return schema_; };
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -184,6 +186,8 @@ class SqlTable {
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
+
+  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
