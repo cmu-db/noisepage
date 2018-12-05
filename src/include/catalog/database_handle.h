@@ -9,17 +9,17 @@ class DatabaseHandle {
  public:
   class DatabaseEntry {
    public:
-    DatabaseEntry(transaction::TransactionContext *txn, oid_t oid, storage::ProjectedRow *row)
-        : txn_(txn), oid_(oid), row_(row){};
+    DatabaseEntry(transaction::TransactionContext *txn, oid_t oid, storage::ProjectedRow *row,
+                  storage::ProjectionMap &map)  
+        : txn_(txn), oid_(oid), row_(row), map_(map){};
 
-    //    byte *GetValue(col_oid_t col) {
-    //
-    //    }
+    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }
 
    private:
     transaction::TransactionContext *txn_;
     oid_t oid_;
     storage::ProjectedRow *row_;
+    storage::ProjectionMap map_;
   };
 
   DatabaseHandle(oid_t oid, std::shared_ptr<storage::SqlTable> pg_database) : oid_(oid), pg_database_(pg_database){};
@@ -47,7 +47,7 @@ class DatabaseHandle {
     for (; tuple_iter != pg_database_->end(); tuple_iter++) {
       pg_database_->Select(txn, *tuple_iter, read);
       if ((*reinterpret_cast<oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
-        return std::shared_ptr<DatabaseEntry>(new DatabaseEntry(txn, oid_, read));
+        return std::shared_ptr<DatabaseEntry>(new DatabaseEntry(txn, oid_, read, row_pair.second));
       }
     }
     return nullptr;
