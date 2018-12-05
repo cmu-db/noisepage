@@ -23,7 +23,7 @@ struct DatabaseHandleTests : public TerrierTest {
     delete catalog_;
   }
 
-  catalog::Catalog* catalog_;
+  catalog::Catalog *catalog_;
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
 
   transaction::TransactionContext *txn_;

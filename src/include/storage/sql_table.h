@@ -51,7 +51,7 @@ class SqlTable {
    */
   ~SqlTable() { delete table_.data_table; }
 
-  catalog::Schema &GetSchema() { return schema_; };
+  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.

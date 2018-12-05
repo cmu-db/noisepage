@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <mutex>
 #include <unordered_map>
 #include "catalog/catalog_defs.h"
 #include "catalog/database_handle.h"
@@ -16,10 +15,10 @@ class Catalog {
 
   void Bootstrap();
 
-  DatabaseHandle GetDatabase(oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); };
+  DatabaseHandle GetDatabase(oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
 
   // Deconstruct the catalog database when destroying the catalog.
-  ~Catalog(){};
+  ~Catalog() = default;
 
  private:
   // block store to use

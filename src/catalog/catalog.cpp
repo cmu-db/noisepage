@@ -1,3 +1,6 @@
+#include <memory>
+#include <vector>
+
 #include "catalog/catalog.h"
 #include "catalog/database_handle.h"
 #include "loggers/catalog_logger.h"
@@ -32,23 +35,24 @@ Catalog::Catalog() {
   CATALOG_LOG_TRACE("first col_oid = {}", oid_counter);
   oid_counter++;
   // datname
-  cols.emplace_back("datname", type::TypeId::VARCHAR, false, col_oid_t(oid_counter));
+  // TODO(yangjun): we don't support VARCHAR at the moment
+  cols.emplace_back("datname", type::TypeId::INTEGER, false, col_oid_t(oid_counter));
   CATALOG_LOG_TRACE("second col_oid = {}", oid_counter);
   oid_counter++;
 
-  // TODO: need to put this columns into pg_attribute for each database
+  // TODO(yangjun): need to put this columns into pg_attribute for each database
   Schema schema(cols);
   pg_database_ = std::make_shared<storage::SqlTable>(&block_store_, schema, pg_database_oid);
 
   Bootstrap();
 }
 
-void EmptyCallback(void *){};
+void EmptyCallback(void * /*unused*/) {}
 
 void Catalog::Bootstrap() {
   std::vector<col_oid_t> cols;
-  for (uint32_t i = 0; i < pg_database_->GetSchema().GetColumns().size(); i++) {
-    cols.emplace_back(pg_database_->GetSchema().GetColumns()[i].GetOid());
+  for (const auto &c : pg_database_->GetSchema().GetColumns()) {
+    cols.emplace_back(c.GetOid());
   }
   auto row_pair = pg_database_->InitializerForProjectedRow(cols);
 
@@ -72,7 +76,8 @@ void Catalog::Bootstrap() {
 
   // fill in the second attribute
   byte *second = insert->AccessForceNotNull(row_pair.second[cols[1]]);
-  strcpy(reinterpret_cast<char *>(second), "terrier");
+  // TODO(yangjun): we don't support VARCHAR at the moment
+  (*reinterpret_cast<uint32_t *>(second)) = 15721;
 
   pg_database_->Insert(txn_context, *insert);
 
