@@ -10,7 +10,7 @@ class DatabaseHandle {
   class DatabaseEntry {
    public:
     DatabaseEntry(transaction::TransactionContext *txn, oid_t oid, storage::ProjectedRow *row,
-                  storage::ProjectionMap &map)  
+                  storage::ProjectionMap &map)
         : txn_(txn), oid_(oid), row_(row), map_(map){};
 
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }

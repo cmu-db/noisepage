@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "gtest/gtest.h"
+#include "loggers/catalog_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
@@ -19,6 +20,7 @@ class TerrierTest : public ::testing::Test {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
+    terrier::catalog::init_catalog_logger();
   }
 
   void TearDown() override {

@@ -7,6 +7,7 @@
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
+#include "loggers/catalog_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/storage_logger.h"
@@ -15,7 +16,6 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
-
 int main() {
   // initialize loggers
   try {
@@ -24,6 +24,7 @@ int main() {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
+    terrier::catalog::init_catalog_logger();
 
     // Flush all *registered* loggers using a worker thread.
     // Registered loggers must be thread safe for this to work correctly

@@ -1,6 +1,6 @@
 #include "catalog/catalog.h"
 #include "catalog/database_handle.h"
-#include "loggers/main_logger.h"
+#include "loggers/catalog_logger.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 
@@ -17,23 +17,23 @@ std::atomic<uint32_t> oid_counter(0);
  * 3) insert terrier into pg_database, catalog tables into pg_table
  */
 Catalog::Catalog() {
-  LOG_INFO("Initializing catalog ...");
-  LOG_INFO("Creating pg_database table ..,");
+  CATALOG_LOG_TRACE("Initializing catalog ...");
+  CATALOG_LOG_TRACE("Creating pg_database table ..,");
   // need to create schema
   // pg_database has {oid, datname}
   table_oid_t pg_database_oid(oid_counter);
-  LOG_INFO("pg_database_oid = {}", oid_counter);
+  CATALOG_LOG_TRACE("pg_database_oid = {}", oid_counter);
   oid_counter++;
 
   // Columns
   std::vector<Schema::Column> cols;
   // oid
   cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(oid_counter));
-  LOG_INFO("first col_oid = {}", oid_counter);
+  CATALOG_LOG_TRACE("first col_oid = {}", oid_counter);
   oid_counter++;
   // datname
   cols.emplace_back("datname", type::TypeId::VARCHAR, false, col_oid_t(oid_counter));
-  LOG_INFO("second col_oid = {}", oid_counter);
+  CATALOG_LOG_TRACE("second col_oid = {}", oid_counter);
   oid_counter++;
 
   // TODO: need to put this columns into pg_attribute for each database
@@ -74,6 +74,6 @@ void Catalog::Bootstrap() {
 
   pg_database_->Insert(txn_context, *insert);
 
-  LOG_INFO("inserted a row in pg_database");
+  CATALOG_LOG_TRACE("inserted a row in pg_database");
 }
 }  // namespace terrier::catalog
