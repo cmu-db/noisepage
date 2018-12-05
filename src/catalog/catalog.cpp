@@ -43,6 +43,8 @@ Catalog::Catalog() {
   Bootstrap();
 }
 
+void EmptyCallback(void *){};
+
 void Catalog::Bootstrap() {
   std::vector<col_oid_t> cols;
   for (uint32_t i = 0; i < pg_database_->GetSchema().GetColumns().size(); i++) {
@@ -75,5 +77,8 @@ void Catalog::Bootstrap() {
   pg_database_->Insert(txn_context, *insert);
 
   CATALOG_LOG_TRACE("inserted a row in pg_database");
+  txn_manager.Commit(txn_context, EmptyCallback, nullptr);
+  delete txn_context;
+  delete[] row_buffer;
 }
 }  // namespace terrier::catalog
