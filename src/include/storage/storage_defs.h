@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
 #include "common/macros.h"
@@ -21,8 +22,6 @@ namespace terrier::storage {
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
 #define NUM_RESERVED_COLUMNS 1u
 
-// Use byte for raw byte storage instead of char so string functions are explicitly disabled for those.
-using byte = std::byte;
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
 
@@ -147,8 +146,8 @@ class BlockAllocator {
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
-using ColumnMap = std::unordered_map<col_oid_t, col_id_t>;
-using ProjectionMap = std::unordered_map<col_oid_t, uint16_t>;
+using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
