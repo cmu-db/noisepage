@@ -34,7 +34,7 @@ struct DatabaseHandleTests : public TerrierTest {
 TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   // terrier has db_oid_t 0
-  const catalog::oid_t terrier_oid = catalog::oid_t(0);
+  const catalog::db_oid_t terrier_oid = catalog::db_oid_t(0);
   catalog::DatabaseHandle db_handle = catalog_->GetDatabase(terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   EXPECT_TRUE(db_entry_ptr != nullptr);

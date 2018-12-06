@@ -27,7 +27,7 @@ class Catalog {
    * @param db_oid the given db_oid
    * @return the corresponding database handle
    */
-  DatabaseHandle GetDatabase(oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
+  DatabaseHandle GetDatabase(db_oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
 
  private:
   /**

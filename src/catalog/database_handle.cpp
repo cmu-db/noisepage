@@ -10,7 +10,7 @@
 namespace terrier::catalog {
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                oid_t oid) {
+                                                                                db_oid_t oid) {
   // Each database handle can only see entry with the same oid
   if (oid_ != oid) return nullptr;
 
@@ -26,7 +26,7 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   auto tuple_iter = pg_database_->begin();
   for (; tuple_iter != pg_database_->end(); tuple_iter++) {
     pg_database_->Select(txn, *tuple_iter, read);
-    if ((*reinterpret_cast<oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
+    if ((*reinterpret_cast<db_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
       return std::make_shared<DatabaseEntry>(oid_, read, row_pair.second);
     }
   }

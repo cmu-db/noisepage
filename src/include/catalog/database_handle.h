@@ -25,7 +25,7 @@ class DatabaseHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    DatabaseEntry(oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
+    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)) {}
     /**
      * Get the value of an attribute
@@ -38,7 +38,7 @@ class DatabaseHandle {
      * Return the db_oid of the underlying database
      * @return db_oid of the database
      */
-    oid_t GetDatabase() { return oid_; };
+    db_oid_t GetDatabase() { return oid_; };
 
     /**
      * Destruct database entry. It frees the memory for storing the projected row.
@@ -49,7 +49,7 @@ class DatabaseHandle {
     }
 
    private:
-    oid_t oid_;
+    db_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
   };
@@ -59,7 +59,7 @@ class DatabaseHandle {
    * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_databse
    */
-  DatabaseHandle(oid_t oid, std::shared_ptr<storage::SqlTable> pg_database) : oid_(oid), pg_database_(pg_database) {}
+  DatabaseHandle(db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database) : oid_(oid), pg_database_(pg_database) {}
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
@@ -74,10 +74,10 @@ class DatabaseHandle {
    * @return a shared pointer to database entry; NULL if the transaction is trying to
    * access another database.
    */
-  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, oid_t oid);
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid);
 
  private:
-  oid_t oid_;
+  db_oid_t oid_;
   std::shared_ptr<storage::SqlTable> pg_database_;
 };
 
