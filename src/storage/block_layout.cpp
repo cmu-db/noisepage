@@ -12,6 +12,8 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
       static_header_size_(ComputeStaticHeaderSize()),
       num_slots_(ComputeNumSlots()),
       header_size_(ComputeHeaderSize()) {
+  for (uint8_t size UNUSED_ATTRIBUTE : attr_sizes_)
+    TERRIER_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT8_MAX), "Invalid size of a column");
   TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
                  "number of columns must be between 1 and 32767");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
