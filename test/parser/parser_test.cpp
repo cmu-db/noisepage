@@ -33,7 +33,16 @@ class ParserTestBase : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, AnalyzeTest) {
-  auto stmts = pgparser.BuildParseTree("ANALYZE foo;");
+  /**
+   * We support:
+   * ANALYZE table_name
+   *
+   * not supported:
+   * ANALYZE VERBOSE ... : (rejected by parser)
+   * ANALYZE table_name (column_name, ...) : (segfaults)
+   */
+
+  auto stmts = pgparser.BuildParseTree("ANALYZE table_name;");
   EXPECT_EQ(stmts[0]->GetType(), StatementType::ANALYZE);
 }
 
@@ -136,6 +145,20 @@ TEST_F(ParserTestBase, DropTableTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, ExecuteTest) {
+  auto stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name;");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::EXECUTE);
+
+  stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 2.0)");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::EXECUTE);
+
+  // fails with:
+  // Value type 653 unsupported (from postgresparser.cpp)
+  // stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 'arg_2', 3.0)");
+  // Need support for string types
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, ExplainTest) {
   auto stmts = pgparser.BuildParseTree("EXPLAIN SELECT * FROM foo;");
   EXPECT_EQ(stmts[0]->GetType(), StatementType::EXPLAIN);
@@ -151,6 +174,43 @@ TEST_F(ParserTestBase, GarbageTest) {
 TEST_F(ParserTestBase, InsertTest) {
   auto stmts = pgparser.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
   EXPECT_EQ(stmts.size(), 1);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, PrepareTest) {
+  auto stmts = pgparser.BuildParseTree("PREPARE insert_plan AS INSERT INTO table_name VALUES($1);");
+
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::PREPARE);
+  auto stmt = std::move(stmts[0]);
+  auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+  EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
+  // TODO(pakhtar)
+  // - check table name == table_name
+  // - check value_idx == 0
+
+  stmts = pgparser.BuildParseTree("PREPARE insert_plan (INT) AS INSERT INTO table_name VALUES($1);");
+
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::PREPARE);
+  stmt = std::move(stmts[0]);
+  prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+  EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
+  // TODO(pakhtar)
+  // - check table name == table_name
+  // - check value_idx == 0
+  // - can we check the type?
+
+  stmts = pgparser.BuildParseTree("PREPARE select_stmt_plan (INT) AS SELECT column_name FROM table_name WHERE id=$1;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::PREPARE);
+  stmt = std::move(stmts[0]);
+  prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+  EXPECT_EQ(prepare_stmt->GetName(), "select_stmt_plan");
+  // TODO(pakhtar)
+  // - assert "column_name"
+  // - assert "table_name"
+  // - assert value_idx == 0
 }
 
 // NOLINTNEXTLINE

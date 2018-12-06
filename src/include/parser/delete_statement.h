@@ -13,7 +13,13 @@ namespace terrier::parser {
 
 /**
  * @class DeleteStatement
- * @brief Represents "DELETE FROM students WHERE grade > 3.0"
+ * @brief
+ * DELETE FROM <tablename>;
+ *   All records are deleted from table <tablename>
+ *
+ * DELETE FROM <tablename> WHERE grade > 3.0"
+ *   e.g.
+ *   DELETE FROM student_grades WHERE grade > 3.0;
  */
 class DeleteStatement : public SQLStatement {
  public:

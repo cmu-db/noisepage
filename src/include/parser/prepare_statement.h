@@ -14,15 +14,17 @@
 namespace terrier {
 namespace parser {
 
-/**
- * Represents the SQL "PREPARE ..."
- */
 class PrepareStatement : public SQLStatement {
  public:
   /**
-   * @param name prepared statement name
-   * @param query query to be prepared
-   * @param placeholders placeholder values
+   * PREPARE name [(data_type [, ...])] AS statement;
+   *
+   * where data_type refers to parameters in the statement, e.g. $1
+   * statement may be any of SELECT, INSERT, UPDATE, DELETE or VALUES;
+   *
+   * @param name - name to be given to the prepared statement
+   * @param query - the parsed form of statement
+   * @param placeholders - placeholder values? (explain)
    */
   PrepareStatement(std::string name, std::shared_ptr<SQLStatement> query,
                    std::vector<std::shared_ptr<ParameterValueExpression>> placeholders)
