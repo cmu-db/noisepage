@@ -1,3 +1,5 @@
+#pragma once
+
 #include <boost/functional/hash.hpp>
 #include <cstring>
 #include <vector>

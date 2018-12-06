@@ -5,6 +5,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -20,7 +21,7 @@ DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
 #undef IndexCounterMembers
 
 template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
-class BwTreeIndex {
+class BwTreeIndex final : public Index {
  private:
   using bwtree = third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>;
 
@@ -40,9 +41,9 @@ class BwTreeIndex {
   bwtree *const bwtree_;
 
  public:
-  ~BwTreeIndex() { delete bwtree_; }
+  ~BwTreeIndex() final { delete bwtree_; }
 
-  bool Insert(const ProjectedRow &tuple, const TupleSlot location) {
+  bool Insert(const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(constraint_type_ == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
@@ -50,14 +51,14 @@ class BwTreeIndex {
     return bwtree_->Insert(index_key, location, false);
   }
 
-  bool Delete(const ProjectedRow &tuple, const TupleSlot location) {
+  bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
     index_key.SetFromKey(tuple);
     return bwtree_->Delete(index_key, location);
   }
 
   bool ConditionalInsert(const ProjectedRow &tuple, const TupleSlot location,
-                         std::function<bool(const void *)> predicate) {
+                         std::function<bool(const void *)> predicate) final {
     TERRIER_ASSERT(constraint_type_ == ConstraintType::PRIMARY_KEY || constraint_type_ == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with primary key or uniqueness constraints.");
     KeyType index_key;
@@ -78,42 +79,6 @@ class BwTreeIndex {
 
     return ret;
   }
-
-  class Builder {
-   private:
-    catalog::index_oid_t index_oid_;
-    ConstraintType constraint_type_;
-    std::vector<catalog::col_oid_t> col_oids_;
-    const SqlTable *sql_table_;
-
-   public:
-    Builder() = default;
-
-    BwTreeIndex *Build() const { return new BwTreeIndex(index_oid_, constraint_type_); }
-
-    Builder &SetOid(const catalog::index_oid_t index_oid) {
-      index_oid_ = index_oid;
-      return *this;
-    }
-
-    Builder &SetConstraintType(const ConstraintType constraint_type) {
-      constraint_type_ = constraint_type;
-      return *this;
-    }
-
-    Builder &SetColOids(const std::vector<catalog::col_oid_t> &col_oids) {
-      col_oids_ = col_oids;
-      return *this;
-    }
-
-    Builder &SetSqlTable(const SqlTable *const sql_table) {
-      sql_table_ = sql_table;
-      return *this;
-    }
-  };  // class Builder
-
-  ConstraintType GetConstraintType() const { return constraint_type_; }
-  catalog::index_oid_t GetOid() const { return oid_; }
 };
 
 }  // namespace terrier::storage::index

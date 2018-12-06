@@ -57,9 +57,9 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, BuilderTest) {
-  storage::index::BwTreeIndex<int64_t, std::less<>, std::equal_to<>, std::hash<int64_t>>::Builder builder;
-  auto *bwtree = builder.Build();
+    storage::index::Builder builder;
+    auto *bwtree = builder.Build();
 
-  delete bwtree;
+    delete bwtree;
 }
 }  // namespace terrier
