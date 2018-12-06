@@ -45,6 +45,11 @@ class Catalog {
    */
   void Bootstrap();
 
+  /**
+   * A dummy call back function for committing bootstrap transaction
+   */
+  static void BootstrapCallback(void * /*unused*/) {}
+
  private:
   transaction::TransactionManager *txn_manager_;
   // block store to create catalog tables

@@ -29,8 +29,6 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
   Bootstrap();
 }
 
-void EmptyCallback(void * /*unused*/) {}
-
 void Catalog::Bootstrap() {
   // insert rows to pg_database
   std::vector<col_oid_t> cols;
@@ -55,7 +53,7 @@ void Catalog::Bootstrap() {
   pg_database_->Insert(txn_context, *insert);
   delete[] row_buffer;
 
-  txn_manager_->Commit(txn_context, EmptyCallback, nullptr);
+  txn_manager_->Commit(txn_context, BootstrapCallback, nullptr);
   delete txn_context;
 
   // done with bootstrapping, set oid_counter ready for user usage.
