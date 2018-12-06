@@ -23,22 +23,18 @@ DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
 template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
 class BwTreeIndex final : public Index {
  private:
-  using bwtree = third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>;
-
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type)
       : oid_{oid},
         constraint_type_{constraint_type},
-        key_comparator_{},
-        key_equality_checker_{},
-        key_hash_func_{},
-        bwtree_{new bwtree{false, key_comparator_, key_equality_checker_, key_hash_func_}} {}
+        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
+            false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
 
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
-  const KeyComparator key_comparator_;
-  const KeyEqualityChecker key_equality_checker_;
-  const KeyHashFunc key_hash_func_;
-  bwtree *const bwtree_;
+  //  const KeyComparator key_comparator_;
+  //  const KeyEqualityChecker key_equality_checker_;
+  //  const KeyHashFunc key_hash_func_;
+  third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc> *const bwtree_;
 
  public:
   ~BwTreeIndex() final { delete bwtree_; }

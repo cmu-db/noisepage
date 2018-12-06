@@ -37,14 +37,24 @@ class Index {
 class Builder {
  private:
   catalog::index_oid_t index_oid_;
-  ConstraintType constraint_type_;
+  ConstraintType constraint_type_ = ConstraintType::INVALID;
   std::vector<catalog::col_oid_t> col_oids_;
-  const SqlTable *sql_table_;
+  const SqlTable::DataTableVersion *data_table_version_;
 
  public:
   Builder() = default;
 
-  Index *Build() const { return nullptr; }
+  Index *Build() const {
+    Index *index = nullptr;
+    TERRIER_ASSERT(!col_oids_.empty(), "Cannot build an index without col_oids.");
+    TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
+    for (const auto col_oid : col_oids_) {
+      TERRIER_ASSERT(data_table_version_->column_map.count(col_oid) > 0,
+                     "Requested col_oid does not exist in this schema.");
+    }
+
+    return index;
+  }
 
   Builder &SetOid(const catalog::index_oid_t index_oid) {
     index_oid_ = index_oid;
@@ -61,8 +71,8 @@ class Builder {
     return *this;
   }
 
-  Builder &SetSqlTable(const SqlTable *const sql_table) {
-    sql_table_ = sql_table;
+  Builder &SetDataTableVersion(const SqlTable::DataTableVersion *data_table_version) {
+    data_table_version_ = data_table_version;
     return *this;
   }
 };  // class Builder

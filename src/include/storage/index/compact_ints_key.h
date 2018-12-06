@@ -324,7 +324,7 @@ class CompactIntsKey {
 template <uint8_t KeySize>
 class CompactIntsComparator {
  public:
-  CompactIntsComparator() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
+  CompactIntsComparator() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
   CompactIntsComparator(const CompactIntsComparator &) = default;
 
   /*
@@ -342,7 +342,7 @@ class CompactIntsComparator {
 template <uint8_t KeySize>
 class CompactIntsEqualityChecker {
  public:
-  CompactIntsEqualityChecker() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
+  CompactIntsEqualityChecker() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
   CompactIntsEqualityChecker(const CompactIntsEqualityChecker &) = default;
 
   bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
@@ -367,7 +367,7 @@ class CompactIntsHasher {
   static_assert(sizeof(CompactIntsKey<KeySize>) == CompactIntsKey<KeySize>::key_size_byte,
                 "Extra fields detected in class CompactIntsKey");
 
-  CompactIntsHasher() { TERRIER_ASSERT(KeySize <= INTSKEY_MAX_SLOTS, "Instantiating with too many slots."); }
+  CompactIntsHasher() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
   CompactIntsHasher(const CompactIntsHasher &) = default;
 
   /*
