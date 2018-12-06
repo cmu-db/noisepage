@@ -29,6 +29,7 @@ struct DatabaseHandleTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
+// Tests that we can get the default database and get the correct value from the corresponding row in pg_database
 // NOLINTNEXTLINE
 TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();

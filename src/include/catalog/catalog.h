@@ -8,6 +8,10 @@ namespace terrier::catalog {
 
 extern std::atomic<uint32_t> oid_counter;
 
+/**
+ * The global catalog object. It contains all the information about global catalog tables. It's also
+ * the entry point for transactions to access any data in any sql table.
+ */
 class Catalog {
  public:
   /**
@@ -18,11 +22,20 @@ class Catalog {
    */
   Catalog(transaction::TransactionManager *txn_manager);
 
+  /**
+   * Return a database handle for given db_oid.
+   * @param db_oid the given db_oid
+   * @return the corresponding database handle
+   */
   DatabaseHandle GetDatabase(oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
 
-  ~Catalog() = default;
-
  private:
+  /**
+   * Bootstrap all the catalog tables so that new coming transactions can
+   * correctly perform SQL queries.
+   * 1) It creates a default database named "terrier"
+   * 2) It populates all the global catalogs and database-specific catalogs for "terrier"
+   */
   void Bootstrap();
 
  private:
