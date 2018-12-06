@@ -3,7 +3,6 @@
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
-#include "common/performance_counter.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
@@ -11,14 +10,6 @@
 #include "storage/storage_defs.h"
 
 namespace terrier::storage::index {
-
-// clang-format off
-#define IndexCounterMembers(f) \
-  f(uint64_t, NumInsert) \
-  f(uint64_t, NumDelete)
-// clang-format on
-DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
-#undef IndexCounterMembers
 
 template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
 class BwTreeIndex final : public Index {

@@ -9,6 +9,14 @@
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 
+// clang-format off
+#define IndexCounterMembers(f) \
+  f(uint64_t, NumInsert) \
+  f(uint64_t, NumDelete)
+// clang-format on
+DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
+#undef IndexCounterMembers
+
 namespace terrier::storage::index {
 
 class Index {
@@ -48,9 +56,15 @@ class Builder {
     Index *index = nullptr;
     TERRIER_ASSERT(!col_oids_.empty(), "Cannot build an index without col_oids.");
     TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
+
+    bool all_int_attrs = true;
+
     for (const auto col_oid : col_oids_) {
       TERRIER_ASSERT(data_table_version_->column_map.count(col_oid) > 0,
                      "Requested col_oid does not exist in this schema.");
+      const col_id_t col_id = data_table_version_->column_map[col_oid];
+      const uint8_t attr_size = data_table_version_->layout.AttrSize(col_id);
+      const type::TypeId attr_type = data_table_version_->schema.GetColumn(col_id).GetType();
     }
 
     return index;

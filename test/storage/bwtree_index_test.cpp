@@ -44,7 +44,7 @@ void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CompactIntsKeyTest) {
+TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   const uint32_t num_iters = 100000;
   std::default_random_engine generator;
 
@@ -55,11 +55,13 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyTest) {
   CompactIntsKeyTest<4>(num_iters, &generator);
 }
 
+TEST_F(BwTreeIndexTests, CompactIntsKeyBuilderTest) {}
+
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, BuilderTest) {
-    storage::index::Builder builder;
-    auto *bwtree = builder.Build();
+  storage::index::Builder builder;
+  auto *bwtree = builder.Build();
 
-    delete bwtree;
+  delete bwtree;
 }
 }  // namespace terrier
