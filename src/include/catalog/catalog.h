@@ -10,22 +10,26 @@ extern std::atomic<uint32_t> oid_counter;
 
 class Catalog {
  public:
-  // Global Singleton
+  /**
+   * Initialize catalog, including
+   * 1) Create all global catalog tables
+   * 2) Populate global catalogs (bootstrapping)
+   * @param txn_manager the global transaction manager
+   */
   Catalog(transaction::TransactionManager *txn_manager);
-
-  void Bootstrap();
 
   DatabaseHandle GetDatabase(oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
 
-  // Deconstruct the catalog database when destroying the catalog.
   ~Catalog() = default;
 
  private:
-  transaction::TransactionManager *txn_manager_;
-  // block store to use
-  storage::BlockStore block_store_{100, 100};
+  void Bootstrap();
 
-  // pg_database
+ private:
+  transaction::TransactionManager *txn_manager_;
+  // block store to create catalog tables
+  storage::BlockStore block_store_{100, 100};
+  // global catalogs
   std::shared_ptr<storage::SqlTable> pg_database_;
 };
 

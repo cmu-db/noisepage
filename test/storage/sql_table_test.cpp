@@ -67,7 +67,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
   EXPECT_TRUE(true);
   delete[] insert_buffer;
   delete[] read_buffer;
-  //TODO: check actual value
+  // TODO: check actual value
 }
 
 }  // namespace terrier

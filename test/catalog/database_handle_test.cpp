@@ -37,7 +37,12 @@ TEST_F(DatabaseHandleTests, DatabaseEntryTest) {
   catalog::DatabaseHandle db_handle = catalog_->GetDatabase(terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   EXPECT_TRUE(db_entry_ptr != nullptr);
+  // test if we are getting the correct value
 
+  // oid has col_oid_t = 1
+  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1))) == 0);
+  // datname has col_oid_t = 2
+  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(2))) == 15721);
   delete txn_;
 }
 
