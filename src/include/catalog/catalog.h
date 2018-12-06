@@ -6,8 +6,15 @@
 #include "common/strong_typedef.h"
 namespace terrier::catalog {
 
-extern std::atomic<uint32_t> oid_counter;
-
+/**
+ * Global counters for oid assignment.
+ * 1-100      are reserved for table_oid_t's of catalog tables.
+ * 828        is reserved for the db_oid_t of the default database "terrier".
+ * 5001-9999  are reserved for col_oid_t's of columns of catalog tables.
+ * 10000+     are used for everything else that's user-defined.
+ */
+extern std::atomic<uint32_t> oid_counter;      // 1-5000
+extern std::atomic<uint32_t> col_oid_counter;  // 5001-9999
 /**
  * The global catalog object. It contains all the information about global catalog tables. It's also
  * the entry point for transactions to access any data in any sql table.

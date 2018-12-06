@@ -10,7 +10,8 @@
 namespace terrier::catalog {
 
 std::shared_ptr<Catalog> terrier_catalog;
-std::atomic<uint32_t> oid_counter(0);
+std::atomic<uint32_t> oid_counter(1);
+std::atomic<uint32_t> col_oid_counter(5001);
 
 Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {
   CATALOG_LOG_INFO("Initializing catalog ...");
@@ -18,9 +19,9 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
   // create pg_database catalog
   table_oid_t pg_database_oid(oid_counter++);
   std::vector<Schema::Column> cols;
-  cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(oid_counter++));
+  cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(col_oid_counter++));
   // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("datname", type::TypeId::INTEGER, false, col_oid_t(oid_counter++));
+  cols.emplace_back("datname", type::TypeId::INTEGER, false, col_oid_t(col_oid_counter++));
 
   Schema schema(cols);
   pg_database_ = std::make_shared<storage::SqlTable>(&block_store_, schema, pg_database_oid);
@@ -31,6 +32,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
 void EmptyCallback(void * /*unused*/) {}
 
 void Catalog::Bootstrap() {
+  // insert rows to pg_database
   std::vector<col_oid_t> cols;
   for (const auto &c : pg_database_->GetSchema().GetColumns()) {
     cols.emplace_back(c.GetOid());
@@ -38,13 +40,14 @@ void Catalog::Bootstrap() {
   auto row_pair = pg_database_->InitializerForProjectedRow(cols);
 
   // create default database terrier
+  db_oid_t terrier_oid = db_oid_t(828);
   auto txn_context = txn_manager_->BeginTransaction();
 
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
   // hard code the first column's value (terrier's db_oid_t) to be 0
   byte *first = insert->AccessForceNotNull(row_pair.second[cols[0]]);
-  (*reinterpret_cast<uint32_t *>(first)) = 0;
+  (*reinterpret_cast<uint32_t *>(first)) = !terrier_oid;
   // hard code datname column's value to be 15721
   byte *second = insert->AccessForceNotNull(row_pair.second[cols[1]]);
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
@@ -54,5 +57,8 @@ void Catalog::Bootstrap() {
 
   txn_manager_->Commit(txn_context, EmptyCallback, nullptr);
   delete txn_context;
+
+  // done with bootstrapping, set oid_counter ready for user usage.
+  oid_counter = 10000;
 }
 }  // namespace terrier::catalog
