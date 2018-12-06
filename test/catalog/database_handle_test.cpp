@@ -42,6 +42,6 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   // oid has col_oid_t = 5001
   EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(5001))) == !terrier_oid);
   // datname has col_oid_t = 5002
-  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(5002))) == 15721);
+  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(5002))) == 12345);
 }
 }  // namespace terrier

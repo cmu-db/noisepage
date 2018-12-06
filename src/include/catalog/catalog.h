@@ -40,10 +40,28 @@ class Catalog {
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
    * correctly perform SQL queries.
-   * 1) It creates a default database named "terrier"
-   * 2) It populates all the global catalogs and database-specific catalogs for "terrier"
+   * 1) It populates all the global catalogs
+   * 2) It creates a default database named "terrier"
    */
   void Bootstrap();
+
+  /**
+   * Bootstrap a database. Specifically, it
+   * 1) creates database-specific catalogs, such as pg_namespace, pg_class
+   * 2) populates these catalogs
+   *
+   * It does not modify any global catalogs. So if you want to create a database,
+   * make sure it has been added to pg_database before you call this.
+   *
+   * Note that the catalogs created by this function have the same table_oid_t
+   * for all database. oids are only supposed to be unique within a database.
+   *
+   * It is used for bootstrapping both default database and user-defined database.
+   * After bootstrapping a user-defined database, the initial state is an exact
+   * copy of initial state of a template database.
+   * * @param db_oid the oid of the database you are trying to bootstrap
+   */
+  void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
    * A dummy call back function for committing bootstrap transaction
@@ -56,6 +74,8 @@ class Catalog {
   storage::BlockStore block_store_{100, 100};
   // global catalogs
   std::shared_ptr<storage::SqlTable> pg_database_;
+  // map from (db_oid, catalog table_oid_t) to sql table
+  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;
