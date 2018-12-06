@@ -1,5 +1,8 @@
-#include "catalog/database_handle.h"
+#include <memory>
+#include <vector>
+
 #include "catalog/catalog.h"
+#include "catalog/database_handle.h"
 #include "catalog/schema.h"
 #include "loggers/main_logger.h"
 #include "storage/block_layout.h"

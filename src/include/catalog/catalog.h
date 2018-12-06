@@ -27,7 +27,7 @@ class Catalog {
    * 2) Populate global catalogs (bootstrapping)
    * @param txn_manager the global transaction manager
    */
-  Catalog(transaction::TransactionManager *txn_manager);
+  explicit Catalog(transaction::TransactionManager *txn_manager);
 
   /**
    * Return a database handle for given db_oid.

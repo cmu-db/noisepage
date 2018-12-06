@@ -38,7 +38,7 @@ class DatabaseHandle {
      * Return the db_oid of the underlying database
      * @return db_oid of the database
      */
-    db_oid_t GetDatabase() { return oid_; };
+    db_oid_t GetDatabase() { return oid_; }
 
     /**
      * Destruct database entry. It frees the memory for storing the projected row.
