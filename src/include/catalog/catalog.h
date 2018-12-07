@@ -7,17 +7,34 @@
 namespace terrier::catalog {
 
 /**
- * Global counters for oid assignment.
- * 1-100      are reserved for table_oid_t's of catalog tables.
- * 828        is reserved for the db_oid_t of the default database "terrier".
- * 5001-9999  are reserved for col_oid_t's of columns of catalog tables.
- * 10000+     are used for everything else that's user-defined.
- */
-extern std::atomic<uint32_t> oid_counter;      // 1-5000
-extern std::atomic<uint32_t> col_oid_counter;  // 5001-9999
-/**
  * The global catalog object. It contains all the information about global catalog tables. It's also
  * the entry point for transactions to access any data in any sql table.
+ *
+ * OID assignment:
+ * Note that we do not have a concept of oid_t anymore. Instead, we have
+ *  db_oid_t, nsp_oid_t, table_oid_t, col_oid_t
+ * In addition, for nsp_oid_t, table_oid_t, and col_oid_t, we only guarantee uniqueness inside a database, which means
+ * that the table_oid for pg_attribute in database A could be the same as pg_attribute in database B.
+ *
+ * db_oid_t:
+ *  0          is reserved for default database - terrier
+ *  1+         are used for new databases
+ *
+ * nsp_oid_t:
+ *  0          is reserved for pg_catalog namespace
+ *  1          is reserved for public namespace
+ *  2          is reserved for temp namespace
+ *  100+       are used for other user-defined namesapces
+ *
+ * table_oid_t:
+ *  0-999      are reserved for global catalog tables
+ *  1000-9999  are reserved for database-specific catalog tables
+ *  10000+     are used for user-defined tables in a database
+ *
+ * col_oid_t
+ *  0-999      are reserved for columns in global catalog tables
+ *  1000-9999  are reserved for columns in database-specific catalog tables
+ *  10000+     are used for user-defined columns
  */
 class Catalog {
  public:
