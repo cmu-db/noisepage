@@ -59,12 +59,16 @@ class DatabaseHandle {
   };
 
   /**
-   * Construct a database handle. It keeps a pointer to pg_databse sql table.
+   * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_database
    */
   DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database);
 
+  /**
+   * Get a namespace handle for the database.
+   * @return A namespace handle
+   */
   NamespaceHandle GetNamespaceHandle();
 
   /**

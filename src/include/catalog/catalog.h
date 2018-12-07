@@ -41,9 +41,7 @@ class DatabaseHandle;
 class Catalog {
  public:
   /**
-   * Initialize catalog, including
-   * 1) Create all global catalog tables
-   * 2) Populate global catalogs (bootstrapping)
+   * Initializes catalog object, and automatically starts the bootstrapping process
    * @param txn_manager the global transaction manager
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
@@ -55,14 +53,21 @@ class Catalog {
    */
   DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
 
+  /**
+   * Get the pointer to a database-specific catalog sql table.
+   * @param db_oid the database the catalog belongs to
+   * @param table_oid the table oid of the catalog
+   * @return a pointer to the catalog
+   */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
    * correctly perform SQL queries.
-   * 1) It populates all the global catalogs
+   * 1) It creates and populates all the global catalogs
    * 2) It creates a default database named "terrier"
+   * 2) It bootstraps the default database.
    */
   void Bootstrap();
 
