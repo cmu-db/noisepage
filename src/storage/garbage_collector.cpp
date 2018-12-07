@@ -183,8 +183,8 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
         col_id_t col_id(i);
         // Okay to include version vector, as it is never varlen
         if (layout.IsVarlen(col_id)) {
-          byte *field = accessor.AccessWithNullCheck(undo_record->Slot(), col_id);
-          if (field != nullptr) txn->loose_ptrs_.push_back(*reinterpret_cast<byte **>(field));
+          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
       break;
@@ -193,8 +193,8 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
       for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
         col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
         if (layout.IsVarlen(col_id)) {
-          byte *field = undo_record->Delta()->AccessWithNullCheck(i);
-          if (field != nullptr) txn->loose_ptrs_.push_back(*reinterpret_cast<byte **>(field));
+          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
   }

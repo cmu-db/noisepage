@@ -35,7 +35,7 @@ class TransactionContext {
 
 
   ~TransactionContext() {
-    for (byte *ptr : loose_ptrs_) delete[] ptr;
+    for (const byte *ptr : loose_ptrs_) delete[] ptr;
   }
   /**
    * @return start time of this transaction
@@ -123,6 +123,6 @@ class TransactionContext {
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
-  std::vector<byte *> loose_ptrs_;
+  std::vector<const byte *> loose_ptrs_;
 };
 }  // namespace terrier::transaction

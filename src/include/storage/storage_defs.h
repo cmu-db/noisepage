@@ -62,7 +62,7 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(const RawBlock *const block, const uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
+    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)),
                    "Address must be aligned to block size (last bits zero).");
     TERRIER_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
@@ -159,13 +159,60 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
  * Types of LogRecords
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
+
+/**
+ * A varlen entry is always a 32-bit size field and the varlen content,
+ * with exactly size many bytes (no extra nul in the end).
+ */
+class VarlenEntry {
+ public:
+  // Have to define a default constructor to make this POD
+  VarlenEntry() = default;
+  /**
+   * Constructs a new varlen entry
+   * @param content
+   * @param size
+   * @param gathered
+   */
+  VarlenEntry(byte *content, uint32_t size, bool gathered)
+      : size_(size | (gathered ? INT32_MIN : 0)), content_(content) {}
+  /**
+   * @return size of the varlen entry in bytes.
+   */
+  uint32_t Size() const {
+    return static_cast<uint32_t>(INT32_MAX & size_);
+  }
+
+  /**
+   * @return whether the varlen is gathered into a per-block contiguous buffer (which means it cannot be
+   * deallocated by itself) for arrow-compatibility
+   */
+  bool IsGathered() const {
+    return static_cast<bool>(INT32_MIN & size_);
+  }
+
+  /**
+   * @return pointer to the varlen entry contents.
+   */
+  const byte *Content() const {
+    return content_;
+  }
+ private:
+  // we use the sign bit to denote if
+  int32_t size_;
+  // TODO(Tianyu): we can use the extra 4 bytes for something else (storing the prefix?)
+  /**
+   * Contents of the varlen entry.
+   */
+  const byte *content_;
+};
 }  // namespace terrier::storage
 
 namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template <>
+template<>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.
