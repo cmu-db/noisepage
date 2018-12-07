@@ -59,7 +59,8 @@ class DatabaseHandle {
    * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_databse
    */
-  DatabaseHandle(db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database) : oid_(oid), pg_database_(pg_database) {}
+  DatabaseHandle(db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
+      : oid_(oid), pg_database_(std::move(pg_database)) {}
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a

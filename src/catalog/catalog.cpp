@@ -1,6 +1,6 @@
 #include <memory>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "catalog/database_handle.h"

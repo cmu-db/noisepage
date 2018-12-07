@@ -19,7 +19,7 @@ struct DatabaseHandleTests : public TerrierTest {
     TerrierTest::TearDown();
     delete txn_manager_;
     delete catalog_;
-    if (txn_) delete txn_;
+    delete txn_;
   }
 
   catalog::Catalog *catalog_;

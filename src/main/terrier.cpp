@@ -16,6 +16,7 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 int main() {
   // initialize loggers
   try {
@@ -63,5 +64,6 @@ int main() {
   main_stat_reg->Shutdown(false);
 
   // catalog bootstrap
-  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>();
+  terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
 }
