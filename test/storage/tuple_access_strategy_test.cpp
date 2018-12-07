@@ -75,7 +75,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
   std::default_random_engine generator;
   const uint32_t repeat = 10;
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
@@ -117,7 +117,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
   for (uint32_t i = 0; i < repeat; i++) {
     TupleAccessStrategyTestObject test_obj;
 
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(max_cols, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_cols, &generator);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
@@ -143,7 +143,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
   const uint32_t repeat = 100;
   std::default_random_engine generator;
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
@@ -183,7 +183,7 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
   std::default_random_engine generator;
   StorageTestUtil::CheckAlignment(raw_block_, common::Constants::BLOCK_SIZE);
   for (uint32_t i = 0; i < repeat; i++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     // here we don't need to 0-initialize the block because we only
     // test layout, not the content.
@@ -210,7 +210,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
@@ -250,7 +250,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     const uint32_t num_threads = TestThreadPool::HardwareConcurrency();
     std::vector<TupleAccessStrategyTestObject> test_objs(num_threads);
 
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));

@@ -24,7 +24,7 @@ TEST_F(ProjectedRowTests, Nulls) {
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -69,7 +69,7 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
   const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -101,7 +101,7 @@ TEST_F(ProjectedRowTests, MemorySafety) {
   const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -130,7 +130,7 @@ TEST_F(ProjectedRowTests, Alignment) {
   const uint32_t num_iterations = 50;
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);

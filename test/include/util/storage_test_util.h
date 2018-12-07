@@ -68,16 +68,13 @@ struct StorageTestUtil {
 
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
-  static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
-    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
-    // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
-    std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
-    attr_sizes[0] = 8;
-    attr_sizes[1] = 8;
-    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
-      attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
-    return storage::BlockLayout(attr_sizes);
+  static storage::BlockLayout RandomLayoutNoVarlen(const uint16_t max_cols, Random *const generator) {
+    return RandomLayout(max_cols, generator, false);
+  }
+
+  template <typename Random>
+  static storage::BlockLayout RandomLayoutWithVarlens(const uint16_t max_cols, Random *const generator) {
+    return RandomLayout(max_cols, generator, true);
   }
 
   // Fill the given location with the specified amount of random bytes, using the
@@ -213,6 +210,19 @@ struct StorageTestUtil {
         EXPECT_TRUE(col_slot == nullptr);
       }
     }
+  }
+ private:
+  template <typename Random>
+  static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
+    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
+    // We probably won't allow tables with fewer than 2 columns
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
+    std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
+    if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
+    attr_sizes[0] = 8;
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
+      attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
+    return storage::BlockLayout(attr_sizes);
   }
 };
 }  // namespace terrier

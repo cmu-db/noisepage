@@ -91,7 +91,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
-      layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
+      layout_(StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),

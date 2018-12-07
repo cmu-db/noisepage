@@ -59,7 +59,7 @@ TEST_F(StorageUtilTests, ReadWriteBytes) {
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -96,7 +96,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
@@ -134,7 +134,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 TEST_F(StorageUtilTests, ApplyDelta) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // the old row
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
