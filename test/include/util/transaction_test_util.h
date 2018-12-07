@@ -111,58 +111,102 @@ class LargeTransactionTestObject {
    */
   class Builder {
    public:
-    Builder() = default;
-
+    /**
+     * @param max_columns the max number of columns in the generated test table
+     * @return self-reference for method chaining
+     */
     Builder &SetMaxColumns(uint16_t max_columns) {
       builder_max_columns_ = max_columns;
       return *this;
     }
 
+    /**
+     * @param initial_table_size number of tuples the table should have
+     * @return self-reference for method chaining
+     */
     Builder &SetInitialTableSize(uint32_t initial_table_size) {
       builder_initial_table_size_ = initial_table_size;
       return *this;
     }
 
+    /**
+     * @param txn_length length of every simulated transaction, in number of operations (select or update)
+     * @return self-reference for method chaining
+     */
     Builder &SetTxnLength(uint32_t txn_length) {
       builder_txn_length_ = txn_length;
       return *this;
     }
 
+    /**
+     * @param update_select_ratio the ratio of updates vs. select in the generated transaction
+     *                            (e.g. {0.3, 0.7} will be 30% updates and 70% reads)
+     * @return self-reference for method chaining
+     */
     Builder &SetUpdateSelectRatio(std::vector<double> update_select_ratio) {
       builder_update_select_ratio_ = std::move(update_select_ratio);
       return *this;
     }
 
+    /**
+     * @param block_store the block store to use for the underlying data table
+     * @return self-reference for method chaining
+     */
     Builder &SetBlockStore(storage::BlockStore *block_store) {
       builder_block_store_ = block_store;
       return *this;
     }
 
+    /**
+     * @param buffer_pool the buffer pool to use for simulated transactions
+     * @return self-reference for method chaining
+     */
     Builder &SetBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
       builder_buffer_pool_ = buffer_pool;
       return *this;
     }
 
+    /**
+     * @param generator the random generator to use for the test
+     * @return self-reference for method chaining
+     */
     Builder &SetGenerator(std::default_random_engine *generator) {
       builder_generator_ = generator;
       return *this;
     }
 
+    /**
+     * @param gc_on whether gc is enabled
+     * @return self-reference for method chaining
+     */
     Builder &SetGcOn(bool gc_on) {
       builder_gc_on_ = gc_on;
       return *this;
     }
 
+    /**
+     * @param bookkeeping whether correctness check is enabled
+     * @return self-reference for method chaining
+     */
     Builder &SetBookkeeping(bool bookkeeping) {
       builder_bookkeeping_ = bookkeeping;
       return *this;
     }
 
+    /**
+     * @param log_manager the log manager to use for this test object, or nullptr (LOGGING_DISABLED) if
+     *                    logging is not needed.
+     * @return self-reference fir method chaining
+     */
     Builder &SetLogManager(storage::LogManager *log_manager) {
       builder_log_manager_ = log_manager;
       return *this;
     }
 
+    /**
+     * @return the constructed LargeTransactionTestObject using the parameters provided
+     * (or default ones if not supplied).
+     */
     LargeTransactionTestObject build();
 
    private:
