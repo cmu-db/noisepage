@@ -1,4 +1,5 @@
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -11,6 +12,12 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
+DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
+    : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
+
+NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
+  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, table_oid_t(1000)));
+}
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                                 db_oid_t oid) {

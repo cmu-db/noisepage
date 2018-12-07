@@ -17,6 +17,12 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
   Bootstrap();
 }
 
+DatabaseHandle Catalog::GetDatabaseHandle(db_oid_t db_oid) { return DatabaseHandle(this, db_oid, pg_database_); }
+
+std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
+  return map_[db_oid][table_oid];
+}
+
 void Catalog::Bootstrap() {
   CATALOG_LOG_INFO("Bootstrapping global catalogs ...");
   db_oid_t db_oid_(0);
@@ -95,7 +101,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   (*reinterpret_cast<uint32_t *>(first)) = !catalog_nsp_oid;
   byte *second = insert->AccessForceNotNull(row_pair.second[col_ids[1]]);
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  (*reinterpret_cast<uint32_t *>(second)) = 12345;
+  (*reinterpret_cast<uint32_t *>(second)) = 22222;
 
   pg_namespace->Insert(txn, *insert);
   delete[] row_buffer;

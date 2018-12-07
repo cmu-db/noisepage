@@ -4,10 +4,14 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog.h"
+#include "catalog/namespace_handle.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
+class Catalog;
 /**
  * A database handle represents a database in the system. It's the entry point for access data
  * stored in this database.
@@ -38,7 +42,7 @@ class DatabaseHandle {
      * Return the db_oid of the underlying database
      * @return db_oid of the database
      */
-    db_oid_t GetDatabase() { return oid_; }
+    db_oid_t GetDatabaseOid() { return oid_; }
 
     /**
      * Destruct database entry. It frees the memory for storing the projected row.
@@ -57,14 +61,15 @@ class DatabaseHandle {
   /**
    * Construct a database handle. It keeps a pointer to pg_databse sql table.
    * @param oid the db_oid of the database
-   * @param pg_database the pointer to pg_databse
+   * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
-      : oid_(oid), pg_database_(std::move(pg_database)) {}
+  DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database);
+
+  NamespaceHandle GetNamespaceHandle();
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
-   * row from pg_databse. It has to be executed in a transaction context.
+   * row from pg_database. It has to be executed in a transaction context.
    *
    * Since a transaction can only access to a single database, we should get only one
    * database entry. And it is only allowed to get the database entry of the database it
@@ -78,6 +83,7 @@ class DatabaseHandle {
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid);
 
  private:
+  Catalog *catalog_;
   db_oid_t oid_;
   std::shared_ptr<storage::SqlTable> pg_database_;
 };

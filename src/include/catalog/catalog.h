@@ -4,8 +4,10 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/database_handle.h"
 #include "common/strong_typedef.h"
+#include "storage/sql_table.h"
 namespace terrier::catalog {
 
+class DatabaseHandle;
 /**
  * The global catalog object. It contains all the information about global catalog tables. It's also
  * the entry point for transactions to access any data in any sql table.
@@ -51,7 +53,9 @@ class Catalog {
    * @param db_oid the given db_oid
    * @return the corresponding database handle
    */
-  DatabaseHandle GetDatabase(db_oid_t db_oid) { return DatabaseHandle(db_oid, pg_database_); }
+  DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
+
+  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
  private:
   /**
