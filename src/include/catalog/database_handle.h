@@ -60,6 +60,7 @@ class DatabaseHandle {
 
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
+   * @param catalog a pointer to the catalog object
    * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_database
    */
