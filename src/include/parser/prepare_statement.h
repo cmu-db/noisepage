@@ -14,6 +14,9 @@
 namespace terrier {
 namespace parser {
 
+/**
+ * SQL PREPARE statement
+ */
 class PrepareStatement : public SQLStatement {
  public:
   /**

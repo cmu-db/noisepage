@@ -55,6 +55,38 @@ TEST_F(ParserTestBase, CopyTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateFunctionTest) {
+  std::string query;
+
+  query =
+      "CREATE OR REPLACE FUNCTION increment ("
+      " i DOUBLE"
+      " )"
+      " RETURNS DOUBLE AS $$ "
+      " BEGIN RETURN i + 1; END; $$ "
+      "LANGUAGE plpgsql;";
+  auto stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE FUNCTION increment1 ("
+      " i DOUBLE, j DOUBLE"
+      " )"
+      " RETURNS DOUBLE AS $$ "
+      " BEGIN RETURN i + j; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE OR REPLACE FUNCTION increment2 ("
+      " i INTEGER, j INTEGER"
+      " )"
+      " RETURNS INTEGER AS $$ "
+      "BEGIN RETURN i + 1; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateTableTest) {
   std::string query =
       "CREATE TABLE Foo ("
@@ -232,6 +264,13 @@ TEST_F(ParserTestBase, SelectUnionTest) {
   auto stmts = pgparser.BuildParseTree("SELECT * FROM foo UNION SELECT * FROM bar;");
   EXPECT_EQ(stmts.size(), 1);
   EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, SetTest) {
+  auto stmts = pgparser.BuildParseTree("SET var_name TO 1;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::VARIABLE_SET);
 }
 
 // NOLINTNEXTLINE
