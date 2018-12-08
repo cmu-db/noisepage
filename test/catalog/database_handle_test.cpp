@@ -3,6 +3,7 @@
 #include <random>
 #include <vector>
 #include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 namespace terrier {
@@ -34,7 +35,7 @@ struct DatabaseHandleTests : public TerrierTest {
 TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   // terrier has db_oid_t 0
-  const catalog::db_oid_t terrier_oid(0);
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle(terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   EXPECT_TRUE(db_entry_ptr != nullptr);

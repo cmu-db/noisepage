@@ -25,7 +25,6 @@ std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, 
 
 void Catalog::Bootstrap() {
   CATALOG_LOG_INFO("Bootstrapping global catalogs ...");
-  db_oid_t db_oid_(0);
   table_oid_t table_oid(0);
   col_oid_t col_oid(0);
   CATALOG_LOG_INFO("Creating pg_database table ...");
@@ -48,7 +47,7 @@ void Catalog::Bootstrap() {
   auto row_pair = pg_database_->InitializerForProjectedRow(col_ids);
 
   // create default database terrier
-  db_oid_t terrier_oid = db_oid_++;
+  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
   auto txn_context = txn_manager_->BeginTransaction();
 
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
@@ -70,8 +69,8 @@ void Catalog::Bootstrap() {
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  table_oid_t table_oid(1000);
-  col_oid_t col_oid(1000);
+  table_oid_t table_oid(DATABASE_CATALOG_TABLE_START_OID);
+  col_oid_t col_oid(DATABASE_CATALOG_COL_START_OID);
   nsp_oid_t nsp_oid(0);
 
   // create pg_namespace
