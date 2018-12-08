@@ -51,6 +51,10 @@ class SqlTable {
    */
   ~SqlTable() { delete table_.data_table; }
 
+  /**
+   * Get the schema use of the SQL table
+   * @return the schema
+   */
   catalog::Schema &GetSchema() { return schema_; }
 
   /**
