@@ -69,7 +69,8 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
-      uint8_t attr_size = layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1)));
+      storage::col_id_t col_id(static_cast<uint16_t>(i + 1));
+      uint8_t attr_size = layout.AttrSize(col_id);
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -77,7 +78,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
         from = new byte[attr_size];
         StorageTestUtil::FillWithRandomBytes(attr_size, from, &generator_);
       }
-      storage::StorageUtil::CopyWithNullCheck(from, row, attr_size, i);
+      storage::StorageUtil::CopyWithNullCheck(from, row, attr_size, layout.IsVarlen(col_id), i);
 
       if (is_null) {
         EXPECT_EQ(row->AccessWithNullCheck(i), nullptr);

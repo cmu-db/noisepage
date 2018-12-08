@@ -55,8 +55,10 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   }
 
   // Store before-image before making any changes or grabbing lock
-  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
+  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++) {
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
+  }
+
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
@@ -78,6 +80,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
   data_table_counter_.IncrementNumUpdate(1);
+
   return true;
 }
 

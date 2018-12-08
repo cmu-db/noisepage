@@ -41,6 +41,14 @@ class StorageUtil {
    */
   static uint64_t ReadBytes(uint8_t attr_size, const byte *pos);
 
+  static void WriteVarlenEntry(const VarlenEntry &ve, byte *pos) {
+    *reinterpret_cast<VarlenEntry *>(pos) = ve;
+  }
+
+  static const VarlenEntry &ReadVarlenEntry(const byte *pos) {
+    return *reinterpret_cast<const VarlenEntry *>(pos);
+  }
+
   /**
    * Copy from pointer location into projected row at given column id. If the pointer location is null,
    * set the null bit on attribute.
@@ -50,7 +58,7 @@ class StorageUtil {
    * @param projection_list_index the projection_list_index to copy to
    */
   template <class RowType>
-  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, uint16_t projection_list_index);
+  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, bool is_varlen, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,

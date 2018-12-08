@@ -13,8 +13,8 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionTestObject 
       start_time_(txn_->StartTime()),
       commit_time_(UINT64_MAX),
       buffer_(test_object->bookkeeping_
-                  ? nullptr
-                  : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
+              ? nullptr
+              : common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
 
 RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   if (!test_object_->gc_on_) delete txn_;
@@ -23,7 +23,7 @@ RandomWorkloadTransaction::~RandomWorkloadTransaction() {
   for (auto &entry : selects_) delete[] reinterpret_cast<byte *>(entry.second);
 }
 
-template <class Random>
+template<class Random>
 void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
@@ -55,14 +55,14 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   aborted_ = !result;
 }
 
-template <class Random>
+template<class Random>
 void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot selected =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = test_object_->bookkeeping_
-                            ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
-                            : buffer_;
+                        ? common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize())
+                        : buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
   test_object_->table_.Select(txn_, selected, select);
   if (test_object_->bookkeeping_) {
@@ -82,16 +82,22 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
-LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size,
-                                                       uint32_t txn_length, std::vector<double> update_select_ratio,
+LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns,
+                                                       uint32_t initial_table_size,
+                                                       uint32_t txn_length,
+                                                       std::vector<double> update_select_ratio,
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
-                                                       std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping, storage::LogManager *log_manager)
+                                                       std::default_random_engine *generator,
+                                                       bool gc_on,
+                                                       bool bookkeeping,
+                                                       storage::LogManager *log_manager,
+                                                       bool varlen_allowed)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
-      layout_(StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
+      layout_(varlen_allowed ? StorageTestUtil::RandomLayoutWithVarlens(max_columns, generator_)
+                             : StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
@@ -183,7 +189,7 @@ void LargeTransactionTestObject::SimulateOneTransaction(terrier::RandomWorkloadT
   txn->Finish();
 }
 
-template <class Random>
+template<class Random>
 void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
   byte *redo_buffer = nullptr;
@@ -268,10 +274,9 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
 }
 
 LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
-  return LargeTransactionTestObject{
-      builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
-      builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
-      builder_bookkeeping_, builder_log_manager_};
+  return {builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
+          builder_block_store_, builder_buffer_pool_, builder_generator_, builder_gc_on_,
+          builder_bookkeeping_, builder_log_manager_, varlen_allowed_};
 }
 
 }  // namespace terrier

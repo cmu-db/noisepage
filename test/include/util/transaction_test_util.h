@@ -196,10 +196,19 @@ class LargeTransactionTestObject {
     /**
      * @param log_manager the log manager to use for this test object, or nullptr (LOGGING_DISABLED) if
      *                    logging is not needed.
-     * @return self-reference fir method chaining
+     * @return self-reference for method chaining
      */
     Builder &SetLogManager(storage::LogManager *log_manager) {
       builder_log_manager_ = log_manager;
+      return *this;
+    }
+
+    /**
+     * @param varlen_allowed if we allow varlen columns to show up in the block layout
+     * @return self-reference for method chaining
+     */
+    Builder &SetVarlenAllowed(bool varlen_allowed) {
+      varlen_allowed_ = varlen_allowed;
       return *this;
     }
 
@@ -220,6 +229,7 @@ class LargeTransactionTestObject {
     bool builder_gc_on_ = true;
     bool builder_bookkeeping_ = true;
     storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
+    bool varlen_allowed_ = false;
   };
 
   /**
@@ -276,7 +286,8 @@ class LargeTransactionTestObject {
   LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
                              std::vector<double> update_select_ratio, storage::BlockStore *block_store,
                              storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager = LOGGING_DISABLED);
+                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager,
+                             bool varlen_allowed);
 
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 

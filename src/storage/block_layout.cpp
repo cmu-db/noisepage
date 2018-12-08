@@ -18,7 +18,8 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
                  "number of columns must be between 1 and 32767");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
-  std::sort(attr_sizes_.begin(), attr_sizes_.end(), std::greater<>());
+  // This is always safe because we know there are at last 2 columns
+  std::sort(attr_sizes_.begin() + 1, attr_sizes_.end(), std::greater<>());
 }
 
 uint32_t BlockLayout::ComputeTupleSize() const {
