@@ -46,6 +46,9 @@ class Catalog {
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
+  std::shared_ptr<storage::SqlTable> CreateTable(transaction::TransactionContext *txn, table_oid_t oid,
+                                                 const Schema &schema);
+
   /**
    * Return a database handle for given db_oid.
    * @param db_oid the given db_oid
@@ -94,12 +97,16 @@ class Catalog {
    */
   static void BootstrapCallback(void * /*unused*/) {}
 
+  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
+  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
+
  private:
   transaction::TransactionManager *txn_manager_;
   // block store to create catalog tables
   storage::BlockStore block_store_{100, 100};
   // global catalogs
   std::shared_ptr<storage::SqlTable> pg_database_;
+  std::shared_ptr<storage::SqlTable> pg_tablespace_;
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
 };
