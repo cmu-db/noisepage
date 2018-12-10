@@ -453,4 +453,4 @@ class WriteQueue {
 };
 
 } // namespace network
-} // namespace terrier
+} // namespace peloton

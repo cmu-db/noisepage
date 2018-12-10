@@ -17,8 +17,9 @@
 #include <utility>
 #include "common/exception.h"
 #include "common/utility.h"
-#include "network/network_types.h"
-#include "network/marshal.h"
+#include "network_types.h"
+#include "marshal.h"
+#include "network_io_utils.h"
 
 namespace terrier {
 namespace network {
@@ -59,6 +60,8 @@ class NetworkIoWrapper {
     in_->Reset();
     out_->Reset();
   }
+
+  virtual ~NetworkIoWrapper(){};
 
   DISALLOW_COPY(NetworkIoWrapper);
 

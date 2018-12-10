@@ -48,7 +48,7 @@ namespace network {
 /**
  * PelotonServer is the entry point of the network layer
  */
-class PelotonServer : public DedicatedThreadOwner {
+class TerrierServer : public DedicatedThreadOwner {
  public:
   /**
    * @brief Constructs a new PelotonServer instance.
@@ -56,7 +56,7 @@ class PelotonServer : public DedicatedThreadOwner {
    * Note that SettingsManager must already be initialized when this constructor
    * is called.
    */
-  PelotonServer();
+  TerrierServer();
 
   /**
    * @brief Configure the server to spin up all its threads and start listening
@@ -76,7 +76,7 @@ class PelotonServer : public DedicatedThreadOwner {
    *
    * @return self-reference for chaining
    */
-  PelotonServer &SetupServer();
+  TerrierServer &SetupServer();
 
   /**
    * @brief In a loop, handles incoming connection and block the current thread
@@ -127,7 +127,7 @@ class PelotonServer : public DedicatedThreadOwner {
   // static void LogCallback(int severity, const char *msg);
 
   uint64_t port_;       // port number
-  int listen_fd_ = -1;  // server socket fd that PelotonServer is listening on
+  int listen_fd_ = -1;  // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
 

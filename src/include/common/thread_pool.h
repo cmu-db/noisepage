@@ -22,7 +22,7 @@
 
 #include "common/macros.h"
 
-namespace peloton {
+namespace terrier {
 // a wrapper for boost worker thread pool.
 class ThreadPool {
  public:
@@ -33,7 +33,7 @@ class ThreadPool {
 
   void Initialize(const size_t &pool_size,
                   const size_t &dedicated_thread_count) {
-    current_thread_count_ = ATOMIC_VAR_INIT(0);
+    current_thread_count_ = 0;
     pool_size_ = pool_size;
     // PELOTON_ASSERT(pool_size_ != 0);
 

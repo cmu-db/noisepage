@@ -99,10 +99,12 @@ class ConnectionHandle {
   }
 
   inline Transition Process() {
-    return protocol_interpreter_->
+    /*return protocol_interpreter_->
         Process(io_wrapper_->GetReadBuffer(),
                 io_wrapper_->GetWriteQueue(),
-                [=] { event_active(workpool_event_, EV_WRITE, 0); });
+                [=] { event_active(workpool_event_, EV_WRITE, 0); });*/
+    std::cout << "processed";
+    return Transition::NONE;
   }
 
   Transition GetResult();
@@ -188,7 +190,7 @@ class ConnectionHandle {
   ConnectionHandlerTask *conn_handler_;
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
   // TODO(Tianyu): Probably use a factory for this
-  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+  //std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 };

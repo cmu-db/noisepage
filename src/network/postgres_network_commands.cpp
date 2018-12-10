@@ -9,6 +9,7 @@
 // Copyright (c) 2015-2018, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
+/*
 #include "parser/postgresparser.h"
 #include "network/postgres_protocol_interpreter.h"
 #include "network/peloton_server.h"
@@ -554,4 +555,4 @@ Transition TerminateCommand::Exec(PostgresProtocolInterpreter &,
   return Transition::TERMINATE;
 }
 } // namespace network
-} // namespace terrier
+} // namespace terrier*/

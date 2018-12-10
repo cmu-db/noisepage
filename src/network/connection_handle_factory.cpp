@@ -13,6 +13,7 @@
 #include <memory>
 #include <utility>
 #include "network/connection_handle_factory.h"
+#include "common/macros.h"
 
 namespace terrier {
 namespace network {
@@ -22,18 +23,18 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
     auto ret = reusable_handles_.emplace(std::piecewise_construct,
                                          std::forward_as_tuple(conn_fd),
                                          std::forward_as_tuple(conn_fd, task));
-    PELOTON_ASSERT(ret.second);
+    TERRIER_ASSERT(ret.second, "ret.second false");
     return ret.first->second;
   }
 
   auto &reused_handle= it->second;
   reused_handle.conn_handler_ = task;
-  reused_handle.io_wrapper_.reset(new PosixSocketIoWrapper(std::move(
-      *reused_handle.io_wrapper_.release())));
-  reused_handle.protocol_interpreter_.reset(new PostgresProtocolInterpreter(task->Id()));
+  /*reused_handle.io_wrapper_.reset(new PosixSocketIoWrapper(std::move(
+      reused_handle.io_wrapper_.release())));*/
+  //reused_handle.protocol_interpreter_.reset(new PostgresProtocolInterpreter(task->Id()));
   reused_handle.state_machine_= ConnectionHandle::StateMachine();
-  PELOTON_ASSERT(reused_handle.network_event_ == nullptr);
-  PELOTON_ASSERT(reused_handle.workpool_event_ == nullptr);
+  TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
+  TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");
   return reused_handle;
 }
 }  // namespace network

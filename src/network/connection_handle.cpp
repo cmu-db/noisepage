@@ -19,7 +19,7 @@
 #include "network/peloton_server.h"
 
 #include "common/utility.h"
-#include "settings/settings_manager.h"
+//#include "settings/settings_manager.h"
 
 namespace terrier {
 namespace network {
@@ -167,13 +167,16 @@ void ConnectionHandle::StateMachine::Accept(Transition action,
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
     : conn_handler_(handler),
-      io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
-      protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {}
+      io_wrapper_{new PosixSocketIoWrapper(sock_fd)}
+      //protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
+      //protocol_interpreter_{nullptr}}
+      {std::cout << "handling";}
 
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
-  protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
+  //protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
+  std::cout << "result";
   return Transition::PROCEED;
 }
 
@@ -183,13 +186,13 @@ Transition ConnectionHandle::TrySslHandshake() {
   if (ret != Transition::PROCEED) return ret;
   SSL *context;
   if (!io_wrapper_->SslAble()) {
-    context = SSL_new(PelotonServer::ssl_context);
+    context = SSL_new(TerrierServer::ssl_context);
     if (context == nullptr)
       throw NetworkProcessException("ssl context for conn failed");
     SSL_set_session_id_context(context, nullptr, 0);
     if (SSL_set_fd(context, io_wrapper_->sock_fd_) == 0)
       throw NetworkProcessException("Failed to set ssl fd");
-    io_wrapper_.reset(new SslSocketIoWrapper(std::move(*io_wrapper_), context));
+    //io_wrapper_.reset(new SslSocketIoWrapper(std::move(*io_wrapper_), context));
   } else
     context = dynamic_cast<SslSocketIoWrapper *>(io_wrapper_.get())->conn_ssl_context_;
 
