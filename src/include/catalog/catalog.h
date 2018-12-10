@@ -46,9 +46,6 @@ class Catalog {
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
-  std::shared_ptr<storage::SqlTable> CreateTable(transaction::TransactionContext *txn, table_oid_t oid,
-                                                 const Schema &schema);
-
   /**
    * Return a database handle for given db_oid.
    * @param db_oid the given db_oid
