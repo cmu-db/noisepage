@@ -32,15 +32,15 @@
 namespace terrier {
 namespace network {
 
-int PelotonServer::recent_connfd = -1;
-SSL_CTX *PelotonServer::ssl_context = nullptr;
-std::string PelotonServer::private_key_file_;
-std::string PelotonServer::certificate_file_;
-std::string PelotonServer::root_cert_file_;
-SSLLevel PelotonServer::ssl_level_;
-MUTEX_TYPE *PelotonServer::ssl_mutex_buf_;
+int TerrierServer::recent_connfd = -1;
+SSL_CTX *TerrierServer::ssl_context = nullptr;
+std::string TerrierServer::private_key_file_;
+std::string TerrierServer::certificate_file_;
+std::string TerrierServer::root_cert_file_;
+SSLLevel TerrierServer::ssl_level_;
+MUTEX_TYPE *TerrierServer::ssl_mutex_buf_;
 
-int PelotonServer::SSLMutexSetup(void) {
+int TerrierServer::SSLMutexSetup(void) {
   int i;
   ssl_mutex_buf_ = new MUTEX_TYPE[CRYPTO_num_locks()];
   if (!ssl_mutex_buf_) return 0;
@@ -52,7 +52,7 @@ int PelotonServer::SSLMutexSetup(void) {
   return 1;
 }
 
-int PelotonServer::SSLMutexCleanup(void) {
+int TerrierServer::SSLMutexCleanup(void) {
   int i;
   if (!ssl_mutex_buf_) {
     return 0;
@@ -68,7 +68,7 @@ int PelotonServer::SSLMutexCleanup(void) {
   return 1;
 }
 
-void PelotonServer::SSLLockingFunction(int mode, int n,
+void TerrierServer::SSLLockingFunction(int mode, int n,
                                        UNUSED_ATTRIBUTE const char *file,
                                        UNUSED_ATTRIBUTE int line) {
   if (mode & CRYPTO_LOCK) {
@@ -78,11 +78,11 @@ void PelotonServer::SSLLockingFunction(int mode, int n,
   }
 }
 
-unsigned long PelotonServer::SSLIdFunction(void) {
+unsigned long TerrierServer::SSLIdFunction(void) {
   return ((unsigned long)THREAD_ID);
 }
 
-void PelotonServer::LoadSSLFileSettings() {
+void TerrierServer::LoadSSLFileSettings() {
   private_key_file_ = DATA_DIR + std::string("private_key");
       //settings::SettingsManager::GetString(
         //                             settings::SettingId::private_key_file);
@@ -94,7 +94,7 @@ void PelotonServer::LoadSSLFileSettings() {
         //                           settings::SettingId::root_cert_file);
 }
 
-void PelotonServer::SSLInit() {
+void TerrierServer::SSLInit() {
   /*if (!settings::SettingsManager::GetBool(settings::SettingId::ssl)) {
     SetSSLLevel(SSLLevel::SSL_DISABLE);
     return;
@@ -191,7 +191,7 @@ void PelotonServer::SSLInit() {
   SSL_CTX_set_session_cache_mode(ssl_context, SSL_SESS_CACHE_OFF);
 }
 
-PelotonServer::PelotonServer() {
+TerrierServer::TerrierServer() {
   port_ = 2888;
       // settings::SettingsManager::GetInt(settings::SettingId::port);
   max_connections_ = 250;
@@ -211,7 +211,7 @@ PelotonServer::PelotonServer() {
   signal(SIGPIPE, SIG_IGN);
 }
 
-int PelotonServer::VerifyCallback(int ok, X509_STORE_CTX *store) {
+int TerrierServer::VerifyCallback(int ok, X509_STORE_CTX *store) {
   char data[256];
   if (!ok) {
     X509 *cert = X509_STORE_CTX_get_current_cert(store);
@@ -228,7 +228,7 @@ int PelotonServer::VerifyCallback(int ok, X509_STORE_CTX *store) {
 }
 
 template <typename... Ts>
-void PelotonServer::TrySslOperation(int (*func)(Ts...), Ts... arg) {
+void TerrierServer::TrySslOperation(int (*func)(Ts...), Ts... arg) {
   if (func(arg...) < 0) {
     auto error_message = peloton_error_message();
     if (GetSSLLevel() != SSLLevel::SSL_DISABLE) {
@@ -238,7 +238,7 @@ void PelotonServer::TrySslOperation(int (*func)(Ts...), Ts... arg) {
   }
 }
 
-PelotonServer &PelotonServer::SetupServer() {
+TerrierServer &TerrierServer::SetupServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
   /*if (settings::SettingsManager::GetString(
@@ -272,7 +272,7 @@ PelotonServer &PelotonServer::SetupServer() {
   return *this;
 }
 
-void PelotonServer::ServerLoop() {
+void TerrierServer::ServerLoop() {
   /*if (settings::SettingsManager::GetBool(settings::SettingId::rpc_enabled)) {
     int rpc_port =
         settings::SettingsManager::GetInt(settings::SettingId::rpc_port);
@@ -288,7 +288,7 @@ void PelotonServer::ServerLoop() {
   LOG_INFO("Server Closed");
 }
 
-void PelotonServer::Close() {
+void TerrierServer::Close() {
   LOG_INFO("Begin to stop server");
   dispatcher_task_->ExitLoop();
 }
@@ -296,7 +296,7 @@ void PelotonServer::Close() {
 /**
  * Change port to new_port
  */
-void PelotonServer::SetPort(int new_port) { port_ = new_port; }
+void TerrierServer::SetPort(int new_port) { port_ = new_port; }
 
 }  // namespace network
 }  // namespace terrier

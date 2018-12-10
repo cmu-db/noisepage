@@ -16,11 +16,11 @@
 
 #include "common/exception.h"
 #include "common/internal_types.h"
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/macros.h"
-#include "parser/sql_statement.h"
-#include "parser/statements.h"
-#include "util/string_util.h"
+//#include "parser/sql_statement.h"
+//#include "parser/statements.h"
+//#include "util/string_util.h"
 
 namespace terrier {
 
@@ -41,7 +41,7 @@ size_t EPOCH_THREAD_COUNT = 1;
 //===--------------------------------------------------------------------===//
 // DatePart <--> String Utilities
 //===--------------------------------------------------------------------===//
-std::string DatePartTypeToString(DatePartType type) {
+/*std::string DatePartTypeToString(DatePartType type) {
   // IMPORTANT: You should not include any of the duplicate plural DatePartTypes
   // in this switch statement, otherwise the compiler will throw an error.
   // For example, you will want to use 'DatePartType::SECOND' and not
@@ -3173,6 +3173,6 @@ std::string OperatorIdToString(OperatorId op_id) {
       throw Exception{StringUtil::Format("Invalid operator ID: %u", op_id)};
     }
   }
-}
+}*/
 
 }  // namespace terrier

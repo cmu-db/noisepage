@@ -9,7 +9,7 @@
 // Copyright (c) 2015-2018, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
-
+/*
 #include "network/marshal.h"
 #include "loggers/main_logger.h"
 #include "common/macros.h"
@@ -318,4 +318,4 @@ size_t OldReadParamValue(
 }
 
 }  // namespace network
-}  // namespace terrier
+}*/  // namespace terrier

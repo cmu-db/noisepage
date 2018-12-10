@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "common/notifiable_task.h"
-#include "common/logger.h"
+#include "loggers/main_logger.h"
 #include "common/event_util.h"
 #include <cstring>
 
