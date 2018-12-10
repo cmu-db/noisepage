@@ -265,4 +265,12 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
     entry.second = snapshot.find(entry.first)->second;
   }
 }
+
+LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
+  return LargeTransactionTestObject{
+      builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
+      builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
+      builder_bookkeeping_, builder_log_manager_};
+}
+
 }  // namespace terrier
