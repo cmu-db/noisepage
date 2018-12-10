@@ -97,7 +97,21 @@ class Catalog {
    */
   static void BootstrapCallback(void * /*unused*/) {}
 
+  /**
+   * Creates pg_database SQL table populates pg_database by inserting a default database row, terrier, into the
+   * pg_database table
+   * @param txn the bootstrapping transaction
+   * @param table_oid the table oid of pg_database
+   * @param start_col_oid the starting col oid for columns in pg_database.
+   */
   void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
+
+  /**
+   * Creates pg_tablespace SQL table and populates pg_tablespace
+   * @param txn the bootstrapping transaction
+   * @param table_oid the table oid of pg_tablespace
+   * @param start_col_oid the starting col oid for columns in pg_tablespace.
+   */
   void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
 
  private:
