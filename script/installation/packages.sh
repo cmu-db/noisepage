@@ -100,7 +100,7 @@ install_linux() {
       libtbb-dev \
       libz-dev \
       llvm-6.0 \
-      openssl-devel \
+      openssl-devel
 }
 
 main "$@"
