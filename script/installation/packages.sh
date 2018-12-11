@@ -75,6 +75,7 @@ install_mac() {
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
+  brew ls --versions libevent || brew install libevent
   (brew ls --versions llvm | grep 6) || brew install llvm@6
   brew ls --versions tbb || brew install tbb
 }
@@ -93,6 +94,7 @@ install_linux() {
       git \
       g++-7 \
       libboost-filesystem-dev \
+      llibevent-dev \
       libjemalloc-dev \
       libtbb-dev \
       libz-dev \
