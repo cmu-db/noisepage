@@ -97,10 +97,10 @@ install_linux() {
       libboost-filesystem-dev \
       libevent-dev \
       libjemalloc-dev \
+      libssl-dev \
       libtbb-dev \
       libz-dev \
-      llvm-6.0 \
-      openssl-devel
+      llvm-6.0
 }
 
 main "$@"
