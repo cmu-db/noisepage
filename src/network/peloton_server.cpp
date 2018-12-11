@@ -20,7 +20,7 @@
 #include "network/peloton_server.h"
 //#include "settings/settings_manager.h"
 
-#include "peloton_config.h"
+#include "terrier_config.h"
 
 #define MUTEX_TYPE pthread_mutex_t
 #define MUTEX_SETUP(x) pthread_mutex_init(&(x), NULL)
