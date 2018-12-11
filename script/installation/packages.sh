@@ -94,7 +94,7 @@ install_linux() {
       git \
       g++-7 \
       libboost-filesystem-dev \
-      llibevent-dev \
+      libevent-dev \
       libjemalloc-dev \
       libtbb-dev \
       libz-dev \
