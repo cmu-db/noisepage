@@ -106,6 +106,15 @@ class Value {
   }
 
   /**
+   * Get the string value
+   * @return ptr to string
+   */
+  const char *GetStringValue() const {
+    TERRIER_ASSERT(type_id_ == TypeId::STRING, "The type must be a string");
+    return value_.string_;
+  }
+
+  /**
    * Get contents of a date value
    * @return date_t
    */
@@ -114,6 +123,7 @@ class Value {
     return value_.date_;
   }
 
+  // TODO(pakhtar): add STRING
   /**
    * Compare values for equality
    * @param rhs the value to compare to
@@ -156,6 +166,7 @@ class Value {
    * @return hashed value
    */
   common::hash_t Hash() const {
+    // TODO(pakhtar): add STRING
     switch (type_id_) {
       case TypeId::BOOLEAN:
         return common::HashUtil::Hash(GetBooleanValue());
@@ -192,10 +203,13 @@ class Value {
     double decimal_;
     timestamp_t timestamp_;
     date_t date_;
+    const char *string_;
     VarlenValue varlen_;
   };
 
   Value(TypeId type_id, Val val) : type_id_(type_id), value_(val) {}
+  // for NULL_TYPE
+  // Value(TypeId type_id) : type_id_(type_id) {}
 
   TypeId type_id_;
   Val value_;

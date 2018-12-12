@@ -43,7 +43,16 @@ TEST_F(ParserTestBase, AnalyzeTest) {
    */
 
   auto stmts = pgparser.BuildParseTree("ANALYZE table_name;");
-  EXPECT_EQ(stmts[0]->GetType(), StatementType::ANALYZE);
+  auto analyze_stmt = reinterpret_cast<AnalyzeStatement *>(stmts[0].get());
+  EXPECT_EQ(analyze_stmt->GetType(), StatementType::ANALYZE);
+  EXPECT_EQ(analyze_stmt->GetAnalyzeTable()->GetTableName(), "table_name");
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CastTest) {
+  auto stmts = pgparser.BuildParseTree("SELECT CAST('100' AS INTEGER);");
+  auto copy_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
+  EXPECT_EQ(copy_stmt->GetType(), StatementType::SELECT);
 }
 
 // NOLINTNEXTLINE
@@ -184,10 +193,8 @@ TEST_F(ParserTestBase, ExecuteTest) {
   stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 2.0)");
   EXPECT_EQ(stmts[0]->GetType(), StatementType::EXECUTE);
 
-  // fails with:
-  // Value type 653 unsupported (from postgresparser.cpp)
-  // stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 'arg_2', 3.0)");
-  // Need support for string types
+  stmts = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 'arg_2', 3.0)");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::EXECUTE);
 }
 
 // NOLINTNEXTLINE

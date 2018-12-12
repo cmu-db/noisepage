@@ -713,10 +713,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
-    /*
-     * case T_String:
-     * TODO(WAN): need string types. val.val.str
-     */
+
+    case T_String: {
+      auto v = type::ValueFactory::GetStringValue(val.val.str);
+      result = std::make_unique<ConstantValueExpression>(v);
+      break;
+    }
+
     case T_Float: {
       auto v = type::ValueFactory::GetDecimalValue(std::stod(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
