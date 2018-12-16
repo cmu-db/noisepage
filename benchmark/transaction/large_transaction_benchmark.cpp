@@ -169,20 +169,20 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
-// BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(10);
+BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(3);
+    ->MinTime(2);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(3);
+    ->MinTime(1);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
