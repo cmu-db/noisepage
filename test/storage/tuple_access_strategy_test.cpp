@@ -45,7 +45,8 @@ class TupleAccessStrategyTestObject {
 
     // The tuple slot is not something that is already in use.
     EXPECT_TRUE(result.second);
-    StorageTestUtil::InsertTuple(*(result.first->second), tested, layout, slot);
+    for (uint16_t projection_list_id = 0; projection_list_id < initializer.NumColumns(); projection_list_id++)
+      storage::StorageUtil::CopyAttrFromProjection(tested, slot, *(result.first->second), projection_list_id);
     return *(result.first);
   }
 
@@ -130,7 +131,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
     }
     // Check that all inserted tuples are equal to their expected values
     for (auto &entry : tuples) {
-      StorageTestUtil::CheckTupleEqual(*(entry.second), tested, layout, entry.first);
+      StorageTestUtil::CheckTupleEqualShallow(*(entry.second), tested, layout, entry.first);
     }
   }
 }
@@ -226,7 +227,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
     thread_pool.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
-        StorageTestUtil::CheckTupleEqual(*(entry.second), tested, layout, entry.first);
+        StorageTestUtil::CheckTupleEqualShallow(*(entry.second), tested, layout, entry.first);
       }
   }
 }
@@ -280,7 +281,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
     thread_pool.RunThreadsUntilFinish(num_threads, workload);
     for (auto &thread_tuples : tuples)
       for (auto &entry : thread_tuples) {
-        StorageTestUtil::CheckTupleEqual(*(entry.second), tested, layout, entry.first);
+        StorageTestUtil::CheckTupleEqualShallow(*(entry.second), tested, layout, entry.first);
       }
   }
 }

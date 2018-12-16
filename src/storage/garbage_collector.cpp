@@ -31,6 +31,8 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
   uint32_t txns_processed = 0;
   transaction::TransactionContext *txn = nullptr;
 
+  // TODO(Tianyu): When varlens are fully added, we will need to also check with log manager to see if the varlen
+  // field is logged out already.
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
     // We are now safe to deallocate these txns because no one should hold a reference to them anymore
@@ -167,16 +169,15 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
-  if (undo_record->Type() == DeltaRecordType::DELETE)
-    undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
+  if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
-void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn,
-                                             UndoRecord *undo_record) const {
+void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
-    case DeltaRecordType::INSERT:return; // no possibility of outdated varlen to gc
+    case DeltaRecordType::INSERT:
+      return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
       // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
       for (uint16_t i = 0; i < layout.NumColumns(); i++) {

@@ -62,7 +62,7 @@ class TupleSlot {
    * @param offset the offset of this slot in its block
    */
   TupleSlot(const RawBlock *const block, const uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
-    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t) block)),
+    TERRIER_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
                    "Address must be aligned to block size (last bits zero).");
     TERRIER_ASSERT(offset < common::Constants::BLOCK_SIZE,
                    "Offset must be smaller than block size (to fit in the last bits).");
@@ -179,24 +179,19 @@ class VarlenEntry {
   /**
    * @return size of the varlen entry in bytes.
    */
-  uint32_t Size() const {
-    return static_cast<uint32_t>(INT32_MAX & size_);
-  }
+  uint32_t Size() const { return static_cast<uint32_t>(INT32_MAX & size_); }
 
   /**
    * @return whether the varlen is gathered into a per-block contiguous buffer (which means it cannot be
    * deallocated by itself) for arrow-compatibility
    */
-  bool IsGathered() const {
-    return static_cast<bool>(INT32_MIN & size_);
-  }
+  bool IsGathered() const { return static_cast<bool>(INT32_MIN & size_); }
 
   /**
    * @return pointer to the varlen entry contents.
    */
-  const byte *Content() const {
-    return content_;
-  }
+  const byte *Content() const { return content_; }
+
  private:
   // we use the sign bit to denote if
   int32_t size_;
@@ -212,7 +207,7 @@ namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
-template<>
+template <>
 struct hash<terrier::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.

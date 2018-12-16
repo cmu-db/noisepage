@@ -15,9 +15,8 @@ struct ProjectedRowTests : public TerrierTest {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
 
-// Generates a random table layout and a random table layout. Coin flip bias for an attribute being null and set the
-// value bytes for null attributes to be 0. Then, compare the addresses (and values for null attribute) returned by
-// the access methods. Repeats for num_iterations.
+// Generates a random table layout and a random table layout. Coin flip bias for an attribute being null. Then, compare
+// the addresses (and values for null attribute) returned by the access methods. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(ProjectedRowTests, Nulls) {
   const uint32_t num_iterations = 10;
@@ -35,13 +34,10 @@ TEST_F(ProjectedRowTests, Nulls) {
 
     // generator a binary vector and set nulls according to binary vector. For null attributes, we set value to be 0.
     std::bernoulli_distribution coin(null_ratio_(generator_));
-    std::unordered_map<storage::col_id_t, bool> null_cols;
+    std::vector<bool> nulls(update->NumColumns());
     for (uint16_t i = 0; i < update->NumColumns(); i++) {
-      storage::col_id_t col_id(i);
-      null_cols[col_id] = coin(generator_);
-      if (null_cols[col_id]) {
-        byte *val_ptr = update->AccessForceNotNull(i);
-        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id + 1), 0, val_ptr);
+      nulls[i] = coin(generator_);
+      if (nulls[i]) {
         update->SetNull(i);
       } else {
         update->SetNotNull(i);
@@ -49,12 +45,9 @@ TEST_F(ProjectedRowTests, Nulls) {
     }
     // check correctness
     for (uint16_t i = 0; i < update->NumColumns(); i++) {
-      storage::col_id_t col_id(i);
       byte *addr = update->AccessWithNullCheck(i);
-      if (null_cols[col_id]) {
+      if (nulls[i]) {
         EXPECT_EQ(addr, nullptr);
-        byte *val_ptr = update->AccessForceNotNull(i);
-        EXPECT_EQ(0, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + 1), val_ptr));
       } else {
         EXPECT_FALSE(addr == nullptr);
       }

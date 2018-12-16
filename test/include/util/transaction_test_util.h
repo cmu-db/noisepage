@@ -286,8 +286,7 @@ class LargeTransactionTestObject {
   LargeTransactionTestObject(uint16_t max_columns, uint32_t initial_table_size, uint32_t txn_length,
                              std::vector<double> update_select_ratio, storage::BlockStore *block_store,
                              storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager,
-                             bool varlen_allowed);
+                             bool gc_on, bool bookkeeping, storage::LogManager *log_manager, bool varlen_allowed);
 
   void SimulateOneTransaction(RandomWorkloadTransaction *txn, uint32_t txn_id);
 

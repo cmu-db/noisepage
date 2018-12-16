@@ -14,40 +14,13 @@ namespace terrier::storage {
 class ProjectedRow;
 class TupleAccessStrategy;
 class UndoRecord;
+
 /**
  * Static utility class for common functions in storage
  */
 class StorageUtil {
  public:
   StorageUtil() = delete;
-
-  /**
-   * Write specified number of bytes to position and interpret the bytes as
-   * an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-   *
-   * @param attr_size the number of bytes to write. (one of {1, 2, 4, 8})
-   * @param val the byte value to write. Truncated if neccessary.
-   * @param pos the location to write to.
-   */
-  static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos);
-
-  /**
-   * Read specified number of bytes from position and interpret the bytes as
-   * an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-   *
-   * @param attr_size attr_size the number of bytes to write. (one of {1, 2, 4, 8})
-   * @param pos the location to read from.
-   * @return the byte value at position, padded up to 8 bytes.
-   */
-  static uint64_t ReadBytes(uint8_t attr_size, const byte *pos);
-
-  static void WriteVarlenEntry(const VarlenEntry &ve, byte *pos) {
-    *reinterpret_cast<VarlenEntry *>(pos) = ve;
-  }
-
-  static const VarlenEntry &ReadVarlenEntry(const byte *pos) {
-    return *reinterpret_cast<const VarlenEntry *>(pos);
-  }
 
   /**
    * Copy from pointer location into projected row at given column id. If the pointer location is null,
@@ -58,7 +31,7 @@ class StorageUtil {
    * @param projection_list_index the projection_list_index to copy to
    */
   template <class RowType>
-  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, bool is_varlen, uint16_t projection_list_index);
+  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,

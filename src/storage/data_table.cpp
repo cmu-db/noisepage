@@ -59,7 +59,6 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
   }
 
-
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
