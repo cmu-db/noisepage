@@ -157,7 +157,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // check whether other cols have been polluted
     std::unordered_set<storage::col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
-      storage::col_id_t col_id(i + NUM_RESERVED_COLUMNS);
+      storage::col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
       if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
         byte *ptr = old->AccessWithNullCheck(i);
         if (ptr == nullptr) {
