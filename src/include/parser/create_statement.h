@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/exception.h"
 #include "common/sql_node_visitor.h"
+#include "loggers/parser_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
@@ -131,7 +133,8 @@ struct ColumnDefinition {
     } else if (strcmp(str, "date") == 0) {
       data_type = ColumnDefinition::DataType::DATE;
     } else {
-      throw NotImplementedException("Unsupported datatype\n");
+      PARSER_LOG_DEBUG("StrToDataType: Unsupported datatype: {}", str);
+      throw PARSER_EXCEPTION("Unsupported datatype");
     }
     return data_type;
   }
@@ -165,7 +168,8 @@ struct ColumnDefinition {
     } else if (strcmp(str, "date") == 0) {
       value_type = type::TypeId::DATE;
     } else {
-      throw NotImplementedException("Unsupported datatype\n");
+      PARSER_LOG_DEBUG("StrToValueType: Unsupported datatype: {}", str);
+      throw PARSER_EXCEPTION("Unsupported datatype");
     }
     return value_type;
   }

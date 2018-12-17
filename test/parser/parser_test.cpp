@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/exception.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -18,11 +19,14 @@ class ParserTestBase : public TerrierTest {
   /**
    * Initialization
    */
-  void SetUp() override {}
-
-  void TearDown() override {
-    // cleanup calls here
+  void SetUp() override {
+    init_main_logger();
+    init_parser_logger();
+    parser_logger->set_level(spdlog::level::debug);
+    spdlog::flush_every(std::chrono::seconds(1));
   }
+
+  void TearDown() override { spdlog::shutdown(); }
 
   void CheckTable(const std::unique_ptr<TableInfo> &table_info, const std::string &table_name) {
     EXPECT_EQ(table_info->GetTableName(), table_name);
@@ -119,7 +123,7 @@ TEST_F(ParserTestBase, CreateTableTest) {
   auto stmts = pgparser.BuildParseTree(query);
 
   query = "CREATE TABLE Foo (id BAZ, PRIMARY KEY (id));";
-  EXPECT_THROW(pgparser.BuildParseTree(query), parser::NotImplementedException);
+  EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
 }
 
 // NOLINTNEXTLINE
@@ -205,8 +209,8 @@ TEST_F(ParserTestBase, ExplainTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, GarbageTest) {
-  EXPECT_THROW(pgparser.BuildParseTree("blarglesnarf"), parser::ParserException);
-  EXPECT_THROW(pgparser.BuildParseTree("SELECT;"), parser::ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree("blarglesnarf"), ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree("SELECT;"), ParserException);
 }
 
 // NOLINTNEXTLINE
@@ -813,7 +817,6 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 
   query = "CREATE INDEX ii ON t USING GIN (col);";
-
   EXPECT_THROW(pgparser.BuildParseTree(query), NotImplementedException);
 }
 
