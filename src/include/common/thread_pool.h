@@ -39,11 +39,11 @@ class ThreadPool {
 
     dedicated_thread_count_ = dedicated_thread_count;
 
-    for (size_t i = 0; i < pool_size_; ++i) {
-      // add thread to thread pool.
-      thread_pool_.create_thread(
-          boost::bind(&boost::asio::io_service::run, &io_service_));
-    }
+    //for (size_t i = 0; i < pool_size_; ++i) {
+    //  // add thread to thread pool.
+    //  thread_pool_.create_thread(
+    //      boost::bind(&boost::asio::io_service::run, &io_service_));
+    //}
 
     dedicated_threads_.resize(dedicated_thread_count_);
   }
@@ -54,7 +54,7 @@ class ThreadPool {
       dedicated_threads_[(current_thread_count_ - 1 - i)]->join();
     }
     io_service_.stop();
-    thread_pool_.join_all();
+    //thread_pool_.join_all();
   }
 
   // submit task to thread pool.

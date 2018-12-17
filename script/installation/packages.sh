@@ -97,9 +97,9 @@ install_linux() {
       libboost-filesystem-dev \
       libevent-dev \
       libjemalloc-dev \
-      libssl-dev \
       libtbb-dev \
       libz-dev \
+      openssl \
       llvm-6.0
 }
 
