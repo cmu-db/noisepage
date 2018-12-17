@@ -4,6 +4,7 @@
 #include <vector>
 #include "bwtree/bwtree.h"
 #include <network/peloton_server.h>
+#include <common/init.h>
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
@@ -25,8 +26,11 @@ int main() {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
+    terrier::TerrierInit::Initialize();
+    terrier::network::TerrierServer terrier_server;
     terrier::parser::init_parser_logger();
 
+    terrier_server.SetupServer().ServerLoop();
     // Flush all *registered* loggers using a worker thread.
     // Registered loggers must be thread safe for this to work correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));

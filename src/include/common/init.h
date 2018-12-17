@@ -22,7 +22,7 @@ extern ThreadPool thread_pool;
 // Global Setup and Teardown
 //===--------------------------------------------------------------------===//
 
-class PelotonInit {
+class TerrierInit {
  public:
   static void Initialize();
 
