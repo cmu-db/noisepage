@@ -33,18 +33,18 @@ struct NamespaceHandleTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
-  // terrier has db_oid_t 0
-  const catalog::db_oid_t terrier_oid(0);
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle(terrier_oid);
-  auto nsp_handle = db_handle.GetNamespaceHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle();
   // get the pg_catalog namespace
-  catalog::nsp_oid_t pg_catalog_oid(0);
-  auto nsp_entry_ptr = nsp_handle.GetNamespaceEntry(txn_, pg_catalog_oid);
-  EXPECT_TRUE(nsp_entry_ptr != nullptr);
+  catalog::namespace_oid_t pg_catalog_oid(catalog::PG_CATALOG_OID);
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, pg_catalog_oid);
+  EXPECT_NE(namespace_entry_ptr, nullptr);
   // test if we are getting the correct value
   // oid has col_oid_t = 1000
-  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(nsp_entry_ptr->GetValue(catalog::col_oid_t(1000))) == !pg_catalog_oid);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue(catalog::col_oid_t(1000))), !pg_catalog_oid);
   // datname has col_oid_t = 1001
-  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(nsp_entry_ptr->GetValue(catalog::col_oid_t(1001))) == 22222);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue(catalog::col_oid_t(1001))), 22222);
 }
 }  // namespace terrier

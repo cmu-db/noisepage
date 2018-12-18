@@ -34,15 +34,15 @@ struct DatabaseHandleTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
-  // terrier has db_oid_t 0
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle(terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
-  EXPECT_TRUE(db_entry_ptr != nullptr);
+  EXPECT_NE(db_entry_ptr, nullptr);
   // test if we are getting the correct value
-  // oid has col_oid_t = 0
-  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(0))) == !terrier_oid);
-  // datname has col_oid_t = 1
-  EXPECT_TRUE(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1))) == 12345);
+  // oid has col_oid_t = 1
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1))), !terrier_oid);
+  // datname has col_oid_t = 2
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(2))), 12345);
 }
 }  // namespace terrier

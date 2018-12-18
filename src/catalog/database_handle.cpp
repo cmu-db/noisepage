@@ -16,7 +16,7 @@ DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<s
     : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
-  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, table_oid_t(1000)));
+  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, DATABASE_CATALOG_TABLE_START_OID));
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,

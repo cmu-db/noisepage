@@ -22,11 +22,11 @@ class NamespaceHandle {
    public:
     /**
      * Constructs a namespace entry.
-     * @param oid the nsp_oid of the underlying database
+     * @param oid the namespace_oid of the underlying database
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    NamespaceEntry(nsp_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
+    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)) {}
 
     /**
@@ -37,10 +37,10 @@ class NamespaceHandle {
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }
 
     /**
-     * Return the nsp_oid of the underlying database
-     * @return nsp_oid of the database
+     * Return the namespace_oid of the underlying database
+     * @return namespace_oid of the database
      */
-    nsp_oid_t GetNamespaceOid() { return oid_; }
+    namespace_oid_t GetNamespaceOid() { return oid_; }
 
     /**
      * Destruct namespace entry. It frees the memory for storing the projected row.
@@ -51,7 +51,7 @@ class NamespaceHandle {
     }
 
    private:
-    nsp_oid_t oid_;
+    namespace_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
   };
@@ -63,15 +63,15 @@ class NamespaceHandle {
   explicit NamespaceHandle(std::shared_ptr<storage::SqlTable> pg_namespace) : pg_namespace_(std::move(pg_namespace)) {}
 
   /**
-   * Get a namespace entry for a given nsp_oid. It's essentially equivalent to reading a
+   * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a
    * row from pg_namespace. It has to be executed in a transaction context.
    *
    * @param txn the transaction that initiates the read
-   * @param oid the nsp_oid of the database the transaction wants to read
+   * @param oid the namespace_oid of the database the transaction wants to read
    * @return a shared pointer to Namespace entry; NULL if the namespace doesn't exist in
    * the database
    */
-  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, nsp_oid_t oid);
+  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, namespace_oid_t oid);
 
  private:
   std::shared_ptr<storage::SqlTable> pg_namespace_;

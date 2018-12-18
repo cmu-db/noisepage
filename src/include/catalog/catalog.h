@@ -14,27 +14,31 @@ class DatabaseHandle;
  *
  * OID assignment:
  * Note that we do not have a concept of oid_t anymore. Instead, we have
- *  db_oid_t, nsp_oid_t, table_oid_t, col_oid_t
- * In addition, for nsp_oid_t, table_oid_t, and col_oid_t, we only guarantee uniqueness inside a database, which means
- * that the table_oid for pg_attribute in database A could be the same as pg_attribute in database B.
+ *  db_oid_t, namespace_oid_t, table_oid_t, col_oid_t
+ * In addition, for namespace_oid_t, table_oid_t, and col_oid_t, we only guarantee uniqueness inside a database,
+ * which means that the table_oid for pg_attribute in database A could be the same as pg_attribute in database B.
  *
  * db_oid_t:
- *  0          is reserved for default database - terrier
- *  1+         are used for new databases
+ *  0          reserved
+ *  1          is reserved for default database - terrier
+ *  2+         are used for new databases
  *
- * nsp_oid_t:
- *  0          is reserved for pg_catalog namespace
- *  1          is reserved for public namespace
- *  2          is reserved for temp namespace
- *  100+       are used for other user-defined namesapces
+ * namespace_oid_t:
+ *  0          reserved
+ *  1          is reserved for pg_catalog namespace
+ *  2          is reserved for public namespace
+ *  3          is reserved for temp namespace
+ *  100+       are used for other user-defined namespaces
  *
  * table_oid_t:
- *  0-999      are reserved for global catalog tables
+ *  0          reserved
+ *  1-999      are reserved for global catalog tables
  *  1000-9999  are reserved for database-specific catalog tables
  *  10000+     are used for user-defined tables in a database
  *
  * col_oid_t
- *  0-999      are reserved for columns in global catalog tables
+ *  0          reserved
+ *  1-999      are reserved for columns in global catalog tables
  *  1000-9999  are reserved for columns in database-specific catalog tables
  *  10000+     are used for user-defined columns
  */

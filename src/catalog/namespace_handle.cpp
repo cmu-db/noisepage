@@ -13,7 +13,7 @@
 namespace terrier::catalog {
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
-    transaction::TransactionContext *txn, nsp_oid_t oid) {
+    transaction::TransactionContext *txn, namespace_oid_t oid) {
   // TODO(yangjun): we can cache this
   std::vector<col_oid_t> cols;
   for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
@@ -26,7 +26,7 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
   auto tuple_iter = pg_namespace_->begin();
   for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {
     pg_namespace_->Select(txn, *tuple_iter, read);
-    if ((*reinterpret_cast<nsp_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid) {
+    if ((*reinterpret_cast<namespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid) {
       return std::make_shared<NamespaceEntry>(oid, read, row_pair.second);
     }
   }
