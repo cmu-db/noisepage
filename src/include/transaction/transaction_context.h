@@ -34,7 +34,8 @@ class TransactionContext {
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   ~TransactionContext() {
-    for (const byte *ptr : loose_ptrs_) delete[] ptr;
+    for (const byte *ptr : loose_ptrs_)
+      delete[] ptr;
   }
   /**
    * @return start time of this transaction

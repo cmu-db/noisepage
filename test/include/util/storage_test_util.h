@@ -101,8 +101,9 @@ struct StorageTestUtil {
           uint32_t size = varlen_size(*generator);
           byte *varlen = common::AllocationUtil::AllocateAligned(size);
           FillWithRandomBytes(size, varlen, generator);
+          // varlen entries always start off not inlined
           *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) = {varlen, size,
-                                                                                                     true};
+                                                                                                     false};
         } else {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
         }
