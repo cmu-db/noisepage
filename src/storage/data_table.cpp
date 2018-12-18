@@ -277,7 +277,9 @@ void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
   const BlockLayout &layout = accessor_.GetBlockLayout();
   for (col_id_t col : layout.Varlens()) {
     for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
-      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck({block, offset}, col));
+      TupleSlot slot(block, offset);
+      if (!accessor_.Allocated(slot)) continue;
+      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
       if (entry != nullptr) delete[] entry->Content();
     }
   }
