@@ -97,8 +97,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no commit latch required on undo since all operations are transaction-local
-  const timestamp_t txn_id = txn->TxnId().load();  // will not change
-  for (auto &it : txn->undo_buffer_) Rollback(txn_id, it);
+  for (auto &it : txn->undo_buffer_) Rollback(txn, it);
   // Discard the redo buffer that is not yet logged out
   txn->redo_buffer_.Finalize(false);
   {
@@ -125,7 +124,7 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return hand_to_gc;
 }
 
-void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoRecord &record) const {
+void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
   // No latch required for transaction-local operation
   storage::DataTable *const table = record.Table();
   if (table == nullptr) {
@@ -136,23 +135,38 @@ void TransactionManager::Rollback(const timestamp_t txn_id, const storage::UndoR
   // This is slightly weird because we don't necessarily undo the record given, but a record by this txn at the
   // given slot. It ends up being correct because we call the correct number of rollbacks.
   storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
-  TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn_id,
+  TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn->txn_id_.load(),
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
+  const storage::TupleAccessStrategy &accessor = table->accessor_;
+  const storage::BlockLayout &layout = accessor.GetBlockLayout();
   switch (version_ptr->Type()) {
     case storage::DeltaRecordType::UPDATE:
       // Re-apply the before image
-      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
-        storage::StorageUtil::CopyAttrFromProjection(table->accessor_, slot, *(version_ptr->Delta()), i);
+      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++) {
+        storage::col_id_t col_id = version_ptr->Delta()->ColumnIds()[i];
+        // If the delta updates a varlen, then the varlen should be garbage collected
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, col_id));
+          // There is no possiblility of an uncommitted change being gathered, so no need to check
+          if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
+        }
+        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(version_ptr->Delta()), i);
+      }
       break;
     case storage::DeltaRecordType::INSERT:
-      table->accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+      for (storage::col_id_t varlen_col : layout.Varlens()) {
+        auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, varlen_col));
+        // There is no possiblility of an uncommitted change being gathered, so no need to check
+        if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
+      }
+      accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
       break;
     case storage::DeltaRecordType::DELETE:
-      table->accessor_.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
   }
   // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
-  table->AtomicallyWriteVersionPtr(slot, table->accessor_, version_ptr->Next());
+  table->AtomicallyWriteVersionPtr(slot, accessor, version_ptr->Next());
 }
 }  // namespace terrier::transaction

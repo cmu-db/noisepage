@@ -101,6 +101,6 @@ class TransactionManager {
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
                  void *callback_arg);
 
-  void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
+  void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
 };
 }  // namespace terrier::transaction

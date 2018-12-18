@@ -185,8 +185,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
         // Okay to include version vector, as it is never varlen
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
-          if (varlen != nullptr && !varlen->IsGathered())
-            txn->loose_ptrs_.push_back(varlen->Content());
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
       break;
