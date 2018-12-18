@@ -86,7 +86,7 @@ class ValueFactory {
    * @param value
    * @return string value instance
    */
-  static Value GetStringValue(const char *st) { return {TypeId::STRING, Value::Val{.string_ = st}}; }
+  static Value GetStringValue(const char *value) { return {TypeId::STRING, Value::Val{.string_ = value}}; }
 };
 
 }  // namespace terrier::type
