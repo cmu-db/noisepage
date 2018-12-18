@@ -1684,7 +1684,7 @@ std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(TruncateStmt 
   auto table_ref = RangeVarTransform(reinterpret_cast<RangeVar *>(cell->data.ptr_value));
   result = std::make_unique<DeleteStatement>(std::move(table_ref));
 
-  /* TODO: review
+  /* TODO(WAN): review
    * AFAIK the target is a single table.
    * The code below walks a list but only the last item will be saved. Either the list walk is unnecessary,
    * or the results produced are wrong, and should be a vector.

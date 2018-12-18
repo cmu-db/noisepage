@@ -129,7 +129,6 @@ class Value {
    */
   const bool IsNull() const { return (type_id_ == TypeId::NULL_TYPE); }
 
-  // TODO(pakhtar): add STRING
   /**
    * Compare values for equality
    * @param rhs the value to compare to
@@ -154,6 +153,8 @@ class Value {
         return value_.decimal_ == rhs.value_.decimal_;
       case TypeId::TIMESTAMP:
         return value_.timestamp_ == rhs.value_.timestamp_;
+      case TypeId::STRING:
+        return value_.string_ == rhs.value_.string_;
       default:
         TERRIER_ASSERT(false, "unsupported type");
         throw std::runtime_error("unreachable control flow");
@@ -172,7 +173,6 @@ class Value {
    * @return hashed value
    */
   common::hash_t Hash() const {
-    // TODO(pakhtar): add STRING
     switch (type_id_) {
       case TypeId::BOOLEAN:
         return common::HashUtil::Hash(GetBooleanValue());
@@ -190,6 +190,8 @@ class Value {
         return common::HashUtil::Hash(GetDecimalValue());
       case TypeId::TIMESTAMP:
         return common::HashUtil::Hash(GetTimestampValue());
+      case TypeId::STRING:
+        return common::HashUtil::Hash(GetStringValue());
       case TypeId::VARBINARY:
       case TypeId::VARCHAR:
         return common::HashUtil::HashBytes(value_.varlen_.data_, value_.varlen_.size_);
