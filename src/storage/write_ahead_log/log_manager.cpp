@@ -1,17 +1,18 @@
+#include <transaction/transaction_context.h>
 #include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    RecordBufferSegment *buffer;
+    transaction::TransactionContext *txn;
     // In a short critical section, try to dequeue an item
     {
       common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
       if (flush_queue_.empty()) break;
-      buffer = flush_queue_.front();
+      txn = flush_queue_.front();
       flush_queue_.pop();
     }
-    for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
+    for (LogRecord &record : txn->redo_buffer_) {
       if (record.RecordType() == LogRecordType::COMMIT) {
         auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
@@ -27,7 +28,8 @@ void LogManager::Process() {
         SerializeRecord(record);
       }
     }
-    buffer_pool_->Release(buffer);
+    // We are done with this transaction and will not look at it again
+    txn->log_processed_ = true;
   }
   Flush();
 }

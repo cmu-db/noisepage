@@ -31,17 +31,23 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
   uint32_t txns_processed = 0;
   transaction::TransactionContext *txn = nullptr;
 
-  // TODO(Tianyu): When varlens are fully added, we will need to also check with log manager to see if the varlen
-  // field is logged out already.
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
+    transaction::TransactionQueue requeue;
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
-    // We are now safe to deallocate these txns because no one should hold a reference to them anymore
+    // We are now safe to deallocate these txns because no running transaction should hold a reference to them anymore
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop_front();
-      delete txn;
-      txns_processed++;
+      if (txn->log_processed_) {
+        // If the log manager is already done with this transaction, it is safe to deallocate
+        delete txn;
+        txns_processed++;
+      } else {
+        // Otherwise, the log manager may need to read the varlen pointer, so we cannot deallocate yet
+        requeue.push_front(txn);
+      }
     }
+    txns_to_deallocate_ = std::move(requeue);
   }
 
   return txns_processed;

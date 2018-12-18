@@ -15,7 +15,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_);
   common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
   const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
@@ -33,9 +33,13 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
                                       is_read_only);
+    // Signal to the log manager that we are ready to be logged out
+    log_manager_->AddTxnToFlushQueue(txn);
   }
-  // Signal to the log manager that we are ready to be logged out
-  txn->redo_buffer_.Finalize(true);
+  // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
+  // correctly
+  txn->log_processed_ = true;
+  callback(callback_arg);
 }
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
@@ -89,17 +93,20 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
+    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
-  if (log_manager_ == LOGGING_DISABLED) callback(callback_arg);
   return result;
 }
 
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no commit latch required on undo since all operations are transaction-local
   for (auto &it : txn->undo_buffer_) Rollback(txn, it);
+  // We have to figure out what the updates are in the redos instead of the undos because the update
+  // may not have been installed yet.
+  GCVarlenOnAbort(txn);
   // Discard the redo buffer that is not yet logged out
-  txn->redo_buffer_.Finalize(false);
+  txn->log_processed_ = true;
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
@@ -132,34 +139,22 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
     return;
   }
   const storage::TupleSlot slot = record.Slot();
+  const storage::TupleAccessStrategy &accessor = table->accessor_;
   // This is slightly weird because we don't necessarily undo the record given, but a record by this txn at the
   // given slot. It ends up being correct because we call the correct number of rollbacks.
-  storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+  storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   TERRIER_ASSERT(version_ptr != nullptr && version_ptr->Timestamp().load() == txn->txn_id_.load(),
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
-  const storage::TupleAccessStrategy &accessor = table->accessor_;
-  const storage::BlockLayout &layout = accessor.GetBlockLayout();
+
   switch (version_ptr->Type()) {
     case storage::DeltaRecordType::UPDATE:
       // Re-apply the before image
-      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++) {
-        storage::col_id_t col_id = version_ptr->Delta()->ColumnIds()[i];
-        // If the delta updates a varlen, then the varlen should be garbage collected
-        if (layout.IsVarlen(col_id)) {
-          auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, col_id));
-          // There is no possiblility of an uncommitted change being gathered, so no need to check
-          if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
-        }
+      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(version_ptr->Delta()), i);
-      }
       break;
     case storage::DeltaRecordType::INSERT:
-      for (storage::col_id_t varlen_col : layout.Varlens()) {
-        auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, varlen_col));
-        // There is no possiblility of an uncommitted change being gathered, so no need to check
-        if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
-      }
       accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+      accessor.Deallocate(slot);
       break;
     case storage::DeltaRecordType::DELETE:
       accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
@@ -168,5 +163,32 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
   table->AtomicallyWriteVersionPtr(slot, accessor, version_ptr->Next());
+}
+
+void TransactionManager::GCVarlenOnAbort(TransactionContext *const txn) {
+  for (storage::LogRecord &record : txn->redo_buffer_) {
+    switch (record.RecordType()) {
+      case storage::LogRecordType::DELETE:
+        break; // nothing to free
+      case storage::LogRecordType::REDO: {
+        // Scan the record for any varlens we need to free up
+        auto *redo = record.GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+        const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
+        for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
+          storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
+          // If the delta updates a varlen, then the varlen should be garbage collected
+          if (layout.IsVarlen(col_id)) {
+            auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
+            // There is no possibility of an uncommitted change being gathered, so no need to check
+            if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
+          }
+        }
+        break;
+      }
+      default:
+        // It is impossible to have a commit type when aborting a transaction
+        throw std::runtime_error("unexpected log record type");
+    }
+  }
 }
 }  // namespace terrier::transaction

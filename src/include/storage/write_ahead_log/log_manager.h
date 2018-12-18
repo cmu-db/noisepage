@@ -27,8 +27,8 @@ class LogManager {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(const char *log_file_path, RecordBufferSegmentPool *buffer_pool)
-      : out_(log_file_path), buffer_pool_(buffer_pool) {}
+  LogManager(const char *log_file_path)
+      : out_(log_file_path) {}
 
   /**
    * Must be called when no other threads are doing work
@@ -40,15 +40,15 @@ class LogManager {
   }
 
   /**
-   * Returns a (perhaps partially) filled log buffer to the log manager to be consumed. Caller should drop its
+   * Enqueues a transaction context to the log manager to be consumed. Caller should drop its
    * reference to the buffer after the method returns immediately, as it would no longer be safe to read from or
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
    * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer) {
+  void AddTxnToFlushQueue(transaction::TransactionContext *txn) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    flush_queue_.push(buffer);
+    flush_queue_.push(txn);
   }
 
   /**
@@ -71,13 +71,12 @@ class LogManager {
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   // (e.g. logs can be streamed out to the network for remote replication)
   BufferedLogWriter out_;
-  RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   common::SpinLatch flush_queue_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   // optimization we applied to the GC queue.
-  std::queue<RecordBufferSegment *> flush_queue_;
+  std::queue<transaction::TransactionContext *> flush_queue_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
