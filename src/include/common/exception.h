@@ -20,14 +20,23 @@ namespace terrier {
  */
 enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, PARSER = 2 };
 
+/**
+ * Exception base class.
+ */
 class Exception : public std::runtime_error {
  public:
+  /**
+   * Creates a new Exception with the given parameters.
+   * @param type exception type
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   */
   Exception(const ExceptionType type, const char *msg, const char *file, int line)
       : std::runtime_error(msg), type_(type), file_(file), line_(line) {}
 
   /**
-   * Allows type and source location of the exception to be recorded in the
-   * log, at the catch point.
+   * Allows type and source location of the exception to be recorded in the log at the catch point.
    */
   friend std::ostream &operator<<(std::ostream &out, const Exception &ex) {
     out << ex.get_type() << " exception:";
@@ -38,7 +47,7 @@ class Exception : public std::runtime_error {
   }
 
   /**
-   * Return the exception type
+   * @return the exception type
    */
   const char *get_type() const {
     switch (type_) {
@@ -50,12 +59,29 @@ class Exception : public std::runtime_error {
         return "Unknown exception type";
     }
   }
+
+  /**
+   * @return the file that threw the exception
+   */
   const char *get_file() const { return file_; }
+
+  /**
+   * @return the line number that threw the exception
+   */
   const int get_line() const { return line_; }
 
  protected:
+  /**
+   * The type of exception.
+   */
   const ExceptionType type_;
+  /**
+   * The name of the file in which the exception was raised.
+   */
   const char *file_;
+  /**
+   * The line number at which the exception was raised.
+   */
   const int line_;
 };
 
