@@ -14,6 +14,14 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
+DataTable::~DataTable() {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  for (RawBlock *block : blocks_) {
+    DeallocateVarlensOnShutdown(block);
+    block_store_->Release(block);
+  }
+}
+
 bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
                        terrier::storage::ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
@@ -263,5 +271,15 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   blocks_.push_back(new_block);
   insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
+}
+
+void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
+  const BlockLayout &layout = accessor_.GetBlockLayout();
+  for (col_id_t col : layout.Varlens()) {
+    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
+      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck({block, offset}, col));
+      if (entry != nullptr) delete[] entry->Content();
+    }
+  }
 }
 }  // namespace terrier::storage
