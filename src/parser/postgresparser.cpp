@@ -713,10 +713,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
-    /*
-     * case T_Null:
-     * TODO(WAN): unclear what original purpose was. type::ValueFactory::GetNullValueByType(type::TypeId::INTEGER)
-     */
+
+    case T_Null: {
+      auto v = type::ValueFactory::GetNullValue();
+      result = std::make_unique<ConstantValueExpression>(v);
+      break;
+    }
+
     default: { PARSER_LOG_AND_THROW("ValueTransform", "Value type", val.type); }
   }
   return result;

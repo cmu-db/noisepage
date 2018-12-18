@@ -698,8 +698,7 @@ TEST_F(ParserTestBase, OldDeleteTestWithPredicate) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldInsertTest) {
-  // TODO(WAN): need NULL value support
+TEST_F(ParserTestBase, OldInsertTest) {
   // Insert multiple tuples into the table
   std::string query = "INSERT INTO foo VALUES (NULL, 2, 3), (4, 5, 6);";
   auto stmt_list = pgparser.BuildParseTree(query);
@@ -708,15 +707,17 @@ TEST_F(ParserTestBase, DISABLED_OldInsertTest) {
   EXPECT_TRUE(stmt_list[0]->GetType() == StatementType::INSERT);
   auto insert_stmt = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
   EXPECT_EQ("foo", insert_stmt->GetInsertionTable()->GetTableName());
+  // 2 tuples
   EXPECT_EQ(2, insert_stmt->GetValues()->size());
-  /*
-    // Test NULL Value parsing
-    auto constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->insert_values_->at(0).at(0).get());
-    // EXPECT_TRUE(((expression::ConstantValueExpression
-    // *)insert_stmt->insert_values.at(0).at(0).get())->GetValue().IsNull()); Test normal value
-    constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->insert_values_->at(1).at(1).get());
-    EXPECT_EQ(constant->GetValue().GetType(), type::TypeId::INTEGER);
-    EXPECT_EQ(constant->GetValue().GetIntValue(), 5);*/
+
+  // First item of first tuple is NULL
+  auto constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0).get());
+  EXPECT_TRUE(constant->GetValue().IsNull());
+
+  // Second item of second tuple == 5
+  constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1).get());
+  EXPECT_EQ(constant->GetValue().GetType(), type::TypeId::INTEGER);
+  EXPECT_EQ(constant->GetValue().GetIntValue(), 5);
 }
 
 // NOLINTNEXTLINE

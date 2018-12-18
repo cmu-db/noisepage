@@ -123,6 +123,12 @@ class Value {
     return value_.date_;
   }
 
+  /**
+   * Is the value NULL
+   * @return bool
+   */
+  const bool IsNull() const { return (type_id_ == TypeId::NULL_TYPE); }
+
   // TODO(pakhtar): add STRING
   /**
    * Compare values for equality
