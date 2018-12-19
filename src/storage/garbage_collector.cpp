@@ -71,11 +71,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    if (txn->undo_buffer_.Empty()) {
-      // This is a read-only transaction so this is safe to immediately delete
-      delete txn;
-      txns_processed++;
-    } else if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
+    if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // This is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
       txns_to_deallocate_.push_front(txn);
