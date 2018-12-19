@@ -103,6 +103,6 @@ class TransactionManager {
 
   void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
 
-  void GCVarlenOnAbort(TransactionContext * txn);
+  void GCVarlenOnAbort(TransactionContext *txn);
 };
 }  // namespace terrier::transaction

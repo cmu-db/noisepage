@@ -71,6 +71,9 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
+    // TODO(Tianyu): It is possible to immediately deallocate read-only transactions here. However, doing so
+    // complicates logic as the GC cannot delete the transaction before logging has had a chance to process it.
+    // It is unlikely to be a major performance issue so I am leaving it unoptimized.
     if (!transaction::TransactionUtil::Committed(txn->TxnId().load())) {
       // This is an aborted txn. There is nothing to unlink because Rollback() handled that already, but we still need
       // to safely free the txn
@@ -186,8 +189,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
         // Okay to include version vector, as it is never varlen
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
-          if (varlen != nullptr && !varlen->IsGathered())
-            txn->loose_ptrs_.push_back(varlen->Content());
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
       break;
@@ -197,8 +199,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
         col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-          if (varlen != nullptr && !varlen->IsGathered())
-            txn->loose_ptrs_.push_back(varlen->Content());
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
   }

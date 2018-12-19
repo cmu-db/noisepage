@@ -210,7 +210,7 @@ class SegmentedBuffer {
    * @param size the size of the undo record to allocate
    * @return a new undo record with at least the given size reserved
    */
-  byte *NewEntry(uint32_t size)  {
+  byte *NewEntry(uint32_t size) {
     if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
       // we are out of space in the buffer. Get a new buffer segment.
       RecordBufferSegment *new_segment = buffer_pool_->Get();

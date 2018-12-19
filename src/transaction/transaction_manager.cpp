@@ -170,7 +170,7 @@ void TransactionManager::GCVarlenOnAbort(TransactionContext *const txn) {
   for (storage::LogRecord &record : txn->redo_buffer_) {
     switch (record.RecordType()) {
       case storage::LogRecordType::DELETE:
-        break; // nothing to free
+        break;  // nothing to free
       case storage::LogRecordType::REDO: {
         // Scan the record for any varlens we need to free up
         auto *redo = record.GetUnderlyingRecordBodyAs<storage::RedoRecord>();

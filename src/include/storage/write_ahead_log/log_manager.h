@@ -27,8 +27,7 @@ class LogManager {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(const char *log_file_path)
-      : out_(log_file_path) {}
+  explicit LogManager(const char *log_file_path) : out_(log_file_path) {}
 
   /**
    * Must be called when no other threads are doing work

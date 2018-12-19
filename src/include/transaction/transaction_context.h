@@ -13,7 +13,7 @@
 namespace terrier::storage {
 class GarbageCollector;
 class LogManager;
-}
+}  // namespace terrier::storage
 
 namespace terrier::transaction {
 /**
