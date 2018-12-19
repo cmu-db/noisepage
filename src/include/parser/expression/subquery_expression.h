@@ -4,11 +4,10 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
+#include "parser/select_statement.h"
 #include "type/type_id.h"
 
 namespace terrier::parser {
-
-class SelectStatement {};  // TODO(WAN): temporary until we get a real parser - why is it a parser class?
 
 /**
  * Represents a sub-select query.

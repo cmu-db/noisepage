@@ -36,9 +36,7 @@ class DatabaseHandle {
      * @param col the col_oid of the attribute
      * @return a pointer to the attribute value
      */
-    byte *GetValue(col_oid_t col) {
-      return row_->AccessWithNullCheck(map_.at(col));
-    }
+    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
 
     /**
      * Return the db_oid of the underlying database

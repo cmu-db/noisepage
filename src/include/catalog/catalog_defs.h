@@ -1,4 +1,5 @@
 #pragma once
+
 #include "common/strong_typedef.h"
 
 namespace terrier::catalog {
@@ -20,6 +21,7 @@ namespace terrier::catalog {
 #define USER_COL_START_OID col_oid_t(10000)
 
 STRONG_TYPEDEF(col_oid_t, uint32_t);
+STRONG_TYPEDEF(db_oid_t, uint32_t);
 STRONG_TYPEDEF(table_oid_t, uint32_t);
 STRONG_TYPEDEF(db_oid_t, uint32_t);
 STRONG_TYPEDEF(namespace_oid_t, uint32_t);

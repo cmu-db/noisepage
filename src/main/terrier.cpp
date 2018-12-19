@@ -10,6 +10,7 @@
 #include "loggers/catalog_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
+#include "loggers/parser_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 #include "storage/data_table.h"
@@ -26,6 +27,7 @@ int main() {
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
     terrier::catalog::init_catalog_logger();
+    terrier::parser::init_parser_logger();
 
     // Flush all *registered* loggers using a worker thread.
     // Registered loggers must be thread safe for this to work correctly
