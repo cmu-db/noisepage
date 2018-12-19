@@ -26,6 +26,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                    const callback_fn callback, void *const callback_arg) {
   txn->TxnId().store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
+    // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
@@ -34,12 +35,11 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                       is_read_only);
     // Signal to the log manager that we are ready to be logged out
     log_manager_->AddTxnToFlushQueue(txn);
-  } else {
-    // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
-    // correctly
-    txn->log_processed_ = true;
-    callback(callback_arg);
   }
+  // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
+  // correctly
+  txn->log_processed_ = true;
+  callback(callback_arg);
 }
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,

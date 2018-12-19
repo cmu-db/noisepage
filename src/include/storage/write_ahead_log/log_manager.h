@@ -10,7 +10,6 @@
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
@@ -48,12 +47,8 @@ class LogManager {
    * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddTxnToFlushQueue(transaction::TransactionContext *txn) {
-    TERRIER_ASSERT(transaction::TransactionUtil::Committed(txn->TxnId().load()),
-                   "Only committed transactions should be flushed");
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    // It is safe for the flush queue to take ownership of the redo buffer, since it is only used potentially
-    // by aborting transactions after the transaction is finished, and they will not be added to the flush queue.
-    flush_queue_.emplace(std::move(txn->redo_buffer_));
+    flush_queue_.push(txn);
   }
 
   /**
@@ -73,7 +68,7 @@ class LogManager {
   void Flush();
 
  private:
-  // TODO(Tianyu): This can be changed later to include things that are not necessarily backed by a disk
+  // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   // (e.g. logs can be streamed out to the network for remote replication)
   BufferedLogWriter out_;
 
@@ -81,18 +76,14 @@ class LogManager {
   common::SpinLatch flush_queue_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   // optimization we applied to the GC queue.
-  std::queue<storage::SegmentedBuffer<storage::LogRecord>> flush_queue_;
+  std::queue<transaction::TransactionContext *> flush_queue_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
-  // This denotes the youngest transaction whose logs are already serialized onto the buffer, making them safe to be
-  // garbage-collected.
-  transaction::timestamp_t log_head_;
-
   void SerializeRecord(const LogRecord &record);
 
-  template<class T>
+  template <class T>
   void WriteValue(const T &val) {
     out_.BufferWrite(&val, sizeof(T));
   }
