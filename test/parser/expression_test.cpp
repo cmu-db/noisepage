@@ -26,6 +26,11 @@ namespace terrier::parser::expression {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, BasicTest) {
+  // NULL
+  auto expr_null = new ConstantValueExpression(type::ValueFactory::GetNullValue());
+  EXPECT_TRUE(expr_null->GetValue().GetType() == terrier::type::TypeId::NULL_TYPE);
+  delete expr_null;
+
   // constant Booleans
   auto expr_b_1 = new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true));
   auto expr_b_2 = new ConstantValueExpression(type::ValueFactory::GetBooleanValue(false));
