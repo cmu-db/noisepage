@@ -4,15 +4,16 @@
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    transaction::TransactionContext *txn;
+    SegmentedBuffer<LogRecord> redo;
     // In a short critical section, try to dequeue an item
     {
       common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
       if (flush_queue_.empty()) break;
-      txn = flush_queue_.front();
+      // This should go out of scope at the end of each loop and destructed
+      redo = std::move(flush_queue_.front());
       flush_queue_.pop();
     }
-    for (LogRecord &record : txn->redo_buffer_) {
+    for (LogRecord &record : redo) {
       if (record.RecordType() == LogRecordType::COMMIT) {
         auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
@@ -23,13 +24,15 @@ void LogManager::Process() {
           SerializeRecord(record);
         }
         commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
+        // We are done with this transaction, and we can update the log_head
+        TERRIER_ASSERT(transaction::TransactionUtil::NewerThan(commit_record->CommitTime(), log_head_),
+                       "transaction's commits should arrive in order");
+        log_head_ = commit_record->CommitTime();
       } else {
         // Any record that is not a commit record is always serialized.`
         SerializeRecord(record);
       }
     }
-    // We are done with this transaction and will not look at it again
-    txn->log_processed_ = true;
   }
   Flush();
 }
@@ -59,8 +62,7 @@ void LogManager::SerializeRecord(const terrier::storage::LogRecord &record) {
       WriteValue(record_body->GetTupleSlot());
       break;
     }
-    case LogRecordType::COMMIT:
-      WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
+    case LogRecordType::COMMIT:WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
   }
 }
 

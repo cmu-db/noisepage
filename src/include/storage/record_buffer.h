@@ -183,6 +183,14 @@ class SegmentedBuffer {
    */
   explicit SegmentedBuffer(RecordBufferSegmentPool *buffer_pool) : buffer_pool_(buffer_pool) {}
 
+  SegmentedBuffer() = default;
+
+  SegmentedBuffer(SegmentedBuffer &&) = default;
+
+  SegmentedBuffer &operator=(SegmentedBuffer &&) = default;
+
+  DISALLOW_COPY(SegmentedBuffer);
+
   /**
    * Destructs this buffer, releases all its segments back to the buffer pool it draws from.
    */
