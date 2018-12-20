@@ -95,7 +95,9 @@ class ConnectionHandle {
   inline Transition TryWrite() {
     if (io_wrapper_->ShouldFlush())
       return io_wrapper_->FlushAllWrites();
-    return Transition::PROCEED;
+
+    //TODO(tanujnay112): Revert
+    return Transition::TERMINATE;
   }
 
   inline Transition Process() {
@@ -103,8 +105,8 @@ class ConnectionHandle {
         Process(io_wrapper_->GetReadBuffer(),
                 io_wrapper_->GetWriteQueue(),
                 [=] { event_active(workpool_event_, EV_WRITE, 0); });*/
-    std::cout << "processed";
-    return Transition::NONE;
+    std::printf("processed %s\n", io_wrapper_->GetReadBuffer()->ReadString().c_str());
+    return Transition::NEED_RESULT;
   }
 
   Transition GetResult();
@@ -129,6 +131,12 @@ class ConnectionHandle {
    */
   inline void StopReceivingNetworkEvent() {
     EventUtil::EventDel(network_event_);
+
+    //TODO(tanujnay112) remove
+    const char *sample = "I have received your request.\n";
+    io_wrapper_->GetWriteQueue()->BufferWriteRaw(sample, strlen(sample) + 1);
+    io_wrapper_->GetWriteQueue()->ForceFlush();
+    event_active(workpool_event_, EV_WRITE, 0);
   }
 
  private:

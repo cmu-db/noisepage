@@ -52,7 +52,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
   while (!in_->Full()) {
     auto bytes_read = in_->FillBufferFrom(sock_fd_);
     if (bytes_read > 0)
-      result = Transition::PROCEED;
+      return Transition::PROCEED;
     else if (bytes_read == 0)
       return Transition::TERMINATE;
     else
