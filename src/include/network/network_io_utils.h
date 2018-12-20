@@ -36,7 +36,8 @@ class Buffer {
    * Instantiates a new buffer and reserve capacity many bytes.
    */
   inline Buffer(size_t capacity) : capacity_(capacity) {
-    buf_.reserve(capacity);
+    //TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
+    buf_.resize(capacity);
   }
 
   /**
