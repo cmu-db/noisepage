@@ -113,8 +113,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -191,8 +191,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
