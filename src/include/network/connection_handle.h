@@ -37,9 +37,6 @@
 #include "network/protocol_interpreter.h"
 #include "network/postgres_protocol_interpreter.h"
 
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-
 namespace terrier {
 namespace network {
 
@@ -110,7 +107,6 @@ class ConnectionHandle {
   }
 
   Transition GetResult();
-  Transition TrySslHandshake();
   Transition TryCloseConnection();
 
   /**

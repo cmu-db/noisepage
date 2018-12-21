@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include <openssl/ssl.h>
 #include <memory>
 #include <utility>
 #include "common/exception.h"
@@ -100,28 +99,6 @@ class PosixSocketIoWrapper : public NetworkIoWrapper {
     peloton_close(sock_fd_);
     return Transition::PROCEED;
   }
-};
-
-/**
- * NetworkIoWrapper specialized for dealing with ssl sockets.
- */
-class SslSocketIoWrapper : public NetworkIoWrapper {
- public:
-  // Realistically, an SslSocketIoWrapper is always derived from a
-  // PosixSocketIoWrapper, as the handshake process happens over posix sockets.
-  SslSocketIoWrapper(NetworkIoWrapper &&other, SSL *ssl)
-      : NetworkIoWrapper(std::move(other)), conn_ssl_context_(ssl) {}
-
-  DISALLOW_COPY_AND_MOVE(SslSocketIoWrapper);
-
-  inline bool SslAble() const override { return true; }
-  Transition FillReadBuffer() override;
-  Transition FlushWriteBuffer(WriteBuffer &wbuf) override;
-  Transition Close() override;
-
- private:
-  friend class ConnectionHandle;
-  SSL *conn_ssl_context_;
 };
 }  // namespace network
 }  // namespace terrier
