@@ -95,7 +95,7 @@ class TerrierServer : public DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  uint64_t port_;       // port number
+  uint16_t port_;       // port number
   int listen_fd_ = -1;  // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
