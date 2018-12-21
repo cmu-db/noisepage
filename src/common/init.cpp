@@ -28,7 +28,6 @@
 
 namespace terrier {
 
-ThreadPool thread_pool;
 
 void TerrierInit::Initialize() {
  // int CONNECTION_THREAD_COUNT = 5;
