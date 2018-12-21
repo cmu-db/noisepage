@@ -65,7 +65,7 @@ class ConnectionDispatcherTask : public NotifiableTask {
  private:
   std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
   // TODO: have a smarter dispatch scheduler, we currently use round-robin
-  std::atomic<int> next_handler_;
+  std::atomic<unsigned int> next_handler_;
 };
 
 }  // namespace network
