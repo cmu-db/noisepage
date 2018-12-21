@@ -25,7 +25,8 @@ class LogManager {
    * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
    *                      otherwise, changes are appended to the end of the file.
    */
-  explicit LogManager(const char *log_file_path) : out_(log_file_path) {}
+  LogManager(const char *log_file_path, RecordBufferSegmentPool *buffer_pool)
+      : out_(log_file_path), buffer_pool_(buffer_pool) {}
 
   /**
    * Must be called when no other threads are doing work
@@ -68,6 +69,7 @@ class LogManager {
   // TODO(Tianyu): This can be changed later to be include things that are not necessarily backed by a disk
   // (e.g. logs can be streamed out to the network for remote replication)
   BufferedLogWriter out_;
+  RecordBufferSegmentPool *buffer_pool_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   common::SpinLatch flush_queue_latch_;

@@ -70,7 +70,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
-  storage::LogManager log_manager_{LOG_FILE_NAME};
+  storage::LogManager log_manager_{LOG_FILE_NAME, &pool_};
   std::thread log_thread_;
   bool logging_;
   volatile bool run_gc_ = false;

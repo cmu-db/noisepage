@@ -83,7 +83,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
@@ -113,7 +113,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // use a smaller table to make aborts more likely
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
@@ -142,7 +142,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     StartGC(tested.GetTxnManager());
@@ -170,7 +170,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation
@@ -199,7 +199,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME);
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_ );
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     log_manager_->Process();  // log all of the Inserts from table creation

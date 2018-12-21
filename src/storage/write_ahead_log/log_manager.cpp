@@ -29,6 +29,7 @@ void LogManager::Process() {
         SerializeRecord(record);
       }
     }
+    buffer_pool_->Release(buffer);
   }
   Flush();
 }
