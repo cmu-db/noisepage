@@ -26,7 +26,6 @@ int main() {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
-    terrier::TerrierInit::Initialize();
     terrier::network::TerrierServer terrier_server;
     terrier::parser::init_parser_logger();
 

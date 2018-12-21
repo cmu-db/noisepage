@@ -31,13 +31,13 @@ namespace terrier {
 ThreadPool thread_pool;
 
 void TerrierInit::Initialize() {
-  int CONNECTION_THREAD_COUNT = 5;
+ // int CONNECTION_THREAD_COUNT = 5;
   //LOGGING_THREAD_COUNT = 1;
   //GC_THREAD_COUNT = 1;
   //EPOCH_THREAD_COUNT = 1;
 //
   //// set max thread number.
-  thread_pool.Initialize(0, CONNECTION_THREAD_COUNT + 3);
+  //thread_pool.Initialize(0, CONNECTION_THREAD_COUNT + 3);
 //
   //// start worker pool
   //threadpool::MonoQueuePool::GetInstance().Startup();

@@ -15,10 +15,6 @@
 #include <thread>
 #include <vector>
 
-#include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/thread/thread.hpp>
 
 #include "common/macros.h"
 
@@ -27,7 +23,7 @@ namespace terrier {
 class ThreadPool {
  public:
   ThreadPool()
-      : pool_size_(0), dedicated_thread_count_(0), work_(io_service_) {}
+      : pool_size_(0), dedicated_thread_count_(0) {}
 
   ~ThreadPool() {}
 
@@ -53,7 +49,6 @@ class ThreadPool {
     for (size_t i = 0; i < current_thread_count_; ++i) {
       dedicated_threads_[(current_thread_count_ - 1 - i)]->join();
     }
-    io_service_.stop();
     //thread_pool_.join_all();
   }
 
@@ -62,7 +57,6 @@ class ThreadPool {
   template <typename FunctionType, typename... ParamTypes>
   void SubmitTask(FunctionType &&func, const ParamTypes &&... params) {
     // add task to thread pool.
-    io_service_.post(std::bind(func, params...));
   }
 
   // submit task to a dedicated thread.
@@ -87,14 +81,6 @@ class ThreadPool {
   size_t dedicated_thread_count_;
   // current number of dedicated threads.
   std::atomic<size_t> current_thread_count_ = ATOMIC_VAR_INIT(0);
-
-  // real thread pool that holds a set of threads.
-  boost::thread_group thread_pool_;
-  // io_service provides IO functionality of asynchronize services.
-  boost::asio::io_service io_service_;
-  // io_service::work is responsible for starting the io_service processing
-  // loop.
-  boost::asio::io_service::work work_;
 
   std::vector<std::unique_ptr<std::thread>> dedicated_threads_;
 };
