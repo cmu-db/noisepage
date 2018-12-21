@@ -60,7 +60,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, short) {
   }
 
   // Dispatch by rand number
-  int handler_id = next_handler_;
+  unsigned int handler_id = next_handler_;
 
   // update next threadID
   next_handler_ = (next_handler_ + 1) % handlers_.size();
