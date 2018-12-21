@@ -49,10 +49,99 @@ class RecordBufferSegment {
 
  private:
   template <class RecordType>
-  friend class SegmentedBuffer;
+  friend class IterableBufferSegment;
+
+  friend class UndoBuffer;
 
   byte bytes_[common::Constants::BUFFER_SEGMENT_SIZE];
   uint32_t size_ = 0;
+};
+
+/**
+ * A thin wrapper around a buffer segment to allow iteration through its contents as the given template type
+ * @tparam RecordType records are treated as this type when iterating. Must expose an instance method Size() that
+ *                    gives the size of the record in memory in bytes
+ */
+template <class RecordType>
+class IterableBufferSegment {
+ public:
+  /**
+   * Iterator for iterating through the records in the buffer
+   */
+  class Iterator {
+   public:
+    /**
+     * @return reference to the underlying record
+     */
+    RecordType &operator*() const { return *reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
+
+    /**
+     * @return pointer to the underlying record
+     */
+    RecordType *operator->() const { return reinterpret_cast<RecordType *>(segment_->bytes_ + segment_offset_); }
+
+    /**
+     * prefix increment
+     * @return self-reference
+     */
+    Iterator &operator++() {
+      RecordType &me = this->operator*();
+      segment_offset_ += me.Size();
+      return *this;
+    }
+
+    /**
+     * postfix increment
+     * @return iterator that is equal to this before increment
+     */
+    const Iterator operator++(int) {
+      Iterator copy = *this;
+      operator++();
+      return copy;
+    }
+
+    /**
+     * equality check
+     * @param other the other iterator to compare to
+     * @return if the two iterators point to the same underlying record
+     */
+    bool operator==(const Iterator &other) const {
+      return segment_offset_ == other.segment_offset_ && segment_ == other.segment_;
+    }
+
+    /**
+     * inequality check
+     * @param other the other iterator to comapre to
+     * @return if the two iterators point to different underlying records
+     */
+    bool operator!=(const Iterator &other) const { return !(*this == other); }
+
+   private:
+    friend class IterableBufferSegment;
+    Iterator(RecordBufferSegment *segment, uint32_t segment_offset)
+        : segment_(segment), segment_offset_(segment_offset) {}
+    RecordBufferSegment *segment_;
+    uint32_t segment_offset_;
+  };
+
+  /**
+   * Instantiates an IterableBufferSegment as a wrapper around a buffer segment
+   * @param segment
+   */
+  explicit IterableBufferSegment(RecordBufferSegment *segment) : segment_(segment) {}
+
+  /**
+   * @return iterator to the first element
+   */
+  Iterator begin() { return {segment_, 0}; }
+
+  /**
+   * @return iterator to the second element
+   */
+  Iterator end() { return {segment_, segment_->size_}; }
+
+ private:
+  RecordBufferSegment *segment_;
 };
 
 /**
@@ -91,20 +180,19 @@ using RecordBufferSegmentPool = common::ObjectPool<RecordBufferSegment, RecordBu
 // TODO(Tianyu): Not thread-safe. We can probably just allocate thread-local buffers (or segments) if we ever want
 // multiple workers on the same transaction.
 /**
- * An SegmentedBuffer is a resizable buffer to hold UndoRecords and RedoRecords.
+ * An UndoBuffer is a resizable buffer to hold UndoRecords.
  *
- * Pointers and Iterators handed out from the SegmentedBuffer is guaranteed to be persistent. Adding new
+ * Pointers to UndoRecords and Iterators handed out from the UndoBuffer is guaranteed to be persistent. Adding new
  * entries to the buffer does not interfere with existing pointers and iterators.
  *
- * records should not be removed from SegmentedBuffer until the transaction's end (only in the destructor)
+ * UndoRecords should not be removed from UndoBuffer until the transaction's end (only in the destructor)
  *
  * Not thread-safe
  */
-template <class RecordType>
-class SegmentedBuffer {
+class UndoBuffer {
  public:
   /**
-   * Iterator to access records inside the undo buffer.
+   * Iterator to access UndoRecords inside the undo buffer.
    *
    * Iterators are always guaranteed to be valid once handed out, provided that the UndoBuffer is not
    * destructed, regardless of modifications to the UndoBuffer.
@@ -116,15 +204,15 @@ class SegmentedBuffer {
     /**
      * @return reference to the underlying UndoRecord
      */
-    RecordType &operator*() const {
-      return *reinterpret_cast<RecordType *>((*curr_segment_)->bytes_ + segment_offset_);
+    UndoRecord &operator*() const {
+      return *reinterpret_cast<UndoRecord *>((*curr_segment_)->bytes_ + segment_offset_);
     }
 
     /**
      * @return pointer to the underlying UndoRecord
      */
-    RecordType *operator->() const {
-      return reinterpret_cast<RecordType *>((*curr_segment_)->bytes_ + segment_offset_);
+    UndoRecord *operator->() const {
+      return reinterpret_cast<UndoRecord *>((*curr_segment_)->bytes_ + segment_offset_);
     }
 
     /**
@@ -132,7 +220,7 @@ class SegmentedBuffer {
      * @return self-reference
      */
     Iterator &operator++() {
-      RecordType &me = this->operator*();
+      UndoRecord &me = this->operator*();
       segment_offset_ += me.Size();
       if (segment_offset_ == (*curr_segment_)->size_) {
         // need to advance into the next segment
@@ -170,7 +258,7 @@ class SegmentedBuffer {
     bool operator!=(const Iterator &other) const { return !(*this == other); }
 
    private:
-    friend class SegmentedBuffer<RecordType>;
+    friend class UndoBuffer;
     Iterator(std::vector<RecordBufferSegment *>::iterator curr_segment, uint32_t segment_offset)
         : curr_segment_(curr_segment), segment_offset_(segment_offset) {}
     std::vector<RecordBufferSegment *>::iterator curr_segment_;
@@ -181,12 +269,12 @@ class SegmentedBuffer {
    * Constructs a new undo buffer, drawing its segments from the given buffer pool.
    * @param buffer_pool buffer pool to draw segments from
    */
-  explicit SegmentedBuffer(RecordBufferSegmentPool *buffer_pool) : buffer_pool_(buffer_pool) {}
+  explicit UndoBuffer(RecordBufferSegmentPool *buffer_pool) : buffer_pool_(buffer_pool) {}
 
   /**
    * Destructs this buffer, releases all its segments back to the buffer pool it draws from.
    */
-  ~SegmentedBuffer() {
+  ~UndoBuffer() {
     for (auto *segment : buffers_) buffer_pool_->Release(segment);
   }
 
@@ -210,18 +298,51 @@ class SegmentedBuffer {
    * @param size the size of the undo record to allocate
    * @return a new undo record with at least the given size reserved
    */
-  byte *NewEntry(uint32_t size) {
-    if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
-      // we are out of space in the buffer. Get a new buffer segment.
-      RecordBufferSegment *new_segment = buffer_pool_->Get();
-      TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
-      buffers_.push_back(new_segment);
-    }
-    return buffers_.back()->Reserve(size);
-  }
+  byte *NewEntry(uint32_t size);
 
  private:
   RecordBufferSegmentPool *buffer_pool_;
   std::vector<RecordBufferSegment *> buffers_;
+};
+
+class LogManager;  // forward declaration
+
+/**
+ * A RedoBuffer is a fixed-sized buffer to hold RedoRecords.
+ *
+ * Not thread-safe
+ */
+class RedoBuffer {
+ public:
+  /**
+   * Initializes a new RedoBuffer, working with the given LogManager
+   * @param log_manager the log manager this redo buffer talks to, or nullptr if logging is disabled
+   * @param buffer_pool The buffer pool to draw buffer segments from. Must be the same buffer pool the log manager uses.
+   */
+  RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
+      : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
+
+  /**
+   * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
+   * is called again, or when the buffer is explicitly flushed by the call Finish().
+   * @param size the size of the redo record to allocate
+   * @return a new redo record with at least the given size reserved
+   */
+  byte *NewEntry(uint32_t size);
+
+  /**
+   * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
+   * can be written to this redo buffer after the function returns.
+   * @param committed whether the transaction holding this RedoBuffer is committed
+   */
+  void Finalize(bool committed);
+
+ private:
+  friend class LogManager;
+  LogManager *const log_manager_;
+  RecordBufferSegmentPool *const buffer_pool_;
+  RecordBufferSegment *buffer_seg_ = nullptr;
+  // reserved for aborts where we will potentially need to garbage collect the last operation (which caused the abort)
+  byte *last_record_ = nullptr;
 };
 }  // namespace terrier::storage

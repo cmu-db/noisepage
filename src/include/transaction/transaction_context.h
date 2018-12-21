@@ -30,8 +30,8 @@ class TransactionContext {
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool)
-      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(buffer_pool) {}
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *log_manager)
+      : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
@@ -120,8 +120,8 @@ class TransactionContext {
   friend class storage::LogManager;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
-  storage::SegmentedBuffer<storage::UndoRecord> undo_buffer_;
-  storage::SegmentedBuffer<storage::LogRecord> redo_buffer_;
+  storage::UndoBuffer undo_buffer_;
+  storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
   std::vector<const byte *> loose_ptrs_;
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read

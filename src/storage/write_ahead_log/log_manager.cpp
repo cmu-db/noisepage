@@ -4,15 +4,15 @@
 namespace terrier::storage {
 void LogManager::Process() {
   while (true) {
-    transaction::TransactionContext *txn;
+    RecordBufferSegment *buffer;
     // In a short critical section, try to dequeue an item
     {
       common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
       if (flush_queue_.empty()) break;
-      txn = flush_queue_.front();
+      buffer = flush_queue_.front();
       flush_queue_.pop();
     }
-    for (LogRecord &record : txn->redo_buffer_) {
+    for (LogRecord &record : IterableBufferSegment<LogRecord>(buffer)) {
       if (record.RecordType() == LogRecordType::COMMIT) {
         auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
@@ -23,13 +23,12 @@ void LogManager::Process() {
           SerializeRecord(record);
         }
         commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
+        commit_record->Txn()->log_processed_ = true;
       } else {
         // Any record that is not a commit record is always serialized.`
         SerializeRecord(record);
       }
     }
-    // We are done with this transaction and will not look at it again
-    txn->log_processed_ = true;
   }
   Flush();
 }

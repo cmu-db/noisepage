@@ -43,9 +43,9 @@ class LogManager {
    *
    * @param txn the transaction to be logged out
    */
-  void AddTxnToFlushQueue(transaction::TransactionContext *txn) {
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    flush_queue_.push(txn);
+    flush_queue_.push(buffer_segment);
   }
 
   /**
@@ -73,7 +73,7 @@ class LogManager {
   common::SpinLatch flush_queue_latch_;
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   // optimization we applied to the GC queue.
-  std::queue<transaction::TransactionContext *> flush_queue_;
+  std::queue<RecordBufferSegment *> flush_queue_;
 
   // These do not need to be thread safe since the only thread adding or removing from it is the flushing thread
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;

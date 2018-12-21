@@ -262,12 +262,13 @@ class CommitRecord {
    */
   static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
                                const transaction::timestamp_t txn_commit, transaction::callback_fn callback,
-                               void *callback_arg, bool is_read_only) {
+                               void *callback_arg, bool is_read_only, transaction::TransactionContext *txn) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
     body->callback_ = callback;
     body->callback_arg_ = callback_arg;
+    body->txn_ = txn;
     body->is_read_only_ = is_read_only;
     return result;
   }
@@ -281,6 +282,8 @@ class CommitRecord {
    * @return function pointer of the transaction callback
    */
   transaction::callback_fn Callback() const { return callback_; }
+
+  transaction::TransactionContext *Txn() const { return txn_; }
 
   /**
    * @return argument to the transaction callback
@@ -296,6 +299,8 @@ class CommitRecord {
   transaction::timestamp_t txn_commit_;
   transaction::callback_fn callback_;
   void *callback_arg_;
+  // TODO(TIanyu): Can replace the other arguments
+  transaction::TransactionContext *txn_;
   bool is_read_only_;
 };
 }  // namespace terrier::storage

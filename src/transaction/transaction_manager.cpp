@@ -15,7 +15,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_);
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
   common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
   const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
@@ -32,15 +32,15 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      is_read_only);
+                                      is_read_only, txn);
     // Signal to the log manager that we are ready to be logged out
-    log_manager_->AddTxnToFlushQueue(txn);
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
     // correctly
     txn->log_processed_ = true;
     callback(callback_arg);
   }
+  txn->redo_buffer_.Finalize(true);
 }
 
 timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
@@ -167,29 +167,29 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
 }
 
 void TransactionManager::GCVarlenOnAbort(TransactionContext *const txn) {
-  for (storage::LogRecord &record : txn->redo_buffer_) {
-    switch (record.RecordType()) {
-      case storage::LogRecordType::DELETE:
-        break;  // nothing to free
-      case storage::LogRecordType::REDO: {
-        // Scan the record for any varlens we need to free up
-        auto *redo = record.GetUnderlyingRecordBodyAs<storage::RedoRecord>();
-        const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
-        for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
-          storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
-          // If the delta updates a varlen, then the varlen should be garbage collected
-          if (layout.IsVarlen(col_id)) {
-            auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
-            // There is no possibility of an uncommitted change being gathered, so no need to check
-            if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
-          }
-        }
-        break;
-      }
-      default:
-        // It is impossible to have a commit type when aborting a transaction
-        throw std::runtime_error("unexpected log record type");
-    }
-  }
+//  for (storage::LogRecord &record : txn->redo_buffer_) {
+//    switch (record.RecordType()) {
+//      case storage::LogRecordType::DELETE:
+//        break;  // nothing to free
+//      case storage::LogRecordType::REDO: {
+//        // Scan the record for any varlens we need to free up
+//        auto *redo = record.GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+//        const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
+//        for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
+//          storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
+//          // If the delta updates a varlen, then the varlen should be garbage collected
+//          if (layout.IsVarlen(col_id)) {
+//            auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
+//            // There is no possibility of an uncommitted change being gathered, so no need to check
+//            if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
+//          }
+//        }
+//        break;
+//      }
+//      default:
+//        // It is impossible to have a commit type when aborting a transaction
+//        throw std::runtime_error("unexpected log record type");
+//    }
+//  }
 }
 }  // namespace terrier::transaction
