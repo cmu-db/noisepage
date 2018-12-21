@@ -96,31 +96,6 @@ class TerrierServer : public DedicatedThreadOwner {
   // TODO(tianyu): This is VILE. Fix this when we refactor testing.
   void SetPort(int new_port);
 
-  static void LoadSSLFileSettings();
-
-  static void SSLInit();
-
-  static int VerifyCallback(int ok, X509_STORE_CTX *store);
-
-  static void SetSSLLevel(SSLLevel ssl_level) { ssl_level_ = ssl_level; }
-
-  static SSLLevel GetSSLLevel() { return ssl_level_; }
-
-  static void SSLLockingFunction(int mode, int n, const char *file, int line);
-
-  static unsigned long SSLIdFunction(void);
-
-  static int SSLMutexSetup(void);
-
-  static int SSLMutexCleanup(void);
-
-  static int recent_connfd;
-  static SSL_CTX *ssl_context;
-  static std::string private_key_file_;
-  static std::string certificate_file_;
-  static std::string root_cert_file_;
-  static SSLLevel ssl_level_;
-  static pthread_mutex_t *ssl_mutex_buf_;
 
  private:
   // For logging purposes
@@ -129,10 +104,6 @@ class TerrierServer : public DedicatedThreadOwner {
   uint64_t port_;       // port number
   int listen_fd_ = -1;  // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
-
-
-  template <typename... Ts>
-  void TrySslOperation(int (*func)(Ts...), Ts... arg);
 
   // For testing purposes
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
