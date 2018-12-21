@@ -36,12 +36,6 @@
 #include "connection_dispatcher_task.h"
 #include "network_types.h"
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-#include <openssl/x509.h>
-#include <openssl/x509_vfy.h>
-
 namespace terrier {
 namespace network {
 

@@ -13,8 +13,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
 #include <arpa/inet.h>
 #include "util/portable_endian.h"
 #include "common/internal_types.h"
@@ -206,18 +204,6 @@ class ReadBuffer : public Buffer {
    */
   inline ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY)
       : Buffer(capacity) {}
-  /**
-   * Read as many bytes as possible using SSL read
-   * @param context SSL context to read from
-   * @return the return value of ssl read
-   */
-  inline int FillBufferFrom(SSL *context) {
-    ERR_clear_error();
-    ssize_t bytes_read = SSL_read(context, &buf_[size_], Capacity() - size_);
-    int err = SSL_get_error(context, bytes_read);
-    if (err == SSL_ERROR_NONE) size_ += bytes_read;
-    return err;
-  };
 
   /**
    * Read as many bytes as possible using Posix from an fd
@@ -290,19 +276,6 @@ class WriteBuffer : public Buffer {
    */
   inline WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY)
       : Buffer(capacity) {}
-
-  /**
-   * Write as many bytes as possible using SSL write
-   * @param context SSL context to write out to
-   * @return return value of SSL write
-   */
-  inline int WriteOutTo(SSL *context) {
-    ERR_clear_error();
-    ssize_t bytes_written = SSL_write(context, &buf_[offset_], size_ - offset_);
-    int err = SSL_get_error(context, bytes_written);
-    if (err == SSL_ERROR_NONE) offset_ += bytes_written;
-    return err;
-  }
 
   /**
    * Write as many bytes as possible using Posix write to fd

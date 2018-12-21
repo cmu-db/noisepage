@@ -13,7 +13,6 @@
 #include "network/network_io_wrappers.h"
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
-#include <openssl/err.h>
 #include <sys/file.h>
 #include "network/peloton_server.h"
 
@@ -81,79 +80,6 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
       }
   }
   wbuf.Reset();
-  return Transition::PROCEED;
-}
-
-Transition SslSocketIoWrapper::FillReadBuffer() {
-  if (!in_->HasMore()) in_->Reset();
-  if (in_->HasMore() && in_->Full()) in_->MoveContentToHead();
-  Transition result = Transition::NEED_READ;
-  while (!in_->Full()) {
-    auto ret = in_->FillBufferFrom(conn_ssl_context_);
-    switch (ret) {
-      case SSL_ERROR_NONE:result = Transition::PROCEED;
-        break;
-      case SSL_ERROR_ZERO_RETURN: return Transition::TERMINATE;
-        // The SSL packet is partially loaded to the SSL buffer only,
-        // More data is required in order to decode the wh`ole packet.
-      case SSL_ERROR_WANT_READ: return result;
-      case SSL_ERROR_WANT_WRITE: return Transition::NEED_WRITE;
-      case SSL_ERROR_SYSCALL:
-        if (errno == EINTR) {
-          LOG_INFO("Error SSL Reading: EINTR");
-          break;
-        }
-        // Intentional fallthrough
-      default:
-        throw NetworkProcessException("SSL read error: " + std::to_string(ret));
-    }
-  }
-  return result;
-}
-
-Transition SslSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
-  while (wbuf.HasMore()) {
-    auto ret = wbuf.WriteOutTo(conn_ssl_context_);
-    switch (ret) {
-      case SSL_ERROR_NONE: break;
-      case SSL_ERROR_WANT_WRITE: return Transition::NEED_WRITE;
-      case SSL_ERROR_WANT_READ: return Transition::NEED_READ;
-      case SSL_ERROR_SYSCALL:
-        // If interrupted, try again.
-        if (errno == EINTR) {
-          LOG_TRACE("Flush write buffer, eintr");
-          break;
-        }
-        // Intentional Fallthrough
-      default:LOG_ERROR("SSL write error: %d, error code: %lu",
-                        ret,
-                        ERR_get_error());
-        throw NetworkProcessException("SSL write error");
-    }
-  }
-  wbuf.Reset();
-  return Transition::PROCEED;
-}
-
-Transition SslSocketIoWrapper::Close() {
-  ERR_clear_error();
-  int ret = SSL_shutdown(conn_ssl_context_);
-  if (ret != 0) {
-    int err = SSL_get_error(conn_ssl_context_, ret);
-    switch (err) {
-      // More work to do before shutdown
-      case SSL_ERROR_WANT_READ: return Transition::NEED_READ;
-      case SSL_ERROR_WANT_WRITE: return Transition::NEED_WRITE;
-      default: LOG_ERROR("Error shutting down ssl session, err: %d", err);
-    }
-  }
-  // SSL context is explicitly deallocated here because socket wrapper
-  // objects are saved reused for memory efficiency and the reuse might
-  // not happen immediately, and thus freeing it on reuse time can make this
-  // live on arbitrarily long.
-  SSL_free(conn_ssl_context_);
-  conn_ssl_context_ = nullptr;
-  peloton_close(sock_fd_);
   return Transition::PROCEED;
 }
 
