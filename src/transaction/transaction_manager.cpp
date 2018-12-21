@@ -105,9 +105,29 @@ void TransactionManager::Abort(TransactionContext *const txn) {
   for (auto &it : txn->undo_buffer_) Rollback(txn, it);
   // We have to figure out what the updates are in the redos instead of the undos because the update
   // may not have been installed yet.
-  GCVarlenOnAbort(txn);
   // Discard the redo buffer that is not yet logged out
   txn->log_processed_ = true;
+  // Under SI the only possible abort results from write-write conflict. Thus, it is always safe to do the following
+  // as the last write would not be installed and therefore not in the undo record.
+  // TODO(Tianyu): If we ever go Serializable though, there are other aborts where the last update would be captured in
+  // the Undo, and will need to be handled differently (ones resulting from precision lock failure)
+  auto *last_record = reinterpret_cast<storage::LogRecord *>(txn->redo_buffer_.last_record_);
+  if (last_record->RecordType() == storage::LogRecordType::REDO) {
+    auto *redo = last_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+    const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
+    for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
+      // Need to deallocate any possible varlen, as updates may have already been logged out and lost.
+      storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
+      if (layout.IsVarlen(col_id)) {
+        auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
+        if (varlen != nullptr) {
+          TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
+          delete[] varlen->Content();
+        }
+      }
+    }
+  }
+
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
@@ -141,6 +161,7 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   }
   const storage::TupleSlot slot = record.Slot();
   const storage::TupleAccessStrategy &accessor = table->accessor_;
+  const storage::BlockLayout &layout = accessor.GetBlockLayout();
   // This is slightly weird because we don't necessarily undo the record given, but a record by this txn at the
   // given slot. It ends up being correct because we call the correct number of rollbacks.
   storage::UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
@@ -150,10 +171,30 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   switch (version_ptr->Type()) {
     case storage::DeltaRecordType::UPDATE:
       // Re-apply the before image
-      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++)
+      for (uint16_t i = 0; i < version_ptr->Delta()->NumColumns(); i++) {
+        // Need to deallocate any possible varlen, as updates may have already been logged out and lost.
+        storage::col_id_t col_id = version_ptr->Delta()->ColumnIds()[i];
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, col_id));
+          if (varlen != nullptr) {
+            TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
+            delete[] varlen->Content();
+          }
+        }
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *(version_ptr->Delta()), i);
+      }
       break;
     case storage::DeltaRecordType::INSERT:
+      for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns(); i++) {
+        storage::col_id_t col_id(i);
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(slot, col_id));
+          if (varlen != nullptr) {
+            TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
+            delete[] varlen->Content();
+          }
+        }
+      }
       accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
       accessor.Deallocate(slot);
       break;
@@ -164,32 +205,5 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
   // write.
   table->AtomicallyWriteVersionPtr(slot, accessor, version_ptr->Next());
-}
-
-void TransactionManager::GCVarlenOnAbort(TransactionContext *const txn) {
-//  for (storage::LogRecord &record : txn->redo_buffer_) {
-//    switch (record.RecordType()) {
-//      case storage::LogRecordType::DELETE:
-//        break;  // nothing to free
-//      case storage::LogRecordType::REDO: {
-//        // Scan the record for any varlens we need to free up
-//        auto *redo = record.GetUnderlyingRecordBodyAs<storage::RedoRecord>();
-//        const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
-//        for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
-//          storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
-//          // If the delta updates a varlen, then the varlen should be garbage collected
-//          if (layout.IsVarlen(col_id)) {
-//            auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
-//            // There is no possibility of an uncommitted change being gathered, so no need to check
-//            if (varlen != nullptr) txn->loose_ptrs_.push_back(varlen->Content());
-//          }
-//        }
-//        break;
-//      }
-//      default:
-//        // It is impossible to have a commit type when aborting a transaction
-//        throw std::runtime_error("unexpected log record type");
-//    }
-//  }
 }
 }  // namespace terrier::transaction

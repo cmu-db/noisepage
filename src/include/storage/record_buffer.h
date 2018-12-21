@@ -5,6 +5,10 @@
 #include "common/strong_typedef.h"
 #include "storage/undo_record.h"
 
+namespace terrier::transaction {
+class TransactionManager;
+}  // namespace terrier::transaction
+
 namespace terrier::storage {
 
 /**
@@ -339,6 +343,7 @@ class RedoBuffer {
 
  private:
   friend class LogManager;
+  friend class transaction::TransactionManager;
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
   RecordBufferSegment *buffer_seg_ = nullptr;
