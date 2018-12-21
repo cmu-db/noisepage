@@ -127,6 +127,7 @@ void TransactionManager::Abort(TransactionContext *const txn) {
       }
     }
   }
+  txn->redo_buffer_.Finalize(false);
 
   {
     // In a critical section, remove this transaction from the table of running transactions
