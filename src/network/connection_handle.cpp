@@ -180,39 +180,6 @@ Transition ConnectionHandle::GetResult() {
   return Transition::PROCEED;
 }
 
-Transition ConnectionHandle::TrySslHandshake() {
-  // TODO(Tianyu): Do we really need to flush here?
-  auto ret = io_wrapper_->FlushAllWrites();
-  if (ret != Transition::PROCEED) return ret;
-  SSL *context;
-  if (!io_wrapper_->SslAble()) {
-    context = SSL_new(TerrierServer::ssl_context);
-    if (context == nullptr)
-      throw NetworkProcessException("ssl context for conn failed");
-    SSL_set_session_id_context(context, nullptr, 0);
-    if (SSL_set_fd(context, io_wrapper_->sock_fd_) == 0)
-      throw NetworkProcessException("Failed to set ssl fd");
-    //io_wrapper_.reset(new SslSocketIoWrapper(std::move(*io_wrapper_), context));
-  } else
-    context = dynamic_cast<SslSocketIoWrapper *>(io_wrapper_.get())->conn_ssl_context_;
-
-  // The wrapper already uses SSL methods.
-  // Yuchen: "Post-connection verification?"
-  ERR_clear_error();
-  int ssl_accept_ret = SSL_accept(context);
-  if (ssl_accept_ret > 0) return Transition::PROCEED;
-
-  int err = SSL_get_error(context, ssl_accept_ret);
-  switch (err) {
-    case SSL_ERROR_WANT_READ:
-      return Transition::NEED_READ;
-    case SSL_ERROR_WANT_WRITE:
-      return Transition::NEED_WRITE;
-    default:
-      throw NetworkProcessException("SSL Error, error code" + std::to_string(err));
-  }
-}
-
 Transition ConnectionHandle::TryCloseConnection() {
   LOG_DEBUG("Attempt to close the connection %d", io_wrapper_->GetSocketFd());
   // TODO(Tianyu): Handle close failure
@@ -226,5 +193,6 @@ Transition ConnectionHandle::TryCloseConnection() {
   conn_handler_->UnregisterEvent(workpool_event_);
   return Transition::NONE;
 }
+
 }  // namespace network
 }  // namespace terrier
