@@ -15,6 +15,7 @@
 #include <unordered_set>
 #include <event2/thread.h>
 #include "common/event_util.h"
+#include "common/dedicated_thread_task.h"
 
 namespace terrier {
 
@@ -43,7 +44,7 @@ namespace terrier {
  * More specifically, NotifiableTasks are backed by libevent, and takes care of
  * memory management with the library.
  */
-class NotifiableTask {
+class NotifiableTask : public DedicatedThreadTask {
  public:
   /**
    * Constructs a new NotifiableTask instance.
@@ -172,6 +173,21 @@ class NotifiableTask {
     EventUtil::EventBaseDispatch(base_);
     LOG_TRACE("stop");
   }
+
+  /**
+   * Overrides DedicatedThreadTask entry point method
+   */
+  void RunTask() override {
+    EventLoop();
+  }
+
+  /**
+   * Overrides DedicatedThreadTask exit point method
+   */
+  void Terminate() override {
+    ExitLoop();
+  }
+
   /**
    * Exits the event loop
    */

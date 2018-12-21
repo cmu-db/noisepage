@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <common/dedicated_thread_registry.h>
 #include "network/connection_dispatcher_task.h"
 #include "common/init.h"
 
@@ -21,7 +22,8 @@ namespace terrier {
 namespace network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
-                                                   int listen_fd)
+                                                   int listen_fd,
+                                                   DedicatedThreadOwner *dedicatedThreadOwner)
     : NotifiableTask(MASTER_THREAD_ID), next_handler_(0) {
   RegisterEvent(
       listen_fd, EV_READ | EV_PERSIST,
@@ -43,7 +45,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id);
     handlers_.push_back(handler);
-    thread_pool.SubmitDedicatedTask([=] { handler->EventLoop(); });
+    DedicatedThreadRegistry::GetInstance()
+        .RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner, handler);
   }
 }
 

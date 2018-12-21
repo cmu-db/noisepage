@@ -266,7 +266,7 @@ TerrierServer &TerrierServer::SetupServer() {
   TrySslOperation<int, int>(listen, listen_fd_, conn_backlog);
 
   dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(
-      CONNECTION_THREAD_COUNT, listen_fd_);
+      CONNECTION_THREAD_COUNT, listen_fd_, this);
 
   LOG_INFO("Listening on port %llu", (unsigned long long)port_);
   return *this;
