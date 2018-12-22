@@ -24,6 +24,8 @@ class LogManager {
    *
    * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
    *                      otherwise, changes are appended to the end of the file.
+   * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
+   *                    buffers from
    */
   LogManager(const char *log_file_path, RecordBufferSegmentPool *buffer_pool)
       : out_(log_file_path), buffer_pool_(buffer_pool) {}
@@ -38,11 +40,11 @@ class LogManager {
   }
 
   /**
-   * Enqueues a transaction context to the log manager to be consumed. Caller should drop its
+   * Returns a (perhaps partially) filled log buffer to the log manager to be consumed. Caller should drop its
    * reference to the buffer after the method returns immediately, as it would no longer be safe to read from or
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
-   * @param txn the transaction to be logged out
+   * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
