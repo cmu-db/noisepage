@@ -128,15 +128,15 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   // if the update was indeed installed.
   // TODO(Tianyu): This way of gcing varlen implies that we abort right away on a conflict
   // and not perform any further updates. Shouldn't be a stretch.
-  if (last_log_record == nullptr) return; // there are no updates
-  if (last_log_record->RecordType() != storage::LogRecordType::REDO) return; // Only redos need to be gc-ed.
+  if (last_log_record == nullptr) return;                                     // there are no updates
+  if (last_log_record->RecordType() != storage::LogRecordType::REDO) return;  // Only redos need to be gc-ed.
 
   // Last update can potentially contain a varlen that needs to be gc-ed. We now need to check if it
   // was installed or not.
   auto *redo = last_log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   TERRIER_ASSERT(redo->GetTupleSlot() == last_undo_record->Slot(),
                  "Last undo record and redo record must correspond to each other");
-  if (last_undo_record->Table() != nullptr) return; // the update was installed and will be handled by the GC
+  if (last_undo_record->Table() != nullptr) return;  // the update was installed and will be handled by the GC
 
   // We need to free any varlen memory in the last update if the code reaches here
   const storage::BlockLayout &layout = redo->GetDataTable()->accessor_.GetBlockLayout();
@@ -209,8 +209,7 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   table->AtomicallyWriteVersionPtr(slot, accessor, version_ptr->Next());
 }
 
-void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
-                                                        storage::UndoRecord *undo,
+void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                                         uint16_t projection_list_index,
                                                         const storage::TupleAccessStrategy &accessor) const {
   const storage::BlockLayout &layout = accessor.GetBlockLayout();

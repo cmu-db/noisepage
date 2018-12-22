@@ -305,11 +305,9 @@ class UndoBuffer {
   byte *NewEntry(uint32_t size);
 
   /**
- * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
- */
-  byte *LastRecord() const{
-    return last_record_;
-  }
+   * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
+   */
+  byte *LastRecord() const { return last_record_; }
 
  private:
   RecordBufferSegmentPool *buffer_pool_;
@@ -352,9 +350,7 @@ class RedoBuffer {
   /**
    * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
    */
-  byte *LastRecord() const{
-    return last_record_;
-  }
+  byte *LastRecord() const { return last_record_; }
 
  private:
   LogManager *const log_manager_;
