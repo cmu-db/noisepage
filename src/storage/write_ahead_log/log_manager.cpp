@@ -21,10 +21,9 @@ void LogManager::Process() {
         // it corresponds to a transaction with nothing to redo.
         if (!commit_record->IsReadOnly()) SerializeRecord(record);
         commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
-        // TODO(Tianyu): Change back to this when reimplementing GC optimization for read-only
-        // Not safe to mark read only transactions as the transactions could have been deallocated preemptively
-//        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
-        commit_record->Txn()->log_processed_ = true;
+        // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
+        // logging (there is nothing to log after all)
+        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
       } else {
         // Any record that is not a commit record is always serialized.`
         SerializeRecord(record);

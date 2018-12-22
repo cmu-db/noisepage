@@ -304,9 +304,17 @@ class UndoBuffer {
    */
   byte *NewEntry(uint32_t size);
 
+  /**
+ * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
+ */
+  byte *LastRecord() const{
+    return last_record_;
+  }
+
  private:
   RecordBufferSegmentPool *buffer_pool_;
   std::vector<RecordBufferSegment *> buffers_;
+  byte *last_record_ = nullptr;
 };
 
 class LogManager;  // forward declaration
@@ -341,9 +349,14 @@ class RedoBuffer {
    */
   void Finalize(bool committed);
 
+  /**
+   * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
+   */
+  byte *LastRecord() const{
+    return last_record_;
+  }
+
  private:
-  friend class LogManager;
-  friend class transaction::TransactionManager;
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
   RecordBufferSegment *buffer_seg_ = nullptr;

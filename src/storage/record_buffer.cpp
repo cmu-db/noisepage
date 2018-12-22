@@ -9,7 +9,8 @@ byte *UndoBuffer::NewEntry(const uint32_t size) {
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
     buffers_.push_back(new_segment);
   }
-  return buffers_.back()->Reserve(size);
+  last_record_ = buffers_.back()->Reserve(size);
+  return last_record_;
 }
 
 byte *RedoBuffer::NewEntry(const uint32_t size) {

@@ -102,5 +102,15 @@ class TransactionManager {
                  void *callback_arg);
 
   void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
+
+  void DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
+                                      storage::UndoRecord *undo,
+                                      uint16_t projection_list_index,
+                                      const storage::TupleAccessStrategy &accessor) const;
+
+  void DeallocateInsertedTupleIfVarlen(TransactionContext *txn,
+                                       storage::UndoRecord *undo,
+                                       const storage::TupleAccessStrategy &accessor) const;
+  void GCLastUpdateOnAbort(TransactionContext *txn);
 };
 }  // namespace terrier::transaction
