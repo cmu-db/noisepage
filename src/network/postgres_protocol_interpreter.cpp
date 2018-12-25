@@ -14,8 +14,8 @@
 //#include "network/postgres_protocol_interpreter.h"
 //#include "network/peloton_server.h"
 //
-//#define MAKE_COMMAND(type)                                 \
-//  std::static_pointer_cast<PostgresNetworkCommand, type>(  \
+//#define MAKE_COMMAND(type)
+//  std::static_pointer_cast<PostgresNetworkCommand, type>(
 //      std::make_shared<type>(curr_input_packet_))
 //#define SSL_MESSAGE_VERNO 80877103
 //#define PROTO_MAJOR_VERSION(x) ((x) >> 16)
