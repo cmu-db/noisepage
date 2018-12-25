@@ -61,8 +61,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
           return result;
         case EINTR:continue;
         default:LOG_ERROR("Error writing: %s", strerror(errno));
-          throw NetworkProcessException("Error when filling read buffer " +
-              std::to_string(errno));
+          throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
   }
   return result;
@@ -76,7 +75,7 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
         case EINTR:continue;
         case EAGAIN:return Transition::NEED_WRITE;
         default:LOG_ERROR("Error writing: %s", strerror(errno));
-          throw NetworkProcessException("Fatal error during write");
+          throw NETWORK_PROCESS_EXCEPTION("Fatal error during write");
       }
   }
   wbuf.Reset();

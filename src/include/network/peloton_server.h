@@ -88,7 +88,7 @@ class TerrierServer : public DedicatedThreadOwner {
   void Close();
 
   // TODO(tianyu): This is VILE. Fix this when we refactor testing.
-  void SetPort(int new_port);
+  void SetPort(uint16_t new_port);
 
 
  private:
