@@ -51,35 +51,28 @@ class EventUtil {
   EventUtil() = delete;
 
   static inline struct event_base *EventBaseNew() {
-    return Wrap(event_base_new(), NotNull<struct event_base>,
-                "Can't allocate event base");
+    return Wrap(event_base_new(), NotNull<struct event_base>, "Can't allocate event base");
   }
 
-  static inline int EventBaseLoopExit(struct event_base *base,
-                                      const struct timeval *timeout) {
-    return Wrap(event_base_loopexit(base, timeout), IsZero,
-                "Error when exiting loop");
+  static inline int EventBaseLoopExit(struct event_base *base, const struct timeval *timeout) {
+    return Wrap(event_base_loopexit(base, timeout), IsZero, "Error when exiting loop");
   }
 
   static inline int EventDel(struct event *event) {
     return Wrap(event_del(event), IsZero, "Error when deleting event");
   }
 
-  static inline int EventAdd(struct event *event,
-                             const struct timeval *timeout) {
+  static inline int EventAdd(struct event *event, const struct timeval *timeout) {
     return Wrap(event_add(event, timeout), IsZero, "Error when adding event");
   }
 
-  static inline int EventAssign(struct event *event, struct event_base *base,
-                                int fd, short flags, event_callback_fn callback,
-                                void *arg) {
-    return Wrap(event_assign(event, base, fd, flags, callback, arg), IsZero,
-                "Error when assigning event");
+  static inline int EventAssign(struct event *event, struct event_base *base, int fd, short flags,
+                                event_callback_fn callback, void *arg) {
+    return Wrap(event_assign(event, base, fd, flags, callback, arg), IsZero, "Error when assigning event");
   }
 
   static inline int EventBaseDispatch(struct event_base *base) {
-    return Wrap(event_base_dispatch(base), NonNegative,
-                "Error in event base dispatch");
+    return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
   }
 };
 }  // namespace terrier

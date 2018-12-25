@@ -13,9 +13,9 @@
 #pragma once
 #include <string>
 
-namespace terrier{
+namespace terrier {
 
-  int peloton_close(int fd);
+int peloton_close(int fd);
 
-  std::string peloton_error_message();
-}
+std::string peloton_error_message();
+}  // namespace terrier

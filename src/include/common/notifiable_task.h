@@ -12,11 +12,11 @@
 
 #pragma once
 
-#include <unordered_set>
 #include <event2/thread.h>
-#include "common/macros.h"
-#include "common/event_util.h"
+#include <unordered_set>
 #include "common/dedicated_thread_task.h"
+#include "common/event_util.h"
+#include "common/macros.h"
 
 namespace terrier {
 
@@ -33,10 +33,8 @@ namespace terrier {
  * where int is the fd and short is the flags supplied by libevent.
  *
  */
-#define METHOD_AS_CALLBACK(type, method)         \
-  [](int fd, short flags, void *arg) {           \
-    static_cast<type *>(arg)->method(fd, flags); \
-  }
+#define METHOD_AS_CALLBACK(type, method) \
+  [](int fd, short flags, void *arg) { static_cast<type *>(arg)->method(fd, flags); }
 
 /**
  * @brief NotifiableTasks can be configured to handle events with callbacks, and
@@ -86,8 +84,7 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  struct event *RegisterEvent(int fd, short flags, event_callback_fn callback,
-                              void *arg,
+  struct event *RegisterEvent(int fd, short flags, event_callback_fn callback, void *arg,
                               const struct timeval *timeout = nullptr);
   /**
    * @brief Register a signal event. This is a wrapper around RegisterEvent()
@@ -101,9 +98,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * null which will wait forever
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterSignalEvent(int signal,
-                                           event_callback_fn callback,
-                                           void *arg) {
+  inline struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
     return RegisterEvent(signal, EV_SIGNAL | EV_PERSIST, callback, arg);
   }
 
@@ -119,9 +114,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterPeriodicEvent(const struct timeval *timeout,
-                                             event_callback_fn callback,
-                                             void *arg) {
+  inline struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
   }
 
@@ -136,13 +129,11 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterManualEvent(event_callback_fn callback,
-                                           void *arg) {
+  inline struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_PERSIST, callback, arg);
   }
 
-  void UpdateEvent(struct event *event, int fd, short flags,
-                   event_callback_fn callback, void *arg,
+  void UpdateEvent(struct event *event, int fd, short flags, event_callback_fn callback, void *arg,
                    const struct timeval *timeout = nullptr) {
     TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
@@ -150,8 +141,7 @@ class NotifiableTask : public DedicatedThreadTask {
     EventUtil::EventAdd(event, timeout);
   }
 
-  void UpdateManualEvent(struct event *event, event_callback_fn callback,
-                         void *arg) {
+  void UpdateManualEvent(struct event *event, event_callback_fn callback, void *arg) {
     UpdateEvent(event, -1, EV_PERSIST, callback, arg);
   }
 
@@ -178,16 +168,12 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Overrides DedicatedThreadTask entry point method
    */
-  void RunTask() override {
-    EventLoop();
-  }
+  void RunTask() override { EventLoop(); }
 
   /**
    * Overrides DedicatedThreadTask exit point method
    */
-  void Terminate() override {
-    ExitLoop();
-  }
+  void Terminate() override { ExitLoop(); }
 
   /**
    * Exits the event loop

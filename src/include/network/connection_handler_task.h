@@ -21,8 +21,8 @@
 
 #include "common/container/lock_free_queue.h"
 #include "common/exception.h"
-#include "loggers/main_logger.h"
 #include "common/notifiable_task.h"
+#include "loggers/main_logger.h"
 
 namespace terrier {
 namespace network {

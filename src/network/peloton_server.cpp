@@ -10,9 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <common/internal_types.h>
 #include <fstream>
 #include <memory>
-#include <common/internal_types.h>
 #include "common/utility.h"
 #include "event2/thread.h"
 
@@ -23,16 +23,14 @@
 
 #include "terrier_config.h"
 
-
 namespace terrier {
 namespace network {
 
-
 TerrierServer::TerrierServer() {
   port_ = 2888;
-      // settings::SettingsManager::GetInt(settings::SettingId::port);
+  // settings::SettingsManager::GetInt(settings::SettingId::port);
   max_connections_ = 250;
-      //settings::SettingsManager::GetInt(settings::SettingId::max_connections);
+  // settings::SettingsManager::GetInt(settings::SettingId::max_connections);
 
   // For logging purposes
   //  event_enable_debug_mode();
@@ -75,8 +73,7 @@ TerrierServer &TerrierServer::SetupServer() {
   bind(listen_fd_, (struct sockaddr *)&sin, sizeof(sin));
   listen(listen_fd_, conn_backlog);
 
-  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(
-      CONNECTION_THREAD_COUNT, listen_fd_, this);
+  dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this);
 
   LOG_INFO("Listening on port %llu", (unsigned long long)port_);
   return *this;

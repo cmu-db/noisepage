@@ -31,9 +31,9 @@
 #include "common/container/lock_free_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
-#include "loggers/main_logger.h"
 #include "common/notifiable_task.h"
 #include "connection_dispatcher_task.h"
+#include "loggers/main_logger.h"
 #include "network_types.h"
 
 namespace terrier {
@@ -90,13 +90,12 @@ class TerrierServer : public DedicatedThreadOwner {
   // TODO(tianyu): This is VILE. Fix this when we refactor testing.
   void SetPort(uint16_t new_port);
 
-
  private:
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  uint16_t port_;       // port number
-  int listen_fd_ = -1;  // server socket fd that TerrierServer is listening on
+  uint16_t port_;           // port number
+  int listen_fd_ = -1;      // server socket fd that TerrierServer is listening on
   size_t max_connections_;  // maximum number of connections
 
   // For testing purposes

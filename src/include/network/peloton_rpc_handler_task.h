@@ -18,9 +18,9 @@
 //#include "kj/debug.h"
 //#include "peloton/capnp/peloton_service.capnp.h"
 //
-//namespace terrier {
-//namespace network {
-//class PelotonRpcServerImpl final : public PelotonService::Server {
+// namespace terrier {
+// namespace network {
+// class PelotonRpcServerImpl final : public PelotonService::Server {
 // protected:
 //  kj::Promise<void> createIndex(CreateIndexContext) override {
 //    // TODO(tianyu) Write actual index code
@@ -29,7 +29,7 @@
 //  }
 //};
 //
-//class PelotonRpcHandlerTask : public DedicatedThreadTask {
+// class PelotonRpcHandlerTask : public DedicatedThreadTask {
 // public:
 //  explicit PelotonRpcHandlerTask(const char *address) : address_(address) {}
 //

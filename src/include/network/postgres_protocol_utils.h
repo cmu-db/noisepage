@@ -16,12 +16,12 @@
 //#include "common/statement.h"
 //
 //#define NULL_CONTENT_SIZE (-1)
-//namespace terrier {
-//namespace network {
+// namespace terrier {
+// namespace network {
 //
 //// TODO(Tianyu): It looks very broken that this never changes.
 //// clang-format off
-//const std::unordered_map<std::string, std::string>
+// const std::unordered_map<std::string, std::string>
 //    parameter_status_map = {
 //        {"application_name", "psql"},
 //        {"client_encoding", "UTF8"},
@@ -40,7 +40,7 @@
 ///**
 // * Encapsulates an input packet
 // */
-//struct PostgresInputPacket {
+// struct PostgresInputPacket {
 //  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
 //  size_t len_ = 0;
 //  std::shared_ptr<ReadBuffer> buf_;
@@ -62,7 +62,7 @@
 // * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
 // * helper methods.
 // */
-//class PostgresPacketWriter {
+// class PostgresPacketWriter {
 // public:
 //  /*
 //   * Instantiates a new PostgresPacketWriter backed by the given WriteQueue

@@ -1,10 +1,10 @@
+#include <common/init.h>
+#include <network/peloton_server.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
 #include "bwtree/bwtree.h"
-#include <network/peloton_server.h>
-#include <common/init.h>
 #include "common/allocator.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
@@ -60,8 +60,6 @@ int main() {
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
   main_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
   std::cout << main_stat_reg->DumpStats() << std::endl;
-
-
 
   delete[] redo_buffer_;
   delete txn;

@@ -10,10 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <common/dedicated_thread_registry.h>
 #include "network/connection_dispatcher_task.h"
-#include "signal.h"
+#include <common/dedicated_thread_registry.h>
 #include "common/init.h"
+#include "signal.h"
 
 #include "common/thread_pool.h"
 
@@ -22,15 +22,12 @@
 namespace terrier {
 namespace network {
 
-ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
-                                                   int listen_fd,
+ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_fd,
                                                    DedicatedThreadOwner *dedicatedThreadOwner)
     : NotifiableTask(MASTER_THREAD_ID), next_handler_(0) {
-  RegisterEvent(
-      listen_fd, EV_READ | EV_PERSIST,
-      METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection), this);
-  RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop),
-                      this);
+  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
+                this);
+  RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 
   // TODO(tianyu) Figure out what this initialization logic is doing and
   // potentially rewrite
@@ -46,8 +43,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers,
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id);
     handlers_.push_back(handler);
-    DedicatedThreadRegistry::GetInstance()
-        .RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner, handler);
+    DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<ConnectionHandlerTask>(dedicatedThreadOwner,
+                                                                                          handler);
   }
 }
 

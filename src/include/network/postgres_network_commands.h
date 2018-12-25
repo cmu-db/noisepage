@@ -19,7 +19,7 @@
 //#include "network/marshal.h"
 //#include "network/postgres_protocol_utils.h"
 //
-//#define DEFINE_COMMAND(name, flush)                                        \
+// #define DEFINE_COMMAND(name, flush)                                        \
 //class name : public PostgresNetworkCommand {                               \
 // public:                                                                   \
 //  explicit name(PostgresInputPacket &in)                                   \
@@ -29,12 +29,12 @@
 //                          CallbackFunc) override;                          \
 //}
 //
-//namespace terrier {
-//namespace network {
+// namespace terrier {
+// namespace network {
 //
-//class PostgresProtocolInterpreter;
+// class PostgresProtocolInterpreter;
 //
-//class PostgresNetworkCommand {
+// class PostgresNetworkCommand {
 // public:
 //  virtual Transition Exec(PostgresProtocolInterpreter &interpreter,
 //                          PostgresPacketWriter &out,
@@ -73,14 +73,14 @@
 //  bool flush_on_complete_;
 //};
 //
-//DEFINE_COMMAND(SimpleQueryCommand, true);
-//DEFINE_COMMAND(ParseCommand, false);
-//DEFINE_COMMAND(BindCommand, false);
-//DEFINE_COMMAND(DescribeCommand, false);
-//DEFINE_COMMAND(ExecuteCommand, false);
-//DEFINE_COMMAND(SyncCommand, true);
-//DEFINE_COMMAND(CloseCommand, false);
-//DEFINE_COMMAND(TerminateCommand, true);
+// DEFINE_COMMAND(SimpleQueryCommand, true);
+// DEFINE_COMMAND(ParseCommand, false);
+// DEFINE_COMMAND(BindCommand, false);
+// DEFINE_COMMAND(DescribeCommand, false);
+// DEFINE_COMMAND(ExecuteCommand, false);
+// DEFINE_COMMAND(SyncCommand, true);
+// DEFINE_COMMAND(CloseCommand, false);
+// DEFINE_COMMAND(TerminateCommand, true);
 //
 //} // namespace network
 //} // namespace terrier

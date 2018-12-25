@@ -20,9 +20,9 @@
 //#define SSL_MESSAGE_VERNO 80877103
 //#define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 //
-//namespace terrier {
-//namespace network {
-//Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,
+// namespace terrier {
+// namespace network {
+// Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,
 //                                                std::shared_ptr<WriteQueue> out,
 //                                                CallbackFunc callback) {
 //  if (!TryBuildPacket(in)) return Transition::NEED_READ;
@@ -39,7 +39,7 @@
 //  return command->Exec(*this, writer, callback);
 //}
 //
-//Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,
+// Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,
 //                                                       std::shared_ptr<WriteQueue> out) {
 //  PostgresPacketWriter writer(*out);
 //  auto proto_version = in->ReadValue<uint32_t>();
@@ -81,7 +81,7 @@
 //  return Transition::PROCEED;
 //}
 //
-//bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> &in) {
+// bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> &in) {
 //  if (!TryReadPacketHeader(in)) return false;
 //
 //  size_t size_needed = curr_input_packet_.extended_
@@ -97,7 +97,7 @@
 //  return true;
 //}
 //
-//bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> &in) {
+// bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> &in) {
 //  if (curr_input_packet_.header_parsed_) return true;
 //
 //  // Header format: 1 byte message type (only if non-startup)
@@ -127,7 +127,7 @@
 //  return true;
 //}
 //
-//std::shared_ptr<PostgresNetworkCommand> PostgresProtocolInterpreter::PacketToCommand() {
+// std::shared_ptr<PostgresNetworkCommand> PostgresProtocolInterpreter::PacketToCommand() {
 //  switch (curr_input_packet_.msg_type_) {
 //    case NetworkMessageType::SIMPLE_QUERY_COMMAND:
 //      return MAKE_COMMAND(SimpleQueryCommand);
@@ -151,7 +151,7 @@
 //  }
 //}
 //
-//void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter &out,
+// void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter &out,
 //                                                  const QueryType &query_type,
 //                                                  int rows) {
 //
@@ -184,7 +184,7 @@
 //      .EndPacket();
 //}
 //
-//void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter &out,
+// void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter &out,
 //                                                            ResultType status) {
 //  std::vector<FieldInfo> tuple_descriptor;
 //  if (status == ResultType::SUCCESS) {
@@ -218,7 +218,8 @@
 //  out.WriteReadyForQuery(NetworkTransactionStateType::IDLE);
 //}
 //
-//void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter &out, terrier::ResultType status) {
+// void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter &out, terrier::ResultType status)
+// {
 //  const auto &query_type = state_.statement_->GetQueryType();
 //  switch (status) {
 //    case ResultType::FAILURE:
@@ -260,7 +261,7 @@
 //  }
 //}
 //
-//ResultType PostgresProtocolInterpreter::ExecQueryExplain(const std::string &query,
+// ResultType PostgresProtocolInterpreter::ExecQueryExplain(const std::string &query,
 //                                                         terrier::parser::ExplainStatement &explain_stmt) {
 //  std::unique_ptr<parser::SQLStatementList> unnamed_sql_stmt_list(
 //      new parser::SQLStatementList());
@@ -284,7 +285,7 @@
 //  return status;
 //}
 //
-//bool PostgresProtocolInterpreter::HardcodedExecuteFilter(terrier::QueryType query_type) {
+// bool PostgresProtocolInterpreter::HardcodedExecuteFilter(terrier::QueryType query_type) {
 //  switch (query_type) {
 //    // Skip SET
 //    case QueryType::QUERY_SET:

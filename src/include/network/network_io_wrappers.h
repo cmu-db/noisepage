@@ -16,9 +16,9 @@
 #include <utility>
 #include "common/exception.h"
 #include "common/utility.h"
-#include "network_types.h"
 #include "marshal.h"
 #include "network_io_utils.h"
+#include "network_types.h"
 
 namespace terrier {
 namespace network {
@@ -50,12 +50,8 @@ class NetworkIoWrapper {
   inline bool ShouldFlush() { return out_->ShouldFlush(); }
   // TODO(Tianyu): Make these protected when protocol handler refactor is
   // complete
-  NetworkIoWrapper(int sock_fd,
-                   std::shared_ptr<ReadBuffer> in,
-                   std::shared_ptr<WriteQueue> out)
-      : sock_fd_(sock_fd),
-        in_(std::move(in)),
-        out_(std::move(out)) {
+  NetworkIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out)
+      : sock_fd_(sock_fd), in_(std::move(in)), out_(std::move(out)) {
     in_->Reset();
     out_->Reset();
   }
@@ -65,9 +61,7 @@ class NetworkIoWrapper {
   DISALLOW_COPY(NetworkIoWrapper);
 
   NetworkIoWrapper(NetworkIoWrapper &&other) noexcept
-      : NetworkIoWrapper(other.sock_fd_,
-                         std::move(other.in_),
-                         std::move(other.out_)) {}
+      : NetworkIoWrapper(other.sock_fd_, std::move(other.in_), std::move(other.out_)) {}
 
   int sock_fd_;
   std::shared_ptr<ReadBuffer> in_;
@@ -79,16 +73,11 @@ class NetworkIoWrapper {
  */
 class PosixSocketIoWrapper : public NetworkIoWrapper {
  public:
-  explicit PosixSocketIoWrapper(int sock_fd,
-                                std::shared_ptr<ReadBuffer> in =
-                                    std::make_shared<ReadBuffer>(),
-                                std::shared_ptr<WriteQueue> out =
-                                    std::make_shared<WriteQueue>());
+  explicit PosixSocketIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in = std::make_shared<ReadBuffer>(),
+                                std::shared_ptr<WriteQueue> out = std::make_shared<WriteQueue>());
 
   explicit PosixSocketIoWrapper(NetworkIoWrapper &&other)
-      : PosixSocketIoWrapper(other.sock_fd_,
-                             std::move(other.in_),
-                             std::move(other.out_)) {}
+      : PosixSocketIoWrapper(other.sock_fd_, std::move(other.in_), std::move(other.out_)) {}
 
   DISALLOW_COPY_AND_MOVE(PosixSocketIoWrapper);
 

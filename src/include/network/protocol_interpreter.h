@@ -15,10 +15,10 @@
 //#include "network/network_types.h"
 //#include "network/network_io_utils.h"
 //
-//namespace terrier {
-//namespace network {
+// namespace terrier {
+// namespace network {
 //
-//class ProtocolInterpreter {
+// class ProtocolInterpreter {
 // public:
 //  virtual Transition Process(std::shared_ptr<ReadBuffer> in,
 //                             std::shared_ptr<WriteQueue> out,

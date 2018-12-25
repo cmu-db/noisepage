@@ -28,112 +28,111 @@
 
 namespace terrier {
 
-
 void TerrierInit::Initialize() {
- // int CONNECTION_THREAD_COUNT = 5;
-  //LOGGING_THREAD_COUNT = 1;
-  //GC_THREAD_COUNT = 1;
-  //EPOCH_THREAD_COUNT = 1;
-//
+  // int CONNECTION_THREAD_COUNT = 5;
+  // LOGGING_THREAD_COUNT = 1;
+  // GC_THREAD_COUNT = 1;
+  // EPOCH_THREAD_COUNT = 1;
+  //
   //// set max thread number.
-  //thread_pool.Initialize(0, CONNECTION_THREAD_COUNT + 3);
-//
+  // thread_pool.Initialize(0, CONNECTION_THREAD_COUNT + 3);
+  //
   //// start worker pool
-  //threadpool::MonoQueuePool::GetInstance().Startup();
-//
+  // threadpool::MonoQueuePool::GetInstance().Startup();
+  //
   //// start indextuner thread pool
-  //if (settings::SettingsManager::GetBool(settings::SettingId::brain)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::brain)) {
   //  threadpool::MonoQueuePool::GetBrainInstance().Startup();
   //}
-//
+  //
   //// start parallel execution pool
-  //threadpool::MonoQueuePool::GetExecutionInstance().Startup();
-//
-  //int parallelism = (CONNECTION_THREAD_COUNT + 3) / 4;
-  //storage::DataTable::SetActiveTileGroupCount(parallelism);
-  //storage::DataTable::SetActiveIndirectionArrayCount(parallelism);
-//
+  // threadpool::MonoQueuePool::GetExecutionInstance().Startup();
+  //
+  // int parallelism = (CONNECTION_THREAD_COUNT + 3) / 4;
+  // storage::DataTable::SetActiveTileGroupCount(parallelism);
+  // storage::DataTable::SetActiveIndirectionArrayCount(parallelism);
+  //
   //// start epoch.
-  //concurrency::EpochManagerFactory::GetInstance().StartEpoch();
-//
+  // concurrency::EpochManagerFactory::GetInstance().StartEpoch();
+  //
   //// start GC.
-  //gc::GCManagerFactory::Configure(settings::SettingsManager::GetInt(settings::SettingId::gc_num_threads));
-  //gc::GCManagerFactory::GetInstance().StartGC();
-//
+  // gc::GCManagerFactory::Configure(settings::SettingsManager::GetInt(settings::SettingId::gc_num_threads));
+  // gc::GCManagerFactory::GetInstance().StartGC();
+  //
   //// start index tuner
-  //if (settings::SettingsManager::GetBool(settings::SettingId::index_tuner)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::index_tuner)) {
   //  // Set the default visibility flag for all indexes to false
   //  index::IndexMetadata::SetDefaultVisibleFlag(false);
   //  auto &index_tuner = tuning::IndexTuner::GetInstance();
   //  index_tuner.Start();
   //}
-//
+  //
   //// start layout tuner
-  //if (settings::SettingsManager::GetBool(settings::SettingId::layout_tuner)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::layout_tuner)) {
   //  auto &layout_tuner = tuning::LayoutTuner::GetInstance();
   //  layout_tuner.Start();
   //}
-//
+  //
   //// Initialize catalog
-  //auto pg_catalog = catalog::Catalog::GetInstance();
-  //pg_catalog->Bootstrap();  // Additional catalogs
-  //settings::SettingsManager::GetInstance().InitializeCatalog();
-//
+  // auto pg_catalog = catalog::Catalog::GetInstance();
+  // pg_catalog->Bootstrap();  // Additional catalogs
+  // settings::SettingsManager::GetInstance().InitializeCatalog();
+  //
   //// begin a transaction
-  //auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-  //auto txn = txn_manager.BeginTransaction();
-//
+  // auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+  // auto txn = txn_manager.BeginTransaction();
+  //
   //// initialize the catalog and add the default database, so we don't do this on
   //// the first query
-  //pg_catalog->CreateDatabase(txn, DEFAULT_DB_NAME);
-//
-  //txn_manager.CommitTransaction(txn);
-//
+  // pg_catalog->CreateDatabase(txn, DEFAULT_DB_NAME);
+  //
+  // txn_manager.CommitTransaction(txn);
+  //
   //// Initialize the Statement Cache Manager
-  //StatementCacheManager::Init();
+  // StatementCacheManager::Init();
 }
 
 void TerrierInit::Shutdown() {
   //// shut down index tuner
-  //if (settings::SettingsManager::GetBool(settings::SettingId::index_tuner)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::index_tuner)) {
   //  auto &index_tuner = tuning::IndexTuner::GetInstance();
   //  index_tuner.Stop();
   //}
-//
+  //
   //// shut down layout tuner
-  //if (settings::SettingsManager::GetBool(settings::SettingId::layout_tuner)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::layout_tuner)) {
   //  auto &layout_tuner = tuning::LayoutTuner::GetInstance();
   //  layout_tuner.Stop();
   //}
-//
+  //
   //// shut down GC.
-  //gc::GCManagerFactory::GetInstance().StopGC();
-//
+  // gc::GCManagerFactory::GetInstance().StopGC();
+  //
   //// shut down epoch.
-  //concurrency::EpochManagerFactory::GetInstance().StopEpoch();
-//
+  // concurrency::EpochManagerFactory::GetInstance().StopEpoch();
+  //
   //// shutdown execution thread pool
-  //threadpool::MonoQueuePool::GetExecutionInstance().Shutdown();
-//
+  // threadpool::MonoQueuePool::GetExecutionInstance().Shutdown();
+  //
   //// stop worker pool
-  //threadpool::MonoQueuePool::GetInstance().Shutdown();
-//
+  // threadpool::MonoQueuePool::GetInstance().Shutdown();
+  //
   //// stop indextuner thread pool
-  //if (settings::SettingsManager::GetBool(settings::SettingId::brain)) {
+  // if (settings::SettingsManager::GetBool(settings::SettingId::brain)) {
   //  threadpool::MonoQueuePool::GetBrainInstance().Shutdown();
   //}
-//
-  //thread_pool.Shutdown();
-//
+  //
+  // thread_pool.Shutdown();
+  //
   //// shutdown protocol buf library
-  //google::protobuf::ShutdownProtobufLibrary();
-//
+  // google::protobuf::ShutdownProtobufLibrary();
+  //
   //// clear parameters
-  //google::ShutDownCommandLineFlags();
+  // google::ShutDownCommandLineFlags();
 }
 
 void TerrierInit::SetUpThread() {}
 
 void TerrierInit::TearDownThread() {}
 
-}  // namespace peloton
+}  // namespace terrier

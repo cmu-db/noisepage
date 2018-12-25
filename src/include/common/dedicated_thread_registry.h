@@ -12,12 +12,12 @@
 
 #pragma once
 #include <memory>
+#include <thread>
 #include <unordered_map>
 #include <vector>
-#include <thread>
-#include "common/macros.h"
-#include "common/dedicated_thread_task.h"
 #include "common/dedicated_thread_owner.h"
+#include "common/dedicated_thread_task.h"
+#include "common/macros.h"
 
 namespace terrier {
 
@@ -45,7 +45,7 @@ class DedicatedThreadRegistry {
   }
 
   // TODO(tianyu): Remove when we remove singletons
-  static DedicatedThreadRegistry &GetInstance()  {
+  static DedicatedThreadRegistry &GetInstance() {
     static DedicatedThreadRegistry registry;
     return registry;
   }
@@ -59,8 +59,7 @@ class DedicatedThreadRegistry {
    * @return the DedicatedThreadTask running on new thread
    */
   template <typename Task>
-  void RegisterDedicatedThread(DedicatedThreadOwner *requester,
-                      std::shared_ptr<Task> task) {
+  void RegisterDedicatedThread(DedicatedThreadOwner *requester, std::shared_ptr<Task> task) {
     thread_owners_table_[requester].push_back(task);
     requester->NotifyNewThread();
     threads_table_.emplace(task.get(), std::thread([=] { task->RunTask(); }));
@@ -74,9 +73,7 @@ class DedicatedThreadRegistry {
   std::unordered_map<DedicatedThreadTask *, std::thread> threads_table_;
   // Using raw pointer here is also fine since the owner's life cycle is
   // not controlled by the registry
-  std::unordered_map<DedicatedThreadOwner *,
-                     std::vector<std::shared_ptr<DedicatedThreadTask>>>
-      thread_owners_table_;
+  std::unordered_map<DedicatedThreadOwner *, std::vector<std::shared_ptr<DedicatedThreadTask>>> thread_owners_table_;
 };
 
 }  // namespace terrier

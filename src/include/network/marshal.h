@@ -17,9 +17,9 @@
 //
 //
 //#define BUFFER_INIT_SIZE 100
-//namespace terrier {
-//namespace network {
-//class InputPacket {
+// namespace terrier {
+// namespace network {
+// class InputPacket {
 // public:
 //  NetworkMessageType msg_type;         // header
 //  size_t len;                          // size of packet without header
@@ -87,7 +87,7 @@
 //  ByteBuf::const_iterator End() { return end; }
 //};
 //
-//struct OutputPacket {
+// struct OutputPacket {
 //  ByteBuf buf;                  // stores packet contents
 //  size_t len;                   // size of packet
 //  size_t ptr;                   // ByteBuf cursor, which is used for get and put
@@ -115,63 +115,63 @@
 // */
 //
 ///* packet_put_byte - used to write a single byte into a packet */
-//extern void PacketPutByte(OutputPacket *pkt, const uchar c);
+// extern void PacketPutByte(OutputPacket *pkt, const uchar c);
 //
 ///* packet_put_string - used to write a string into a packet */
-//extern void PacketPutStringWithTerminator(OutputPacket *pkt,
+// extern void PacketPutStringWithTerminator(OutputPacket *pkt,
 //                                          const std::string &str);
 //
 ///* packet_put_int - used to write a single int into a packet */
-//extern void PacketPutInt(OutputPacket *pkt, int n, int base);
+// extern void PacketPutInt(OutputPacket *pkt, int n, int base);
 //
 ///* packet_put_cbytes - used to write a uchar* into a packet */
-//extern void PacketPutCbytes(OutputPacket *pkt, const uchar *b, int len);
+// extern void PacketPutCbytes(OutputPacket *pkt, const uchar *b, int len);
 //
 ///* packet_put_bytes - used to write a uchar vector into a packet */
-//extern void PacketPutString(OutputPacket *pkt, const std::string &data);
+// extern void PacketPutString(OutputPacket *pkt, const std::string &data);
 //
 ///*
 // * Unmarshallers
 // */
 //
 ///* Copy len bytes from the position indicated by begin to an array */
-//extern uchar *PacketCopyBytes(ByteBuf::const_iterator begin, int len);
+// extern uchar *PacketCopyBytes(ByteBuf::const_iterator begin, int len);
 ///*
 // * packet_get_int -  Parse an int out of the head of the
 // * 	packet. "base" bytes determine the number of bytes of integer
 // * 	we are parsing out.
 // */
-//extern int PacketGetInt(InputPacket *pkt, uchar base);
+// extern int PacketGetInt(InputPacket *pkt, uchar base);
 //
 ///*
 // * packet_get_string - parse out a string of size len.
 // * 		if len=0? parse till the end of the string
 // */
-//extern void PacketGetString(InputPacket *pkt, size_t len, std::string &result);
+// extern void PacketGetString(InputPacket *pkt, size_t len, std::string &result);
 //
 ///* packet_get_bytes - Parse out "len" bytes of pkt as raw bytes */
-//extern void PacketGetBytes(InputPacket *pkt, size_t len, ByteBuf &result);
+// extern void PacketGetBytes(InputPacket *pkt, size_t len, ByteBuf &result);
 //
 ///* packet_get_byte - Parse out a single bytes from pkt */
-//extern void PacketGetByte(InputPacket *rpkt, uchar &result);
+// extern void PacketGetByte(InputPacket *rpkt, uchar &result);
 //
 ///*
 // * get_string_token - used to extract a string token
 // * 		from an unsigned char vector
 // */
-//extern void GetStringToken(InputPacket *pkt, std::string &result);
+// extern void GetStringToken(InputPacket *pkt, std::string &result);
 //
 //// TODO(Tianyu): These dumb things are here because copy_executor somehow calls
 //// our network layer. This should NOT be the case. Will remove.
-//extern size_t OldReadParamType(
+// extern size_t OldReadParamType(
 //    InputPacket *pkt, int num_params, std::vector<int32_t> &param_types);
 //
-//size_t OldReadParamFormat(InputPacket *pkt,
+// size_t OldReadParamFormat(InputPacket *pkt,
 //                          int num_params_format,
 //                          std::vector<int16_t> &formats);
 //
 //// For consistency, this function assumes the input vectors has the correct size
-//size_t OldReadParamValue(
+// size_t OldReadParamValue(
 //    InputPacket *pkt, int num_params, std::vector<int32_t> &param_types,
 //    std::vector<std::pair<type::TypeId, std::string>> &bind_parameters,
 //    std::vector<type::Value> &param_values, std::vector<int16_t> &formats);

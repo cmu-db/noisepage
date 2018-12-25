@@ -11,8 +11,8 @@
 //===----------------------------------------------------------------------===//
 /*
 #include "network/marshal.h"
-#include "loggers/main_logger.h"
 #include "common/macros.h"
+#include "loggers/main_logger.h"
 
 #include <algorithm>
 #include <cstring>
