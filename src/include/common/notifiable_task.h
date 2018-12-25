@@ -14,6 +14,7 @@
 
 #include <unordered_set>
 #include <event2/thread.h>
+#include "common/macros.h"
 #include "common/event_util.h"
 #include "common/dedicated_thread_task.h"
 

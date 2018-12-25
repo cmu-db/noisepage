@@ -12,6 +12,7 @@
 
 #include <fstream>
 #include <memory>
+#include <common/internal_types.h>
 #include "common/utility.h"
 #include "event2/thread.h"
 
@@ -65,7 +66,7 @@ TerrierServer &TerrierServer::SetupServer() {
   listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
   if (listen_fd_ < 0) {
-    throw ConnectionException("Failed to create listen socket");
+    throw NETWORK_PROCESS_EXCEPTION("Failed to create listen socket");
   }
 
   int reuse = 1;
@@ -105,7 +106,7 @@ void TerrierServer::Close() {
 /**
  * Change port to new_port
  */
-void TerrierServer::SetPort(int new_port) { port_ = new_port; }
+void TerrierServer::SetPort(uint16_t new_port) { port_ = new_port; }
 
 }  // namespace network
 }  // namespace terrier

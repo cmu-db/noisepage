@@ -100,7 +100,7 @@ inline std::string ReadCString(ByteBuf::const_iterator begin,
   for (ByteBuf::const_iterator head = begin; head != end; ++head)
     if (*head == 0) return std::string(begin, head);
   // No nul terminator found
-  throw NetworkProcessException("Expected nil in read buffer, none found");
+  throw NETWORK_PROCESS_EXCEPTION("Expected nil in read buffer, none found");
 }
 }
 
@@ -149,7 +149,7 @@ class ReadBufferView {
       case 4:return _CAST(T, be32toh(_CAST(uint32_t, val)));
       case 8:return _CAST(T, be64toh(_CAST(uint64_t, val)));
         // Will never be here due to compiler optimization
-      default: throw NetworkProcessException("");
+      default: throw NETWORK_PROCESS_EXCEPTION("");
     }
   }
 

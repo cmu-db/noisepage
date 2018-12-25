@@ -43,7 +43,7 @@ class EventUtil {
 
   template <typename T>
   static inline T Wrap(T value, bool (*check)(T), const char *error_msg) {
-    if (!check(value)) throw NetworkProcessException(error_msg);
+    if (!check(value)) throw NETWORK_PROCESS_EXCEPTION(error_msg);
     return value;
   }
 
