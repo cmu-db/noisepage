@@ -10,15 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cerrno.h>
+#include <cstring.h>
 #include <unistd.h>
 #include <vector>
-#include <string.h>
-#include <errno.h>
 
-#include "loggers/main_logger.h"
 #include "common/utility.h"
+#include "loggers/main_logger.h"
 #if __APPLE__
-extern "C"{
+extern "C" {
 #include <sys/cdefs.h>
 int close$NOCANCEL(int);
 };
@@ -27,12 +27,12 @@ int close$NOCANCEL(int);
 namespace terrier {
 
 int peloton_close(int fd) {
-  //On Mac OS, close$NOCANCEL guarantees that no descriptor leak & no need to retry on failure.
-  //On linux, close will do the same.
-  //In short, call close/close$NOCANCEL once and consider it done. AND NEVER RETRY ON FAILURE.
-  //The errno code is just a hint. It's logged but no further processing on it.
-  //Retry on failure may close another file descriptor that just has been assigned by OS with the same number
-  //and break assumptions of other threads.
+  // On Mac OS, close$NOCANCEL guarantees that no descriptor leak & no need to retry on failure.
+  // On linux, close will do the same.
+  // In short, call close/close$NOCANCEL once and consider it done. AND NEVER RETRY ON FAILURE.
+  // The errno code is just a hint. It's logged but no further processing on it.
+  // Retry on failure may close another file descriptor that just has been assigned by OS with the same number
+  // and break assumptions of other threads.
 
   int close_ret = -1;
 #if __APPLE__
@@ -63,4 +63,4 @@ std::string peloton_error_message() {
   errno = saved_errno;
   return std::string(error_message);
 }
-}
+}  // namespace terrier

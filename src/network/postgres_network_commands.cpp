@@ -10,13 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 /*
-#include "parser/postgresparser.h"
-#include "network/postgres_protocol_interpreter.h"
-#include "network/peloton_server.h"
 #include "network/postgres_network_commands.h"
-#include "traffic_cop/tcop.h"
-#include "settings/settings_manager.h"
+#include "network/peloton_server.h"
+#include "network/postgres_protocol_interpreter.h"
+#include "parser/postgresparser.h"
 #include "planner/abstract_plan.h"
+#include "settings/settings_manager.h"
+#include "traffic_cop/tcop.h"
 
 namespace terrier {
 namespace network {

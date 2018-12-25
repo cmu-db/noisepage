@@ -34,8 +34,8 @@
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrappers.h"
 #include "network/network_types.h"
-#include "network/protocol_interpreter.h"
 #include "network/postgres_protocol_interpreter.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier {
 namespace network {
@@ -48,7 +48,6 @@ namespace network {
  */
 class ConnectionHandle {
  public:
-
   /**
    * Constructs a new ConnectionHandle
    * @param sock_fd Client's connection fd
@@ -69,31 +68,25 @@ class ConnectionHandle {
    * to be careful.
    */
   inline void RegisterToReceiveEvents() {
-    workpool_event_ = conn_handler_->RegisterManualEvent(
-        METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+    workpool_event_ = conn_handler_->RegisterManualEvent(METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
 
-
-    network_event_ = conn_handler_->RegisterEvent(
-        io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
-        METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+    network_event_ = conn_handler_->RegisterEvent(io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
+                                                  METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
   }
 
   /**
    * Handles a libevent event. This simply delegates the the state machine.
    */
-  inline void HandleEvent(int, short) {
-    state_machine_.Accept(Transition::WAKEUP, *this);
-  }
+  inline void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }
 
   /* State Machine Actions */
   // TODO(Tianyu): Write some documentation when feeling like it
   inline Transition TryRead() { return io_wrapper_->FillReadBuffer(); }
 
   inline Transition TryWrite() {
-    if (io_wrapper_->ShouldFlush())
-      return io_wrapper_->FlushAllWrites();
+    if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
 
-    //TODO(tanujnay112): Revert
+    // TODO(tanujnay112): Revert
     return Transition::TERMINATE;
   }
 
@@ -115,9 +108,8 @@ class ConnectionHandle {
    * @param flags new flags for the event handle.
    */
   inline void UpdateEventFlags(short flags) {
-    conn_handler_->UpdateEvent(
-        network_event_, io_wrapper_->GetSocketFd(), flags,
-        METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+    conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
+                               METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
   }
 
   /**
@@ -128,7 +120,7 @@ class ConnectionHandle {
   inline void StopReceivingNetworkEvent() {
     EventUtil::EventDel(network_event_);
 
-    //TODO(tanujnay112) remove
+    // TODO(tanujnay112) remove
     const char *sample = "I have received your request.\n";
     io_wrapper_->GetWriteQueue()->BufferWriteRaw(sample, strlen(sample) + 1);
     io_wrapper_->GetWriteQueue()->ForceFlush();
@@ -194,7 +186,7 @@ class ConnectionHandle {
   ConnectionHandlerTask *conn_handler_;
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
   // TODO(Tianyu): Probably use a factory for this
-  //std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+  // std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 };

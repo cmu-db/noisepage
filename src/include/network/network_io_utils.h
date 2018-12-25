@@ -11,12 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
+#include <arpa/inet.h>
 #include <string>
 #include <vector>
-#include <arpa/inet.h>
-#include "util/portable_endian.h"
-#include "common/internal_types.h"
 #include "common/exception.h"
+#include "common/internal_types.h"
+#include "util/portable_endian.h"
 
 namespace terrier {
 namespace network {
@@ -34,7 +34,7 @@ class Buffer {
    * Instantiates a new buffer and reserve capacity many bytes.
    */
   inline Buffer(size_t capacity) : capacity_(capacity) {
-    //TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
+    // TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
     buf_.resize(capacity);
   }
 
@@ -94,23 +94,21 @@ class Buffer {
 
 namespace {
 // Helper method for reading nul-terminated string for the read buffer
-inline std::string ReadCString(ByteBuf::const_iterator begin,
-                        ByteBuf::const_iterator end) {
+inline std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_iterator end) {
   // search for the nul terminator
   for (ByteBuf::const_iterator head = begin; head != end; ++head)
     if (*head == 0) return std::string(begin, head);
   // No nul terminator found
   throw NETWORK_PROCESS_EXCEPTION("Expected nil in read buffer, none found");
 }
-}
+}  // namespace
 
 /**
  * A view of the read buffer that has its own read head.
  */
 class ReadBufferView {
  public:
-  inline ReadBufferView(size_t size, ByteBuf::const_iterator begin)
-      : size_(size), begin_(begin) {}
+  inline ReadBufferView(size_t size, ByteBuf::const_iterator begin) : size_(size), begin_(begin) {}
   /**
    * Read the given number of bytes into destination, advancing cursor by that
    * number. It is up to the caller to ensure that there are enough bytes
@@ -119,8 +117,7 @@ class ReadBufferView {
    * @param dest Desired memory location to read into
    */
   inline void Read(size_t bytes, void *dest) {
-    std::copy(begin_ + offset_, begin_ + offset_ + bytes,
-              reinterpret_cast<uchar *>(dest));
+    std::copy(begin_ + offset_, begin_ + offset_ + bytes, reinterpret_cast<uchar *>(dest));
     offset_ += bytes;
   }
 
@@ -133,23 +130,25 @@ class ReadBufferView {
    * @tparam T type of value to read off. Has to be size 1, 2, 4, or 8.
    * @return value of integer switched from network byte order
    */
-  template<typename T>
+  template <typename T>
   inline T ReadValue() {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
-    static_assert(sizeof(T) == 1
-                      || sizeof(T) == 2
-                      || sizeof(T) == 4
-                      || sizeof(T) == 8, "Invalid size for integer");
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
     auto val = ReadRawValue<T>();
     switch (sizeof(T)) {
-      case 1: return val;
-      case 2:return _CAST(T, be16toh(_CAST(uint16_t, val)));
-      case 4:return _CAST(T, be32toh(_CAST(uint32_t, val)));
-      case 8:return _CAST(T, be64toh(_CAST(uint64_t, val)));
+      case 1:
+        return val;
+      case 2:
+        return _CAST(T, be16toh(_CAST(uint16_t, val)));
+      case 4:
+        return _CAST(T, be32toh(_CAST(uint32_t, val)));
+      case 8:
+        return _CAST(T, be64toh(_CAST(uint64_t, val)));
         // Will never be here due to compiler optimization
-      default: throw NETWORK_PROCESS_EXCEPTION("");
+      default:
+        throw NETWORK_PROCESS_EXCEPTION("");
     }
   }
 
@@ -182,7 +181,7 @@ class ReadBufferView {
    * @tparam T type of value to read off. Preferably a primitive type.
    * @return the value of type T
    */
-  template<typename T>
+  template <typename T>
   inline T ReadRawValue() {
     T result;
     Read(sizeof(result), &result);
@@ -202,8 +201,7 @@ class ReadBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY)
-      : Buffer(capacity) {}
+  inline ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Read as many bytes as possible using Posix from an fd
@@ -213,7 +211,7 @@ class ReadBuffer : public Buffer {
   inline int FillBufferFrom(int fd) {
     ssize_t bytes_read = read(fd, &buf_[size_], Capacity() - size_);
     if (bytes_read > 0) size_ += bytes_read;
-    return (int) bytes_read;
+    return (int)bytes_read;
   }
 
   /**
@@ -274,8 +272,7 @@ class WriteBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY)
-      : Buffer(capacity) {}
+  inline WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Write as many bytes as possible using Posix write to fd
@@ -285,7 +282,7 @@ class WriteBuffer : public Buffer {
   inline int WriteOutTo(int fd) {
     ssize_t bytes_written = write(fd, &buf_[offset_], size_ - offset_);
     if (bytes_written > 0) offset_ += bytes_written;
-    return (int) bytes_written;
+    return (int)bytes_written;
   }
 
   /**
@@ -326,7 +323,7 @@ class WriteBuffer : public Buffer {
    * @tparam T input type
    * @param val value to write into buffer
    */
-  template<typename T>
+  template <typename T>
   inline void AppendRaw(T val) {
     AppendRaw(&val, sizeof(T));
   }
@@ -344,9 +341,7 @@ class WriteQueue {
   /**
    * Instantiates a new WriteQueue. By default this holds one buffer.
    */
-  inline WriteQueue() {
-    Reset();
-  }
+  inline WriteQueue() { Reset(); }
 
   /**
    * Reset the write queue to its default state.
@@ -400,8 +395,7 @@ class WriteQueue {
       size_t written = breakup ? tail.RemainingCapacity() : 0;
       tail.AppendRaw(src, written);
       buffers_.push_back(std::make_shared<WriteBuffer>());
-      BufferWriteRaw(reinterpret_cast<const uchar *>(src) + written,
-                     len - written);
+      BufferWriteRaw(reinterpret_cast<const uchar *>(src) + written, len - written);
     }
   }
 
@@ -414,7 +408,7 @@ class WriteQueue {
    * @param val value to write
    * @param breakup whether to split write into two buffers if need be.
    */
-  template<typename T>
+  template <typename T>
   inline void BufferWriteRawValue(T val, bool breakup = true) {
     BufferWriteRaw(&val, sizeof(T), breakup);
   }
@@ -426,5 +420,5 @@ class WriteQueue {
   bool flush_ = false;
 };
 
-} // namespace network
-} // namespace peloton
+}  // namespace network
+}  // namespace terrier

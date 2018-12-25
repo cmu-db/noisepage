@@ -15,15 +15,15 @@
 //#include "common/macros.h"
 //#include "concurrentqueue/concurrentqueue.h"
 //
-//namespace terrier {
+// namespace terrier {
 //
 ////===--------------------------------------------------------------------===//
 ////
 //// Lock-free Queue -- Supports multiple consumers and multiple producers.
 ////
 ////===--------------------------------------------------------------------===//
-//template <typename T>
-//class LockFreeQueue {
+// template <typename T>
+// class LockFreeQueue {
 // public:
 //  /// Constructor
 //  explicit LockFreeQueue(size_t size) : queue_(size) {}

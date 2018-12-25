@@ -17,10 +17,10 @@
 //#include "traffic_cop/tcop.h"
 //#include "common/portal.h"
 //
-//namespace terrier {
-//namespace network {
+// namespace terrier {
+// namespace network {
 //
-//class PostgresProtocolInterpreter : public ProtocolInterpreter {
+// class PostgresProtocolInterpreter : public ProtocolInterpreter {
 // public:
 //  // TODO(Tianyu): Is this even the right thread id? It seems that all the
 //  // concurrency code is dependent on this number.

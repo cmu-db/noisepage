@@ -40,8 +40,8 @@
 #include "tbb/concurrent_unordered_set.h"
 #include "tbb/concurrent_vector.h"
 
-#include "loggers/main_logger.h"
 #include "common/macros.h"
+#include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
 #include "type/type_id.h"
 
@@ -53,7 +53,7 @@ namespace terrier {
 //#define INVALID_TYPE_ID 0
 
 // For epoch
-//static const size_t EPOCH_LENGTH = 40;
+// static const size_t EPOCH_LENGTH = 40;
 
 // For threads
 extern size_t CONNECTION_THREAD_COUNT;
@@ -70,6 +70,5 @@ typedef unsigned char uchar;
 
 /* type for buffer of bytes */
 typedef std::vector<uchar> ByteBuf;
-
 
 }  // namespace terrier

@@ -27,11 +27,8 @@ Transition NetworkIoWrapper::FlushAllWrites() {
   return Transition::PROCEED;
 }
 
-PosixSocketIoWrapper::PosixSocketIoWrapper(int sock_fd,
-                                           std::shared_ptr<ReadBuffer> in,
-                                           std::shared_ptr<WriteQueue> out)
+PosixSocketIoWrapper::PosixSocketIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out)
     : NetworkIoWrapper(sock_fd, std::move(in), std::move(out)) {
-
   // Set Non Blocking
   auto flags = fcntl(sock_fd_, F_GETFL);
   flags |= O_NONBLOCK;
@@ -59,8 +56,10 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
         case EAGAIN:
           // Equal to EWOULDBLOCK
           return result;
-        case EINTR:continue;
-        default:LOG_ERROR("Error writing: %s", strerror(errno));
+        case EINTR:
+          continue;
+        default:
+          LOG_ERROR("Error writing: %s", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
   }
@@ -70,11 +69,13 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
 Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
   while (wbuf.HasMore()) {
     auto bytes_written = wbuf.WriteOutTo(sock_fd_);
-    if (bytes_written < 0)
-      switch (errno) {
-        case EINTR:continue;
-        case EAGAIN:return Transition::NEED_WRITE;
-        default:LOG_ERROR("Error writing: %s", strerror(errno));
+    if (bytes_written < 0) switch (errno) {
+        case EINTR:
+          continue;
+        case EAGAIN:
+          return Transition::NEED_WRITE;
+        default:
+          LOG_ERROR("Error writing: %s", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Fatal error during write");
       }
   }

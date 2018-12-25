@@ -17,17 +17,14 @@
 namespace terrier {
 namespace network {
 
-ConnectionHandlerTask::ConnectionHandlerTask(const int task_id)
-    : NotifiableTask(task_id) {
+ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
   int fds[2];
   if (pipe(fds)) {
     LOG_ERROR("Can't create notify pipe to accept connections");
     exit(1);
   }
   new_conn_send_fd_ = fds[1];
-  RegisterEvent(fds[0], EV_READ | EV_PERSIST,
-                METHOD_AS_CALLBACK(ConnectionHandlerTask, HandleDispatch),
-                this);
+  RegisterEvent(fds[0], EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionHandlerTask, HandleDispatch), this);
 }
 
 void ConnectionHandlerTask::Notify(int conn_fd) {
@@ -45,8 +42,7 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, short) {
 
   // read fully
   while (bytes_read < sizeof(int)) {
-    ssize_t result = read(new_conn_recv_fd, client_fd + bytes_read,
-                          sizeof(int) - bytes_read);
+    ssize_t result = read(new_conn_recv_fd, client_fd + bytes_read, sizeof(int) - bytes_read);
     if (result < 0) {
       LOG_ERROR("Error when reading from dispatch");
     }

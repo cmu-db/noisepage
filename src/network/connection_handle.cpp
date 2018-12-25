@@ -56,9 +56,9 @@ namespace {
 // ConnectionHandle::StateMachine::Delta.
 // Together they compose a nested switch statement. Running the function on any
 // undefined state or transition on said state will throw a runtime error.
-#define DEF_TRANSITION_GRAPH                                          \
-  ConnectionHandle::StateMachine::transition_result                   \
-  ConnectionHandle::StateMachine::Delta_(ConnState c, Transition t) { \
+#define DEF_TRANSITION_GRAPH                                                                               \
+  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta_(ConnState c,    \
+                                                                                           Transition t) { \
     switch (c) {
 #define DEFINE_STATE(s) \
   case ConnState::s: {  \
@@ -100,8 +100,7 @@ namespace {
     }                                                 \
     }
 
-#define END_STATE_DEF \
-  ON(TERMINATE) SET_STATE_TO(CLOSING) AND_INVOKE(TryCloseConnection) END_DEF
+#define END_STATE_DEF ON(TERMINATE) SET_STATE_TO(CLOSING) AND_INVOKE(TryCloseConnection) END_DEF
 }  // namespace
 
 // clang-format off
@@ -147,10 +146,9 @@ DEF_TRANSITION_GRAPH
         ON(NEED_WRITE) SET_STATE_TO(WRITE) AND_WAIT_ON_WRITE
     END_STATE_DEF
 END_DEF
-// clang-format on
+    // clang-format on
 
-void ConnectionHandle::StateMachine::Accept(Transition action,
-                                            ConnectionHandle &connection) {
+    void ConnectionHandle::StateMachine::Accept(Transition action, ConnectionHandle &connection) {
   Transition next = action;
   while (next != Transition::NONE) {
     transition_result result = Delta_(current_state_, next);
@@ -168,15 +166,16 @@ void ConnectionHandle::StateMachine::Accept(Transition action,
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
     : conn_handler_(handler),
       io_wrapper_{new PosixSocketIoWrapper(sock_fd)}
-      //protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
-      //protocol_interpreter_{nullptr}}
-      {LOG_INFO("handling");}
-
+// protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
+// protocol_interpreter_{nullptr}}
+{
+  LOG_INFO("handling");
+}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
-  //protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
-   LOG_INFO("result");
+  // protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
+  LOG_INFO("result");
   return Transition::PROCEED;
 }
 

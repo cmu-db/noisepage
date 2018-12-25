@@ -31,16 +31,7 @@ enum class ConnState {
  * ConnectionHandle::StateMachine
  * @see ConnectionHandle::StateMachine
  */
-enum class Transition {
-  NONE,
-  WAKEUP,
-  PROCEED,
-  NEED_READ,
-  NEED_RESULT,
-  TERMINATE,
-  NEED_SSL_HANDSHAKE,
-  NEED_WRITE
-};
+enum class Transition { NONE, WAKEUP, PROCEED, NEED_READ, NEED_RESULT, TERMINATE, NEED_SSL_HANDSHAKE, NEED_WRITE };
 
 }  // namespace network
 }  // namespace terrier

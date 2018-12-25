@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "common/notifiable_task.h"
 #include "common/dedicated_thread_registry.h"
+#include "common/notifiable_task.h"
 //#include "concurrency/epoch_manager_factory.h"
 #include "connection_handler_task.h"
 #include "network_types.h"
@@ -39,9 +39,7 @@ class ConnectionDispatcherTask : public NotifiableTask {
    * @param num_handlers The number of handler tasks to spawn.
    * @param listen_fd The server socket fd to listen on.
    */
-  ConnectionDispatcherTask(int num_handlers,
-                           int listen_fd,
-                           DedicatedThreadOwner *dedicatedThreadOwner);
+  ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.

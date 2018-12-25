@@ -11,18 +11,17 @@
 //===----------------------------------------------------------------------===//
 
 #include "common/notifiable_task.h"
-#include "loggers/main_logger.h"
-#include "common/event_util.h"
 #include <cstring>
+#include "common/event_util.h"
+#include "loggers/main_logger.h"
 
 namespace terrier {
 
 NotifiableTask::NotifiableTask(int task_id) : task_id_(task_id) {
   base_ = EventUtil::EventBaseNew();
   // For exiting a loop
-  terminate_ = RegisterManualEvent([](int, short, void *arg) {
-    EventUtil::EventBaseLoopExit((struct event_base *) arg, nullptr);
-  }, base_);
+  terminate_ = RegisterManualEvent(
+      [](int, short, void *arg) { EventUtil::EventBaseLoopExit((struct event_base *)arg, nullptr); }, base_);
 };
 
 NotifiableTask::~NotifiableTask() {
@@ -33,10 +32,7 @@ NotifiableTask::~NotifiableTask() {
   event_base_free(base_);
 }
 
-struct event *NotifiableTask::RegisterEvent(int fd,
-                                            short flags,
-                                            event_callback_fn callback,
-                                            void *arg,
+struct event *NotifiableTask::RegisterEvent(int fd, short flags, event_callback_fn callback, void *arg,
                                             const struct timeval *timeout) {
   struct event *event = event_new(base_, fd, flags, callback, arg);
   events_.insert(event);
@@ -56,4 +52,3 @@ void NotifiableTask::UnregisterEvent(struct event *event) {
 }
 
 }  // namespace terrier
-
