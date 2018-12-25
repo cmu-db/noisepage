@@ -12,6 +12,7 @@
 
 #include <common/dedicated_thread_registry.h>
 #include "network/connection_dispatcher_task.h"
+#include "signal.h"
 #include "common/init.h"
 
 #include "common/thread_pool.h"

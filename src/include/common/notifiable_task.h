@@ -51,7 +51,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * Constructs a new NotifiableTask instance.
    * @param task_id a unique id assigned to this task
    */
-  explicit NotifiableTask(size_t task_id);
+  explicit NotifiableTask(int task_id);
 
   /**
    * Destructs this NotifiableTask. All events currently registered to its base
@@ -200,7 +200,7 @@ class NotifiableTask : public DedicatedThreadTask {
   inline void ExitLoop(int, short) { ExitLoop(); }
 
  private:
-  const size_t task_id_;
+  const int task_id_;
   struct event_base *base_;
 
   // struct event and lifecycle management
