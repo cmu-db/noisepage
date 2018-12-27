@@ -166,36 +166,52 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
  * Types of LogRecords
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
-/**
- * A varlen entry is stored as a pointer and a size in the data table.
- *
- */
+
 // TODO(Tianyu): This is pretty wasteful. While in theory 4 bytes of size suffices, we pad it to 8 bytes for
 // performance and ease of implementation with the rest of the system. (It is always assumed that one SQL level column
 // is mapped to one data table column). In the long run though, we might want to investigate solutions where the varlen
 // pointer and the size columns are stored in separate columns, so the size column can be 4 bytes.
+/**
+ * A varlen entry is always a 32-bit size field and the varlen content,
+ * with exactly size many bytes (no extra nul in the end).
+ */
 class VarlenEntry {
  public:
-  byte *GetValue() const{
-    return content_;
-  }
+  // Have to define a default constructor to make this POD
+  VarlenEntry() = default;
+  /**
+   * Constructs a new varlen entry
+   * @param content
+   * @param size
+   * @param gathered
+   */
+  VarlenEntry(byte *content, uint32_t size, bool gathered)
+      : size_(size | (gathered ? INT32_MIN : 0)), content_(content) {}
+  /**
+   * @return size of the varlen entry in bytes.
+   */
+  uint32_t Size() const { return static_cast<uint32_t>(INT32_MAX & size_); }
 
-  uint64_t GetSize() const {
-    // We mask off the first sign bit, as that is used to denote whether a varlen is inlined
-    // in a contiguous buffer per block for arrow, which requires different GC behavior
-    return size_ & INT64_MAX;
-  }
+  /**
+   * @return whether the varlen is gathered into a per-block contiguous buffer (which means it cannot be
+   * deallocated by itself) for arrow-compatibility
+   */
+  bool IsGathered() const { return static_cast<bool>(INT32_MIN & size_); }
 
-  bool IsInlined() const {
-    return static_cast<int64_t>(size_) < 0;
-  }
+  /**
+   * @return pointer to the varlen entry contents.
+   */
+  const byte *Content() const { return content_; }
 
-  // TODO(Tianyu): Setters need to be implemented
  private:
-  byte *content_;
-  uint64_t size_;
+  // we use the sign bit to denote if
+  int32_t size_;
+  // TODO(Tianyu): we can use the extra 4 bytes for something else (storing the prefix?)
+  /**
+   * Contents of the varlen entry.
+   */
+  const byte *content_;
 };
-
 }  // namespace terrier::storage
 
 namespace std {

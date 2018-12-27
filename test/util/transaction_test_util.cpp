@@ -28,6 +28,13 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   storage::TupleSlot updated =
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
+  if (test_object_->bookkeeping_) {
+    auto it = updates_.find(updated);
+    // don't double update if checking for correctness, as it is complicated to keep track of on snapshots,
+    // and not very helpful in finding bugs anyways
+    if (it != updates_.end()) return;
+  }
+
   std::vector<storage::col_id_t> update_col_ids =
       StorageTestUtil::ProjectionListRandomColumns(test_object_->layout_, generator);
   storage::ProjectedRowInitializer initializer(test_object_->layout_, update_col_ids);
@@ -36,19 +43,12 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
 
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
-  if (test_object_->bookkeeping_) {
-    auto it = updates_.find(updated);
-    // don't double update if checking for correctness, as it is complicated to keep track of on snapshots,
-    // and not very helpful in finding bugs anyways
-    if (it != updates_.end()) {
-      delete[] update_buffer;
-      return;
-    }
-    updates_[updated] = update;
-  }
+
+  if (test_object_->bookkeeping_) updates_[updated] = update;
+
   // TODO(Tianyu): Hardly efficient, but will do for testing.
-  if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(nullptr, updated, initializer);
+  if (test_object_->wal_on_ || test_object_->bookkeeping_) {
+    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
     TERRIER_MEMCPY(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -87,11 +87,13 @@ LargeTransactionTestObject::LargeTransactionTestObject(uint16_t max_columns, uin
                                                        storage::BlockStore *block_store,
                                                        storage::RecordBufferSegmentPool *buffer_pool,
                                                        std::default_random_engine *generator, bool gc_on,
-                                                       bool bookkeeping, storage::LogManager *log_manager)
+                                                       bool bookkeeping, storage::LogManager *log_manager,
+                                                       bool varlen_allowed)
     : txn_length_(txn_length),
       update_select_ratio_(std::move(update_select_ratio)),
       generator_(generator),
-      layout_(StorageTestUtil::RandomLayout(max_columns, generator_)),
+      layout_(varlen_allowed ? StorageTestUtil::RandomLayoutWithVarlens(max_columns, generator_)
+                             : StorageTestUtil::RandomLayoutNoVarlen(max_columns, generator_)),
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
@@ -201,8 +203,8 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
-    if (wal_on_) {
-      auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
+    if (wal_on_ || bookkeeping_) {
+      auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
       TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
@@ -266,4 +268,11 @@ void LargeTransactionTestObject::UpdateLastCheckedVersion(const TableSnapshot &s
     entry.second = snapshot.find(entry.first)->second;
   }
 }
+
+LargeTransactionTestObject LargeTransactionTestObject::Builder::build() {
+  return {builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_ratio_,
+          builder_block_store_, builder_buffer_pool_,        builder_generator_,  builder_gc_on_,
+          builder_bookkeeping_, builder_log_manager_,        varlen_allowed_};
+}
+
 }  // namespace terrier

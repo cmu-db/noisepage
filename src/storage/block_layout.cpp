@@ -12,11 +12,16 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
       static_header_size_(ComputeStaticHeaderSize()),
       num_slots_(ComputeNumSlots()),
       header_size_(ComputeHeaderSize()) {
+  for (uint8_t size UNUSED_ATTRIBUTE : attr_sizes_)
+    TERRIER_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT8_MAX), "Invalid size of a column");
   TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
                  "number of columns must be between 1 and 32767");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
-  std::sort(attr_sizes_.begin(), attr_sizes_.end(), std::greater<>());
+  // This is always safe because we know there are at last 2 columns
+  std::sort(attr_sizes_.begin() + 1, attr_sizes_.end(), std::greater<>());
+  for (uint32_t i = 0; i < attr_sizes_.size(); i++)
+    if (attr_sizes_[i] == VARLEN_COLUMN) varlens_.emplace_back(i);
 }
 
 uint32_t BlockLayout::ComputeTupleSize() const {

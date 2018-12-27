@@ -46,9 +46,9 @@ class LogManager {
    *
    * @param buffer the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer) {
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    flush_queue_.push(buffer);
+    flush_queue_.push(buffer_segment);
   }
 
   /**

@@ -33,14 +33,22 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
   transaction::TransactionContext *txn = nullptr;
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
+    transaction::TransactionQueue requeue;
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
-    // We are now safe to deallocate these txns because no one should hold a reference to them anymore
+    // We are now safe to deallocate these txns because no running transaction should hold a reference to them anymore
     while (!txns_to_deallocate_.empty()) {
       txn = txns_to_deallocate_.front();
       txns_to_deallocate_.pop_front();
-      delete txn;
-      txns_processed++;
+      if (txn->log_processed_) {
+        // If the log manager is already done with this transaction, it is safe to deallocate
+        delete txn;
+        txns_processed++;
+      } else {
+        // Otherwise, the log manager may need to read the varlen pointer, so we cannot deallocate yet
+        requeue.push_front(txn);
+      }
     }
+    txns_to_deallocate_ = std::move(requeue);
   }
 
   return txns_processed;
@@ -64,6 +72,9 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
+    // TODO(Tianyu): It is possible to immediately deallocate read-only transactions here. However, doing so
+    // complicates logic as the GC cannot delete the transaction before logging has had a chance to process it.
+    // It is unlikely to be a major performance issue so I am leaving it unoptimized.
     if (txn->undo_buffer_.Empty()) {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
@@ -75,7 +86,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
       // This is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
-
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
         all_unlinked = all_unlinked && ProcessUndoRecord(txn, &undo_record);
@@ -114,6 +124,9 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   // TODO(Tianyu): Potentially this will get the access information to the observer late, but that
   // should be fine since the transformation is transactional and light-weight.
   if (observer_ != nullptr) observer_->ObserveWrite(table, undo_record->Slot());
+  // This is guaranteed to succeed
+  ReclaimSlotIfDeleted(undo_record);
+  ReclaimBufferIfVarlen(txn, undo_record);
   // mark the record as fully processed
   table = nullptr;
   return true;
@@ -165,5 +178,38 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   // We did not successfully unlink this UndoRecord (due to the curr UndoRecord that we wanted to update to unlink our
   // target UndoRecord not yet being committed)
   return false;
+}
+
+void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
+  if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
+}
+
+void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const {
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  switch (undo_record->Type()) {
+    case DeltaRecordType::INSERT:
+      return;  // no possibility of outdated varlen to gc
+    case DeltaRecordType::DELETE:
+      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
+      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
+        col_id_t col_id(i);
+        // Okay to include version vector, as it is never varlen
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
+        }
+      }
+      break;
+    case DeltaRecordType::UPDATE:
+      // TODO(Tianyu): This might be a really bad idea for large deltas...
+      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+          if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
+        }
+      }
+  }
 }
 }  // namespace terrier::storage

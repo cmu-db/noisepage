@@ -14,32 +14,13 @@ namespace terrier::storage {
 class ProjectedRow;
 class TupleAccessStrategy;
 class UndoRecord;
+
 /**
  * Static utility class for common functions in storage
  */
 class StorageUtil {
  public:
   StorageUtil() = delete;
-
-  /**
-   * Write specified number of bytes to position and interpret the bytes as
-   * an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-   *
-   * @param attr_size the number of bytes to write. (one of {1, 2, 4, 8})
-   * @param val the byte value to write. Truncated if necessary.
-   * @param pos the location to write to.
-   */
-  static void WriteBytes(uint8_t attr_size, uint64_t val, byte *pos);
-
-  /**
-   * Read specified number of bytes from position and interpret the bytes as
-   * an integer of given size. (Thus only 1, 2, 4, 8 are allowed)
-   *
-   * @param attr_size attr_size the number of bytes to write. (one of {1, 2, 4, 8})
-   * @param pos the location to read from.
-   * @return the byte value at position, padded up to 8 bytes.
-   */
-  static uint64_t ReadBytes(uint8_t attr_size, const byte *pos);
 
   /**
    * Copy from pointer location into projected row at given column id. If the pointer location is null,

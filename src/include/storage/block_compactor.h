@@ -1,7 +1,7 @@
 #pragma once
-#include <vector>
 #include <forward_list>
 #include <utility>
+#include <vector>
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
@@ -10,7 +10,7 @@ namespace terrier::storage {
 
 class BlockCompactor {
  private:
-  static void NoOp(void *) {}
+  static void NoOp(void */*unused*/) {}
 
  public:
   void ProcessCompactionQueue() {
@@ -82,9 +82,7 @@ class BlockCompactor {
     return true;
   }
 
-  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) {
-    return false;
-  }
+  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) { return false; }
 
   std::forward_list<std::pair<RawBlock *, DataTable *>> compaction_queue_;
   transaction::TransactionManager txn_manager_;

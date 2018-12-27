@@ -14,6 +14,14 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column is reserved for version info, second column is reserved for logical delete.");
 }
 
+DataTable::~DataTable() {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  for (RawBlock *block : blocks_) {
+    DeallocateVarlensOnShutdown(block);
+    block_store_->Release(block);
+  }
+}
+
 bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
                        terrier::storage::ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
@@ -55,8 +63,9 @@ bool DataTable::Update(transaction::TransactionContext *txn, TupleSlot slot, con
   }
 
   // Store before-image before making any changes or grabbing lock
-  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++)
+  for (uint16_t i = 0; i < undo->Delta()->NumColumns(); i++) {
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, undo->Delta(), i);
+  }
 
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
@@ -80,6 +89,7 @@ bool DataTable::Update(transaction::TransactionContext *txn, TupleSlot slot, con
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
   data_table_counter_.IncrementNumUpdate(1);
+
   return true;
 }
 
@@ -106,9 +116,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
 void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID)
-                && AtomicallyReadVersionPtr(dest, accessor_) == nullptr,
-                "The slot needs to be logically deleted to every running transaction");
+  TERRIER_ASSERT(
+      accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID) && AtomicallyReadVersionPtr(dest, accessor_) == nullptr,
+      "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
@@ -124,7 +134,6 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
 }
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-
   data_table_counter_.IncrementNumDelete(1);
   // Create a redo
   txn->StageDelete(this, slot);
@@ -157,7 +166,6 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
 template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
-  TERRIER_ASSERT(accessor_.Allocated(slot), "Must select a tuple slot that is claimed by a tuple");
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -267,5 +275,17 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   blocks_.push_back(new_block);
   insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
+}
+
+void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
+  const BlockLayout &layout = accessor_.GetBlockLayout();
+  for (col_id_t col : layout.Varlens()) {
+    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
+      TupleSlot slot(block, offset);
+      if (!accessor_.Allocated(slot)) continue;
+      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
+      if (entry != nullptr) delete[] entry->Content();
+    }
+  }
 }
 }  // namespace terrier::storage
