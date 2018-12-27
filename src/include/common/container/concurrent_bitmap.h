@@ -202,13 +202,11 @@ class RawConcurrentBitmap {
    */
   template <class T>
   bool FindUnsetBit(uint32_t *const byte_pos, uint32_t *const bits_left) const {
+    TERRIER_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE, "Need to check that there are enough bits left before calling");
     // for a signed integer, -1 represents that all the bits are set
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
-      // IsAlignedAndFits<T> is always called before FindUnsetBit.
-      // So we know that bits_left >= sizeof(T) * BYTE_SIZE.
-      // So there won't be an underflow here.
       *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
       return false;
     }
