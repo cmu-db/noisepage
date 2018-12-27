@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cerrno.h>
-#include <cstring.h>
+#include <cerrno>
+#include <cstring>
 #include <unistd.h>
 #include <vector>
 

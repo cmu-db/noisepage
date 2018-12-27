@@ -66,9 +66,9 @@ std::string TypeIdToString(type::TypeId type);
 #define SOCKET_BUFFER_CAPACITY 8192
 
 /* byte type */
-typedef unsigned char uchar;
+using uchar = unsigned char;
 
 /* type for buffer of bytes */
-typedef std::vector<uchar> ByteBuf;
+using ByteBuf = std::vector<uchar>;
 
 }  // namespace terrier

@@ -14,9 +14,9 @@
 
 #include "common/dedicated_thread_registry.h"
 #include "common/notifiable_task.h"
-//#include "concurrency/epoch_manager_factory.h"
-#include "connection_handler_task.h"
-#include "network_types.h"
+// #include "concurrency/epoch_manager_factory.h"
+#include "network/connection_handler_task.h"
+#include "network/network_types.h"
 
 namespace terrier {
 namespace network {
@@ -62,7 +62,7 @@ class ConnectionDispatcherTask : public NotifiableTask {
 
  private:
   std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
-  // TODO: have a smarter dispatch scheduler, we currently use round-robin
+  // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<long unsigned int> next_handler_;
 };
 

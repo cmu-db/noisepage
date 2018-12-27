@@ -36,7 +36,7 @@ class DedicatedThreadOwner {
   /**
    * Notifies the owner that a new thread has been given to it
    */
-  void NotifyNewThread() { thread_count_++; };
+  void NotifyNewThread() { thread_count_++; }
 
   /**
    * Notifies the owner that the thread running task will be terminated
@@ -54,7 +54,7 @@ class DedicatedThreadOwner {
    *
    * TODO(tianyu) turn into async if need be
    */
-  virtual void OnThreadRemoved(std::shared_ptr<DedicatedThreadTask>) {}
+  virtual void OnThreadRemoved(std::shared_ptr<DedicatedThreadTask> task) {}
 
  private:
   size_t thread_count_ = 0;
