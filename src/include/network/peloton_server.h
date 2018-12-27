@@ -32,9 +32,9 @@
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
 #include "common/notifiable_task.h"
-#include "connection_dispatcher_task.h"
+#include "network/connection_dispatcher_task.h"
 #include "loggers/main_logger.h"
-#include "network_types.h"
+#include "network/network_types.h"
 
 namespace terrier {
 namespace network {

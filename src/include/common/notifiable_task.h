@@ -84,7 +84,7 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  struct event *RegisterEvent(int fd, short flags, event_callback_fn callback, void *arg,
+  struct event *RegisterEvent(int fd, int16_t flags, event_callback_fn callback, void *arg,
                               const struct timeval *timeout = nullptr);
   /**
    * @brief Register a signal event. This is a wrapper around RegisterEvent()
@@ -133,7 +133,7 @@ class NotifiableTask : public DedicatedThreadTask {
     return RegisterEvent(-1, EV_PERSIST, callback, arg);
   }
 
-  void UpdateEvent(struct event *event, int fd, short flags, event_callback_fn callback, void *arg,
+  void UpdateEvent(struct event *event, int fd, int16_t flags, event_callback_fn callback, void *arg,
                    const struct timeval *timeout = nullptr) {
     TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
@@ -183,7 +183,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
    */
-  inline void ExitLoop(int, short) { ExitLoop(); }
+  inline void ExitLoop(int, int16_t) { ExitLoop(); }
 
  private:
   const int task_id_;

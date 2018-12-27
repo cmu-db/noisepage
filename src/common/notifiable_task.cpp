@@ -21,8 +21,8 @@ NotifiableTask::NotifiableTask(int task_id) : task_id_(task_id) {
   base_ = EventUtil::EventBaseNew();
   // For exiting a loop
   terminate_ = RegisterManualEvent(
-      [](int, short, void *arg) { EventUtil::EventBaseLoopExit((struct event_base *)arg, nullptr); }, base_);
-};
+      [](int, int16_t, void *arg) { EventUtil::EventBaseLoopExit(static_cast<struct event_base *>(arg), nullptr); }, base_);
+}
 
 NotifiableTask::~NotifiableTask() {
   for (struct event *event : events_) {
@@ -32,7 +32,7 @@ NotifiableTask::~NotifiableTask() {
   event_base_free(base_);
 }
 
-struct event *NotifiableTask::RegisterEvent(int fd, short flags, event_callback_fn callback, void *arg,
+struct event *NotifiableTask::RegisterEvent(int fd, int16_t flags, event_callback_fn callback, void *arg,
                                             const struct timeval *timeout) {
   struct event *event = event_new(base_, fd, flags, callback, arg);
   events_.insert(event);

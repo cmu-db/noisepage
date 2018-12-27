@@ -66,7 +66,7 @@ class EventUtil {
     return Wrap(event_add(event, timeout), IsZero, "Error when adding event");
   }
 
-  static inline int EventAssign(struct event *event, struct event_base *base, int fd, short flags,
+  static inline int EventAssign(struct event *event, struct event_base *base, int fd, int16_t flags,
                                 event_callback_fn callback, void *arg) {
     return Wrap(event_assign(event, base, fd, flags, callback, arg), IsZero, "Error when assigning event");
   }

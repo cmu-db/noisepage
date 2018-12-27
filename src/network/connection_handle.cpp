@@ -19,7 +19,7 @@
 #include "network/peloton_server.h"
 
 #include "common/utility.h"
-//#include "settings/settings_manager.h"
+// #include "settings/settings_manager.h"
 
 namespace terrier {
 namespace network {
@@ -115,12 +115,12 @@ DEF_TRANSITION_GRAPH
         ON(NEED_WRITE) SET_STATE_TO(READ) AND_WAIT_ON_WRITE
     END_STATE_DEF
 
-//DEFINE_STATE(SSL_INIT)
-//    ON(WAKEUP) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
-//    ON(NEED_READ) SET_STATE_TO(SSL_INIT) AND_WAIT_ON_READ
-//    ON(NEED_WRITE) SET_STATE_TO(SSL_INIT) AND_WAIT_ON_WRITE
-//    ON(PROCEED) SET_STATE_TO(PROCESS) AND_INVOKE(Process)
-//END_STATE_DEF
+// DEFINE_STATE(SSL_INIT)
+//     ON(WAKEUP) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
+//     ON(NEED_READ) SET_STATE_TO(SSL_INIT) AND_WAIT_ON_READ
+//     ON(NEED_WRITE) SET_STATE_TO(SSL_INIT) AND_WAIT_ON_WRITE
+//     ON(PROCEED) SET_STATE_TO(PROCESS) AND_INVOKE(Process)
+// END_STATE_DEF
 
     DEFINE_STATE(PROCESS)
         ON(WAKEUP) SET_STATE_TO(PROCESS) AND_INVOKE(GetResult)
