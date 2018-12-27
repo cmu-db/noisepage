@@ -18,6 +18,12 @@ class ValueFactory {
   // level of reuse can be achieved between value objects (e.g. many expressions can share the value 0), and no static
   // ugliness is required
   ValueFactory() = delete;
+
+  /**
+   * Create a NULL value
+   */
+  static Value GetNullValue() { return {TypeId::NULL_TYPE, Value::Val{.integer_ = 0}}; }
+
   /**
    * Create a boolean Value
    * @param value
@@ -74,6 +80,13 @@ class ValueFactory {
    * @return timestamp_t value instance
    */
   static Value GetTimeStampValue(timestamp_t value) { return {TypeId::TIMESTAMP, Value::Val{.timestamp_ = value}}; }
+
+  /**
+   * Create a string Value
+   * @param value
+   * @return string value instance
+   */
+  static Value GetStringValue(const char *value) { return {TypeId::STRING, Value::Val{.string_ = value}}; }
 };
 
 }  // namespace terrier::type
