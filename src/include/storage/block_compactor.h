@@ -22,8 +22,9 @@ class BlockCompactor {
       if (controller.IsFrozen()) continue;
       // We need to first run compaction, and then mark the block as frozen.
       transaction::TransactionContext *compacting_txn = txn_manager_.BeginTransaction();
-      if (Compact(compacting_txn, entry)) {
-        if (Gather(compacting_txn, entry)) {
+      std::unordered_map<col_id_t, uint32_t> varlen_length_sums;
+      if (Compact(compacting_txn, entry, varlen_length_sums)) {
+        if (Gather(compacting_txn, entry, varlen_length_sums)) {
           // TODO(Tianyu): I think this is safe if in update, we mark hot immediately before compare and swap.
           // It should be correct, but double check
           controller.MarkFrozen();
@@ -40,12 +41,20 @@ class BlockCompactor {
   void PutInQueue(const std::pair<RawBlock *, DataTable *> &entry) { compaction_queue_.push_front(entry); }
 
  private:
-  bool Compact(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) {
+  bool Compact(transaction::TransactionContext *txn,
+               const std::pair<RawBlock *, DataTable *> &entry,
+               std::unordered_map<col_id_t, uint32_t> &varlen_length_sums) {
     RawBlock *block = entry.first;
     DataTable *table = entry.second;
     const TupleAccessStrategy &accessor = table->accessor_;
     const BlockLayout &layout = accessor.GetBlockLayout();
     TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be full to stop inserts from coming in");
+
+    TERRIER_ASSERT(varlen_length_sums.empty(), "This parameters should be used purely for output");
+    // Initialize the map of varlen lengths to correspond to the block layout
+    for (col_id_t id : layout.Varlens())
+      varlen_length_sums[id] = 0;
+
     std::vector<TupleSlot> filled, empty;
     // Scan through and identify empty slots
     for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
@@ -54,10 +63,21 @@ class BlockCompactor {
       if (table->AtomicallyReadVersionPtr(slot, accessor) != nullptr) return false;
       bool allocated = accessor.Allocated(slot);
       // A logically deleted column implies that some changes are happening since the GC put this block into the
-      // compaction queue. We should do anything to this block further.
+      // compaction queue. We should not do anything to this block further.
       if (allocated && accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID)) return false;
       // Push this slots to be either in the list of empty slots of filled slots
-      (allocated ? empty : filled).push_back(slot);
+      if (!allocated) {
+        empty.push_back(slot);
+      } else {
+        filled.push_back(slot);
+        // Also need to count the size of all the varlens
+        for (auto &sum : varlen_length_sums) {
+          // If there is a race this should result in failure in later steps, and there probably does not matter
+          // TODO(Tianyu): It is probably okay to transactionally read this as well if there are edge cases
+          auto *varlen_entry = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(slot, sum.first));
+          sum.second += varlen_entry == nullptr ? 0 : varlen_entry->Size();
+        }
+      }
     }
 
     // TODO(Tianyu): Fish out the thing from tests and use that
@@ -82,7 +102,17 @@ class BlockCompactor {
     return true;
   }
 
-  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry) { return false; }
+  bool Gather(transaction::TransactionContext *txn,
+              const std::pair<RawBlock *, DataTable *> &entry,
+              const std::unordered_map<col_id_t, uint32_t> &varlen_length_sums) {
+//    RawBlock *block = entry.first;
+//    DataTable *table = entry.second;
+//    const TupleAccessStrategy &accessor = table->accessor_;
+//    const BlockLayout &layout = accessor.GetBlockLayout();
+    // TODO(Tianyu): Need to figure out what to do with tables that don't have varlens. Should we special case or
+    // still proceed with "updating", basically installing an empty version?
+    return true;
+  }
 
   std::forward_list<std::pair<RawBlock *, DataTable *>> compaction_queue_;
   transaction::TransactionManager txn_manager_;
