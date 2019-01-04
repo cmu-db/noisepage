@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
-// peloton_server.h
+// terrier_server.h
 //
-// Identification: src/include/network/peloton_server.h
+// Identification: src/include/network/terrier_server.h
 //
 // Copyright (c) 2015-2018, Carnegie Mellon University Database Group
 //
@@ -41,12 +41,12 @@ namespace terrier {
 namespace network {
 
 /**
- * PelotonServer is the entry point of the network layer
+ * TerrierServer is the entry point of the network layer
  */
 class TerrierServer : public DedicatedThreadOwner {
  public:
   /**
-   * @brief Constructs a new PelotonServer instance.
+   * @brief Constructs a new TerrierServer instance.
    *
    * Note that SettingsManager must already be initialized when this constructor
    * is called.

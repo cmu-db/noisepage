@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
 // postgres_network_commands.cpp
 //
@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 /*
 #include "network/postgres_network_commands.h"
-#include "network/peloton_server.h"
+#include "network/terrier_server.h"
 #include "network/postgres_protocol_interpreter.h"
 #include "parser/postgresparser.h"
 #include "planner/abstract_plan.h"

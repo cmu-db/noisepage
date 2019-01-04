@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
-// peloton_rpc_handler_task.h
+// terrier_rpc_handler_task.h
 //
-// Identification: src/include/network/peloton_rpc_handler_task.h
+// Identification: src/include/network/terrier_rpc_handler_task.h
 //
 // Copyright (c) 2015-2018, Carnegie Mellon University Database Group
 //

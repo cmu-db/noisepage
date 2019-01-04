@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
 // postgres_wire_protocol.h
 //
@@ -12,7 +12,7 @@
 
 // #include "planner/plan_util.h"
 // #include "network/postgres_protocol_interpreter.h"
-// #include "network/peloton_server.h"
+// #include "network/terrier_server.h"
 //
 // #define MAKE_COMMAND(type)
 //   std::static_pointer_cast<PostgresNetworkCommand, type>(

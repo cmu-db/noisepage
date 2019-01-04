@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
 // connection_handle_factory.h
 //
@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 #include "network/connection_handle.h"
-#include "network/peloton_server.h"
+#include "network/terrier_server.h"
 
 namespace terrier {
 namespace network {

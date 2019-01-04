@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
 // network_io_wrappers.cpp
 //
@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "network/network_io_wrappers.h"
-#include "network/peloton_server.h"
+#include "network/terrier_server.h"
 
 namespace terrier {
 namespace network {

@@ -17,8 +17,8 @@
 #include "event2/thread.h"
 
 #include "common/dedicated_thread_registry.h"
-#include "network/peloton_rpc_handler_task.h"
-#include "network/peloton_server.h"
+#include "network/terrier_rpc_handler_task.h"
+#include "network/terrier_server.h"
 // #include "settings/settings_manager.h"
 
 #include "terrier_config.h"  // NOLINT
