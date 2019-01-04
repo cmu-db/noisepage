@@ -83,6 +83,7 @@ struct BlockLayout {
   uint32_t header_size_;
 
   uint32_t ComputeTupleSize() const;
+  // static header is the size of header that does not depend on the number of slots in the block
   uint32_t ComputeStaticHeaderSize() const;
   uint32_t ComputeNumSlots() const;
   uint32_t ComputeHeaderSize() const;

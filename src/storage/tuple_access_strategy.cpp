@@ -26,16 +26,11 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   raw->insert_head_ = 0;
   raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
-  result->NumSlots() = layout_.NumSlots();
 
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets()[i] = column_offsets_[i];
-
-  result->NumAttrs(layout_) = layout_.NumColumns();
-
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrSizes(layout_)[i] = layout_.AttrSize(col_id_t(i));
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
-  result->Column(VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
+  result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
 }
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {

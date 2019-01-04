@@ -28,9 +28,10 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
+ * unless interpreted by a TupleAccessStrategy. The header layout is documented in the class as well.
+ * @see TupleAccessStrategy
  *
- * @warning If you change this please also change the way header sizes are computed in block layout!
+ * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
@@ -38,7 +39,9 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   layout_version_t layout_version_;
   /**
-   * Number of records.
+   * The insert head tells us where the next insertion should take place. Notice that this counter is never
+   * decreased as slot recycling does not happen on the fly with insertions. A background compaction process
+   * scans through blocks and free up slots.
    */
   std::atomic<uint32_t> insert_head_;
   /**
