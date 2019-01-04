@@ -10,17 +10,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "network/network_io_wrappers.h"
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <sys/file.h>
+
+#include <memory>
+#include <utility>
+
+#include "network/network_io_wrappers.h"
 #include "network/peloton_server.h"
 
 namespace terrier {
 namespace network {
 Transition NetworkIoWrapper::FlushAllWrites() {
   for (; out_->FlushHead() != nullptr; out_->MarkHeadFlushed()) {
-    auto result = FlushWriteBuffer(*out_->FlushHead());
+    auto result = FlushWriteBuffer(&(*out_->FlushHead()));
     if (result != Transition::PROCEED) return result;
   }
   out_->Reset();
@@ -48,28 +52,28 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
   while (!in_->Full()) {
     auto bytes_read = in_->FillBufferFrom(sock_fd_);
     if (bytes_read > 0)
+      // TODO(tanujnay112) investigate this
       return Transition::PROCEED;
-    else if (bytes_read == 0)
-      return Transition::TERMINATE;
-    else
-      switch (errno) {
-        case EAGAIN:
-          // Equal to EWOULDBLOCK
-          return result;
-        case EINTR:
-          continue;
-        default:
-          LOG_ERROR("Error writing: %s", strerror(errno));
-          throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
-      }
+    if (bytes_read == 0) return Transition::TERMINATE;
+    switch (errno) {
+      case EAGAIN:
+        // Equal to EWOULDBLOCK
+        return result;
+      case EINTR:
+        continue;
+      default:
+        LOG_ERROR("Error writing: %s", strerror(errno));
+        throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
+    }
   }
   return result;
 }
 
-Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
-  while (wbuf.HasMore()) {
-    auto bytes_written = wbuf.WriteOutTo(sock_fd_);
-    if (bytes_written < 0) switch (errno) {
+Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
+  while (wbuf->HasMore()) {
+    auto bytes_written = wbuf->WriteOutTo(sock_fd_);
+    if (bytes_written < 0) {
+      switch (errno) {
         case EINTR:
           continue;
         case EAGAIN:
@@ -78,8 +82,9 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer &wbuf) {
           LOG_ERROR("Error writing: %s", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Fatal error during write");
       }
+    }
   }
-  wbuf.Reset();
+  wbuf->Reset();
   return Transition::PROCEED;
 }
 

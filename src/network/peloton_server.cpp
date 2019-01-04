@@ -19,9 +19,9 @@
 #include "common/dedicated_thread_registry.h"
 #include "network/peloton_rpc_handler_task.h"
 #include "network/peloton_server.h"
-//#include "settings/settings_manager.h"
+// #include "settings/settings_manager.h"
 
-#include "terrier_config.h"
+#include "terrier_config.h"  // NOLINT
 
 namespace terrier {
 namespace network {
@@ -70,12 +70,12 @@ TerrierServer &TerrierServer::SetupServer() {
   int reuse = 1;
   setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
-  bind(listen_fd_, (struct sockaddr *)&sin, sizeof(sin));
+  bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
   listen(listen_fd_, conn_backlog);
 
   dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this);
 
-  LOG_INFO("Listening on port %llu", (unsigned long long)port_);
+  LOG_INFO("Listening on port %zu", port_);
   return *this;
 }
 

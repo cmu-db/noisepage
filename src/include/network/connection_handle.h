@@ -11,6 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
+
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#include <sys/file.h>
+
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
@@ -21,17 +26,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
+#include <utility>
 #include <vector>
-
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/file.h>
 
 #include "common/exception.h"
 #include "loggers/main_logger.h"
 
-#include "marshal.h"
 #include "network/connection_handler_task.h"
+#include "network/marshal.h"
 #include "network/network_io_wrappers.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_interpreter.h"
@@ -77,7 +80,7 @@ class ConnectionHandle {
   /**
    * Handles a libevent event. This simply delegates the the state machine.
    */
-  inline void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }
+  inline void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }  // NOLINT
 
   /* State Machine Actions */
   // TODO(Tianyu): Write some documentation when feeling like it
@@ -107,7 +110,7 @@ class ConnectionHandle {
    * handler reacts to client activity from this connection.
    * @param flags new flags for the event handle.
    */
-  inline void UpdateEventFlags(short flags) {
+  inline void UpdateEventFlags(int16_t flags) {
     conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
                                METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
   }
@@ -167,7 +170,10 @@ class ConnectionHandle {
      * @param action starting symbol
      * @param connection the network connection object to apply actions to
      */
-    void Accept(Transition action, ConnectionHandle &connection);
+    void Accept(Transition action, ConnectionHandle &connection);  // NOLINT
+    // clang-tidy is suppressed here as it complains about the reference param having
+    // no const qualifier as this must be casted into a (void*) to pass as an argument to METHOD_AS_CALLBACK
+    // in the forward dependencies of Accept in the state_machine
 
    private:
     /**

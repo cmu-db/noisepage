@@ -12,8 +12,12 @@
 
 #pragma once
 #include <arpa/inet.h>
+
+#include <algorithm>
+#include <memory>
 #include <string>
 #include <vector>
+
 #include "common/exception.h"
 #include "common/internal_types.h"
 #include "util/portable_endian.h"
@@ -33,7 +37,7 @@ class Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline Buffer(size_t capacity) : capacity_(capacity) {
+  inline explicit Buffer(size_t capacity) : capacity_(capacity) {
     // TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
     buf_.resize(capacity);
   }
@@ -92,16 +96,14 @@ class Buffer {
   friend class PostgresPacketWriter;
 };
 
-namespace {
 // Helper method for reading nul-terminated string for the read buffer
 inline std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_iterator end) {
   // search for the nul terminator
-  for (ByteBuf::const_iterator head = begin; head != end; ++head)
+  for (auto head = begin; head != end; ++head)
     if (*head == 0) return std::string(begin, head);
   // No nul terminator found
   throw NETWORK_PROCESS_EXCEPTION("Expected nil in read buffer, none found");
 }
-}  // namespace
 
 /**
  * A view of the read buffer that has its own read head.
@@ -201,7 +203,7 @@ class ReadBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
+  inline explicit ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Read as many bytes as possible using Posix from an fd
@@ -211,7 +213,7 @@ class ReadBuffer : public Buffer {
   inline int FillBufferFrom(int fd) {
     ssize_t bytes_read = read(fd, &buf_[size_], Capacity() - size_);
     if (bytes_read > 0) size_ += bytes_read;
-    return (int)bytes_read;
+    return static_cast<int>(bytes_read);
   }
 
   /**
@@ -221,8 +223,8 @@ class ReadBuffer : public Buffer {
    * @param other The other buffer to read from
    * @param size Number of bytes to read
    */
-  inline void FillBufferFrom(ReadBuffer &other, size_t size) {
-    other.ReadIntoView(size).Read(size, &buf_[size_]);
+  inline void FillBufferFrom(ReadBuffer *other, size_t size) {
+    other->ReadIntoView(size).Read(size, &buf_[size_]);
     size_ += size;
   }
 
@@ -272,7 +274,7 @@ class WriteBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
+  inline explicit WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Write as many bytes as possible using Posix write to fd
@@ -282,7 +284,7 @@ class WriteBuffer : public Buffer {
   inline int WriteOutTo(int fd) {
     ssize_t bytes_written = write(fd, &buf_[offset_], size_ - offset_);
     if (bytes_written > 0) offset_ += bytes_written;
-    return (int)bytes_written;
+    return static_cast<int>(bytes_written);
   }
 
   /**
@@ -388,9 +390,9 @@ class WriteQueue {
    */
   void BufferWriteRaw(const void *src, size_t len, bool breakup = true) {
     WriteBuffer &tail = *(buffers_[buffers_.size() - 1]);
-    if (tail.HasSpaceFor(len))
+    if (tail.HasSpaceFor(len)) {
       tail.AppendRaw(src, len);
-    else {
+    } else {
       // Only write partially if we are allowed to
       size_t written = breakup ? tail.RemainingCapacity() : 0;
       tail.AppendRaw(src, written);

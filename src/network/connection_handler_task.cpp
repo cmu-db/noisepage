@@ -19,7 +19,7 @@ namespace network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
   int fds[2];
-  if (pipe(fds)) {
+  if (pipe(fds) != 0) {
     LOG_ERROR("Can't create notify pipe to accept connections");
     exit(1);
   }
@@ -35,7 +35,7 @@ void ConnectionHandlerTask::Notify(int conn_fd) {
   }
 }
 
-void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, short) {
+void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // NOLINT as we don't use the flags arg
   // buffer used to receive messages from the main thread
   char client_fd[sizeof(int)];
   size_t bytes_read = 0;
@@ -46,7 +46,7 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, short) {
     if (result < 0) {
       LOG_ERROR("Error when reading from dispatch");
     }
-    bytes_read += (size_t)result;
+    bytes_read += static_cast<size_t>(result);
   }
   ConnectionHandleFactory::GetInstance()
       .NewConnectionHandle(*reinterpret_cast<int *>(client_fd), this)

@@ -12,7 +12,7 @@
 
 #pragma once
 #include <memory>
-#include <thread>
+#include <thread>  // NOLINT
 #include <unordered_map>
 #include <vector>
 #include "common/dedicated_thread_owner.h"

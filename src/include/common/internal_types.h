@@ -50,7 +50,7 @@ namespace terrier {
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value
 // I don't think it matters whether this is 0 or -1
-//#define INVALID_TYPE_ID 0
+// #define INVALID_TYPE_ID 0
 
 // For epoch
 // static const size_t EPOCH_LENGTH = 40;

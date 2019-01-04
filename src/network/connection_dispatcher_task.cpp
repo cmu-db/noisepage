@@ -11,9 +11,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "network/connection_dispatcher_task.h"
+
 #include <common/dedicated_thread_registry.h>
+
+#include <csignal>
+#include <memory>
+
 #include "common/init.h"
-#include "signal.h"
 
 #include "common/thread_pool.h"
 
@@ -48,17 +52,17 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_
   }
 }
 
-void ConnectionDispatcherTask::DispatchConnection(int fd, short) {
+void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
 
-  int new_conn_fd = accept(fd, (struct sockaddr *)&addr, &addrlen);
+  int new_conn_fd = accept(fd, reinterpret_cast<struct sockaddr *>(&addr), &addrlen);
   if (new_conn_fd == -1) {
     LOG_ERROR("Failed to accept");
   }
 
   // Dispatch by rand number
-  long unsigned int handler_id = next_handler_;
+  uint64_t handler_id = next_handler_;
 
   // update next threadID
   next_handler_ = (next_handler_ + 1) % handlers_.size();
