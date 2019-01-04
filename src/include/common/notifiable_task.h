@@ -34,7 +34,7 @@ namespace terrier {
  *
  */
 #define METHOD_AS_CALLBACK(type, method) \
-  [](int fd, short flags, void *arg) { static_cast<type *>(arg)->method(fd, flags); }
+  [](int fd, int16_t flags, void *arg) { static_cast<type *>(arg)->method(fd, flags); }
 
 /**
  * @brief NotifiableTasks can be configured to handle events with callbacks, and
@@ -183,7 +183,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
    */
-  inline void ExitLoop(int, int16_t) { ExitLoop(); }
+  inline void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
 
  private:
   const int task_id_;

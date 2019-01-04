@@ -67,7 +67,7 @@ class ConnectionHandlerTask : public NotifiableTask {
    * @param new_conn_recv_fd the socket fd of the new connection
    * @param flags unused. For compliance with libevent callback interface.
    */
-  void HandleDispatch(int new_conn_recv_fd, short flags);
+  void HandleDispatch(int new_conn_recv_fd, int16_t flags);
 
  private:
   // Notify new connection pipe(send end)

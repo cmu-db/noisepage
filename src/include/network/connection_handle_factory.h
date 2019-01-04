@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include "network/connection_handle.h"
 #include "network/peloton_server.h"
 

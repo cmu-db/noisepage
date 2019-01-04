@@ -51,18 +51,21 @@ namespace network {
  *  ClientSocketWrapper, respectively.
  *
  */
+
+// clang-format off
 namespace {
 // Underneath the hood these macro is defining the static method
 // ConnectionHandle::StateMachine::Delta.
 // Together they compose a nested switch statement. Running the function on any
 // undefined state or transition on said state will throw a runtime error.
-#define DEF_TRANSITION_GRAPH                                                                               \
-  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta_(ConnState c,    \
-                                                                                           Transition t) { \
-    switch (c) {
+
+#define DEF_TRANSITION_GRAPH                                                                                        \
+  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta_(ConnState state,         \
+                                                                                           Transition transition) { \
+    switch (state) {
 #define DEFINE_STATE(s) \
   case ConnState::s: {  \
-    switch (t) {
+    switch (transition) {
 #define ON(t)         \
   case Transition::t: \
     return
@@ -71,39 +74,38 @@ namespace {
     ConnState::s,
 #define AND_INVOKE(m)                         \
   ([](ConnectionHandle &w) { return w.m(); }) \
-  }                                           \
-  ;
+  };                                          // NOLINT
+
 #define AND_WAIT_ON_READ                      \
   ([](ConnectionHandle &w) {                  \
     w.UpdateEventFlags(EV_READ | EV_PERSIST); \
     return Transition::NONE;                  \
   })                                          \
-  }                                           \
-  ;
+  };                                          // NOLINT
+
 #define AND_WAIT_ON_WRITE                      \
   ([](ConnectionHandle &w) {                   \
     w.UpdateEventFlags(EV_WRITE | EV_PERSIST); \
     return Transition::NONE;                   \
   })                                           \
-  }                                            \
-  ;
+  };                                            // NOLINT
+
 #define AND_WAIT_ON_PELOTON        \
   ([](ConnectionHandle &w) {       \
     w.StopReceivingNetworkEvent(); \
     return Transition::NONE;       \
   })                               \
-  }                                \
-  ;
+  };                               // NOLINT
+
 #define END_DEF                                       \
   default:                                            \
     throw std::runtime_error("undefined transition"); \
     }                                                 \
-    }
+    }                                                  // NOLINT
 
 #define END_STATE_DEF ON(TERMINATE) SET_STATE_TO(CLOSING) AND_INVOKE(TryCloseConnection) END_DEF
-}  // namespace
+}
 
-// clang-format off
 DEF_TRANSITION_GRAPH
     DEFINE_STATE(READ)
         ON(WAKEUP) SET_STATE_TO(READ) AND_INVOKE(TryRead)
@@ -129,7 +131,7 @@ DEF_TRANSITION_GRAPH
         // Client connections are ignored while we wait on terrier
         // to execute the query
         ON(NEED_RESULT) SET_STATE_TO(PROCESS) AND_WAIT_ON_PELOTON
-        //ON(NEED_SSL_HANDSHAKE) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
+        // ON(NEED_SSL_HANDSHAKE) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
     END_STATE_DEF
 
     DEFINE_STATE(WRITE)

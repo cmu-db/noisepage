@@ -12,7 +12,7 @@
 
 #pragma once
 #include <memory>
-#include <thread>
+#include <thread>  // NOLINT
 #include "common/dedicated_thread_task.h"
 
 namespace terrier {
@@ -42,7 +42,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that the thread running task will be terminated
    * @param task the task to be terminated
    */
-  void NotifyThreadRemoved(std::shared_ptr<DedicatedThreadTask> task) {
+  void NotifyThreadRemoved(const std::shared_ptr<DedicatedThreadTask> &task) {
     thread_count_--;
     OnThreadRemoved(task);
   }
@@ -54,7 +54,7 @@ class DedicatedThreadOwner {
    *
    * TODO(tianyu) turn into async if need be
    */
-  virtual void OnThreadRemoved(std::shared_ptr<DedicatedThreadTask> task) {}
+  virtual void OnThreadRemoved(const std::shared_ptr<DedicatedThreadTask> &task) {}
 
  private:
   size_t thread_count_ = 0;

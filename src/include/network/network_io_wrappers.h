@@ -14,11 +14,13 @@
 
 #include <memory>
 #include <utility>
+
 #include "common/exception.h"
 #include "common/utility.h"
-#include "marshal.h"
-#include "network_io_utils.h"
-#include "network_types.h"
+
+#include "network/marshal.h"
+#include "network/network_io_utils.h"
+#include "network/network_types.h"
 
 namespace terrier {
 namespace network {
@@ -40,7 +42,7 @@ class NetworkIoWrapper {
   virtual bool SslAble() const = 0;
   // TODO(Tianyu): Change and document after we refactor protocol handler
   virtual Transition FillReadBuffer() = 0;
-  virtual Transition FlushWriteBuffer(WriteBuffer &wbuf) = 0;
+  virtual Transition FlushWriteBuffer(WriteBuffer *wbuf) = 0;
   virtual Transition Close() = 0;
 
   inline int GetSocketFd() { return sock_fd_; }
@@ -56,7 +58,7 @@ class NetworkIoWrapper {
     out_->Reset();
   }
 
-  virtual ~NetworkIoWrapper(){};
+  virtual ~NetworkIoWrapper() = default;
 
   DISALLOW_COPY(NetworkIoWrapper);
 
@@ -83,7 +85,7 @@ class PosixSocketIoWrapper : public NetworkIoWrapper {
 
   inline bool SslAble() const override { return false; }
   Transition FillReadBuffer() override;
-  Transition FlushWriteBuffer(WriteBuffer &wbuf) override;
+  Transition FlushWriteBuffer(WriteBuffer *wbuf) override;
   inline Transition Close() override {
     peloton_close(sock_fd_);
     return Transition::PROCEED;

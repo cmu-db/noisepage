@@ -12,8 +12,12 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "common/dedicated_thread_registry.h"
 #include "common/notifiable_task.h"
+
 // #include "concurrency/epoch_manager_factory.h"
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
@@ -53,7 +57,7 @@ class ConnectionDispatcherTask : public NotifiableTask {
    * @param flags Unused. This is here to conform to libevent callback function
    * signature.
    */
-  void DispatchConnection(int fd, short flags);
+  void DispatchConnection(int fd, int16_t flags);
 
   /**
    * Breaks the dispatcher and managed handlers from their event loops.
@@ -63,7 +67,7 @@ class ConnectionDispatcherTask : public NotifiableTask {
  private:
   std::vector<std::shared_ptr<ConnectionHandlerTask>> handlers_;
   // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
-  std::atomic<long unsigned int> next_handler_;
+  std::atomic<uint64_t> next_handler_;
 };
 
 }  // namespace network
