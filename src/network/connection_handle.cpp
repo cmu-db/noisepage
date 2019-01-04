@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-//                         Peloton
+//                         Terrier
 //
 // connection_handle.cpp
 //
@@ -16,10 +16,9 @@
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle.h"
 #include "network/connection_handle_factory.h"
-#include "network/peloton_server.h"
+#include "network/terrier_server.h"
 
 #include "common/utility.h"
-// #include "settings/settings_manager.h"
 
 namespace terrier {
 namespace network {
@@ -90,7 +89,7 @@ namespace {
   })                                           \
   };                                            // NOLINT
 
-#define AND_WAIT_ON_PELOTON        \
+#define AND_WAIT_ON_TERRIER        \
   ([](ConnectionHandle &w) {       \
     w.StopReceivingNetworkEvent(); \
     return Transition::NONE;       \
@@ -130,7 +129,7 @@ DEF_TRANSITION_GRAPH
         ON(NEED_READ) SET_STATE_TO(READ) AND_INVOKE(TryRead)
         // Client connections are ignored while we wait on terrier
         // to execute the query
-        ON(NEED_RESULT) SET_STATE_TO(PROCESS) AND_WAIT_ON_PELOTON
+        ON(NEED_RESULT) SET_STATE_TO(PROCESS) AND_WAIT_ON_TERRIER
         // ON(NEED_SSL_HANDSHAKE) SET_STATE_TO(SSL_INIT) AND_INVOKE(TrySslHandshake)
     END_STATE_DEF
 

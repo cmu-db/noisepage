@@ -1,5 +1,5 @@
 #include <common/init.h>
-#include <network/peloton_server.h>
+#include <network/terrier_server.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
