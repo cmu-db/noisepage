@@ -116,9 +116,10 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
 void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID)
-                     && AtomicallyReadVersionPtr(dest, accessor_) == nullptr,
-                 "The slot needs to be logically deleted to every running transaction");
+  // TODO(Tianyu): Technically we should also check that there is no version on the slot.
+  // However, in test cases where GC is turned off this will be no guarantee and
+  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
+      "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
