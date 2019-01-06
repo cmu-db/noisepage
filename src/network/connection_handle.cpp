@@ -20,9 +20,6 @@
 
 #include "common/utility.h"
 
-namespace terrier {
-namespace network {
-
 /*
  *  Here we are abusing macro expansion to allow for human readable definition
  *  of the finite state machine's transition table. We put these macros in an
@@ -52,7 +49,6 @@ namespace network {
  */
 
 // clang-format off
-namespace {
 // Underneath the hood these macro is defining the static method
 // ConnectionHandle::StateMachine::Delta.
 // Together they compose a nested switch statement. Running the function on any
@@ -103,7 +99,9 @@ namespace {
     }                                                  // NOLINT
 
 #define END_STATE_DEF ON(TERMINATE) SET_STATE_TO(CLOSING) AND_INVOKE(TryCloseConnection) END_DEF
-}
+
+namespace terrier {
+namespace network {
 
 DEF_TRANSITION_GRAPH
     DEFINE_STATE(READ)
@@ -165,11 +163,9 @@ END_DEF
 
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
-    : conn_handler_(handler),
-      io_wrapper_{new PosixSocketIoWrapper(sock_fd)}
-// protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
-// protocol_interpreter_{nullptr}}
-{
+    : conn_handler_(handler), io_wrapper_(new PosixSocketIoWrapper(sock_fd)) {
+  // protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
+  // protocol_interpreter_{nullptr}}
   LOG_INFO("handling");
 }
 
