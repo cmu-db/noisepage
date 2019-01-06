@@ -11,8 +11,8 @@
 //===----------------------------------------------------------------------===//
 /*
 #include "network/postgres_network_commands.h"
-#include "network/terrier_server.h"
 #include "network/postgres_protocol_interpreter.h"
+#include "network/terrier_server.h"
 #include "parser/postgresparser.h"
 #include "planner/abstract_plan.h"
 #include "settings/settings_manager.h"
