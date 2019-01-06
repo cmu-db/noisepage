@@ -10,7 +10,7 @@ namespace terrier {
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
   void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager, &obs_);
+    gc_ = new storage::GarbageCollector(txn_manager);
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -35,7 +35,6 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
  private:
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
-  storage::AccessObserver obs_{nullptr};
   volatile bool run_gc_ = false;
   const std::chrono::milliseconds gc_period_{10};
 
@@ -171,20 +170,20 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
-// BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(10);
+ BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
 
 // BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementInsert)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
 //    ->MinTime(3);
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(3);
+//BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(3);
 
 // BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
 //    ->Unit(benchmark::kMillisecond)

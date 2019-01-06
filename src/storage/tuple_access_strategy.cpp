@@ -31,6 +31,9 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
   result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
+  // TODO(Tianyu): This can be a slight drag on insert performance. With the exception of some test cases where GC is not
+  // enabled, we should be able to do this step in the GC and still be good.
+
   // Also need to clean up any potential dangling version pointers (in cases where GC is off, or when a table is deleted
   // and individual tuples in it are not)
   memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());
