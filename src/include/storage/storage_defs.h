@@ -163,7 +163,7 @@ using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  * TODO(Matt): could be used by the GC for recycling
  */
-enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE, LOCK };
 
 /**
  * Types of LogRecords

@@ -133,6 +133,26 @@ class UndoRecord {
   }
 
   /**
+   * Populates the UndoRecord to act as a lock.
+   *
+   * @param head pointer to the byte buffer to initialize as a UndoRecord
+   * @param timestamp timestamp of the transaction that generated this UndoRecord
+   * @param slot the TupleSlot this UndoRecord points to
+   * @param table the DataTable this UndoRecord points to
+   * @return pointer to the initialized UndoRecord
+   */
+  static UndoRecord *InitializeLock(byte *const head, const transaction::timestamp_t timestamp, const TupleSlot slot,
+                                    DataTable *const table) {
+    auto *result = reinterpret_cast<UndoRecord *>(head);
+    result->type_ = DeltaRecordType::LOCK;
+    result->next_ = nullptr;
+    result->timestamp_.store(timestamp);
+    result->table_ = table;
+    result->slot_ = slot;
+    return result;
+  }
+
+  /**
    * Populates the UndoRecord's members to hold an update.
    *
    * @param head pointer to the byte buffer to initialize as a UndoRecord
@@ -146,7 +166,7 @@ class UndoRecord {
                                       DataTable *const table, const ProjectedRowInitializer &initializer) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
-    result->type_ = DeltaRecordType ::UPDATE;
+    result->type_ = DeltaRecordType::UPDATE;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;
@@ -172,7 +192,7 @@ class UndoRecord {
                                       DataTable *const table, const storage::ProjectedRow &redo) {
     auto *result = reinterpret_cast<UndoRecord *>(head);
 
-    result->type_ = DeltaRecordType ::UPDATE;
+    result->type_ = DeltaRecordType::UPDATE;
     result->next_ = nullptr;
     result->timestamp_.store(timestamp);
     result->table_ = table;

@@ -189,6 +189,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
     case DeltaRecordType::INSERT:
+    case DeltaRecordType::LOCK:
       return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
       // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
@@ -210,6 +211,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
           if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
+      break;
+    default:
+      throw std::runtime_error("unexpected delta record type");
   }
 }
 }  // namespace terrier::storage

@@ -88,6 +88,11 @@ class TransactionContext {
     return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
   }
 
+  storage::UndoRecord *UndoRecordAsLock(storage::DataTable *const table, const storage::TupleSlot slot) {
+    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    return storage::UndoRecord::InitializeLock(result, txn_id_.load(), slot, table);
+  }
+
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
    * The change can either be copied into this space, or written in the space and then used to change the DataTable.

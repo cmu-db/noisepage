@@ -273,6 +273,8 @@ class DataTable {
   // (logical delete bitmap is non-NULL).
   bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 
+  bool Lock(transaction::TransactionContext *txn, TupleSlot slot);
+
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
                                 UndoRecord *desired);
