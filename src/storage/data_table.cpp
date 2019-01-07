@@ -119,7 +119,7 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   // TODO(Tianyu): Technically we should also check that there is no version on the slot.
   // However, in test cases where GC is turned off this will be no guarantee and
   TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
-      "The slot needs to be logically deleted to every running transaction");
+                 "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
@@ -164,7 +164,7 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
-template<class RowType>
+template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
@@ -201,7 +201,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
   // If the version chain becomes null, this tuple does not exist for this version, and the last delta
   // record would be an undo for insert that sets the primary key to null, which is intended behavior.
   while (version_ptr != nullptr &&
-      transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
+         transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
     // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
     // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
     switch (version_ptr->Type()) {
@@ -209,9 +209,11 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
         // Normal delta to be applied. Does not modify the logical delete column.
         StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
         break;
-      case DeltaRecordType::INSERT:visible = false;
+      case DeltaRecordType::INSERT:
+        visible = false;
         break;
-      case DeltaRecordType::DELETE:visible = true;
+      case DeltaRecordType::DELETE:
+        visible = true;
     }
     // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
     // the chain than an insert.
@@ -254,7 +256,7 @@ bool DataTable::HasConflict(UndoRecord *const version_ptr, const transaction::Tr
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(version_timestamp) &&
-      transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
+                                       transaction::TransactionUtil::NewerThan(version_timestamp, start_time);
   return owned_by_other_txn || newer_committed_version;
 }
 

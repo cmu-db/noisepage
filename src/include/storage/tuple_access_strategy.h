@@ -51,10 +51,9 @@ class TupleAccessStrategy {
   struct Block {
     MEM_REINTERPRETATION_ONLY(Block)
 
-    // TODO(Tianyu): Is header access going to be too slow? If so, consider storing offsets to jump to within headers as well.
-    byte **VarlenBuffers() {
-      return reinterpret_cast<byte **>(block_.content_);
-    }
+    // TODO(Tianyu): Is header access going to be too slow? If so, consider storing offsets to jump to within headers as
+    // well.
+    byte **VarlenBuffers() { return reinterpret_cast<byte **>(block_.content_); }
 
     // return reference to attr_offsets. Use as an array.
     uint32_t *AttrOffets(const BlockLayout &layout) {

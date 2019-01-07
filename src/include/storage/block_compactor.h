@@ -1,5 +1,6 @@
 #pragma once
 #include <forward_list>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "storage/data_table.h"
@@ -8,11 +9,23 @@
 
 namespace terrier::storage {
 
+/**
+ * The block compactor is responsible for taking hot data blocks that are considered to be cold, and make them
+ * arrow-compatible. In the process, any gaps resulting from deletes or aborted transactions are also eliminated.
+ * If the compaction is successful, the block is considered to be fully cold and will be accessed mostly as read-only
+ * data.
+ */
 class BlockCompactor {
  private:
-  static void NoOp(void */*unused*/) {}
+  static void NoOp(void * /*unused*/) {}
 
  public:
+  /**
+   * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
+   * to live versions or contention. There will be a brief window where user transactions writing to the block
+   * can be aborted, but no readers would be blocked.
+   *
+   */
   void ProcessCompactionQueue() {
     std::forward_list<std::pair<RawBlock *, DataTable *>> to_process = std::move(compaction_queue_);
     for (auto &entry : to_process) {
@@ -23,7 +36,7 @@ class BlockCompactor {
       // We need to first run compaction, and then mark the block as frozen.
       transaction::TransactionContext *compacting_txn = txn_manager_.BeginTransaction();
       std::unordered_map<col_id_t, uint32_t> varlen_length_sums;
-      if (Compact(compacting_txn, entry, varlen_length_sums)) {
+      if (Compact(compacting_txn, entry, &varlen_length_sums)) {
         if (Gather(compacting_txn, entry, varlen_length_sums)) {
           // TODO(Tianyu): I think this is safe if in update, we mark hot immediately before compare and swap.
           // It should be correct, but double check
@@ -38,22 +51,25 @@ class BlockCompactor {
     }
   }
 
+  // TODO(Tianyu): Should a block know about its own data table? We seem to need this back pointer awfully often.
+  /**
+   * Adds a block associated with a data table to the compaction to be processed in the future.
+   * @param entry the block (and its parent data table) that needs to be processed by the compactor
+   */
   void PutInQueue(const std::pair<RawBlock *, DataTable *> &entry) { compaction_queue_.push_front(entry); }
 
  private:
-  bool Compact(transaction::TransactionContext *txn,
-               const std::pair<RawBlock *, DataTable *> &entry,
-               std::unordered_map<col_id_t, uint32_t> &varlen_length_sums) {
+  bool Compact(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry,
+               std::unordered_map<col_id_t, uint32_t> *varlen_length_sums) {
     RawBlock *block = entry.first;
     DataTable *table = entry.second;
     const TupleAccessStrategy &accessor = table->accessor_;
     const BlockLayout &layout = accessor.GetBlockLayout();
     TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be full to stop inserts from coming in");
 
-    TERRIER_ASSERT(varlen_length_sums.empty(), "This parameters should be used purely for output");
+    TERRIER_ASSERT(varlen_length_sums->empty(), "This parameters should be used purely for output");
     // Initialize the map of varlen lengths to correspond to the block layout
-    for (col_id_t id : layout.Varlens())
-      varlen_length_sums[id] = 0;
+    for (col_id_t id : layout.Varlens()) (*varlen_length_sums)[id] = 0;
 
     std::vector<TupleSlot> filled, empty;
     // Scan through and identify empty slots
@@ -71,7 +87,7 @@ class BlockCompactor {
       } else {
         filled.push_back(slot);
         // Also need to count the size of all the varlens
-        for (auto &sum : varlen_length_sums) {
+        for (auto &sum : *varlen_length_sums) {
           // If there is a race this should result in failure in later steps, and there probably does not matter
           // TODO(Tianyu): It is probably okay to transactionally read this as well if there are edge cases
           auto *varlen_entry = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(slot, sum.first));
@@ -102,13 +118,12 @@ class BlockCompactor {
     return true;
   }
 
-  bool Gather(transaction::TransactionContext *txn,
-              const std::pair<RawBlock *, DataTable *> &entry,
+  bool Gather(transaction::TransactionContext *txn, const std::pair<RawBlock *, DataTable *> &entry,
               const std::unordered_map<col_id_t, uint32_t> &varlen_length_sums) {
-//    RawBlock *block = entry.first;
-//    DataTable *table = entry.second;
-//    const TupleAccessStrategy &accessor = table->accessor_;
-//    const BlockLayout &layout = accessor.GetBlockLayout();
+    //    RawBlock *block = entry.first;
+    //    DataTable *table = entry.second;
+    //    const TupleAccessStrategy &accessor = table->accessor_;
+    //    const BlockLayout &layout = accessor.GetBlockLayout();
     // TODO(Tianyu): Need to figure out what to do with tables that don't have varlens. Should we special case or
     // still proceed with "updating", basically installing an empty version?
     return true;

@@ -44,7 +44,7 @@ class LogManager {
    * reference to the buffer after the method returns immediately, as it would no longer be safe to read from or
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
-   * @param buffer the (perhaps partially) filled log buffer ready to be consumed
+   * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
