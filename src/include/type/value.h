@@ -106,6 +106,15 @@ class Value {
   }
 
   /**
+   * Get the string value
+   * @return ptr to string
+   */
+  const char *GetStringValue() const {
+    TERRIER_ASSERT(type_id_ == TypeId::STRING, "The type must be a string");
+    return value_.string_;
+  }
+
+  /**
    * Get contents of a date value
    * @return date_t
    */
@@ -113,6 +122,12 @@ class Value {
     TERRIER_ASSERT(type_id_ == TypeId::DATE, "The type must be a date");
     return value_.date_;
   }
+
+  /**
+   * Is the value NULL
+   * @return bool
+   */
+  const bool IsNull() const { return (type_id_ == TypeId::NULL_TYPE); }
 
   /**
    * Compare values for equality
@@ -138,6 +153,8 @@ class Value {
         return value_.decimal_ == rhs.value_.decimal_;
       case TypeId::TIMESTAMP:
         return value_.timestamp_ == rhs.value_.timestamp_;
+      case TypeId::STRING:
+        return value_.string_ == rhs.value_.string_;
       default:
         TERRIER_ASSERT(false, "unsupported type");
         throw std::runtime_error("unreachable control flow");
@@ -173,6 +190,8 @@ class Value {
         return common::HashUtil::Hash(GetDecimalValue());
       case TypeId::TIMESTAMP:
         return common::HashUtil::Hash(GetTimestampValue());
+      case TypeId::STRING:
+        return common::HashUtil::Hash(GetStringValue());
       case TypeId::VARBINARY:
       case TypeId::VARCHAR:
         return common::HashUtil::HashBytes(value_.varlen_.data_, value_.varlen_.size_);
@@ -192,10 +211,13 @@ class Value {
     double decimal_;
     timestamp_t timestamp_;
     date_t date_;
+    const char *string_;
     VarlenValue varlen_;
   };
 
   Value(TypeId type_id, Val val) : type_id_(type_id), value_(val) {}
+  // for NULL_TYPE
+  // Value(TypeId type_id) : type_id_(type_id) {}
 
   TypeId type_id_;
   Val value_;
