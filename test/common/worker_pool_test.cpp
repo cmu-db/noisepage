@@ -62,15 +62,12 @@ TEST(WorkerPoolTests, MoreTest) {
   common::TaskQueue tasks;
   common::WorkerPool thread_pool(5, tasks);
   uint32_t iteration = 10;
+  std::default_random_engine generator_;
+  std::uniform_int_distribution<uint32_t> num_thread{1, MultiThreadTestUtil::HardwareConcurrency()};
   for (uint32_t it = 0; it < iteration; it++) {
-    // std::cout << "iteration : " << it << std::endl;
-    auto workload = [](uint32_t) {
-      // std::cout << "start sleeping" << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      // std::cout << "Done sleeping" << std::endl;
-    };
+    auto workload = [](uint32_t) { std::this_thread::sleep_for(std::chrono::milliseconds(200)); };
 
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, 12, workload);
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_thread(generator_), workload);
   }
   thread_pool.Shutdown();
 }
