@@ -1,0 +1,46 @@
+#pragma once
+
+#include <typeinfo>
+
+#include "optimizer/optimizer_def.h"
+#include "common/hash_util.h"
+
+namespace terrier::optimizer {
+
+class PropertyVisitor;
+
+/*
+ * Physical properties are those fields that can be directly added to the plan,
+ * and don't need to perform transformations on.
+ *
+ * Note: Sometimes there're different choices of physical properties. E.g., the
+ * sorting order might be provided by either a sort executor or a underlying
+ * sort merge join. But those different implementations are directly specified
+ * when constructing the physical operator tree, other than using rule
+ * transformation.
+ */
+class Property {
+ public:
+  virtual ~Property();
+
+  virtual PropertyType Type() const = 0;
+
+  virtual common::hash_t Hash() const;
+
+  // Provide partial order
+  virtual bool operator>=(const Property &r) const;
+
+  virtual void Accept(PropertyVisitor *v) const = 0;
+
+  virtual std::string ToString() const;
+
+  template <typename T>
+  const T *As() const {
+    if (typeid(*this) == typeid(T)) {
+      return reinterpret_cast<const T *>(this);
+    }
+    return nullptr;
+  }
+};
+
+} // namespace terrier::optimizer
