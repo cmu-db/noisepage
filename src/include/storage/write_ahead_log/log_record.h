@@ -306,6 +306,7 @@ class CommitRecord {
   transaction::callback_fn callback_;
   void *callback_arg_;
   // TODO(TIanyu): Can replace the other arguments
+  // More specifically, commit timestamp and read_only can be inferred from looking inside the transaction context
   transaction::TransactionContext *txn_;
   bool is_read_only_;
 };

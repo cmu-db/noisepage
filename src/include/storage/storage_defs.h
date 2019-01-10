@@ -48,6 +48,7 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    * Access controller of this block
    */
   BlockAccessController controller_;
+
   /**
    * Contents of the raw block.
    */
@@ -184,11 +185,13 @@ class VarlenEntry {
   VarlenEntry() = default;
   /**
    * Constructs a new varlen entry
-   * @param content
-   * @param size
-   * @param gathered
+   * @param content pointer to the varlen content itself
+   * @param size length of the varlen content, in bytes (no C-style nul-terminator)
+   * @param gathered whether the varlen entry's content pointer is part of a large buffer (for arrow-compatibility),
+   *                 which means it cannot be deallocated by itself.
    */
   VarlenEntry(byte *content, uint32_t size, bool gathered)
+      // the sign bit on size is used to store the "gathered" attribute, so we mask it off on size depending on that.
       : size_(size | (gathered ? INT32_MIN : 0)), content_(content) {}
   /**
    * @return size of the varlen entry in bytes.
@@ -210,9 +213,7 @@ class VarlenEntry {
   // we use the sign bit to denote if
   int32_t size_;
   // TODO(Tianyu): we can use the extra 4 bytes for something else (storing the prefix?)
-  /**
-   * Contents of the varlen entry.
-   */
+  // Contents of the varlen entry.
   const byte *content_;
 };
 }  // namespace terrier::storage

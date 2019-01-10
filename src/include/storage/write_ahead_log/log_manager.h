@@ -27,7 +27,7 @@ class LogManager {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    */
-  LogManager(const char *log_file_path, RecordBufferSegmentPool *buffer_pool)
+  LogManager(const char *log_file_path, RecordBufferSegmentPool *const buffer_pool)
       : out_(log_file_path), buffer_pool_(buffer_pool) {}
 
   /**
@@ -46,7 +46,7 @@ class LogManager {
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment) {
+  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
     flush_queue_.push(buffer_segment);
   }

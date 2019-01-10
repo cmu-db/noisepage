@@ -25,6 +25,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
   raw->controller_.Initialize();
+
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
 
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
@@ -43,13 +44,14 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
   const uint32_t start = block->insert_head_;
 
+  // We are not allowed to insert into this block any more
   if (start == layout_.NumSlots()) return false;
 
   uint32_t pos = start;
 
   while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
     if (bitmap->Flip(pos, false)) {
-      if (slot != nullptr) *slot = TupleSlot(block, pos);
+      *slot = TupleSlot(block, pos);
       block->insert_head_++;
       return true;
     }

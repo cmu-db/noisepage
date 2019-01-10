@@ -32,7 +32,7 @@ class TransactionContext {
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    */
   TransactionContext(const timestamp_t start, const timestamp_t txn_id,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *log_manager)
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
       : start_time_(start), txn_id_(txn_id), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   ~TransactionContext() {
@@ -130,6 +130,7 @@ class TransactionContext {
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
+  //
   std::vector<const byte *> loose_ptrs_;
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
