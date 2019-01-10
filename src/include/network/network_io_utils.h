@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "common/internal_types.h"
+#include "network/network_defs.h"
 #include "util/portable_endian.h"
 
 namespace terrier {
@@ -223,8 +223,8 @@ class ReadBuffer : public Buffer {
    * @param other The other buffer to read from
    * @param size Number of bytes to read
    */
-  inline void FillBufferFrom(ReadBuffer *other, size_t size) {
-    other->ReadIntoView(size).Read(size, &buf_[size_]);
+  inline void FillBufferFrom(ReadBuffer &other, size_t size) {
+    other.ReadIntoView(size).Read(size, &buf_[size_]);
     size_ += size;
   }
 

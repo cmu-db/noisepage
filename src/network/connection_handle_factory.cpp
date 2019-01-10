@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_handle_factory.cpp
-//
-// Identification: src/network/connection_handle_factory.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include "network/connection_handle_factory.h"
 #include <memory>
 #include <utility>
@@ -30,9 +18,9 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   reused_handle.conn_handler_ = task;
   reused_handle.network_event_ = nullptr;
   reused_handle.workpool_event_ = nullptr;
-  /*reused_handle.io_wrapper_.reset(new PosixSocketIoWrapper(std::move(
-      reused_handle.io_wrapper_.release())));*/
-  // reused_handle.protocol_interpreter_.reset(new PostgresProtocolInterpreter(task->Id()));
+  reused_handle.io_wrapper_.reset(new PosixSocketIoWrapper(std::move(
+      *reused_handle.io_wrapper_.release())));
+  reused_handle.protocol_interpreter_.reset(new PostgresProtocolInterpreter(task->Id()));
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
   TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");

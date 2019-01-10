@@ -15,7 +15,7 @@
 #include "common/event_util.h"
 #include "loggers/main_logger.h"
 
-namespace terrier {
+namespace terrier::common {
 
 NotifiableTask::NotifiableTask(int task_id) : task_id_(task_id) {
   base_ = EventUtil::EventBaseNew();
@@ -52,4 +52,4 @@ void NotifiableTask::UnregisterEvent(struct event *event) {
   events_.erase(event);
 }
 
-}  // namespace terrier
+}  // namespace terrier::common

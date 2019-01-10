@@ -19,13 +19,11 @@
 
 #include <unistd.h>
 
-#include "common/container/lock_free_queue.h"
 #include "common/exception.h"
 #include "common/notifiable_task.h"
 #include "loggers/main_logger.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
@@ -37,7 +35,7 @@ namespace network {
  * happens on the
  * same ConnectionHandlerTask thread for the enitre lifetime of the connection.
  */
-class ConnectionHandlerTask : public NotifiableTask {
+class ConnectionHandlerTask : public common::NotifiableTask {
  public:
   /**
    * Constructs a new ConnectionHandlerTask instance.
@@ -74,5 +72,4 @@ class ConnectionHandlerTask : public NotifiableTask {
   int new_conn_send_fd_;
 };
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

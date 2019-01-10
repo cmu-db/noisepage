@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_handle.h
-//
-// Identification: src/include/network/connection_handle.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <arpa/inet.h>
@@ -34,14 +22,12 @@
 #include "loggers/main_logger.h"
 
 #include "network/connection_handler_task.h"
-#include "network/marshal.h"
 #include "network/network_io_wrappers.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * A ConnectionHandle encapsulates all information we need to do IO about
@@ -70,7 +56,7 @@ class ConnectionHandle {
    * object should be fully initialized at that point, it's never a bad idea
    * to be careful.
    */
-  inline void RegisterToReceiveEvents() {
+  void RegisterToReceiveEvents() {
     workpool_event_ = conn_handler_->RegisterManualEvent(METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
 
     network_event_ = conn_handler_->RegisterEvent(io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
@@ -80,26 +66,26 @@ class ConnectionHandle {
   /**
    * Handles a libevent event. This simply delegates the the state machine.
    */
-  inline void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }  // NOLINT
+  void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }  // NOLINT
 
   /* State Machine Actions */
   // TODO(Tianyu): Write some documentation when feeling like it
-  inline Transition TryRead() { return io_wrapper_->FillReadBuffer(); }
+  Transition TryRead() { return io_wrapper_->FillReadBuffer(); }
 
-  inline Transition TryWrite() {
+  Transition TryWrite() {
     if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
 
     // TODO(tanujnay112): Revert
-    return Transition::TERMINATE;
+    return Transition::PROCEED;
   }
 
-  inline Transition Process() {
-    /*return protocol_interpreter_->
+  Transition Process() {
+    return protocol_interpreter_->
         Process(io_wrapper_->GetReadBuffer(),
                 io_wrapper_->GetWriteQueue(),
-                [=] { event_active(workpool_event_, EV_WRITE, 0); });*/
-    std::printf("processed %s\n", io_wrapper_->GetReadBuffer()->ReadString().c_str());
-    return Transition::NEED_RESULT;
+                [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    /*std::printf("processed %s\n", io_wrapper_->GetReadBuffer()->ReadString().c_str());
+    return Transition::NEED_RESULT;*/
   }
 
   Transition GetResult();
@@ -110,7 +96,7 @@ class ConnectionHandle {
    * handler reacts to client activity from this connection.
    * @param flags new flags for the event handle.
    */
-  inline void UpdateEventFlags(int16_t flags) {
+  void UpdateEventFlags(int16_t flags) {
     conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
                                METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
   }
@@ -120,7 +106,7 @@ class ConnectionHandle {
    * we are waiting on peloton to return the result of a query and not handling
    * client query.
    */
-  inline void StopReceivingNetworkEvent() {
+  void StopReceivingNetworkEvent() {
     EventUtil::EventDel(network_event_);
 
     // TODO(tanujnay112) remove
@@ -192,9 +178,8 @@ class ConnectionHandle {
   ConnectionHandlerTask *conn_handler_;
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
   // TODO(Tianyu): Probably use a factory for this
-  // std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 };
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

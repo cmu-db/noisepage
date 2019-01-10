@@ -33,7 +33,7 @@ namespace network {
  * then responsible for maintain, and when shutting down, shutting down the
  * spawned handlers also.
  */
-class ConnectionDispatcherTask : public NotifiableTask {
+class ConnectionDispatcherTask : public common::NotifiableTask {
  public:
   /**
    * Creates a new ConnectionDispatcherTask, spawning the specified number of

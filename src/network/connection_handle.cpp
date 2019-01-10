@@ -100,8 +100,7 @@
 
 #define END_STATE_DEF ON(TERMINATE) SET_STATE_TO(CLOSING) AND_INVOKE(TryCloseConnection) END_DEF
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 DEF_TRANSITION_GRAPH
     DEFINE_STATE(READ)
@@ -163,11 +162,9 @@ END_DEF
 
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
-    : conn_handler_(handler), io_wrapper_(new PosixSocketIoWrapper(sock_fd)) {
-  // protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {
-  // protocol_interpreter_{nullptr}}
-  LOG_INFO("handling");
-}
+    : conn_handler_(handler),
+      io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
+      protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
@@ -190,5 +187,4 @@ Transition ConnectionHandle::TryCloseConnection() {
   return Transition::NONE;
 }
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

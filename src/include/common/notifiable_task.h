@@ -18,7 +18,7 @@
 #include "common/event_util.h"
 #include "common/macros.h"
 
-namespace terrier {
+namespace terrier::common {
 
 /**
  * Convenient MACRO to use a method as a libevent callback function. Example
@@ -194,4 +194,4 @@ class NotifiableTask : public DedicatedThreadTask {
   std::unordered_set<struct event *> events_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::common

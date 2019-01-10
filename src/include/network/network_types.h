@@ -1,19 +1,6 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// network_types.h
-//
-// Identification: src/include/network/network_types.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 /**
  * States used by ConnectionHandle::StateMachine.
  * @see ConnectionHandle::StateMachine
@@ -33,5 +20,4 @@ enum class ConnState {
  */
 enum class Transition { NONE, WAKEUP, PROCEED, NEED_READ, NEED_RESULT, TERMINATE, NEED_SSL_HANDSHAKE, NEED_WRITE };
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

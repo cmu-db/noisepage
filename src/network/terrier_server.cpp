@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <common/internal_types.h>
+#include <network/network_defs.h>
 #include <fstream>
 #include <memory>
 #include "common/utility.h"

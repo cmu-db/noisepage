@@ -1,32 +1,24 @@
-//===----------------------------------------------------------------------===//
+#pragma once
+#include <memory>
+#include <functional>
+#include "network/network_types.h"
+#include "network/network_io_utils.h"
 //
-//                         Terrier
+ namespace terrier {
+ namespace network {
 //
-// protocol_interpreter.h
+ class ProtocolInterpreter {
+ public:
+  virtual Transition Process(std::shared_ptr<ReadBuffer> in,
+                             std::shared_ptr<WriteQueue> out,
+                             CallbackFunc callback) = 0;
 //
-// Identification: src/include/network/protocol_interpreter.h
+  // TODO(Tianyu): Do we really need this crap?
+  virtual void GetResult(std::shared_ptr<WriteQueue> out) = 0;
+
+  virtual ~ProtocolInterpreter(){};
+
+};
 //
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-// #pragma once
-// #include <memory>
-// #include <functional>
-// #include "network/network_types.h"
-// #include "network/network_io_utils.h"
-//
-//  namespace terrier {
-//  namespace network {
-//
-//  class ProtocolInterpreter {
-//  public:
-//   virtual Transition Process(std::shared_ptr<ReadBuffer> in,
-//                              std::shared_ptr<WriteQueue> out,
-//                              CallbackFunc callback) = 0;
-//
-//   // TODO(Tianyu): Do we really need this crap?
-//   virtual void GetResult(std::shared_ptr<WriteQueue> out) = 0;
-// };
-//
-// } // namespace network
-// } // namespace terrier
+} // namespace network
+} // namespace terrier

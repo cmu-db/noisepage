@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// network_io_wrappers.cpp
-//
-// Identification: src/network/network_io_wrappers.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <sys/file.h>
@@ -20,8 +8,7 @@
 #include "network/network_io_wrappers.h"
 #include "network/terrier_server.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 Transition NetworkIoWrapper::FlushAllWrites() {
   for (; out_->FlushHead() != nullptr; out_->MarkHeadFlushed()) {
     auto result = FlushWriteBuffer(&(*out_->FlushHead()));
@@ -52,19 +39,20 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
   while (!in_->Full()) {
     auto bytes_read = in_->FillBufferFrom(sock_fd_);
     if (bytes_read > 0)
-      // TODO(tanujnay112) investigate this
-      return Transition::PROCEED;
-    if (bytes_read == 0) return Transition::TERMINATE;
-    switch (errno) {
-      case EAGAIN:
-        // Equal to EWOULDBLOCK
-        return result;
-      case EINTR:
-        continue;
-      default:
-        LOG_ERROR("Error writing: %s", strerror(errno));
-        throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
-    }
+      result = Transition::PROCEED;
+    else if (bytes_read == 0)
+      return Transition::TERMINATE;
+    else
+      switch (errno) {
+        case EAGAIN:
+          // Equal to EWOULDBLOCK
+          return result;
+        case EINTR:
+          continue;
+        default:
+          LOG_ERROR("Error writing: %s", strerror(errno));
+          throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
+      }
   }
   return result;
 }
@@ -87,6 +75,4 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
   wbuf->Reset();
   return Transition::PROCEED;
 }
-
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

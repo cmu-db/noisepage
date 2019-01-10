@@ -18,12 +18,10 @@
 #include "common/exception.h"
 #include "common/utility.h"
 
-#include "network/marshal.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * A network io wrapper provides an interface for interacting with a client
@@ -45,11 +43,11 @@ class NetworkIoWrapper {
   virtual Transition FlushWriteBuffer(WriteBuffer *wbuf) = 0;
   virtual Transition Close() = 0;
 
-  inline int GetSocketFd() { return sock_fd_; }
-  inline std::shared_ptr<ReadBuffer> GetReadBuffer() { return in_; }
-  inline std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }
+  int GetSocketFd() { return sock_fd_; }
+  std::shared_ptr<ReadBuffer> GetReadBuffer() { return in_; }
+  std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }
   Transition FlushAllWrites();
-  inline bool ShouldFlush() { return out_->ShouldFlush(); }
+  bool ShouldFlush() { return out_->ShouldFlush(); }
   // TODO(Tianyu): Make these protected when protocol handler refactor is
   // complete
   NetworkIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out)
@@ -83,13 +81,12 @@ class PosixSocketIoWrapper : public NetworkIoWrapper {
 
   DISALLOW_COPY_AND_MOVE(PosixSocketIoWrapper);
 
-  inline bool SslAble() const override { return false; }
+  bool SslAble() const override { return false; }
   Transition FillReadBuffer() override;
   Transition FlushWriteBuffer(WriteBuffer *wbuf) override;
-  inline Transition Close() override {
+  Transition Close() override {
     peloton_close(sock_fd_);
     return Transition::PROCEED;
   }
 };
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

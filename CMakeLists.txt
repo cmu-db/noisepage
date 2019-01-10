@@ -77,8 +77,8 @@ set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 # CMAKE OPTIONS
 ###################################################
 
-#set(TERRIER_CXXFLAGS "-I/usr/local/opt/openssl/include" CACHE STRING
-#    "Compiler flags to append when compiling Terrier")
+set(TERRIER_CXXFLAGS "" CACHE STRING
+    "Compiler flags to append when compiling Terrier")
 
 option(TERRIER_BUILD_STATIC
     "Build the libterrier static libraries"

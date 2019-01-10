@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// terrier_server.h
-//
-// Identification: src/include/network/terrier_server.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <event2/buffer.h>
@@ -37,8 +25,7 @@
 #include "network/connection_dispatcher_task.h"
 #include "network/network_types.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * TerrierServer is the entry point of the network layer
@@ -102,5 +89,4 @@ class TerrierServer : public DedicatedThreadOwner {
   // For testing purposes
   std::shared_ptr<ConnectionDispatcherTask> dispatcher_task_;
 };
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network
