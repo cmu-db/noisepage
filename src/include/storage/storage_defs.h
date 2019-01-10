@@ -35,8 +35,9 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   layout_version_t layout_version_;
   /**
-   * The next slot we should insert into. This number should only be increased by execution threads, and only
-   * the compaction thread is allowed to decrase it.
+   * The insert head tells us where the next insertion should take place. Notice that this counter is never
+   * decreased as slot recycling does not happen on the fly with insertions. A background compaction process
+   * scans through blocks and free up slots.
    */
   std::atomic<uint32_t> insert_head_;
   /**
