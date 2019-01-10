@@ -112,6 +112,23 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
   }
 }
 
+// Run a single read-only txn (empty UndoBuffer). Confirm that it takes 1 GC cycles to process this tuple.
+// NOLINTNEXTLINE
+TEST_F(GarbageCollectorTests, ReadOnly) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    storage::GarbageCollector gc(&txn_manager);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+    // Unlink the txn and deallocate immediately because it's read-only
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+  }
+}
+
 // Insert a tuple and commit. Next transaction tries to update that tuple (takes write lock), verify that GC doesn't
 // unlink or free the Insert txn's context until safe to do so
 // NOLINTNEXTLINE

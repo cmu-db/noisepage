@@ -100,9 +100,6 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
     EXPECT_TRUE(bitmap->Flip(flip_idx[1], true));
     EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
     EXPECT_EQ(pos, flip_idx[1]);
-    // x _ x wraparound behavior
-    EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, flip_idx[1] + 1, &pos));
-    EXPECT_EQ(pos, flip_idx[1]);
     // _ _ x should return first
     EXPECT_TRUE(bitmap->Flip(flip_idx[0], true));
     EXPECT_TRUE(bitmap->FirstUnsetPos(num_elements, 0, &pos));
