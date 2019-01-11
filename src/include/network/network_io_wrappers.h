@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// network_io_wrappers.h
-//
-// Identification: src/include/network/network_io_wrappers.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <memory>

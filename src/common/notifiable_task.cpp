@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// notifiable_task.cpp
-//
-// Identification: src/common/notifiable_task.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include "common/notifiable_task.h"
 #include <cstring>
 #include "common/event_util.h"

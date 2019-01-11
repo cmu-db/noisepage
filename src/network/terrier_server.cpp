@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// peloton_server.cpp
-//
-// Identification: src/network/peloton_server.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include <network/network_defs.h>
 #include <fstream>
 #include <memory>
@@ -17,14 +5,11 @@
 #include "event2/thread.h"
 
 #include "common/dedicated_thread_registry.h"
-#include "network/terrier_rpc_handler_task.h"
 #include "network/terrier_server.h"
-// #include "settings/settings_manager.h"
 
 #include "terrier_config.h"  // NOLINT
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 TerrierServer::TerrierServer() {
   port_ = 2888;
@@ -105,5 +90,4 @@ void TerrierServer::Close() {
  */
 void TerrierServer::SetPort(uint16_t new_port) { port_ = new_port; }
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

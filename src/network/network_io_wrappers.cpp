@@ -48,9 +48,11 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
         case EAGAIN:
           // Equal to EWOULDBLOCK
           return result;
-          case EINTR:continue;
-          default:LOG_ERROR("Error writing: %s", strerror(errno));
-          throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
+          case EINTR:
+            continue;
+          default:
+            LOG_ERROR("Error writing: %s", strerror(errno));
+            throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
     }
   }

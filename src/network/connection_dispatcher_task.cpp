@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_dispatcher_task.cpp
-//
-// Identification: src/network/connection_dispatcher_task.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include "network/connection_dispatcher_task.h"
 
 #include <common/dedicated_thread_registry.h>
@@ -23,8 +11,7 @@
 
 #define MASTER_THREAD_ID (-1)
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_fd,
                                                    DedicatedThreadOwner *dedicatedThreadOwner)
@@ -78,5 +65,4 @@ void ConnectionDispatcherTask::ExitLoop() {
   for (auto &handler : handlers_) handler->ExitLoop();
 }
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

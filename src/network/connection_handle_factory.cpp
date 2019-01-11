@@ -3,8 +3,7 @@
 #include <utility>
 #include "common/macros.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task) {
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
@@ -25,5 +24,4 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");
   return reused_handle;
 }
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

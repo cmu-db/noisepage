@@ -4,8 +4,7 @@
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
 //
-namespace terrier {
-namespace network {
+namespace terrier::network {
 //
 class ProtocolInterpreter {
  public:
@@ -18,5 +17,4 @@ class ProtocolInterpreter {
   virtual ~ProtocolInterpreter() = default;
 };
 //
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

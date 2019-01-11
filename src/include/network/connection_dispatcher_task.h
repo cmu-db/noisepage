@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_dispatcher_task.h
-//
-// Identification: src/include/network/connection_dispatcher_task.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <memory>
@@ -21,8 +9,7 @@
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * @brief A ConnectionDispatcherTask on the main server thread and dispatches
@@ -69,5 +56,4 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   std::atomic<uint64_t> next_handler_;
 };
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

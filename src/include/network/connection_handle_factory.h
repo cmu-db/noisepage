@@ -5,8 +5,7 @@
 #include "network/connection_handle.h"
 #include "network/terrier_server.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 /**
  * @brief Factory class for constructing ConnectionHandle objects
@@ -39,5 +38,4 @@ class ConnectionHandleFactory {
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
 };
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

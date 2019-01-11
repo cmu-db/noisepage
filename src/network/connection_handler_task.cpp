@@ -1,21 +1,8 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_handler_task.cpp
-//
-// Identification: src/network/connection_handler_task.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include "network/connection_handler_task.h"
 #include "network/connection_handle.h"
 #include "network/connection_handle_factory.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
   int fds[2];
@@ -53,5 +40,4 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // 
       .RegisterToReceiveEvents();
 }
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

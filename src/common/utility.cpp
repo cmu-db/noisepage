@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// utility.cpp
-//
-// Identification: src/include/common/utility.h
-//
-// Copyright (c) 2015-17, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include <unistd.h>
 #include <cerrno>
 #include <string>
