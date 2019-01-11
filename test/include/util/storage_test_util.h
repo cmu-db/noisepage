@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "gtest/gtest.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
@@ -93,7 +93,7 @@ struct StorageTestUtil {
                                 const double null_bias, Random *const generator) {
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
-      col_id_t col = row->ColumnIds()[projection_list_idx];
+      storage::col_id_t col = row->ColumnIds()[projection_list_idx];
       std::bernoulli_distribution coin(1 - null_bias);
 
       if (coin(*generator))
@@ -103,25 +103,25 @@ struct StorageTestUtil {
     }
   }
 
-  static std::vector<col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
-    std::vector<col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
+  static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
+    std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-      col_ids[col - NUM_RESERVED_COLUMNS] = col_id_t(col);
+      col_ids[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
     }
     return col_ids;
   }
 
   template <typename Random>
-  static std::vector<col_id_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
-                                                           Random *const generator) {
+  static std::vector<storage::col_id_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
+                                                                    Random *const generator) {
     // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
     // since we exclude the version vector column
     uint16_t num_cols = std::uniform_int_distribution<uint16_t>(
         1, static_cast<uint16_t>(layout.NumColumns() - NUM_RESERVED_COLUMNS))(*generator);
 
-    std::vector<col_id_t> col_ids;
+    std::vector<storage::col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
@@ -170,7 +170,7 @@ struct StorageTestUtil {
   static void PrintRow(const RowType &row, const storage::BlockLayout &layout) {
     printf("num_cols: %u\n", row.NumColumns());
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
-      col_id_t col_id = row.ColumnIds()[i];
+      storage::col_id_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
       if (attr != nullptr) {
         printf("col_id: %u is %" PRIx64 "\n", !col_id, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), attr));
@@ -188,12 +188,12 @@ struct StorageTestUtil {
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
       const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
       if (val_ptr == nullptr) {
-        tested.SetNull(slot, col_id_t(col));
+        tested.SetNull(slot, storage::col_id_t(col));
       } else {
         // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(col)), val_ptr);
-        storage::StorageUtil::WriteBytes(layout.AttrSize(col_id_t(col)), val,
-                                         tested.AccessForceNotNull(slot, col_id_t(col)));
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), val_ptr);
+        storage::StorageUtil::WriteBytes(layout.AttrSize(storage::col_id_t(col)), val,
+                                         tested.AccessForceNotNull(slot, storage::col_id_t(col)));
       }
     }
   }
@@ -203,12 +203,12 @@ struct StorageTestUtil {
                               const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
       const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
-      byte *col_slot = tested.AccessWithNullCheck(slot, col_id_t(col));
+      byte *col_slot = tested.AccessWithNullCheck(slot, storage::col_id_t(col));
       if (val_ptr != nullptr) {
         // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(col)), val_ptr);
+        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), val_ptr);
         EXPECT_TRUE(col_slot != nullptr);
-        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id_t(col)), col_slot));
+        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), col_slot));
       } else {
         EXPECT_TRUE(col_slot == nullptr);
       }

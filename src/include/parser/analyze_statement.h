@@ -12,9 +12,17 @@
 namespace terrier {
 namespace parser {
 
+/**
+ * Represents the sql "ANALYZE ...".
+ */
 class AnalyzeStatement : public SQLStatement {
  public:
-  AnalyzeStatement(std::unique_ptr<TableRef> analyze_table, std::unique_ptr<std::vector<std::string>> analyze_columns)
+  /**
+   * Creates a new AnalyzeStatement.
+   * @param analyze_table table to be analyzed
+   * @param analyze_columns columns to be analyzed
+   */
+  AnalyzeStatement(std::shared_ptr<TableRef> analyze_table, std::shared_ptr<std::vector<std::string>> analyze_columns)
       : SQLStatement(StatementType::ANALYZE),
         analyze_table_(std::move(analyze_table)),
         analyze_columns_(std::move(analyze_columns)) {}
@@ -23,8 +31,19 @@ class AnalyzeStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  const std::unique_ptr<TableRef> analyze_table_;
-  const std::unique_ptr<std::vector<std::string>> analyze_columns_;
+  /**
+   * @return analyze table
+   */
+  std::shared_ptr<TableRef> GetAnalyzeTable() { return analyze_table_; }
+
+  /**
+   * @return analyze columns
+   */
+  std::shared_ptr<std::vector<std::string>> GetAnalyzeColumns() { return analyze_columns_; }
+
+ private:
+  const std::shared_ptr<TableRef> analyze_table_;
+  const std::shared_ptr<std::vector<std::string>> analyze_columns_;
 };
 
 }  // namespace parser

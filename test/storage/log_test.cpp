@@ -44,16 +44,16 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
-    auto txn_begin = in->ReadValue<timestamp_t>();
+    auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
-      auto txn_commit = in->ReadValue<timestamp_t>();
+      auto txn_commit = in->ReadValue<transaction::timestamp_t>();
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
-    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<table_oid_t>();
+    auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
     auto result = storage::RedoRecord::PartialInitialize(buf, size, txn_begin,
                                                          // TODO(Tianyu): Hacky as hell
@@ -98,20 +98,31 @@ class WriteAheadLoggingTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  LargeTransactionTestObject tested(5, 1, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.5, 0.5})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
   EndGC();
   EndLogging();
 
-  std::unordered_map<timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTranasctionTest
       // harness probably needs some refactor (later after wal is in)
       // This the initial setup transaction
@@ -164,8 +175,19 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, false,
-                                    &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.0, 1.0})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(false)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
+
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
@@ -178,7 +200,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
       delete[] reinterpret_cast<byte *>(log_record);

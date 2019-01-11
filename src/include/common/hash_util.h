@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 namespace terrier::common {
 
 using hash_t = uint64_t;
@@ -31,7 +31,7 @@ class HashUtil {
   static hash_t HashBytes(const byte *bytes, const uint64_t length) {
     hash_t hash = length;
     for (uint64_t i = 0; i < length; ++i) {
-      hash = ((hash << 5) ^ (hash >> 27)) ^ static_cast<uint8_t>(bytes[i]);
+      hash = ((hash << 5) ^ (hash >> 27)) ^ static_cast<uint8_t>(bytes[i]);  // NOLINT
     }
     return hash;
   }
@@ -47,6 +47,21 @@ class HashUtil {
     both[0] = l;
     both[1] = r;
     return HashBytes(reinterpret_cast<byte *>(both), sizeof(hash_t) * 2);
+  }
+
+  /**
+   * Combine first to last items from the iterator to the base hash
+   * @tparam IteratorType
+   * @param base starting hash
+   * @param first iterator start
+   * @param last iterator end
+   * @return combined hash
+   */
+  template <class IteratorType>
+  static hash_t CombineHashInRange(const hash_t base, IteratorType first, IteratorType last) {
+    hash_t result = base;
+    for (; first != last; ++first) result = CombineHashes(result, Hash(*first));
+    return result;
   }
 
   /**

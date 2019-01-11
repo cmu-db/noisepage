@@ -1,4 +1,5 @@
 #include "transaction/transaction_manager.h"
+#include <algorithm>
 #include <utility>
 
 namespace terrier::transaction {
@@ -14,11 +15,10 @@ TransactionContext *TransactionManager::BeginTransaction() {
   // Doing this with std::map or other data structure is risky though, as they may not
   // guarantee that the iterator or underlying pointer is stable across operations.
   // (That is, they may change as concurrent inserts and deletes happen)
-  auto *result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  table_latch_.Lock();
-  auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime(), result);
+  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+  common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
+  const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(result->StartTime());
   TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
-  table_latch_.Unlock();
   return result;
 }
 
@@ -29,8 +29,8 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
-    byte *commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    bool is_read_only = txn->undo_buffer_.Empty();
+    byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
+    const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
                                       is_read_only);
   }
@@ -79,14 +79,14 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
-  timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
-                                                 : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+  const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
+                                                       : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   {
     // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const timestamp_t start_time = txn->StartTime();
-    size_t result UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
-    TERRIER_ASSERT(result == 1, "Committed transaction did not exist in global transactions table");
+    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
+    TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     if (gc_enabled_) completed_txns_.push_front(txn);
@@ -97,29 +97,29 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no commit latch required on undo since all operations are transaction-local
-  timestamp_t txn_id = txn->TxnId().load();  // will not change
+  const timestamp_t txn_id = txn->TxnId().load();  // will not change
   for (auto &it : txn->undo_buffer_) Rollback(txn_id, it);
   // Discard the redo buffer that is not yet logged out
   txn->redo_buffer_.Finalize(false);
   {
     // In a critical section, remove this transaction from the table of running transactions
-    common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const timestamp_t start_time = txn->StartTime();
-    size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
+    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(ret == 1, "Aborted transaction did not exist in global transactions table");
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
 }
 
 timestamp_t TransactionManager::OldestTransactionStartTime() const {
-  common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
-  auto oldest_txn = curr_running_txns_.begin();
-  timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? oldest_txn->second->StartTime() : time_.load();
+  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
+  const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
+  const timestamp_t result = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : time_.load();
   return result;
 }
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   TransactionQueue hand_to_gc(std::move(completed_txns_));
   TERRIER_ASSERT(completed_txns_.empty(), "TransactionManager's queue should now be empty.");
   return hand_to_gc;

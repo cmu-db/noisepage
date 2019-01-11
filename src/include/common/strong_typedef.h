@@ -46,13 +46,11 @@ namespace terrier::common {
  *
  * This works with all types of ints.
  */
-#define STRONG_TYPEDEF(name, underlying_type)                                      \
-  namespace terrier {                                                              \
-  namespace tags {                                                                 \
-  struct name##_typedef_tag {};                                                    \
-  }                                                                                \
-  using name = common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
-  }
+#define STRONG_TYPEDEF(name, underlying_type) \
+  namespace tags {                            \
+  struct name##_typedef_tag {};               \
+  }                                           \
+  using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>;
 
 /**
  * A StrongTypeAlias is the underlying implementation of STRONG_TYPEDEF.
@@ -210,14 +208,6 @@ class StrongTypeAlias {
 namespace terrier {
 using byte = std::byte;
 }
-
-// TODO(Matt): consider namespacing strong typedefs so we have storage::col_id_t and catalog::col_oid_t
-STRONG_TYPEDEF(col_id_t, uint16_t);
-STRONG_TYPEDEF(col_oid_t, uint32_t);
-STRONG_TYPEDEF(date_t, uint32_t);
-STRONG_TYPEDEF(layout_version_t, uint32_t);
-STRONG_TYPEDEF(table_oid_t, uint32_t);
-STRONG_TYPEDEF(timestamp_t, uint64_t);
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.

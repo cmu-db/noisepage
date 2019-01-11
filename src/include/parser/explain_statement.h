@@ -12,35 +12,22 @@ namespace terrier::parser {
  */
 class ExplainStatement : public SQLStatement {
  public:
-  explicit ExplainStatement(std::unique_ptr<SQLStatement> real_sql_stmt)
+  /**
+   * @param real_sql_stmt the SQL statement to be explained
+   */
+  explicit ExplainStatement(std::shared_ptr<SQLStatement> real_sql_stmt)
       : SQLStatement(StatementType::EXPLAIN), real_sql_stmt_(std::move(real_sql_stmt)) {}
   ~ExplainStatement() override = default;
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  std::unique_ptr<SQLStatement> real_sql_stmt_;
+  /**
+   * @return the SQL statement to be explained
+   */
+  std::shared_ptr<SQLStatement> GetSQLStatement() { return real_sql_stmt_; }
+
+ private:
+  std::shared_ptr<SQLStatement> real_sql_stmt_;
 };
 
 }  // namespace terrier::parser
-
-// namespace terrier::parser {
-//
-///**
-// * @class ExplainStatement
-// * @brief Represents "EXPLAIN <query>"
-// */
-// class ExplainStatement : public SQLStatement {
-// public:
-//  ExplainStatement(std::unique_ptr<SQLStatement> query)
-//    : SQLStatement(StatementType::EXPLAIN),
-//      real_sql_stmt_(std::move(query)) {}
-//
-//  ExplainStatement() : SQLStatement(StatementType::EXPLAIN) {}
-//  virtual ~ExplainStatement() {}
-//
-//  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
-//
-//  std::unique_ptr<parser::SQLStatement> real_sql_stmt_;
-//};
-//
-//}  // namespace terrier::parser

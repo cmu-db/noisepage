@@ -26,6 +26,11 @@ namespace terrier::parser::expression {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, BasicTest) {
+  // NULL
+  auto expr_null = new ConstantValueExpression(type::ValueFactory::GetNullValue());
+  EXPECT_TRUE(expr_null->GetValue().GetType() == terrier::type::TypeId::NULL_TYPE);
+  delete expr_null;
+
   // constant Booleans
   auto expr_b_1 = new ConstantValueExpression(type::ValueFactory::GetBooleanValue(true));
   auto expr_b_2 = new ConstantValueExpression(type::ValueFactory::GetBooleanValue(false));
@@ -102,9 +107,9 @@ TEST(ExpressionTests, BasicTest) {
   delete expr_d_3;
 
   // constant timestamp
-  auto expr_ts_1 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(timestamp_t(1)));
-  auto expr_ts_2 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(timestamp_t(1)));
-  auto expr_ts_3 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(timestamp_t(32768)));
+  auto expr_ts_1 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(type::timestamp_t(1)));
+  auto expr_ts_2 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(type::timestamp_t(1)));
+  auto expr_ts_3 = new ConstantValueExpression(type::ValueFactory::GetTimeStampValue(type::timestamp_t(32768)));
 
   EXPECT_TRUE(*expr_ts_1 == *expr_ts_2);
   EXPECT_FALSE(*expr_ts_1 == *expr_ts_3);
@@ -114,9 +119,9 @@ TEST(ExpressionTests, BasicTest) {
   delete expr_ts_3;
 
   // constant date
-  auto expr_date_1 = new ConstantValueExpression(type::ValueFactory::GetDateValue(date_t(1)));
-  auto expr_date_2 = new ConstantValueExpression(type::ValueFactory::GetDateValue(date_t(1)));
-  auto expr_date_3 = new ConstantValueExpression(type::ValueFactory::GetDateValue(date_t(32768)));
+  auto expr_date_1 = new ConstantValueExpression(type::ValueFactory::GetDateValue(type::date_t(1)));
+  auto expr_date_2 = new ConstantValueExpression(type::ValueFactory::GetDateValue(type::date_t(1)));
+  auto expr_date_3 = new ConstantValueExpression(type::ValueFactory::GetDateValue(type::date_t(32768)));
 
   EXPECT_TRUE(*expr_date_1 == *expr_date_2);
   EXPECT_FALSE(*expr_date_1 == *expr_date_3);

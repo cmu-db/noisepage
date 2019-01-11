@@ -128,7 +128,7 @@ class DataTable {
   /**
    * @return table oid of this data table
    */
-  table_oid_t TableOid() const { return table_oid_t{0}; }
+  catalog::table_oid_t TableOid() const { return catalog::table_oid_t{0}; }
 
   /**
    * Materializes a single tuple from the given slot, as visible to the transaction given, according to the format

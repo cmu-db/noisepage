@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 #include "catalog/schema.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 #include "type/type_id.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
@@ -15,7 +15,7 @@ struct CatalogTestUtil {
   template <typename Random>
   static catalog::Schema RandomSchema(const uint16_t max_cols, Random *const generator) {
     TERRIER_ASSERT(max_cols > 0, "There should be at least 1 columm.");
-    col_oid_t col_oid(0);
+    catalog::col_oid_t col_oid(0);
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<type::TypeId> possible_attr_types{
         type::TypeId::BOOLEAN, type::TypeId::TINYINT,   type::TypeId::SMALLINT,  type::TypeId::INTEGER,

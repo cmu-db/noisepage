@@ -39,7 +39,7 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const table_oid_t oid)
+  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
       : block_store_(store), oid_(oid) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
@@ -123,7 +123,7 @@ class SqlTable {
   /**
    * @return table's unique identifier
    */
-  table_oid_t Oid() const { return oid_; }
+  catalog::table_oid_t Oid() const { return oid_; }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
@@ -145,8 +145,8 @@ class SqlTable {
    * @warning col_oids must be a set (no repeats)
    */
   std::pair<ProjectedColumnsInitializer, ProjectionMap> InitializerForProjectedColumns(
-      const std::vector<col_oid_t> &col_oids, const uint32_t max_tuples) const {
-    TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+      const std::vector<catalog::col_oid_t> &col_oids, const uint32_t max_tuples) const {
+    TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
@@ -168,8 +168,8 @@ class SqlTable {
    * @warning col_oids must be a set (no repeats)
    */
   std::pair<ProjectedRowInitializer, ProjectionMap> InitializerForProjectedRow(
-      const std::vector<col_oid_t> &col_oids) const {
-    TERRIER_ASSERT((std::set<col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+      const std::vector<catalog::col_oid_t> &col_oids) const {
+    TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
@@ -183,7 +183,7 @@ class SqlTable {
 
  private:
   BlockStore *const block_store_;
-  const table_oid_t oid_;
+  const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
@@ -193,7 +193,7 @@ class SqlTable {
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @return vector of col_ids for these col_oids
    */
-  std::vector<col_id_t> ColIdsForOids(const std::vector<col_oid_t> &col_oids) const;
+  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
    * Given a ProjectionInitializer, returns a map between col_oid and the offset within the projection to access that

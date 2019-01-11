@@ -4,8 +4,7 @@
 #include <string>
 #include <utility>
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 constexpr int INVALID_TYPE_ID = 0;
 
@@ -71,9 +70,7 @@ enum class InsertType {
   SELECT = 2                  // select
 };
 
-enum class ExternalFileFormat {
-  CSV,
-};
+enum class ExternalFileFormat { CSV, BINARY };
 
 // CREATE FUNCTION helpers
 
@@ -85,27 +82,4 @@ enum class PLType {
 
 enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 };
 
-// Exceptions
-
-class ParserException : public std::exception {
- public:
-  explicit ParserException(std::string message) : message_(std::move(message)) {}
-
-  const char *what() const noexcept override { return message_.c_str(); }
-
- private:
-  std::string message_;
-};
-
-class NotImplementedException : public std::exception {
- public:
-  explicit NotImplementedException(std::string message) : message_(std::move(message)) {}
-
-  const char *what() const noexcept override { return message_.c_str(); }
-
- private:
-  std::string message_;
-};
-
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

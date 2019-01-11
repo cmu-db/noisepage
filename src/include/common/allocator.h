@@ -1,9 +1,12 @@
 #pragma once
 #include <cerrno>
 #include <cstdlib>
-#include "common/typedefs.h"
-namespace terrier::common {
+#include "common/strong_typedef.h"
+namespace terrier {
+// Use byte for raw byte storage instead of char so string functions are explicitly disabled for those.
+using byte = std::byte;
 
+namespace common {
 /**
  * Static utility class for more advanced memory allocation behavior
  */
@@ -58,4 +61,5 @@ class ByteAlignedAllocator {
   // clang-tidy believes we are trying to free released memory.
   // We believe otherwise, hence we're telling it to shut up.
 };
-}  // namespace terrier::common
+}  // namespace common
+}  // namespace terrier

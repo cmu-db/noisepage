@@ -6,11 +6,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
-#include "common/typedefs.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -18,8 +19,12 @@ namespace terrier::storage {
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
-#define VERSION_POINTER_COLUMN_ID col_id_t(0)
+#define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
 #define NUM_RESERVED_COLUMNS 1u
+
+STRONG_TYPEDEF(col_id_t, uint16_t);
+STRONG_TYPEDEF(layout_version_t, uint32_t);
+
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
  * unless interpreted by a @see TupleAccessStrategy
@@ -141,8 +146,8 @@ class BlockAllocator {
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
-using ColumnMap = std::unordered_map<col_oid_t, col_id_t>;
-using ProjectionMap = std::unordered_map<col_oid_t, uint16_t>;
+using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
