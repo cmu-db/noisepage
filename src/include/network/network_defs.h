@@ -33,7 +33,7 @@ namespace terrier::network {
 // static const size_t EPOCH_LENGTH = 40;
 
 // For threads
-extern size_t CONNECTION_THREAD_COUNT;
+#define CONNECTION_THREAD_COUNT 1
 
 std::string TypeIdToString(type::TypeId type);
 

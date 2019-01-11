@@ -104,7 +104,7 @@ class PostgresPacketWriter {
     // two buffers.
     queue_.BufferWriteRawValue<int32_t>(0, false);
     WriteBuffer &tail = *(queue_.buffers_[queue_.buffers_.size() - 1]);
-    curr_packet_len_ = reinterpret_cast<uint32_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
+    curr_packet_len_ = reinterpret_cast<size_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
     return *this;
   }
 
@@ -217,7 +217,7 @@ class PostgresPacketWriter {
  private:
   // We need to keep track of the size field of the current packet,
   // so we can update it as more bytes are written into this packet.
-  uint32_t *curr_packet_len_ = nullptr;
+  size_t *curr_packet_len_ = nullptr;
   // Underlying WriteQueue backing this writer
   WriteQueue &queue_;
 };
