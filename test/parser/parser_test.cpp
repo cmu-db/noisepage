@@ -127,6 +127,13 @@ TEST_F(ParserTestBase, OldBasicTest) {
 
   for (const auto &query : queries) {
     auto stmt_list = pgparser.BuildParseTree(query);
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    // cast stmt_list to derived class pointers
+    std::unique_ptr<SelectStatement> statement(dynamic_cast<SelectStatement*>(stmt_list[0].release()));
+    EXPECT_EQ("foo", statement->from_->table_info_->table_name_);
+    EXPECT_EQ(ExpressionType::STAR, statement->select_[0]->GetExpressionType());
   }
 }
 
