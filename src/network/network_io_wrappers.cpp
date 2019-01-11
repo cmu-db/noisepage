@@ -38,21 +38,21 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
   // Normal mode
   while (!in_->Full()) {
     auto bytes_read = in_->FillBufferFrom(sock_fd_);
-    if (bytes_read > 0)
+    if (bytes_read > 0) {
       result = Transition::PROCEED;
-    else if (bytes_read == 0)
-      return Transition::TERMINATE;
-    else
+    } else {
+      if (bytes_read == 0) {
+        return Transition::TERMINATE;
+      }
       switch (errno) {
         case EAGAIN:
           // Equal to EWOULDBLOCK
           return result;
-        case EINTR:
-          continue;
-        default:
-          LOG_ERROR("Error writing: %s", strerror(errno));
+          case EINTR:continue;
+          default:LOG_ERROR("Error writing: %s", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
+    }
   }
   return result;
 }

@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// network_io_utils.h
-//
-// Identification: src/include/network/network_io_utils.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 #include <arpa/inet.h>
 
@@ -22,8 +10,7 @@
 #include "network/network_defs.h"
 #include "util/portable_endian.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 #define _CAST(type, val) ((type)(val))
 /**
  * A plain old buffer with a movable cursor, the meaning of which is dependent
@@ -37,7 +24,7 @@ class Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline explicit Buffer(size_t capacity) : capacity_(capacity) {
+  explicit Buffer(size_t capacity) : capacity_(capacity) {
     // TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
     buf_.resize(capacity);
   }
@@ -203,14 +190,14 @@ class ReadBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline explicit ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
+  explicit ReadBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Read as many bytes as possible using Posix from an fd
    * @param fd the file descriptor to  read from
    * @return the return value of posix read
    */
-  inline int FillBufferFrom(int fd) {
+  int FillBufferFrom(int fd) {
     ssize_t bytes_read = read(fd, &buf_[size_], Capacity() - size_);
     if (bytes_read > 0) size_ += bytes_read;
     return static_cast<int>(bytes_read);
@@ -223,7 +210,7 @@ class ReadBuffer : public Buffer {
    * @param other The other buffer to read from
    * @param size Number of bytes to read
    */
-  inline void FillBufferFrom(ReadBuffer &other, size_t size) {
+  void FillBufferFrom(ReadBuffer &other, size_t size) {  // NOLINT
     other.ReadIntoView(size).Read(size, &buf_[size_]);
     size_ += size;
   }
@@ -233,7 +220,7 @@ class ReadBuffer : public Buffer {
    * current read cursor)
    * @return The number of bytes available to be consumed
    */
-  inline size_t BytesAvailable() { return size_ - offset_; }
+  size_t BytesAvailable() { return size_ - offset_; }
 
   /**
    * Mark a chunk of bytes as read and return a view to the bytes read.
@@ -248,18 +235,18 @@ class ReadBuffer : public Buffer {
    * @param bytes number of butes to read
    * @return a view of the bytes read.
    */
-  inline ReadBufferView ReadIntoView(size_t bytes) {
+  ReadBufferView ReadIntoView(size_t bytes) {
     ReadBufferView result = ReadBufferView(bytes, buf_.begin() + offset_);
     offset_ += bytes;
     return result;
   }
 
   template <typename T>
-  inline T ReadValue() {
+  T ReadValue() {
     return ReadIntoView(sizeof(T)).ReadValue<T>();
   }
 
-  inline std::string ReadString() {
+  std::string ReadString() {
     std::string result = ReadCString(buf_.begin() + offset_, buf_.begin() + size_);
     offset_ += result.size() + 1;
     return result;
@@ -274,14 +261,14 @@ class WriteBuffer : public Buffer {
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  inline explicit WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
+  explicit WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Write as many bytes as possible using Posix write to fd
    * @param fd File descriptor to write out to
    * @return return value of Posix write
    */
-  inline int WriteOutTo(int fd) {
+  int WriteOutTo(int fd) {
     ssize_t bytes_written = write(fd, &buf_[offset_], size_ - offset_);
     if (bytes_written > 0) offset_ += bytes_written;
     return static_cast<int>(bytes_written);
@@ -292,20 +279,20 @@ class WriteBuffer : public Buffer {
    * maximum capacity minus the capacity already in use.
    * @return Remaining capacity
    */
-  inline size_t RemainingCapacity() { return Capacity() - size_; }
+  size_t RemainingCapacity() { return Capacity() - size_; }
 
   /**
    * @param bytes Desired number of bytes to write
    * @return Whether the buffer can accommodate the number of bytes given
    */
-  inline bool HasSpaceFor(size_t bytes) { return RemainingCapacity() >= bytes; }
+  bool HasSpaceFor(size_t bytes) { return RemainingCapacity() >= bytes; }
 
   /**
    * Append the desired range into current buffer.
    * @param src beginning of range
    * @param len length of range, in bytes
    */
-  inline void AppendRaw(const void *src, size_t len) {
+  void AppendRaw(const void *src, size_t len) {
     if (len == 0) return;
     auto bytes_src = reinterpret_cast<const uchar *>(src);
     std::copy(bytes_src, bytes_src + len, std::begin(buf_) + size_);
@@ -313,7 +300,7 @@ class WriteBuffer : public Buffer {
   }
 
   // TODO(Tianyu): Just for io wrappers for now. Probably can remove later.
-  inline void AppendRaw(ByteBuf::const_iterator src, size_t len) {
+  void AppendRaw(ByteBuf::const_iterator src, size_t len) {
     if (len == 0) return;
     std::copy(src, src + len, std::begin(buf_) + size_);
     size_ += len;
@@ -326,7 +313,7 @@ class WriteBuffer : public Buffer {
    * @param val value to write into buffer
    */
   template <typename T>
-  inline void AppendRaw(T val) {
+  void AppendRaw(T val) {
     AppendRaw(&val, sizeof(T));
   }
 };
@@ -343,12 +330,12 @@ class WriteQueue {
   /**
    * Instantiates a new WriteQueue. By default this holds one buffer.
    */
-  inline WriteQueue() { Reset(); }
+  WriteQueue() { Reset(); }
 
   /**
    * Reset the write queue to its default state.
    */
-  inline void Reset() {
+  void Reset() {
     buffers_.resize(1);
     offset_ = 0;
     flush_ = false;
@@ -358,18 +345,18 @@ class WriteQueue {
       buffers_[0]->Reset();
   }
 
-  inline std::shared_ptr<WriteBuffer> FlushHead() {
+  std::shared_ptr<WriteBuffer> FlushHead() {
     if (buffers_.size() > offset_) return buffers_[offset_];
     return nullptr;
   }
 
-  inline void MarkHeadFlushed() { offset_++; }
+  void MarkHeadFlushed() { offset_++; }
 
   /**
    * Force this WriteQueue to be flushed next time the network layer
    * is available to do so.
    */
-  inline void ForceFlush() { flush_ = true; }
+  void ForceFlush() { flush_ = true; }
 
   /**
    * Whether this WriteQueue should be flushed out to network or not.
@@ -378,7 +365,7 @@ class WriteQueue {
    * a small response)
    * @return whether we should flush this write queue
    */
-  inline bool ShouldFlush() { return flush_ || buffers_.size() > 1; }
+  bool ShouldFlush() { return flush_ || buffers_.size() > 1; }
 
   /**
    * Write len many bytes starting from src into the write queue, allocating
@@ -411,7 +398,7 @@ class WriteQueue {
    * @param breakup whether to split write into two buffers if need be.
    */
   template <typename T>
-  inline void BufferWriteRawValue(T val, bool breakup = true) {
+  void BufferWriteRawValue(T val, bool breakup = true) {
     BufferWriteRaw(&val, sizeof(T), breakup);
   }
 
@@ -422,5 +409,4 @@ class WriteQueue {
   bool flush_ = false;
 };
 
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network

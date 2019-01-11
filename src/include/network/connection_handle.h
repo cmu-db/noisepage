@@ -80,10 +80,8 @@ class ConnectionHandle {
   }
 
   Transition Process() {
-    return protocol_interpreter_->
-        Process(io_wrapper_->GetReadBuffer(),
-                io_wrapper_->GetWriteQueue(),
-                [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
+                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
     /*std::printf("processed %s\n", io_wrapper_->GetReadBuffer()->ReadString().c_str());
     return Transition::NEED_RESULT;*/
   }

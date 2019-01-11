@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// connection_handler_task.h
-//
-// Identification: src/include/network/connection_handler_task.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <event2/buffer.h>

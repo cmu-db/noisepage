@@ -1,45 +1,41 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Terrier
-//
-// postgres_protocol_utils.h
-//
-// Identification: src/include/network/postgres_protocol_utils.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
+
 #include <boost/algorithm/string.hpp>
-#include "network/network_io_utils.h"
+
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "network/network_defs.h"
+#include "network/network_io_utils.h"
 
 #define NULL_CONTENT_SIZE (-1)
- namespace terrier::network {
+namespace terrier::network {
 
 // TODO(Tianyu): It looks very broken that this never changes.
 // clang-format off
- const std::unordered_map<std::string, std::string>
+  const std::unordered_map<std::string, std::string>
     parameter_status_map = {
-        {"application_name", "psql"},
-        {"client_encoding", "UTF8"},
-        {"DateStyle", "ISO, MDY"},
-        {"integer_datetimes", "on"},
-        {"IntervalStyle", "postgres"},
-        {"is_superuser", "on"},
-        {"server_encoding", "UTF8"},
-        {"server_version", "9.5devel"},
-        {"session_authorization", "postgres"},
-        {"standard_conforming_strings", "on"},
-        {"TimeZone", "US/Eastern"}
-    };
+      {"application_name", "psql"},
+      {"client_encoding", "UTF8"},
+      {"DateStyle", "ISO, MDY"},
+      {"integer_datetimes", "on"},
+      {"IntervalStyle", "postgres"},
+      {"is_superuser", "on"},
+      {"server_encoding", "UTF8"},
+      {"server_version", "9.5devel"},
+      {"session_authorization", "postgres"},
+      {"standard_conforming_strings", "on"},
+      {"TimeZone", "US/Eastern"}
+  };
 // clang-format on
 
 /**
  * Encapsulates an input packet
  */
- struct PostgresInputPacket {
+struct PostgresInputPacket {
   NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
   size_t len_ = 0;
   std::shared_ptr<ReadBuffer> buf_;
@@ -61,12 +57,12 @@
  * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
  * helper methods.
  */
- class PostgresPacketWriter {
+class PostgresPacketWriter {
  public:
   /*
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
-  PostgresPacketWriter(WriteQueue &write_queue) : queue_(write_queue) {}
+  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}
 
   ~PostgresPacketWriter() {
     // Make sure no packet is being written on destruction, otherwise we are
@@ -79,7 +75,7 @@
    * special cases since no size field is provided. (SSL_YES, SSL_NO)
    * @param type Type of message to write out
    */
-  inline void WriteSingleTypePacket(NetworkMessageType type) {
+  void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
     switch (type) {
@@ -108,8 +104,7 @@
     // two buffers.
     queue_.BufferWriteRawValue<int32_t>(0, false);
     WriteBuffer &tail = *(queue_.buffers_[queue_.buffers_.size() - 1]);
-    curr_packet_len_ =
-        reinterpret_cast<uint32_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
+    curr_packet_len_ = reinterpret_cast<uint32_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
     return *this;
   }
 
@@ -120,7 +115,7 @@
    * @param len number of bytes to write
    * @return self-reference for chaining
    */
-  inline PostgresPacketWriter &AppendRaw(const void *src, size_t len) {
+  PostgresPacketWriter &AppendRaw(const void *src, size_t len) {
     TERRIER_ASSERT(curr_packet_len_ != nullptr, "packet length is null");
     queue_.BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
@@ -137,8 +132,8 @@
    * @param val value to write
    * @return self-reference for chaining
    */
-  template<typename T>
-  inline PostgresPacketWriter &AppendRawValue(T val) {
+  template <typename T>
+  PostgresPacketWriter &AppendRawValue(T val) {
     return AppendRaw(&val, sizeof(T));
   }
 
@@ -150,23 +145,25 @@
    * @param val value to write
    * @return self-reference for chaining
    */
-  template<typename T>
-  inline PostgresPacketWriter &AppendValue(T val) {
+  template <typename T>
+  PostgresPacketWriter &AppendValue(T val) {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
-    static_assert(sizeof(T) == 1
-                      || sizeof(T) == 2
-                      || sizeof(T) == 4
-                      || sizeof(T) == 8, "Invalid size for integer");
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
 
     switch (sizeof(T)) {
-      case 1: return AppendRawValue(val);
-      case 2: return AppendRawValue(_CAST(T, htobe16(_CAST(uint16_t, val))));
-      case 4: return AppendRawValue(_CAST(T, htobe32(_CAST(uint32_t, val))));
-      case 8: return AppendRawValue(_CAST(T, htobe64(_CAST(uint64_t, val))));
+      case 1:
+        return AppendRawValue(val);
+      case 2:
+        return AppendRawValue(_CAST(T, htobe16(_CAST(uint16_t, val))));
+      case 4:
+        return AppendRawValue(_CAST(T, htobe32(_CAST(uint32_t, val))));
+      case 8:
+        return AppendRawValue(_CAST(T, htobe64(_CAST(uint64_t, val))));
         // Will never be here due to compiler optimization
-      default: throw NETWORK_PROCESS_EXCEPTION("");
+      default:
+        throw NETWORK_PROCESS_EXCEPTION("");
     }
   }
 
@@ -176,34 +173,25 @@
    * @param nul_terminate whether the nul terminaor should be written as well
    * @return self-reference for chaining
    */
-  inline PostgresPacketWriter &AppendString(const std::string &str,
-                                            bool nul_terminate = true) {
+  PostgresPacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
-  inline void WriteErrorResponse(
-      std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
+  void WriteErrorResponse(std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
     BeginPacket(NetworkMessageType::ERROR_RESPONSE);
 
-    for (const auto &entry : error_status)
-      AppendRawValue(entry.first)
-          .AppendString(entry.second);
+    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
 
     // Nul-terminate packet
-    AppendRawValue<uchar>(0)
-        .EndPacket();
+    AppendRawValue<uchar>(0).EndPacket();
   }
 
-  inline void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
-    BeginPacket(NetworkMessageType::READY_FOR_QUERY)
-        .AppendRawValue(txn_status)
-        .EndPacket();
+  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
+    BeginPacket(NetworkMessageType::READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
   }
 
-  inline void WriteStartupResponse() {
-    BeginPacket(NetworkMessageType::AUTHENTICATION_REQUEST)
-        .AppendValue<int32_t>(0)
-        .EndPacket();
+  void WriteStartupResponse() {
+    BeginPacket(NetworkMessageType::AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
 
     for (auto &entry : parameter_status_map)
       BeginPacket(NetworkMessageType::PARAMETER_STATUS)
@@ -213,22 +201,19 @@
     WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   }
 
-  inline void WriteEmptyQueryResponse() {
-    BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE)
-        .EndPacket();
-  }
-
+  void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
   /**
    * End the packet. A packet write must be in progress and said write is not
    * well-formed until this method is called.
    */
-  inline void EndPacket() {
+  void EndPacket() {
     TERRIER_ASSERT(curr_packet_len_ != nullptr, "packet length is null");
     // Switch to network byte ordering, add the 4 bytes of size field
     *curr_packet_len_ = htonl(*curr_packet_len_ + sizeof(int32_t));
     curr_packet_len_ = nullptr;
   }
+
  private:
   // We need to keep track of the size field of the current packet,
   // so we can update it as more bytes are written into this packet.
@@ -237,4 +222,4 @@
   WriteQueue &queue_;
 };
 
-} // namespace terrier::network
+}  // namespace terrier::network

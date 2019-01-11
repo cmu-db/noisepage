@@ -1,26 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// internal_types.h
-//
-// Identification: src/include/common/internal_types.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// internal_types.h
-//
-// Identification: src/include/common/internal_types.h
-//
-// Copyright (c) 2015-2017, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
 #pragma once
 
 #include <unistd.h>
@@ -45,7 +22,7 @@
 #include "parser/pg_trigger.h"
 #include "type/type_id.h"
 
-namespace terrier {
+namespace terrier::network {
 
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value
@@ -163,11 +140,11 @@ enum class ResultType {
   INVALID = INVALID_TYPE_ID,  // invalid result type
   SUCCESS = 1,
   FAILURE = 2,
-  ABORTED = 3,  // aborted
-  NOOP = 4,     // no op  // TODO Remove this type
-  UNKNOWN = 5,            // TODO Remove this type
-  QUEUING = 6,            // TODO Remove this type
-  TO_ABORT = 7,           // TODO Remove this type
+  ABORTED = 3,   // aborted
+  NOOP = 4,      // no op  // TODO(tanujnay112) Remove this type
+  UNKNOWN = 5,   // TODO(tanujnay112) Remove this type
+  QUEUING = 6,   // TODO(tanujnay112) Remove this type
+  TO_ABORT = 7,  // TODO(tanujnay112) Remove this type
 };
 std::ostream &operator<<(std::ostream &os, const ResultType &type);
 
@@ -178,4 +155,4 @@ enum class NetworkTransactionStateType : unsigned char {
   FAIL = 'E',
 };
 
-}  // namespace terrier
+}  // namespace terrier::network
