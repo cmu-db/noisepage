@@ -35,7 +35,6 @@ namespace terrier::network {
 // For threads
 #define CONNECTION_THREAD_COUNT 1
 
-std::string TypeIdToString(type::TypeId type);
 
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value
@@ -130,7 +129,6 @@ enum class QueryType {
   QUERY_CREATE_VIEW = 23,
   QUERY_EXPLAIN = 24
 };
-std::string QueryTypeToString(QueryType query_type);
 
 //===--------------------------------------------------------------------===//
 // Result Types
@@ -146,7 +144,6 @@ enum class ResultType {
   QUEUING = 6,   // TODO(tanujnay112) Remove this type
   TO_ABORT = 7,  // TODO(tanujnay112) Remove this type
 };
-std::ostream &operator<<(std::ostream &os, const ResultType &type);
 
 enum class NetworkTransactionStateType : unsigned char {
   INVALID = static_cast<unsigned char>(INVALID_TYPE_ID),

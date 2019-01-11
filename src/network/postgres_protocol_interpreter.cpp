@@ -131,8 +131,7 @@ std::shared_ptr<PostgresNetworkCommand> PostgresProtocolInterpreter::PacketToCom
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
                                                   int rows) {
-  std::string tag = QueryTypeToString(query_type);
-  out->BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
+  out->BeginPacket(NetworkMessageType::COMMAND_COMPLETE).EndPacket();
 }
 
 void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
