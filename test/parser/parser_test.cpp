@@ -323,34 +323,69 @@ TEST_F(ParserTestBase, UpdateTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldBasicTest) {
-  std::vector<std::string> queries;
+  std::string query = "SELECT * FROM foo;";
 
-  queries.emplace_back("SELECT * FROM foo;");
+  auto stmt_list = pgparser.BuildParseTree(query);
+  EXPECT_EQ(1, stmt_list.size());
+  EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
-  for (const auto &query : queries) {
-    auto stmt_list = pgparser.BuildParseTree(query);
-    EXPECT_EQ(1, stmt_list.size());
-    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
-
-    // cast stmt_list to derived class pointers
-    std::unique_ptr<SelectStatement> statement(dynamic_cast<SelectStatement*>(stmt_list[0].release()));
-    EXPECT_EQ("foo", statement->from_->table_info_->table_name_);
-    EXPECT_EQ(ExpressionType::STAR, statement->select_[0]->GetExpressionType());
-  }
+  // cast stmt_list to derived class pointers
+  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+  EXPECT_EQ(ExpressionType::STAR, statement->GetSelectColumns()[0]->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldAggTest) {
-  std::vector<std::string> queries;
+  std::string query;
 
-  // Select with functional call
-  queries.emplace_back("SELECT COUNT(*) FROM foo;");
-  queries.emplace_back("SELECT COUNT(DISTINCT id) FROM foo;");
-  queries.emplace_back("SELECT MAX(*) FROM foo;");
-  queries.emplace_back("SELECT MIN(*) FROM foo;");
-
-  for (const auto &query : queries) {
+  {
+    query = "SELECT COUNT(*) FROM foo;";
     auto stmt_list = pgparser.BuildParseTree(query);
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+    EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
+  }
+
+  {
+    query = "SELECT COUNT(DISTINCT id) FROM foo;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+    //EXPECT_TRUE(statement->IsSelectDistinct()); //???
+    EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
+
+    auto child_expression = reinterpret_cast<TupleValueExpression*>(statement->GetSelectColumns()[0]->GetChild(0).get());
+    EXPECT_EQ("id", child_expression->GetColumnName());
+  }
+
+  {
+    query = "SELECT MAX(*) FROM foo;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+    EXPECT_EQ(ExpressionType::AGGREGATE_MAX, statement->GetSelectColumns()[0]->GetExpressionType());
+  }
+
+  {
+    query = "SELECT MIN(*) FROM foo;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+    EXPECT_EQ(ExpressionType::AGGREGATE_MIN, statement->GetSelectColumns()[0]->GetExpressionType());
   }
 }
 
