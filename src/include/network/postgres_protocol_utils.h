@@ -104,7 +104,7 @@ class PostgresPacketWriter {
     // two buffers.
     queue_.BufferWriteRawValue<int32_t>(0, false);
     WriteBuffer &tail = *(queue_.buffers_[queue_.buffers_.size() - 1]);
-    curr_packet_len_ = reinterpret_cast<size_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
+    curr_packet_len_ = reinterpret_cast<uint32_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
     return *this;
   }
 
@@ -120,7 +120,7 @@ class PostgresPacketWriter {
     queue_.BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
     // ordering. We switch to network ordering only when the packet is finished
-    *curr_packet_len_ += len;
+    *curr_packet_len_ += static_cast<uint32_t >(len);
     return *this;
   }
 
@@ -210,14 +210,14 @@ class PostgresPacketWriter {
   void EndPacket() {
     TERRIER_ASSERT(curr_packet_len_ != nullptr, "packet length is null");
     // Switch to network byte ordering, add the 4 bytes of size field
-    *curr_packet_len_ = htonl(*curr_packet_len_ + sizeof(int32_t));
+    *curr_packet_len_ = htonl(*curr_packet_len_ + static_cast<uint32_t>(sizeof(uint32_t)));
     curr_packet_len_ = nullptr;
   }
 
  private:
   // We need to keep track of the size field of the current packet,
   // so we can update it as more bytes are written into this packet.
-  size_t *curr_packet_len_ = nullptr;
+  uint32_t *curr_packet_len_ = nullptr;
   // Underlying WriteQueue backing this writer
   WriteQueue &queue_;
 };
