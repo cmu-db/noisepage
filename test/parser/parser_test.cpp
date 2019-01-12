@@ -391,14 +391,29 @@ TEST_F(ParserTestBase, OldAggTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldGroupByTest) {
-  std::vector<std::string> queries;
-
   // Select with group by clause
-  queries.emplace_back("SELECT * FROM foo GROUP BY id, name HAVING id > 10;");
+  std::string query = "SELECT * FROM foo GROUP BY id, name HAVING id > 10;";
+  auto stmt_list = pgparser.BuildParseTree(query);
 
-  for (const auto &query : queries) {
-    auto stmt_list = pgparser.BuildParseTree(query);
-  }
+  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  auto columns = statement->GetSelectGroupBy()->GetColumns();
+
+  EXPECT_EQ(2, columns.size());
+  //Assume the parsed column order is the same as in the query
+  EXPECT_EQ("id", reinterpret_cast<TupleValueExpression*>(columns[0].get())->GetColumnName());
+  EXPECT_EQ("name", reinterpret_cast<TupleValueExpression*>(columns[1].get())->GetColumnName());
+
+  auto having = statement->GetSelectGroupBy()->GetHaving();
+  EXPECT_EQ(ExpressionType::COMPARE_GREATER_THAN, having->GetExpressionType());
+  EXPECT_EQ(2, having->GetChildrenSize());
+
+  auto name_exp = reinterpret_cast<TupleValueExpression*>(having->GetChild(0).get());
+  auto value_exp = reinterpret_cast<ConstantValueExpression*>(having->GetChild(1).get());
+
+  EXPECT_EQ("id", name_exp->GetColumnName());
+  EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().GetType());
+  EXPECT_EQ(10, value_exp->GetValue().GetIntValue());
+
 }
 
 // NOLINTNEXTLINE
@@ -541,26 +556,53 @@ TEST_F(ParserTestBase, OldJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldNestedQueryTest) {
-  std::vector<std::string> queries;
-
   // Select with nested query
-  queries.emplace_back("SELECT * FROM (SELECT * FROM foo) as t;");
+  std::string query = "SELECT * FROM (SELECT * FROM foo) as t;";
+  auto stmt_list = pgparser.BuildParseTree(query);
 
-  for (const auto &query : queries) {
-    auto stmt_list = pgparser.BuildParseTree(query);
-  }
+  EXPECT_EQ(1, stmt_list.size());
+  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+
+  EXPECT_EQ("t", statement->GetSelectTable()->GetAlias());
+  auto nested_statement = statement->GetSelectTable()->GetSelect();
+  EXPECT_EQ("foo", nested_statement->GetSelectTable()->GetTableName());
+  EXPECT_EQ(ExpressionType::STAR, nested_statement->GetSelectColumns()[0]->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldMultiTableTest) {
-  std::vector<std::string> queries;
-
   // Select from multiple tables
-  queries.emplace_back("SELECT foo.name FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;");
+  std::string query = "SELECT foo.name FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;";
+  auto stmt_list = pgparser.BuildParseTree(query);
+  EXPECT_EQ(1, stmt_list.size());
+  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
 
-  for (const auto &query : queries) {
-    auto stmt_list = pgparser.BuildParseTree(query);
-  }
+  auto select_expression = reinterpret_cast<TupleValueExpression*>(statement->GetSelectColumns()[0].get());
+  EXPECT_EQ("foo", select_expression->GetTableName());
+  EXPECT_EQ("name", select_expression->GetColumnName());
+
+  auto from = statement->GetSelectTable();
+  EXPECT_EQ(TableReferenceType::CROSS_PRODUCT, from->GetTableReferenceType());
+  EXPECT_EQ(3, from->GetList().size());
+
+  auto list = from->GetList();
+  EXPECT_EQ("b", list[0]->GetAlias());
+  EXPECT_EQ("bar", list[0]->GetSelect()->GetSelectTable()->GetTableName());
+
+  EXPECT_EQ("foo", list[1]->GetTableName());
+  EXPECT_EQ("bar", list[2]->GetTableName());
+
+  auto where_expression = statement->GetSelectCondition();
+  EXPECT_EQ(ExpressionType::COMPARE_EQUAL, where_expression->GetExpressionType());
+  EXPECT_EQ(2, where_expression->GetChildrenSize());
+
+  auto child_0 = reinterpret_cast<TupleValueExpression*>(where_expression->GetChild(0).get());
+  auto child_1 = reinterpret_cast<TupleValueExpression*>(where_expression->GetChild(1).get());
+  EXPECT_EQ("foo", child_0->GetTableName());
+  EXPECT_EQ("id", child_0->GetColumnName());
+  EXPECT_EQ("b", child_1->GetTableName());
+  EXPECT_EQ("id", child_1->GetColumnName());
+
 }
 
 // NOLINTNEXTLINE
