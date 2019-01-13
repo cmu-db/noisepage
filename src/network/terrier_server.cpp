@@ -85,9 +85,4 @@ void TerrierServer::Close() {
   dispatcher_task_->ExitLoop();
 }
 
-/**
- * Change port to new_port
- */
-void TerrierServer::SetPort(uint16_t new_port) { port_ = new_port; }
-
 }  // namespace terrier::network

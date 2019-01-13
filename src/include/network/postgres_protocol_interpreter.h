@@ -15,12 +15,10 @@ namespace terrier::network {
  */
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
  public:
-
   /**
    * Default constructor
    */
-  explicit PostgresProtocolInterpreter() = default;
-
+  PostgresProtocolInterpreter() = default;
   /**
    * @see ProtocolIntepreter::Process
    * @param in

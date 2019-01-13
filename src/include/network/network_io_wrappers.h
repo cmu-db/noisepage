@@ -25,7 +25,6 @@ namespace terrier::network {
  */
 class NetworkIoWrapper {
  public:
-
   /**
    * @return whether or not SSL is able to be handled by this IOWrapper
    */
@@ -126,7 +125,6 @@ class NetworkIoWrapper {
  */
 class PosixSocketIoWrapper : public NetworkIoWrapper {
  public:
-
   /**
    * @see NetworkIoWrapper
    * @param sock_fd

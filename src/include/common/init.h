@@ -27,7 +27,6 @@ extern ThreadPool thread_pool;
  */
 class TerrierInit {
  public:
-
   /**
    * @brief Initializes the Terrier server
    */
@@ -37,7 +36,6 @@ class TerrierInit {
    * @brief Shuts down the Terrier server
    */
   static void Shutdown();
-
 };
 
 }  // namespace terrier

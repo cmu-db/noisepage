@@ -11,7 +11,6 @@ namespace terrier::network {
  */
 class ProtocolInterpreter {
  public:
-
   /**
    * Processes client's input that has been fed into the given ReadBufer
    * @param in The ReadBuffer to read input from

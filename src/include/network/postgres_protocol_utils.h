@@ -36,7 +36,6 @@ namespace terrier::network {
  * Encapsulates an input packet
  */
 struct PostgresInputPacket {
-
   /**
    * Type of message this packet encodes
    */
@@ -94,7 +93,6 @@ struct PostgresInputPacket {
  */
 class PostgresPacketWriter {
  public:
-
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */

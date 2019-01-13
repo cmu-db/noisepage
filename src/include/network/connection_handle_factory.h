@@ -20,7 +20,6 @@ namespace terrier::network {
 // doesn't cleanup raw pointers.
 class ConnectionHandleFactory {
  public:
-
   /**
    * @return The singleton instance of a ConnectionHandleFactory
    */

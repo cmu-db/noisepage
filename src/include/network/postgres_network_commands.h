@@ -24,7 +24,6 @@ class PostgresProtocolInterpreter;
  */
 class PostgresNetworkCommand {
  public:
-
   /**
    * Executes the command
    * @param interpreter The protocol interpreter that called this
@@ -46,7 +45,6 @@ class PostgresNetworkCommand {
   virtual ~PostgresNetworkCommand() = default;
 
  protected:
-
   /**
    * Constructor for a NetworkCommand instance
    * @param in The input packets to this command

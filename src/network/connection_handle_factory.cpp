@@ -18,7 +18,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   reused_handle.network_event_ = nullptr;
   reused_handle.workpool_event_ = nullptr;
   reused_handle.io_wrapper_ = std::make_unique<PosixSocketIoWrapper>(std::move(*reused_handle.io_wrapper_.release()));
-  reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>(task->Id());
+  reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>();
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
   TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");

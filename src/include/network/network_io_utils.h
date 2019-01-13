@@ -117,7 +117,6 @@ inline std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_ite
  */
 class ReadBufferView {
  public:
-
   /**
    * Creates a new ReadBufferView
    * @param size The size of the view
