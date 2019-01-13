@@ -6,11 +6,11 @@
 #include <memory>
 #include <string>
 
-namespace terrier::sql {
+namespace terrier::optimizer {
 
 enum class OpType {
   Undefined = 0,
-  DummyScan, /* Dummy Physical Op for SELECT without FROM*/
+  DummyScan, /* Dummy Op for SELECT without FROM*/
   SeqScan,
   IndexScan,
   ExternalFileScan,
@@ -66,7 +66,6 @@ struct BaseOperatorNode {
   }
 };
 
-// Curiously recurring template pattern
 template <typename T>
 struct OperatorNode : public BaseOperatorNode {
   void Accept(OperatorVisitor *v) const;
@@ -99,9 +98,11 @@ class Operator {
 
   bool operator==(const Operator &r);
 
+  bool IsDefined() const;
+
   template <typename T>
   const T *As() const {
-    if (node && typeid(*node) == typeid(T)) {
+    if (node) {
       return (const T *)node.get();
     }
     return nullptr;
@@ -115,8 +116,8 @@ class Operator {
 namespace std {
 
 template <>
-struct hash<peloton::optimizer::BaseOperatorNode> {
-  typedef peloton::optimizer::BaseOperatorNode argument_type;
+struct hash<terrier::optimizer::BaseOperatorNode> {
+  typedef terrier::optimizer::BaseOperatorNode argument_type;
   typedef std::size_t result_type;
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
