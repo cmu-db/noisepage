@@ -87,14 +87,10 @@ class BlockAccessController {
 
   /**
    * Marks a block frozen and safe for in-place reads. This should only be called by the block compactor after
-   * it enforces all the invariants of a frozen block. It is possible that the method is a no-op if it coincides
-   * with concurrent transactional access into the block, as the transactional access takes precedence.
+   * it enforces all the invariants of a frozen block.
    */
   void MarkFrozen() {
-    // Should only mark hot blocks frozen in case another running transaction's update is lost
-    BlockState state = BlockState::HOT;
-    GetBlockState()->compare_exchange_strong(state, BlockState::FROZEN);
-    // Who cares if it fails, best effort anyways.
+    GetBlockState()->store(BlockState::FROZEN);
   }
 
 

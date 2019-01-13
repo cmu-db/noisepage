@@ -28,6 +28,8 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
 
+  result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
+
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());

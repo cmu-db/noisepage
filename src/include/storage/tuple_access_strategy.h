@@ -6,6 +6,7 @@
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
+#include "arrow_block_metadata.h"
 
 namespace terrier::storage {
 /**
@@ -40,7 +41,7 @@ class TupleAccessStrategy {
   /*
    * Block Header layout:
    * ----------------------------------------------------------------------------------------------
-   * | layout_version (32) | insert_head (32) | control_block (64) | varlen_buffers[num_col] (64) |
+   * | layout_version (32) | insert_head (32) | control_block (64) |     ArrowBlockMetadata       |
    * ----------------------------------------------------------------------------------------------
    * | attr_offsets[num_col] (32) | bitmap for slots (64-bit aligned) |   data (64-bit aligned)   |
    * ----------------------------------------------------------------------------------------------
@@ -53,11 +54,11 @@ class TupleAccessStrategy {
 
     // TODO(Tianyu): Is header access going to be too slow? If so, consider storing offsets to jump to within headers as
     // well.
-    byte **VarlenBuffers() { return reinterpret_cast<byte **>(block_.content_); }
+    ArrowBlockMetadata &GetArrowBlockMetadata() { return *reinterpret_cast<ArrowBlockMetadata *>(block_.content_); }
 
     // return reference to attr_offsets. Use as an array.
     uint32_t *AttrOffets(const BlockLayout &layout) {
-      return reinterpret_cast<uint32_t *>(block_.content_ + sizeof(byte *) * layout.NumColumns());
+      return reinterpret_cast<uint32_t *>(block_.content_ + ArrowBlockMetadata::Size(layout.NumColumns()));
     }
 
     // return reference to the bitmap for slots. Use as a member
@@ -92,6 +93,10 @@ class TupleAccessStrategy {
    * @param layout_version the layout version of this block
    */
   void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
+
+  ArrowBlockMetadata &GetArrowBlockMetadata(RawBlock *block) const {
+    return reinterpret_cast<Block *>(block)->GetArrowBlockMetadata();
+  }
 
   /**
    * @param slot tuple slot value to check
@@ -186,6 +191,17 @@ class TupleAccessStrategy {
   void SetNotNull(const TupleSlot slot, const col_id_t col_id) const {
     TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), false);
+  }
+
+  /**
+   * Flip a deallocated slot to be allocated again. This is useful when compacting a block,
+   * as we want to make decisions in the compactor on what slot to use, not in this class.
+   * This method should not be called other than that.
+   * @param slot the tuple slot to reallocate. Must be currently deallocated.
+   */
+  void Reallocate(TupleSlot slot) const {
+    TERRIER_ASSERT(!Allocated(slot), "Can only reallocate slots that are deallocated");
+    reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), false);
   }
 
   /**

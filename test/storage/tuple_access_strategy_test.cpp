@@ -137,7 +137,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 }
 
 // This test generates randomized block layouts, and checks its layout to ensure
-// that the header, the column bitmaps, and the columns don't overlap, and don't
+// that the column bitmaps, and the columns don't overlap, and don't
 // go out of page boundary. (In other words, memory safe.)
 // NOLINTNEXTLINE
 TEST_F(TupleAccessStrategyTests, MemorySafety) {

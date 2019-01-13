@@ -13,7 +13,8 @@ namespace terrier::storage {
 /**
  * Stores metadata about the layout of a block.
  */
-struct BlockLayout {
+class BlockLayout {
+ public:
   // TODO(Tianyu): This seems to be here only to make SqlTable::DataTableVersion's copy constructor happy.
   BlockLayout() = default;
   /**
@@ -51,6 +52,15 @@ struct BlockLayout {
    * @return all the varlen columns in the layout
    */
   const std::vector<col_id_t> &Varlens() const { return varlens_; }
+
+  // TODO(Tianyu): Can probably store this like varlens.
+  // TODO(Tianyu): The old test code has a util function that does this. Now that we are including this in the codebase
+  // itself, we should replace the calls in test with this and delete that.
+  std::vector<col_id_t> AllColumns() const {
+    std::vector<col_id_t> result;
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < attr_sizes_.size(); i++) result.emplace_back(i);
+    return result;
+  }
 
   /**
    * @return size, in bytes, of a full tuple in this block.
