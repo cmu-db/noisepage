@@ -94,8 +94,6 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param signal Signal number to listen on
    * @param callback callback function to be invoked when the event happens
    * @param arg an argument to be passed to the callback function
-   * @param timeout the maximum amount of time to wait for an event, defaults to
-   * null which will wait forever
    * @return pointer to the allocated event.
    */
   inline struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
@@ -133,16 +131,22 @@ class NotifiableTask : public DedicatedThreadTask {
     return RegisterEvent(-1, EV_PERSIST, callback, arg);
   }
 
+  /**
+   * @brief Updates the callback information for a registered event
+   *
+   * @param event The registered event
+   * @param fd The new file descriptor for the event to be assigned to
+   * @param flags The new flags for the event
+   * @param callback The callback function for the event
+   * @param arg Argument to the callback function
+   * @param timeout Timeout if any for the event
+   */
   void UpdateEvent(struct event *event, int fd, int16_t flags, event_callback_fn callback, void *arg,
                    const struct timeval *timeout = nullptr) {
     TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
     EventUtil::EventAssign(event, base_, fd, flags, callback, arg);
     EventUtil::EventAdd(event, timeout);
-  }
-
-  void UpdateManualEvent(struct event *event, event_callback_fn callback, void *arg) {
-    UpdateEvent(event, -1, EV_PERSIST, callback, arg);
   }
 
   /**

@@ -75,9 +75,6 @@ class TerrierServer : public DedicatedThreadOwner {
    */
   void Close();
 
-  // TODO(tianyu): This is VILE. Fix this when we refactor testing.
-  void SetPort(uint16_t new_port);
-
  private:
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);

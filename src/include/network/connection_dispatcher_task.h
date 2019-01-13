@@ -28,6 +28,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    *
    * @param num_handlers The number of handler tasks to spawn.
    * @param listen_fd The server socket fd to listen on.
+   * @param dedicatedThreadOwner The DedicatedThreadOwner associated with this task
    */
   ConnectionDispatcherTask(int num_handlers, int listen_fd, DedicatedThreadOwner *dedicatedThreadOwner);
 

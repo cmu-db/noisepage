@@ -22,15 +22,22 @@ extern ThreadPool thread_pool;
 // Global Setup and Teardown
 //===--------------------------------------------------------------------===//
 
+/**
+ * Class used to initialize and tear down the Terrier network server
+ */
 class TerrierInit {
  public:
+
+  /**
+   * @brief Initializes the Terrier server
+   */
   static void Initialize();
 
+  /**
+   * @brief Shuts down the Terrier server
+   */
   static void Shutdown();
 
-  static void SetUpThread();
-
-  static void TearDownThread();
 };
 
 }  // namespace terrier

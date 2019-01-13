@@ -152,11 +152,11 @@ END_DEF
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
     : conn_handler_(handler),
       io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
-      protocol_interpreter_{new PostgresProtocolInterpreter(conn_handler_->Id())} {}
+      protocol_interpreter_{new PostgresProtocolInterpreter()} {}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
-  // protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
+  protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   LOG_INFO("result");
   return Transition::PROCEED;
 }

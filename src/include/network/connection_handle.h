@@ -44,6 +44,9 @@ class ConnectionHandle {
    */
   ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler);
 
+  /**
+   * Disable copying and moving ConnectionHandle instances
+   */
   DISALLOW_COPY_AND_MOVE(ConnectionHandle);
 
   /**
@@ -69,24 +72,41 @@ class ConnectionHandle {
   void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }  // NOLINT
 
   /* State Machine Actions */
-  // TODO(Tianyu): Write some documentation when feeling like it
+  /**
+   * @brief Tries to read from the event port onto the read buffer
+   * @return The transition to trigger in the state machine after
+   */
   Transition TryRead() { return io_wrapper_->FillReadBuffer(); }
 
+  /**
+   * @brief Flushes the write buffer to the client if needed
+   * @return The transition to trigger in the state machine after
+   */
   Transition TryWrite() {
     if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
 
-    // TODO(tanujnay112): Revert
     return Transition::PROCEED;
   }
 
+  /**
+   * @brief Processes the client's input that has been fed into the ReadBuffer
+   * @return The transition to trigger in the state machine after
+   */
   Transition Process() {
     return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
                                           [=] { event_active(workpool_event_, EV_WRITE, 0); });
-    /*std::printf("processed %s\n", io_wrapper_->GetReadBuffer()->ReadString().c_str());
-    return Transition::NEED_RESULT;*/
   }
 
+  /**
+   * @brief Gets a computed result that the client requested
+   * @return The transition to trigger in the state machine after
+   */
   Transition GetResult();
+
+  /**
+   * @brief Tries to close the current client connection
+   * @return The transition to trigger in the state machine after
+   */
   Transition TryCloseConnection();
 
   /**

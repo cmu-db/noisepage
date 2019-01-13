@@ -36,16 +36,51 @@ namespace terrier::network {
  * Encapsulates an input packet
  */
 struct PostgresInputPacket {
-  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
-  size_t len_ = 0;
-  std::shared_ptr<ReadBuffer> buf_;
-  bool header_parsed_ = false, extended_ = false;
 
+  /**
+   * Type of message this packet encodes
+   */
+  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
+
+  /**
+   * Length of this packet's contents
+   */
+  size_t len_ = 0;
+
+  /**
+   * ReadBuffer containing this packet's contents
+   */
+  std::shared_ptr<ReadBuffer> buf_;
+
+  /**
+   * Whether or not this packet's header has been parsed yet
+   */
+  bool header_parsed_ = false;
+
+  /**
+   * Whether or not this packet's buffer was extended
+   */
+  bool extended_ = false;
+
+  /**
+   * Constructs an empty PostgresInputPacket
+   */
   PostgresInputPacket() = default;
+
+  /**
+   * Constructs an empty PostgresInputPacket
+   */
   PostgresInputPacket(const PostgresInputPacket &) = default;
+
+  /**
+   * Constructs an empty PostgresInputPacket
+   */
   PostgresInputPacket(PostgresInputPacket &&) = default;
 
-  inline void Clear() {
+  /**
+   * Clears the packet's contents
+   */
+  void Clear() {
     msg_type_ = NetworkMessageType::NULL_COMMAND;
     len_ = 0;
     buf_ = nullptr;
@@ -59,7 +94,8 @@ struct PostgresInputPacket {
  */
 class PostgresPacketWriter {
  public:
-  /*
+
+  /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
   explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}
@@ -177,6 +213,10 @@ class PostgresPacketWriter {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
+  /**
+   * Writes error responses to the client
+   * @param error_status The error messages to send
+   */
   void WriteErrorResponse(std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
     BeginPacket(NetworkMessageType::ERROR_RESPONSE);
 
@@ -186,10 +226,17 @@ class PostgresPacketWriter {
     AppendRawValue<uchar>(0).EndPacket();
   }
 
+  /**
+   * Notify the client a readiness to receive a query
+   * @param txn_status
+   */
   void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
     BeginPacket(NetworkMessageType::READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
   }
 
+  /**
+   * Writes response to startup message
+   */
   void WriteStartupResponse() {
     BeginPacket(NetworkMessageType::AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
 
@@ -201,6 +248,9 @@ class PostgresPacketWriter {
     WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   }
 
+  /**
+   * Writes an empty query response
+   */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
   /**

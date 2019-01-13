@@ -20,6 +20,10 @@ namespace terrier::network {
 // doesn't cleanup raw pointers.
 class ConnectionHandleFactory {
  public:
+
+  /**
+   * @return The singleton instance of a ConnectionHandleFactory
+   */
   static inline ConnectionHandleFactory &GetInstance() {
     static ConnectionHandleFactory factory;
     return factory;
@@ -31,7 +35,8 @@ class ConnectionHandleFactory {
    * converted.
    * @see NetworkIoWrapper for details
    * @param conn_fd Client connection fd
-   * @return A new NetworkIoWrapper object
+   * @param task The connection handler task to assign to returned ConnectionHandle object
+   * @return A new ConnectionHandle object
    */
   ConnectionHandle &NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task);
 

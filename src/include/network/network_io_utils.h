@@ -37,6 +37,9 @@ class Buffer {
     offset_ = 0;
   }
 
+  /**
+   * @param bytes The number of bytes to skip for the cursor
+   */
   inline void Skip(size_t bytes) { offset_ += bytes; }
 
   /**
@@ -75,7 +78,24 @@ class Buffer {
   }
 
  protected:
-  size_t size_ = 0, offset_ = 0, capacity_;
+  /**
+   * Number of bytes the buffer holds
+   */
+  size_t size_ = 0;
+
+  /**
+   * Offset of current cursor position of buffer
+   */
+  size_t offset_ = 0;
+
+  /**
+   * Capacity of the buffer
+   */
+  size_t capacity_;
+
+  /**
+   * Actual character buffer where bytes are held
+   */
   ByteBuf buf_;
 
  private:
@@ -97,7 +117,13 @@ inline std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_ite
  */
 class ReadBufferView {
  public:
-  inline ReadBufferView(size_t size, ByteBuf::const_iterator begin) : size_(size), begin_(begin) {}
+
+  /**
+   * Creates a new ReadBufferView
+   * @param size The size of the view
+   * @param begin
+   */
+  ReadBufferView(size_t size, ByteBuf::const_iterator begin) : size_(size), begin_(begin) {}
   /**
    * Read the given number of bytes into destination, advancing cursor by that
    * number. It is up to the caller to ensure that there are enough bytes
@@ -241,11 +267,20 @@ class ReadBuffer : public Buffer {
     return result;
   }
 
+  /**
+   * Reads a generic value from the ReadBuffer
+   * @tparam T The type to read
+   * @return The read value
+   */
   template <typename T>
   T ReadValue() {
     return ReadIntoView(sizeof(T)).ReadValue<T>();
   }
 
+  /**
+   * Reads a nul-terminated string from the head of the buffer
+   * @return The read string
+   */
   std::string ReadString() {
     std::string result = ReadCString(buf_.begin() + offset_, buf_.begin() + size_);
     offset_ += result.size() + 1;
@@ -300,6 +335,11 @@ class WriteBuffer : public Buffer {
   }
 
   // TODO(Tianyu): Just for io wrappers for now. Probably can remove later.
+  /**
+   *
+   * @param src
+   * @param len
+   */
   void AppendRaw(ByteBuf::const_iterator src, size_t len) {
     if (len == 0) return;
     std::copy(src, src + len, std::begin(buf_) + size_);
@@ -345,11 +385,17 @@ class WriteQueue {
       buffers_[0]->Reset();
   }
 
+  /**
+   * @return The head of the WriteQueue
+   */
   std::shared_ptr<WriteBuffer> FlushHead() {
     if (buffers_.size() > offset_) return buffers_[offset_];
     return nullptr;
   }
 
+  /**
+   * Marks the head of the queue as flushed
+   */
   void MarkHeadFlushed() { offset_++; }
 
   /**

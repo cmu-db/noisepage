@@ -45,6 +45,9 @@ class DedicatedThreadRegistry {
   }
 
   // TODO(tianyu): Remove when we remove singletons
+  /**
+   * @return The singleton instance of the DedicatedThreadRegistry
+   */
   static DedicatedThreadRegistry &GetInstance() {
     static DedicatedThreadRegistry registry;
     return registry;
@@ -55,7 +58,7 @@ class DedicatedThreadRegistry {
    * Register a thread under requester to run the given task
    *
    * @param requester The owner to assign the new thread to
-   * @param args the arguments to pass to constructor of task
+   * @param task The task to run in the dedicated thread
    * @return the DedicatedThreadTask running on new thread
    */
   template <typename Task>

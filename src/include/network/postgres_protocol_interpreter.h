@@ -10,16 +10,31 @@
 
 namespace terrier::network {
 
+/**
+ * Interprets the network protocol for postgres clients
+ */
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
  public:
-  // TODO(Tianyu): Is this even the right thread id? It seems that all the
-  explicit PostgresProtocolInterpreter(size_t thread_id) {
-      // state_.thread_id_= thread_id;
-  }
 
+  /**
+   * Default constructor
+   */
+  explicit PostgresProtocolInterpreter() = default;
+
+  /**
+   * @see ProtocolIntepreter::Process
+   * @param in
+   * @param out
+   * @param callback
+   * @return
+   */
   Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, CallbackFunc callback) override;
 
-  inline void GetResult(std::shared_ptr<WriteQueue> out) override {
+  /**
+   *
+   * @param out
+   */
+  void GetResult(std::shared_ptr<WriteQueue> out) override {
     // TODO(Tianyu): The difference between these two methods are unclear to me
 
     PostgresPacketWriter writer(out);
@@ -34,14 +49,39 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
     }
   }
 
+  /**
+   *
+   * @param in
+   * @param out
+   * @return
+   */
   Transition ProcessStartup(const std::shared_ptr<ReadBuffer> &in, const std::shared_ptr<WriteQueue> &out);
 
-  // TODO(Tianyu): Remove these later for better responsibility assignment
-  bool HardcodedExecuteFilter(QueryType query_type);
+  /**
+   *
+   * @param out
+   * @param query_type
+   * @param rows
+   */
   void CompleteCommand(PostgresPacketWriter *out, const QueryType &query_type, int rows);
+
+  /**
+   *
+   * @param out
+   * @param status
+   */
   void ExecQueryMessageGetResult(PostgresPacketWriter *out, ResultType status);
+
+  /**
+   *
+   * @param out
+   * @param status
+   */
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
+  /**
+   * The protocol type being used
+   */
   NetworkProtocolType protocol_type_;
 
  private:
