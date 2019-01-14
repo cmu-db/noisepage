@@ -12,7 +12,12 @@ namespace terrier::catalog {
 
 std::shared_ptr<Catalog> terrier_catalog;
 
-Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager) {
+Catalog::Catalog(transaction::TransactionManager *txn_manager)
+    : txn_manager_(txn_manager),
+      db_oid_(DEFAULT_DATABASE_OID),
+      namespace_oid_(PG_CATALOG_OID),
+      table_oid_(DEFAULT_TABLE_OID),
+      col_oid_(DEFAULT_COL_OID) {
   CATALOG_LOG_TRACE("Creating catalog ...");
   Bootstrap();
 }
@@ -23,16 +28,21 @@ std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, 
   return map_[db_oid][table_oid];
 }
 
+db_oid_t Catalog::GetNextDBOid() { return db_oid_++; }
+
+namespace_oid_t Catalog::GetNextNamepsaceOid() { return namespace_oid_++; }
+
+table_oid_t Catalog::GetNextTableOid() { return table_oid_++; }
+
+col_oid_t Catalog::GetNextColOid() { return col_oid_++; }
+
 void Catalog::Bootstrap() {
   CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
-  // refer to OID assignment scheme in catalog.h
-  table_oid_t table_oid(DEFAULT_TABLE_OID);
-  col_oid_t col_oid(DEFAULT_COL_OID);
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
   CATALOG_LOG_TRACE("Creating pg_database table ...");
-  CreatePGDatabase(txn, table_oid++, &col_oid);
+  CreatePGDatabase(txn, GetNextTableOid());
   CATALOG_LOG_TRACE("Creating pg_tablespace table ...");
-  CreatePGTablespace(txn, table_oid++, &col_oid);
+  CreatePGTablespace(txn, GetNextTableOid());
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
   txn_manager_->Commit(txn, BootstrapCallback, nullptr);
@@ -41,16 +51,14 @@ void Catalog::Bootstrap() {
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
   // refer to OID assignment scheme in catalog.h
-  table_oid_t table_oid(DATABASE_CATALOG_TABLE_START_OID);
-  col_oid_t col_oid(DATABASE_CATALOG_COL_START_OID);
-  namespace_oid_t namespace_oid(PG_CATALOG_OID);
-
+  table_oid_.store(DATABASE_CATALOG_TABLE_START_OID);
+  col_oid_.store(DATABASE_CATALOG_COL_START_OID);
   // create pg_namespace
-  table_oid_t pg_namespace_oid(table_oid++);
+  table_oid_t pg_namespace_oid(GetNextTableOid());
   std::vector<Schema::Column> cols;
-  cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid++);
+  cols.emplace_back("oid", type::TypeId::INTEGER, false, GetNextColOid());
   // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("nspname", type::TypeId::INTEGER, false, col_oid++);
+  cols.emplace_back("nspname", type::TypeId::INTEGER, false, GetNextColOid());
 
   Schema schema(cols);
   std::shared_ptr<storage::SqlTable> pg_namespace =
@@ -64,12 +72,11 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
     col_ids.emplace_back(c.GetOid());
   }
   auto row_pair = pg_namespace->InitializerForProjectedRow(col_ids);
-  namespace_oid_t catalog_namespace_oid(namespace_oid++);
 
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
   auto *pg_namespace_col_oid = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *pg_namespace_col_oid = !catalog_namespace_oid;
+  *pg_namespace_col_oid = !PG_CATALOG_OID;
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
   auto *pg_namespace_col_nspname =
       reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
@@ -79,13 +86,13 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   delete[] row_buffer;
 }
 
-void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid) {
+void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid) {
   // create pg_database catalog
   table_oid_t pg_database_oid(table_oid);
   std::vector<Schema::Column> cols;
-  cols.emplace_back("oid", type::TypeId::INTEGER, false, (*start_col_oid)++);
+  cols.emplace_back("oid", type::TypeId::INTEGER, false, GetNextColOid());
   // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("datname", type::TypeId::INTEGER, false, (*start_col_oid)++);
+  cols.emplace_back("datname", type::TypeId::INTEGER, false, GetNextColOid());
 
   Schema schema(cols);
   pg_database_ = std::make_shared<storage::SqlTable>(&block_store_, schema, pg_database_oid);
@@ -116,12 +123,11 @@ void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t
   map_[terrier_oid] = std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>();
 }
 
-void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid,
-                                 col_oid_t *start_col_oid) {
+void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid) {
   // create pg_tablespace catalog
   std::vector<Schema::Column> cols;
   // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("spcname", type::TypeId::INTEGER, false, (*start_col_oid)++);
+  cols.emplace_back("spcname", type::TypeId::INTEGER, false, GetNextColOid());
 
   Schema schema(cols);
   pg_tablespace_ = std::make_shared<storage::SqlTable>(&block_store_, schema, table_oid);

@@ -65,6 +65,30 @@ class Catalog {
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
+  /**
+   * Get the next database_oid
+   * @return next database_oid
+   */
+  db_oid_t GetNextDBOid();
+
+  /**
+   * Get the next namespace_oid
+   * @return next namespace_oid
+   */
+  namespace_oid_t GetNextNamepsaceOid();
+
+  /**
+   * Get the next table_oid
+   * @return next table_oid
+   */
+  table_oid_t GetNextTableOid();
+
+  /**
+   * Get the next col_oid
+   * @return next col_oid
+   */
+  col_oid_t GetNextColOid();
+
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -105,7 +129,7 @@ class Catalog {
    * @param table_oid the table oid of pg_database
    * @param start_col_oid the starting col oid for columns in pg_database.
    */
-  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
+  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
 
   /**
    * Creates pg_tablespace SQL table and populates pg_tablespace
@@ -113,7 +137,7 @@ class Catalog {
    * @param table_oid the table oid of pg_tablespace
    * @param start_col_oid the starting col oid for columns in pg_tablespace.
    */
-  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid, col_oid_t *start_col_oid);
+  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid);
 
  private:
   transaction::TransactionManager *txn_manager_;
@@ -124,6 +148,11 @@ class Catalog {
   std::shared_ptr<storage::SqlTable> pg_tablespace_;
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
+
+  std::atomic<db_oid_t> db_oid_;
+  std::atomic<namespace_oid_t> namespace_oid_;
+  std::atomic<table_oid_t> table_oid_;
+  std::atomic<col_oid_t> col_oid_;
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;
