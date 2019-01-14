@@ -2,11 +2,11 @@
 
 #include <utility>
 #include <vector>
+#include "storage/arrow_block_metadata.h"
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
-#include "arrow_block_metadata.h"
 
 namespace terrier::storage {
 /**

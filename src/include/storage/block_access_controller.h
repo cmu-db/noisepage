@@ -89,10 +89,7 @@ class BlockAccessController {
    * Marks a block frozen and safe for in-place reads. This should only be called by the block compactor after
    * it enforces all the invariants of a frozen block.
    */
-  void MarkFrozen() {
-    GetBlockState()->store(BlockState::FROZEN);
-  }
-
+  void MarkFrozen() { GetBlockState()->store(BlockState::FROZEN); }
 
  private:
   // we are breaking this down to two fields, (| BlockState (32-bits) | Reader Count (32-bits) |)

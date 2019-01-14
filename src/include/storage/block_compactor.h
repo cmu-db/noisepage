@@ -1,12 +1,13 @@
 #pragma once
+#include<algorithm>
 #include <forward_list>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "storage/arrow_block_metadata.h"
 
 namespace terrier::storage {
 
@@ -26,9 +27,8 @@ class BlockCompactor {
   struct BlockCompactionTask {
     explicit BlockCompactionTask(const BlockLayout &layout) {
       for (col_id_t col : layout.Varlens()) total_varlen_sizes_[col] = 0;
-      new_block_metadata_ =
-          reinterpret_cast<ArrowBlockMetadata *>(common::AllocationUtil::AllocateAligned(
-              ArrowBlockMetadata::Size(layout.NumColumns())));
+      new_block_metadata_ = reinterpret_cast<ArrowBlockMetadata *>(
+          common::AllocationUtil::AllocateAligned(ArrowBlockMetadata::Size(layout.NumColumns())));
       new_block_metadata_->Initialize(layout.NumColumns());
     }
 
@@ -44,7 +44,8 @@ class BlockCompactor {
         : txn_(txn),
           table_(table),
           all_cols_initializer_(table_->accessor_.GetBlockLayout(), table_->accessor_.GetBlockLayout().AllColumns()),
-          read_buffer_(all_cols_initializer_.InitializeRow(common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
+          read_buffer_(all_cols_initializer_.InitializeRow(
+              common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
 
     ~CompactionGroup() {
       // Deleting nullptr is just a noop
@@ -52,8 +53,7 @@ class BlockCompactor {
     }
 
     void AddBlock(RawBlock *block) {
-      blocks_to_compact_.emplace(std::piecewise_construct,
-                                 std::forward_as_tuple(block),
+      blocks_to_compact_.emplace(std::piecewise_construct, std::forward_as_tuple(block),
                                  std::forward_as_tuple(table_->accessor_.GetBlockLayout()));
     }
 
@@ -191,12 +191,11 @@ class BlockCompactor {
       num_filled += entry.second.filled_.size();
     }
     // Sort all the blocks within a group based on the number of filled slots, indescending order.
-    std::sort(all_blocks.begin(), all_blocks.end(),
-              [&](RawBlock *a, RawBlock *b) {
-                // We know these finds will not return end() because we constructed the vector from the map
-                return cg->blocks_to_compact_.find(a)->second.filled_.size()
-                    > cg->blocks_to_compact_.find(b)->second.filled_.size();
-              });
+    std::sort(all_blocks.begin(), all_blocks.end(), [&](RawBlock *a, RawBlock *b) {
+      // We know these finds will not return end() because we constructed the vector from the map
+      return cg->blocks_to_compact_.find(a)->second.filled_.size() >
+             cg->blocks_to_compact_.find(b)->second.filled_.size();
+    });
 
     // Because we constructed the two lists from sequential scan, slots will always appear in order. We
     // essentially will fill gaps in order, by using the real tuples in reverse order. (Take the last tuple to
@@ -225,7 +224,7 @@ class BlockCompactor {
         // Also update the total size of varlens in the blocks accordingly
         for (col_id_t col_id : layout.Varlens()) {
           // Since we initialized the projection list to be all the columns, we know this relation to hold.
-          uint16_t projection_list_index = static_cast<uint16_t>((!col_id) - NUM_RESERVED_COLUMNS);
+          auto projection_list_index = static_cast<uint16_t>((!col_id) - NUM_RESERVED_COLUMNS);
           auto *varlen = reinterpret_cast<VarlenEntry *>(record->Delta()->AccessWithNullCheck(projection_list_index));
           if (varlen == nullptr) {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
@@ -270,15 +269,14 @@ class BlockCompactor {
     } else {
       // Varlens need to be copied.
       ProjectedRowInitializer varlens_initializer(layout, layout.Varlens());
-      varlens_initializer.InitializeRow(cg->read_buffer_); // Okay to reuse this buffer: it is guaranteed to be larger
+      varlens_initializer.InitializeRow(cg->read_buffer_);  // Okay to reuse this buffer: it is guaranteed to be larger
       for (auto &entry : cg->blocks_to_compact_) {
         RawBlock *block = entry.first;
         BlockCompactionTask &bct = entry.second;
         // allocate varlen buffers for update
         for (col_id_t col_id : layout.Varlens())
-          bct.new_block_metadata_->GetVarlenColumn(layout,
-                                                   col_id).Allocate(bct.new_block_metadata_->NumRecords(),
-                                                                    bct.total_varlen_sizes_[col_id]);
+          bct.new_block_metadata_->GetVarlenColumn(layout, col_id)
+              .Allocate(bct.new_block_metadata_->NumRecords(), bct.total_varlen_sizes_[col_id]);
         // This will accumulate the prefix sum of varlen sizes that we need as the offsets array for arrow
         std::unordered_map<col_id_t, uint32_t> acc;
         for (col_id_t varlen_col_id : layout.Varlens()) acc[varlen_col_id] = 0;
@@ -286,7 +284,8 @@ class BlockCompactor {
         // Scan through all the tuples and copy them if there are varlens.
         for (uint32_t offset = 0; offset < bct.new_block_metadata_->NumRecords(); offset++) {
           TupleSlot slot(block, offset);
-          // we will need to copy varlen into the allocated buffer. If we cannot, there is a conflict and we should abort.
+          // we will need to copy varlen into the allocated buffer. If we cannot, there is a conflict and we should
+          // abort.
           bool valid UNUSED_ATTRIBUTE = cg->table_->Select(cg->txn_, slot, cg->read_buffer_);
           TERRIER_ASSERT(valid, "this read should not return an invisible tuple");
           RedoRecord *update = cg->txn_->StageWrite(cg->table_, slot, varlens_initializer);
@@ -301,8 +300,8 @@ class BlockCompactor {
               // If the old varlen is not gathered, it will be GCed by the normal transaction code path. Otherwise,
               // we will replace and delete the old varlen buffer and we should be okay
               memcpy(varlen_col.values_ + offset_in_values_buffer, varlen->Content(), varlen->Size());
-              *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) =
-                  {varlen_col.values_ + offset_in_values_buffer, varlen->Size(), true};
+              *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) = {
+                  varlen_col.values_ + offset_in_values_buffer, varlen->Size(), true};
               acc[col_id] += varlen->Size();
             }
             if (!cg->table_->Update(cg->txn_, slot, *update->Delta())) return false;
@@ -335,15 +334,13 @@ class BlockCompactor {
       for (col_id_t varlen_col_id : layout.Varlens()) {
         // Depending on whether the compaction was successful, we either need to swap in the new metadata and
         // deallocate the old, or throw away the new one if compaction failed.
-        ArrowVarlenColumn &col =
-            (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
-                .GetVarlenColumn(layout, varlen_col_id);
+        ArrowVarlenColumn &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
+                                     .GetVarlenColumn(layout, varlen_col_id);
         cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.offsets_));
         cg->txn_->loose_ptrs_.push_back(col.values_);
       }
       if (successful)
-        memcpy(&accessor.GetArrowBlockMetadata(block),
-               bct.new_block_metadata_,
+        memcpy(&accessor.GetArrowBlockMetadata(block), bct.new_block_metadata_,
                ArrowBlockMetadata::Size(layout.NumColumns()));
     }
   }

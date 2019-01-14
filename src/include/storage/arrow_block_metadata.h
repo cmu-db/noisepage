@@ -1,6 +1,6 @@
 #pragma once
-#include "storage/storage_defs.h"
 #include "storage/block_layout.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -33,8 +33,8 @@ class ArrowBlockMetadata {
   MEM_REINTERPRETATION_ONLY(ArrowBlockMetadata);
 
   static uint32_t Size(uint16_t num_cols) {
-    return StorageUtil::PadUpToSize(sizeof(uint64_t), sizeof(uint32_t) * (num_cols + 1))
-        + num_cols * sizeof(ArrowVarlenColumn);
+    return StorageUtil::PadUpToSize(sizeof(uint64_t), sizeof(uint32_t) * (num_cols + 1)) +
+           num_cols * sizeof(ArrowVarlenColumn);
   }
 
   void Initialize(uint16_t num_cols) {
@@ -44,9 +44,7 @@ class ArrowBlockMetadata {
 
   uint32_t &NumRecords() { return num_records_; }
 
-  uint32_t &NullCount(col_id_t col_id) {
-    return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id];
-  }
+  uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
 
   ArrowVarlenColumn &GetVarlenColumn(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
@@ -55,7 +53,7 @@ class ArrowBlockMetadata {
   }
 
  private:
-  uint32_t num_records_; // number of actual records
+  uint32_t num_records_;  // number of actual records
   // null_count[num_cols] (32-bit) | padding up to 8 byte-aligned | arrow_varlen_buffers[num_cols] |
   byte varlen_content_[];
 };

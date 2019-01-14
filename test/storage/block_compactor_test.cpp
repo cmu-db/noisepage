@@ -1,6 +1,6 @@
+#include "storage/block_compactor.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "storage/block_compactor.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 namespace terrier {
@@ -25,9 +25,9 @@ TEST(BlockCompactorTest, SimpleTest) {
     accessor.Allocate(block, &slot);
     if (slot.GetOffset() % 5 == 0) {
       *reinterpret_cast<byte **>(accessor.AccessForceNotNull(slot, storage::col_id_t(0))) = nullptr;
-      char *foo = new char[4];
-      *reinterpret_cast<storage::VarlenEntry *>(accessor.AccessForceNotNull(slot, storage::col_id_t(1))) =
-          {reinterpret_cast<byte *>(foo), 4, false};
+      auto *foo = new char[4];
+      *reinterpret_cast<storage::VarlenEntry *>(accessor.AccessForceNotNull(slot, storage::col_id_t(1))) = {
+          reinterpret_cast<byte *>(foo), 4, false};
       *reinterpret_cast<uint64_t *>(accessor.AccessForceNotNull(slot, storage::col_id_t(2))) = slot.GetOffset() / 5;
     } else {
       accessor.Deallocate(slot);
@@ -50,5 +50,3 @@ TEST(BlockCompactorTest, SimpleTest) {
   }
 }
 }  // namespace terrier
-
-
