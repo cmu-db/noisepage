@@ -1,7 +1,7 @@
+#include <unordered_set>
 #include "optimizer/operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "optimizer/operator_visitor.h"
-#include "expression/expression_util.h"
 
 namespace terrier::optimizer {
 
@@ -147,7 +147,6 @@ Operator QueryDerivedScan::make(
 
 bool QueryDerivedScan::operator==(const BaseOperatorNode &node) {
   if (node.GetType() != OpType::QueryDerivedScan) return false;
-  const QueryDerivedScan &r = *static_cast<const QueryDerivedScan *>(&node);
   return true;
 }
 
@@ -377,7 +376,7 @@ Operator Update::make(
     std::shared_ptr<catalog::TableCatalogEntry> target_table,
     const std::vector<std::unique_ptr<parser::UpdateClause>> *
     updates) {
-  PhysicalUpdate *update = new PhysicalUpdate;
+  Update *update = new Update;
   update->target_table = target_table;
   update->updates = updates;
   return Operator(update);
@@ -439,7 +438,11 @@ bool HashGroupBy::operator==(const BaseOperatorNode &node) {
   for (size_t i = 0; i < having.size(); i++) {
     if (!having[i].expr->ExactlyEquals(*r.having[i].expr.get())) return false;
   }
-  return parser::ExpressionUtil::EqualExpressions(columns, r.columns);
+
+  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  for (auto expr : columns) l_set.emplace(expr.get());
+  for (auto expr : r.columns) r_set.emplace(expr.get());
+  return l_set == r_set;
 }
 
 common::hash_t HashGroupBy::Hash() const {
@@ -470,13 +473,16 @@ bool SortGroupBy::operator==(const BaseOperatorNode &node) {
   for (size_t i = 0; i < having.size(); i++) {
     if (!having[i].expr->ExactlyEquals(*r.having[i].expr.get())) return false;
   }
-  return expression::ExpressionUtil::EqualExpressions(columns, r.columns);
+  std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
+  for (auto expr : columns) l_set.emplace(expr.get());
+  for (auto expr : r.columns) r_set.emplace(expr.get());
+  return l_set == r_set;
 }
 
 common::hash_t SortGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : having) hash = HashUtil::SumHashes(hash, pred.expr->Hash());
-  for (auto expr : columns) hash = HashUtil::SumHashes(hash, expr->Hash());
+  for (auto &pred : having) hash = common::HashUtil::SumHashes(hash, pred.expr->Hash());
+  for (auto expr : columns) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 

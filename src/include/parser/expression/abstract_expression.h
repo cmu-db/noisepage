@@ -67,7 +67,7 @@ class AbstractExpression {
   /**
    * Logical inequality check.
    * @param rhs other
-   * @return true if the two expressions are not logically equal
+   * @return true if the two expressions are logically equal
    */
   virtual bool operator!=(const AbstractExpression &rhs) const { return !operator==(rhs); }
 
@@ -100,6 +100,21 @@ class AbstractExpression {
   std::shared_ptr<AbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
     return children_[index];
+  }
+
+  /**
+   * Exact equality check, including value equality
+   * @param other
+   * @return true if the two expressions are exactly equal
+   */
+  bool ExactlyEquals(const AbstractExpression &other) const {
+    if (expression_type_ != other.expression_type_ ||
+        children_.size() != other.children_.size())
+      return false;
+    for (unsigned i = 0; i < children_.size(); i++) {
+      if (!children_[i]->ExactlyEquals(*other.children_[i].get())) return false;
+    }
+    return true;
   }
 
  private:
