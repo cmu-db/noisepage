@@ -37,10 +37,7 @@ bool Operator::operator==(const Operator &r) {
     return *node == *r.node;
   }
 
-  if (!IsDefined() && !r.IsDefined()) {
-    return true;
-  }
-  return false;
+  return !IsDefined() && !r.IsDefined();
 }
 
 bool Operator::IsDefined() const { return node != nullptr; }

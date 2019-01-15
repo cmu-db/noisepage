@@ -9,7 +9,7 @@ namespace terrier::optimizer {
 // DummyScan
 //===--------------------------------------------------------------------===//
 Operator DummyScan::make() {
-  DummyScan *dummy = new DummyScan;
+  auto *dummy = new DummyScan;
   return Operator(dummy);
 }
 
@@ -21,9 +21,9 @@ Operator SeqScan::make(
     std::string alias, std::vector<AnnotatedExpression> predicates,
     bool update) {
   TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
-  SeqScan *scan = new SeqScan;
+  auto *scan = new SeqScan;
   scan->table_ = table;
-  scan->table_alias = alias;
+  scan->table_alias = std::move(alias);
   scan->predicates = std::move(predicates);
   scan->is_for_update = update;
 
@@ -32,10 +32,10 @@ Operator SeqScan::make(
 
 bool SeqScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SeqScan) return false;
-  const SeqScan &node = *static_cast<const SeqScan *>(&r);
+  const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (predicates.size() != node.predicates.size()) return false;
   for (size_t i = 0; i < predicates.size(); i++) {
-    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr.get()))
+    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr))
       return false;
   }
   return true;
@@ -58,7 +58,7 @@ Operator IndexScan::make(
     std::vector<parser::ExpressionType> expr_type_list,
     std::vector<type::Value> value_list) {
   TERRIER_ASSERT(table != nullptr, "");
-  IndexScan *scan = new IndexScan;
+  auto *scan = new IndexScan;
   scan->table_ = table;
   scan->is_for_update = update;
   scan->predicates = std::move(predicates);
@@ -73,7 +73,7 @@ Operator IndexScan::make(
 
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::IndexScan) return false;
-  const IndexScan &node = *static_cast<const IndexScan *>(&r);
+  const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   // TODO: Should also check value list
   if (index_id != node.index_id ||
       key_column_id_list != node.key_column_id_list ||
@@ -82,7 +82,7 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
     return false;
 
   for (size_t i = 0; i < predicates.size(); i++) {
-    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr.get()))
+    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr))
       return false;
   }
   return true;
@@ -104,7 +104,7 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format,
                                 char quote, char escape) {
   auto *get = new ExternalFileScan();
   get->format = format;
-  get->file_name = file_name;
+  get->file_name = std::move(file_name);
   get->delimiter = delimiter;
   get->quote = quote;
   get->escape = escape;
@@ -113,7 +113,7 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format,
 
 bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::QueryDerivedScan) return false;
-  const auto &get = *static_cast<const ExternalFileScan *>(&r);
+  const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format == get.format &&
       file_name == get.file_name && delimiter == get.delimiter &&
       quote == get.quote && escape == get.escape);
@@ -138,16 +138,15 @@ Operator QueryDerivedScan::make(
     std::unordered_map<std::string,
                        std::shared_ptr<parser::AbstractExpression>>
     alias_to_expr_map) {
-  QueryDerivedScan *get = new QueryDerivedScan;
-  get->table_alias = alias;
-  get->alias_to_expr_map = alias_to_expr_map;
+  auto *get = new QueryDerivedScan;
+  get->table_alias = std::move(alias);
+  get->alias_to_expr_map = std::move(alias_to_expr_map);
 
   return Operator(get);
 }
 
 bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::QueryDerivedScan) return false;
-  return true;
+  return r.GetType() == OpType::QueryDerivedScan;
 }
 
 common::hash_t QueryDerivedScan::Hash() const {
@@ -159,7 +158,7 @@ common::hash_t QueryDerivedScan::Hash() const {
 // OrderBy
 //===--------------------------------------------------------------------===//
 Operator OrderBy::make() {
-  OrderBy *order_by = new OrderBy;
+  auto *order_by = new OrderBy;
 
   return Operator(order_by);
 }
@@ -171,11 +170,11 @@ Operator Limit::make(
     int64_t offset, int64_t limit,
     std::vector<parser::AbstractExpression *> sort_columns,
     std::vector<bool> sort_ascending) {
-  Limit *limit_op = new Limit;
+  auto *limit_op = new Limit;
   limit_op->offset = offset;
   limit_op->limit = limit;
-  limit_op->sort_exprs = sort_columns;
-  limit_op->sort_acsending = sort_ascending;
+  limit_op->sort_exprs = std::move(sort_columns);
+  limit_op->sort_acsending = std::move(sort_ascending);
   return Operator(limit_op);
 }
 
@@ -184,9 +183,9 @@ Operator Limit::make(
 //===--------------------------------------------------------------------===//
 Operator InnerNLJoin::make(
     std::vector<AnnotatedExpression> conditions,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &left_keys,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &right_keys) {
-  InnerNLJoin *join = new InnerNLJoin();
+    std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+    std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
+  auto *join = new InnerNLJoin();
   join->join_predicates = std::move(conditions);
   join->left_keys = std::move(left_keys);
   join->right_keys = std::move(right_keys);
@@ -208,7 +207,7 @@ common::hash_t InnerNLJoin::Hash() const {
 bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::InnerNLJoin) return false;
   const InnerNLJoin &node =
-      *static_cast<const InnerNLJoin *>(&r);
+      *dynamic_cast<const InnerNLJoin *>(&r);
   if (join_predicates.size() != node.join_predicates.size() ||
       left_keys.size() != node.left_keys.size() ||
       right_keys.size() != node.right_keys.size())
@@ -221,7 +220,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
   }
   for (size_t i = 0; i < join_predicates.size(); i++) {
     if (!join_predicates[i].expr->ExactlyEquals(
-        *node.join_predicates[i].expr.get()))
+        *node.join_predicates[i].expr))
       return false;
   }
   return true;
@@ -232,8 +231,8 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LeftNLJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  LeftNLJoin *join = new LeftNLJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new LeftNLJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -242,8 +241,8 @@ Operator LeftNLJoin::make(
 //===--------------------------------------------------------------------===//
 Operator RightNLJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  RightNLJoin *join = new RightNLJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new RightNLJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -252,8 +251,8 @@ Operator RightNLJoin::make(
 //===--------------------------------------------------------------------===//
 Operator OuterNLJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  OuterNLJoin *join = new OuterNLJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new OuterNLJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -264,7 +263,7 @@ Operator InnerHashJoin::make(
     std::vector<AnnotatedExpression> conditions,
     std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
     std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
-  InnerHashJoin *join = new InnerHashJoin();
+  auto *join = new InnerHashJoin();
   join->join_predicates = std::move(conditions);
   join->left_keys = std::move(left_keys);
   join->right_keys = std::move(right_keys);
@@ -285,7 +284,7 @@ common::hash_t InnerHashJoin::Hash() const {
 bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::InnerHashJoin) return false;
   const InnerHashJoin &node =
-      *static_cast<const InnerHashJoin *>(&r);
+      *dynamic_cast<const InnerHashJoin *>(&r);
   if (join_predicates.size() != node.join_predicates.size() ||
       left_keys.size() != node.left_keys.size() ||
       right_keys.size() != node.right_keys.size())
@@ -298,7 +297,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
   }
   for (size_t i = 0; i < join_predicates.size(); i++) {
     if (!join_predicates[i].expr->ExactlyEquals(
-        *node.join_predicates[i].expr.get()))
+        *node.join_predicates[i].expr))
       return false;
   }
   return true;
@@ -309,8 +308,8 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator LeftHashJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  LeftHashJoin *join = new LeftHashJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new LeftHashJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -319,8 +318,8 @@ Operator LeftHashJoin::make(
 //===--------------------------------------------------------------------===//
 Operator RightHashJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  RightHashJoin *join = new RightHashJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new RightHashJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -329,8 +328,8 @@ Operator RightHashJoin::make(
 //===--------------------------------------------------------------------===//
 Operator OuterHashJoin::make(
     std::shared_ptr<parser::AbstractExpression> join_predicate) {
-  OuterHashJoin *join = new OuterHashJoin();
-  join->join_predicate = join_predicate;
+  auto *join = new OuterHashJoin();
+  join->join_predicate = std::move(join_predicate);
   return Operator(join);
 }
 
@@ -342,8 +341,8 @@ Operator Insert::make(
     const std::vector<std::string> *columns,
     const std::vector<std::vector<
         std::unique_ptr<parser::AbstractExpression>>> *values) {
-  Insert *insert_op = new Insert;
-  insert_op->target_table = target_table;
+  auto *insert_op = new Insert;
+  insert_op->target_table = std::move(target_table);
   insert_op->columns = columns;
   insert_op->values = values;
   return Operator(insert_op);
@@ -354,8 +353,8 @@ Operator Insert::make(
 //===--------------------------------------------------------------------===//
 Operator InsertSelect::make(
     std::shared_ptr<catalog::TableCatalogEntry> target_table) {
-  InsertSelect *insert_op = new InsertSelect;
-  insert_op->target_table = target_table;
+  auto *insert_op = new InsertSelect;
+  insert_op->target_table = std::move(target_table);
   return Operator(insert_op);
 }
 
@@ -364,8 +363,8 @@ Operator InsertSelect::make(
 //===--------------------------------------------------------------------===//
 Operator Delete::make(
     std::shared_ptr<catalog::TableCatalogEntry> target_table) {
-  Delete *delete_op = new Delete;
-  delete_op->target_table = target_table;
+  auto *delete_op = new Delete;
+  delete_op->target_table = std::move(target_table);
   return Operator(delete_op);
 }
 
@@ -376,8 +375,8 @@ Operator Update::make(
     std::shared_ptr<catalog::TableCatalogEntry> target_table,
     const std::vector<std::unique_ptr<parser::UpdateClause>> *
     updates) {
-  Update *update = new Update;
-  update->target_table = target_table;
+  auto *update = new Update;
+  update->target_table = std::move(target_table);
   update->updates = updates;
   return Operator(update);
 }
@@ -390,7 +389,7 @@ Operator ExportExternalFile::make(parser::ExternalFileFormat format,
                                           char quote, char escape) {
   auto *export_op = new ExportExternalFile();
   export_op->format = format;
-  export_op->file_name = file_name;
+  export_op->file_name = std::move(file_name);
   export_op->delimiter = delimiter;
   export_op->quote = quote;
   export_op->escape = escape;
@@ -400,7 +399,7 @@ Operator ExportExternalFile::make(parser::ExternalFileFormat format,
 bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::ExportExternalFile) return false;
   const auto &export_op =
-      *static_cast<const ExportExternalFile *>(&r);
+      *dynamic_cast<const ExportExternalFile *>(&r);
   return (format == export_op.format && file_name == export_op.file_name &&
       delimiter == export_op.delimiter && quote == export_op.quote &&
       escape == export_op.escape);
@@ -423,32 +422,32 @@ common::hash_t ExportExternalFile::Hash() const {
 Operator HashGroupBy::make(
     std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
     std::vector<AnnotatedExpression> having) {
-  HashGroupBy *agg = new HashGroupBy;
-  agg->columns = columns;
-  agg->having = move(having);
+  auto *agg = new HashGroupBy;
+  agg->columns = std::move(columns);
+  agg->having = std::move(having);
   return Operator(agg);
 }
 
 bool HashGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::HashGroupBy) return false;
   const HashGroupBy &hash_op =
-      *static_cast<const HashGroupBy *>(&r);
+      *dynamic_cast<const HashGroupBy *>(&r);
   if (having.size() != hash_op.having.size() || columns.size() != hash_op.columns.size())
     return false;
   for (size_t i = 0; i < having.size(); i++) {
-    if (!having[i].expr->ExactlyEquals(*hash_op.having[i].expr.get())) return false;
+    if (!having[i].expr->ExactlyEquals(*hash_op.having[i].expr)) return false;
   }
 
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
-  for (auto expr : columns) l_set.emplace(expr.get());
-  for (auto expr : hash_op.columns) r_set.emplace(expr.get());
+  for (auto &expr : columns) l_set.emplace(expr.get());
+  for (auto &expr : hash_op.columns) r_set.emplace(expr.get());
   return l_set == r_set;
 }
 
 common::hash_t HashGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : having) hash = common::HashUtil::SumHashes(hash, pred.expr->Hash());
-  for (auto expr : columns) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+  for (auto &expr : columns) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
@@ -458,7 +457,7 @@ common::hash_t HashGroupBy::Hash() const {
 Operator SortGroupBy::make(
     std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
     std::vector<AnnotatedExpression> having) {
-  SortGroupBy *agg = new SortGroupBy;
+  auto *agg = new SortGroupBy;
   agg->columns = std::move(columns);
   agg->having = move(having);
   return Operator(agg);
@@ -467,22 +466,22 @@ Operator SortGroupBy::make(
 bool SortGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SortGroupBy) return false;
   const SortGroupBy &sort_op =
-      *static_cast<const SortGroupBy *>(&r);
+      *dynamic_cast<const SortGroupBy *>(&r);
   if (having.size() != sort_op.having.size() || columns.size() != sort_op.columns.size())
     return false;
   for (size_t i = 0; i < having.size(); i++) {
-    if (!having[i].expr->ExactlyEquals(*sort_op.having[i].expr.get())) return false;
+    if (!having[i].expr->ExactlyEquals(*sort_op.having[i].expr)) return false;
   }
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
-  for (auto expr : columns) l_set.emplace(expr.get());
-  for (auto expr : sort_op.columns) r_set.emplace(expr.get());
+  for (auto &expr : columns) l_set.emplace(expr.get());
+  for (auto &expr : sort_op.columns) r_set.emplace(expr.get());
   return l_set == r_set;
 }
 
 common::hash_t SortGroupBy::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : having) hash = common::HashUtil::SumHashes(hash, pred.expr->Hash());
-  for (auto expr : columns) hash = common::HashUtil::SumHashes(hash, expr->Hash());
+  for (auto &expr : columns) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
 }
 
@@ -490,7 +489,7 @@ common::hash_t SortGroupBy::Hash() const {
 // Aggregate
 //===--------------------------------------------------------------------===//
 Operator Aggregate::make() {
-  Aggregate *agg = new Aggregate;
+  auto *agg = new Aggregate;
   return Operator(agg);
 }
 
@@ -498,23 +497,23 @@ Operator Aggregate::make() {
 // Hash
 //===--------------------------------------------------------------------===//
 Operator Distinct::make() {
-  Distinct *hash = new Distinct;
+  auto *hash = new Distinct;
   return Operator(hash);
 }
 
 //===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(OperatorVisitor *v) const {
-  v->Visit((const T *)this);
+  v->Visit(reinterpret_cast<const T *>(this));
 }
 
 //===--------------------------------------------------------------------===//
 template <>
 std::string OperatorNode<DummyScan>::name_ = "DummyScan";
 template <>
-std::string OperatorNode<SeqScan>::name_ = "SeqScan";
+std::string OperatorNode<SeqScan>::name_("SeqScan");
 template <>
-std::string OperatorNode<IndexScan>::name_ = "IndexScan";
+std::string OperatorNode<IndexScan>::name_("IndexScan");
 template <>
 std::string OperatorNode<ExternalFileScan>::name_ = "ExternalFileScan";
 template <>

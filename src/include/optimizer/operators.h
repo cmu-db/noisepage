@@ -204,8 +204,8 @@ class InnerHashJoin : public OperatorNode<InnerHashJoin> {
  public:
   static Operator make(
       std::vector<AnnotatedExpression> conditions,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &left_keys,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &right_keys);
+      std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+      std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys);
 
   bool operator==(const BaseOperatorNode &r) override;
 
