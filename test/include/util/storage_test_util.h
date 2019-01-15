@@ -14,8 +14,8 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "type/type_id.h"
+#include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 struct StorageTestUtil {

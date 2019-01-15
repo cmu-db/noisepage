@@ -4,8 +4,8 @@
 #include "bwtree/bloom_filter.h"
 #include "bwtree/sorted_small_set.h"
 #include "util/bwtree_test_util.h"
+#include "util/multithread_test_util.h"
 #include "util/test_harness.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 
@@ -18,7 +18,7 @@ struct BwTreeTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
-  const uint32_t num_threads_ = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_threads_ = MultiThreadTestUtil::HardwareConcurrency();
 };
 
 /**
@@ -165,7 +165,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
   const uint32_t key_num = 1024 * 1024;
   std::atomic<size_t> insert_success_counter = 0;
 
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   // Inserts in a 1M key space randomly until all keys has been inserted
@@ -184,7 +184,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
   };
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
   // Verifies whether random insert is correct
@@ -211,7 +211,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
 
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
@@ -235,7 +235,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   };
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
   // Verifies that all values are deleted after mixed test
@@ -256,7 +256,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
 TEST_F(BwTreeTests, Interleaved) {
   const uint32_t basic_test_key_num = 128 * 1024;
 
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   /*
@@ -358,49 +358,49 @@ TEST_F(BwTreeTests, Interleaved) {
   };
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest2);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest1);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest1);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest2);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest1);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest1);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, InsertTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest2);
   tree->UpdateThreadLocal(1);
 
   InsertGetValueTest();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, DeleteTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest2);
   tree->UpdateThreadLocal(1);
 
   DeleteGetValueTest();
@@ -415,7 +415,7 @@ TEST_F(BwTreeTests, Interleaved) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, EpochManager) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
@@ -435,7 +435,7 @@ TEST_F(BwTreeTests, EpochManager) {
   };
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
   tree->UpdateThreadLocal(1);
 
   delete tree;
