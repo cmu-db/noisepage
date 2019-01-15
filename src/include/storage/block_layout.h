@@ -14,6 +14,7 @@ namespace terrier::storage {
  * Stores metadata about the layout of a block.
  */
 struct BlockLayout {
+  // TODO(Tianyu): This seems to be here only to make SqlTable::DataTableVersion's copy constructor happy.
   BlockLayout() = default;
   /**
    * Constructs a new block layout.
@@ -46,8 +47,10 @@ struct BlockLayout {
    */
   bool IsVarlen(col_id_t col_id) const { return static_cast<int8_t>(attr_sizes_.at(!col_id)) < 0; }
 
-  // TODO(Tianyu): Eventually we may also want to get all the varlen columns associated with a block layout in a method
-  // as well, but we can implement it then.
+  /**
+   * @return all the varlen columns in the layout
+   */
+  const std::vector<col_id_t> &Varlens() const { return varlens_; }
 
   /**
    * @return size, in bytes, of a full tuple in this block.
@@ -66,6 +69,8 @@ struct BlockLayout {
 
  private:
   std::vector<uint8_t> attr_sizes_;
+  // keeps track of all the varlens to make iteration through all varlen columns faster
+  std::vector<col_id_t> varlens_;
   // These fields below should be declared const but then that deletes the assignment operator for BlockLayout. With
   // const-only accessors we should be safe from making changes to a BlockLayout that would break stuff.
 
@@ -77,7 +82,6 @@ struct BlockLayout {
   // header is everything up to the first column
   uint32_t header_size_;
 
- private:
   uint32_t ComputeTupleSize() const;
   uint32_t ComputeStaticHeaderSize() const;
   uint32_t ComputeNumSlots() const;
