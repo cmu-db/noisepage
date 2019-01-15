@@ -99,12 +99,13 @@ install_linux() {
       libboost-filesystem-dev \
       libevent-dev \
       libjemalloc-dev \
-      libpqxx-6.2 \
       libssl-dev \
       libtbb-dev \
       libz-dev \
       llvm-6.0 \
       postgresql-client
+  apt-get -y --reinstall install \
+      libpqxx-dev
 }
 
 main "$@"

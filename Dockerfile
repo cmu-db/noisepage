@@ -17,8 +17,9 @@ RUN apt-get -y update && \
       libboost-filesystem-dev \
       libjemalloc-dev \
       libevent-dev \
-      libpqxx-6.2 \
       libtbb-dev \
       libz-dev \
       llvm-6.0 \
-      postgresql-client
+      postgresql-client && \
+    apt-get -y --reinstall install \
+      libpqxx-dev
