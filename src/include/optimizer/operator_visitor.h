@@ -13,30 +13,30 @@ class OperatorVisitor {
   virtual ~OperatorVisitor() = default;
 
   // Physical operator
-  virtual void Visit(const DummyScan *) {}
-  virtual void Visit(const SeqScan *) {}
-  virtual void Visit(const IndexScan *) {}
-  virtual void Visit(const ExternalFileScan *) {}
-  virtual void Visit(const QueryDerivedScan *) {}
-  virtual void Visit(const OrderBy *) {}
-  virtual void Visit(const Limit *) {}
-  virtual void Visit(const InnerNLJoin *) {}
-  virtual void Visit(const LeftNLJoin *) {}
-  virtual void Visit(const RightNLJoin *) {}
-  virtual void Visit(const OuterNLJoin *) {}
-  virtual void Visit(const InnerHashJoin *) {}
-  virtual void Visit(const LeftHashJoin *) {}
-  virtual void Visit(const RightHashJoin *) {}
-  virtual void Visit(const OuterHashJoin *) {}
-  virtual void Visit(const Insert *) {}
-  virtual void Visit(const InsertSelect *) {}
-  virtual void Visit(const Delete *) {}
-  virtual void Visit(const Update *) {}
-  virtual void Visit(const HashGroupBy *) {}
-  virtual void Visit(const SortGroupBy *) {}
-  virtual void Visit(const Distinct *) {}
-  virtual void Visit(const Aggregate *) {}
-  virtual void Visit(const ExportExternalFile *) {}
+  virtual void Visit(const DummyScan *dummy_scan) {}
+  virtual void Visit(const SeqScan *seq_scan) {}
+  virtual void Visit(const IndexScan *index_scan) {}
+  virtual void Visit(const ExternalFileScan *ext_file_scan) {}
+  virtual void Visit(const QueryDerivedScan *query_derived_scan) {}
+  virtual void Visit(const OrderBy *order_by) {}
+  virtual void Visit(const Limit *limit) {}
+  virtual void Visit(const InnerNLJoin *inner_join) {}
+  virtual void Visit(const LeftNLJoin *left_nl_join) {}
+  virtual void Visit(const RightNLJoin *right_nl_join) {}
+  virtual void Visit(const OuterNLJoin *outer_nl_join) {}
+  virtual void Visit(const InnerHashJoin *inner_hash_join) {}
+  virtual void Visit(const LeftHashJoin *left_hash_join) {}
+  virtual void Visit(const RightHashJoin *right_hash_join) {}
+  virtual void Visit(const OuterHashJoin *outer_hash_join) {}
+  virtual void Visit(const Insert *insert) {}
+  virtual void Visit(const InsertSelect *insert_select) {}
+  virtual void Visit(const Delete *del) {}
+  virtual void Visit(const Update *update) {}
+  virtual void Visit(const HashGroupBy *hash_group_by) {}
+  virtual void Visit(const SortGroupBy *sort_group_by) {}
+  virtual void Visit(const Distinct *distinct) {}
+  virtual void Visit(const Aggregate *aggregate) {}
+  virtual void Visit(const ExportExternalFile *export_ext_file) {}
 };
 
 }  // namespace terrier::optimizer

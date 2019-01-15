@@ -111,9 +111,9 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format,
   return Operator(get);
 }
 
-bool ExternalFileScan::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::QueryDerivedScan) return false;
-  const auto &get = *static_cast<const ExternalFileScan *>(&node);
+bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::QueryDerivedScan) return false;
+  const auto &get = *static_cast<const ExternalFileScan *>(&r);
   return (format == get.format &&
       file_name == get.file_name && delimiter == get.delimiter &&
       quote == get.quote && escape == get.escape);
@@ -145,8 +145,8 @@ Operator QueryDerivedScan::make(
   return Operator(get);
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::QueryDerivedScan) return false;
+bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::QueryDerivedScan) return false;
   return true;
 }
 
@@ -169,12 +169,12 @@ Operator OrderBy::make() {
 //===--------------------------------------------------------------------===//
 Operator Limit::make(
     int64_t offset, int64_t limit,
-    std::vector<parser::AbstractExpression *> sort_exprs,
+    std::vector<parser::AbstractExpression *> sort_columns,
     std::vector<bool> sort_ascending) {
   Limit *limit_op = new Limit;
   limit_op->offset = offset;
   limit_op->limit = limit;
-  limit_op->sort_exprs = sort_exprs;
+  limit_op->sort_exprs = sort_columns;
   limit_op->sort_acsending = sort_ascending;
   return Operator(limit_op);
 }
@@ -262,8 +262,8 @@ Operator OuterNLJoin::make(
 //===--------------------------------------------------------------------===//
 Operator InnerHashJoin::make(
     std::vector<AnnotatedExpression> conditions,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &left_keys,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &right_keys) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+    std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
   InnerHashJoin *join = new InnerHashJoin();
   join->join_predicates = std::move(conditions);
   join->left_keys = std::move(left_keys);
@@ -397,10 +397,10 @@ Operator ExportExternalFile::make(parser::ExternalFileFormat format,
   return Operator(export_op);
 }
 
-bool ExportExternalFile::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::ExportExternalFile) return false;
+bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::ExportExternalFile) return false;
   const auto &export_op =
-      *static_cast<const ExportExternalFile *>(&node);
+      *static_cast<const ExportExternalFile *>(&r);
   return (format == export_op.format && file_name == export_op.file_name &&
       delimiter == export_op.delimiter && quote == export_op.quote &&
       escape == export_op.escape);
@@ -429,19 +429,19 @@ Operator HashGroupBy::make(
   return Operator(agg);
 }
 
-bool HashGroupBy::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::HashGroupBy) return false;
-  const HashGroupBy &r =
-      *static_cast<const HashGroupBy *>(&node);
-  if (having.size() != r.having.size() || columns.size() != r.columns.size())
+bool HashGroupBy::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::HashGroupBy) return false;
+  const HashGroupBy &hash_op =
+      *static_cast<const HashGroupBy *>(&r);
+  if (having.size() != hash_op.having.size() || columns.size() != hash_op.columns.size())
     return false;
   for (size_t i = 0; i < having.size(); i++) {
-    if (!having[i].expr->ExactlyEquals(*r.having[i].expr.get())) return false;
+    if (!having[i].expr->ExactlyEquals(*hash_op.having[i].expr.get())) return false;
   }
 
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
   for (auto expr : columns) l_set.emplace(expr.get());
-  for (auto expr : r.columns) r_set.emplace(expr.get());
+  for (auto expr : hash_op.columns) r_set.emplace(expr.get());
   return l_set == r_set;
 }
 
@@ -464,18 +464,18 @@ Operator SortGroupBy::make(
   return Operator(agg);
 }
 
-bool SortGroupBy::operator==(const BaseOperatorNode &node) {
-  if (node.GetType() != OpType::SortGroupBy) return false;
-  const SortGroupBy &r =
-      *static_cast<const SortGroupBy *>(&node);
-  if (having.size() != r.having.size() || columns.size() != r.columns.size())
+bool SortGroupBy::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::SortGroupBy) return false;
+  const SortGroupBy &sort_op =
+      *static_cast<const SortGroupBy *>(&r);
+  if (having.size() != sort_op.having.size() || columns.size() != sort_op.columns.size())
     return false;
   for (size_t i = 0; i < having.size(); i++) {
-    if (!having[i].expr->ExactlyEquals(*r.having[i].expr.get())) return false;
+    if (!having[i].expr->ExactlyEquals(*sort_op.having[i].expr.get())) return false;
   }
   std::unordered_set<std::shared_ptr<parser::AbstractExpression>> l_set, r_set;
   for (auto expr : columns) l_set.emplace(expr.get());
-  for (auto expr : r.columns) r_set.emplace(expr.get());
+  for (auto expr : sort_op.columns) r_set.emplace(expr.get());
   return l_set == r_set;
 }
 
