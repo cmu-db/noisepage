@@ -1,7 +1,7 @@
-#include <unordered_set>
 #include "optimizer/operators.h"
-#include "parser/expression/abstract_expression.h"
+#include <unordered_set>
 #include "optimizer/operator_visitor.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::optimizer {
 
@@ -16,10 +16,8 @@ Operator DummyScan::make() {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
-Operator SeqScan::make(
-    std::shared_ptr<catalog::TableCatalogEntry> table,
-    std::string alias, std::vector<AnnotatedExpression> predicates,
-    bool update) {
+Operator SeqScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+                       std::vector<AnnotatedExpression> predicates, bool update) {
   TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new SeqScan;
   scan->table_ = std::move(table);
@@ -35,28 +33,24 @@ bool SeqScan::operator==(const BaseOperatorNode &r) {
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (predicates.size() != node.predicates.size()) return false;
   for (size_t i = 0; i < predicates.size(); i++) {
-    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr))
-      return false;
+    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr)) return false;
   }
   return true;
 }
 
 common::hash_t SeqScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : predicates)
-    hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
+  for (auto &pred : predicates) hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
   return hash;
 }
 
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-Operator IndexScan::make(
-    std::shared_ptr<catalog::TableCatalogEntry> table,
-    std::string alias, std::vector<AnnotatedExpression> predicates, bool update,
-    catalog::index_oid_t index_id, std::vector<catalog::col_oid_t> key_column_id_list,
-    std::vector<parser::ExpressionType> expr_type_list,
-    std::vector<type::Value> value_list) {
+Operator IndexScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+                         std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
+                         std::vector<catalog::col_oid_t> key_column_id_list,
+                         std::vector<parser::ExpressionType> expr_type_list, std::vector<type::Value> value_list) {
   TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new IndexScan;
   scan->table_ = std::move(table);
@@ -74,15 +68,12 @@ Operator IndexScan::make(
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::IndexScan) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  if (index_id != node.index_id ||
-      key_column_id_list != node.key_column_id_list ||
-      expr_type_list != node.expr_type_list ||
-      predicates.size() != node.predicates.size())
+  if (index_id != node.index_id || key_column_id_list != node.key_column_id_list ||
+      expr_type_list != node.expr_type_list || predicates.size() != node.predicates.size())
     return false;
 
   for (size_t i = 0; i < predicates.size(); i++) {
-    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr))
-      return false;
+    if (!predicates[i].expr->ExactlyEquals(*node.predicates[i].expr)) return false;
   }
   return true;
 }
@@ -90,17 +81,15 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
 common::hash_t IndexScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_id));
-  for (auto &pred : predicates)
-    hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
+  for (auto &pred : predicates) hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
   return hash;
 }
 
 //===--------------------------------------------------------------------===//
 // Physical external file scan
 //===--------------------------------------------------------------------===//
-Operator ExternalFileScan::make(parser::ExternalFileFormat format,
-                                std::string file_name, char delimiter,
-                                char quote, char escape) {
+Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                                char escape) {
   auto *get = new ExternalFileScan();
   get->format = format;
   get->file_name = std::move(file_name);
@@ -113,9 +102,8 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format,
 bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::QueryDerivedScan) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
-  return (format == get.format &&
-      file_name == get.file_name && delimiter == get.delimiter &&
-      quote == get.quote && escape == get.escape);
+  return (format == get.format && file_name == get.file_name && delimiter == get.delimiter && quote == get.quote &&
+          escape == get.escape);
 }
 
 common::hash_t ExternalFileScan::Hash() const {
@@ -123,7 +111,8 @@ common::hash_t ExternalFileScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format));
   hash = common::HashUtil::CombineHashes(
       hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name.data()), file_name.length()));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
+  hash =
+      common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote), 1));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape), 1));
   return hash;
@@ -133,10 +122,7 @@ common::hash_t ExternalFileScan::Hash() const {
 // Query derived get
 //===--------------------------------------------------------------------===//
 Operator QueryDerivedScan::make(
-    std::string alias,
-    std::unordered_map<std::string,
-                       std::shared_ptr<parser::AbstractExpression>>
-    alias_to_expr_map) {
+    std::string alias, std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
   get->table_alias = std::move(alias);
   get->alias_to_expr_map = std::move(alias_to_expr_map);
@@ -144,9 +130,7 @@ Operator QueryDerivedScan::make(
   return Operator(get);
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
-  return r.GetType() == OpType::QueryDerivedScan;
-}
+bool QueryDerivedScan::operator==(const BaseOperatorNode &r) { return r.GetType() == OpType::QueryDerivedScan; }
 
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
@@ -165,10 +149,8 @@ Operator OrderBy::make() {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(
-    int64_t offset, int64_t limit,
-    std::vector<parser::AbstractExpression *> sort_columns,
-    std::vector<bool> sort_ascending) {
+Operator Limit::make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> sort_columns,
+                     std::vector<bool> sort_ascending) {
   auto *limit_op = new Limit;
   limit_op->offset = offset;
   limit_op->limit = limit;
@@ -180,10 +162,9 @@ Operator Limit::make(
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
-Operator InnerNLJoin::make(
-    std::vector<AnnotatedExpression> conditions,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
+Operator InnerNLJoin::make(std::vector<AnnotatedExpression> conditions,
+                           std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+                           std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
   join->join_predicates = std::move(conditions);
   join->left_keys = std::move(left_keys);
@@ -194,21 +175,16 @@ Operator InnerNLJoin::make(
 
 common::hash_t InnerNLJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &expr : left_keys)
-    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &expr : right_keys)
-    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &pred : join_predicates)
-    hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
+  for (auto &expr : left_keys) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &expr : right_keys) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : join_predicates) hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
   return hash;
 }
 
 bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::InnerNLJoin) return false;
-  const InnerNLJoin &node =
-      *dynamic_cast<const InnerNLJoin *>(&r);
-  if (join_predicates.size() != node.join_predicates.size() ||
-      left_keys.size() != node.left_keys.size() ||
+  const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
+  if (join_predicates.size() != node.join_predicates.size() || left_keys.size() != node.left_keys.size() ||
       right_keys.size() != node.right_keys.size())
     return false;
   for (size_t i = 0; i < left_keys.size(); i++) {
@@ -218,9 +194,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
     if (!right_keys[i]->ExactlyEquals(*node.right_keys[i].get())) return false;
   }
   for (size_t i = 0; i < join_predicates.size(); i++) {
-    if (!join_predicates[i].expr->ExactlyEquals(
-        *node.join_predicates[i].expr))
-      return false;
+    if (!join_predicates[i].expr->ExactlyEquals(*node.join_predicates[i].expr)) return false;
   }
   return true;
 }
@@ -228,8 +202,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
-Operator LeftNLJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator LeftNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftNLJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -238,8 +211,7 @@ Operator LeftNLJoin::make(
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
-Operator RightNLJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator RightNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new RightNLJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -248,8 +220,7 @@ Operator RightNLJoin::make(
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
-Operator OuterNLJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator OuterNLJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -258,10 +229,9 @@ Operator OuterNLJoin::make(
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
-Operator InnerHashJoin::make(
-    std::vector<AnnotatedExpression> conditions,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-    std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
+Operator InnerHashJoin::make(std::vector<AnnotatedExpression> conditions,
+                             std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+                             std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerHashJoin();
   join->join_predicates = std::move(conditions);
   join->left_keys = std::move(left_keys);
@@ -271,21 +241,16 @@ Operator InnerHashJoin::make(
 
 common::hash_t InnerHashJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &expr : left_keys)
-    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &expr : right_keys)
-    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &pred : join_predicates)
-    hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
+  for (auto &expr : left_keys) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &expr : right_keys) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : join_predicates) hash = common::HashUtil::CombineHashes(hash, pred.expr->Hash());
   return hash;
 }
 
 bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::InnerHashJoin) return false;
-  const InnerHashJoin &node =
-      *dynamic_cast<const InnerHashJoin *>(&r);
-  if (join_predicates.size() != node.join_predicates.size() ||
-      left_keys.size() != node.left_keys.size() ||
+  const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
+  if (join_predicates.size() != node.join_predicates.size() || left_keys.size() != node.left_keys.size() ||
       right_keys.size() != node.right_keys.size())
     return false;
   for (size_t i = 0; i < left_keys.size(); i++) {
@@ -295,9 +260,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
     if (!right_keys[i]->ExactlyEquals(*node.right_keys[i].get())) return false;
   }
   for (size_t i = 0; i < join_predicates.size(); i++) {
-    if (!join_predicates[i].expr->ExactlyEquals(
-        *node.join_predicates[i].expr))
-      return false;
+    if (!join_predicates[i].expr->ExactlyEquals(*node.join_predicates[i].expr)) return false;
   }
   return true;
 }
@@ -305,8 +268,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
-Operator LeftHashJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator LeftHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftHashJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -315,8 +277,7 @@ Operator LeftHashJoin::make(
 //===--------------------------------------------------------------------===//
 // RightHashJoin
 //===--------------------------------------------------------------------===//
-Operator RightHashJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator RightHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new RightHashJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -325,8 +286,7 @@ Operator RightHashJoin::make(
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
-Operator OuterHashJoin::make(
-    std::shared_ptr<parser::AbstractExpression> join_predicate) {
+Operator OuterHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterHashJoin();
   join->join_predicate = std::move(join_predicate);
   return Operator(join);
@@ -335,11 +295,8 @@ Operator OuterHashJoin::make(
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
-Operator Insert::make(
-    std::shared_ptr<catalog::TableCatalogEntry> target_table,
-    const std::vector<std::string> *columns,
-    const std::vector<std::vector<
-        std::unique_ptr<parser::AbstractExpression>>> *values) {
+Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table, const std::vector<std::string> *columns,
+                      const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values) {
   auto *insert_op = new Insert;
   insert_op->target_table = std::move(target_table);
   insert_op->columns = columns;
@@ -350,8 +307,7 @@ Operator Insert::make(
 //===--------------------------------------------------------------------===//
 // PhysicalInsertSelect
 //===--------------------------------------------------------------------===//
-Operator InsertSelect::make(
-    std::shared_ptr<catalog::TableCatalogEntry> target_table) {
+Operator InsertSelect::make(std::shared_ptr<catalog::TableCatalogEntry> target_table) {
   auto *insert_op = new InsertSelect;
   insert_op->target_table = std::move(target_table);
   return Operator(insert_op);
@@ -360,8 +316,7 @@ Operator InsertSelect::make(
 //===--------------------------------------------------------------------===//
 // PhysicalDelete
 //===--------------------------------------------------------------------===//
-Operator Delete::make(
-    std::shared_ptr<catalog::TableCatalogEntry> target_table) {
+Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table) {
   auto *delete_op = new Delete;
   delete_op->target_table = std::move(target_table);
   return Operator(delete_op);
@@ -370,10 +325,8 @@ Operator Delete::make(
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-Operator Update::make(
-    std::shared_ptr<catalog::TableCatalogEntry> target_table,
-    const std::vector<std::unique_ptr<parser::UpdateClause>> *
-    updates) {
+Operator Update::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                      const std::vector<std::unique_ptr<parser::UpdateClause>> *updates) {
   auto *update = new Update;
   update->target_table = std::move(target_table);
   update->updates = updates;
@@ -383,9 +336,8 @@ Operator Update::make(
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
-Operator ExportExternalFile::make(parser::ExternalFileFormat format,
-                                          std::string file_name, char delimiter,
-                                          char quote, char escape) {
+Operator ExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                                  char escape) {
   auto *export_op = new ExportExternalFile();
   export_op->format = format;
   export_op->file_name = std::move(file_name);
@@ -397,11 +349,9 @@ Operator ExportExternalFile::make(parser::ExternalFileFormat format,
 
 bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::ExportExternalFile) return false;
-  const auto &export_op =
-      *dynamic_cast<const ExportExternalFile *>(&r);
-  return (format == export_op.format && file_name == export_op.file_name &&
-      delimiter == export_op.delimiter && quote == export_op.quote &&
-      escape == export_op.escape);
+  const auto &export_op = *dynamic_cast<const ExportExternalFile *>(&r);
+  return (format == export_op.format && file_name == export_op.file_name && delimiter == export_op.delimiter &&
+          quote == export_op.quote && escape == export_op.escape);
 }
 
 common::hash_t ExportExternalFile::Hash() const {
@@ -409,7 +359,8 @@ common::hash_t ExportExternalFile::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format));
   hash = common::HashUtil::CombineHashes(
       hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name.data()), file_name.length()));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
+  hash =
+      common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote), 1));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape), 1));
   return hash;
@@ -418,9 +369,8 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
-Operator HashGroupBy::make(
-    std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-    std::vector<AnnotatedExpression> having) {
+Operator HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
+                           std::vector<AnnotatedExpression> having) {
   auto *agg = new HashGroupBy;
   agg->columns = std::move(columns);
   agg->having = std::move(having);
@@ -429,10 +379,8 @@ Operator HashGroupBy::make(
 
 bool HashGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::HashGroupBy) return false;
-  const HashGroupBy &hash_op =
-      *dynamic_cast<const HashGroupBy *>(&r);
-  if (having.size() != hash_op.having.size() || columns.size() != hash_op.columns.size())
-    return false;
+  const HashGroupBy &hash_op = *dynamic_cast<const HashGroupBy *>(&r);
+  if (having.size() != hash_op.having.size() || columns.size() != hash_op.columns.size()) return false;
   for (size_t i = 0; i < having.size(); i++) {
     if (!having[i].expr->ExactlyEquals(*hash_op.having[i].expr)) return false;
   }
@@ -453,9 +401,8 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
-Operator SortGroupBy::make(
-    std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-    std::vector<AnnotatedExpression> having) {
+Operator SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
+                           std::vector<AnnotatedExpression> having) {
   auto *agg = new SortGroupBy;
   agg->columns = std::move(columns);
   agg->having = move(having);
@@ -464,10 +411,8 @@ Operator SortGroupBy::make(
 
 bool SortGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::SortGroupBy) return false;
-  const SortGroupBy &sort_op =
-      *dynamic_cast<const SortGroupBy *>(&r);
-  if (having.size() != sort_op.having.size() || columns.size() != sort_op.columns.size())
-    return false;
+  const SortGroupBy &sort_op = *dynamic_cast<const SortGroupBy *>(&r);
+  if (having.size() != sort_op.having.size() || columns.size() != sort_op.columns.size()) return false;
   for (size_t i = 0; i < having.size(); i++) {
     if (!having[i].expr->ExactlyEquals(*sort_op.having[i].expr)) return false;
   }

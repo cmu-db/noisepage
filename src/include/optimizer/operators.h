@@ -1,21 +1,21 @@
 #pragma once
 
+#include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
-#include "type/value.h"
+#include "optimizer/operator_node.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
-#include "catalog/catalog_defs.h"
-#include "optimizer/operator_node.h"
+#include "type/value.h"
 
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace terrier {
 
 namespace parser {
 class AbstractExpression;
 class UpdateClause;
-}
+}  // namespace parser
 
 namespace catalog {
 class TableCatalogEntry;
@@ -36,10 +36,8 @@ class DummyScan : public OperatorNode<DummyScan> {
 //===--------------------------------------------------------------------===//
 class SeqScan : public OperatorNode<SeqScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table,
-                       std::string alias,
-                       std::vector<AnnotatedExpression> predicates,
-                       bool update);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+                       std::vector<AnnotatedExpression> predicates, bool update);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -56,12 +54,10 @@ class SeqScan : public OperatorNode<SeqScan> {
 //===--------------------------------------------------------------------===//
 class IndexScan : public OperatorNode<IndexScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table,
-                       std::string alias,
-                       std::vector<AnnotatedExpression> predicates, bool update,
-                       catalog::index_oid_t index_id, std::vector<catalog::col_oid_t> key_column_id_list,
-                       std::vector<parser::ExpressionType> expr_type_list,
-                       std::vector<type::Value> value_list);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+                       std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
+                       std::vector<catalog::col_oid_t> key_column_id_list,
+                       std::vector<parser::ExpressionType> expr_type_list, std::vector<type::Value> value_list);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -83,8 +79,7 @@ class IndexScan : public OperatorNode<IndexScan> {
 //===--------------------------------------------------------------------===//
 class ExternalFileScan : public OperatorNode<ExternalFileScan> {
  public:
-  static Operator make(parser::ExternalFileFormat format,
-                       std::string file_name, char delimiter, char quote,
+  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -104,20 +99,15 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
 //===--------------------------------------------------------------------===//
 class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
  public:
-  static Operator make(
-      std::string alias,
-      std::unordered_map<std::string,
-                         std::shared_ptr<parser::AbstractExpression>>
-      alias_to_expr_map);
+  static Operator make(std::string alias,
+                       std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   std::string table_alias;
-  std::unordered_map<std::string,
-                     std::shared_ptr<parser::AbstractExpression>>
-      alias_to_expr_map;
+  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> alias_to_expr_map;
 };
 
 //===--------------------------------------------------------------------===//
@@ -133,10 +123,8 @@ class OrderBy : public OperatorNode<OrderBy> {
 //===--------------------------------------------------------------------===//
 class Limit : public OperatorNode<Limit> {
  public:
-  static Operator make(
-      int64_t offset, int64_t limit,
-      std::vector<parser::AbstractExpression *> sort_columns,
-      std::vector<bool> sort_ascending);
+  static Operator make(int64_t offset, int64_t limit, std::vector<parser::AbstractExpression *> sort_columns,
+                       std::vector<bool> sort_ascending);
   int64_t offset;
   int64_t limit;
   // When we get a query like "SELECT * FROM tab ORDER BY a LIMIT 5"
@@ -152,10 +140,9 @@ class Limit : public OperatorNode<Limit> {
 //===--------------------------------------------------------------------===//
 class InnerNLJoin : public OperatorNode<InnerNLJoin> {
  public:
-  static Operator make(
-      std::vector<AnnotatedExpression> conditions,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys);
+  static Operator make(std::vector<AnnotatedExpression> conditions,
+                       std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+                       std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -173,8 +160,7 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
 class LeftNLJoin : public OperatorNode<LeftNLJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -183,8 +169,7 @@ class LeftNLJoin : public OperatorNode<LeftNLJoin> {
 class RightNLJoin : public OperatorNode<RightNLJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -193,8 +178,7 @@ class RightNLJoin : public OperatorNode<RightNLJoin> {
 class OuterNLJoin : public OperatorNode<OuterNLJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -202,10 +186,9 @@ class OuterNLJoin : public OperatorNode<OuterNLJoin> {
 //===--------------------------------------------------------------------===//
 class InnerHashJoin : public OperatorNode<InnerHashJoin> {
  public:
-  static Operator make(
-      std::vector<AnnotatedExpression> conditions,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
-      std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys);
+  static Operator make(std::vector<AnnotatedExpression> conditions,
+                       std::vector<std::unique_ptr<parser::AbstractExpression>> &&left_keys,
+                       std::vector<std::unique_ptr<parser::AbstractExpression>> &&right_keys);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -223,8 +206,7 @@ class InnerHashJoin : public OperatorNode<InnerHashJoin> {
 class LeftHashJoin : public OperatorNode<LeftHashJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -233,8 +215,7 @@ class LeftHashJoin : public OperatorNode<LeftHashJoin> {
 class RightHashJoin : public OperatorNode<RightHashJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -243,8 +224,7 @@ class RightHashJoin : public OperatorNode<RightHashJoin> {
 class OuterHashJoin : public OperatorNode<OuterHashJoin> {
  public:
   std::shared_ptr<parser::AbstractExpression> join_predicate;
-  static Operator make(
-      std::shared_ptr<parser::AbstractExpression> join_predicate);
+  static Operator make(std::shared_ptr<parser::AbstractExpression> join_predicate);
 };
 
 //===--------------------------------------------------------------------===//
@@ -252,22 +232,18 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 //===--------------------------------------------------------------------===//
 class Insert : public OperatorNode<Insert> {
  public:
-  static Operator make(
-      std::shared_ptr<catalog::TableCatalogEntry> target_table,
-      const std::vector<std::string> *columns,
-      const std::vector<std::vector<
-          std::unique_ptr<parser::AbstractExpression>>> *values);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       const std::vector<std::string> *columns,
+                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
   const std::vector<std::string> *columns;
-  const std::vector<
-      std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
+  const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
 };
 
 class InsertSelect : public OperatorNode<InsertSelect> {
  public:
-  static Operator make(
-      std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
 };
@@ -277,19 +253,17 @@ class InsertSelect : public OperatorNode<InsertSelect> {
 //===--------------------------------------------------------------------===//
 class Delete : public OperatorNode<Delete> {
  public:
-  static Operator make(
-      std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
 };
 
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
-class ExportExternalFile
-    : public OperatorNode<ExportExternalFile> {
+class ExportExternalFile : public OperatorNode<ExportExternalFile> {
  public:
-  static Operator make(parser::ExternalFileFormat format, std::string file_name,
-                       char delimiter, char quote, char escape);
+  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                       char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -307,9 +281,8 @@ class ExportExternalFile
 //===--------------------------------------------------------------------===//
 class Update : public OperatorNode<Update> {
  public:
-  static Operator make(
-      std::shared_ptr<catalog::TableCatalogEntry> target_table,
-      const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
   const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
@@ -320,9 +293,8 @@ class Update : public OperatorNode<Update> {
 //===--------------------------------------------------------------------===//
 class HashGroupBy : public OperatorNode<HashGroupBy> {
  public:
-  static Operator make(
-      std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-      std::vector<AnnotatedExpression> having);
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
+                       std::vector<AnnotatedExpression> having);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -336,9 +308,8 @@ class HashGroupBy : public OperatorNode<HashGroupBy> {
 //===--------------------------------------------------------------------===//
 class SortGroupBy : public OperatorNode<SortGroupBy> {
  public:
-  static Operator make(
-      std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
-      std::vector<AnnotatedExpression> having);
+  static Operator make(std::vector<std::shared_ptr<parser::AbstractExpression>> columns,
+                       std::vector<AnnotatedExpression> having);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -387,16 +358,13 @@ std::string OperatorNode<RightNLJoin>::name_ = "RightNLJoin";
 template <>
 std::string OperatorNode<OuterNLJoin>::name_ = "OuterNLJoin";
 template <>
-std::string OperatorNode<InnerHashJoin>::name_ =
-    "InnerHashJoin";
+std::string OperatorNode<InnerHashJoin>::name_ = "InnerHashJoin";
 template <>
 std::string OperatorNode<LeftHashJoin>::name_ = "LeftHashJoin";
 template <>
-std::string OperatorNode<RightHashJoin>::name_ =
-    "RightHashJoin";
+std::string OperatorNode<RightHashJoin>::name_ = "RightHashJoin";
 template <>
-std::string OperatorNode<OuterHashJoin>::name_ =
-    "OuterHashJoin";
+std::string OperatorNode<OuterHashJoin>::name_ = "OuterHashJoin";
 template <>
 std::string OperatorNode<Insert>::name_ = "Insert";
 template <>
@@ -414,8 +382,7 @@ std::string OperatorNode<Distinct>::name_ = "Distinct";
 template <>
 std::string OperatorNode<Aggregate>::name_ = "Aggregate";
 template <>
-std::string OperatorNode<ExportExternalFile>::name_ =
-    "ExportExternalFile";
+std::string OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -465,8 +432,7 @@ OpType OperatorNode<SortGroupBy>::type_ = OpType::SortGroupBy;
 template <>
 OpType OperatorNode<Aggregate>::type_ = OpType::Aggregate;
 template <>
-OpType OperatorNode<ExportExternalFile>::type_ =
-    OpType::ExportExternalFile;
+OpType OperatorNode<ExportExternalFile>::type_ = OpType::ExportExternalFile;
 
 }  // namespace optimizer
 }  // namespace terrier

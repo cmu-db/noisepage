@@ -45,19 +45,16 @@ class PropertySet {
 };
 
 struct PropSetPtrHash {
-  std::size_t operator()(std::shared_ptr<PropertySet> const& s) const {
-    return s->Hash();
-  }
+  std::size_t operator()(std::shared_ptr<PropertySet> const &s) const { return s->Hash(); }
 };
 
 struct PropSetPtrEq {
-  bool operator()(std::shared_ptr<PropertySet> const& t1,
-                  std::shared_ptr<PropertySet> const& t2) const {
+  bool operator()(std::shared_ptr<PropertySet> const &t1, std::shared_ptr<PropertySet> const &t2) const {
     return *t1 == *t2;
   }
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer
 
 namespace std {
 

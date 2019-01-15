@@ -108,9 +108,7 @@ class AbstractExpression {
    * @return true if the two expressions are exactly equal
    */
   bool ExactlyEquals(const AbstractExpression &other) const {
-    if (expression_type_ != other.expression_type_ ||
-        children_.size() != other.children_.size())
-      return false;
+    if (expression_type_ != other.expression_type_ || children_.size() != other.children_.size()) return false;
     for (unsigned i = 0; i < children_.size(); i++) {
       if (!children_[i]->ExactlyEquals(*other.children_[i].get())) return false;
     }

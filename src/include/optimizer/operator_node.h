@@ -1,7 +1,7 @@
 #pragma once
 
-#include "optimizer/property_set.h"
 #include "common/hash_util.h"
+#include "optimizer/property_set.h"
 
 #include <memory>
 #include <string>
@@ -52,18 +52,14 @@ struct BaseOperatorNode {
 
   virtual OpType GetType() const = 0;
 
-  virtual std::vector<PropertySet> RequiredInputProperties() const {
-    return {};
-  }
+  virtual std::vector<PropertySet> RequiredInputProperties() const { return {}; }
 
   virtual common::hash_t Hash() const {
     OpType t = GetType();
     return common::HashUtil::Hash(&t);
   }
 
-  virtual bool operator==(const BaseOperatorNode &r) {
-    return GetType() == r.GetType();
-  }
+  virtual bool operator==(const BaseOperatorNode &r) { return GetType() == r.GetType(); }
 };
 
 template <typename T>
@@ -103,7 +99,7 @@ class Operator {
   template <typename T>
   const T *As() const {
     if (node) {
-      return reinterpret_cast<const T*>(node.get());
+      return reinterpret_cast<const T *>(node.get());
     }
     return nullptr;
   }
@@ -111,7 +107,7 @@ class Operator {
  private:
   std::shared_ptr<BaseOperatorNode> node;
 };
-}  // namespace terrier::sql
+}  // namespace terrier::optimizer
 
 namespace std {
 

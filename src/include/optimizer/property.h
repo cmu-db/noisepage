@@ -2,8 +2,8 @@
 
 #include <typeinfo>
 
-#include "optimizer/optimizer_def.h"
 #include "common/hash_util.h"
+#include "optimizer/optimizer_def.h"
 
 namespace terrier::optimizer {
 
@@ -43,4 +43,4 @@ class Property {
   }
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/macros.h"
-#include "parser/expression_defs.h"
 #include <string>
 #include <unordered_set>
+#include "common/macros.h"
+#include "parser/expression_defs.h"
 
 namespace terrier {
 
@@ -25,8 +25,7 @@ enum class PropertyType : uint8_t {
 
 // Augment abstract expression with a table alias set
 struct AnnotatedExpression {
-  AnnotatedExpression(std::shared_ptr<parser::AbstractExpression> i_expr,
-                      std::unordered_set<std::string> &&i_set)
+  AnnotatedExpression(std::shared_ptr<parser::AbstractExpression> i_expr, std::unordered_set<std::string> &&i_set)
       : expr(std::move(i_expr)), table_alias_set(std::move(i_set)) {}
   AnnotatedExpression(const AnnotatedExpression &mt_expr) = default;
   std::shared_ptr<parser::AbstractExpression> expr;
