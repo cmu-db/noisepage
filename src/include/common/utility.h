@@ -3,7 +3,7 @@
 
 namespace terrier {
 
-int peloton_close(int fd);
+int terrier_close(int fd);
 
-std::string peloton_error_message();
+std::string terrier_error_message();
 }  // namespace terrier

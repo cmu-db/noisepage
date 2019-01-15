@@ -267,6 +267,11 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
+# --[ PQXX
+find_package(PQXX REQUIRED)
+include_directories(SYSTEM ${PQXX_INCLUDE_DIRECTORIES})
+list(APPEND TERRIER_LINK_LIBS ${PQXX_LIBRARIES})
+
 # LLVM 6.0+
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -276,3 +281,4 @@ endif ()
 llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native)
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
+

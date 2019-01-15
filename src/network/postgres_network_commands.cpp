@@ -14,48 +14,47 @@ namespace terrier::network {
 // the code here can honestly just be deleted. This is going to be a larger
 // project though, so I want to do the architectural refactor first.
 
-
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                                     CallbackFunc callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
   LOG_TRACE("Execute query: %s", query.c_str());
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition ParseCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                               CallbackFunc callback) {
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition BindCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                              CallbackFunc callback) {
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                                  CallbackFunc callback) {
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                                 CallbackFunc callback) {
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition SyncCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                              CallbackFunc callback) {
-  out->WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "The prepared statement does not exist"}});
+  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }

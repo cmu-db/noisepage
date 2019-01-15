@@ -75,6 +75,12 @@ class TerrierServer : public DedicatedThreadOwner {
    */
   void Close();
 
+  /**
+   * Set listen port to a new port
+   * @param new_port
+   */
+  void SetPort(int new_port);
+
  private:
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);

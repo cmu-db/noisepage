@@ -75,7 +75,7 @@ void TerrierServer::ServerLoop() {
   }*/
   dispatcher_task_->EventLoop();
 
-  peloton_close(listen_fd_);
+  terrier_close(listen_fd_);
 
   LOG_INFO("Server Closed");
 }
@@ -84,5 +84,10 @@ void TerrierServer::Close() {
   LOG_INFO("Begin to stop server");
   dispatcher_task_->ExitLoop();
 }
+
+/**
+ * Change port to new_port
+ */
+void TerrierServer::SetPort(int new_port) { port_ = new_port; }
 
 }  // namespace terrier::network

@@ -35,7 +35,6 @@ namespace terrier::network {
 // For threads
 #define CONNECTION_THREAD_COUNT 1
 
-
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value
 // I don't think it matters whether this is 0 or -1

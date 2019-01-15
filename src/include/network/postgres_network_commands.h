@@ -7,12 +7,12 @@
 #include "network/postgres_protocol_utils.h"
 #include "type/value_factory.h"
 
-#define DEFINE_COMMAND(name, flush)                                                              \
-  class name : public PostgresNetworkCommand {                                                   \
-   public:                                                                                       \
-    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                \
+#define DEFINE_COMMAND(name, flush)                                                      \
+  class name : public PostgresNetworkCommand {                                           \
+   public:                                                                               \
+    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}        \
     Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, \
-                            CallbackFunc callback) override;                                     \
+                    CallbackFunc callback) override;                                     \
   }
 
 namespace terrier::network {

@@ -76,8 +76,10 @@ install_mac() {
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
   brew ls --versions libevent || brew install libevent
+  brew ls --versions libpqxx || brew install libpqxx
   (brew ls --versions llvm | grep 6) || brew install llvm@6
   brew ls --versions openssl || brew install openssl
+  brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
 }
 
@@ -97,10 +99,12 @@ install_linux() {
       libboost-filesystem-dev \
       libevent-dev \
       libjemalloc-dev \
+      libpqxx-dev \
       libssl-dev \
       libtbb-dev \
       libz-dev \
-      llvm-6.0
+      llvm-6.0 \
+      postgresql-client
 }
 
 main "$@"

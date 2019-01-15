@@ -154,7 +154,7 @@ class PostgresPacketWriter {
     queue_.BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
     // ordering. We switch to network ordering only when the packet is finished
-    *curr_packet_len_ += static_cast<uint32_t >(len);
+    *curr_packet_len_ += static_cast<uint32_t>(len);
     return *this;
   }
 

@@ -2,8 +2,8 @@
 #include <string>
 #include <utility>
 
-#include "network/postgres_protocol_interpreter.h"
 #include "network/network_defs.h"
+#include "network/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
 #define MAKE_COMMAND(type) \

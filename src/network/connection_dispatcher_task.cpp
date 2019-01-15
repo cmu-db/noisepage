@@ -5,10 +5,6 @@
 #include <csignal>
 #include <memory>
 
-#include "common/init.h"
-
-#include "common/thread_pool.h"
-
 #define MASTER_THREAD_ID (-1)
 
 namespace terrier::network {

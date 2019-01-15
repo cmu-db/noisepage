@@ -1,4 +1,3 @@
-#include <common/init.h>
 #include <network/terrier_server.h>
 #include <fstream>
 #include <iostream>

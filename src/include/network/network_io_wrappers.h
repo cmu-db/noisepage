@@ -115,8 +115,8 @@ class NetworkIoWrapper {
   std::shared_ptr<ReadBuffer> in_;
 
   /**
- * The WriteQueue associated with this NetworkIoWrapper
- */
+   * The WriteQueue associated with this NetworkIoWrapper
+   */
   std::shared_ptr<WriteQueue> out_;
 };
 
@@ -168,7 +168,7 @@ class PosixSocketIoWrapper : public NetworkIoWrapper {
    * @return The next transition for the client state machine
    */
   Transition Close() override {
-    peloton_close(sock_fd_);
+    terrier_close(sock_fd_);
     return Transition::PROCEED;
   }
 };
