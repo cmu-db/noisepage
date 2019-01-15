@@ -17,7 +17,7 @@ RUN apt-get -y update && \
       libboost-filesystem-dev \
       libjemalloc-dev \
       libevent-dev \
-      libpqxx-dev \
+      libpqxx-6.2 \
       libtbb-dev \
       libz-dev \
       llvm-6.0 \
