@@ -586,13 +586,12 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(FuncCall *
     if (root->agg_star) {
       auto child = std::make_unique<StarExpression>();
       children.emplace_back(std::move(child));
-      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children));
+      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct);
     } else if (root->args->length < 2) {
-      // TODO(WAN): currently AggregateExpression doesn't support agg_distinct, add that and use root->agg_distinct
       auto expr_node = reinterpret_cast<Node *>(root->args->head->data.ptr_value);
       auto child = ExprTransform(expr_node);
       children.emplace_back(std::move(child));
-      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children));
+      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct);
     } else {
       PARSER_LOG_DEBUG("FuncCallTransform: Aggregation over multiple cols not supported");
       throw PARSER_EXCEPTION("FuncCallTransform: Aggregation over multiple cols not supported");
