@@ -42,9 +42,9 @@ enum class OpType {
 class OperatorVisitor;
 
 struct BaseOperatorNode {
-  BaseOperatorNode() {}
+  BaseOperatorNode() = default;
 
-  virtual ~BaseOperatorNode() {}
+  virtual ~BaseOperatorNode() = default;
 
   virtual void Accept(OperatorVisitor *v) const = 0;
 
@@ -68,11 +68,11 @@ struct BaseOperatorNode {
 
 template <typename T>
 struct OperatorNode : public BaseOperatorNode {
-  void Accept(OperatorVisitor *v) const;
+  void Accept(OperatorVisitor *v) const override;
 
-  std::string GetName() const { return name_; }
+  std::string GetName() const override { return name_; }
 
-  OpType GetType() const { return type_; }
+  OpType GetType() const override { return type_; }
 
   static std::string name_;
 
@@ -83,7 +83,7 @@ class Operator {
  public:
   Operator();
 
-  Operator(BaseOperatorNode *node);
+  explicit Operator(BaseOperatorNode *node);
 
   // Calls corresponding visitor to node
   void Accept(OperatorVisitor *v) const;
@@ -103,7 +103,7 @@ class Operator {
   template <typename T>
   const T *As() const {
     if (node) {
-      return (const T *)node.get();
+      return reinterpret_cast<const T*>(node.get());
     }
     return nullptr;
   }
@@ -117,8 +117,8 @@ namespace std {
 
 template <>
 struct hash<terrier::optimizer::BaseOperatorNode> {
-  typedef terrier::optimizer::BaseOperatorNode argument_type;
-  typedef std::size_t result_type;
+  using argument_type = terrier::optimizer::BaseOperatorNode;
+  using result_type = std::size_t;
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 

@@ -12,7 +12,7 @@ class PropertySet {
  public:
   PropertySet();
 
-  PropertySet(std::vector<std::shared_ptr<Property>> properties);
+  explicit PropertySet(std::vector<std::shared_ptr<Property>> properties);
 
   const std::vector<std::shared_ptr<Property>> &Properties() const;
 
@@ -63,8 +63,8 @@ namespace std {
 
 template <>
 struct hash<terrier::optimizer::PropertySet> {
-  typedef terrier::optimizer::PropertySet argument_type;
-  typedef std::size_t result_type;
+  using argument_type = terrier::optimizer::PropertySet;
+  using result_type = std::size_t;
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 
