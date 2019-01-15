@@ -22,7 +22,7 @@ Operator SeqScan::make(
     bool update) {
   TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new SeqScan;
-  scan->table_ = table;
+  scan->table_ = std::move(table);
   scan->table_alias = std::move(alias);
   scan->predicates = std::move(predicates);
   scan->is_for_update = update;
@@ -57,9 +57,9 @@ Operator IndexScan::make(
     catalog::index_oid_t index_id, std::vector<catalog::col_oid_t> key_column_id_list,
     std::vector<parser::ExpressionType> expr_type_list,
     std::vector<type::Value> value_list) {
-  TERRIER_ASSERT(table != nullptr, "");
+  TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new IndexScan;
-  scan->table_ = table;
+  scan->table_ = std::move(table);
   scan->is_for_update = update;
   scan->predicates = std::move(predicates);
   scan->table_alias = std::move(alias);
@@ -74,7 +74,6 @@ Operator IndexScan::make(
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::IndexScan) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  // TODO: Should also check value list
   if (index_id != node.index_id ||
       key_column_id_list != node.key_column_id_list ||
       expr_type_list != node.expr_type_list ||
@@ -123,10 +122,10 @@ common::hash_t ExternalFileScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format));
   hash = common::HashUtil::CombineHashes(
-      hash, common::HashUtil::HashBytes((byte *)file_name.data(), file_name.length()));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&delimiter, 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&quote, 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&escape, 1));
+      hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name.data()), file_name.length()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape), 1));
   return hash;
 }
 
@@ -409,10 +408,10 @@ common::hash_t ExportExternalFile::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&format));
   hash = common::HashUtil::CombineHashes(
-      hash, common::HashUtil::HashBytes((byte *)file_name.data(), file_name.length()));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&delimiter, 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&quote, 1));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes((byte *)&escape, 1));
+      hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(file_name.data()), file_name.length()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&delimiter), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&quote), 1));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::HashBytes(reinterpret_cast<const byte *>(&escape), 1));
   return hash;
 }
 
