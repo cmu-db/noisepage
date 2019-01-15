@@ -79,7 +79,7 @@ class TerrierServer : public DedicatedThreadOwner {
    * Set listen port to a new port
    * @param new_port
    */
-  void SetPort(int new_port);
+  void SetPort(uint16_t new_port);
 
  private:
   // For logging purposes

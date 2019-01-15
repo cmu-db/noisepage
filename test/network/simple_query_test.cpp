@@ -116,7 +116,7 @@ TEST_F(SimpleQueryTests, SimpleQueryTest) {
   LOG_INFO("Server initialized");
   terrier::network::TerrierServer server;
 
-  int port = 2888;
+  uint16_t port = 2888;
   try {
     server.SetPort(port);
     server.SetupServer();
