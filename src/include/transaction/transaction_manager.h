@@ -101,6 +101,14 @@ class TransactionManager {
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
                  void *callback_arg);
 
-  void Rollback(timestamp_t txn_id, const storage::UndoRecord &record) const;
+  void Rollback(TransactionContext *txn, const storage::UndoRecord &record) const;
+
+  void DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
+                                      uint16_t projection_list_index,
+                                      const storage::TupleAccessStrategy &accessor) const;
+
+  void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
+                                       const storage::TupleAccessStrategy &accessor) const;
+  void GCLastUpdateOnAbort(TransactionContext *txn);
 };
 }  // namespace terrier::transaction
