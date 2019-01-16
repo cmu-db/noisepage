@@ -1,10 +1,10 @@
-#include <unordered_map>
-#include <vector>
+#include "optimizer/operators.h"
 #include <memory>
 #include <string>
-#include <utility>
-#include "optimizer/operators.h"
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -458,53 +458,53 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-std::string OperatorNode<DummyScan>::name_ = "DummyScan";
+std::string OperatorNode<DummyScan>::name_ = std::string("DummyScan");
 template <>
-std::string OperatorNode<SeqScan>::name_("SeqScan");
+std::string OperatorNode<SeqScan>::name_ = std::string("SeqScan");
 template <>
-std::string OperatorNode<IndexScan>::name_("IndexScan");
+std::string OperatorNode<IndexScan>::name_ = std::string("IndexScan");
 template <>
-std::string OperatorNode<ExternalFileScan>::name_ = "ExternalFileScan";
+std::string OperatorNode<ExternalFileScan>::name_ = std::string("ExternalFileScan");
 template <>
-std::string OperatorNode<QueryDerivedScan>::name_ = "QueryDerivedScan";
+std::string OperatorNode<QueryDerivedScan>::name_ = std::string("QueryDerivedScan");
 template <>
-std::string OperatorNode<OrderBy>::name_ = "OrderBy";
+std::string OperatorNode<OrderBy>::name_ = std::string("OrderBy");
 template <>
-std::string OperatorNode<Limit>::name_ = "Limit";
+std::string OperatorNode<Limit>::name_ = std::string("Limit");
 template <>
-std::string OperatorNode<InnerNLJoin>::name_ = "InnerNLJoin";
+std::string OperatorNode<InnerNLJoin>::name_ = std::string("InnerNLJoin");
 template <>
-std::string OperatorNode<LeftNLJoin>::name_ = "LeftNLJoin";
+std::string OperatorNode<LeftNLJoin>::name_ = std::string("LeftNLJoin");
 template <>
-std::string OperatorNode<RightNLJoin>::name_ = "RightNLJoin";
+std::string OperatorNode<RightNLJoin>::name_ = std::string("RightNLJoin");
 template <>
-std::string OperatorNode<OuterNLJoin>::name_ = "OuterNLJoin";
+std::string OperatorNode<OuterNLJoin>::name_ = std::string("OuterNLJoin");
 template <>
-std::string OperatorNode<InnerHashJoin>::name_ = "InnerHashJoin";
+std::string OperatorNode<InnerHashJoin>::name_ = std::string("InnerHashJoin");
 template <>
-std::string OperatorNode<LeftHashJoin>::name_ = "LeftHashJoin";
+std::string OperatorNode<LeftHashJoin>::name_ = std::string("LeftHashJoin");
 template <>
-std::string OperatorNode<RightHashJoin>::name_ = "RightHashJoin";
+std::string OperatorNode<RightHashJoin>::name_ = std::string("RightHashJoin");
 template <>
-std::string OperatorNode<OuterHashJoin>::name_ = "OuterHashJoin";
+std::string OperatorNode<OuterHashJoin>::name_ = std::string("OuterHashJoin");
 template <>
-std::string OperatorNode<Insert>::name_ = "Insert";
+std::string OperatorNode<Insert>::name_ = std::string("Insert");
 template <>
-std::string OperatorNode<InsertSelect>::name_ = "InsertSelect";
+std::string OperatorNode<InsertSelect>::name_ = std::string("InsertSelect");
 template <>
-std::string OperatorNode<Delete>::name_ = "Delete";
+std::string OperatorNode<Delete>::name_ = std::string("Delete");
 template <>
-std::string OperatorNode<Update>::name_ = "Update";
+std::string OperatorNode<Update>::name_ = std::string("Update");
 template <>
-std::string OperatorNode<HashGroupBy>::name_ = "HashGroupBy";
+std::string OperatorNode<HashGroupBy>::name_ = std::string("HashGroupBy");
 template <>
-std::string OperatorNode<SortGroupBy>::name_ = "SortGroupBy";
+std::string OperatorNode<SortGroupBy>::name_ = std::string("SortGroupBy");
 template <>
-std::string OperatorNode<Distinct>::name_ = "Distinct";
+std::string OperatorNode<Distinct>::name_ = std::string("Distinct");
 template <>
-std::string OperatorNode<Aggregate>::name_ = "Aggregate";
+std::string OperatorNode<Aggregate>::name_ = std::string("Aggregate");
 template <>
-std::string OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
+std::string OperatorNode<ExportExternalFile>::name_ = std::string("ExportExternalFile");
 
 //===--------------------------------------------------------------------===//
 template <>

@@ -1,4 +1,5 @@
 #include "optimizer/operator_node.h"
+#include <string>
 
 namespace terrier::optimizer {
 

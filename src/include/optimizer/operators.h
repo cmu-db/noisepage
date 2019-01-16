@@ -1,10 +1,10 @@
 #pragma once
 
-#include <unordered_map>
-#include <vector>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
