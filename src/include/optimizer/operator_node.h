@@ -66,11 +66,11 @@ template <typename T>
 struct OperatorNode : public BaseOperatorNode {
   void Accept(OperatorVisitor *v) const override;
 
-  std::string GetName() const override { return name_; }
+  std::string GetName() const override { return std::string(name_); }
 
   OpType GetType() const override { return type_; }
 
-  static std::string name_;
+  static const char *name_;
 
   static OpType type_;
 };

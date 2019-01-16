@@ -458,53 +458,53 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-std::string OperatorNode<DummyScan>::name_ = std::string("DummyScan");
+const char *OperatorNode<DummyScan>::name_ = "DummyScan";
 template <>
-std::string OperatorNode<SeqScan>::name_ = std::string("SeqScan");
+const char *OperatorNode<SeqScan>::name_ = "SeqScan";
 template <>
-std::string OperatorNode<IndexScan>::name_ = std::string("IndexScan");
+const char *OperatorNode<IndexScan>::name_ = "IndexScan";
 template <>
-std::string OperatorNode<ExternalFileScan>::name_ = std::string("ExternalFileScan");
+const char *OperatorNode<ExternalFileScan>::name_ = "ExternalFileScan";
 template <>
-std::string OperatorNode<QueryDerivedScan>::name_ = std::string("QueryDerivedScan");
+const char *OperatorNode<QueryDerivedScan>::name_ = "QueryDerivedScan";
 template <>
-std::string OperatorNode<OrderBy>::name_ = std::string("OrderBy");
+const char *OperatorNode<OrderBy>::name_ = "OrderBy";
 template <>
-std::string OperatorNode<Limit>::name_ = std::string("Limit");
+const char *OperatorNode<Limit>::name_ = "Limit";
 template <>
-std::string OperatorNode<InnerNLJoin>::name_ = std::string("InnerNLJoin");
+const char *OperatorNode<InnerNLJoin>::name_ = "InnerNLJoin";
 template <>
-std::string OperatorNode<LeftNLJoin>::name_ = std::string("LeftNLJoin");
+const char *OperatorNode<LeftNLJoin>::name_ = "LeftNLJoin";
 template <>
-std::string OperatorNode<RightNLJoin>::name_ = std::string("RightNLJoin");
+const char *OperatorNode<RightNLJoin>::name_ = "RightNLJoin";
 template <>
-std::string OperatorNode<OuterNLJoin>::name_ = std::string("OuterNLJoin");
+const char *OperatorNode<OuterNLJoin>::name_ = "OuterNLJoin";
 template <>
-std::string OperatorNode<InnerHashJoin>::name_ = std::string("InnerHashJoin");
+const char *OperatorNode<InnerHashJoin>::name_ = "InnerHashJoin";
 template <>
-std::string OperatorNode<LeftHashJoin>::name_ = std::string("LeftHashJoin");
+const char *OperatorNode<LeftHashJoin>::name_ = "LeftHashJoin";
 template <>
-std::string OperatorNode<RightHashJoin>::name_ = std::string("RightHashJoin");
+const char *OperatorNode<RightHashJoin>::name_ = "RightHashJoin";
 template <>
-std::string OperatorNode<OuterHashJoin>::name_ = std::string("OuterHashJoin");
+const char *OperatorNode<OuterHashJoin>::name_ = "OuterHashJoin";
 template <>
-std::string OperatorNode<Insert>::name_ = std::string("Insert");
+const char *OperatorNode<Insert>::name_ = "Insert";
 template <>
-std::string OperatorNode<InsertSelect>::name_ = std::string("InsertSelect");
+const char *OperatorNode<InsertSelect>::name_ = "InsertSelect";
 template <>
-std::string OperatorNode<Delete>::name_ = std::string("Delete");
+const char *OperatorNode<Delete>::name_ = "Delete";
 template <>
-std::string OperatorNode<Update>::name_ = std::string("Update");
+const char *OperatorNode<Update>::name_ = "Update";
 template <>
-std::string OperatorNode<HashGroupBy>::name_ = std::string("HashGroupBy");
+const char *OperatorNode<HashGroupBy>::name_ = "HashGroupBy";
 template <>
-std::string OperatorNode<SortGroupBy>::name_ = std::string("SortGroupBy");
+const char *OperatorNode<SortGroupBy>::name_ = "SortGroupBy";
 template <>
-std::string OperatorNode<Distinct>::name_ = std::string("Distinct");
+const char *OperatorNode<Distinct>::name_ = "Distinct";
 template <>
-std::string OperatorNode<Aggregate>::name_ = std::string("Aggregate");
+const char *OperatorNode<Aggregate>::name_ = "Aggregate";
 template <>
-std::string OperatorNode<ExportExternalFile>::name_ = std::string("ExportExternalFile");
+const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
