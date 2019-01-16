@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/hash_util.h"
-#include "optimizer/property_set.h"
-
 #include <memory>
 #include <string>
+#include <vector>
+#include "common/hash_util.h"
+#include "optimizer/property_set.h"
 
 namespace terrier::optimizer {
 

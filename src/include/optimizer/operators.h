@@ -1,14 +1,16 @@
 #pragma once
 
+#include <unordered_map>
+#include <vector>
+#include <memory>
+#include <string>
+#include <utility>
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "optimizer/operator_node.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
 #include "type/value.h"
-
-#include <unordered_map>
-#include <vector>
 
 namespace terrier {
 
@@ -333,106 +335,6 @@ class Distinct : public OperatorNode<Distinct> {
  public:
   static Operator make();
 };
-
-//===--------------------------------------------------------------------===//
-template <>
-std::string OperatorNode<DummyScan>::name_ = "DummyScan";
-template <>
-std::string OperatorNode<SeqScan>::name_("SeqScan");
-template <>
-std::string OperatorNode<IndexScan>::name_("IndexScan");
-template <>
-std::string OperatorNode<ExternalFileScan>::name_ = "ExternalFileScan";
-template <>
-std::string OperatorNode<QueryDerivedScan>::name_ = "QueryDerivedScan";
-template <>
-std::string OperatorNode<OrderBy>::name_ = "OrderBy";
-template <>
-std::string OperatorNode<Limit>::name_ = "Limit";
-template <>
-std::string OperatorNode<InnerNLJoin>::name_ = "InnerNLJoin";
-template <>
-std::string OperatorNode<LeftNLJoin>::name_ = "LeftNLJoin";
-template <>
-std::string OperatorNode<RightNLJoin>::name_ = "RightNLJoin";
-template <>
-std::string OperatorNode<OuterNLJoin>::name_ = "OuterNLJoin";
-template <>
-std::string OperatorNode<InnerHashJoin>::name_ = "InnerHashJoin";
-template <>
-std::string OperatorNode<LeftHashJoin>::name_ = "LeftHashJoin";
-template <>
-std::string OperatorNode<RightHashJoin>::name_ = "RightHashJoin";
-template <>
-std::string OperatorNode<OuterHashJoin>::name_ = "OuterHashJoin";
-template <>
-std::string OperatorNode<Insert>::name_ = "Insert";
-template <>
-std::string OperatorNode<InsertSelect>::name_ = "InsertSelect";
-template <>
-std::string OperatorNode<Delete>::name_ = "Delete";
-template <>
-std::string OperatorNode<Update>::name_ = "Update";
-template <>
-std::string OperatorNode<HashGroupBy>::name_ = "HashGroupBy";
-template <>
-std::string OperatorNode<SortGroupBy>::name_ = "SortGroupBy";
-template <>
-std::string OperatorNode<Distinct>::name_ = "Distinct";
-template <>
-std::string OperatorNode<Aggregate>::name_ = "Aggregate";
-template <>
-std::string OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
-
-//===--------------------------------------------------------------------===//
-template <>
-OpType OperatorNode<DummyScan>::type_ = OpType::DummyScan;
-template <>
-OpType OperatorNode<SeqScan>::type_ = OpType::SeqScan;
-template <>
-OpType OperatorNode<IndexScan>::type_ = OpType::IndexScan;
-template <>
-OpType OperatorNode<ExternalFileScan>::type_ = OpType::ExternalFileScan;
-template <>
-OpType OperatorNode<QueryDerivedScan>::type_ = OpType::QueryDerivedScan;
-template <>
-OpType OperatorNode<OrderBy>::type_ = OpType::OrderBy;
-template <>
-OpType OperatorNode<Distinct>::type_ = OpType::Distinct;
-template <>
-OpType OperatorNode<Limit>::type_ = OpType::PhysicalLimit;
-template <>
-OpType OperatorNode<InnerNLJoin>::type_ = OpType::InnerNLJoin;
-template <>
-OpType OperatorNode<LeftNLJoin>::type_ = OpType::LeftNLJoin;
-template <>
-OpType OperatorNode<RightNLJoin>::type_ = OpType::RightNLJoin;
-template <>
-OpType OperatorNode<OuterNLJoin>::type_ = OpType::OuterNLJoin;
-template <>
-OpType OperatorNode<InnerHashJoin>::type_ = OpType::InnerHashJoin;
-template <>
-OpType OperatorNode<LeftHashJoin>::type_ = OpType::LeftHashJoin;
-template <>
-OpType OperatorNode<RightHashJoin>::type_ = OpType::RightHashJoin;
-template <>
-OpType OperatorNode<OuterHashJoin>::type_ = OpType::OuterHashJoin;
-template <>
-OpType OperatorNode<Insert>::type_ = OpType::Insert;
-template <>
-OpType OperatorNode<InsertSelect>::type_ = OpType::InsertSelect;
-template <>
-OpType OperatorNode<Delete>::type_ = OpType::Delete;
-template <>
-OpType OperatorNode<Update>::type_ = OpType::Update;
-template <>
-OpType OperatorNode<HashGroupBy>::type_ = OpType::HashGroupBy;
-template <>
-OpType OperatorNode<SortGroupBy>::type_ = OpType::SortGroupBy;
-template <>
-OpType OperatorNode<Aggregate>::type_ = OpType::Aggregate;
-template <>
-OpType OperatorNode<ExportExternalFile>::type_ = OpType::ExportExternalFile;
 
 }  // namespace optimizer
 }  // namespace terrier

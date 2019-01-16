@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <vector>
-
+#include <string>
 #include "optimizer/property.h"
 
 namespace terrier::optimizer {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <typeinfo>
-
+#include <string>
 #include "common/hash_util.h"
 #include "optimizer/optimizer_def.h"
 

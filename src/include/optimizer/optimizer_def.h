@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include <utility>
 #include <unordered_set>
 #include "common/macros.h"
 #include "parser/expression_defs.h"
