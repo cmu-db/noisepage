@@ -218,7 +218,7 @@ class TupleAccessStrategy {
   void Deallocate(const TupleSlot slot) const {
     TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
-    slot.GetBlock()->num_records_--;
+    slot.GetBlock()->insert_head_--;
   }
 
   /**
