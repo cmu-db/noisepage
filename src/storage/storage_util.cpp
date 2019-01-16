@@ -99,6 +99,7 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
   uint16_t num_4_byte_attrs = 0;
   uint16_t num_2_byte_attrs = 0;
   uint16_t num_1_byte_attrs = 0;
+  uint16_t num_varlen_byte_attrs = 0;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint8_t> attr_sizes({8});
@@ -121,18 +122,21 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
       case 1:
         num_1_byte_attrs++;
         break;
+      case VARLEN_COLUMN:
+        num_varlen_byte_attrs++;
       default:
         break;
     }
   }
 
   TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
-                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
+                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs + num_varlen_byte_attrs,
                  "Number of attr_sizes does not match the sum of attr counts.");
 
   // Initialize the offsets for each attr_size
-  uint16_t offset_8_byte_attrs = NUM_RESERVED_COLUMNS;
-  uint16_t offset_4_byte_attrs = num_8_byte_attrs;
+  auto offset_varlen_byte_attrs = static_cast<uint16_t>(NUM_RESERVED_COLUMNS);
+  auto offset_8_byte_attrs = static_cast<uint16_t>(offset_varlen_byte_attrs + num_varlen_byte_attrs);
+  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + num_8_byte_attrs - NUM_RESERVED_COLUMNS);
   auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
   auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
 
@@ -152,8 +156,11 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
       case 1:
         col_oid_to_id[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
         break;
-      default:
+      case VARLEN_COLUMN:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_varlen_byte_attrs++);
         break;
+      default:
+        throw std::runtime_error("unexpected switch case value");
     }
   }
 
