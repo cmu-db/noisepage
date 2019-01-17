@@ -51,6 +51,11 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
+  bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+
+  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
+
+  void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
    * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the

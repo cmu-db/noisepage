@@ -1,5 +1,6 @@
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_manager.h"
+
 namespace terrier::storage {
 byte *UndoBuffer::NewEntry(const uint32_t size) {
   if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
@@ -8,7 +9,8 @@ byte *UndoBuffer::NewEntry(const uint32_t size) {
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(new_segment) % 8 == 0, "a delta entry should be aligned to 8 bytes");
     buffers_.push_back(new_segment);
   }
-  return buffers_.back()->Reserve(size);
+  last_record_ = buffers_.back()->Reserve(size);
+  return last_record_;
 }
 
 byte *RedoBuffer::NewEntry(const uint32_t size) {
@@ -25,7 +27,8 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
   }
   TERRIER_ASSERT(buffer_seg_->HasBytesLeft(size),
                  "Staged write does not fit into redo buffer (even after a fresh one is requested)");
-  return buffer_seg_->Reserve(size);
+  last_record_ = buffer_seg_->Reserve(size);
+  return last_record_;
 }
 
 void RedoBuffer::Finalize(bool committed) {

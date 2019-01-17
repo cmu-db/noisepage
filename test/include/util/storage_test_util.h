@@ -1,6 +1,7 @@
 #pragma once
 #include <cinttypes>
 #include <cstdio>
+#include <cstring>
 #include <random>
 #include <unordered_map>
 #include <utility>
@@ -68,16 +69,13 @@ struct StorageTestUtil {
 
   // Returns a random layout that is guaranteed to be valid.
   template <typename Random>
-  static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator) {
-    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
-    // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
-    std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
-    attr_sizes[0] = 8;
-    attr_sizes[1] = 8;
-    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
-      attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
-    return storage::BlockLayout(attr_sizes);
+  static storage::BlockLayout RandomLayoutNoVarlen(const uint16_t max_cols, Random *const generator) {
+    return RandomLayout(max_cols, generator, false);
+  }
+
+  template <typename Random>
+  static storage::BlockLayout RandomLayoutWithVarlens(const uint16_t max_cols, Random *const generator) {
+    return RandomLayout(max_cols, generator, true);
   }
 
   // Fill the given location with the specified amount of random bytes, using the
@@ -91,15 +89,27 @@ struct StorageTestUtil {
   template <typename Random>
   static void PopulateRandomRow(storage::ProjectedRow *const row, const storage::BlockLayout &layout,
                                 const double null_bias, Random *const generator) {
+    std::bernoulli_distribution coin(1 - null_bias);
+    // I don't think this matters as a tunable thing?
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 10);
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
-      std::bernoulli_distribution coin(1 - null_bias);
 
-      if (coin(*generator))
-        FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
-      else
+      if (coin(*generator)) {
+        if (layout.IsVarlen(col)) {
+          uint32_t size = varlen_size(*generator);
+          byte *varlen = common::AllocationUtil::AllocateAligned(size);
+          FillWithRandomBytes(size, varlen, generator);
+          // varlen entries always start off not inlined
+          *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) = {varlen, size,
+                                                                                                     false};
+        } else {
+          FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
+        }
+      } else {
         row->SetNull(projection_list_idx);
+      }
     }
   }
 
@@ -145,24 +155,23 @@ struct StorageTestUtil {
                                   const RowType2 *const other) {
     if (one->NumColumns() != other->NumColumns()) return false;
     for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
-      if (one->ColumnIds()[projection_list_index] != other->ColumnIds()[projection_list_index]) return false;
-    }
+      // Check that the two point at the same column
+      storage::col_id_t one_id = one->ColumnIds()[projection_list_index];
+      storage::col_id_t other_id = other->ColumnIds()[projection_list_index];
+      if (one_id != other_id) return false;
 
-    for (uint16_t projection_list_index = 0; projection_list_index < one->NumColumns(); projection_list_index++) {
-      uint8_t attr_size = layout.AttrSize(one->ColumnIds()[projection_list_index]);
+      // Check that the two have the same content bit-wise
+      uint8_t attr_size = layout.AttrSize(one_id);
       const byte *one_content = one->AccessWithNullCheck(projection_list_index);
       const byte *other_content = other->AccessWithNullCheck(projection_list_index);
-
+      // Either both are null or neither is null.
       if (one_content == nullptr || other_content == nullptr) {
         if (one_content == other_content) continue;
         return false;
       }
-
-      if (storage::StorageUtil::ReadBytes(attr_size, one_content) !=
-          storage::StorageUtil::ReadBytes(attr_size, other_content))
-        return false;
+      // Otherwise, they should be bit-wise identical.
+      if (memcmp(one_content, other_content, attr_size) != 0) return false;
     }
-
     return true;
   }
 
@@ -172,10 +181,21 @@ struct StorageTestUtil {
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       storage::col_id_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
-      if (attr != nullptr) {
-        printf("col_id: %u is %" PRIx64 "\n", !col_id, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), attr));
-      } else {
+      if (attr == nullptr) {
         printf("col_id: %u is NULL\n", !col_id);
+        continue;
+      }
+
+      if (layout.IsVarlen(col_id)) {
+        auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
+        printf("col_id: %u is varlen, ptr %p, size %u, gathered %d, content ", !col_id, entry->Content(), entry->Size(),
+               entry->IsGathered());
+        for (uint8_t pos = 0; pos < entry->Size(); pos++) printf("%02x", static_cast<uint8_t>(entry->Content()[pos]));
+        printf("\n");
+      } else {
+        printf("col_id: %u is ", !col_id);
+        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) printf("%02x", static_cast<uint8_t>(attr[pos]));
+        printf("\n");
       }
     }
   }
@@ -185,34 +205,44 @@ struct StorageTestUtil {
   static void InsertTuple(const storage::ProjectedRow &tuple, const storage::TupleAccessStrategy &tested,
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
+    for (uint16_t projection_list_index = 0; projection_list_index < tuple.NumColumns(); projection_list_index++) {
+      storage::col_id_t col_id(static_cast<uint16_t>(projection_list_index + NUM_RESERVED_COLUMNS));
+      const byte *val_ptr = tuple.AccessWithNullCheck(projection_list_index);
+      if (val_ptr == nullptr)
+        tested.SetNull(slot, storage::col_id_t(projection_list_index));
+      else
+        memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
+    }
+  }
+
+  // Check that the written tuple is the same as the expected one. Does not follow varlen pointers to check that the
+  // underlying values are the same
+  static void CheckTupleEqualShallow(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
+                                     const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-      const byte *val_ptr = tuple.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
+      storage::col_id_t col_id(col);
+      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
+      byte *col_slot = tested.AccessWithNullCheck(slot, col_id);
       if (val_ptr == nullptr) {
-        tested.SetNull(slot, storage::col_id_t(col));
+        EXPECT_TRUE(col_slot == nullptr);
       } else {
-        // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), val_ptr);
-        storage::StorageUtil::WriteBytes(layout.AttrSize(storage::col_id_t(col)), val,
-                                         tested.AccessForceNotNull(slot, storage::col_id_t(col)));
+        EXPECT_TRUE(!memcmp(val_ptr, col_slot, layout.AttrSize(col_id)));
       }
     }
   }
 
-  // Check that the written tuple is the same as the expected one
-  static void CheckTupleEqual(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
-                              const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
-      byte *col_slot = tested.AccessWithNullCheck(slot, storage::col_id_t(col));
-      if (val_ptr != nullptr) {
-        // Read the value
-        uint64_t val = storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), val_ptr);
-        EXPECT_TRUE(col_slot != nullptr);
-        EXPECT_EQ(val, storage::StorageUtil::ReadBytes(layout.AttrSize(storage::col_id_t(col)), col_slot));
-      } else {
-        EXPECT_TRUE(col_slot == nullptr);
-      }
-    }
+ private:
+  template <typename Random>
+  static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
+    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
+    // We probably won't allow tables with fewer than 2 columns
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
+    std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
+    if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
+    attr_sizes[0] = 8;
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
+      attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
+    return storage::BlockLayout(attr_sizes);
   }
 };
 }  // namespace terrier

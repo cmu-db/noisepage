@@ -65,6 +65,7 @@ TEST_F(LargeGCTests, MixedReadWriteWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -96,6 +97,7 @@ TEST_F(LargeGCTests, MixedReadWriteHighThreadWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -127,6 +129,7 @@ TEST_F(LargeGCTests, LowAbortHighThroughputWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -158,6 +161,7 @@ TEST_F(LargeGCTests, LowAbortHighThroughputHighThreadWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -190,6 +194,7 @@ TEST_F(LargeGCTests, HighAbortRateWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -221,6 +226,7 @@ TEST_F(LargeGCTests, HighAbortRateHighThreadWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -252,6 +258,7 @@ TEST_F(LargeGCTests, TPCCishWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
@@ -283,6 +290,7 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
                                             .SetGenerator(&generator_)
                                             .SetGcOn(true)
                                             .SetBookkeeping(true)
+                                            .SetVarlenAllowed(true)
                                             .build();
     StartGC(tested.GetTxnManager());
     for (uint32_t batch = 0; batch * batch_size < num_txns; batch++) {
