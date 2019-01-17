@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <parser/expression/aggregate_expression.h>
 #include "common/exception.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
@@ -359,9 +360,10 @@ TEST_F(ParserTestBase, OldAggTest) {
 
     auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
-    //EXPECT_TRUE(statement->IsSelectDistinct()); //???
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
 
+    auto agg_expression = reinterpret_cast<AggregateExpression*>(statement->GetSelectColumns()[0].get());
+    EXPECT_TRUE(agg_expression->IsDistinct());
     auto child_expression = reinterpret_cast<TupleValueExpression*>(statement->GetSelectColumns()[0]->GetChild(0).get());
     EXPECT_EQ("id", child_expression->GetColumnName());
   }
