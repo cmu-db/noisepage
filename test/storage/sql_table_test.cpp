@@ -18,6 +18,8 @@ class SqlTableRW {
   ~SqlTableRW() {
     delete pri_;
     delete pr_map_;
+    delete schema_;
+    delete table_;
   }
 
   /**
@@ -85,7 +87,11 @@ class SqlTableRW {
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-    return *(reinterpret_cast<uint32_t *>(col_p));
+    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
+
+    delete txn;
+    delete[] read_buffer;
+    return ret_val;
   }
 
   /**
@@ -121,6 +127,8 @@ class SqlTableRW {
     // add the null terminator
     *(ret_st + size - 1) = 0;
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    delete txn;
+    delete[] read_buffer;
     return ret_st;
   }
 
