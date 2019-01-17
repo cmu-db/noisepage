@@ -252,17 +252,16 @@ def main():
         # Find our database
         build_path = find_compilation_database(db_path)
 
-    # TERRIER: we don't need to list checks
-    # try:
-    #     invocation = [args.clang_tidy_binary, '-list-checks']
-    #     invocation.append('-p=' + build_path)
-    #     if args.checks:
-    #         invocation.append('-checks=' + args.checks)
-    #     invocation.append('-')
-    #     subprocess.check_call(invocation)
-    # except:
-    #     print("Unable to run clang-tidy.", file=sys.stderr)
-    #     sys.exit(1)
+    try:
+        invocation = [args.clang_tidy_binary, '-list-checks']
+        invocation.append('-p=' + build_path)
+        if args.checks:
+            invocation.append('-checks=' + args.checks)
+        invocation.append('-')
+        subprocess.check_call(invocation)
+    except:
+        print("Unable to run clang-tidy.", file=sys.stderr)
+        sys.exit(1)
 
     # Load the database and extract all files.
     database = json.load(open(os.path.join(build_path, db_path)))
