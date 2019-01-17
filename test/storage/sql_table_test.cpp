@@ -158,13 +158,9 @@ class SqlTableRW {
 };
 
 struct SqlTableTests : public TerrierTest {
-  void SetUp() override {
-    TerrierTest::SetUp();
-  }
+  void SetUp() override { TerrierTest::SetUp(); }
 
-  void TearDown() override {
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { TerrierTest::TearDown(); }
 };
 
 // NOLINTNEXTLINE
