@@ -194,7 +194,8 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
     EXPECT_EQ(layout.NumColumns(), column_map.size() + NUM_RESERVED_COLUMNS);
 
     // Verify that the BlockLayout's columns are sorted by attribute size in descending order
-    for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
+    // Reserved columns precede all user defined columns, so exclude them.
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns() - 1; i++) {
       EXPECT_GE(layout.AttrSize(storage::col_id_t(i)),
                 layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1))));
     }
@@ -211,7 +212,9 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
           std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),
                        [&](const catalog::Schema::Column &col) -> bool { return col.GetOid() == col_oid; });
       // The attribute size in the schema should match the attribute size in the BlockLayout
-      EXPECT_EQ(schema_column->GetAttrSize(), layout.AttrSize(col_id));
+      // varlen columns have the high bit set, remove it
+      uint8_t sc_attr_size = schema_column->GetAttrSize() & INT8_MAX;
+      EXPECT_EQ(sc_attr_size, layout.AttrSize(col_id));
     }
   }
 }
