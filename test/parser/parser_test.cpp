@@ -1,8 +1,8 @@
+#include <parser/expression/aggregate_expression.h>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <parser/expression/aggregate_expression.h>
 #include "common/exception.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
@@ -331,7 +331,7 @@ TEST_F(ParserTestBase, OldBasicTest) {
   EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
   // cast stmt_list to derived class pointers
-  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
   EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
   EXPECT_EQ(ExpressionType::STAR, statement->GetSelectColumns()[0]->GetExpressionType());
 }
@@ -346,7 +346,7 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ(1, stmt_list.size());
     EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
   }
@@ -358,14 +358,14 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ(1, stmt_list.size());
     EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
 
-    auto agg_expression = reinterpret_cast<AggregateExpression*>(statement->GetSelectColumns()[0].get());
+    auto agg_expression = reinterpret_cast<AggregateExpression *>(statement->GetSelectColumns()[0].get());
     EXPECT_TRUE(agg_expression->IsDistinct());
-    auto child_expression = reinterpret_cast<TupleValueExpression*>(statement->GetSelectColumns()[0]->GetChild(0).get());
-    EXPECT_EQ("id", child_expression->GetColumnName());
+    auto child_expr = reinterpret_cast<TupleValueExpression *>(statement->GetSelectColumns()[0]->GetChild(0).get());
+    EXPECT_EQ("id", child_expr->GetColumnName());
   }
 
   {
@@ -374,7 +374,7 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ(1, stmt_list.size());
     EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_MAX, statement->GetSelectColumns()[0]->GetExpressionType());
   }
@@ -385,7 +385,7 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ(1, stmt_list.size());
     EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_MIN, statement->GetSelectColumns()[0]->GetExpressionType());
   }
@@ -397,25 +397,24 @@ TEST_F(ParserTestBase, OldGroupByTest) {
   std::string query = "SELECT * FROM foo GROUP BY id, name HAVING id > 10;";
   auto stmt_list = pgparser.BuildParseTree(query);
 
-  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
   auto columns = statement->GetSelectGroupBy()->GetColumns();
 
   EXPECT_EQ(2, columns.size());
-  //Assume the parsed column order is the same as in the query
-  EXPECT_EQ("id", reinterpret_cast<TupleValueExpression*>(columns[0].get())->GetColumnName());
-  EXPECT_EQ("name", reinterpret_cast<TupleValueExpression*>(columns[1].get())->GetColumnName());
+  // Assume the parsed column order is the same as in the query
+  EXPECT_EQ("id", reinterpret_cast<TupleValueExpression *>(columns[0].get())->GetColumnName());
+  EXPECT_EQ("name", reinterpret_cast<TupleValueExpression *>(columns[1].get())->GetColumnName());
 
   auto having = statement->GetSelectGroupBy()->GetHaving();
   EXPECT_EQ(ExpressionType::COMPARE_GREATER_THAN, having->GetExpressionType());
   EXPECT_EQ(2, having->GetChildrenSize());
 
-  auto name_exp = reinterpret_cast<TupleValueExpression*>(having->GetChild(0).get());
-  auto value_exp = reinterpret_cast<ConstantValueExpression*>(having->GetChild(1).get());
+  auto name_exp = reinterpret_cast<TupleValueExpression *>(having->GetChild(0).get());
+  auto value_exp = reinterpret_cast<ConstantValueExpression *>(having->GetChild(1).get());
 
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().GetType());
   EXPECT_EQ(10, value_exp->GetValue().GetIntValue());
-
 }
 
 // NOLINTNEXTLINE
@@ -563,7 +562,7 @@ TEST_F(ParserTestBase, OldNestedQueryTest) {
   auto stmt_list = pgparser.BuildParseTree(query);
 
   EXPECT_EQ(1, stmt_list.size());
-  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
 
   EXPECT_EQ("t", statement->GetSelectTable()->GetAlias());
   auto nested_statement = statement->GetSelectTable()->GetSelect();
@@ -577,9 +576,9 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   std::string query = "SELECT foo.name FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;";
   auto stmt_list = pgparser.BuildParseTree(query);
   EXPECT_EQ(1, stmt_list.size());
-  auto statement = reinterpret_cast<SelectStatement*>(stmt_list[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
 
-  auto select_expression = reinterpret_cast<TupleValueExpression*>(statement->GetSelectColumns()[0].get());
+  auto select_expression = reinterpret_cast<TupleValueExpression *>(statement->GetSelectColumns()[0].get());
   EXPECT_EQ("foo", select_expression->GetTableName());
   EXPECT_EQ("name", select_expression->GetColumnName());
 
@@ -598,13 +597,12 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   EXPECT_EQ(ExpressionType::COMPARE_EQUAL, where_expression->GetExpressionType());
   EXPECT_EQ(2, where_expression->GetChildrenSize());
 
-  auto child_0 = reinterpret_cast<TupleValueExpression*>(where_expression->GetChild(0).get());
-  auto child_1 = reinterpret_cast<TupleValueExpression*>(where_expression->GetChild(1).get());
+  auto child_0 = reinterpret_cast<TupleValueExpression *>(where_expression->GetChild(0).get());
+  auto child_1 = reinterpret_cast<TupleValueExpression *>(where_expression->GetChild(1).get());
   EXPECT_EQ("foo", child_0->GetTableName());
   EXPECT_EQ("id", child_0->GetColumnName());
   EXPECT_EQ("b", child_1->GetTableName());
   EXPECT_EQ("id", child_1->GetColumnName());
-
 }
 
 // NOLINTNEXTLINE
