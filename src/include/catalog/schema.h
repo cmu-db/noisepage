@@ -102,6 +102,10 @@ class Schema {
     return columns_[!col_id];
   }
 
+  /**
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   */
   Column GetColumn(const std::string &name) const {
     for (auto &c : columns_) {
       if (c.GetName() == name) {
