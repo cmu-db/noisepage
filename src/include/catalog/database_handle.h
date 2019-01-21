@@ -28,6 +28,7 @@ class DatabaseHandle {
      * @param oid the db_oid of the underlying database
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
+     * @param pg_database the pointer to the pg_database sql table
      */
     DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
                   std::shared_ptr<storage::SqlTable> pg_database)
