@@ -42,8 +42,8 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   EXPECT_NE(namespace_entry_ptr, nullptr);
   // test if we are getting the correct value
-  // oid has col_oid_t = 1007
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("oid")), 1009);
+  // oid has col_oid_t = 1012
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("oid")), 1012);
   // datname has col_oid_t = 1008
   EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("nspname")), 22222);
 }

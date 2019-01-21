@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "catalog/catalog_defs.h"
 #include "catalog/database_handle.h"
+#include "catalog/tablespace_handle.h"
 #include "common/strong_typedef.h"
 #include "storage/sql_table.h"
 namespace terrier::catalog {
@@ -38,6 +39,13 @@ class Catalog {
    * @return the corresponding database handle
    */
   DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
+
+  /**
+   * Return a database handle for given db_oid.
+   * @param db_oid the given db_oid
+   * @return the corresponding database handle
+   */
+  TablespaceHandle GetTablespaceHandle();
 
   /**
    * Get the pointer to a database-specific catalog sql table.
@@ -79,6 +87,8 @@ class Catalog {
    */
   col_oid_t GetNextColOid();
 
+  uint32_t GetNextOid();
+
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -88,6 +98,23 @@ class Catalog {
    * 2) It bootstraps the default database.
    */
   void Bootstrap();
+
+  /**
+   * Creates pg_database SQL table populates pg_database by inserting a default database row, terrier, into the
+   * pg_database table
+   * @param txn the bootstrapping transaction
+   * @param table_oid the table oid of pg_database
+   * @param start_col_oid the starting col oid for columns in pg_database.
+   */
+  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
+
+  /**
+   * Creates pg_tablespace SQL table and populates pg_tablespace
+   * @param txn the bootstrapping transaction
+   * @param table_oid the table oid of pg_tablespace
+   * @param start_col_oid the starting col oid for columns in pg_tablespace.
+   */
+  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid);
 
   /**
    * Bootstrap a database. Specifically, it
@@ -107,27 +134,14 @@ class Catalog {
    */
   void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
+
   /**
    * A dummy call back function for committing bootstrap transaction
    */
   static void BootstrapCallback(void * /*unused*/) {}
-
-  /**
-   * Creates pg_database SQL table populates pg_database by inserting a default database row, terrier, into the
-   * pg_database table
-   * @param txn the bootstrapping transaction
-   * @param table_oid the table oid of pg_database
-   * @param start_col_oid the starting col oid for columns in pg_database.
-   */
-  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
-
-  /**
-   * Creates pg_tablespace SQL table and populates pg_tablespace
-   * @param txn the bootstrapping transaction
-   * @param table_oid the table oid of pg_tablespace
-   * @param start_col_oid the starting col oid for columns in pg_tablespace.
-   */
-  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid);
 
  private:
   transaction::TransactionManager *txn_manager_;
