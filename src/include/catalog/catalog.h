@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include "catalog/catalog_defs.h"
 #include "catalog/database_handle.h"
@@ -18,29 +19,10 @@ class DatabaseHandle;
  * In addition, for namespace_oid_t, table_oid_t, and col_oid_t, we only guarantee uniqueness inside a database,
  * which means that the table_oid for pg_attribute in database A could be the same as pg_attribute in database B.
  *
- * db_oid_t:
- *  0          reserved
- *  1          is reserved for default database - terrier
- *  2+         are used for new databases
+ * db_oid_t, namespace_oid_t, table_oid_t, col_oid_t come from the same global counter, so, inside a database, the
+ * values of oids should never be the same.
  *
- * namespace_oid_t:
- *  0          reserved
- *  1          is reserved for pg_catalog namespace
- *  2          is reserved for public namespace
- *  3          is reserved for temp namespace
- *  100+       are used for other user-defined namespaces
- *
- * table_oid_t:
- *  0          reserved
- *  1-999      are reserved for global catalog tables
- *  1000-9999  are reserved for database-specific catalog tables
- *  10000+     are used for user-defined tables in a database
- *
- * col_oid_t
- *  0          reserved
- *  1-999      are reserved for columns in global catalog tables
- *  1000-9999  are reserved for columns in database-specific catalog tables
- *  10000+     are used for user-defined columns
+ * TODO(yangjuns): Each database should have its own global counter
  */
 class Catalog {
  public:
@@ -65,7 +47,13 @@ class Catalog {
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
-  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, std::string table_name);
+  /**
+   * Get the pointer to a database-specific catalog sql table.
+   * @param db_oid
+   * @param table_name the name of the table
+   * @return a pointer to the catalog
+   */
+  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * Get the next database_oid
@@ -150,6 +138,7 @@ class Catalog {
   std::shared_ptr<storage::SqlTable> pg_tablespace_;
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
+  // map from (db_oid, catalog name) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid
   std::atomic<uint32_t> oid_;

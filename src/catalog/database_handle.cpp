@@ -1,9 +1,9 @@
+#include "catalog/database_handle.h"
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
-
 #include "catalog/catalog.h"
-#include "catalog/database_handle.h"
 #include "catalog/schema.h"
 #include "loggers/main_logger.h"
 #include "storage/block_layout.h"
@@ -16,7 +16,8 @@ DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<s
     : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
-  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, "pg_namespace"));
+  std::string pg_namespace("pg_namespace");
+  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, pg_namespace));
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,

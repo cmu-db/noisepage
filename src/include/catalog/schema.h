@@ -102,9 +102,9 @@ class Schema {
     return columns_[!col_id];
   }
 
-  Column GetColumn(std::string name) const {
-    for(auto &c: columns_){
-      if(c.GetName() == name){
+  Column GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.GetName() == name) {
         return c;
       }
     }

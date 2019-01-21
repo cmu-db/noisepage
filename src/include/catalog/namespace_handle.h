@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "catalog/catalog_defs.h"
@@ -26,19 +27,23 @@ class NamespaceHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map, std::shared_ptr<storage::SqlTable> pg_namespace)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_(pg_namespace) {}
+    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
+                   std::shared_ptr<storage::SqlTable> pg_namespace)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_(std::move(pg_namespace)) {}
 
     /**
-     * Get the value of an attribute
+     * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute
      * @return a pointer to the attribute value
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }
 
-    byte *GetValue(std::string name) {
-      return GetValue(pg_namespace_->GetSchema().GetColumn(name).GetOid());
-    }
+    /**
+     * Get the value of an attribute by name
+     * @param name the name of the attribute
+     * @return a pointer to the attribute value
+     */
+    byte *GetValue(const std::string &name) { return GetValue(pg_namespace_->GetSchema().GetColumn(name).GetOid()); }
 
     /**
      * Return the namespace_oid of the underlying database
@@ -78,7 +83,16 @@ class NamespaceHandle {
    */
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, namespace_oid_t oid);
 
-  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, std::string name);
+  /**
+   * Get a namespace entry for a given namespace. It's essentially equivalent to reading a
+   * row from pg_namespace. It has to be executed in a transaction context.
+   *
+   * @param txn the transaction that initiates the read
+   * @param name the namespace of the database the transaction wants to read
+   * @return a shared pointer to Namespace entry; NULL if the namespace doesn't exist in
+   * the database
+   */
+  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   std::shared_ptr<storage::SqlTable> pg_namespace_;
