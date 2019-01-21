@@ -1,5 +1,6 @@
 #include "storage/storage_util.h"
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -35,31 +36,13 @@ struct StorageUtilTests : public TerrierTest {
   }
 };
 
-// Write a value to a position, read from the same position and compare results. Repeats for num_iterations.
-// NOLINTNEXTLINE
-TEST_F(StorageUtilTests, ReadWriteBytes) {
-  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    // generate a random val
-    std::vector<uint8_t> valid_sizes{1, 2, 4, 8};
-    std::uniform_int_distribution<uint8_t> idx(0, static_cast<uint8_t>(valid_sizes.size() - 1));
-    uint8_t attr_size = valid_sizes[idx(generator_)];
-    uint64_t val = 0;
-    StorageTestUtil::FillWithRandomBytes(attr_size, reinterpret_cast<byte *>(&val), &generator_);
-
-    // Write and read again to see if we get the same value;
-    byte pos[8];
-    storage::StorageUtil::WriteBytes(attr_size, val, pos);
-    EXPECT_EQ(val, storage::StorageUtil::ReadBytes(attr_size, pos));
-  }
-}
-
 // Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected
 // row and compare results for each column. Repeats for num_iterations.
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToProjectedRow) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -69,7 +52,8 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 
     std::bernoulli_distribution null_dist(null_ratio_(generator_));
     for (uint16_t i = 0; i < row->NumColumns(); ++i) {
-      uint8_t attr_size = layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1)));
+      storage::col_id_t col_id(static_cast<uint16_t>(i + 1));
+      uint8_t attr_size = layout.AttrSize(col_id);
       byte *from = nullptr;
       bool is_null = null_dist(generator_);
       if (!is_null) {
@@ -82,8 +66,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
       if (is_null) {
         EXPECT_EQ(row->AccessWithNullCheck(i), nullptr);
       } else {
-        EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
-                  storage::StorageUtil::ReadBytes(attr_size, row->AccessWithNullCheck(i)));
+        EXPECT_TRUE(!memcmp(from, row->AccessWithNullCheck(i), attr_size));
         delete[] from;
       }
     }
@@ -96,7 +79,7 @@ TEST_F(StorageUtilTests, CopyToProjectedRow) {
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, CopyToTupleSlot) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
     TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
@@ -120,8 +103,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
       if (is_null) {
         EXPECT_EQ(tested.AccessWithNullCheck(slot, col_id), nullptr);
       } else {
-        EXPECT_EQ(storage::StorageUtil::ReadBytes(attr_size, from),
-                  storage::StorageUtil::ReadBytes(attr_size, tested.AccessWithNullCheck(slot, col_id)));
+        EXPECT_TRUE(!memcmp(from, tested.AccessWithNullCheck(slot, col_id), attr_size));
         delete[] from;
       }
     }
@@ -134,7 +116,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
 TEST_F(StorageUtilTests, ApplyDelta) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     // get a random table layout
-    storage::BlockLayout layout = StorageTestUtil::RandomLayout(common::Constants::MAX_COL, &generator_);
+    storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
 
     // the old row
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -144,16 +126,9 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
 
     // store the values as a reference
-    std::vector<std::pair<byte *, uint64_t>> copy;
-    for (uint16_t i = 0; i < old->NumColumns(); ++i) {
-      storage::col_id_t col_id(i);
-      byte *ptr = old->AccessWithNullCheck(i);
-      if (ptr != nullptr)
-        copy.emplace_back(
-            std::make_pair(ptr, storage::StorageUtil::ReadBytes(layout.AttrSize(col_id + NUM_RESERVED_COLUMNS), ptr)));
-      else
-        copy.emplace_back(std::make_pair(ptr, 0));
-    }
+    auto *copy_bufffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *copy = reinterpret_cast<storage::ProjectedRow *>(copy_bufffer);
+    memcpy(copy, old, initializer.ProjectedRowSize());
 
     // the delta change to apply
     std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
@@ -175,24 +150,25 @@ TEST_F(StorageUtilTests, ApplyDelta) {
         EXPECT_TRUE(old_val_ptr == nullptr);
       } else {
         // check that the change has been applied
-        EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col), delta_val_ptr),
-                  storage::StorageUtil::ReadBytes(layout.AttrSize(col), old_val_ptr));
+        EXPECT_TRUE(!memcmp(delta_val_ptr, old_val_ptr, layout.AttrSize(col)));
       }
     }
 
     // check whether other cols have been polluted
     std::unordered_set<storage::col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
+      storage::col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
       if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
         byte *ptr = old->AccessWithNullCheck(i);
-        EXPECT_EQ(ptr, copy[i].first);
-        if (ptr != nullptr) {
-          storage::col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
-          EXPECT_EQ(storage::StorageUtil::ReadBytes(layout.AttrSize(col_id), ptr), copy[i].second);
+        if (ptr == nullptr) {
+          EXPECT_TRUE(copy->IsNull(i));
+        } else {
+          EXPECT_TRUE(!memcmp(ptr, copy->AccessWithNullCheck(i), layout.AttrSize(col_id)));
         }
       }
     }
 
+    delete[] copy_bufffer;
     delete[] delta_buffer;
     delete[] old_buffer;
   }
@@ -218,7 +194,8 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
     EXPECT_EQ(layout.NumColumns(), column_map.size() + NUM_RESERVED_COLUMNS);
 
     // Verify that the BlockLayout's columns are sorted by attribute size in descending order
-    for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
+    // Reserved columns precede all user defined columns, so exclude them.
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns() - 1; i++) {
       EXPECT_GE(layout.AttrSize(storage::col_id_t(i)),
                 layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1))));
     }
@@ -235,7 +212,9 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
           std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),
                        [&](const catalog::Schema::Column &col) -> bool { return col.GetOid() == col_oid; });
       // The attribute size in the schema should match the attribute size in the BlockLayout
-      EXPECT_EQ(schema_column->GetAttrSize(), layout.AttrSize(col_id));
+      // varlen columns have the high bit set, remove it
+      uint8_t sc_attr_size = schema_column->GetAttrSize() & INT8_MAX;
+      EXPECT_EQ(sc_attr_size, layout.AttrSize(col_id));
     }
   }
 }

@@ -91,8 +91,7 @@ class RawConcurrentBitmap {
 
   /**
    * Returns the position of the first unset bit, if it exists.
-   * We search beginning from start_pos, but will wrap around to the beginning
-   * if we can't find an unset bit, so every bit in the bitmap will be tried once.
+   * We search beginning from start_pos. It does not wrap back if it runs out of bits.
    * Note that this result is immediately stale.
    * Furthermore, this function assumes byte 0 is aligned to 64 bits.
    * @param bitmap_num_bits number of bits in the bitmap.
@@ -164,13 +163,6 @@ class RawConcurrentBitmap {
         bits_left -= BYTE_SIZE - (start_pos % BYTE_SIZE);
       }
     }
-
-    // if we didn't start searching from 0, we want to wrap around
-    // there are exactly start_pos bits before our current start_pos
-    if (start_pos != 0) {
-      return FirstUnsetPos(start_pos, 0, out_pos);
-    }
-
     return false;
   }
 
