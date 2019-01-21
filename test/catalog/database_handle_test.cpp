@@ -40,9 +40,9 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   EXPECT_NE(db_entry_ptr, nullptr);
   // test if we are getting the correct value
-  // oid has col_oid_t = 1
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1))), !terrier_oid);
-  // datname has col_oid_t = 2
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(2))), 12345);
+  // oid has col_oid_t = 1002
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1002))), !terrier_oid);
+  // datname has col_oid_t = 1003
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1003))), 12345);
 }
 }  // namespace terrier

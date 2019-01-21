@@ -9,19 +9,23 @@
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
-
+#include <iostream>
 namespace terrier::catalog {
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, namespace_oid_t oid) {
   // TODO(yangjun): we can cache this
+  CATALOG_LOG_INFO("inside namepsace handle ... ");
   std::vector<col_oid_t> cols;
+  std::cout << pg_namespace_ << std::endl;
   for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
     cols.emplace_back(c.GetOid());
   }
+  CATALOG_LOG_INFO("before initializer...");
   auto row_pair = pg_namespace_->InitializerForProjectedRow(cols);
   auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
+  CATALOG_LOG_INFO("Before interate ..");
   // Find the row using sequential scan
   auto tuple_iter = pg_namespace_->begin();
   for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {

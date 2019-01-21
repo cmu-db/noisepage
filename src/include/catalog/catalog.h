@@ -149,10 +149,8 @@ class Catalog {
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
 
-  std::atomic<db_oid_t> db_oid_;
-  std::atomic<namespace_oid_t> namespace_oid_;
-  std::atomic<table_oid_t> table_oid_;
-  std::atomic<col_oid_t> col_oid_;
+  // this oid serves as a global counter for different strong types of oid
+  std::atomic<uint32_t> oid_;
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;

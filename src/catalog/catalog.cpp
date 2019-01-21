@@ -13,11 +13,7 @@ namespace terrier::catalog {
 std::shared_ptr<Catalog> terrier_catalog;
 
 Catalog::Catalog(transaction::TransactionManager *txn_manager)
-    : txn_manager_(txn_manager),
-      db_oid_(DEFAULT_DATABASE_OID),
-      namespace_oid_(PG_CATALOG_OID),
-      table_oid_(DEFAULT_TABLE_OID),
-      col_oid_(DEFAULT_COL_OID) {
+    : txn_manager_(txn_manager), oid_(START_OID){
   CATALOG_LOG_TRACE("Creating catalog ...");
   Bootstrap();
 }
@@ -28,33 +24,32 @@ std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, 
   return map_[db_oid][table_oid];
 }
 
-db_oid_t Catalog::GetNextDBOid() { return db_oid_++; }
+db_oid_t Catalog::GetNextDBOid() { return db_oid_t(oid_++); }
 
-namespace_oid_t Catalog::GetNextNamepsaceOid() { return namespace_oid_++; }
+namespace_oid_t Catalog::GetNextNamepsaceOid() { return namespace_oid_t(oid_++); }
 
-table_oid_t Catalog::GetNextTableOid() { return table_oid_++; }
+table_oid_t Catalog::GetNextTableOid() { return table_oid_t(oid_++); }
 
-col_oid_t Catalog::GetNextColOid() { return col_oid_++; }
+col_oid_t Catalog::GetNextColOid() { return col_oid_t(oid_++); }
 
 void Catalog::Bootstrap() {
   CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-  CATALOG_LOG_TRACE("Creating pg_database table ...");
+  CATALOG_LOG_INFO("Creating pg_database table ...");
   CreatePGDatabase(txn, GetNextTableOid());
-  CATALOG_LOG_TRACE("Creating pg_tablespace table ...");
+  CATALOG_LOG_INFO("Creating pg_tablespace table ...");
   CreatePGTablespace(txn, GetNextTableOid());
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
   txn_manager_->Commit(txn, BootstrapCallback, nullptr);
   delete txn;
+  CATALOG_LOG_INFO("Finished bootstraping ...");
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // refer to OID assignment scheme in catalog.h
-  table_oid_.store(DATABASE_CATALOG_TABLE_START_OID);
-  col_oid_.store(DATABASE_CATALOG_COL_START_OID);
   // create pg_namespace
   table_oid_t pg_namespace_oid(GetNextTableOid());
+  CATALOG_LOG_INFO("pg_namespace oid (table_oid) {}", !pg_namespace_oid);
   std::vector<Schema::Column> cols;
   cols.emplace_back("oid", type::TypeId::INTEGER, false, GetNextColOid());
   // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
@@ -76,7 +71,8 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
   auto *pg_namespace_col_oid = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *pg_namespace_col_oid = !PG_CATALOG_OID;
+  *pg_namespace_col_oid = !GetNextNamepsaceOid();
+  CATALOG_LOG_INFO("pg_catalog oid (namespace_oid) {}", *pg_namespace_col_oid);
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
   auto *pg_namespace_col_nspname =
       reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
@@ -97,7 +93,7 @@ void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t
   Schema schema(cols);
   pg_database_ = std::make_shared<storage::SqlTable>(&block_store_, schema, pg_database_oid);
 
-  CATALOG_LOG_TRACE("Creating terrier database ...");
+  CATALOG_LOG_INFO("Creating terrier database ...");
   // insert rows to pg_database
   std::vector<col_oid_t> col_ids;
   for (const auto &c : pg_database_->GetSchema().GetColumns()) {
