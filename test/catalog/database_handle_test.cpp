@@ -41,8 +41,8 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   EXPECT_NE(db_entry_ptr, nullptr);
   // test if we are getting the correct value
   // oid has col_oid_t = 1002
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1002))), !terrier_oid);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue("oid")), !terrier_oid);
   // datname has col_oid_t = 1003
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue(catalog::col_oid_t(1003))), 12345);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue("datname")), 12345);
 }
 }  // namespace terrier

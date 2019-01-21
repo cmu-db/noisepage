@@ -29,14 +29,18 @@ class DatabaseHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)) {}
+    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map, std::shared_ptr<storage::SqlTable> pg_database)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_database_(pg_database) {}
     /**
      * Get the value of an attribute
      * @param col the col_oid of the attribute
      * @return a pointer to the attribute value
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
+
+    byte *GetValue(std::string name) {
+      return GetValue(pg_database_->GetSchema().GetColumn(name).GetOid());
+    }
 
     /**
      * Return the db_oid of the underlying database
@@ -56,6 +60,7 @@ class DatabaseHandle {
     db_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
+    std::shared_ptr<storage::SqlTable> pg_database_;
   };
 
   /**
@@ -87,6 +92,7 @@ class DatabaseHandle {
    */
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid);
 
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, std::string db_name);
  private:
   Catalog *catalog_;
   db_oid_t oid_;

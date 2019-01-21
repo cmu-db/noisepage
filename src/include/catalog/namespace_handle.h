@@ -26,8 +26,8 @@ class NamespaceHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)) {}
+    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map, std::shared_ptr<storage::SqlTable> pg_namespace)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_(pg_namespace) {}
 
     /**
      * Get the value of an attribute
@@ -35,6 +35,10 @@ class NamespaceHandle {
      * @return a pointer to the attribute value
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }
+
+    byte *GetValue(std::string name) {
+      return GetValue(pg_namespace_->GetSchema().GetColumn(name).GetOid());
+    }
 
     /**
      * Return the namespace_oid of the underlying database
@@ -54,6 +58,7 @@ class NamespaceHandle {
     namespace_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
+    std::shared_ptr<storage::SqlTable> pg_namespace_;
   };
 
   /**
@@ -72,6 +77,8 @@ class NamespaceHandle {
    * the database
    */
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, namespace_oid_t oid);
+
+  std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, std::string name);
 
  private:
   std::shared_ptr<storage::SqlTable> pg_namespace_;

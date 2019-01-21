@@ -38,16 +38,16 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   auto db_handle = catalog_->GetDatabaseHandle(terrier_oid);
   auto namespace_handle = db_handle.GetNamespaceHandle();
   // get the pg_catalog namespace
-  // pg_catalog has namespace_oid 1009
-  catalog::namespace_oid_t pg_catalog_oid(1009);
+//  // pg_catalog has namespace_oid 1009
+//  catalog::namespace_oid_t pg_catalog_oid(1009);
   LOG_INFO("Before ....");
-  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, pg_catalog_oid);
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   LOG_INFO("After ...");
   EXPECT_NE(namespace_entry_ptr, nullptr);
   // test if we are getting the correct value
   // oid has col_oid_t = 1007
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue(catalog::col_oid_t(1007))), !pg_catalog_oid);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("oid")), 1009);
   // datname has col_oid_t = 1008
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue(catalog::col_oid_t(1008))), 22222);
+  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("nspname")), 22222);
 }
 }  // namespace terrier

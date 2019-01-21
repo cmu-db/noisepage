@@ -100,6 +100,16 @@ class Schema {
     TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[!col_id];
   }
+
+  Column GetColumn(std::string name) const {
+    for(auto &c: columns_){
+      if(c.GetName() == name){
+        return c;
+      }
+    }
+    TERRIER_ASSERT(false, "column name doesn't exist");
+    return columns_[0];
+  }
   /**
    * @return description of this SQL table's schema as a collection of Columns
    */

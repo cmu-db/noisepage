@@ -65,6 +65,8 @@ class Catalog {
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
+  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, std::string table_name);
+
   /**
    * Get the next database_oid
    * @return next database_oid
@@ -148,7 +150,7 @@ class Catalog {
   std::shared_ptr<storage::SqlTable> pg_tablespace_;
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
-
+  std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid
   std::atomic<uint32_t> oid_;
 };

@@ -16,7 +16,7 @@ DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<s
     : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
-  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, table_oid_t(1006)));
+  return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, "pg_namespace"));
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
@@ -37,7 +37,7 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   for (; tuple_iter != pg_database_->end(); tuple_iter++) {
     pg_database_->Select(txn, *tuple_iter, read);
     if ((*reinterpret_cast<db_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
-      return std::make_shared<DatabaseEntry>(oid_, read, row_pair.second);
+      return std::make_shared<DatabaseEntry>(oid_, read, row_pair.second, pg_database_);
     }
   }
   delete[] read_buffer;

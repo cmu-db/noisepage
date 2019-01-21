@@ -24,6 +24,10 @@ std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, 
   return map_[db_oid][table_oid];
 }
 
+std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, std::string table_name) {
+  return map_[db_oid][name_map_[db_oid][table_name]];
+}
+
 db_oid_t Catalog::GetNextDBOid() { return db_oid_t(oid_++); }
 
 namespace_oid_t Catalog::GetNextNamepsaceOid() { return namespace_oid_t(oid_++); }
@@ -59,7 +63,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   std::shared_ptr<storage::SqlTable> pg_namespace =
       std::make_shared<storage::SqlTable>(&block_store_, schema, pg_namespace_oid);
   map_[db_oid][pg_namespace_oid] = pg_namespace;
-
+  name_map_[db_oid]["pg_namespace"] = pg_namespace_oid;
   // create a catalog namespace
   // insert rows into pg_namespace
   std::vector<col_oid_t> col_ids;
