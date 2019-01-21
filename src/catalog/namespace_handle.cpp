@@ -41,16 +41,13 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
   // TODO(yangjun): we can cache this
-  CATALOG_LOG_TRACE("inside namepsace handle ... ");
   std::vector<col_oid_t> cols;
   for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
     cols.emplace_back(c.GetOid());
   }
-  CATALOG_LOG_TRACE("before initializer...");
   auto row_pair = pg_namespace_->InitializerForProjectedRow(cols);
   auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  CATALOG_LOG_TRACE("Before interate ..");
   // Find the row using sequential scan
   auto tuple_iter = pg_namespace_->begin();
   for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {
