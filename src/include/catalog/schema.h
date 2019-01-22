@@ -105,6 +105,7 @@ class Schema {
   /**
    * @param name name of the Column to access
    * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
    */
   Column GetColumn(const std::string &name) const {
     for (auto &c : columns_) {
@@ -112,8 +113,7 @@ class Schema {
         return c;
       }
     }
-    TERRIER_ASSERT(false, "column name doesn't exist");
-    return columns_[0];
+    throw std::out_of_range("Column name doesn't exist");
   }
   /**
    * @return description of this SQL table's schema as a collection of Columns

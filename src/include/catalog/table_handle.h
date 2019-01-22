@@ -49,6 +49,7 @@ class TableHandle {
      * Get the value of an attribute.
      * @param name the name of the attribute.
      * @return a pointer to the attribute value
+     * @throw std::out_of_range if the attribute doesn't exist.
      */
     byte *GetValue(const std::string &name) {
       CATALOG_LOG_TRACE("Getting the value of attribute {} ...", name);
@@ -142,8 +143,7 @@ class TableHandle {
         }
         return nullptr;
       }
-      TERRIER_ASSERT(false, "Non-existing attribute name");
-      return nullptr;
+      throw std::out_of_range("Attribute name doesn't exist");
     }
 
     /**

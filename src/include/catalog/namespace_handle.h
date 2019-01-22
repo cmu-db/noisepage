@@ -38,13 +38,15 @@ class NamespaceHandle {
      * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute
      * @return a pointer to the attribute value
+     * @throw std::out_of_range if the column doesn't exist.
      */
-    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_[col]); }
+    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
 
     /**
      * Get the value of an attribute by name
      * @param name the name of the attribute
      * @return a pointer to the attribute value
+     * @throw std::out_of_range if the column doesn't exist.
      */
     byte *GetValue(const std::string &name) { return GetValue(pg_namespace_->GetSchema().GetColumn(name).GetOid()); }
 
