@@ -19,7 +19,7 @@ namespace terrier::catalog {
 class NamespaceHandle {
  public:
   /**
-   * A database entry represent a row in pg_namespace catalog.
+   * A namespace entry represent a row in pg_namespace catalog.
    */
   class NamespaceEntry {
    public:

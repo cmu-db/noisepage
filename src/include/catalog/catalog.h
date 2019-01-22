@@ -29,7 +29,7 @@ class DatabaseHandle;
  *     "terrier"        12345
  *
  *     "pg_database"    10001
- *     "pg_tablespce"   10002
+ *     "pg_tablespace"  10002
  *     "pg_namespace"   10003
  *     "pg_class"       10004
  *
@@ -61,23 +61,30 @@ class Catalog {
 
   /**
    * Get the pointer to a catalog in a database by db_oid, including global catalogs.
+   *
    * @param db_oid the database the catalog belongs to
    * @param table_oid the table oid of the catalog
    * @return a pointer to the catalog
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * Get the pointer to a catalog in a database by name, including global catalogs.
+   *
    * @param db_oid the database the catalog belongs to
    * @param table_name the name of the catalog
    * @return a pointer to the catalog
+   * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
-   * @return uint32_t
+   *
+   * This function is atomic.
+   *
+   * @return uint32_t the next oid available
    */
   uint32_t GetNextOid();
 
@@ -122,6 +129,7 @@ class Catalog {
    * It is used for bootstrapping both default database and user-defined database.
    * After bootstrapping a user-defined database, the initial state is an exact
    * copy of initial state of a template database.
+   *
    * * @param db_oid the oid of the database you are trying to bootstrap
    */
   void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);

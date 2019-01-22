@@ -147,7 +147,7 @@ class TableHandle {
     }
 
     /**
-     * Destruct namespace entry. It frees the memory for storing the projected row.
+     * Destruct namespace entry. It frees the memory for storing allocated memory.
      */
     ~TableEntry() {
       for (auto &addr : ptrs_) delete[] addr;

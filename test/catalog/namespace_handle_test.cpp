@@ -38,13 +38,9 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   auto db_handle = catalog_->GetDatabaseHandle(terrier_oid);
   auto namespace_handle = db_handle.GetNamespaceHandle();
   // get the pg_catalog namespace
-  // pg_catalog has namespace_oid 1009
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   EXPECT_NE(namespace_entry_ptr, nullptr);
-  // test if we are getting the correct value
-  // oid has col_oid_t = 1012
   EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("oid")), 1012);
-  // datname has col_oid_t = 1008
   EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("nspname")), 30001);
 }
 }  // namespace terrier

@@ -23,11 +23,11 @@ DatabaseHandle Catalog::GetDatabaseHandle(db_oid_t db_oid) { return DatabaseHand
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
 
 std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
-  return map_[db_oid][table_oid];
+  return map_.at(db_oid).at(table_oid);
 }
 
 std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name) {
-  return GetDatabaseCatalog(db_oid, name_map_[db_oid][table_name]);
+  return GetDatabaseCatalog(db_oid, name_map_.at(db_oid).at(table_name));
 }
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
@@ -43,7 +43,7 @@ void Catalog::Bootstrap() {
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
   txn_manager_->Commit(txn, BootstrapCallback, nullptr);
   delete txn;
-  CATALOG_LOG_TRACE("Finished bootstraping ...");
+  CATALOG_LOG_TRACE("Finished");
 }
 
 void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid) {
@@ -105,7 +105,6 @@ void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid
   byte *row_buffer, *first;
   storage::ProjectedRow *insert;
 
-  //  CATALOG_LOG_TRACE("Inserting pg_global to pg_tablespace...");
   // insert pg_global
   row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   insert = row_pair.first.InitializeRow(row_buffer);
@@ -120,7 +119,6 @@ void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid
   pg_tablespace_->Insert(txn, *insert);
   delete[] row_buffer;
 
-  //  CATALOG_LOG_TRACE("Inserting pg_default to pg_tablespace...");
   // insert pg_default
   row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   insert = row_pair.first.InitializeRow(row_buffer);
