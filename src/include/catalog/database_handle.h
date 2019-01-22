@@ -12,6 +12,7 @@
 namespace terrier::catalog {
 
 class Catalog;
+class NamespaceHandle;
 /**
  * A database handle represents a database in the system. It's the entry point for access data
  * stored in this database.

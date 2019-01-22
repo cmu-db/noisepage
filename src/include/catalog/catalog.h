@@ -24,6 +24,19 @@ class DatabaseHandle;
  * values of oids should never be the same.
  *
  * TODO(yangjuns): Each database should have its own global counter
+ *
+ * NOTE: At this point we don't support varlen. For tables that needs to store strings, we use integers instead.
+ *     "terrier"        12345
+ *
+ *     "pg_database"    10001
+ *     "pg_tablespce"   10002
+ *     "pg_namespace"   10003
+ *     "pg_class"       10004
+ *
+ *     "pg_global"      20001
+ *     "pg_default"     20002
+ *
+ *     "pg_catalog"     30001
  */
 class Catalog {
  public:
@@ -48,7 +61,7 @@ class Catalog {
   TablespaceHandle GetTablespaceHandle();
 
   /**
-   * Get the pointer to a database-specific catalog sql table.
+   * Get the pointer to a catalog in a database by db_oid, including global catalogs.
    * @param db_oid the database the catalog belongs to
    * @param table_oid the table oid of the catalog
    * @return a pointer to the catalog
@@ -56,9 +69,9 @@ class Catalog {
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
-   * Get the pointer to a database-specific catalog sql table.
-   * @param db_oid
-   * @param table_name the name of the table
+   * Get the pointer to a catalog in a database by name, including global catalogs.
+   * @param db_oid the database the catalog belongs to
+   * @param table_name the name of the catalog
    * @return a pointer to the catalog
    */
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);

@@ -40,6 +40,8 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
+  uint32_t temp_name = 0;
+  if (name == "pg_catalog") temp_name = 30001;
   // TODO(yangjun): we can cache this
   std::vector<col_oid_t> cols;
   for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
@@ -53,13 +55,23 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
   for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {
     pg_namespace_->Select(txn, *tuple_iter, read);
     // TODO(yangjuns): we don't support strings at the moment
-    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == 22222) {
+    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == temp_name) {
       namespace_oid_t oid(*reinterpret_cast<namespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]])));
       return std::make_shared<NamespaceEntry>(oid, read, row_pair.second, pg_namespace_);
     }
   }
   delete[] read_buffer;
   return nullptr;
+}
+
+TableHandle NamespaceHandle::GetTableHandle() {
+  CATALOG_LOG_TRACE("Getting the table handle ...");
+  std::string pg_class("pg_class");
+  std::string pg_namespace("pg_namespace");
+  std::string pg_tablespace("pg_tablespace");
+  return TableHandle(catalog_, db_oid_, catalog_->GetDatabaseCatalog(db_oid_, pg_class),
+                     catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
+                     catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }
 
 }  // namespace terrier::catalog

@@ -37,6 +37,9 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
 
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
+  uint32_t temp_name = 0;
+  if (name == "pg_global") temp_name = 20001;
+  if (name == "pg_default") temp_name = 20002;
   // TODO(yangjun): we can cache this
   std::vector<col_oid_t> cols;
   for (const auto &c : pg_tablespace_->GetSchema().GetColumns()) {
@@ -50,7 +53,7 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
   for (; tuple_iter != pg_tablespace_->end(); tuple_iter++) {
     pg_tablespace_->Select(txn, *tuple_iter, read);
     // TODO(yangjuns): we don't support strings at the moment
-    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == 22222) {
+    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == temp_name) {
       tablespace_oid_t oid(*reinterpret_cast<tablespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]])));
       return std::make_shared<TablespaceEntry>(oid, read, row_pair.second, pg_tablespace_);
     }

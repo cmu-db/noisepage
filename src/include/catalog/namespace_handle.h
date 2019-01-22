@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/table_handle.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
@@ -71,7 +73,8 @@ class NamespaceHandle {
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
    * @param pg_namespace a pointer to pg_namespace
    */
-  explicit NamespaceHandle(std::shared_ptr<storage::SqlTable> pg_namespace) : pg_namespace_(std::move(pg_namespace)) {}
+  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_namespace)
+      : catalog_(catalog), db_oid_(oid), pg_namespace_(std::move(pg_namespace)) {}
 
   /**
    * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a
@@ -95,7 +98,11 @@ class NamespaceHandle {
    */
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
+  TableHandle GetTableHandle();
+
  private:
+  Catalog *catalog_;
+  db_oid_t db_oid_;
   std::shared_ptr<storage::SqlTable> pg_namespace_;
 };
 

@@ -93,6 +93,7 @@ void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t
 }
 
 void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid) {
+  CATALOG_LOG_TRACE("pg_tablespace (table) oid {}", !table_oid);
   // create pg_tablespace catalog
   std::vector<Schema::Column> cols;
   cols.emplace_back("oid", type::TypeId::INTEGER, false, GetNextColOid());
@@ -112,33 +113,41 @@ void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid
   byte *row_buffer, *first;
   storage::ProjectedRow *insert;
 
-  CATALOG_LOG_TRACE("Inserting pg_global to pg_tablespace...");
+  //  CATALOG_LOG_TRACE("Inserting pg_global to pg_tablespace...");
   // insert pg_global
   row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   insert = row_pair.first.InitializeRow(row_buffer);
   // hard code the first column's value
   first = insert->AccessForceNotNull(row_pair.second[col_ids[0]]);
-  (*reinterpret_cast<uint32_t *>(first)) = GetNextOid();
+  tablespace_oid_t pg_global_oid = tablespace_oid_t(GetNextOid());
+  (*reinterpret_cast<uint32_t *>(first)) = !pg_global_oid;
+  CATALOG_LOG_TRACE("pg_global oid (tablespace_oid) {}", *reinterpret_cast<uint32_t *>(first));
   // TODO(yangjun): we don't support VARCHAR at the moment, the value should be "pg_global", just use random number
   first = insert->AccessForceNotNull(row_pair.second[col_ids[1]]);
-  (*reinterpret_cast<uint32_t *>(first)) = 11111;
+  (*reinterpret_cast<uint32_t *>(first)) = 20001;
   pg_tablespace_->Insert(txn, *insert);
   delete[] row_buffer;
 
-  CATALOG_LOG_TRACE("Inserting pg_default to pg_tablespace...");
+  //  CATALOG_LOG_TRACE("Inserting pg_default to pg_tablespace...");
   // insert pg_default
   row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   insert = row_pair.first.InitializeRow(row_buffer);
   first = insert->AccessForceNotNull(row_pair.second[col_ids[0]]);
-  (*reinterpret_cast<uint32_t *>(first)) = GetNextOid();
+  tablespace_oid_t pg_default_oid = tablespace_oid_t(GetNextOid());
+  (*reinterpret_cast<uint32_t *>(first)) = !pg_default_oid;
+  CATALOG_LOG_TRACE("pg_default oid (tablespace_oid) {}", !pg_default_oid);
   // TODO(yangjun): we don't support VARCHAR at the moment, the value should be "pg_global", just use random number
   first = insert->AccessForceNotNull(row_pair.second[col_ids[1]]);
-  (*reinterpret_cast<uint32_t *>(first)) = 22222;
+  (*reinterpret_cast<uint32_t *>(first)) = 20002;
   pg_tablespace_->Insert(txn, *insert);
   delete[] row_buffer;
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
+  map_[db_oid][pg_database_->Oid()] = pg_database_;
+  map_[db_oid][pg_tablespace_->Oid()] = pg_tablespace_;
+  name_map_[db_oid]["pg_database"] = pg_database_->Oid();
+  name_map_[db_oid]["pg_tablespace"] = pg_tablespace_->Oid();
   CreatePGNameSpace(txn, db_oid);
   CreatePGClass(txn, db_oid);
 }
@@ -173,7 +182,7 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
   auto *pg_namespace_col_nspname =
       reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *pg_namespace_col_nspname = 22222;
+  *pg_namespace_col_nspname = 30001;
 
   pg_namespace->Insert(txn, *insert);
   delete[] row_buffer;
@@ -197,6 +206,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   map_[db_oid][pg_class_oid] = pg_class;
   name_map_[db_oid]["pg_class"] = pg_class_oid;
   // populate pg_class (table)
+  CATALOG_LOG_TRACE("populating pg_class ...");
   // insert pg_database, pg_tablespace, pg_namespace, pg_class into pg_class
   std::vector<col_oid_t> col_ids;
   for (const auto &c : pg_class->GetSchema().GetColumns()) {
@@ -207,15 +217,64 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_database
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
+  CATALOG_LOG_TRACE("entrying the first entry ...");
   auto *col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *col_ptr = 1;
+  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
+  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
+  CATALOG_LOG_TRACE("entrying the second entry ...");
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
+  *col_ptr = 10001;
+  CATALOG_LOG_TRACE("entrying the third entry ...");
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
+  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  CATALOG_LOG_TRACE("entrying the fourth entry ...");
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
+  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
+  pg_class->Insert(txn, *insert);
+  delete[] row_buffer;
+
+  // Insert pg_tablespace
+  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+  insert = row_pair.first.InitializeRow(row_buffer);
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
+  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_tablespace")->Oid();
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *col_ptr = 12345;
+  *col_ptr = 10002;
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
   *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
   *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
+  pg_class->Insert(txn, *insert);
+  delete[] row_buffer;
+
+  // Insert pg_namespace
+  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+  insert = row_pair.first.InitializeRow(row_buffer);
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
+  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
+  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
+  *col_ptr = 10003;
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
+  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
+  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
+  pg_class->Insert(txn, *insert);
+  delete[] row_buffer;
+
+  // Insert pg_class
+  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
+  insert = row_pair.first.InitializeRow(row_buffer);
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
+  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_class")->Oid();
+  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
+  *col_ptr = 10004;
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
+  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
+  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
   pg_class->Insert(txn, *insert);
   delete[] row_buffer;
 }
