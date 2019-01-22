@@ -10,14 +10,13 @@
 namespace terrier::catalog {
 
 /**
- * A tablespace handle contains information about all the tablespaces in a database. It is used to
- * retrieve tablespace related information and it serves as the entry point for access the tables
- * under different tablespaces.
+ * A tablespace handle contains information about all the tablespaces. It is equivalent to pg_tablespace
+ * in postgres
  */
 class TablespaceHandle {
  public:
   /**
-   * A database entry represent a row in pg_tablespace catalog.
+   * A tablespace entry represent a row in pg_tablespace catalog.
    */
   class TablespaceEntry {
    public:
@@ -47,8 +46,8 @@ class TablespaceHandle {
     byte *GetValue(const std::string &name) { return GetValue(pg_tablespace_->GetSchema().GetColumn(name).GetOid()); }
 
     /**
-     * Return the tablespace_oid of the underlying database
-     * @return tablespace_oid of the database
+     * Return the tablespace_oid
+     * @return tablespace_oid the tablespace oid
      */
     tablespace_oid_t GetTablespaceOid() { return oid_; }
 

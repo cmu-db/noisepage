@@ -2,7 +2,9 @@
 
 #include <iostream>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "loggers/catalog_logger.h"
@@ -12,23 +14,28 @@ namespace terrier::catalog {
 
 class Catalog;
 /**
- * A namespace handle contains information about all the tables in a database.
- * It is equivalent to pg_tables;
+ * A tablespace handle contains information about all the tables in a database.
+ * It is equivalent to pg_tables in postgres, which is a view.
  * it has columns:
  *      schemaname | tablename | tablespace
  */
 class TableHandle {
  public:
   /**
-   * A database entry represent a row in pg_tables catalog.
+   * A table entry represent a row in pg_tables catalog.
    */
   class TableEntry {
    public:
     /**
-     * Constructs a namespace entry.
-     * @param oid the namespace_oid of the underlying database
-     * @param row a pointer points to the projection of the row
-     * @param map a map that encodes how to access attributes of the row
+     * Constructs a table entry in pg_tables.
+     *
+     * TODO(yangjuns): we need to change uint32_t to strings once we take varlen
+     *
+     * @param table_name the name of the table.
+     * @param txn the transaction which wants the entry
+     * @param pg_class a pointer to the pg_class catalog
+     * @param pg_namespace a pointer to pg_namespace
+     * @param pg_tablespace a pointer to tablespace
      */
     TableEntry(uint32_t table_name, transaction::TransactionContext *txn, std::shared_ptr<storage::SqlTable> pg_class,
                std::shared_ptr<storage::SqlTable> pg_namespace, std::shared_ptr<storage::SqlTable> pg_tablespace)
@@ -39,8 +46,8 @@ class TableHandle {
           pg_tablespace_(std::move(pg_tablespace)) {}
 
     /**
-     * Get the value of an attribute
-     * @param col the col_oid of the attribute
+     * Get the value of an attribute.
+     * @param name the name of the attribute.
      * @return a pointer to the attribute value
      */
     byte *GetValue(const std::string &name) {
@@ -140,18 +147,10 @@ class TableHandle {
     }
 
     /**
-     * Return the namespace_oid of the underlying database
-     * @return namespace_oid of the database
-     */
-    uint32_t GetTableName() { return table_name_; }
-
-    /**
      * Destruct namespace entry. It frees the memory for storing the projected row.
      */
     ~TableEntry() {
-      for (auto &addr : ptrs_) {
-        if (addr != nullptr) delete[] addr;
-      }
+      for (auto &addr : ptrs_) delete[] addr;
     }
 
    private:
@@ -165,32 +164,30 @@ class TableHandle {
   };
 
   /**
-   * Construct a namespace handle. It keeps a pointer to the pg_class sql table.
-   * A know a table, you need pg_class, pg_namespace, pg_tablespace
-   * @param pg_class a pointer to pg_namespace
+   * Construct a table handle. It keeps pointers to the pg_class, pg_namespace, pg_tablespace sql tables.
+   * It uses use these three tables to provide the view of pg_tables.
+   * @param pg_class a pointer to pg_class
+   * @param pg_namespace a pointer to pg_namespace
+   * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_class,
-              std::shared_ptr<storage::SqlTable> pg_namespace, std::shared_ptr<storage::SqlTable> pg_tablespace)
-      : catalog_(catalog),
-        db_oid_(oid),
-        pg_class_(std::move(pg_class)),
+  TableHandle(std::shared_ptr<storage::SqlTable> pg_class, std::shared_ptr<storage::SqlTable> pg_namespace,
+              std::shared_ptr<storage::SqlTable> pg_tablespace)
+      : pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
         pg_tablespace_(std::move(pg_tablespace)) {}
 
   /**
-   * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a
-   * row from pg_namespace. It has to be executed in a transaction context.
+   * Get a table entry for the given table name. It's essentially equivalent to reading a
+   * row from pg_tables. It has to be executed in a transaction context.
    *
    * @param txn the transaction that initiates the read
-   * @param oid the namespace_oid of the database the transaction wants to read
-   * @return a shared pointer to Namespace entry; NULL if the namespace doesn't exist in
+   * @param name the name of the table
+   * @return a shared pointer to table entry; NULL if the namespace doesn't exist in
    * the database
    */
   std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
  private:
-  Catalog *catalog_;
-  db_oid_t db_oid_;
   std::shared_ptr<storage::SqlTable> pg_class_;
   std::shared_ptr<storage::SqlTable> pg_namespace_;
   std::shared_ptr<storage::SqlTable> pg_tablespace_;

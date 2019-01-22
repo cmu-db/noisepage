@@ -71,6 +71,8 @@ class NamespaceHandle {
 
   /**
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
+   * @param catalog a pointer to the catalog
+   * @param oid the db oid of the underlying database
    * @param pg_namespace a pointer to pg_namespace
    */
   explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_namespace)
@@ -98,6 +100,10 @@ class NamespaceHandle {
    */
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
+  /**
+   * Get a table handle
+   * @return a table handle
+   */
   TableHandle GetTableHandle();
 
  private:
