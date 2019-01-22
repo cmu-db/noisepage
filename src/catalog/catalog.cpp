@@ -47,7 +47,7 @@ void Catalog::Bootstrap() {
 }
 
 void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid) {
-  CATALOG_LOG_TRACE("pg_database (table) oid {}", !table_oid);
+  CATALOG_LOG_TRACE("pg_database oid (table_oid) {}", !table_oid);
   // create pg_database catalog
   table_oid_t pg_database_oid(table_oid);
   std::vector<Schema::Column> cols;
@@ -58,7 +58,6 @@ void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t
   Schema schema(cols);
   pg_database_ = std::make_shared<storage::SqlTable>(&block_store_, schema, pg_database_oid);
 
-  CATALOG_LOG_TRACE("Creating terrier database ...");
   // insert rows to pg_database
   std::vector<col_oid_t> col_ids;
   for (const auto &c : pg_database_->GetSchema().GetColumns()) {
@@ -85,7 +84,7 @@ void Catalog::CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t
 }
 
 void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid) {
-  CATALOG_LOG_TRACE("pg_tablespace (table) oid {}", !table_oid);
+  CATALOG_LOG_TRACE("pg_tablespace oid (table_oid) {}", !table_oid);
   // create pg_tablespace catalog
   std::vector<Schema::Column> cols;
   cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
@@ -134,6 +133,7 @@ void Catalog::CreatePGTablespace(transaction::TransactionContext *txn, table_oid
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
+  CATALOG_LOG_TRACE("Bootstrapping database oid (db_oid) {}", !db_oid);
   map_[db_oid][pg_database_->Oid()] = pg_database_;
   map_[db_oid][pg_tablespace_->Oid()] = pg_tablespace_;
   name_map_[db_oid]["pg_database"] = pg_database_->Oid();
@@ -207,17 +207,13 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_database
   byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
-  CATALOG_LOG_TRACE("entrying the first entry ...");
   auto *col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
   *col_ptr = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
   // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  CATALOG_LOG_TRACE("entrying the second entry ...");
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
   *col_ptr = 10001;
-  CATALOG_LOG_TRACE("entrying the third entry ...");
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
   *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  CATALOG_LOG_TRACE("entrying the fourth entry ...");
   col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
   *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
   pg_class->Insert(txn, *insert);
