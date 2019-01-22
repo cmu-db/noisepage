@@ -54,9 +54,8 @@ class Catalog {
   DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
 
   /**
-   * Return a database handle for given db_oid.
-   * @param db_oid the given db_oid
-   * @return the corresponding database handle
+   * Return a tablespace handle.
+   * @return the tablespace handle
    */
   TablespaceHandle GetTablespaceHandle();
 
@@ -77,29 +76,9 @@ class Catalog {
   std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
 
   /**
-   * Get the next database_oid
-   * @return next database_oid
+   * The global counter for getting next oid. The return result should be converted into corresponding oid type
+   * @return uint32_t
    */
-  db_oid_t GetNextDBOid();
-
-  /**
-   * Get the next namespace_oid
-   * @return next namespace_oid
-   */
-  namespace_oid_t GetNextNamepsaceOid();
-
-  /**
-   * Get the next table_oid
-   * @return next table_oid
-   */
-  table_oid_t GetNextTableOid();
-
-  /**
-   * Get the next col_oid
-   * @return next col_oid
-   */
-  col_oid_t GetNextColOid();
-
   uint32_t GetNextOid();
 
  private:
