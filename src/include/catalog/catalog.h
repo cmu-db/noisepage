@@ -2,9 +2,11 @@
 #include <memory>
 #include <unordered_map>
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
 #include "common/strong_typedef.h"
 #include "storage/sql_table.h"
+
 namespace terrier::catalog {
 
 class DatabaseHandle;
@@ -45,14 +47,15 @@ class DatabaseHandle;
 class Catalog {
  public:
   /**
-   * Initializes catalog object, and automatically starts the bootstrapping process
+   * Creates the (global) catalog object, and bootstraps, i.e. creates
+   * all the default and system databases and tables.
    * @param txn_manager the global transaction manager
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
   /**
-   * Return a database handle for given db_oid.
-   * @param db_oid the given db_oid
+   * Lookup a database oid and return a database handle.
+   * @param db_oid to look up.
    * @return the corresponding database handle
    */
   DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
@@ -75,7 +78,7 @@ class Catalog {
    * Get the next namespace_oid
    * @return next namespace_oid
    */
-  namespace_oid_t GetNextNamepsaceOid();
+  namespace_oid_t GetNextNamespaceOid();
 
   /**
    * Get the next table_oid
@@ -89,6 +92,10 @@ class Catalog {
    */
   col_oid_t GetNextColOid();
 
+  std::shared_ptr<catalog::SqlTableRW> GetPGDatabase() {
+    return pg_database_;
+  }
+
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -100,19 +107,20 @@ class Catalog {
   void Bootstrap();
 
   /**
-   * Bootstrap a database. Specifically, it
-   * 1) creates database-specific catalogs, such as pg_namespace, pg_class
-   * 2) populates these catalogs
-   *
-   * It does not modify any global catalogs. So if you want to create a database,
-   * make sure it has been added to pg_database before you call this.
-   *
-   * Note that the catalogs created by this function have the same table_oid_t
-   * for all database. oids are only supposed to be unique within a database.
+   * Bootstrap a database, i.e create all the catalogs local to this database, and do all other initialization.
+   * 1) Create pg_namespace (catalog)
+   * 2) Create pg_class (catalog)
+   * 3) TODO(pakhtar) -  other catalogs for Postgres compatibility
+   * 4) populates these catalogs
    *
    * It is used for bootstrapping both default database and user-defined database.
    * After bootstrapping a user-defined database, the initial state is an exact
    * copy of initial state of a template database.
+   *
+   * Notes:
+   * 1) Caller must add the database to pg_database.
+   * 2) Table oids are only unique within a database (not globally unique).
+   * *
    * * @param db_oid the oid of the database you are trying to bootstrap
    */
   void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);
@@ -121,31 +129,43 @@ class Catalog {
    * A dummy call back function for committing bootstrap transaction
    */
   static void BootstrapCallback(void * /*unused*/) {}
-
   /**
-   * Creates pg_database SQL table populates pg_database by inserting a default database row, terrier, into the
-   * pg_database table
+   * Creates pg_database, the global catalog of all databases.
+   * - creates the storage (a SQL table) for pg_database
+   * - inserts an entry (row) for the default database, terrier, into pg_database
    * @param txn the bootstrapping transaction
    * @param table_oid the table oid of pg_database
    * @param start_col_oid the starting col oid for columns in pg_database.
    */
-  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
+  void CreatePGDatabase(table_oid_t table_oid);
+
+  void PopulatePGDatabase(transaction::TransactionContext *txn);
+  void PopulatePGTablespace(transaction::TransactionContext *txn);
 
   /**
    * Creates pg_tablespace SQL table and populates pg_tablespace
+   * Note: pg_tablespace is not currently used.
    * @param txn the bootstrapping transaction
    * @param table_oid the table oid of pg_tablespace
    * @param start_col_oid the starting col oid for columns in pg_tablespace.
    */
-  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid);
+  void CreatePGTablespace(table_oid_t table_oid);
+
+
 
  private:
   transaction::TransactionManager *txn_manager_;
   // block store to create catalog tables
-  storage::BlockStore block_store_{100, 100};
+  // storage::BlockStore block_store_{100, 100};
   // global catalogs
-  std::shared_ptr<storage::SqlTable> pg_database_;
-  std::shared_ptr<storage::SqlTable> pg_tablespace_;
+  // std::shared_ptr<storage::SqlTable> pg_database_;
+  // std::shared_ptr<storage::SqlTable> pg_tablespace_;
+
+  // replacement for the above
+  // global catalogs
+  std::shared_ptr<catalog::SqlTableRW> pg_database_;
+  std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
+
   // map from (db_oid, catalog table_oid_t) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
 

@@ -12,8 +12,10 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
+//DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
+//    : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
 DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
-    : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
+      : catalog_(catalog), oid_(oid), pg_database_(pg_database) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
   return NamespaceHandle(catalog_->GetDatabaseCatalog(oid_, DATABASE_CATALOG_TABLE_START_OID));
@@ -21,23 +23,25 @@ NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                                 db_oid_t oid) {
+
+  std::shared_ptr<storage::SqlTable> pg_db_sqltable = catalog_->GetPGDatabase()->GetSqlTable();
   // Each database handle can only see entry with the same oid
   if (oid_ != oid) return nullptr;
 
   // TODO(yangjun): we can cache this
   std::vector<col_oid_t> cols;
-  for (const auto &c : pg_database_->GetSchema().GetColumns()) {
+  for (const auto &c : pg_db_sqltable->GetSchema().GetColumns()) {
     cols.emplace_back(c.GetOid());
   }
-  auto row_pair = pg_database_->InitializerForProjectedRow(cols);
+  auto row_pair = pg_db_sqltable->InitializerForProjectedRow(cols);
   auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
   storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
   // Find the row using sequential scan
-  auto tuple_iter = pg_database_->begin();
-  for (; tuple_iter != pg_database_->end(); tuple_iter++) {
-    pg_database_->Select(txn, *tuple_iter, read);
+  auto tuple_iter = pg_db_sqltable->begin();
+  for (; tuple_iter != pg_db_sqltable->end(); tuple_iter++) {
+    pg_db_sqltable->Select(txn, *tuple_iter, read);
     if ((*reinterpret_cast<db_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
-      return std::make_shared<DatabaseEntry>(oid_, read, row_pair.second);
+      return std::make_shared<DatabaseEntry>(catalog_->GetPGDatabase(), oid_, read, row_pair.second);
     }
   }
   delete[] read_buffer;
