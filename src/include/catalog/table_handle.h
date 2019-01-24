@@ -170,9 +170,10 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(std::shared_ptr<storage::SqlTable> pg_class, std::shared_ptr<storage::SqlTable> pg_namespace,
-              std::shared_ptr<storage::SqlTable> pg_tablespace)
-      : pg_class_(std::move(pg_class)),
+  TableHandle(std::string name, std::shared_ptr<storage::SqlTable> pg_class,
+              std::shared_ptr<storage::SqlTable> pg_namespace, std::shared_ptr<storage::SqlTable> pg_tablespace)
+      : nsp_name(std::move(name)),
+        pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
         pg_tablespace_(std::move(pg_tablespace)) {}
 
@@ -188,6 +189,7 @@ class TableHandle {
   std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
  private:
+  const std::string nsp_name;
   std::shared_ptr<storage::SqlTable> pg_class_;
   std::shared_ptr<storage::SqlTable> pg_namespace_;
   std::shared_ptr<storage::SqlTable> pg_tablespace_;

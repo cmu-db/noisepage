@@ -103,10 +103,11 @@ class NamespaceHandle {
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Get a table handle
-   * @return a table handle
+   * Get a table handle under the given namespace
+   * @param nsp_name the namepspace
+   * @return a handle to all the tables under the namespace
    */
-  TableHandle GetTableHandle();
+  TableHandle GetTableHandle(const std::string &nsp_name);
 
  private:
   Catalog *catalog_;

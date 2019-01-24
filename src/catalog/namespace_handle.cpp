@@ -64,12 +64,12 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
   return nullptr;
 }
 
-TableHandle NamespaceHandle::GetTableHandle() {
+TableHandle NamespaceHandle::GetTableHandle(const std::string &nsp_name) {
   CATALOG_LOG_TRACE("Getting the table handle ...");
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_->GetDatabaseCatalog(db_oid_, pg_class),
+  return TableHandle(nsp_name, catalog_->GetDatabaseCatalog(db_oid_, pg_class),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }
