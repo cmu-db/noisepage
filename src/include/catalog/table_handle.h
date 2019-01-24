@@ -7,9 +7,9 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_sql_table.h"
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
-#include "catalog/catalog_sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
@@ -171,8 +171,8 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(std::string name, std::shared_ptr<SqlTableRW> pg_class,
-              std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
+  TableHandle(std::string name, std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
+              std::shared_ptr<SqlTableRW> pg_tablespace)
       : nsp_name(std::move(name)),
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),

@@ -120,7 +120,6 @@ class SqlTableRW {
     (*reinterpret_cast<uint32_t *>(col_p)) = value;
   }
 
-#ifdef notdef
   /**
    * Read a string from a row
    * @param col_num column number in the schema
@@ -162,7 +161,6 @@ class SqlTableRW {
     memcpy(varlen, st, size);
     *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
-#endif /* notdef */
 
   catalog::col_oid_t ColNumToOid(int32_t col_num) { return col_oids_[col_num]; }
 
