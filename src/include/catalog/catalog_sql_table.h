@@ -166,10 +166,42 @@ class SqlTableRW {
     return col_oids_[col_num];
   }
 
+  /**
+   * Misc access.
+   */
   // maybe not needed?
   std::shared_ptr<storage::SqlTable> GetSqlTable() {
-    //return std::make_shared<storage::SqlTable>(*table_);
     return table_;
+  }
+
+  // possibly just return table_oid_?
+  catalog::table_oid_t Oid() { return table_->Oid(); }
+
+  // shared ptr?
+  storage::ProjectionMap *GetPRMap() {
+    return pr_map_;
+  }
+
+  /**
+   * handle support
+   */
+  storage::ProjectedRow *FindRow(transaction::TransactionContext *txn,
+                                 int32_t col_num,
+                                 uint32_t value) {
+    // TODO: assert correct column type
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+
+    auto tuple_iter = table_->begin();
+    for (; tuple_iter != table_->end(); tuple_iter++) {
+      table_->Select(txn, *tuple_iter, read);
+      byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+      if (*(reinterpret_cast<uint32_t *>(col_p)) == value) {
+        return read;
+      }
+    }
+    delete[] read_buffer;
+    return nullptr;
   }
 
  private:

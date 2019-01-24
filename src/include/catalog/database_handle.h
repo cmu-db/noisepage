@@ -64,7 +64,10 @@ class DatabaseHandle {
      * @return a pointer to the attribute value
      * @throw std::out_of_range if the column doesn't exist.
      */
-    byte *GetValue(const std::string &name) { return GetValue(pg_database_->GetSchema().GetColumn(name).GetOid()); }
+    byte *GetValue(const std::string &name) {
+      auto oid = pg_db_sqltbl_rw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
+      return GetValue(oid);
+    }
 
     /**
      * Return the db_oid of the underlying database

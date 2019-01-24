@@ -12,6 +12,7 @@
 namespace terrier::catalog {
 
 class DatabaseHandle;
+class TablespaceHandle;
 /**
  * The global catalog object. It contains all the information about global catalog tables. It's also
  * the entry point for transactions to access any data in any sql table.
@@ -70,7 +71,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
+  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * Get the pointer to a catalog in a database by name, including global catalogs.
@@ -80,7 +81,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<storage::SqlTable> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
+  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
@@ -93,6 +94,10 @@ class Catalog {
 
   std::shared_ptr<catalog::SqlTableRW> GetPGDatabase() {
     return pg_database_;
+  }
+
+  std::shared_ptr<catalog::SqlTableRW> GetPGTablespace() {
+    return pg_tablespace_;
   }
 
  private:
@@ -112,7 +117,7 @@ class Catalog {
    * @param table_oid the table oid of pg_database
    * @param start_col_oid the starting col oid for columns in pg_database.
    */
-  void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
+  // void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
 
   /**
    * Creates pg_tablespace SQL table and populates pg_tablespace
@@ -120,7 +125,7 @@ class Catalog {
    * @param table_oid the table oid of pg_tablespace
    * @param start_col_oid the starting col oid for columns in pg_tablespace.
    */
-  void CreatePGTablespace(transaction::TransactionContext *txn, table_oid_t table_oid);
+  void CreatePGTablespace(table_oid_t table_oid);
 
   /**
    * Bootstrap a database, i.e create all the catalogs local to this database, and do all other initialization.
@@ -154,26 +159,14 @@ class Catalog {
   void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
 
-  /**
-   * A dummy call back function for committing bootstrap transaction
-   */
-  static void BootstrapCallback(void * /*unused*/) {}
-
  private:
   transaction::TransactionManager *txn_manager_;
-  // block store to create catalog tables
-  // storage::BlockStore block_store_{100, 100};
-  // global catalogs
-  // std::shared_ptr<storage::SqlTable> pg_database_;
-  // std::shared_ptr<storage::SqlTable> pg_tablespace_;
-
-  // replacement for the above
   // global catalogs
   std::shared_ptr<catalog::SqlTableRW> pg_database_;
   std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
 
-  // map from (db_oid, catalog table_oid_t) to sql table
-  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>> map_;
+  // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
+  std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>> map_;
   // map from (db_oid, catalog name) to sql table
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid

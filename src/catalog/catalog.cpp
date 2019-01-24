@@ -24,19 +24,11 @@ DatabaseHandle Catalog::GetDatabaseHandle(db_oid_t db_oid) {
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
 
-  // OLD version - deprecate?
-std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
+std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
   return map_.at(db_oid).at(table_oid);
 }
 
-db_oid_t Catalog::GetNextDBOid() { return db_oid_++; }
-
-namespace_oid_t Catalog::GetNextNamespaceOid() { return namespace_oid_++; }
-
-table_oid_t Catalog::GetNextTableOid() { return table_oid_++; }
-
-  // NEW version
-std::shared_ptr<storage::SqlTable> Catalog::GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name) {
+std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name) {
   return GetDatabaseCatalog(db_oid, name_map_.at(db_oid).at(table_name));
 }
 
@@ -47,11 +39,11 @@ void Catalog::Bootstrap() {
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
   // CreatePGDatabase(GetNextTableOid());
-  CreatePGDatabase(txn, table_oid_t(GetNextOid()));
+  CreatePGDatabase(table_oid_t(GetNextOid()));
   PopulatePGDatabase(txn);
 
   // CreatePGTablespace(GetNextTableOid());
-  CreatePGTablespace(txn, table_oid_t(GetNextOid()));
+  CreatePGTablespace(table_oid_t(GetNextOid()));
   PopulatePGTablespace(txn);
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
@@ -79,8 +71,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   pg_namespace->DefineColumn("oid", type::TypeId::INTEGER, false, GetNextColOid());
   pg_namespace->DefineColumn("nspname", type::TypeId::INTEGER, false, GetNextColOid());
   pg_namespace->Create();
-  // TODO(pakhtar) : fix
-  // map_[db_oid][pg_namespace_oid] = pg_namespace.
+  map_[db_oid][pg_namespace_oid] = pg_namespace.
 
   // to this database's namespace, add a pg_catalog namespace
   pg_namespace->StartRow();
@@ -116,8 +107,7 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
   pg_database_->EndRowAndInsert(txn);
 
   // add it to the map
-  // TODO(pakhtar): fix
-  map_[terrier_oid] = std::unordered_map<table_oid_t, std::shared_ptr<storage::SqlTable>>();
+  map_[terrier_oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
 }
 
 void Catalog::CreatePGTablespace(table_oid_t table_oid) {
@@ -126,22 +116,28 @@ void Catalog::CreatePGTablespace(table_oid_t table_oid) {
   pg_tablespace_ = std::make_shared<catalog::SqlTableRW>(table_oid);
 
   // add the schema
+  pg_tablespace_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   // TODO(pakhtar): we don't support VARCHAR at the moment, use INTEGER for now
-  pg_tablespace_->DefineColumn("spcname", type::TypeId::INTEGER, false, GetNextColOid());
+  pg_tablespace_->DefineColumn("spcname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_tablespace_->Create();
 }
 
 void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
   CATALOG_LOG_TRACE("Populate pg_tablespace table");
 
+  tablespace_oid_t pg_global_oid = tablespace_oid_t(GetNextOid());
+  tablespace_oid_t pg_default_oid = tablespace_oid_t(GetNextOid());
+
   pg_tablespace_->StartRow();
   // insert pg_global. Placeholder value now, "pg_global" VARLEN soon.
-  pg_tablespace_->SetIntColInRow(0, 11111);
+  pg_tablespace_->SetIntColInRow(0, !pg_global_oid);
+  pg_tablespace_->SetIntColInRow(1, 20001);
   pg_tablespace_->EndRowAndInsert(txn);
 
   pg_tablespace_->StartRow();
   // insert pg_default. Placeholder value now, "pg_default" VARLEN soon.
-  pg_tablespace_->SetIntColInRow(0, 22222);
+  pg_tablespace_->SetIntColInRow(0, !pg_default_oid);
+  pg_tablespace_->SetIntColInRow(1, 20002);
   pg_tablespace_->EndRowAndInsert(txn);
 }
 
@@ -156,130 +152,100 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 }
 
 void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // create pg_namespace (table)
-  table_oid_t pg_namespace_oid(GetNextOid());
-  CATALOG_LOG_TRACE("pg_namespace oid (table_oid) {}", !pg_namespace_oid);
-  std::vector<Schema::Column> cols;
-  cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("nspname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  std::shared_ptr<catalog::SqlTableRW> pg_namespace;
 
-  Schema schema(cols);
-  std::shared_ptr<storage::SqlTable> pg_namespace =
-      std::make_shared<storage::SqlTable>(&block_store_, schema, pg_namespace_oid);
+  // TODO(pakhtar): replace nspname type with VARCHAR
+  /*
+   * Create pg_namespace.
+   * Postgres has 4 columns in pg_namespace. We currently implement:
+   * - oid
+   * - nspname - will be type varlen - the namespace name.
+   */
+  table_oid_t pg_namespace_oid(GetNextOid());
+  pg_namespace = std::make_shared<catalog::SqlTableRW>(pg_namespace_oid);
+  pg_namespace->DefineColumn("oid", type::TypeId::INTEGER, false,
+                             col_oid_t(GetNextOid()));
+  pg_namespace->DefineColumn("nspname", type::TypeId::INTEGER, false,
+                             col_oid_t(GetNextOid()));
+  pg_namespace->Create();
+
   map_[db_oid][pg_namespace_oid] = pg_namespace;
   name_map_[db_oid]["pg_namespace"] = pg_namespace_oid;
 
-  // insert pg_catalog (namespace) into pg_namespace (table)
-  std::vector<col_oid_t> col_ids;
-  for (const auto &c : pg_namespace->GetSchema().GetColumns()) {
-    col_ids.emplace_back(c.GetOid());
-  }
-  auto row_pair = pg_namespace->InitializerForProjectedRow(col_ids);
-
-  byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
-  auto *pg_namespace_col_oid = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
-  CATALOG_LOG_TRACE("pg_catalog oid (namespace_oid) {}", *pg_namespace_col_oid);
-  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  auto *pg_namespace_col_nspname =
-      reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *pg_namespace_col_nspname = 30001;
-
-  pg_namespace->Insert(txn, *insert);
-  delete[] row_buffer;
+  uint32_t pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
+  pg_namespace->StartRow();
+  // oid for the namespace
+  pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
+  // arbitrary value for now
+  pg_namespace->SetIntColInRow(1, 30001);
+  pg_namespace->EndRowAndInsert(txn);
 }
 
 void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // create pg_class (table)
+  // oid for pg_class table
   table_oid_t pg_class_oid(GetNextOid());
+  std::shared_ptr<catalog::SqlTableRW> pg_class;
   CATALOG_LOG_TRACE("pg_class oid (table_oid) {}", !pg_class_oid);
-  std::vector<Schema::Column> cols;
-  std::vector<Schema::Column> pg_class_cols;
-  cols.emplace_back("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  // TODO(yangjun): we don't support VARCHAR at the moment, use INTEGER for now
-  cols.emplace_back("relname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  cols.emplace_back("relnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  cols.emplace_back("reltablespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_class = std::make_shared<catalog::SqlTableRW>(pg_class_oid);
 
-  Schema pg_class_schema(cols);
-  std::shared_ptr<storage::SqlTable> pg_class =
-      std::make_shared<storage::SqlTable>(&block_store_, pg_class_schema, pg_class_oid);
+  // add the schema
+  pg_class->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_class->DefineColumn("relname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_class->DefineColumn("relnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_class->DefineColumn("reltablespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_class->Create();
+
   map_[db_oid][pg_class_oid] = pg_class;
   name_map_[db_oid]["pg_class"] = pg_class_oid;
-  // populate pg_class (table)
-  CATALOG_LOG_TRACE("populating pg_class ...");
-  // insert pg_database, pg_tablespace, pg_namespace, pg_class into pg_class
-  std::vector<col_oid_t> col_ids;
-  for (const auto &c : pg_class->GetSchema().GetColumns()) {
-    col_ids.emplace_back(c.GetOid());
-  }
-  auto row_pair = pg_class->InitializerForProjectedRow(col_ids);
 
   // Insert pg_database
-  byte *row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *insert = row_pair.first.InitializeRow(row_buffer);
-  CATALOG_LOG_TRACE("entrying the first entry ...");
-  auto *col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
-  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  CATALOG_LOG_TRACE("entrying the second entry ...");
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *col_ptr = 10001;
-  CATALOG_LOG_TRACE("entrying the third entry ...");
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
-  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  CATALOG_LOG_TRACE("entrying the fourth entry ...");
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
-  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  pg_class->Insert(txn, *insert);
-  delete[] row_buffer;
+  auto entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
+  auto namespace_oid = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
+
+  pg_class->StartRow();
+  pg_class->SetIntColInRow(0, entry_db_oid);
+  pg_class->SetIntColInRow(1, 10001);
+  pg_class->SetIntColInRow(2, namespace_oid);
+  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->EndRowAndInsert(txn);
 
   // Insert pg_tablespace
-  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  insert = row_pair.first.InitializeRow(row_buffer);
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_tablespace")->Oid();
-  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *col_ptr = 10002;
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
-  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
-  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  pg_class->Insert(txn, *insert);
-  delete[] row_buffer;
+  entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_tablespace")->Oid();
+  namespace_oid = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
+
+  pg_class->StartRow();
+  pg_class->SetIntColInRow(0, entry_db_oid);
+  pg_class->SetIntColInRow(1, 10002);
+  pg_class->SetIntColInRow(2, namespace_oid);
+  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->EndRowAndInsert(txn);
 
   // Insert pg_namespace
-  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  insert = row_pair.first.InitializeRow(row_buffer);
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
-  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *col_ptr = 10003;
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
-  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
-  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
-  pg_class->Insert(txn, *insert);
-  delete[] row_buffer;
+  // TODO: fix failure when spelled pg_namepace
+  entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
+  namespace_oid = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
+
+  pg_class->StartRow();
+  pg_class->SetIntColInRow(0, entry_db_oid);
+  pg_class->SetIntColInRow(1, 10003);
+  pg_class->SetIntColInRow(2, namespace_oid);
+  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->EndRowAndInsert(txn);
 
   // Insert pg_class
-  row_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  insert = row_pair.first.InitializeRow(row_buffer);
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[0]]));
-  *col_ptr = !GetDatabaseCatalog(db_oid, "pg_class")->Oid();
-  // TODO(yangjun): we don't support VARCHAR at the moment, just use random number
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[1]]));
-  *col_ptr = 10004;
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[2]]));
-  *col_ptr = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  col_ptr = reinterpret_cast<uint32_t *>(insert->AccessForceNotNull(row_pair.second[col_ids[3]]));
-  *col_ptr = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
-  pg_class->Insert(txn, *insert);
-  delete[] row_buffer;
+  entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_class")->Oid();
+  namespace_oid = !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
+
+  pg_class->StartRow();
+  pg_class->SetIntColInRow(0, entry_db_oid);
+  pg_class->SetIntColInRow(1, 10004);
+  pg_class->SetIntColInRow(2, namespace_oid);
+  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->EndRowAndInsert(txn);
 }
 
 }  // namespace terrier::catalog
