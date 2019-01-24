@@ -1,9 +1,12 @@
-#include <parser/expression/aggregate_expression.h>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+#include <parser/expression/type_cast_expression.h>
+#include <parser/expression/case_expression.h>
+#include <parser/expression/comparison_expression.h>
 #include "common/exception.h"
+#include "parser/expression/aggregate_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -515,16 +518,27 @@ TEST_F(ParserTestBase, OldOrderByTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldConstTest) {
-  // TODO(WAN): need string support
-  std::vector<std::string> queries;
-
+TEST_F(ParserTestBase, OldConstTest) {
   // Select constants
-  queries.emplace_back("SELECT 'str', 1 FROM foo;");
+  std::string query = "SELECT 'str', 1, 3.14 FROM foo;";
 
-  for (const auto &query : queries) {
-    auto stmt_list = pgparser.BuildParseTree(query);
+  auto stmt_list = pgparser.BuildParseTree(query);
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+  auto select_columns = statement->GetSelectColumns();
+  EXPECT_EQ(3, select_columns.size());
+
+  std::vector<type::TypeId> types = {type::TypeId::STRING, type::TypeId::INTEGER, type::TypeId::DECIMAL};
+
+  for(size_t i=0; i<select_columns.size(); i++)
+  {
+    auto column = select_columns[i];
+    auto correct_type = types[i];
+
+    EXPECT_EQ(ExpressionType::VALUE_CONSTANT, column->GetExpressionType());
+    auto const_expression = reinterpret_cast<ConstantValueExpression *>(column.get());
+    EXPECT_EQ(correct_type, const_expression->GetValue().GetType());
   }
+
 }
 
 // NOLINTNEXTLINE
@@ -945,8 +959,7 @@ TEST_F(ParserTestBase, OldCreateSchemaTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldCreateViewTest) {
-  // TODO(WAN): need strings
+TEST_F(ParserTestBase, OldCreateViewTest) {
   std::string query = "CREATE VIEW comedies AS SELECT * FROM films WHERE kind = 'Comedy';";
   auto stmt_list = pgparser.BuildParseTree(query);
   auto create_stmt = reinterpret_cast<CreateStatement *>(stmt_list[0].get());
@@ -1246,32 +1259,55 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
 TEST_F(ParserTestBase, OldCaseTest) {
   std::string query = "SELECT id, case when id=100 then 1 else 0 end from tbl;";
   auto stmt_list = pgparser.BuildParseTree(query);
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+
+  auto case_expr = reinterpret_cast<CaseExpression *>(statement->GetSelectColumns()[1].get());
+  auto default_expr = reinterpret_cast<ConstantValueExpression *>(case_expr->GetDefaultClause().get());
+  EXPECT_EQ(0, default_expr->GetValue().GetIntValue());
+
+  EXPECT_EQ(1, case_expr->GetWhenClauseSize());
+  auto condition = reinterpret_cast<ComparisonExpression *>(case_expr->GetWhenClauseCondition(0).get());
+  EXPECT_EQ(ExpressionType::COMPARE_EQUAL, condition->GetExpressionType());
+
+  auto left_expr = reinterpret_cast<TupleValueExpression *>(condition->GetChild(0).get());
+  EXPECT_EQ("id", left_expr->GetColumnName());
+
+  auto right_expr = reinterpret_cast<ConstantValueExpression *>(condition->GetChild(1).get());
+  EXPECT_EQ(100, right_expr->GetValue().GetIntValue());
+
+  auto result = reinterpret_cast<ConstantValueExpression *>(case_expr->GetWhenClauseResult(0).get());
+  EXPECT_EQ(1, result->GetValue().GetIntValue());
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldDateTypeTest) {
-  // TODO(WAN): need string support
-  std::vector<std::string> valid_queries;
-  valid_queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017-01-01'::DATE);");
-  valid_queries.emplace_back("CREATE TABLE students (name TEXT, graduation DATE)");
+TEST_F(ParserTestBase, OldDateTypeTest) {
+  // Only checks valid date queries
+  std::string query;
 
-  for (const auto &query : valid_queries) {
+  {
+    query = "INSERT INTO test_table VALUES (1, 2, '2017-01-01'::DATE);";
     auto stmt_list = pgparser.BuildParseTree(query);
+    auto statement = reinterpret_cast<InsertStatement*>(stmt_list[0].get());
+    auto values = *(statement->GetValues());
+    auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2].get());
+    EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
+    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
+    EXPECT_EQ(0, strcmp("2017-01-01", const_expr->GetValue().GetStringValue()));
   }
 
-  // Check invalid input handling
-  std::vector<std::string> invalid_queries;
-  invalid_queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017-00-01'::DATE);");
-  invalid_queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017-01-011'::DATE);");
-  invalid_queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017-00-'::DATE);");
-  for (const auto &query : invalid_queries) {
-    EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
+  {
+    query = "CREATE TABLE students (name TEXT, graduation DATE)";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto statement = reinterpret_cast<CreateStatement*>(stmt_list[0].get());
+    auto values = statement->GetColumns();
+    auto date_column = reinterpret_cast<ColumnDefinition *>(values[1].get());
+    EXPECT_EQ(ColumnDefinition::DataType::DATE, date_column->GetColumnType());
   }
+
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldTypeCastTest) {
-  // TODO(WAN): need string support
+TEST_F(ParserTestBase, OldTypeCastTest) {
   std::vector<std::string> queries;
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::INTEGER);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::FLOAT);");
@@ -1279,20 +1315,51 @@ TEST_F(ParserTestBase, DISABLED_OldTypeCastTest) {
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::TEXT);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::VARCHAR);");
 
-  for (const auto &query : queries) {
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL,
+                                     type::TypeId::DECIMAL, type::TypeId::VARCHAR,
+                                     type::TypeId::VARCHAR};
+
+  for (size_t i=0; i<queries.size(); i++) {
+    std::string query = queries[i];
+    type::TypeId correct_type = types[i];
+
     auto stmt_list = pgparser.BuildParseTree(query);
+    auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
+    auto values = *(statement->GetValues());
+    auto cast_expr = reinterpret_cast<ConstantValueExpression *>(values[0][2].get());
+    EXPECT_EQ(correct_type, cast_expr->GetReturnValueType());
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldTypeCastInExpressionTest) {
-  // TODO(WAN): need string support
-  std::vector<std::string> queries;
-  queries.emplace_back("SELECT * FROM a WHERE d <= date '2018-04-04';");
-  queries.emplace_back("SELECT '12345'::INTEGER - 12");
-
-  for (const auto &query : queries) {
+TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
+  std::string query;
+  {
+    query = "SELECT * FROM a WHERE d <= date '2018-04-04';";
     auto stmt_list = pgparser.BuildParseTree(query);
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto where_expr = statement->GetSelectCondition();
+    auto cast_expr = reinterpret_cast<TypeCastExpression *>(where_expr->GetChild(1).get());
+    EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
+    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
+    EXPECT_EQ(0, strcmp("2018-04-04", const_expr->GetValue().GetStringValue()));
+  }
+
+  {
+    query = "SELECT '12345'::INTEGER - 12";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto column = statement->GetSelectColumns()[0];
+    EXPECT_EQ(ExpressionType::OPERATOR_MINUS, column->GetExpressionType());
+
+    auto left_child = reinterpret_cast<TypeCastExpression *>(column->GetChild(0).get());
+    EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
+    auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0).get());
+    EXPECT_EQ(0, strcmp("12345", value_expr->GetValue().GetStringValue()));
+
+    auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).get());
+    EXPECT_EQ(12, right_child->GetValue().GetIntValue());
+
   }
 }
 
