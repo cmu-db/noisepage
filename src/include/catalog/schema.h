@@ -39,13 +39,14 @@ class Schema {
           nullable_(nullable),
           inlined_(true),
           oid_(oid) {
-      if (attr_size_ == 0) {
+      if (attr_size_ == VARLEN_COLUMN) {
         // this is a varlen attribute
-        attr_size_ = 8;
+        // attr_size_ is actual size + high bit via GetTypeSize
         inlined_ = false;
       }
-      TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
-                     "Attribute size must be 1, 2, 4, or 8 bytes.");
+      TERRIER_ASSERT(
+          attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8 || attr_size_ == VARLEN_COLUMN,
+          "Attribute size must be 1, 2, 4, 8 or VARLEN_COLUMN bytes.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
     /**
@@ -57,7 +58,7 @@ class Schema {
      */
     bool GetNullable() const { return nullable_; }
     /**
-     * @return size of the attribute in bytes
+     * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
      */
     uint8_t GetAttrSize() const { return attr_size_; }
     /**
@@ -99,6 +100,20 @@ class Schema {
   Column GetColumn(const storage::col_id_t col_id) const {
     TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[!col_id];
+  }
+
+  /**
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
+   */
+  Column GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.GetName() == name) {
+        return c;
+      }
+    }
+    throw std::out_of_range("Column name doesn't exist");
   }
   /**
    * @return description of this SQL table's schema as a collection of Columns

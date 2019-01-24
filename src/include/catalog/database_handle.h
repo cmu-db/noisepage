@@ -1,7 +1,7 @@
 #pragma once
 
-#include <loggers/catalog_logger.h>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -12,6 +12,7 @@
 namespace terrier::catalog {
 
 class Catalog;
+class NamespaceHandle;
 /**
  * A database handle represents a database in the system. It's the entry point for access data
  * stored in this database.
@@ -28,6 +29,7 @@ class DatabaseHandle {
      * @param oid the db_oid of the underlying database
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
+     * @param pg_database the pointer to the pg_database sql table
      */
     DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)) {}
@@ -37,9 +39,10 @@ class DatabaseHandle {
         storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(pg_db_sqltbl_rw) {}
     /**
-     * Get the value of an attribute
+     * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute
      * @return a pointer to the attribute value
+     * @throw std::out_of_range if the column doesn't exist.
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
 
@@ -54,6 +57,14 @@ class DatabaseHandle {
     auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
     return ret_val;
   }
+
+    /**
+     * Get the value of an attribute by attribute name
+     * @param name the name of the attribute
+     * @return a pointer to the attribute value
+     * @throw std::out_of_range if the column doesn't exist.
+     */
+    byte *GetValue(const std::string &name) { return GetValue(pg_database_->GetSchema().GetColumn(name).GetOid()); }
 
     /**
      * Return the db_oid of the underlying database
