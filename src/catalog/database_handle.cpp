@@ -12,14 +12,12 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
-//DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
-//    : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
 DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
       : catalog_(catalog), oid_(oid), pg_database_(pg_database) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
   std::string pg_namespace("pg_namespace");
-  return NamespaceHandle(catalog_, oid_, catalog_->GetDatabaseCatalog(oid_, pg_namespace)->GetSqlTable());
+  return NamespaceHandle(catalog_, oid_, catalog_->GetDatabaseCatalog(oid_, pg_namespace));
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {

@@ -42,7 +42,7 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   // lookup the default database
   // auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
-  auto db_entry_ptr = db_handle.NewGetDatabaseEntry(txn_, terrier_oid);
+  auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
   // must get back an entry
   EXPECT_NE(db_entry_ptr, nullptr);
