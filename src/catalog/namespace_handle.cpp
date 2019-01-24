@@ -14,54 +14,28 @@ namespace terrier::catalog {
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, namespace_oid_t oid) {
-  // TODO(yangjun): we can cache this
-  CATALOG_LOG_TRACE("inside namepsace handle ... ");
-  std::vector<col_oid_t> cols;
-  std::cout << pg_namespace_ << std::endl;
-  for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
-    cols.emplace_back(c.GetOid());
+  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 0, !oid);
+  if (p_row == nullptr) {
+    return nullptr;
   }
-  CATALOG_LOG_TRACE("before initializer...");
-  auto row_pair = pg_namespace_->InitializerForProjectedRow(cols);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  CATALOG_LOG_TRACE("Before interate ..");
-  // Find the row using sequential scan
-  auto tuple_iter = pg_namespace_->begin();
-  for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {
-    pg_namespace_->Select(txn, *tuple_iter, read);
-    if ((*reinterpret_cast<namespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid) {
-      return std::make_shared<NamespaceEntry>(oid, read, row_pair.second, pg_namespace_);
-    }
-  }
-  delete[] read_buffer;
-  return nullptr;
+
+  return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
 }
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
   uint32_t temp_name = 0;
   if (name == "pg_catalog") temp_name = 30001;
-  // TODO(yangjun): we can cache this
-  std::vector<col_oid_t> cols;
-  for (const auto &c : pg_namespace_->GetSchema().GetColumns()) {
-    cols.emplace_back(c.GetOid());
+
+  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 1, temp_name);
+  if (p_row == nullptr) {
+    return nullptr;
   }
-  auto row_pair = pg_namespace_->InitializerForProjectedRow(cols);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  // Find the row using sequential scan
-  auto tuple_iter = pg_namespace_->begin();
-  for (; tuple_iter != pg_namespace_->end(); tuple_iter++) {
-    pg_namespace_->Select(txn, *tuple_iter, read);
-    // TODO(yangjuns): we don't support strings at the moment
-    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == temp_name) {
-      namespace_oid_t oid(*reinterpret_cast<namespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]])));
-      return std::make_shared<NamespaceEntry>(oid, read, row_pair.second, pg_namespace_);
-    }
-  }
-  delete[] read_buffer;
-  return nullptr;
+
+  // now recover the oid
+  auto offset = pg_namespace_hrw_->ColNumToOffset(0);
+  namespace_oid_t oid(*reinterpret_cast<namespace_oid_t *>(p_row->AccessForceNotNull(offset)));
+  return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
 }
 
 TableHandle NamespaceHandle::GetTableHandle(const std::string &nsp_name) {

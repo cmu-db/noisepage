@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -27,9 +28,9 @@ class TablespaceHandle {
      * @param map a map that encodes how to access attributes of the row
      * @param pg_tablespace a pointer to the pg_tablespace sql table
      */
-    TablespaceEntry(tablespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
-                    std::shared_ptr<storage::SqlTable> pg_tablespace)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(std::move(pg_tablespace)) {}
+    TablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid, storage::ProjectedRow *row,
+                    storage::ProjectionMap map)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(pg_tblspc_rw) {}
 
     /**
      * Get the value of an attribute by col_oid
@@ -45,7 +46,10 @@ class TablespaceHandle {
      * @return a pointer to the attribute value
      * @throw std::out_of_range if the column doesn't exist.
      */
-    byte *GetValue(const std::string &name) { return GetValue(pg_tablespace_->GetSchema().GetColumn(name).GetOid()); }
+    byte *GetValue(const std::string &name) {
+      auto oid = pg_tablespace_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
+      return GetValue(oid);
+    }
 
     /**
      * Return the tablespace_oid
@@ -65,15 +69,14 @@ class TablespaceHandle {
     tablespace_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
-    std::shared_ptr<storage::SqlTable> pg_tablespace_;
+    std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
   };
 
   /**
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  explicit TablespaceHandle(std::shared_ptr<storage::SqlTable> pg_tablespace)
-      : pg_tablespace_(std::move(pg_tablespace)) {}
+  explicit TablespaceHandle(std::shared_ptr<catalog::SqlTableRW> pg_tablespace) : pg_tablespace_(pg_tablespace) {}
 
   /**
    * Get a tablespace entry for a given tablespace_oid. It's essentially equivalent to reading a
@@ -98,7 +101,7 @@ class TablespaceHandle {
   std::shared_ptr<TablespaceEntry> GetTablespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
  private:
-  std::shared_ptr<storage::SqlTable> pg_tablespace_;
+  std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
 };
 
 }  // namespace terrier::catalog

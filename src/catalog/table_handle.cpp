@@ -20,7 +20,7 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
   if (name == "pg_tablespace") table_name = 10002;
   if (name == "pg_namespace") table_name = 10003;
   if (name == "pg_class") table_name = 10004;
-  //TODO(yangjuns): if the table is not under the namespace then we should not provide the table
+  // TODO(yangjuns): if the table is not under the namespace then we should not provide the table
   return std::make_shared<TableEntry>(table_name, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
 

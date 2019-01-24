@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
+#include "catalog/catalog_sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
@@ -37,8 +38,8 @@ class TableHandle {
      * @param pg_namespace a pointer to pg_namespace
      * @param pg_tablespace a pointer to tablespace
      */
-    TableEntry(uint32_t table_name, transaction::TransactionContext *txn, std::shared_ptr<storage::SqlTable> pg_class,
-               std::shared_ptr<storage::SqlTable> pg_namespace, std::shared_ptr<storage::SqlTable> pg_tablespace)
+    TableEntry(uint32_t table_name, transaction::TransactionContext *txn, std::shared_ptr<SqlTableRW> pg_class,
+               std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
         : table_name_(table_name),
           txn_(txn),
           pg_class_(std::move(pg_class)),
@@ -158,9 +159,9 @@ class TableHandle {
     // keep track of the memory
     std::vector<byte *> ptrs_;
     transaction::TransactionContext *txn_;
-    std::shared_ptr<storage::SqlTable> pg_class_;
-    std::shared_ptr<storage::SqlTable> pg_namespace_;
-    std::shared_ptr<storage::SqlTable> pg_tablespace_;
+    std::shared_ptr<SqlTableRW> pg_class_;
+    std::shared_ptr<SqlTableRW> pg_namespace_;
+    std::shared_ptr<SqlTableRW> pg_tablespace_;
   };
 
   /**
@@ -170,8 +171,8 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(std::string name, std::shared_ptr<storage::SqlTable> pg_class,
-              std::shared_ptr<storage::SqlTable> pg_namespace, std::shared_ptr<storage::SqlTable> pg_tablespace)
+  TableHandle(std::string name, std::shared_ptr<SqlTableRW> pg_class,
+              std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
       : nsp_name(std::move(name)),
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
@@ -190,9 +191,9 @@ class TableHandle {
 
  private:
   const std::string nsp_name;
-  std::shared_ptr<storage::SqlTable> pg_class_;
-  std::shared_ptr<storage::SqlTable> pg_namespace_;
-  std::shared_ptr<storage::SqlTable> pg_tablespace_;
+  std::shared_ptr<SqlTableRW> pg_class_;
+  std::shared_ptr<SqlTableRW> pg_namespace_;
+  std::shared_ptr<SqlTableRW> pg_tablespace_;
 };
 
 }  // namespace terrier::catalog

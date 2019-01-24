@@ -31,9 +31,12 @@ class DatabaseHandle {
      * @param map a map that encodes how to access attributes of the row
      * @param pg_database the pointer to the pg_database sql table
      */
-    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
-                  std::shared_ptr<storage::SqlTable> pg_database)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_database_(std::move(pg_database)) {}
+    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
+        : oid_(oid), row_(row), map_(std::move(map)) {}
+
+    DatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
+                  storage::ProjectionMap map)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(pg_db_sqltbl_rw) {}
     /**
      * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute
@@ -43,12 +46,27 @@ class DatabaseHandle {
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
 
     /**
+     * Read an integer from a row
+     * @param col_num column number in the schema
+     * @return integer value
+     */
+    uint32_t GetIntColInRow(int32_t col_num) {
+      auto col_oid = pg_db_sqltbl_rw_->ColNumToOid(col_num);
+      byte *col_p = row_->AccessForceNotNull(map_.at(col_oid));
+      auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
+      return ret_val;
+    }
+
+    /**
      * Get the value of an attribute by attribute name
      * @param name the name of the attribute
      * @return a pointer to the attribute value
      * @throw std::out_of_range if the column doesn't exist.
      */
-    byte *GetValue(const std::string &name) { return GetValue(pg_database_->GetSchema().GetColumn(name).GetOid()); }
+    byte *GetValue(const std::string &name) {
+      auto oid = pg_db_sqltbl_rw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
+      return GetValue(oid);
+    }
 
     /**
      * Return the db_oid of the underlying database
@@ -68,9 +86,11 @@ class DatabaseHandle {
     db_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
-    std::shared_ptr<storage::SqlTable> pg_database_;
+
+    std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw_;
   };
 
+  // shouldn't need pg_database. Catalog already has a reference to the SqlTableRW pg_database_.
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param catalog a pointer to the catalog object

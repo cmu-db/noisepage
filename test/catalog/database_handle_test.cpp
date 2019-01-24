@@ -30,19 +30,27 @@ struct DatabaseHandleTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
-// Tests that we can get the default database and get the correct value from the corresponding row in pg_database
+// Tests that the catalog contains the default database.
 // NOLINTNEXTLINE
 TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
-  txn_ = txn_manager_->BeginTransaction();
-  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  // the oid of the default database, the global catalog of all databases
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+
+  // the handle provides accessors to the database
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle(terrier_oid);
+
+  txn_ = txn_manager_->BeginTransaction();
+  // lookup the default database
+  // auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
+
+  // must get back an entry
   EXPECT_NE(db_entry_ptr, nullptr);
-  // test if we are getting the correct value
-  // oid has col_oid_t = 1002
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue("oid")), !terrier_oid);
-  // datname has col_oid_t = 1003
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(db_entry_ptr->GetValue("datname")), 12345);
+  auto db_oid = db_entry_ptr->GetIntColInRow(0);
+  EXPECT_EQ(db_oid, !terrier_oid);
+  // column 2 is the database name.
+  // TODO(pakhtar): fix to be of correct type and value once we have varlen support
+  auto db_name_val = db_entry_ptr->GetIntColInRow(1);
+  EXPECT_EQ(db_name_val, 12345);
 }
 }  // namespace terrier

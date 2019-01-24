@@ -13,7 +13,7 @@
 
 namespace terrier::catalog {
 DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
-    : catalog_(catalog), oid_(oid), pg_database_(std::move(pg_database)) {}
+    : catalog_(catalog), oid_(oid), pg_database_(pg_database) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
   std::string pg_namespace("pg_namespace");
@@ -25,24 +25,13 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   // Each database handle can only see entry with the same oid
   if (oid_ != oid) return nullptr;
 
-  // TODO(yangjun): we can cache this
-  std::vector<col_oid_t> cols;
-  for (const auto &c : pg_database_->GetSchema().GetColumns()) {
-    cols.emplace_back(c.GetOid());
+  auto pg_database_rw = catalog_->GetPGDatabase();
+  storage::ProjectedRow *row = pg_database_rw->FindRow(txn, 0, !oid);
+  if (row == nullptr) {
+    return nullptr;
   }
-  auto row_pair = pg_database_->InitializerForProjectedRow(cols);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  // Find the row using sequential scan
-  auto tuple_iter = pg_database_->begin();
-  for (; tuple_iter != pg_database_->end(); tuple_iter++) {
-    pg_database_->Select(txn, *tuple_iter, read);
-    if ((*reinterpret_cast<db_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid_) {
-      return std::make_shared<DatabaseEntry>(oid_, read, row_pair.second, pg_database_);
-    }
-  }
-  delete[] read_buffer;
-  return nullptr;
+
+  return std::make_shared<DatabaseEntry>(catalog_->GetPGDatabase(), oid_, row, *pg_database_rw->GetPRMap());
 }
 
 }  // namespace terrier::catalog

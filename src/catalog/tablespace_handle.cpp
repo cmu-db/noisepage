@@ -11,28 +11,15 @@
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 namespace terrier::catalog {
+
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, tablespace_oid_t oid) {
-  // TODO(yangjun): we can cache this
-  CATALOG_LOG_TRACE("inside tablespace handle ... ");
-  std::vector<col_oid_t> cols;
-  std::cout << pg_tablespace_ << std::endl;
-  for (const auto &c : pg_tablespace_->GetSchema().GetColumns()) {
-    cols.emplace_back(c.GetOid());
+  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 0, !oid);
+  if (row == nullptr) {
+    return nullptr;
   }
-  auto row_pair = pg_tablespace_->InitializerForProjectedRow(cols);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  // Find the row using sequential scan
-  auto tuple_iter = pg_tablespace_->begin();
-  for (; tuple_iter != pg_tablespace_->end(); tuple_iter++) {
-    pg_tablespace_->Select(txn, *tuple_iter, read);
-    if ((*reinterpret_cast<tablespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]]))) == oid) {
-      return std::make_shared<TablespaceEntry>(oid, read, row_pair.second, pg_tablespace_);
-    }
-  }
-  delete[] read_buffer;
-  return nullptr;
+
+  return std::make_shared<TablespaceEntry>(pg_tablespace_, oid, row, *pg_tablespace_->GetPRMap());
 }
 
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
@@ -40,26 +27,16 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
   uint32_t temp_name = 0;
   if (name == "pg_global") temp_name = 20001;
   if (name == "pg_default") temp_name = 20002;
-  // TODO(yangjun): we can cache this
-  std::vector<col_oid_t> cols;
-  for (const auto &c : pg_tablespace_->GetSchema().GetColumns()) {
-    cols.emplace_back(c.GetOid());
+
+  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 1, temp_name);
+  if (row == nullptr) {
+    return nullptr;
   }
-  auto row_pair = pg_tablespace_->InitializerForProjectedRow(cols);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(row_pair.first.ProjectedRowSize());
-  storage::ProjectedRow *read = row_pair.first.InitializeRow(read_buffer);
-  // Find the row using sequential scan
-  auto tuple_iter = pg_tablespace_->begin();
-  for (; tuple_iter != pg_tablespace_->end(); tuple_iter++) {
-    pg_tablespace_->Select(txn, *tuple_iter, read);
-    // TODO(yangjuns): we don't support strings at the moment
-    if ((*reinterpret_cast<uint32_t *>(read->AccessForceNotNull(row_pair.second[cols[1]]))) == temp_name) {
-      tablespace_oid_t oid(*reinterpret_cast<tablespace_oid_t *>(read->AccessForceNotNull(row_pair.second[cols[0]])));
-      return std::make_shared<TablespaceEntry>(oid, read, row_pair.second, pg_tablespace_);
-    }
-  }
-  delete[] read_buffer;
-  return nullptr;
+
+  // now recover the oid
+  auto offset = pg_tablespace_->ColNumToOffset(0);
+  tablespace_oid_t oid(*reinterpret_cast<tablespace_oid_t *>(row->AccessForceNotNull(offset)));
+  return std::make_shared<TablespaceEntry>(pg_tablespace_, oid, row, *pg_tablespace_->GetPRMap());
 }
 
 }  // namespace terrier::catalog

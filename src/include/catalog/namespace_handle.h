@@ -31,8 +31,8 @@ class NamespaceHandle {
      * @param pg_namespace a pointer to the pg_namespace sql table
      */
     NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
-                   std::shared_ptr<storage::SqlTable> pg_namespace)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_(std::move(pg_namespace)) {}
+                   std::shared_ptr<catalog::SqlTableRW> pg_namespace)
+        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(pg_namespace) {}
 
     /**
      * Get the value of an attribute by col_oid
@@ -48,7 +48,9 @@ class NamespaceHandle {
      * @return a pointer to the attribute value
      * @throw std::out_of_range if the column doesn't exist.
      */
-    byte *GetValue(const std::string &name) { return GetValue(pg_namespace_->GetSchema().GetColumn(name).GetOid()); }
+    byte *GetValue(const std::string &name) {
+      return GetValue(pg_namespace_erw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid());
+    }
 
     /**
      * Return the namespace_oid of the underlying database
@@ -68,17 +70,17 @@ class NamespaceHandle {
     namespace_oid_t oid_;
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
-    std::shared_ptr<storage::SqlTable> pg_namespace_;
+    std::shared_ptr<catalog::SqlTableRW> pg_namespace_erw_;
   };
 
   /**
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
    * @param catalog a pointer to the catalog
    * @param oid the db oid of the underlying database
-   * @param pg_namespace a pointer to pg_namespace
+   * @param pg_namespace a pointer to pg_namespace sql table rw helper instance
    */
-  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_namespace)
-      : catalog_(catalog), db_oid_(oid), pg_namespace_(std::move(pg_namespace)) {}
+  explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_namespace)
+      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(pg_namespace) {}
 
   /**
    * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a
@@ -112,7 +114,7 @@ class NamespaceHandle {
  private:
   Catalog *catalog_;
   db_oid_t db_oid_;
-  std::shared_ptr<storage::SqlTable> pg_namespace_;
+  std::shared_ptr<catalog::SqlTableRW> pg_namespace_hrw_;
 };
 
 }  // namespace terrier::catalog
