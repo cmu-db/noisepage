@@ -19,7 +19,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle(db_oid_t db_oid) {
-  return DatabaseHandle(this, db_oid, pg_database_->GetSqlTable());
+  return DatabaseHandle(this, db_oid, pg_database_);
 }
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
@@ -38,11 +38,9 @@ void Catalog::Bootstrap() {
   CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
   transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
-  // CreatePGDatabase(GetNextTableOid());
   CreatePGDatabase(table_oid_t(GetNextOid()));
   PopulatePGDatabase(txn);
 
-  // CreatePGTablespace(GetNextTableOid());
   CreatePGTablespace(table_oid_t(GetNextOid()));
   PopulatePGTablespace(txn);
 

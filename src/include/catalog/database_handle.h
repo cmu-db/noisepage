@@ -91,14 +91,13 @@ class DatabaseHandle {
     std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw_;
   };
 
-  // shouldn't need pg_database. Catalog already has a reference to the SqlTableRW pg_database_.
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param catalog a pointer to the catalog object
    * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database);
+  DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_database);
 
   /**
    * Get a namespace handle for the database.
@@ -124,7 +123,7 @@ class DatabaseHandle {
  private:
   Catalog *catalog_;
   db_oid_t oid_;
-  std::shared_ptr<storage::SqlTable> pg_database_;
+  std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
 };
 
 }  // namespace terrier::catalog

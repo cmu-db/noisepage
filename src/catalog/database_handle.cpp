@@ -12,8 +12,8 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
-DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<storage::SqlTable> pg_database)
-      : catalog_(catalog), oid_(oid), pg_database_(pg_database) {}
+DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_database)
+      : catalog_(catalog), oid_(oid), pg_database_rw_(pg_database) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
   std::string pg_namespace("pg_namespace");
@@ -26,12 +26,12 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
  if (oid_ != oid) return nullptr;
 
  auto pg_database_rw = catalog_->GetPGDatabase();
- storage::ProjectedRow *row = pg_database_rw->FindRow(txn, 0, !oid);
+ storage::ProjectedRow *row = pg_database_rw_->FindRow(txn, 0, !oid);
  if ( row == nullptr ) {
    return nullptr;
  }
 
- return std::make_shared<DatabaseEntry>(catalog_->GetPGDatabase(), oid_, row, *pg_database_rw->GetPRMap());
+ return std::make_shared<DatabaseEntry>(catalog_->GetPGDatabase(), oid_, row, *pg_database_rw_->GetPRMap());
 }
 
 }  // namespace terrier::catalog
