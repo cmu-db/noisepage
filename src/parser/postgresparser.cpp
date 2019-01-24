@@ -708,7 +708,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
     }
 
     case T_Float: {
-      //TODO: Parse "12345678910" to BIGINT instead of DECIMAL
+      // TODO(WAN): Parse "12345678910" to BIGINT instead of DECIMAL
       auto v = type::ValueFactory::GetDecimalValue(std::stod(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
       break;

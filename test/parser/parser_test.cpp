@@ -2,15 +2,15 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <parser/expression/type_cast_expression.h>
-#include <parser/expression/case_expression.h>
-#include <parser/expression/comparison_expression.h>
 #include "common/exception.h"
 #include "parser/expression/aggregate_expression.h"
+#include "parser/expression/case_expression.h"
+#include "parser/expression/comparison_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
 
@@ -529,8 +529,7 @@ TEST_F(ParserTestBase, OldConstTest) {
 
   std::vector<type::TypeId> types = {type::TypeId::STRING, type::TypeId::INTEGER, type::TypeId::DECIMAL};
 
-  for(size_t i=0; i<select_columns.size(); i++)
-  {
+  for (size_t i = 0; i < select_columns.size(); i++) {
     auto column = select_columns[i];
     auto correct_type = types[i];
 
@@ -538,7 +537,6 @@ TEST_F(ParserTestBase, OldConstTest) {
     auto const_expression = reinterpret_cast<ConstantValueExpression *>(column.get());
     EXPECT_EQ(correct_type, const_expression->GetValue().GetType());
   }
-
 }
 
 // NOLINTNEXTLINE
@@ -1287,7 +1285,7 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
   {
     query = "INSERT INTO test_table VALUES (1, 2, '2017-01-01'::DATE);";
     auto stmt_list = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<InsertStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<InsertStatement *>(stmt_list[0].get());
     auto values = *(statement->GetValues());
     auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2].get());
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
@@ -1298,12 +1296,11 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
   {
     query = "CREATE TABLE students (name TEXT, graduation DATE)";
     auto stmt_list = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<CreateStatement*>(stmt_list[0].get());
+    auto statement = reinterpret_cast<CreateStatement *>(stmt_list[0].get());
     auto values = statement->GetColumns();
     auto date_column = reinterpret_cast<ColumnDefinition *>(values[1].get());
     EXPECT_EQ(ColumnDefinition::DataType::DATE, date_column->GetColumnType());
   }
-
 }
 
 // NOLINTNEXTLINE
@@ -1315,11 +1312,10 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::TEXT);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::VARCHAR);");
 
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL,
-                                     type::TypeId::DECIMAL, type::TypeId::VARCHAR,
-                                     type::TypeId::VARCHAR};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::DECIMAL,
+                                     type::TypeId::VARCHAR, type::TypeId::VARCHAR};
 
-  for (size_t i=0; i<queries.size(); i++) {
+  for (size_t i = 0; i < queries.size(); i++) {
     std::string query = queries[i];
     type::TypeId correct_type = types[i];
 
@@ -1359,7 +1355,6 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
 
     auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).get());
     EXPECT_EQ(12, right_child->GetValue().GetIntValue());
-
   }
 }
 
