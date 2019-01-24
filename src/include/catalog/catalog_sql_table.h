@@ -182,6 +182,11 @@ class SqlTableRW {
     return pr_map_;
   }
 
+  uint16_t ColNumToOffset(int32_t col_num) {
+    // TODO(pakhtar): add safety checks
+    return pr_map_->at(col_oids_[col_num]);
+  }
+
   /**
    * handle support
    */
