@@ -712,8 +712,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ParserTestBase, DISABLED_OldStringUpdateTest) {
-  // TODO(WAN): need varchar support, see also test bottom
+TEST_F(ParserTestBase, OldStringUpdateTest) {
   // Select with complicated where, tests both BoolExpr and AExpr
   std::string query =
       "UPDATE ORDER_LINE SET OL_DELIVERY_D = '2016-11-15 15:07:37' WHERE OL_O_ID = 2101 AND OL_D_ID = 2";
@@ -758,13 +757,13 @@ TEST_F(ParserTestBase, DISABLED_OldStringUpdateTest) {
   EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue().GetIntValue(), 2);
 
   // Check update clause
-  auto &update_clause = update->GetUpdateClauses()[0];
+  auto update_clause = update->GetUpdateClauses()[0];
   EXPECT_EQ(update_clause->GetColumnName(), "ol_delivery_d");
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  // TODO(WAN): need varchar support
-  // EXPECT_EQ(((expression::ConstantValueExpression *)value)->GetValue().ToString(), "2016-11-15 15:07:37");
-  // EXPECT_EQ(((expression::ConstantValueExpression *)value)->GetValueType(), type::TypeId::VARCHAR);
+  auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.get());
+  EXPECT_EQ(0, strcmp("2016-11-15 15:07:37", value_expr->GetValue().GetStringValue()));
+  EXPECT_EQ(type::TypeId::STRING, value_expr->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE
