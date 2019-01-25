@@ -11,9 +11,21 @@
 namespace terrier::catalog {
 
 /**
- * A tablespace handle contains information about all the tablespaces. It is equivalent to pg_tablespace
- * in postgres
+ * A TablespaceHandle provides access to the (global) system pg_tablespace
+ * catalog.
+ *
+ * This pg_tablespace is a subset of Postgres (v11)  pg_tablespace, and
+ * contains the following fields:
+ *
+ * Name    SQL Type     Description
+ * ----    --------     -----------
+ * oid     integer
+ * spcname varchar      Tablespace name
+ *
+ * TablespaceEntry instances provide accessors for individual rows of
+ * pg_tablespace
  */
+
 class TablespaceHandle {
  public:
   /**
