@@ -46,18 +46,6 @@ class DatabaseHandle {
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
 
-  /**
-   * Read an integer from a row
-   * @param col_num column number in the schema
-   * @return integer value
-   */
-    uint32_t GetIntColInRow(int32_t col_num) {
-    auto col_oid = pg_db_sqltbl_rw_->ColNumToOid(col_num);
-    byte *col_p = row_->AccessForceNotNull(map_.at(col_oid));
-    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
-    return ret_val;
-  }
-
     /**
      * Get the value of an attribute by attribute name
      * @param name the name of the attribute
@@ -67,6 +55,25 @@ class DatabaseHandle {
     byte *GetValue(const std::string &name) {
       auto oid = pg_db_sqltbl_rw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
       return GetValue(oid);
+    }
+
+  /**
+   * From this entry, return col_num as an integer
+   * @param col_num - column number in the schema
+   * @return integer
+   */
+    uint32_t GetIntColInRow(int32_t col_num) {
+      return pg_db_sqltbl_rw_->GetIntColInRow(col_num, row_);
+    }
+
+  /**
+   * From this entry, return col_num as a C string.
+   * @param col_num - column number in the schema
+   * @return malloc'ed C string (with null terminator). Caller must
+   *   free.
+   */
+    char *GetVarcharColInRow(int32_t col_num) {
+      return pg_db_sqltbl_rw_->GetVarcharColInRow(col_num, row_);
     }
 
     /**
