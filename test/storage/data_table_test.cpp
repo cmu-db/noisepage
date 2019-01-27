@@ -284,13 +284,16 @@ TEST_F(DataTableTests, InsertNoWrap) {
   const uint16_t max_columns = 10;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
-    storage::RawBlock *block;
+    storage::RawBlock *block = nullptr;
     // fill the block. bypass the test object to be more efficient with buffers
     transaction::timestamp_t timestamp(0);
     transaction::TransactionContext
         *txn = new transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
-    for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++)
-      block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
+    for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++) {
+      storage::RawBlock *inserted_block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
+      if (block == nullptr) block = inserted_block;
+      EXPECT_EQ(inserted_block, block);
+    }
 
     // Bypass concurrency control and remove some tuples
     storage::TupleAccessStrategy accessor(tested.Layout());
