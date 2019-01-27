@@ -17,9 +17,11 @@ RUN apt-get -y update && \
       libboost-filesystem-dev \
       libjemalloc-dev \
       libevent-dev \
+      libpq-dev \
       libtbb-dev \
       libz-dev \
       llvm-6.0 \
+      pkg-config \
       postgresql-client && \
    apt-get -y install wget && \
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb && \
