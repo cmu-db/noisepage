@@ -981,6 +981,15 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
 TEST_F(ParserTestBase, OldDistinctFromTest) {
   std::string query = "SELECT id, value FROM foo WHERE id IS DISTINCT FROM value;";
   auto stmt_list = pgparser.BuildParseTree(query);
+  auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+  auto where_expr = statement->GetSelectCondition();
+  EXPECT_EQ(ExpressionType::COMPARE_IS_DISTINCT_FROM, where_expr->GetExpressionType());
+  EXPECT_EQ(type::TypeId::BOOLEAN, where_expr->GetReturnValueType());
+
+  auto child0 = reinterpret_cast<TupleValueExpression *>(where_expr->GetChild(0).get());
+  EXPECT_EQ("id", child0->GetColumnName());
+  auto child1 = reinterpret_cast<TupleValueExpression *>(where_expr->GetChild(1).get());
+  EXPECT_EQ("value", child1->GetColumnName());
 }
 
 // NOLINTNEXTLINE
@@ -1297,7 +1306,7 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     auto stmt_list = pgparser.BuildParseTree(query);
     auto statement = reinterpret_cast<CreateStatement *>(stmt_list[0].get());
     auto values = statement->GetColumns();
-    auto date_column = reinterpret_cast<ColumnDefinition *>(values[1].get());
+    auto date_column = values[1];
     EXPECT_EQ(ColumnDefinition::DataType::DATE, date_column->GetColumnType());
   }
 }

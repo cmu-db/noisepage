@@ -702,7 +702,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
     }
 
     case T_String: {
-      auto v = type::ValueFactory::GetStringValue(val.val.str);
+      auto v = type::ValueFactory::GetStringValue(strdup(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
