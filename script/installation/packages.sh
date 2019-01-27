@@ -104,8 +104,12 @@ install_linux() {
       libz-dev \
       llvm-6.0 \
       postgresql-client
-  apt-get -y --reinstall install \
-      libpqxx-dev
+
+   #install libpqxx-6.2 manually
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb
+   sudo dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb
+   sudo dpkg -i libpqxx-dev_6.2.4-4_amd64.deb
 }
 
 main "$@"
