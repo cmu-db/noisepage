@@ -25,7 +25,7 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
   storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 1, name.c_str());
-  if ( row == nullptr ) {
+  if (row == nullptr) {
     return nullptr;
   }
 

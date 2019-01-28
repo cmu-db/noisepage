@@ -68,9 +68,7 @@ class TablespaceHandle {
      * @param col_num - column number in the schema
      * @return integer
      */
-    uint32_t GetIntColInRow(int32_t col_num) {
-      return pg_tablespace_->GetIntColInRow(col_num, row_);
-    }
+    uint32_t GetIntColInRow(int32_t col_num) { return pg_tablespace_->GetIntColInRow(col_num, row_); }
 
     /**
      * From this entry, return col_num as a C string.
@@ -78,9 +76,7 @@ class TablespaceHandle {
      * @return malloc'ed C string (with null terminator). Caller must
      *   free.
      */
-    char *GetVarcharColInRow(int32_t col_num) {
-      return pg_tablespace_->GetVarcharColInRow(col_num, row_);
-    }
+    char *GetVarcharColInRow(int32_t col_num) { return pg_tablespace_->GetVarcharColInRow(col_num, row_); }
 
     /**
      * Return the tablespace_oid
