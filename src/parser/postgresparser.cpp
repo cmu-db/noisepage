@@ -702,7 +702,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
     }
 
     case T_String: {
-      auto v = type::ValueFactory::GetStringValue(strdup(val.val.str));
+      // TODO(WAN): This will trigger "heap-use-after-free" in sanitizer,
+      // because the const char * is freed once the parse finishes.
+      auto v = type::ValueFactory::GetStringValue(val.val.str);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
