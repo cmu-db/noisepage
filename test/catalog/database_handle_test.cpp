@@ -41,7 +41,6 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
 
   txn_ = txn_manager_->BeginTransaction();
   // lookup the default database
-  // auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
   // must get back an entry
@@ -49,8 +48,9 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   auto db_oid = db_entry_ptr->GetIntColInRow(0);
   EXPECT_EQ(db_oid, !terrier_oid);
   // column 2 is the database name.
-  // TODO(pakhtar): fix to be of correct type and value once we have varlen support
-  auto db_name_val = db_entry_ptr->GetIntColInRow(1);
-  EXPECT_EQ(db_name_val, 12345);
+  auto db_name = db_entry_ptr->GetVarcharColInRow(1);
+  EXPECT_STREQ("terrier", db_name);
+
+  free(db_name);
 }
 }  // namespace terrier

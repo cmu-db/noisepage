@@ -24,12 +24,8 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
 
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
-  uint32_t temp_name = 0;
-  if (name == "pg_global") temp_name = 20001;
-  if (name == "pg_default") temp_name = 20002;
-
-  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 1, temp_name);
-  if (row == nullptr) {
+  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 1, name.c_str());
+  if ( row == nullptr ) {
     return nullptr;
   }
 

@@ -13,10 +13,23 @@ namespace terrier::catalog {
 
 class Catalog;
 class NamespaceHandle;
+
 /**
- * A database handle represents a database in the system. It's the entry point for access data
- * stored in this database.
+ * A DatabaseHandle provides access to the (global) system pg_database
+ * catalog.
+ *
+ * This pg_database is a subset of Postgres (v11)  pg_database, and
+ * contains the following fields:
+ *
+ * Name    SQL Type     Description
+ * ----    --------     -----------
+ * oid     integer
+ * datname varchar      Database name
+ *
+ * DatabaseEntry instances provide accessors for individual rows of
+ * pg_database.
  */
+
 class DatabaseHandle {
  public:
   /**
@@ -44,7 +57,7 @@ class DatabaseHandle {
      * @throw std::out_of_range if the column doesn't exist.
      */
     byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
-
+    
     /**
      * Read an integer from a row
      * @param col_num column number in the schema
@@ -66,6 +79,25 @@ class DatabaseHandle {
     byte *GetValue(const std::string &name) {
       auto oid = pg_db_sqltbl_rw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
       return GetValue(oid);
+    }
+
+  /**
+   * From this entry, return col_num as an integer
+   * @param col_num - column number in the schema
+   * @return integer
+   */
+    uint32_t GetIntColInRow(int32_t col_num) {
+      return pg_db_sqltbl_rw_->GetIntColInRow(col_num, row_);
+    }
+
+  /**
+   * From this entry, return col_num as a C string.
+   * @param col_num - column number in the schema
+   * @return malloc'ed C string (with null terminator). Caller must
+   *   free.
+   */
+    char *GetVarcharColInRow(int32_t col_num) {
+      return pg_db_sqltbl_rw_->GetVarcharColInRow(col_num, row_);
     }
 
     /**

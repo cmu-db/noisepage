@@ -96,9 +96,8 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
 
   CATALOG_LOG_TRACE("Populate pg_database table");
   pg_database_->StartRow();
-  // ! => underlying value. Replace with OID column type?
   pg_database_->SetIntColInRow(0, !terrier_oid);
-  pg_database_->SetIntColInRow(1, 12345);
+  pg_database_->SetVarcharColInRow(1, "terrier");
   pg_database_->EndRowAndInsert(txn);
 
   // add it to the map
@@ -112,8 +111,7 @@ void Catalog::CreatePGTablespace(table_oid_t table_oid) {
 
   // add the schema
   pg_tablespace_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  // TODO(pakhtar): we don't support VARCHAR at the moment, use INTEGER for now
-  pg_tablespace_->DefineColumn("spcname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_tablespace_->DefineColumn("spcname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
   pg_tablespace_->Create();
 }
 
@@ -124,15 +122,13 @@ void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
   tablespace_oid_t pg_default_oid = tablespace_oid_t(GetNextOid());
 
   pg_tablespace_->StartRow();
-  // insert pg_global. Placeholder value now, "pg_global" VARLEN soon.
   pg_tablespace_->SetIntColInRow(0, !pg_global_oid);
-  pg_tablespace_->SetIntColInRow(1, 20001);
+  pg_tablespace_->SetVarcharColInRow(1, "pg_global");
   pg_tablespace_->EndRowAndInsert(txn);
 
   pg_tablespace_->StartRow();
-  // insert pg_default. Placeholder value now, "pg_default" VARLEN soon.
   pg_tablespace_->SetIntColInRow(0, !pg_default_oid);
-  pg_tablespace_->SetIntColInRow(1, 20002);
+  pg_tablespace_->SetVarcharColInRow(1, "pg_default");
   pg_tablespace_->EndRowAndInsert(txn);
 }
 

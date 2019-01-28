@@ -33,12 +33,11 @@ struct TablespaceHandleTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
-  // terrier has db_oid_t DEFAULT_DATABASE_OID
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
   EXPECT_NE(tsp_entry_ptr, nullptr);
   // test if we are getting the correct value
-  // oid has col_oid_t = 1012
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(tsp_entry_ptr->GetValue("oid")), 1007);
+  auto name = tsp_entry_ptr->GetVarcharColInRow(1);
+  EXPECT_STREQ("pg_global", name);
 }
 }  // namespace terrier

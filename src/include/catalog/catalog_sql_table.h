@@ -91,7 +91,8 @@ class SqlTableRW {
   }
 
   /**
-   * Read an integer from a row
+   * Read an integer from a row selected via a TupleSlot. This
+   *  method is used by the unit tests, and is a candidate to be deprecated.
    * @param col_num column number in the schema
    * @param slot - tuple to read from
    * @return integer value
@@ -111,6 +112,18 @@ class SqlTableRW {
   }
 
   /**
+   * Read an integer from a (supplied) row. This method is used by the handle
+   * and entry classes.
+   * @param col_num - column number in the schema
+   * @param row - to read from
+   * @return integer value
+   */
+  uint32_t GetIntColInRow(int32_t col_num, storage::ProjectedRow *row) {
+    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
+    return *(reinterpret_cast<uint32_t *>(col_p));
+  }
+
+  /**
    * Save an integer, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param value to save
@@ -121,7 +134,8 @@ class SqlTableRW {
   }
 
   /**
-   * Read a string from a row
+   * Read a string from a row selected via a TupleSlot. This method is
+   * used by the unit tests, and is a candidate to be deprecated.
    * @param col_num column number in the schema
    * @param slot - tuple to read from
    * @return malloc'ed C string (with null terminator). Caller must
@@ -145,6 +159,27 @@ class SqlTableRW {
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
     delete txn;
     delete[] read_buffer;
+    return ret_st;
+  }
+
+  /**
+   * Read a string from a (supplied) row. This method is used by the handle
+   * and entry classes.
+   * @param col_num column number in the schema
+   * @param row - to read from
+   * @return malloc'ed C string (with null terminator). Caller must
+   *   free.
+   */
+  char *GetVarcharColInRow(int32_t col_num, storage::ProjectedRow *row) {
+    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
+    auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+    // stored string has no null terminator, add space for it
+    uint32_t size = entry->Size() + 1;
+    // allocate return string
+    auto *ret_st = static_cast<char *>(malloc(size));
+    memcpy(ret_st, entry->Content(), size);
+    // add the null terminator
+    *(ret_st + size - 1) = 0;
     return ret_st;
   }
 
@@ -192,8 +227,29 @@ class SqlTableRW {
     auto tuple_iter = table_->begin();
     for (; tuple_iter != table_->end(); tuple_iter++) {
       table_->Select(txn, *tuple_iter, read);
-      byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+      byte *col_p = read->AccessForceNotNull(ColNumToOffset(col_num));
       if (*(reinterpret_cast<uint32_t *>(col_p)) == value) {
+        return read;
+      }
+    }
+    delete[] read_buffer;
+    return nullptr;
+  }
+
+  storage::ProjectedRow *FindRow(transaction::TransactionContext *txn,
+                                 int32_t col_num,
+                                 const char *value) {
+    // TODO: assert correct column type
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+
+    auto tuple_iter = table_->begin();
+    for (; tuple_iter != table_->end(); tuple_iter++) {
+      table_->Select(txn, *tuple_iter, read);
+      byte *col_p = read->AccessForceNotNull(ColNumToOffset(col_num));
+      auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+      uint32_t size = entry->Size();
+      if ((size == strlen(value)) && (memcmp(value, entry->Content(), size) == 0)) {
         return read;
       }
     }

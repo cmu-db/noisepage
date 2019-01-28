@@ -11,9 +11,21 @@
 namespace terrier::catalog {
 
 /**
- * A tablespace handle contains information about all the tablespaces. It is equivalent to pg_tablespace
- * in postgres
+ * A TablespaceHandle provides access to the (global) system pg_tablespace
+ * catalog.
+ *
+ * This pg_tablespace is a subset of Postgres (v11)  pg_tablespace, and
+ * contains the following fields:
+ *
+ * Name    SQL Type     Description
+ * ----    --------     -----------
+ * oid     integer
+ * spcname varchar      Tablespace name
+ *
+ * TablespaceEntry instances provide accessors for individual rows of
+ * pg_tablespace
  */
+
 class TablespaceHandle {
  public:
   /**
@@ -49,6 +61,25 @@ class TablespaceHandle {
     byte *GetValue(const std::string &name) {
       auto oid = pg_tablespace_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
       return GetValue(oid);
+    }
+
+    /**
+     *From this entry, return col_num as an integer
+     * @param col_num - column number in the schema
+     * @return integer
+     */
+    uint32_t GetIntColInRow(int32_t col_num) {
+      return pg_tablespace_->GetIntColInRow(col_num, row_);
+    }
+
+    /**
+     * From this entry, return col_num as a C string.
+     * @param col_num - column number in the schema
+     * @return malloc'ed C string (with null terminator). Caller must
+     *   free.
+     */
+    char *GetVarcharColInRow(int32_t col_num) {
+      return pg_tablespace_->GetVarcharColInRow(col_num, row_);
     }
 
     /**
