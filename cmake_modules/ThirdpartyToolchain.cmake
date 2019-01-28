@@ -248,7 +248,12 @@ set(TERRIER_LINK_LIBS "")
 # JeMalloc
 find_package(jemalloc REQUIRED)
 include_directories(SYSTEM ${JEMALLOC_INCLUDE_DIR})
-#list(APPEND TERRIER_LINK_LIBS ${JEMALLOC_LIBRARIES})
+list(APPEND TERRIER_LINK_LIBS ${JEMALLOC_LIBRARIES})
+
+# Arrow
+find_package(Arrow REQUIRED)
+include_directories(SYSTEM ${ARROW_INCLUDE_DIR})
+list(APPEND TERRIER_LINK_LIBS ${ARROW_LIBRARIES})
 
 # Intel TBB
 find_package(TBB REQUIRED)
