@@ -41,43 +41,43 @@ TEST_F(TableHandleTests, BasicCorrectnessTest) {
   // test if get correct tablename
   auto table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablename")), 10001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablename"), 10001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablename")), 10002);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablename"), 10002);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablename")), 10003);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablename"), 10003);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablename")), 10004);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablename"), 10004);
 
   // test if get correct schemaname (namespace)
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("schemaname")), 30001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("schemaname"), 30001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("schemaname")), 30001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("schemaname"), 30001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("schemaname")), 30001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("schemaname"), 30001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("schemaname")), 30001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("schemaname"), 30001);
 
   // test if get correct tablespace
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablespace")), 20001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablespace"), 20001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablespace")), 20001);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablespace"), 20001);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablespace")), 20002);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablespace"), 20002);
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(table_entry_ptr->GetValue("tablespace")), 20002);
+  EXPECT_EQ(table_entry_ptr->GetIntCol("tablespace"), 20002);
 }
 }  // namespace terrier

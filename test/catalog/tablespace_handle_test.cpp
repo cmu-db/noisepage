@@ -39,5 +39,6 @@ TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   // test if we are getting the correct value
   auto name = tsp_entry_ptr->GetVarcharColInRow(1);
   EXPECT_STREQ("pg_global", name);
+  free(name);
 }
 }  // namespace terrier

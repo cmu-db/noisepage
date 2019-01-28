@@ -86,7 +86,7 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   // add the schema
   // TODO(pakhtar): we don't support VARCHAR at the moment, use INTEGER for now
   pg_database_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  pg_database_->DefineColumn("datname", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_database_->DefineColumn("datname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
   // create the table
   pg_database_->Create();
 }
