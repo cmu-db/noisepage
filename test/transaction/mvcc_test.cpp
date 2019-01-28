@@ -1345,5 +1345,4 @@ TEST_F(MVCCTests, SimpleDelete2) {
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
   }
 }
-
 }  // namespace terrier
