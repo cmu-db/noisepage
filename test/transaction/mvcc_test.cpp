@@ -52,7 +52,7 @@ class MVCCDataTableTestObject {
     auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    TERRIER_MEMCPY(buffer, &previous, redo_initializer.ProjectedRowSize());
+    memcpy(buffer, &previous, redo_initializer.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     storage::StorageUtil::ApplyDelta(layout_, delta, version);

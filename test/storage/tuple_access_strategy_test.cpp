@@ -78,7 +78,7 @@ TEST_F(TupleAccessStrategyTests, Nulls) {
   for (uint32_t i = 0; i < repeat; i++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     storage::TupleSlot slot;
@@ -120,7 +120,7 @@ TEST_F(TupleAccessStrategyTests, SimpleInsert) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_cols, &generator);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     uint32_t num_inserts = std::uniform_int_distribution<uint32_t>(1, layout.NumSlots())(generator);
@@ -213,7 +213,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsert) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>> tuples(num_threads);
@@ -253,7 +253,7 @@ TEST_F(TupleAccessStrategyTests, ConcurrentInsertDelete) {
 
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     std::vector<std::vector<storage::TupleSlot>> slots(num_threads);

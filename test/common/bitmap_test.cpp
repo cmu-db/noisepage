@@ -102,7 +102,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
     // provision enough space for the bitmap elements, plus padding because we're going to make it unaligned to wordsize
     auto size = common::RawBitmap::SizeInBytes(num_elements) + sizeof(uint64_t);
     auto allocated_buffer = new uint8_t[size];
-    TERRIER_MEMSET(allocated_buffer, 0, size);
+    memset(allocated_buffer, 0, size);
 
     // make the bitmap not word-aligned
     auto unaligned_buffer = allocated_buffer;

@@ -9,7 +9,7 @@ namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   auto header_size = reinterpret_cast<uintptr_t>(&other.Bitmap()) - reinterpret_cast<uintptr_t>(&other);
-  TERRIER_MEMCPY(result, &other, header_size);
+  memcpy(result, &other, header_size);
   result->Bitmap().Clear(result->num_cols_);
   return result;
 }

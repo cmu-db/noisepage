@@ -52,7 +52,7 @@ class GarbageCollectorDataTableTestObject {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    TERRIER_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
+    memcpy(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
     return version;

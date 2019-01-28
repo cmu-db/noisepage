@@ -35,7 +35,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
     auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
-    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+    memcpy(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -54,7 +54,7 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
     auto *record = txn_->StageWrite(&test_object_->table_, inserted, initializer);
-    TERRIER_MEMCPY(record->Delta(), insert, insert->Size());
+    memcpy(record->Delta(), insert, insert->Size());
   }
 }
 
@@ -162,7 +162,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_) {
       auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
-      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+      memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, nullptr);
   }
