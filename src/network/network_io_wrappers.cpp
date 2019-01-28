@@ -51,7 +51,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
         case EINTR:
           continue;
         default:
-          LOG_ERROR("Error writing: %s", strerror(errno));
+          LOG_ERROR("Error writing: {0}", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
     }

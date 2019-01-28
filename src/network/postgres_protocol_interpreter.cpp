@@ -32,7 +32,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
                                                        const std::shared_ptr<WriteQueue> &out) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
-  LOG_INFO("protocol version: %d", proto_version);
+  LOG_INFO("protocol version: {0}", proto_version);
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
@@ -52,7 +52,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
   while (in->HasMore(2)) {
     // TODO(Tianyu): We don't seem to really handle the other flags?
     std::string key = in->ReadString(), value = in->ReadString();
-    LOG_TRACE("Option key %s, value %s", key.c_str(), value.c_str());
+    LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
     if (key == std::string("database"))
       // state_.db_name_ = value;
       cmdline_options_[key] = std::move(value);
@@ -94,7 +94,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
 
   // Extend the buffer as needed
   if (curr_input_packet_.len_ > in->Capacity()) {
-    LOG_INFO("Extended Buffer size required for packet of size %ld", curr_input_packet_.len_);
+    LOG_INFO("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
     // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
     curr_input_packet_.buf_ = std::make_shared<ReadBuffer>(curr_input_packet_.len_);
     curr_input_packet_.extended_ = true;

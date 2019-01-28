@@ -142,7 +142,7 @@ END_DEF
     try {
       next = result.second(connection);
     } catch (NetworkProcessException &e) {
-      LOG_ERROR("%s\n", e.what());
+      LOG_ERROR("{0}\n", e.what());
       next = Transition::TERMINATE;
     }
   }
@@ -162,7 +162,7 @@ Transition ConnectionHandle::GetResult() {
 }
 
 Transition ConnectionHandle::TryCloseConnection() {
-  LOG_DEBUG("Attempt to close the connection %d", io_wrapper_->GetSocketFd());
+  LOG_DEBUG("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   // TODO(Tianyu): Handle close failure
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;

@@ -51,7 +51,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   next_handler_ = (next_handler_ + 1) % handlers_.size();
 
   std::shared_ptr<ConnectionHandlerTask> handler = handlers_[handler_id];
-  LOG_DEBUG("Dispatching connection to worker %d", handler_id);
+  LOG_DEBUG("Dispatching connection to worker {0}", handler_id);
 
   handler->Notify(new_conn_fd);
 }

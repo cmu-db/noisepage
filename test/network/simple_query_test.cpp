@@ -21,7 +21,7 @@ void *SimpleQueryTest(int port) {
   try {
     // forcing the factory to generate psql protocol handler
     pqxx::connection C(
-        fmt::format("host=127.0.0.1 port=%d user=default_database sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=default_database sslmode=disable application_name=psql", port));
     pqxx::work txn1(C);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
@@ -30,7 +30,7 @@ void *SimpleQueryTest(int port) {
     txn1.commit();
     EXPECT_EQ(R.size(), 0);
   } catch (const std::exception &e) {
-    LOG_INFO("[SimpleQueryTest] Exception occurred: %s", e.what());
+    LOG_INFO("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
   LOG_INFO("[SimpleQueryTest] Client has closed");

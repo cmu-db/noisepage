@@ -60,7 +60,7 @@ TerrierServer &TerrierServer::SetupServer() {
 
   dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this);
 
-  LOG_INFO("Listening on port %zu", port_);
+  LOG_INFO("Listening on port {0}", port_);
   return *this;
 }
 
