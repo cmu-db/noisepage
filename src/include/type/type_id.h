@@ -8,8 +8,6 @@ STRONG_TYPEDEF(timestamp_t, uint64_t);
 
 enum class TypeId : uint8_t {
   INVALID = 0,
-  NULL_TYPE,
-  PARAMETER_OFFSET,
   BOOLEAN,
   TINYINT,
   SMALLINT,

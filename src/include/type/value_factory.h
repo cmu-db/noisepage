@@ -8,8 +8,6 @@ class ValueFactory {
  public:
   ValueFactory() = delete;
 
-  static Value GetNull() { return {TypeId::NULL_TYPE, true}; }
-
   static Value GetBoolean(const bool value) { return {TypeId::BOOLEAN, value}; }
 
   static Value GetTinyInt(const int8_t value) { return {TypeId::TINYINT, value}; }
@@ -22,9 +20,9 @@ class ValueFactory {
 
   static Value GetDecimal(const double value) { return {TypeId::DECIMAL, value}; }
 
-  static Value GetDate(const date_t value) { return {TypeId::DATE, value}; }
-
   static Value GetTimestamp(const timestamp_t value) { return {TypeId::TIMESTAMP, value}; }
+
+  static Value GetDate(const date_t value) { return {TypeId::DATE, value}; }
 };
 
 }  // namespace terrier::type

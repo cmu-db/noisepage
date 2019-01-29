@@ -20,9 +20,9 @@ class ValueWrapper {
 
   static Value WrapDecimal(byte *const data) { return {TypeId::DECIMAL, data}; }
 
-  static Value WrapDate(byte *const data) { return {TypeId::DATE, data}; }
-
   static Value WrapTimestamp(byte *const data) { return {TypeId::TIMESTAMP, data}; }
+
+  static Value WrapDate(byte *const data) { return {TypeId::DATE, data}; }
 };
 
 }  // namespace terrier::type

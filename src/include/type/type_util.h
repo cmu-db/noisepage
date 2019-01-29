@@ -27,7 +27,6 @@ class TypeUtil {
       case TypeId::SMALLINT:
         return 2;
       case TypeId::INTEGER:
-      case TypeId::PARAMETER_OFFSET:
       case TypeId::DATE:
         return 4;
       case TypeId::BIGINT:
