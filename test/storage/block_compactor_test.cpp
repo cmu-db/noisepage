@@ -61,8 +61,9 @@ TEST(BlockCompactorTest, SimpleTest) {
                                               {id_bitmap, id_data},
                                               arrow_metadata.NullCount(storage::col_id_t(2)));
 
-  auto id_array = std::make_shared<arrow::Array>();
-  id_array->SetData(id_array_data);
+  auto id_array = std::make_shared<arrow::Int64Array>(id_array_data);
+//  auto id_array = std::make_shared<arrow::Array>();
+//  id_array->SetData(id_array_data);
 
   auto varlen_bitmap =
       std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(accessor.ColumnNullBitmap(block,
@@ -84,8 +85,11 @@ TEST(BlockCompactorTest, SimpleTest) {
   std::vector<std::shared_ptr<arrow::Field>> schema_vector = {
       arrow::field("id", arrow::int64()), arrow::field("varlen", arrow::utf8())};
   auto schema = std::make_shared<arrow::Schema>(schema_vector);
-  auto arrow_table = arrow::Table::Make(schema, {id_array, varlen_array});
-  (void) arrow_table;
+  auto arrow_table = arrow::Table::Make(schema, {std::static_pointer_cast<arrow::Array>(id_array), varlen_array});
+  auto ids = std::static_pointer_cast<arrow::Int64Array>(arrow_table->column(0)->data()->chunk(0));
+  for (uint32_t i = 0; i < arrow_table->num_rows(); i++) {
+    printf("%llu\n", ids->Value(i));
+  }
 };
 
 }  // namespace terrier
