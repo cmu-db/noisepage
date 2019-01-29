@@ -99,7 +99,10 @@ class Operator {
   template <typename T>
   const T *As() const {
     if (node) {
-      return reinterpret_cast<const T *>(node.get());
+      auto &n = *node;
+      if (typeid(n) == typeid(T)) {
+        return reinterpret_cast<const T *>(node.get());
+      }
     }
     return nullptr;
   }
