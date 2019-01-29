@@ -93,27 +93,6 @@ class SqlTableRW {
   }
 
   /**
-   * Read an integer from a row selected via a TupleSlot. This
-   *  method is used by the unit tests, and is a candidate to be deprecated.
-   * @param col_num column number in the schema
-   * @param slot - tuple to read from
-   * @return integer value
-   */
-  uint32_t GetIntColInRow(int32_t col_num, storage::TupleSlot slot) {
-    auto txn = txn_manager_.BeginTransaction();
-    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, EmptyCallback, nullptr);
-    auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
-
-    delete txn;
-    delete[] read_buffer;
-    return ret_val;
-  }
-
-  /**
    * Read an integer from a (supplied) row. This method is used by the handle
    * and entry classes.
    * @param col_num - column number in the schema
@@ -133,35 +112,6 @@ class SqlTableRW {
   void SetIntColInRow(int32_t col_num, int32_t value) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     (*reinterpret_cast<uint32_t *>(col_p)) = value;
-  }
-
-  /**
-   * Read a string from a row selected via a TupleSlot. This method is
-   * used by the unit tests, and is a candidate to be deprecated.
-   * @param col_num column number in the schema
-   * @param slot - tuple to read from
-   * @return malloc'ed C string (with null terminator). Caller must
-   *   free.
-   */
-  char *GetVarcharColInRow(int32_t col_num, storage::TupleSlot slot) {
-    auto txn = txn_manager_.BeginTransaction();
-    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-
-    auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-    // stored string has no null terminator, add space for it
-    uint32_t size = entry->Size() + 1;
-    // allocate return string
-    auto *ret_st = static_cast<char *>(malloc(size));
-    memcpy(ret_st, entry->Content(), size);
-    // add the null terminator
-    *(ret_st + size - 1) = 0;
-    txn_manager_.Commit(txn, EmptyCallback, nullptr);
-    delete txn;
-    delete[] read_buffer;
-    return ret_st;
   }
 
   /**
