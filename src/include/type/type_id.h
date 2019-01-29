@@ -22,7 +22,6 @@ enum class TypeId : uint8_t {
   DECIMAL,
   TIMESTAMP,
   DATE,
-  STRING,
   VARCHAR,
   VARBINARY,
   ARRAY,
