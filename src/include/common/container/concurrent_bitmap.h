@@ -135,14 +135,7 @@ class RawConcurrentBitmap {
           for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
             uint32_t current_pos = pos + byte_pos * BYTE_SIZE;
             // we are always padded to a byte, but we don't want to use the padding.
-            if (current_pos >= bitmap_num_bits) {
-              // wrap-around if possible.
-              if (start_pos != 0) {
-                return FirstUnsetPos(start_pos, 0, out_pos);
-              }
-              // otherwise, we have reached the padding. time to give up.
-              return false;
-            }
+            if (current_pos >= bitmap_num_bits) return false;
             // we want to make sure it is after the start pos.
             if (current_pos < start_pos) {
               continue;
