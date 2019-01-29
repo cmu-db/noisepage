@@ -177,7 +177,7 @@ class SqlTableRW {
     uint32_t size = entry->Size() + 1;
     // allocate return string
     auto *ret_st = static_cast<char *>(malloc(size));
-    memcpy(ret_st, entry->Content(), size);
+    memcpy(ret_st, entry->Content(), size - 1);
     // add the null terminator
     *(ret_st + size - 1) = 0;
     return ret_st;
