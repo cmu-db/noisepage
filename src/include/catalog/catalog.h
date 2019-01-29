@@ -92,10 +92,6 @@ class Catalog {
    */
   uint32_t GetNextOid();
 
-  std::shared_ptr<catalog::SqlTableRW> GetPGDatabase() { return pg_database_; }
-
-  std::shared_ptr<catalog::SqlTableRW> GetPGTablespace() { return pg_tablespace_; }
-
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -106,21 +102,8 @@ class Catalog {
    */
   void Bootstrap();
 
-  /**
-   * Creates pg_database SQL table populates pg_database by inserting a default database row, terrier, into the
-   * pg_database table
-   * @param txn the bootstrapping transaction
-   * @param table_oid the table oid of pg_database
-   * @param start_col_oid the starting col oid for columns in pg_database.
-   */
-  // void CreatePGDatabase(transaction::TransactionContext *txn, table_oid_t table_oid);
+  void CreatePGDatabase(table_oid_t table_oid);
 
-  /**
-   * Creates pg_tablespace SQL table and populates pg_tablespace
-   * @param txn the bootstrapping transaction
-   * @param table_oid the table oid of pg_tablespace
-   * @param start_col_oid the starting col oid for columns in pg_tablespace.
-   */
   void CreatePGTablespace(table_oid_t table_oid);
 
   /**
@@ -135,24 +118,18 @@ class Catalog {
    * 1) Caller must add the database to pg_database.
    */
   void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);
+
   /**
    * A dummy call back function for committing bootstrap transaction
    */
   static void BootstrapCallback(void * /*unused*/) {}
-  /**
-   * Creates pg_database, the global catalog of all databases.
-   * - creates the storage (a SQL table) for pg_database
-   * - inserts an entry (row) for the default database, terrier, into pg_database
-   * @param txn the bootstrapping transaction
-   * @param table_oid the table oid of pg_database
-   * @param start_col_oid the starting col oid for columns in pg_database.
-   */
-  void CreatePGDatabase(table_oid_t table_oid);
 
   void PopulatePGDatabase(transaction::TransactionContext *txn);
+
   void PopulatePGTablespace(transaction::TransactionContext *txn);
 
   void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
+
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
 
  private:

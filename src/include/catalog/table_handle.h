@@ -116,6 +116,7 @@ class TableHandle {
   /**
    * Construct a table handle. It keeps pointers to the pg_class, pg_namespace, pg_tablespace sql tables.
    * It uses use these three tables to provide the view of pg_tables.
+   * @param name the namespace which the tables belong to
    * @param pg_class a pointer to pg_class
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace

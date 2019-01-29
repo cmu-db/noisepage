@@ -25,13 +25,13 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   // Each database handle can only see entry with the same oid
   if (oid_ != oid) return nullptr;
 
-  auto pg_database_rw = catalog_->GetPGDatabase();
+  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid_, "pg_database");
   storage::ProjectedRow *row = pg_database_rw->FindRow(txn, 0, !oid);
   if (row == nullptr) {
     return nullptr;
   }
 
-  return std::make_shared<DatabaseEntry>(catalog_->GetPGDatabase(), oid_, row, *pg_database_rw->GetPRMap());
+  return std::make_shared<DatabaseEntry>(pg_database_rw, oid_, row, *pg_database_rw->GetPRMap());
 }
 
 }  // namespace terrier::catalog

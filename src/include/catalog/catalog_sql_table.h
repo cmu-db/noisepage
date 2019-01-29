@@ -17,6 +17,10 @@ namespace terrier::catalog {
  */
 class SqlTableRW {
  public:
+  /**
+   * Constructor
+   * @param table_oid the table oid of the underlying sql table
+   */
   explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
   ~SqlTableRW() {
     delete pri_;
@@ -197,6 +201,11 @@ class SqlTableRW {
     *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
 
+  /**
+   * Convert a column number to its col_oid
+   * @param col_num the column number
+   * @return col_oid of the column
+   */
   catalog::col_oid_t ColNumToOid(int32_t col_num) { return col_oids_[col_num]; }
 
   /**
@@ -205,19 +214,35 @@ class SqlTableRW {
   // maybe not needed?
   std::shared_ptr<storage::SqlTable> GetSqlTable() { return table_; }
 
-  // possibly just return table_oid_?
+  /**
+   * Return the oid of the sql table
+   * @return table oid
+   */
   catalog::table_oid_t Oid() { return table_->Oid(); }
 
+  /**
+   * Return a pointer to the projection map
+   * @return pointer to the projection map
+   */
   // shared ptr?
   storage::ProjectionMap *GetPRMap() { return pr_map_; }
 
+  /**
+   * Get the offset of the column in the projection map
+   * @param col_num the column number
+   * @return the offset
+   */
   uint16_t ColNumToOffset(int32_t col_num) {
     // TODO(pakhtar): add safety checks
     return pr_map_->at(col_oids_[col_num]);
   }
 
   /**
-   * handle support
+   * Find a row in a sql table based on a value of an integer column attribute
+   * @param txn the transaction context
+   * @param col_num the column number
+   * @param value the integer value of the column attribute we want to find
+   * @return the corresponding row
    */
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, uint32_t value) {
     // TODO(yangjuns): assert correct column type
@@ -236,6 +261,13 @@ class SqlTableRW {
     return nullptr;
   }
 
+  /**
+   * Find a row in a sql table based on a value of a varchar column attribute
+   * @param txn the transaction context
+   * @param col_num the column number
+   * @param value the string value of the column attribute we want to find
+   * @return the corresponding row
+   */
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, const char *value) {
     // TODO(yangjuns): assert correct column type
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());

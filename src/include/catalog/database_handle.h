@@ -42,14 +42,21 @@ class DatabaseHandle {
      * @param oid the db_oid of the underlying database
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
-     * @param pg_database the pointer to the pg_database sql table
      */
     DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)) {}
 
+    /**
+     * Constructs a database entry.
+     * @param pg_db_sqltbl_rw the pointer to the pg_database SqlTabltRW class
+     * @param oid the db_oid of the underlying database
+     * @param row a pointer points to the projection of the row
+     * @param map a map that encodes how to access attributes of the row
+     */
     DatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
                   storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(std::move(pg_db_sqltbl_rw)) {}
+
     /**
      * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute

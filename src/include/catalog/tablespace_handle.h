@@ -38,7 +38,7 @@ class TablespaceHandle {
      * @param oid the tablespace_oid of the underlying database
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
-     * @param pg_tablespace a pointer to the pg_tablespace sql table
+     * @param pg_tblspc_rw a pointer to the pg_tablespace SqlTableRW class
      */
     TablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid, storage::ProjectedRow *row,
                     storage::ProjectionMap map)
