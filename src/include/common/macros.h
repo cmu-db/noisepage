@@ -32,20 +32,6 @@
 #define PACKED __attribute__((packed))
 
 //===--------------------------------------------------------------------===//
-// memfuncs
-//===--------------------------------------------------------------------===//
-
-#define USE_BUILTIN_MEMFUNCS
-
-#ifdef USE_BUILTIN_MEMFUNCS
-#define TERRIER_MEMCPY __builtin_memcpy
-#define TERRIER_MEMSET __builtin_memset
-#else
-#define TERRIER_MEMCPY memcpy
-#define TERRIER_MEMSET memset
-#endif
-
-//===--------------------------------------------------------------------===//
 // ALWAYS_ASSERT
 //===--------------------------------------------------------------------===//
 

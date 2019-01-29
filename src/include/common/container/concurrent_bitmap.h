@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
@@ -43,7 +44,7 @@ class RawConcurrentBitmap {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
     auto *result = AllocationUtil::AllocateAligned(num_bytes);
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
-    TERRIER_MEMSET(result, 0, num_bytes);
+    std::memset(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
@@ -167,7 +168,7 @@ class RawConcurrentBitmap {
    */
   void UnsafeClear(const uint32_t num_bits) {
     auto size = RawBitmap::SizeInBytes(num_bits);
-    TERRIER_MEMSET(bits_, 0, size);
+    std::memset(bits_, 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
