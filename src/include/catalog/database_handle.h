@@ -49,7 +49,7 @@ class DatabaseHandle {
 
     DatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
                   storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(pg_db_sqltbl_rw) {}
+        : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(std::move(pg_db_sqltbl_rw)) {}
     /**
      * Get the value of an attribute by col_oid
      * @param col the col_oid of the attribute

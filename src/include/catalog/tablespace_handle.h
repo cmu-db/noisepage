@@ -42,7 +42,7 @@ class TablespaceHandle {
      */
     TablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid, storage::ProjectedRow *row,
                     storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(pg_tblspc_rw) {}
+        : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(std::move(pg_tblspc_rw)) {}
 
     /**
      * Get the value of an attribute by col_oid
@@ -103,7 +103,8 @@ class TablespaceHandle {
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  explicit TablespaceHandle(std::shared_ptr<catalog::SqlTableRW> pg_tablespace) : pg_tablespace_(pg_tablespace) {}
+  explicit TablespaceHandle(std::shared_ptr<catalog::SqlTableRW> pg_tablespace)
+      : pg_tablespace_(std::move(pg_tablespace)) {}
 
   /**
    * Get a tablespace entry for a given tablespace_oid. It's essentially equivalent to reading a

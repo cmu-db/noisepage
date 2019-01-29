@@ -188,18 +188,12 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   // Insert pg_database
   CATALOG_LOG_TRACE("Inserting pg_database into pg_class ...");
   auto entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
-  CATALOG_LOG_TRACE("before 0.1...");
   auto namespace_oid =
       !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  CATALOG_LOG_TRACE("before 0.2...");
   auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  CATALOG_LOG_TRACE("before 1...");
   pg_class->StartRow();
-  CATALOG_LOG_TRACE("before 2...");
   pg_class->SetIntColInRow(0, entry_db_oid);
-  CATALOG_LOG_TRACE("before 3 ...");
   pg_class->SetVarcharColInRow(1, "pg_database");
-  CATALOG_LOG_TRACE("before 4 ...");
   pg_class->SetIntColInRow(2, namespace_oid);
   pg_class->SetIntColInRow(3, tablespace_oid);
   pg_class->EndRowAndInsert(txn);
@@ -219,7 +213,6 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_namespace
-  // TODO: fix failure when spelled pg_namepace
   CATALOG_LOG_TRACE("Inserting pg_namespace into pg_class ...");
   entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
   namespace_oid =

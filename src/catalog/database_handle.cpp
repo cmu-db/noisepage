@@ -13,7 +13,7 @@
 
 namespace terrier::catalog {
 DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_database)
-    : catalog_(catalog), oid_(oid), pg_database_rw_(pg_database) {}
+    : catalog_(catalog), oid_(oid), pg_database_rw_(std::move(pg_database)) {}
 
 NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
   std::string pg_namespace("pg_namespace");

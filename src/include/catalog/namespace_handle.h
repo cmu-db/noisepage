@@ -32,7 +32,7 @@ class NamespaceHandle {
      */
     NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
                    std::shared_ptr<catalog::SqlTableRW> pg_namespace)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(pg_namespace) {}
+        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(std::move(pg_namespace)) {}
 
     /**
      * Get the value of an attribute by col_oid
@@ -95,7 +95,7 @@ class NamespaceHandle {
    * @param pg_namespace a pointer to pg_namespace sql table rw helper instance
    */
   explicit NamespaceHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_namespace)
-      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(pg_namespace) {}
+      : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(std::move(pg_namespace)) {}
 
   /**
    * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a

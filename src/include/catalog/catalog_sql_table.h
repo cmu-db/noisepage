@@ -220,7 +220,7 @@ class SqlTableRW {
    * handle support
    */
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, uint32_t value) {
-    // TODO: assert correct column type
+    // TODO(yangjuns): assert correct column type
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
 
@@ -237,7 +237,7 @@ class SqlTableRW {
   }
 
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, const char *value) {
-    // TODO: assert correct column type
+    // TODO(yangjuns): assert correct column type
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
 
