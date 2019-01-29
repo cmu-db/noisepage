@@ -8,9 +8,6 @@
 #include <vector>
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
-#include "util/test_harness.h"
-#include "util/transaction_test_util.h"
-
 namespace terrier::catalog {
 
 /**
@@ -89,7 +86,7 @@ class SqlTableRW {
 
     delete[] insert_buffer_;
     if (local_txn) {
-      txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+      txn_manager_.Commit(txn, EmptyCallback, nullptr);
       delete txn;
     }
     return storage::TupleSlot(slot.GetBlock(), slot.GetOffset());
@@ -108,7 +105,7 @@ class SqlTableRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
 
     delete txn;
@@ -161,7 +158,7 @@ class SqlTableRW {
     memcpy(ret_st, entry->Content(), size);
     // add the null terminator
     *(ret_st + size - 1) = 0;
-    txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_.Commit(txn, EmptyCallback, nullptr);
     delete txn;
     delete[] read_buffer;
     return ret_st;
@@ -289,6 +286,8 @@ class SqlTableRW {
   }
 
  private:
+  static void EmptyCallback(void * /*unused*/) {}
+
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
