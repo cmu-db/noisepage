@@ -53,6 +53,21 @@ class NamespaceHandle {
     }
 
     /**
+     *From this entry, return col_num as an integer
+     * @param col_num - column number in the schema
+     * @return integer
+     */
+    uint32_t GetIntColInRow(int32_t col_num) { return pg_namespace_erw_->GetIntColInRow(col_num, row_); }
+
+    /**
+     * From this entry, return col_num as a C string.
+     * @param col_num - column number in the schema
+     * @return malloc'ed C string (with null terminator). Caller must
+     *   free.
+     */
+    char *GetVarcharColInRow(int32_t col_num) { return pg_namespace_erw_->GetVarcharColInRow(col_num, row_); }
+
+    /**
      * Return the namespace_oid of the underlying database
      * @return namespace_oid of the database
      */

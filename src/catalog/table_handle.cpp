@@ -14,14 +14,8 @@ namespace terrier::catalog {
 
 std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
                                                                     const std::string &name) {
-  CATALOG_LOG_TRACE("Getting table entry with name {}", name);
-  uint32_t table_name = 0;
-  if (name == "pg_database") table_name = 10001;
-  if (name == "pg_tablespace") table_name = 10002;
-  if (name == "pg_namespace") table_name = 10003;
-  if (name == "pg_class") table_name = 10004;
   // TODO(yangjuns): if the table is not under the namespace then we should not provide the table
-  return std::make_shared<TableEntry>(table_name, txn, pg_class_, pg_namespace_, pg_tablespace_);
+  return std::make_shared<TableEntry>(name, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
 
 }  // namespace terrier::catalog

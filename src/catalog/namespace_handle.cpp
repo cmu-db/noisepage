@@ -24,17 +24,13 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
-  uint32_t temp_name = 0;
-  if (name == "pg_catalog") temp_name = 30001;
-
-  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 1, temp_name);
+  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 1, name.c_str());
   if (p_row == nullptr) {
     return nullptr;
   }
 
   // now recover the oid
-  auto offset = pg_namespace_hrw_->ColNumToOffset(0);
-  namespace_oid_t oid(*reinterpret_cast<namespace_oid_t *>(p_row->AccessForceNotNull(offset)));
+  namespace_oid_t oid(pg_namespace_hrw_->GetIntColInRow(0, p_row));
   return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
 }
 

@@ -40,7 +40,9 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   EXPECT_NE(namespace_entry_ptr, nullptr);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("oid")), 1012);
-  EXPECT_EQ(*reinterpret_cast<uint32_t *>(namespace_entry_ptr->GetValue("nspname")), 30001);
+  EXPECT_EQ(namespace_entry_ptr->GetIntColInRow(0), 1012);
+  auto nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
+  EXPECT_STREQ(nsp_name, "pg_catalog");
+  free(nsp_name);
 }
 }  // namespace terrier

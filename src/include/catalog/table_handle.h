@@ -38,44 +38,58 @@ class TableHandle {
      * @param pg_namespace a pointer to pg_namespace
      * @param pg_tablespace a pointer to tablespace
      */
-    TableEntry(uint32_t table_name, transaction::TransactionContext *txn, std::shared_ptr<SqlTableRW> pg_class,
+    TableEntry(std::string table_name, transaction::TransactionContext *txn, std::shared_ptr<SqlTableRW> pg_class,
                std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
-        : table_name_(table_name),
+        : table_name_(std::move(table_name)),
           txn_(txn),
           pg_class_(std::move(pg_class)),
           pg_namespace_(std::move(pg_namespace)),
           pg_tablespace_(std::move(pg_tablespace)) {}
 
     /**
-     * Get the value of an attribute.
-     * @param name the name of the attribute.
-     * @return a pointer to the attribute value
-     * @throw std::out_of_range if the attribute doesn't exist.
+     *From this entry, return col_num as an integer
+     * @param col_num - column number in the schema
+     * @return integer
      */
-    uint32_t GetIntCol(const std::string &name) {
-      CATALOG_LOG_TRACE("Getting the value of attribute {} ...", name);
+    uint32_t GetIntColInRow(int32_t col_num) {
+      TERRIER_ASSERT(false, "there is no IntegerRow in this table");
+      return 0;
+    }
+
+    /**
+     * From this entry, return col_num as a C string.
+     * @param col_num - column number in the schema
+     * @return malloc'ed C string (with null terminator). Caller must
+     *   free.
+     */
+    char *GetVarcharColInRow(int32_t col_num) {
       // get the namespace_oid and tablespace_oid of the table
       namespace_oid_t nsp_oid(0);
       tablespace_oid_t tsp_oid(0);
-      storage::ProjectedRow *row = pg_class_->FindRow(txn_, 1, table_name_);
+      storage::ProjectedRow *row = pg_class_->FindRow(txn_, 1, table_name_.c_str());
+      rows_.emplace_back(row);
       nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, row));
       tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(3, row));
 
       CATALOG_LOG_TRACE("{} has namespace oid {}, tablespace_oid {}", table_name_, !nsp_oid, !tsp_oid);
       // for different attribute we need to look up different sql tables
-      if (name == "schemaname") {
+      if (col_num == 0) {
+        // schemaname
         storage::ProjectedRow *nsp_row = pg_namespace_->FindRow(txn_, 0, !nsp_oid);
-        return pg_namespace_->GetIntColInRow(1, nsp_row);
+        rows_.emplace_back(nsp_row);
+        return pg_namespace_->GetVarcharColInRow(1, nsp_row);
       }
-      if (name == "tablename") {
+      if (col_num == 1) {
+        // tablename
         CATALOG_LOG_TRACE("retrieve information from pg_class ... ");
-        return pg_class_->GetIntColInRow(1, row);
+        return pg_class_->GetVarcharColInRow(1, row);
       }
 
-      if (name == "tablespace") {
+      if (col_num == 2) {
         CATALOG_LOG_TRACE("looking at tablespace attribute ...");
         storage::ProjectedRow *tsp_row = pg_tablespace_->FindRow(txn_, 0, !tsp_oid);
-        return pg_tablespace_->GetIntColInRow(1, tsp_row);
+        rows_.emplace_back(tsp_row);
+        return pg_tablespace_->GetVarcharColInRow(1, tsp_row);
       }
       throw std::out_of_range("Attribute name doesn't exist");
     }
@@ -84,14 +98,16 @@ class TableHandle {
      * Destruct namespace entry. It frees the memory for storing allocated memory.
      */
     ~TableEntry() {
-      for (auto &addr : ptrs_) delete[] addr;
+      for (auto &r : rows_) {
+        delete[] reinterpret_cast<byte *>(r);
+      }
     }
 
    private:
-    uint32_t table_name_;
-    // keep track of the memory
-    std::vector<byte *> ptrs_;
+    const std::string table_name_;
     transaction::TransactionContext *txn_;
+    // keep track of the memory allocated to represent a row in pg_table
+    std::vector<storage::ProjectedRow *> rows_;
     std::shared_ptr<SqlTableRW> pg_class_;
     std::shared_ptr<SqlTableRW> pg_namespace_;
     std::shared_ptr<SqlTableRW> pg_tablespace_;
