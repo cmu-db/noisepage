@@ -3963,7 +3963,7 @@ class BwTree : public BwTreeBase {
    * guaranteed a specific order
    */
   const KeyValuePair *NavigateLeafNode(Context *context_p, const ValueType &value, std::pair<int, bool> *index_pair_p,
-                                       std::function<bool(const void *)> predicate, bool *predicate_satisfied) {
+                                       std::function<bool(const ValueType)> predicate, bool *predicate_satisfied) {
     // NOTE: We do not have to traverse to the right sibling here
     // since Traverse() already traverses to the right sibling
     // if value pointer given to it is nullptr
@@ -6554,7 +6554,7 @@ class BwTree : public BwTreeBase {
    * NOTE: We first test the predicate, and then test for duplicated values
    * so predicate test result is always available
    */
-  bool ConditionalInsert(const KeyType &key, const ValueType &value, std::function<bool(const void *)> predicate,
+  bool ConditionalInsert(const KeyType &key, const ValueType &value, std::function<bool(const ValueType)> predicate,
                          bool *predicate_satisfied) {
     INDEX_LOG_TRACE("Insert (cond.) called");
 
