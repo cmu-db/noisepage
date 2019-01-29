@@ -1,5 +1,6 @@
 #include "storage/sql_table.h"
 #include <algorithm>
+#include <cstring>
 #include <random>
 #include <string>
 #include <utility>
@@ -125,7 +126,7 @@ class SqlTableRW {
     uint32_t size = entry->Size() + 1;
     // allocate return string
     auto *ret_st = static_cast<char *>(malloc(size));
-    memcpy(ret_st, entry->Content(), size);
+    std::memcpy(ret_st, entry->Content(), size);
     // add the null terminator
     *(ret_st + size - 1) = 0;
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
@@ -144,7 +145,7 @@ class SqlTableRW {
     // string size, without null terminator
     size_t size = strlen(st);
     byte *varlen = common::AllocationUtil::AllocateAligned(size);
-    memcpy(varlen, st, size);
+    std::memcpy(varlen, st, size);
     *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
 
