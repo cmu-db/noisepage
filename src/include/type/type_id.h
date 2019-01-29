@@ -6,10 +6,6 @@ namespace terrier::type {
 STRONG_TYPEDEF(date_t, uint32_t);
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
-/**
- * All of our possible types. These are SQL types, except for:
- * - STRING
- */
 enum class TypeId : uint8_t {
   INVALID = 0,
   NULL_TYPE,
@@ -22,9 +18,6 @@ enum class TypeId : uint8_t {
   DECIMAL,
   TIMESTAMP,
   DATE,
-  VARCHAR,
-  VARBINARY,
-  ARRAY,
-  UDT
+  VARCHAR
 };
 }  // namespace terrier::type

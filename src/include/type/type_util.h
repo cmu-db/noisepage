@@ -35,8 +35,6 @@ class TypeUtil {
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::VARCHAR:
-      case TypeId::VARBINARY:
-      case TypeId::ARRAY:
         return VARLEN_COLUMN;
       default:
         throw std::runtime_error("Unknown type.");

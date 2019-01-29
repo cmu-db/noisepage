@@ -141,4 +141,64 @@ TEST_F(ValueTests, GetBigIntTest) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(ValueTests, WrapDateTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+    auto value = type::ValueWrapper::WrapDate(reinterpret_cast<byte *>(&data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekDate(value));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, GetDateTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+    auto value = type::ValueFactory::GetDate(data);
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekDate(value));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, WrapTimestampTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
+    auto value = type::ValueWrapper::WrapTimestamp(reinterpret_cast<byte *>(&data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekTimestamp(value));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, GetTimestampTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
+    auto value = type::ValueFactory::GetTimestamp(data);
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekTimestamp(value));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, WrapDecimalTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
+    auto value = type::ValueWrapper::WrapDecimal(reinterpret_cast<byte *>(&data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekDecimal(value));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ValueTests, GetDecimalTest) {
+  for (uint32_t i = 0; i < num_iterations_; i++) {
+    auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
+    auto value = type::ValueFactory::GetDecimal(data);
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, type::ValuePeeker::PeekDecimal(value));
+  }
+}
+
 }  // namespace terrier
