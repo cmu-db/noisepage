@@ -1,5 +1,6 @@
 #include "storage/projected_row.h"
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <set>
 #include <utility>
@@ -9,7 +10,7 @@ namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   auto header_size = reinterpret_cast<uintptr_t>(&other.Bitmap()) - reinterpret_cast<uintptr_t>(&other);
-  memcpy(result, &other, header_size);
+  std::memcpy(result, &other, header_size);
   result->Bitmap().Clear(result->num_cols_);
   return result;
 }

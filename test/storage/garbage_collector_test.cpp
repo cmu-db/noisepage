@@ -1,4 +1,5 @@
 #include "storage/garbage_collector.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -52,7 +53,7 @@ class GarbageCollectorDataTableTestObject {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    memcpy(buffer, &previous, initializer_.ProjectedRowSize());
+    std::memcpy(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
     return version;

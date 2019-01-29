@@ -1,4 +1,5 @@
 #include "storage/data_table.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -71,7 +72,7 @@ class RandomDataTableTestObject {
       auto *version_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
-      memcpy(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
+      std::memcpy(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
       auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
       // apply delta
       storage::StorageUtil::ApplyDelta(layout_, *update, version);
