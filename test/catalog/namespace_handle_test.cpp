@@ -44,6 +44,13 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   auto nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
   EXPECT_STREQ(nsp_name, "pg_catalog");
   free(nsp_name);
+  // get the public namespace
+  namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "public");
+  EXPECT_NE(namespace_entry_ptr, nullptr);
+  EXPECT_EQ(namespace_entry_ptr->GetIntColInRow(0), 1013);
+  nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
+  EXPECT_STREQ(nsp_name, "public");
+  free(nsp_name);
 }
 
 // Tests that we can create namespace

@@ -166,6 +166,13 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
   pg_namespace->SetVarcharColInRow(1, "pg_catalog");
   pg_namespace->EndRowAndInsert(txn);
+
+  // insert public
+  pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
+  pg_namespace->StartRow();
+  pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
+  pg_namespace->SetVarcharColInRow(1, "public");
+  pg_namespace->EndRowAndInsert(txn);
 }
 
 void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid) {
