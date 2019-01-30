@@ -81,8 +81,9 @@ class NamespaceHandle {
 
   /**
    * Convert a namespace string to its oid representation
-   * @param name
-   * @return
+   * @param name the namespace
+   * @param txn the transaction context
+   * @return the namespace oid
    */
   namespace_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
 
@@ -110,14 +111,15 @@ class NamespaceHandle {
 
   /**
    * Create a namespace.
-   * @param txn
-   * @param name
+   * @param txn the transaction context
+   * @param name the namespace you want to create
    */
   void CreateNamespace(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Get a table handle under the given namespace
-   * @param nsp_name the namepspace
+   * @param txn the transaction context
+   * @param nsp_name the namespace
    * @return a handle to all the tables under the namespace
    */
   TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);

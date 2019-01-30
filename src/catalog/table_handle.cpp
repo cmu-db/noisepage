@@ -37,7 +37,7 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   return result;
 }
 
-void TableHandle::CreateTable(transaction::TransactionContext *txn, Schema &schema, const std::string &name) {
+void TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name) {
   // TODO(yangjuns): error handling
   // Create SqlTable
   auto table = std::make_shared<catalog::SqlTableRW>(table_oid_t(catalog_->GetNextOid()));

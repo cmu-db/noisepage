@@ -98,7 +98,7 @@ class TableHandle {
      * @return table oid
      */
     table_oid_t GetTableOid() { return oid_; }
-    
+
     /**
      * Destruct tablespace entry. It frees the memory for storing allocated memory.
      */
@@ -121,7 +121,8 @@ class TableHandle {
   /**
    * Construct a table handle. It keeps pointers to the pg_class, pg_namespace, pg_tablespace sql tables.
    * It uses use these three tables to provide the view of pg_tables.
-   * @param name the namespace which the tables belong to
+   * @param catalog a pointer to catalog
+   * @param nsp_oid the namespace oid which the tables belong to
    * @param pg_class a pointer to pg_class
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
@@ -136,17 +137,18 @@ class TableHandle {
 
   /**
    * Get the table oid for a given table name
-   * @param name
+   * @param txn the transaction context
+   * @param name the table name
    * @return table oid
    */
   table_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Get a table entry for the given table name. It's essentially equivalent to reading a
+   * Get a table entry for the given table oid. It's essentially equivalent to reading a
    * row from pg_tables. It has to be executed in a transaction context.
    *
    * @param txn the transaction that initiates the read
-   * @param name the name of the table
+   * @param oid the table oid
    * @return a shared pointer to table entry; NULL if the namespace doesn't exist in
    * the database
    */
@@ -165,10 +167,19 @@ class TableHandle {
 
   /**
    * Create a SqlTable. The namespace of the table is the same as the TableHandle.
-   * @param txn
-   * @param schema
+   * @param txn the transaction context
+   * @param name the table name
+   * @param schema the table schema
    */
-  void CreateTable(transaction::TransactionContext *txn, Schema &schema, const std::string &name);
+  void CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+
+  /**
+   * Get a pointer to the table for read and write
+   * @param txn the transaction context
+   * @param name the name of the table
+   * @return a pointer to the SqlTableRW
+   */
+  std::shared_ptr<SqlTableRW> GetTable(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   Catalog *catalog_;
