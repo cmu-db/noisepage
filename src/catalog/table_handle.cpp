@@ -14,7 +14,12 @@ namespace terrier::catalog {
 
 std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
                                                                     const std::string &name) {
-  // TODO(yangjuns): if the table is not under the namespace then we should not provide the table
+  // TODO(yangjuns): error handling
+  // get the namespace_oid of the table to check if it's a table under current namespace
+  namespace_oid_t nsp_oid(0);
+  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, name.c_str());
+  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, row));
+  if (nsp_oid != nsp_oid_) return nullptr;
   return std::make_shared<TableEntry>(name, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
 
@@ -33,6 +38,7 @@ void TableHandle::CreateTable(transaction::TransactionContext *txn, Schema &sche
   pg_class_->SetIntColInRow(2, !nsp_oid_);
   pg_class_->SetIntColInRow(3,
                             !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid());
+  pg_class_->EndRowAndInsert(txn);
 }
 
 }  // namespace terrier::catalog
