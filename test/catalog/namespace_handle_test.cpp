@@ -45,4 +45,22 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   EXPECT_STREQ(nsp_name, "pg_catalog");
   free(nsp_name);
 }
+
+// Tests that we can create namespace
+// NOLINTNEXTLINE
+TEST_F(NamespaceHandleTests, CreateTest) {
+  txn_ = txn_manager_->BeginTransaction();
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  namespace_handle.CreateNamespace(txn_, "test_namespace");
+
+  // get the pg_catalog namespace
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_NE(namespace_entry_ptr, nullptr);
+  auto nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
+  EXPECT_STREQ(nsp_name, "test_namespace");
+  free(nsp_name);
+}
 }  // namespace terrier
