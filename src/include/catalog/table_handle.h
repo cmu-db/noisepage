@@ -30,21 +30,23 @@ class TableHandle {
     /**
      * Constructs a table entry in pg_tables.
      *
-     * TODO(yangjuns): we need to change uint32_t to strings once we take varlen
-     *
-     * @param table_name the name of the table.
+     * @param oid the table oid
+     * @param row a row in pg_class that represents this table
      * @param txn the transaction which wants the entry
      * @param pg_class a pointer to the pg_class catalog
      * @param pg_namespace a pointer to pg_namespace
      * @param pg_tablespace a pointer to tablespace
      */
-    TableEntry(std::string table_name, transaction::TransactionContext *txn, std::shared_ptr<SqlTableRW> pg_class,
-               std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
-        : table_name_(std::move(table_name)),
+    TableEntry(table_oid_t oid, storage::ProjectedRow *row, transaction::TransactionContext *txn,
+               std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
+               std::shared_ptr<SqlTableRW> pg_tablespace)
+        : oid_(oid),
           txn_(txn),
           pg_class_(std::move(pg_class)),
           pg_namespace_(std::move(pg_namespace)),
-          pg_tablespace_(std::move(pg_tablespace)) {}
+          pg_tablespace_(std::move(pg_tablespace)) {
+      rows_.emplace_back(row);
+    }
 
     /**
      *From this entry, return col_num as an integer
@@ -66,12 +68,9 @@ class TableHandle {
       // get the namespace_oid and tablespace_oid of the table
       namespace_oid_t nsp_oid(0);
       tablespace_oid_t tsp_oid(0);
-      storage::ProjectedRow *row = pg_class_->FindRow(txn_, 1, table_name_.c_str());
-      rows_.emplace_back(row);
-      nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, row));
-      tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(3, row));
+      nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, rows_[0]));
+      tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(3, rows_[0]));
 
-      CATALOG_LOG_TRACE("{} has namespace oid {}, tablespace_oid {}", table_name_, !nsp_oid, !tsp_oid);
       // for different attribute we need to look up different sql tables
       if (col_num == 0) {
         // schemaname
@@ -82,7 +81,7 @@ class TableHandle {
       if (col_num == 1) {
         // tablename
         CATALOG_LOG_TRACE("retrieve information from pg_class ... ");
-        return pg_class_->GetVarcharColInRow(1, row);
+        return pg_class_->GetVarcharColInRow(1, rows_[0]);
       }
 
       if (col_num == 2) {
@@ -95,7 +94,13 @@ class TableHandle {
     }
 
     /**
-     * Destruct namespace entry. It frees the memory for storing allocated memory.
+     * Get the table oid
+     * @return table oid
+     */
+    table_oid_t GetTableOid() { return oid_; }
+    
+    /**
+     * Destruct tablespace entry. It frees the memory for storing allocated memory.
      */
     ~TableEntry() {
       for (auto &r : rows_) {
@@ -104,7 +109,7 @@ class TableHandle {
     }
 
    private:
-    const std::string table_name_;
+    table_oid_t oid_;
     transaction::TransactionContext *txn_;
     // keep track of the memory allocated to represent a row in pg_table
     std::vector<storage::ProjectedRow *> rows_;
@@ -128,6 +133,24 @@ class TableHandle {
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
         pg_tablespace_(std::move(pg_tablespace)) {}
+
+  /**
+   * Get the table oid for a given table name
+   * @param name
+   * @return table oid
+   */
+  table_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
+
+  /**
+   * Get a table entry for the given table name. It's essentially equivalent to reading a
+   * row from pg_tables. It has to be executed in a transaction context.
+   *
+   * @param txn the transaction that initiates the read
+   * @param name the name of the table
+   * @return a shared pointer to table entry; NULL if the namespace doesn't exist in
+   * the database
+   */
+  std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Get a table entry for the given table name. It's essentially equivalent to reading a

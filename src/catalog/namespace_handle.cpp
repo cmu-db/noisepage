@@ -35,8 +35,11 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
 }
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
+  // TODO(yangjuns): repeated work if the user wants an entry later. Maybe cache can solve it.
   auto row = pg_namespace_hrw_->FindRow(txn, 1, name.c_str());
-  return namespace_oid_t(pg_namespace_hrw_->GetIntColInRow(0, row));
+  auto result = namespace_oid_t(pg_namespace_hrw_->GetIntColInRow(0, row));
+  delete[] reinterpret_cast<byte *>(row);
+  return result;
 }
 
 TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name) {

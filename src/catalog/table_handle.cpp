@@ -13,17 +13,32 @@
 namespace terrier::catalog {
 
 std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
-                                                                    const std::string &name) {
+                                                                    table_oid_t oid) {
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
-  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, name.c_str());
+  storage::ProjectedRow *row = pg_class_->FindRow(txn, 0, !oid);
   nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, row));
   if (nsp_oid != nsp_oid_) return nullptr;
-  return std::make_shared<TableEntry>(name, txn, pg_class_, pg_namespace_, pg_tablespace_);
+  return std::make_shared<TableEntry>(oid, row, txn, pg_class_, pg_namespace_, pg_tablespace_);
+}
+
+std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
+                                                                    const std::string &name) {
+  return GetTableEntry(txn, NameToOid(txn, name));
+}
+
+table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
+  // TODO(yangjuns): error handling
+  // TODO(yangjuns): repeated work if the user wants an entry later. Maybe cache can solve it.
+  auto row = pg_class_->FindRow(txn, 1, name.c_str());
+  auto result = table_oid_t(pg_class_->GetIntColInRow(0, row));
+  delete[] reinterpret_cast<byte *>(row);
+  return result;
 }
 
 void TableHandle::CreateTable(transaction::TransactionContext *txn, Schema &schema, const std::string &name) {
+  // TODO(yangjuns): error handling
   // Create SqlTable
   auto table = std::make_shared<catalog::SqlTableRW>(table_oid_t(catalog_->GetNextOid()));
   auto cols = schema.GetColumns();
