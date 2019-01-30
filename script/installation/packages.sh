@@ -95,7 +95,7 @@ install_linux() {
       libboost-filesystem-dev \
       libjemalloc-dev \
       libtbb-dev \
-      libz-dev \
+      zlib1g-dev \
       llvm-6.0
 }
 
