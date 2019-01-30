@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <utility>
+#include "storage/access_observer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -20,9 +21,13 @@ class GarbageCollector {
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
+   * @param observer the access observer attached to the garbage collector, which could be nullptr.
    */
-  explicit GarbageCollector(transaction::TransactionManager *txn_manager)
-      : txn_manager_(txn_manager), last_unlinked_{0} {
+  // TODO(Tianyu): Remove nullptr default argument
+  // TODO(Tianyu): Is it worth it to make this polymorphic so we have an access observer interface? I can't think of a
+  // real use case for this though.
+  explicit GarbageCollector(transaction::TransactionManager *txn_manager, AccessObserver *observer = nullptr)
+      : txn_manager_(txn_manager), last_unlinked_{0}, observer_(observer) {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
@@ -75,6 +80,7 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
+  AccessObserver *observer_;
 };
 
 }  // namespace terrier::storage

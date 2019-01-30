@@ -12,6 +12,7 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  if (observer_ != nullptr) observer_->ObserveGCInvocation();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   uint32_t txns_unlinked = ProcessUnlinkQueue();
@@ -120,6 +121,9 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   if (table == nullptr) return true;
   // no point in trying to reclaim slots or do any further operation if cannot safely unlink
   if (!UnlinkUndoRecord(txn, undo_record)) return false;
+  // TODO(Tianyu): Potentially this will get the access information to the observer late, but that
+  // should be fine since the transformation is transactional and light-weight.
+  if (observer_ != nullptr) observer_->ObserveWrite(table, undo_record->Slot());
   // This is guaranteed to succeed
   ReclaimSlotIfDeleted(undo_record);
   ReclaimBufferIfVarlen(txn, undo_record);
@@ -185,6 +189,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
     case DeltaRecordType::INSERT:
+    case DeltaRecordType::LOCK:
       return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
       // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
@@ -206,6 +211,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
           if (varlen != nullptr && !varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
         }
       }
+      break;
+    default:
+      throw std::runtime_error("unexpected delta record type");
   }
 }
 }  // namespace terrier::storage

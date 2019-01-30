@@ -1,6 +1,7 @@
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
+#include "storage/access_observer.h"
 #include "storage/garbage_collector.h"
 #include "util/transaction_benchmark_util.h"
 
@@ -29,7 +30,7 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
+  const uint32_t num_concurrent_txns_ = 3;
 
  private:
   std::thread gc_thread_;
@@ -169,23 +170,23 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(10);
+// BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(10);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(2);
+    ->MinTime(3);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(1);
+    ->MinTime(3);
 
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(1);
+    ->MinTime(3);
 }  // namespace terrier

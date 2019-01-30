@@ -13,6 +13,7 @@
 namespace terrier::storage {
 class GarbageCollector;
 class LogManager;
+class BlockCompactor;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -22,9 +23,10 @@ namespace terrier::transaction {
 class TransactionContext {
  public:
   /**
-   * Constructs a new transaction context. Beware that the buffer pool given must be the same one the log manager uses,
+   * Constructs a new transaction context.
+   *
+   * @warning Beware that the buffer pool given must be the same one the log manager uses,
    * if logging is enabled.
-   * // TODO(Tianyu): We can terrier assert the above condition, but I need to go figure out friends.
    * @param start the start timestamp of the transaction
    * @param txn_id the id of the transaction, should be larger than all start time and commit time
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
@@ -87,6 +89,11 @@ class TransactionContext {
     return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
   }
 
+  storage::UndoRecord *UndoRecordAsLock(storage::DataTable *const table, const storage::TupleSlot slot) {
+    byte *result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    return storage::UndoRecord::InitializeLock(result, txn_id_.load(), slot, table);
+  }
+
   /**
    * Expose a record that can hold a change, described by the initializer given, that will be logged out to disk.
    * The change can either be copied into this space, or written in the space and then used to change the DataTable.
@@ -119,6 +126,7 @@ class TransactionContext {
   friend class storage::GarbageCollector;
   friend class TransactionManager;
   friend class storage::LogManager;
+  friend class storage::BlockCompactor;
   const timestamp_t start_time_;
   std::atomic<timestamp_t> txn_id_;
   storage::UndoBuffer undo_buffer_;

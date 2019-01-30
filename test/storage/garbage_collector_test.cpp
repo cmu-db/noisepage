@@ -710,5 +710,4 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
-
 }  // namespace terrier

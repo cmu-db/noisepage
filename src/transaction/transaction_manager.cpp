@@ -217,8 +217,7 @@ void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
   if (layout.IsVarlen(col_id)) {
     auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
     if (varlen != nullptr) {
-      TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
-      txn->loose_ptrs_.push_back(varlen->Content());
+      if (!varlen->IsGathered()) txn->loose_ptrs_.push_back(varlen->Content());
     }
   }
 }

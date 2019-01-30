@@ -11,6 +11,7 @@
 #include "loggers/parser_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
+#include "storage/block_compactor.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"

@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include "storage/arrow_block_metadata.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -32,9 +33,10 @@ uint32_t BlockLayout::ComputeTupleSize() const {
 }
 
 uint32_t BlockLayout::ComputeStaticHeaderSize() const {
-  auto unpadded_size =
-      static_cast<uint32_t>(sizeof(uint32_t) * 3  // layout_version, num_records, num_slots
-                            + NumColumns() * sizeof(uint32_t) + sizeof(uint16_t) + NumColumns() * sizeof(uint8_t));
+  auto unpadded_size = static_cast<uint32_t>(sizeof(uint32_t) * 2  // layout_version, insert_head
+                                             + sizeof(BlockAccessController) +
+                                             ArrowBlockMetadata::Size(NumColumns())  // access controller and metadata
+                                             + NumColumns() * sizeof(uint32_t));     // attr_offsets
   return StorageUtil::PadUpToSize(sizeof(uint64_t), unpadded_size);
 }
 
@@ -43,8 +45,8 @@ uint32_t BlockLayout::ComputeNumSlots() const {
   // We will have to subtract 8 bytes maximum padding for each column's bitmap. Subtracting another 1 to account for
   // the padding at the end of each column. Somebody can come and fix
   // this later, because I don't feel like thinking about this now.
-  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 2 * 8 * NumColumns()) /
-         (8 * tuple_size_ + NumColumns() + 1);
+  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 8 * (NumColumns() + 1)) // There can be padding after bitmap
+           / (8 * tuple_size_ + NumColumns() + 1) - 1;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {

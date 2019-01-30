@@ -12,6 +12,7 @@
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -27,7 +28,10 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
+ * unless interpreted by a TupleAccessStrategy. The header layout is documented in the class as well.
+ * @see TupleAccessStrategy
+ *
+ * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
@@ -41,9 +45,14 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   std::atomic<uint32_t> insert_head_;
   /**
+   * Access controller of this block
+   */
+  BlockAccessController controller_;
+
+  /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 };
@@ -155,13 +164,17 @@ using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  * TODO(Matt): could be used by the GC for recycling
  */
-enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE, LOCK };
 
 /**
  * Types of LogRecords
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
 
+// TODO(Tianyu): This is pretty wasteful. While in theory 4 bytes of size suffices, we pad it to 8 bytes for
+// performance and ease of implementation with the rest of the system. (It is always assumed that one SQL level column
+// is mapped to one data table column). In the long run though, we might want to investigate solutions where the varlen
+// pointer and the size columns are stored in separate columns, so the size column can be 4 bytes.
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
  * with exactly size many bytes (no extra nul in the end).
