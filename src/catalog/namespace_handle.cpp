@@ -34,14 +34,25 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
   return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
 }
 
-TableHandle NamespaceHandle::GetTableHandle(const std::string &nsp_name) {
+namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
+  auto row = pg_namespace_hrw_->FindRow(txn, 1, name.c_str());
+  return namespace_oid_t(pg_namespace_hrw_->GetIntColInRow(0, row));
+}
+
+TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name) {
   CATALOG_LOG_TRACE("Getting the table handle ...");
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(nsp_name, catalog_->GetDatabaseCatalog(db_oid_, pg_class),
+  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }
 
+void NamespaceHandle::CreateNamespace(terrier::transaction::TransactionContext *txn, const std::string &name) {
+  pg_namespace_hrw_->StartRow();
+  pg_namespace_hrw_->SetIntColInRow(0, catalog_->GetNextOid());
+  pg_namespace_hrw_->SetVarcharColInRow(1, name.c_str());
+  pg_namespace_hrw_->EndRowAndInsert(txn);
+}
 }  // namespace terrier::catalog

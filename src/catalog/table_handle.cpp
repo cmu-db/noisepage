@@ -18,4 +18,21 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
   return std::make_shared<TableEntry>(name, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
 
+void TableHandle::CreateTable(transaction::TransactionContext *txn, Schema &schema, const std::string &name) {
+  // Create SqlTable
+  auto table = std::make_shared<catalog::SqlTableRW>(table_oid_t(catalog_->GetNextOid()));
+  auto cols = schema.GetColumns();
+  for (auto &col : cols) {
+    table->DefineColumn(col.GetName(), col.GetType(), col.GetNullable(), col.GetOid());
+  }
+  table->Create();
+  // Add to pg_class
+  pg_class_->StartRow();
+  pg_class_->SetIntColInRow(0, !table->Oid());
+  pg_class_->SetVarcharColInRow(1, name.c_str());
+  pg_class_->SetIntColInRow(2, !nsp_oid_);
+  pg_class_->SetIntColInRow(3,
+                            !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid());
+}
+
 }  // namespace terrier::catalog

@@ -18,7 +18,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
   Bootstrap();
 }
 
-DatabaseHandle Catalog::GetDatabaseHandle(db_oid_t db_oid) { return DatabaseHandle(this, db_oid, pg_database_); }
+DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
 
@@ -189,7 +189,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   CATALOG_LOG_TRACE("Inserting pg_database into pg_class ...");
   auto entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
   auto namespace_oid =
-      !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
   pg_class->StartRow();
   pg_class->SetIntColInRow(0, entry_db_oid);
@@ -202,7 +202,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   CATALOG_LOG_TRACE("Inserting pg_tablespace into pg_class ...");
   entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_tablespace")->Oid();
   namespace_oid =
-      !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
 
   pg_class->StartRow();
@@ -216,7 +216,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   CATALOG_LOG_TRACE("Inserting pg_namespace into pg_class ...");
   entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_namespace")->Oid();
   namespace_oid =
-      !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();
@@ -230,7 +230,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   CATALOG_LOG_TRACE("Inserting pg_class into pg_class ...");
   entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_class")->Oid();
   namespace_oid =
-      !GetDatabaseHandle(db_oid).GetNamespaceHandle().GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();

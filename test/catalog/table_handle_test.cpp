@@ -35,8 +35,8 @@ TEST_F(TableHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
-  auto db_handle = catalog_->GetDatabaseHandle(terrier_oid);
-  auto table_handle = db_handle.GetNamespaceHandle().GetTableHandle("pg_catalog");
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "pg_catalog");
 
   // test if get correct tablename
   auto table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");

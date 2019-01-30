@@ -37,7 +37,7 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
 
   // the handle provides accessors to the database
-  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle(terrier_oid);
+  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
 
   txn_ = txn_manager_->BeginTransaction();
   // lookup the default database

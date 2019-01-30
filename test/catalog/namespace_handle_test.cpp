@@ -35,8 +35,8 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
-  auto db_handle = catalog_->GetDatabaseHandle(terrier_oid);
-  auto namespace_handle = db_handle.GetNamespaceHandle();
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   EXPECT_NE(namespace_entry_ptr, nullptr);

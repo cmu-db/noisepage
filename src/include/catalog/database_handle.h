@@ -58,25 +58,6 @@ class DatabaseHandle {
         : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(std::move(pg_db_sqltbl_rw)) {}
 
     /**
-     * Get the value of an attribute by col_oid
-     * @param col the col_oid of the attribute
-     * @return a pointer to the attribute value
-     * @throw std::out_of_range if the column doesn't exist.
-     */
-    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
-
-    /**
-     * Get the value of an attribute by attribute name
-     * @param name the name of the attribute
-     * @return a pointer to the attribute value
-     * @throw std::out_of_range if the column doesn't exist.
-     */
-    byte *GetValue(const std::string &name) {
-      auto oid = pg_db_sqltbl_rw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid();
-      return GetValue(oid);
-    }
-
-    /**
      * From this entry, return col_num as an integer
      * @param col_num - column number in the schema
      * @return integer
@@ -116,16 +97,15 @@ class DatabaseHandle {
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param catalog a pointer to the catalog object
-   * @param oid the db_oid of the database
    * @param pg_database the pointer to pg_database
    */
-  DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_database);
+  DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database);
 
   /**
    * Get a namespace handle for the database.
    * @return A namespace handle
    */
-  NamespaceHandle GetNamespaceHandle();
+  NamespaceHandle GetNamespaceHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
@@ -144,7 +124,6 @@ class DatabaseHandle {
 
  private:
   Catalog *catalog_;
-  db_oid_t oid_;
   std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
 };
 

@@ -121,9 +121,10 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(std::string name, std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
-              std::shared_ptr<SqlTableRW> pg_tablespace)
-      : nsp_name(std::move(name)),
+  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
+              std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
+      : catalog_(catalog),
+        nsp_oid_(nsp_oid),
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
         pg_tablespace_(std::move(pg_tablespace)) {}
@@ -139,8 +140,16 @@ class TableHandle {
    */
   std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
+  /**
+   * Create a SqlTable. The namespace of the table is the same as the TableHandle.
+   * @param txn
+   * @param schema
+   */
+  void CreateTable(transaction::TransactionContext *txn, Schema &schema, const std::string &name);
+
  private:
-  const std::string nsp_name;
+  Catalog *catalog_;
+  namespace_oid_t nsp_oid_;
   std::shared_ptr<SqlTableRW> pg_class_;
   std::shared_ptr<SqlTableRW> pg_namespace_;
   std::shared_ptr<SqlTableRW> pg_tablespace_;

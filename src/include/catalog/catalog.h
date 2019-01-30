@@ -52,10 +52,9 @@ class Catalog {
 
   /**
    * Lookup a database oid and return a database handle.
-   * @param db_oid to look up.
    * @return the corresponding database handle
    */
-  DatabaseHandle GetDatabaseHandle(db_oid_t db_oid);
+  DatabaseHandle GetDatabaseHandle();
 
   /**
    * Return a tablespace handle.

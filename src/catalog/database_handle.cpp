@@ -12,26 +12,23 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
-DatabaseHandle::DatabaseHandle(Catalog *catalog, db_oid_t oid, std::shared_ptr<catalog::SqlTableRW> pg_database)
-    : catalog_(catalog), oid_(oid), pg_database_rw_(std::move(pg_database)) {}
+DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database)
+    : catalog_(catalog), pg_database_rw_(std::move(pg_database)) {}
 
-NamespaceHandle DatabaseHandle::GetNamespaceHandle() {
+NamespaceHandle DatabaseHandle::GetNamespaceHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_namespace("pg_namespace");
-  return NamespaceHandle(catalog_, oid_, catalog_->GetDatabaseCatalog(oid_, pg_namespace));
+  return NamespaceHandle(catalog_, oid, catalog_->GetDatabaseCatalog(oid, pg_namespace));
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                                 db_oid_t oid) {
-  // Each database handle can only see entry with the same oid
-  if (oid_ != oid) return nullptr;
-
-  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid_, "pg_database");
+  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
   storage::ProjectedRow *row = pg_database_rw->FindRow(txn, 0, !oid);
   if (row == nullptr) {
     return nullptr;
   }
 
-  return std::make_shared<DatabaseEntry>(pg_database_rw, oid_, row, *pg_database_rw->GetPRMap());
+  return std::make_shared<DatabaseEntry>(pg_database_rw, oid, row, *pg_database_rw->GetPRMap());
 }
 
 }  // namespace terrier::catalog

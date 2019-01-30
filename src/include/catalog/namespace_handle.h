@@ -35,24 +35,6 @@ class NamespaceHandle {
         : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(std::move(pg_namespace)) {}
 
     /**
-     * Get the value of an attribute by col_oid
-     * @param col the col_oid of the attribute
-     * @return a pointer to the attribute value
-     * @throw std::out_of_range if the column doesn't exist.
-     */
-    byte *GetValue(col_oid_t col) { return row_->AccessWithNullCheck(map_.at(col)); }
-
-    /**
-     * Get the value of an attribute by name
-     * @param name the name of the attribute
-     * @return a pointer to the attribute value
-     * @throw std::out_of_range if the column doesn't exist.
-     */
-    byte *GetValue(const std::string &name) {
-      return GetValue(pg_namespace_erw_->GetSqlTable()->GetSchema().GetColumn(name).GetOid());
-    }
-
-    /**
      *From this entry, return col_num as an integer
      * @param col_num - column number in the schema
      * @return integer
@@ -98,6 +80,13 @@ class NamespaceHandle {
       : catalog_(catalog), db_oid_(oid), pg_namespace_hrw_(std::move(pg_namespace)) {}
 
   /**
+   * Convert a namespace string to its oid representation
+   * @param name
+   * @return
+   */
+  namespace_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
+
+  /**
    * Get a namespace entry for a given namespace_oid. It's essentially equivalent to reading a
    * row from pg_namespace. It has to be executed in a transaction context.
    *
@@ -120,11 +109,18 @@ class NamespaceHandle {
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
+   * Create a namespace.
+   * @param txn
+   * @param name
+   */
+  void CreateNamespace(transaction::TransactionContext *txn, const std::string &name);
+
+  /**
    * Get a table handle under the given namespace
    * @param nsp_name the namepspace
    * @return a handle to all the tables under the namespace
    */
-  TableHandle GetTableHandle(const std::string &nsp_name);
+  TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
 
  private:
   Catalog *catalog_;
