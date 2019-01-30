@@ -22,7 +22,7 @@ class LargeTransactionTests : public TerrierTest {
 TEST_F(LargeTransactionTests, MixedReadWrite) {
   const uint32_t txn_length = 10;
   const std::vector<double> update_select_ratio = {0.5, 0.5};
-  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -47,7 +47,7 @@ TEST_F(LargeTransactionTests, MixedReadWrite) {
 TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
   const uint32_t txn_length = 10;
   const std::vector<double> update_select_ratio = {0.5, 0.5};
-  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -72,7 +72,7 @@ TEST_F(LargeTransactionTests, MixedReadWriteHighThread) {
 TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
   const uint32_t txn_length = 1;
   const std::vector<double> update_select_ratio = {0.5, 0.5};
-  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -97,7 +97,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughput) {
 TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
   const uint32_t txn_length = 1;
   const std::vector<double> update_select_ratio = {0.5, 0.5};
-  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -123,7 +123,7 @@ TEST_F(LargeTransactionTests, LowAbortHighThroughputHighThread) {
 TEST_F(LargeTransactionTests, HighAbortRate) {
   const uint32_t txn_length = 40;
   const std::vector<double> update_select_ratio = {0.8, 0.2};
-  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -148,7 +148,7 @@ TEST_F(LargeTransactionTests, HighAbortRate) {
 TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
   const uint32_t txn_length = 40;
   const std::vector<double> update_select_ratio = {0.8, 0.2};
-  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -173,7 +173,7 @@ TEST_F(LargeTransactionTests, HighAbortRateHighThread) {
 TEST_F(LargeTransactionTests, TPCCish) {
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
-  const uint32_t num_concurrent_txns = TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)
@@ -198,7 +198,7 @@ TEST_F(LargeTransactionTests, TPCCish) {
 TEST_F(LargeTransactionTests, TPCCishHighThread) {
   const uint32_t txn_length = 5;
   const std::vector<double> update_select_ratio = {0.4, 0.6};
-  const uint32_t num_concurrent_txns = 2 * TestThreadPool::HardwareConcurrency();
+  const uint32_t num_concurrent_txns = 2 * MultiThreadTestUtil::HardwareConcurrency();
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
                                             .SetMaxColumns(max_columns)

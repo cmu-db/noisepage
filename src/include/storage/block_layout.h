@@ -52,7 +52,6 @@ class BlockLayout {
    * @return all the varlen columns in the layout
    */
   const std::vector<col_id_t> &Varlens() const { return varlens_; }
-
   // TODO(Tianyu): Can probably store this like varlens.
   // TODO(Tianyu): The old test code has a util function that does this. Now that we are including this in the codebase
   // itself, we should replace the calls in test with this and delete that.

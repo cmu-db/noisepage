@@ -14,9 +14,10 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     column_offsets_[i] = acc_offset;
     uint32_t column_size =
         layout_.AttrSize(col_id_t(i)) * layout_.NumSlots()  // content
-        + StorageUtil::PadUpToSize(layout_.AttrSize(col_id_t(i)),
+        + StorageUtil::PadUpToSize(sizeof(uint64_t),
                                    common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
+    TERRIER_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
   }
 }
 
@@ -39,7 +40,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
 
   // Also need to clean up any potential dangling version pointers (in cases where GC is off, or when a table is deleted
   // and individual tuples in it are not)
-  memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());
+  std::memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());
 }
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {

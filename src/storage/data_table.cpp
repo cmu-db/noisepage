@@ -1,4 +1,5 @@
 #include "storage/data_table.h"
+#include <cstring>
 #include <unordered_map>
 #include "common/allocator.h"
 #include "storage/storage_util.h"
@@ -31,7 +32,8 @@ bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::s
 void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
                      ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
-  // but can be improved if block is read-only, or if we implement version synopsis, to just use memcpy when it's safe
+  // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
+  // safe
   uint32_t filled = 0;
   while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(accessor_.GetBlockLayout(), filled);

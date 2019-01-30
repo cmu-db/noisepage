@@ -14,8 +14,8 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "type/type_id.h"
+#include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-#include "util/test_thread_pool.h"
 
 namespace terrier {
 struct StorageTestUtil {
@@ -211,7 +211,7 @@ struct StorageTestUtil {
       if (val_ptr == nullptr)
         tested.SetNull(slot, storage::col_id_t(projection_list_index));
       else
-        memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
+        std::memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
     }
   }
 

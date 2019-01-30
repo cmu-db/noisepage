@@ -213,7 +213,7 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
   /**
-   * Deallocates a slot, making it usable for later inserts.
+   * Deallocates a slot.
    * @param slot the slot to free up
    */
   void Deallocate(const TupleSlot slot) const {

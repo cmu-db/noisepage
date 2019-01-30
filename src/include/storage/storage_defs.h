@@ -216,7 +216,6 @@ class VarlenEntry {
   // Contents of the varlen entry.
   const byte *content_;
 };
-
 }  // namespace terrier::storage
 
 namespace std {

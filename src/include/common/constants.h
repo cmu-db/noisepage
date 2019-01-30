@@ -18,6 +18,6 @@ struct Constants {
   /**
    * Maximum number of columns a table is allowed to have.
    */
-  static const uint16_t MAX_COL = INT16_MAX;
+  static const uint16_t MAX_COL = 10000;
 };
 }  // namespace terrier::common
