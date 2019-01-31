@@ -42,6 +42,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
       result = Transition::PROCEED;
     } else {
       if (bytes_read == 0) {
+        LOG_INFO("Terminating\n");
         return Transition::TERMINATE;
       }
       switch (errno) {

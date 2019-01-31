@@ -23,7 +23,7 @@ class ConnectionHandleFactory {
   /**
    * @return The singleton instance of a ConnectionHandleFactory
    */
-  static inline ConnectionHandleFactory &GetInstance() {
+  static ConnectionHandleFactory &GetInstance() {
     static ConnectionHandleFactory factory;
     return factory;
   }
@@ -38,6 +38,13 @@ class ConnectionHandleFactory {
    * @return A new ConnectionHandle object
    */
   ConnectionHandle &NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task);
+
+  /**
+   * Destructor for connection handle factory to clean up anything in reusable_handles_
+   */
+  void TearDown() {
+    reusable_handles_.clear();
+  }
 
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;

@@ -121,7 +121,7 @@ class ConnectionHandle {
 
   /**
    * Stops receiving network events from client connection. This is useful when
-   * we are waiting on peloton to return the result of a query and not handling
+   * we are waiting on terrier to return the result of a query and not handling
    * client query.
    */
   void StopReceivingNetworkEvent() {

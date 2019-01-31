@@ -1,6 +1,7 @@
 #include <network/network_defs.h>
 #include <fstream>
 #include <memory>
+#include <network/connection_handle_factory.h>
 #include "common/utility.h"
 #include "event2/thread.h"
 
@@ -77,6 +78,7 @@ void TerrierServer::ServerLoop() {
 
   terrier_close(listen_fd_);
 
+  ConnectionHandleFactory::GetInstance().TearDown();
   LOG_INFO("Server Closed");
 }
 
