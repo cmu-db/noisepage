@@ -18,7 +18,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpret
                                     CallbackFunc callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
-  LOG_TRACE("Execute query: {0}", query.c_str());
+  LOG_INFO("Execute query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
