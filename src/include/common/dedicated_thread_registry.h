@@ -39,6 +39,9 @@ class DedicatedThreadRegistry {
     TearDown();
   }
 
+  /**
+   * TearDown function to clear the thread registry and stop all dedicated threads gracefully
+   */
   void TearDown() {
     for (auto &entry : thread_owners_table_) {
       for (auto &task : entry.second) {
