@@ -211,7 +211,7 @@ struct StorageTestUtil {
       if (val_ptr == nullptr)
         tested.SetNull(slot, storage::col_id_t(projection_list_index));
       else
-        memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
+        std::memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
     }
   }
 
