@@ -124,15 +124,7 @@ class ConnectionHandle {
    * we are waiting on terrier to return the result of a query and not handling
    * client query.
    */
-  void StopReceivingNetworkEvent() {
-    EventUtil::EventDel(network_event_);
-
-    // TODO(tanujnay112) remove
-    const char *sample = "I have received your request.\n";
-    io_wrapper_->GetWriteQueue()->BufferWriteRaw(sample, strlen(sample) + 1);
-    io_wrapper_->GetWriteQueue()->ForceFlush();
-    event_active(workpool_event_, EV_WRITE, 0);
-  }
+  void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
 
  private:
   /**
