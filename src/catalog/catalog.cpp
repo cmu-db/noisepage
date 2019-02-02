@@ -16,6 +16,7 @@ std::shared_ptr<Catalog> terrier_catalog;
 Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), oid_(START_OID) {
   CATALOG_LOG_TRACE("Creating catalog ...");
   Bootstrap();
+  CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
@@ -183,6 +184,8 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   pg_class = std::make_shared<catalog::SqlTableRW>(pg_class_oid);
 
   // add the schema
+  // TODO(yangjuns): __ptr column stores the pointers to SqlTableRWs. It should be hidden from the user
+  pg_class->DefineColumn("__ptr", type::TypeId::BIGINT, false, col_oid_t(GetNextOid()));
   pg_class->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_class->DefineColumn("relname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
   pg_class->DefineColumn("relnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
@@ -199,10 +202,11 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
       !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
   pg_class->StartRow();
-  pg_class->SetIntColInRow(0, entry_db_oid);
-  pg_class->SetVarcharColInRow(1, "pg_database");
-  pg_class->SetIntColInRow(2, namespace_oid);
-  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_database").get()));
+  pg_class->SetIntColInRow(1, entry_db_oid);
+  pg_class->SetVarcharColInRow(2, "pg_database");
+  pg_class->SetIntColInRow(3, namespace_oid);
+  pg_class->SetIntColInRow(4, tablespace_oid);
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_tablespace
@@ -213,10 +217,11 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetIntColInRow(0, entry_db_oid);
-  pg_class->SetVarcharColInRow(1, "pg_tablespace");
-  pg_class->SetIntColInRow(2, namespace_oid);
-  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_tablespace").get()));
+  pg_class->SetIntColInRow(1, entry_db_oid);
+  pg_class->SetVarcharColInRow(2, "pg_tablespace");
+  pg_class->SetIntColInRow(3, namespace_oid);
+  pg_class->SetIntColInRow(4, tablespace_oid);
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_namespace
@@ -227,10 +232,11 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetIntColInRow(0, entry_db_oid);
-  pg_class->SetVarcharColInRow(1, "pg_namespace");
-  pg_class->SetIntColInRow(2, namespace_oid);
-  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_namespace").get()));
+  pg_class->SetIntColInRow(1, entry_db_oid);
+  pg_class->SetVarcharColInRow(2, "pg_namespace");
+  pg_class->SetIntColInRow(3, namespace_oid);
+  pg_class->SetIntColInRow(4, tablespace_oid);
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_class
@@ -241,11 +247,55 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetIntColInRow(0, entry_db_oid);
-  pg_class->SetVarcharColInRow(1, "pg_class");
-  pg_class->SetIntColInRow(2, namespace_oid);
-  pg_class->SetIntColInRow(3, tablespace_oid);
+  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(pg_class.get()));
+  pg_class->SetIntColInRow(1, entry_db_oid);
+  pg_class->SetVarcharColInRow(2, "pg_class");
+  pg_class->SetIntColInRow(3, namespace_oid);
+  pg_class->SetIntColInRow(4, tablespace_oid);
   pg_class->EndRowAndInsert(txn);
 }
 
+void Catalog::DestoryDB(db_oid_t oid) {
+  // Note that we are using shared pointers for SqlTableRW. Catalog class have references to all the catalog tables,
+  // (i.e, tables that have namespace "pg_catalog") but not user created tables. We cannot use a shared pointer for a
+  // user table because it will be automatically freed if no one holds it.
+  // Since we don't automatically free these tables, we need to free tables when we destroy the database
+  auto txn = txn_manager_->BeginTransaction();
+
+  auto pg_class = GetDatabaseCatalog(oid, "pg_class");
+  auto pg_class_ptr = pg_class->GetSqlTable();
+
+  // save information needed for (later) reading and writing
+  std::vector<col_oid_t> col_oids;
+  for (const auto &c : pg_class_ptr->GetSchema().GetColumns()) {
+    col_oids.emplace_back(c.GetOid());
+  }
+  auto col_pair = pg_class_ptr->InitializerForProjectedColumns(col_oids, 100);
+  auto *buffer = common::AllocationUtil::AllocateAligned(col_pair.first.ProjectedColumnsSize());
+  storage::ProjectedColumns *columns = col_pair.first.Initialize(buffer);
+  storage::ProjectionMap col_map = col_pair.second;
+  auto it = pg_class_ptr->begin();
+  pg_class_ptr->Scan(txn, &it, columns);
+
+  auto num_rows = columns->NumTuples();
+  CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
+
+  // Get the block layout
+  auto layout = storage::StorageUtil::BlockLayoutFromSchema(pg_class_ptr->GetSchema()).first;
+  // get the pg_catalog oid
+  auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceHandle(txn, oid).NameToOid(txn, "pg_catalog");
+  for (uint32_t i = 0; i < num_rows; i++) {
+    auto row = columns->InterpretAsRow(layout, i);
+    byte *col_p = row.AccessForceNotNull(col_map.at(col_oids[3]));
+    auto nsp_oid = *reinterpret_cast<uint32_t *>(col_p);
+    if (nsp_oid != !pg_catalog_oid) {
+      // user created tables, need to free them
+      byte *addr_col = row.AccessForceNotNull(col_map.at(col_oids[0]));
+      int64_t ptr = *reinterpret_cast<int64_t *>(addr_col);
+      delete reinterpret_cast<SqlTableRW *>(ptr);
+    }
+  }
+  delete[] buffer;
+  delete txn;
+}
 }  // namespace terrier::catalog

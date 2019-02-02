@@ -18,8 +18,8 @@ struct DatabaseHandleTests : public TerrierTest {
 
   void TearDown() override {
     TerrierTest::TearDown();
+    delete catalog_;  // need to delete catalog_first
     delete txn_manager_;
-    delete catalog_;
     delete txn_;
   }
 

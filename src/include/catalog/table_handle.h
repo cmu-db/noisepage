@@ -17,8 +17,17 @@ class Catalog;
 /**
  * A tablespace handle contains information about all the tables in a database.
  * It is equivalent to pg_tables in postgres, which is a view.
- * it has columns:
+ * pg_tables (view):
  *      schemaname | tablename | tablespace
+ *
+ * pg_class:
+ *      __ptr | oid | relname | relnamespace | reltablespace
+ *
+ * pg_namespace:
+ *      oid | nspname
+ *
+ * pg_tablespace:
+ *	    oid | spcname
  */
 class TableHandle {
  public:
@@ -54,6 +63,7 @@ class TableHandle {
      * @return integer
      */
     uint32_t GetIntColInRow(int32_t col_num) {
+      // TODO(yangjuns): error handling
       TERRIER_ASSERT(false, "there is no IntegerRow in this table");
       return 0;
     }
@@ -65,11 +75,12 @@ class TableHandle {
      *   free.
      */
     char *GetVarcharColInRow(int32_t col_num) {
+      // TODO(yangjuns): error handling
       // get the namespace_oid and tablespace_oid of the table
       namespace_oid_t nsp_oid(0);
       tablespace_oid_t tsp_oid(0);
-      nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, rows_[0]));
-      tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(3, rows_[0]));
+      nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, rows_[0]));
+      tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(4, rows_[0]));
 
       // for different attribute we need to look up different sql tables
       if (col_num == 0) {
@@ -81,7 +92,7 @@ class TableHandle {
       if (col_num == 1) {
         // tablename
         CATALOG_LOG_TRACE("retrieve information from pg_class ... ");
-        return pg_class_->GetVarcharColInRow(1, rows_[0]);
+        return pg_class_->GetVarcharColInRow(2, rows_[0]);
       }
 
       if (col_num == 2) {
@@ -171,7 +182,15 @@ class TableHandle {
    * @param name the table name
    * @param schema the table schema
    */
-  void CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+  SqlTableRW *CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name);
+
+  /**
+   * Get a pointer to the table for read and write
+   * @param txn the transaction context
+   * @param oid the oid of the table
+   * @return a pointer to the SqlTableRW
+   */
+  SqlTableRW *GetTable(transaction::TransactionContext *txn, table_oid_t oid);
 
   /**
    * Get a pointer to the table for read and write
@@ -179,7 +198,7 @@ class TableHandle {
    * @param name the name of the table
    * @return a pointer to the SqlTableRW
    */
-  std::shared_ptr<SqlTableRW> GetTable(transaction::TransactionContext *txn, const std::string &name);
+  SqlTableRW *GetTable(transaction::TransactionContext *txn, const std::string &name);
 
  private:
   Catalog *catalog_;

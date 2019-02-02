@@ -99,7 +99,7 @@ class SqlTableRW {
    * @param row - to read from
    * @return integer value
    */
-  uint32_t GetIntColInRow(int32_t col_num, storage::ProjectedRow *row) {
+  int32_t GetIntColInRow(int32_t col_num, storage::ProjectedRow *row) {
     byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
     return *(reinterpret_cast<uint32_t *>(col_p));
   }
@@ -111,7 +111,29 @@ class SqlTableRW {
    */
   void SetIntColInRow(int32_t col_num, int32_t value) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    (*reinterpret_cast<uint32_t *>(col_p)) = value;
+    (*reinterpret_cast<int32_t *>(col_p)) = value;
+  }
+
+  /**
+   * Read a big integer from a (supplied) row. This method is used by the handle
+   * and entry classes.
+   * @param col_num - column number in the schema
+   * @param row - to read from
+   * @return integer value
+   */
+  int64_t GetBigintColInRow(int32_t col_num, storage::ProjectedRow *row) {
+    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
+    return *(reinterpret_cast<int64_t *>(col_p));
+  }
+
+  /**
+   * Save a big integer, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetBigintColInRow(int32_t col_num, int64_t value) {
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    (*reinterpret_cast<int64_t *>(col_p)) = value;
   }
 
   /**

@@ -17,8 +17,8 @@ struct TablespaceHandleTests : public TerrierTest {
 
   void TearDown() override {
     TerrierTest::TearDown();
+    delete catalog_;  // delete catalog first
     delete txn_manager_;
-    delete catalog_;
     delete txn_;
   }
 
