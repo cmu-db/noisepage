@@ -230,7 +230,7 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 };
 
 //===--------------------------------------------------------------------===//
-// PhysicalInsert
+// Insert
 //===--------------------------------------------------------------------===//
 class Insert : public OperatorNode<Insert> {
  public:
@@ -243,6 +243,9 @@ class Insert : public OperatorNode<Insert> {
   const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
 };
 
+//===--------------------------------------------------------------------===//
+// InsertSelect
+//===--------------------------------------------------------------------===//
 class InsertSelect : public OperatorNode<InsertSelect> {
  public:
   static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);

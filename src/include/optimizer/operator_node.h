@@ -16,7 +16,7 @@ enum class OpType {
   ExternalFileScan,
   QueryDerivedScan,
   OrderBy,
-  PhysicalLimit,
+  Limit,
   Distinct,
   InnerNLJoin,
   LeftNLJoin,

@@ -23,7 +23,6 @@ Operator DummyScan::make() {
 //===--------------------------------------------------------------------===//
 Operator SeqScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
                        std::vector<AnnotatedExpression> predicates, bool update) {
-  TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new SeqScan;
   scan->table_ = std::move(table);
   scan->table_alias = std::move(alias);
@@ -56,7 +55,6 @@ Operator IndexScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std:
                          std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
                          std::vector<catalog::col_oid_t> key_column_id_list,
                          std::vector<parser::ExpressionType> expr_type_list, std::vector<type::Value> value_list) {
-  TERRIER_ASSERT(table != nullptr, "Table cannot be null.");
   auto *scan = new IndexScan;
   scan->table_ = std::move(table);
   scan->is_for_update = update;
@@ -105,7 +103,7 @@ Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string f
 }
 
 bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::QueryDerivedScan) return false;
+  if (r.GetType() != OpType::ExternalFileScan) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format == get.format && file_name == get.file_name && delimiter == get.delimiter && quote == get.quote &&
           escape == get.escape);
@@ -522,7 +520,7 @@ OpType OperatorNode<OrderBy>::type_ = OpType::OrderBy;
 template <>
 OpType OperatorNode<Distinct>::type_ = OpType::Distinct;
 template <>
-OpType OperatorNode<Limit>::type_ = OpType::PhysicalLimit;
+OpType OperatorNode<Limit>::type_ = OpType::Limit;
 template <>
 OpType OperatorNode<InnerNLJoin>::type_ = OpType::InnerNLJoin;
 template <>
