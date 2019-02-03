@@ -1,8 +1,8 @@
 #include <string>
 #include <vector>
-#include "optimizer/operators.h"
-#include "optimizer/operator_expression.h"
 #include "catalog/catalog_defs.h"
+#include "optimizer/operator_expression.h"
+#include "optimizer/operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
@@ -16,14 +16,13 @@ namespace terrier::optimizer {
 // Test the creation of operator objects
 // NOLINTNEXTLINE
 TEST(OperatorTests, BasicTest) {
-
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
   Operator seq_scan_1 = SeqScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false);
   Operator seq_scan_2 = SeqScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false);
   auto annotated_expr = AnnotatedExpression(nullptr, std::unordered_set<std::string>());
-  Operator seq_scan_3 = SeqScan::make(nullptr, "table", std::vector<AnnotatedExpression>{ annotated_expr }, false);
+  Operator seq_scan_3 = SeqScan::make(nullptr, "table", std::vector<AnnotatedExpression>{annotated_expr}, false);
   EXPECT_TRUE(seq_scan_1.GetType() == OpType::SeqScan);
   EXPECT_TRUE(seq_scan_1.GetName() == "SeqScan");
   EXPECT_TRUE(seq_scan_1.As<IndexScan>() == nullptr);
@@ -33,15 +32,15 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // IndexScan
   //===--------------------------------------------------------------------===//
-  Operator index_scan_1 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false, catalog::index_oid_t(0),
-                                        std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
-                                        std::vector<type::Value>());
-  Operator index_scan_2 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false, catalog::index_oid_t(0),
-                                          std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
-                                          std::vector<type::Value>());
-  Operator index_scan_3 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false, catalog::index_oid_t(1),
-                                          std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
-                                          std::vector<type::Value>());
+  Operator index_scan_1 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
+                                          catalog::index_oid_t(0), std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
+  Operator index_scan_2 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
+                                          catalog::index_oid_t(0), std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
+  Operator index_scan_3 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
+                                          catalog::index_oid_t(1), std::vector<catalog::col_oid_t>(),
+                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
   EXPECT_TRUE(index_scan_1.GetType() == OpType::IndexScan);
   EXPECT_TRUE(index_scan_1.GetName() == "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
@@ -61,15 +60,12 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
   //===--------------------------------------------------------------------===//
-  Operator query_derived_scan_1  = QueryDerivedScan::make("alias",
-                                                          std::unordered_map<std::string,
-                                                          std::shared_ptr<parser::AbstractExpression>>());
-  Operator query_derived_scan_2  = QueryDerivedScan::make("alias",
-                                                          std::unordered_map<std::string,
-                                                          std::shared_ptr<parser::AbstractExpression>>());
-  Operator query_derived_scan_3  = QueryDerivedScan::make("alias2",
-                                                          std::unordered_map<std::string,
-                                                                             std::shared_ptr<parser::AbstractExpression>>());
+  Operator query_derived_scan_1 =
+      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+  Operator query_derived_scan_2 =
+      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
+  Operator query_derived_scan_3 =
+      QueryDerivedScan::make("alias2", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
   EXPECT_TRUE(query_derived_scan_1.GetType() == OpType::QueryDerivedScan);
   EXPECT_TRUE(query_derived_scan_1.GetName() == "QueryDerivedScan");
   EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
@@ -92,12 +88,12 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // InnerNLJoin
   //===--------------------------------------------------------------------===//
-  Operator inner_nl_join_1 = InnerNLJoin::make(std::vector<AnnotatedExpression>(),
-                                             std::vector<std::unique_ptr<parser::AbstractExpression>>(),
-                                             std::vector<std::unique_ptr<parser::AbstractExpression>>());
-  Operator inner_nl_join_2 = InnerNLJoin::make(std::vector<AnnotatedExpression>(),
-                                             std::vector<std::unique_ptr<parser::AbstractExpression>>(),
-                                             std::vector<std::unique_ptr<parser::AbstractExpression>>());
+  Operator inner_nl_join_1 =
+      InnerNLJoin::make(std::vector<AnnotatedExpression>(), std::vector<std::unique_ptr<parser::AbstractExpression>>(),
+                        std::vector<std::unique_ptr<parser::AbstractExpression>>());
+  Operator inner_nl_join_2 =
+      InnerNLJoin::make(std::vector<AnnotatedExpression>(), std::vector<std::unique_ptr<parser::AbstractExpression>>(),
+                        std::vector<std::unique_ptr<parser::AbstractExpression>>());
   EXPECT_TRUE(inner_nl_join_1.GetType() == OpType::InnerNLJoin);
   EXPECT_TRUE(inner_nl_join_1.GetName() == "InnerNLJoin");
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
@@ -200,13 +196,13 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // HashGroupBy
   //===--------------------------------------------------------------------===//
-  Operator hash_group_by_1 = HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(),
-                                             std::vector<AnnotatedExpression>());
-  Operator hash_group_by_2 = HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(),
-                                               std::vector<AnnotatedExpression>());
+  Operator hash_group_by_1 =
+      HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
+  Operator hash_group_by_2 =
+      HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   auto expr_hash_group_by = std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
-  Operator hash_group_by_3 = HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{ expr_hash_group_by },
-                                               std::vector<AnnotatedExpression>());
+  Operator hash_group_by_3 = HashGroupBy::make(
+      std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_hash_group_by}, std::vector<AnnotatedExpression>());
   EXPECT_TRUE(hash_group_by_1.GetType() == OpType::HashGroupBy);
   EXPECT_TRUE(hash_group_by_2.GetName() == "HashGroupBy");
   EXPECT_TRUE(hash_group_by_1 == hash_group_by_2);
@@ -215,13 +211,13 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // SortGroupBy
   //===--------------------------------------------------------------------===//
-  Operator sort_group_by_1 = SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(),
-                                               std::vector<AnnotatedExpression>());
-  Operator sort_group_by_2 = SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(),
-                                               std::vector<AnnotatedExpression>());
+  Operator sort_group_by_1 =
+      SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
+  Operator sort_group_by_2 =
+      SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   auto expr_sort_group_by = std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
-  Operator sort_group_by_3 = SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>{ expr_sort_group_by },
-                                               std::vector<AnnotatedExpression>());
+  Operator sort_group_by_3 = SortGroupBy::make(
+      std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_sort_group_by}, std::vector<AnnotatedExpression>());
   EXPECT_TRUE(sort_group_by_1.GetType() == OpType::SortGroupBy);
   EXPECT_TRUE(sort_group_by_1.GetName() == "SortGroupBy");
   EXPECT_TRUE(sort_group_by_1 == sort_group_by_2);
@@ -241,6 +237,5 @@ TEST(OperatorTests, BasicTest) {
   EXPECT_TRUE(distinct.GetType() == OpType::Distinct);
   EXPECT_TRUE(distinct.GetName() == "Distinct");
 }
-
 
 }  // namespace terrier::optimizer

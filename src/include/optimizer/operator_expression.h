@@ -12,7 +12,7 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 class OperatorExpression {
  public:
-  OperatorExpression(Operator op);
+  explicit OperatorExpression(Operator op);
 
   void PushChild(std::shared_ptr<OperatorExpression> op);
 

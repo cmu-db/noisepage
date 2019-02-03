@@ -7,18 +7,13 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // Operator Expression
 //===--------------------------------------------------------------------===//
-OperatorExpression::OperatorExpression(Operator op) : op(op) {}
+OperatorExpression::OperatorExpression(Operator op) : op(std::move(op)) {}
 
-void OperatorExpression::PushChild(std::shared_ptr<OperatorExpression> op) {
-  children.push_back(op);
-}
+void OperatorExpression::PushChild(std::shared_ptr<OperatorExpression> op) { children.emplace_back(std::move(op)); }
 
 void OperatorExpression::PopChild() { children.pop_back(); }
 
-const std::vector<std::shared_ptr<OperatorExpression>>
-&OperatorExpression::Children() const {
-  return children;
-}
+const std::vector<std::shared_ptr<OperatorExpression>> &OperatorExpression::Children() const { return children; }
 
 const Operator &OperatorExpression::Op() const { return op; }
 
@@ -32,7 +27,7 @@ const std::string OperatorExpression::GetInfo() const {
       {
         bool is_first = true;
         for (const auto &child : children) {
-          if (is_first == true) {
+          if (is_first) {
             is_first = false;
           } else {
             info += ",";
