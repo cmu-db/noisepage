@@ -1,6 +1,7 @@
 #include "optimizer/operator_expression.h"
 
 #include <limits>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>

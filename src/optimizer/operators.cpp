@@ -89,7 +89,7 @@ common::hash_t IndexScan::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// Physical external file scan
+// External file scan
 //===--------------------------------------------------------------------===//
 Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                 char escape) {
