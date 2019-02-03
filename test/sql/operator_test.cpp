@@ -31,7 +31,7 @@ TEST(OperatorTests, BasicTest) {
   EXPECT_EQ(seq_scan_1.GetType(), OpType::SeqScan);
   EXPECT_EQ(seq_scan_1.GetName(), "SeqScan");
   EXPECT_EQ(seq_scan_1.As<IndexScan>(), nullptr);
-  EXPECT_EQ(seq_scan_1, seq_scan_2);
+  EXPECT_TRUE(seq_scan_1 == seq_scan_2);
   EXPECT_FALSE(seq_scan_1 == seq_scan_3);
 
   //===--------------------------------------------------------------------===//
@@ -49,7 +49,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(index_scan_1.GetType(), OpType::IndexScan);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
-  EXPECT_EQ(index_scan_1, index_scan_2);
+  EXPECT_TRUE(index_scan_1 == index_scan_2);
   EXPECT_FALSE(index_scan_1 == index_scan_3);
 
   //===--------------------------------------------------------------------===//
@@ -61,7 +61,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::ExternalFileScan);
   EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
-  EXPECT_EQ(ext_file_scan_1, ext_file_scan_2);
+  EXPECT_TRUE(ext_file_scan_1 == ext_file_scan_2);
   EXPECT_FALSE(ext_file_scan_1 == ext_file_scan_3);
 
   //===--------------------------------------------------------------------===//
@@ -80,7 +80,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QueryDerivedScan);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
-  EXPECT_EQ(query_derived_scan_1, query_derived_scan_2);
+  EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
   EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_3);
 
   //===--------------------------------------------------------------------===//
@@ -111,7 +111,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(inner_nl_join_1.GetType(), OpType::InnerNLJoin);
   EXPECT_EQ(inner_nl_join_1.GetName(), "InnerNLJoin");
-  EXPECT_EQ(inner_nl_join_1, inner_nl_join_2);
+  EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
 
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
@@ -149,7 +149,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(inner_hash_join_1.GetType(), OpType::InnerHashJoin);
   EXPECT_EQ(inner_hash_join_1.GetName(), "InnerHashJoin");
-  EXPECT_EQ(inner_hash_join_1, inner_hash_join_2);
+  EXPECT_TRUE(inner_hash_join_1 == inner_hash_join_2);
 
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
@@ -209,7 +209,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(export_ext_file_1.GetType(), OpType::ExportExternalFile);
   EXPECT_EQ(export_ext_file_1.GetName(), "ExportExternalFile");
-  EXPECT_EQ(export_ext_file_1, export_ext_file_2);
+  EXPECT_TRUE(export_ext_file_1 == export_ext_file_2);
   EXPECT_FALSE(export_ext_file_1 == export_ext_file_3);
 
   //===--------------------------------------------------------------------===//
@@ -233,7 +233,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(hash_group_by_1.GetType(), OpType::HashGroupBy);
   EXPECT_EQ(hash_group_by_2.GetName(), "HashGroupBy");
-  EXPECT_EQ(hash_group_by_1, hash_group_by_2);
+  EXPECT_TRUE(hash_group_by_1 == hash_group_by_2);
   EXPECT_FALSE(hash_group_by_1 == hash_group_by_3);
 
   //===--------------------------------------------------------------------===//
@@ -249,7 +249,7 @@ TEST(OperatorTests, BasicTest) {
 
   EXPECT_EQ(sort_group_by_1.GetType(), OpType::SortGroupBy);
   EXPECT_EQ(sort_group_by_1.GetName(), "SortGroupBy");
-  EXPECT_EQ(sort_group_by_1, sort_group_by_2);
+  EXPECT_TRUE(sort_group_by_1 == sort_group_by_2);
   EXPECT_FALSE(sort_group_by_1 == sort_group_by_3);
 
   //===--------------------------------------------------------------------===//
