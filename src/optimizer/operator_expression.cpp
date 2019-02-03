@@ -1,8 +1,8 @@
 #include "optimizer/operator_expression.h"
 
 #include <limits>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace terrier::optimizer {

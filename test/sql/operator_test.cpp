@@ -1,8 +1,8 @@
 #include <memory>
 #include <string>
-#include <vector>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/operators.h"
