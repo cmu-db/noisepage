@@ -133,7 +133,11 @@ Operator QueryDerivedScan::make(
   return Operator(get);
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &r) { return r.GetType() == OpType::QueryDerivedScan; }
+bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::QueryDerivedScan) return false;
+  const auto &get = *dynamic_cast<const QueryDerivedScan *>(&r);
+  return (table_alias == get.table_alias && alias_to_expr_map == get.alias_to_expr_map);
+}
 
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();

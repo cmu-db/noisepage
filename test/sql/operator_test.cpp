@@ -67,16 +67,16 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
   //===--------------------------------------------------------------------===//
-  Operator query_derived_scan_1 =
-      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
-  Operator query_derived_scan_2 =
-      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
-
-  auto alias_to_expr_map = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto expr_query_derived_scan =
       std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
-  alias_to_expr_map["constant expr"] = expr_query_derived_scan;
-  Operator query_derived_scan_3 = QueryDerivedScan::make("alias", alias_to_expr_map);
+  alias_to_expr_map_1["constant expr"] = expr_query_derived_scan;
+  alias_to_expr_map_2["constant expr"] = expr_query_derived_scan;
+  Operator query_derived_scan_1 = QueryDerivedScan::make("alias", alias_to_expr_map_1);
+  Operator query_derived_scan_2 = QueryDerivedScan::make("alias", alias_to_expr_map_2);
+  Operator query_derived_scan_3 =
+      QueryDerivedScan::make("alias", std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>());
 
   EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QueryDerivedScan);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
