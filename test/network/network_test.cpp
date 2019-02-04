@@ -126,7 +126,7 @@ TEST_F(PacketManagerTests, RollbackTest) {
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
     pqxx::connection C(
-        fmt::format("host=127.0.0.1 port={0} user=default_user sslmode=disable application_name=psql", port));
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
 
     pqxx::work txn1(C);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -143,6 +143,18 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   LOG_INFO("[SimpleQueryTest] Client has closed");
 }
 
+ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd)
+{
+  ssize_t n;
+  while(true)
+  {
+    n = read(socket_fd, in_buffer, max_len);
+    if(n == 0 || in_buffer[n-6] == 'Z') // Ready for request
+      break;
+  }
+  return n;
+}
+
 TEST_F(NetworkTests, BadQueryTest) {
 
   try {
@@ -155,59 +167,53 @@ TEST_F(NetworkTests, BadQueryTest) {
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     serv_addr.sin_port = htons(port);
 
-    int ret = connect(socket_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr));
+    long ret = connect(socket_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr));
     if(ret < 0)
       LOG_ERROR("Connection Error");
 
     // Build the startup message
-    char buffer[1000] = {};
-    // 79: Message length; 3: protocol version number
-    buffer[3] = 79;
-    buffer[5] = 3;
-    std::vector<std::string> params({"user", "default_user", "database", "default_database", "application_name", "psql"});
-    int offset = 8;
+    char out_buffer[1000] = {};
+    char in_buffer[1000] = {};
+    // 3: protocol version number
+    out_buffer[5] = 3;
+    std::vector<std::string> params({"user", "postgres", "database", "postgres", "application_name", "psql"});
+    size_t offset = 8;
     for(std::string &str : params)
     {
-      strcpy(buffer + offset, str.c_str());
-      offset += int(str.length())+1;
+      strcpy(out_buffer + offset, str.c_str());
+      offset += str.length() + 1;
     }
 
-    write(socket_fd, buffer, 79);
-    read(socket_fd, buffer, 1000);
+    out_buffer[3] = char(offset+1);
+
+    write(socket_fd, out_buffer, offset+1);
+    ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
 
     // Build a correct query message, "SELECT A FROM B"
-    memset(buffer, 0, sizeof(buffer));
-    buffer[0] = 'Q';
-    std::string query = "SELECT A FROM B";
-    strcpy(buffer + 5, query.c_str());
+    memset(out_buffer, 0, sizeof(out_buffer));
+    out_buffer[0] = 'Q';
+    std::string query = "SELECT A FROM B;";
+    strcpy(out_buffer + 5, query.c_str());
     size_t len = 5 + query.length();
-    buffer[4] = char(len);
+    out_buffer[4] = char(len);
 
     // Beware the buffer length should be message length + 1 for query messages
-    write(socket_fd, buffer, len+1);
-    read(socket_fd, buffer, 256);
-    // Maybe expect something here?
+    write(socket_fd, out_buffer, len+1);
+    ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+    EXPECT_GT(ret, 0); // should be okay
 
     // Send a bad query packet
-    /*
-    memset(buffer, 0, sizeof(buffer));
-    std::string bad_query = "some_random_bad_query";
-    write(socket_fd, buffer, bad_query.length()+1);
-    read(socket_fd, buffer, 256);
-
-    memset(buffer, 0, sizeof(buffer));
-    buffer[0] = 'Q';
-    query = "SELECT A FROM B";
-    strcpy(buffer + 5, query.c_str());
-    len = 5 + query.length();
-    buffer[4] = char(len);
-    */
+    memset(out_buffer, 0, sizeof(out_buffer));
+    std::string bad_query = "some_random_bad_packet";
+    write(socket_fd, out_buffer, bad_query.length()+1);
+    ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+    EXPECT_EQ(0, ret); // socket should be closed
 
 } catch (const std::exception &e) {
-    LOG_INFO("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    LOG_INFO("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  LOG_INFO("[SimpleQueryTest] Client has closed");
+  LOG_INFO("[BadQueryTest] Client has closed");
 }
 
 
