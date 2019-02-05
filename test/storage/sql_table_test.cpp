@@ -144,7 +144,7 @@ class SqlTableRW {
     size_t size = strlen(st);
     byte *varlen = common::AllocationUtil::AllocateAligned(size);
     std::memcpy(varlen, st, size);
-    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
+    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false, false};
   }
 
  private:

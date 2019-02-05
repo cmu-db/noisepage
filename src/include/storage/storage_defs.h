@@ -24,6 +24,8 @@ namespace terrier::storage {
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint32_t);
+#define VARLEN_COMPRESSED 0  // Index of the compressed bit
+#define VARLEN_GATHERED 1    // Index of the gathered bit
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
@@ -176,20 +178,38 @@ class VarlenEntry {
    * @param size length of the varlen content, in bytes (no C-style nul-terminator)
    * @param gathered whether the varlen entry's content pointer is part of a large buffer (for arrow-compatibility),
    *                 which means it cannot be deallocated by itself.
+   * @param compressed whether the varlen entry is stored using dictionnary compression
    */
-  VarlenEntry(byte *content, uint32_t size, bool gathered)
-      // the sign bit on size is used to store the "gathered" attribute, so we mask it off on size depending on that.
-      : size_(size | (gathered ? INT32_MIN : 0)), content_(content) {}
+  VarlenEntry(byte *content, uint32_t size, bool gathered, bool compressed)
+      : size_(size),
+        flags_((static_cast<int>(gathered) << VARLEN_GATHERED) | (static_cast<int>(compressed) << VARLEN_COMPRESSED)),
+        content_(content) {}
   /**
    * @return size of the varlen entry in bytes.
    */
-  uint32_t Size() const { return static_cast<uint32_t>(INT32_MAX & size_); }
+  uint32_t Size() const { return static_cast<uint32_t>(size_); }
 
   /**
    * @return whether the varlen is gathered into a per-block contiguous buffer (which means it cannot be
    * deallocated by itself) for arrow-compatibility
    */
-  bool IsGathered() const { return static_cast<bool>(INT32_MIN & size_); }
+  bool IsGathered() const { return static_cast<bool>((flags_ >> VARLEN_GATHERED) & 1); }
+
+  /**
+   * @return whether the content is stored using dictionary compression.
+   */
+  bool IsCompressed() const { return static_cast<bool>((flags_ >> VARLEN_COMPRESSED) & 1); }
+
+  /**
+   * @return whether the content is inlined or not.
+   */
+  bool IsInlined() const { return static_cast<bool>(Size() <= sizeof(int64_t)); }
+
+  /**
+   * Helper method to decide if the content can be GCed separately
+   * @return whether the content can be deallocated by itself
+   */
+  bool IsReclaimable() const { return !(IsGathered() || IsCompressed() || IsInlined()); }
 
   /**
    * @return pointer to the varlen entry contents.
@@ -197,9 +217,9 @@ class VarlenEntry {
   const byte *Content() const { return content_; }
 
  private:
-  // we use the sign bit to denote if
   int32_t size_;
-  // TODO(Tianyu): we can use the extra 4 bytes for something else (storing the prefix?)
+  // flags: stores the gathered bit and the compressed bit (only 2 bits are needed).
+  int32_t flags_;
   // Contents of the varlen entry.
   const byte *content_;
 };

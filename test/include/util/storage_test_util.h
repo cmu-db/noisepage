@@ -103,7 +103,7 @@ struct StorageTestUtil {
           FillWithRandomBytes(size, varlen, generator);
           // varlen entries always start off not inlined
           *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) = {varlen, size,
-                                                                                                     false};
+                                                                                                     false, false};
         } else {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
         }
