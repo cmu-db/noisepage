@@ -178,11 +178,15 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // Insert
   //===--------------------------------------------------------------------===//
-  Operator insert = Insert::make(nullptr, new std::vector<std::string>,
-                                 new std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>>);
+  auto columns = new std::vector<std::string>;
+  auto values = new std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>>;
+  Operator insert = Insert::make(nullptr, columns, values);
 
   EXPECT_EQ(insert.GetType(), OpType::Insert);
   EXPECT_EQ(insert.GetName(), "Insert");
+
+  delete columns;
+  delete values;
 
   //===--------------------------------------------------------------------===//
   // InsertSelect
@@ -215,10 +219,13 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // Update
   //===--------------------------------------------------------------------===//
-  Operator update = Update::make(nullptr, new std::vector<std::unique_ptr<parser::UpdateClause>>);
+  auto updates = new std::vector<std::unique_ptr<parser::UpdateClause>>;
+  Operator update = Update::make(nullptr, updates);
 
   EXPECT_EQ(update.GetType(), OpType::Update);
   EXPECT_EQ(update.GetName(), "Update");
+
+  delete updates;
 
   //===--------------------------------------------------------------------===//
   // HashGroupBy
