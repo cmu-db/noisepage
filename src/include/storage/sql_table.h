@@ -113,7 +113,7 @@ class SqlTable {
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
    * fit into the given buffer, as visible to the transaction given, according to the format described by the given
    * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
    * last slot scanned in the invocation.
    *
    * @param txn the calling transaction
