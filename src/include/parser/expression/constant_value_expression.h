@@ -17,8 +17,8 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(const type::Value &value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.GetType(), {}), value_(value) {}
+  explicit ConstantValueExpression(const type::TransientValue &value)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
 
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
@@ -37,10 +37,10 @@ class ConstantValueExpression : public AbstractExpression {
   /**
    * @return the constant value stored in this expression
    */
-  type::Value GetValue() const { return value_; }
+  type::TransientValue GetValue() const { return value_; }
 
  private:
-  type::Value value_;
+  type::TransientValue value_;
 };
 
 }  // namespace terrier::parser

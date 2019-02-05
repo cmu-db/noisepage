@@ -14,7 +14,7 @@ class ValueTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetBooleanTest) {
+TEST_F(ValueTests, BooleanTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
@@ -29,11 +29,18 @@ TEST_F(ValueTests, GetBooleanTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekBoolean(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(!data);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetTinyIntTest) {
+TEST_F(ValueTests, TinyIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
@@ -48,11 +55,18 @@ TEST_F(ValueTests, GetTinyIntTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekTinyInt(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetSmallIntTest) {
+TEST_F(ValueTests, SmallIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
@@ -67,11 +81,18 @@ TEST_F(ValueTests, GetSmallIntTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekSmallInt(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetIntegerTest) {
+TEST_F(ValueTests, IntegerTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
@@ -86,11 +107,18 @@ TEST_F(ValueTests, GetIntegerTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekInteger(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetBigIntTest) {
+TEST_F(ValueTests, BigIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
@@ -105,11 +133,18 @@ TEST_F(ValueTests, GetBigIntTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekBigInt(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetDecimalTest) {
+TEST_F(ValueTests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
@@ -124,11 +159,18 @@ TEST_F(ValueTests, GetDecimalTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekDecimal(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetTimestampTest) {
+TEST_F(ValueTests, TimestampTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
@@ -143,11 +185,18 @@ TEST_F(ValueTests, GetTimestampTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekTimestamp(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetDateTest) {
+TEST_F(ValueTests, DateTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
@@ -162,11 +211,18 @@ TEST_F(ValueTests, GetDateTest) {
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::ValuePeeker::PeekDate(value));
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(ValueTests, GetVarCharTest) {
+TEST_F(ValueTests, VarCharTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto length = std::uniform_int_distribution<uint32_t>(1, UINT8_MAX)(generator_);
     char *const data = new char[length];
@@ -191,6 +247,13 @@ TEST_F(ValueTests, GetVarCharTest) {
     EXPECT_EQ(0, std::memcmp(data, peeked_data, length));
     delete[] peeked_data;
     delete[] data;
+
+    auto value2(value);
+    EXPECT_EQ(value, value2);
+    auto value3 = type::ValueFactory::GetBoolean(true);
+    EXPECT_NE(value, value3);
+    value3 = value;
+    EXPECT_EQ(value, value3);
   }
 }
 

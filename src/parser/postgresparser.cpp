@@ -696,25 +696,26 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
   std::unique_ptr<AbstractExpression> result;
   switch (val.type) {
     case T_Integer: {
-      auto v = type::ValueFactory::GetIntegerValue(val.val.ival);
+      auto v = type::ValueFactory::GetInteger(val.val.ival);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_String: {
-      auto v = type::ValueFactory::GetStringValue(val.val.str);
+      auto v = type::ValueFactory::GetVarChar(val.val.str);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Float: {
-      auto v = type::ValueFactory::GetDecimalValue(std::stod(val.val.str));
+      auto v = type::ValueFactory::GetDecimal(std::stod(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Null: {
-      auto v = type::ValueFactory::GetNullValue();
+      auto v = type::ValueFactory::GetBoolean(false);
+      v.SetNull(true);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }

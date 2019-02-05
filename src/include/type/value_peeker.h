@@ -62,8 +62,8 @@ class ValuePeeker {
     const char *const varchar = value.GetAs<const char *const>();
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
     char *const cstring = new char[length + 1];
-    std::memset(cstring, 0, length + 1);
     std::memcpy(cstring, varchar + sizeof(uint32_t), length);
+    cstring[length] = '\0';
     return cstring;
   }
 };

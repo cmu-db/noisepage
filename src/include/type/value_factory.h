@@ -27,10 +27,11 @@ class ValueFactory {
 
   static TransientValue GetVarChar(const char *const value) {
     TERRIER_ASSERT(value != nullptr, "Cannot build VARCHAR from nullptr.");
-    const auto length = std::strlen(value);
+    const auto length = static_cast<uint32_t>(std::strlen(value));
     char *const varchar = new char[length + sizeof(uint32_t)];
-    std::memcpy(varchar, &length, sizeof(uint32_t));
-    std::memcpy(varchar + sizeof(uint32_t), value, length);
+    *(reinterpret_cast<uint32_t *const>(varchar)) = length;
+    char *const varchar_contents = varchar + sizeof(uint32_t);
+    std::memcpy(varchar_contents, value, length);
     return {TypeId::VARCHAR, varchar};
   }
 };
