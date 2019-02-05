@@ -7,6 +7,7 @@
 #include "catalog/database_handle.h"
 #include "catalog/tablespace_handle.h"
 #include "common/strong_typedef.h"
+#include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 
 namespace terrier::catalog {
@@ -27,19 +28,6 @@ class TablespaceHandle;
  * values of oids should never be the same.
  *
  * TODO(yangjuns): Each database should have its own global counter
- *
- * NOTE: At this point we don't support varlen. For tables that needs to store strings, we use integers instead.
- *     "terrier"        12345
- *
- *     "pg_database"    10001
- *     "pg_tablespace"  10002
- *     "pg_namespace"   10003
- *     "pg_class"       10004
- *
- *     "pg_global"      20001
- *     "pg_default"     20002
- *
- *     "pg_catalog"     30001
  */
 class Catalog {
  public:
@@ -91,6 +79,14 @@ class Catalog {
    */
   uint32_t GetNextOid();
 
+  /*
+   * Destructor
+   */
+  ~Catalog() {
+    // destory all DB
+    DestoryDB(DEFAULT_DATABASE_OID);
+  }
+
  private:
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -130,6 +126,8 @@ class Catalog {
   void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  void DestoryDB(db_oid_t oid);
 
  private:
   transaction::TransactionManager *txn_manager_;

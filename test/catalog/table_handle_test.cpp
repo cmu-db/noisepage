@@ -4,8 +4,10 @@
 #include "catalog/catalog.h"
 #include "catalog/namespace_handle.h"
 #include "catalog/schema.h"
+#include "common/strong_typedef.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
+#include "util/transaction_test_util.h"
 namespace terrier {
 
 struct TableHandleTests : public TerrierTest {
@@ -18,8 +20,8 @@ struct TableHandleTests : public TerrierTest {
 
   void TearDown() override {
     TerrierTest::TearDown();
+    delete catalog_;  // delete catalog first
     delete txn_manager_;
-    delete catalog_;
     delete txn_;
   }
 
@@ -132,8 +134,7 @@ TEST_F(TableHandleTests, CreateTest) {
   catalog::Schema schema(cols);
 
   // create table
-  table_handle.CreateTable(txn_, schema, "test_table");
-
+  auto table = table_handle.CreateTable(txn_, schema, "test_table");
   auto table_entry = table_handle.GetTableEntry(txn_, "test_table");
   EXPECT_NE(table_entry, nullptr);
   auto str = table_entry->GetVarcharColInRow(0);
@@ -145,5 +146,24 @@ TEST_F(TableHandleTests, CreateTest) {
   str = table_entry->GetVarcharColInRow(2);
   EXPECT_STREQ(str, "pg_default");
   free(str);
+
+  // Insert a row into the table
+  auto ptr = table_handle.GetTable(txn_, "test_table");
+  EXPECT_EQ(ptr, table);
+  ptr->StartRow();
+  ptr->SetIntColInRow(0, 123);
+  ptr->SetVarcharColInRow(1, "test_name");
+  ptr->EndRowAndInsert(txn_);
+
+  txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+  // Read row from the table
+  auto row = ptr->FindRow(txn_, 0, 123);
+  auto id = ptr->GetIntColInRow(0, row);
+  EXPECT_EQ(id, 123);
+  auto name = ptr->GetVarcharColInRow(1, row);
+  EXPECT_STREQ(name, "test_name");
+  // free memory
+  delete[] reinterpret_cast<byte *>(row);
+  free(name);
 }
 }  // namespace terrier

@@ -17,8 +17,8 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
-  storage::ProjectedRow *row = pg_class_->FindRow(txn, 0, !oid);
-  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(2, row));
+  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, !oid);
+  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, row));
   if (nsp_oid != nsp_oid_) return nullptr;
   return std::make_shared<TableEntry>(oid, row, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
@@ -30,17 +30,18 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
 
 table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
   // TODO(yangjuns): error handling
-  // TODO(yangjuns): repeated work if the user wants an entry later. Maybe cache can solve it.
-  auto row = pg_class_->FindRow(txn, 1, name.c_str());
-  auto result = table_oid_t(pg_class_->GetIntColInRow(0, row));
+  // TODO(yangjuns): repeated work if the row can be used later. Maybe cache can solve it.
+  auto row = pg_class_->FindRow(txn, 2, name.c_str());
+  auto result = table_oid_t(pg_class_->GetIntColInRow(1, row));
   delete[] reinterpret_cast<byte *>(row);
   return result;
 }
 
-void TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema, const std::string &name) {
+SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
+                                     const std::string &name) {
   // TODO(yangjuns): error handling
   // Create SqlTable
-  auto table = std::make_shared<catalog::SqlTableRW>(table_oid_t(catalog_->GetNextOid()));
+  auto table = new SqlTableRW(table_oid_t(catalog_->GetNextOid()));
   auto cols = schema.GetColumns();
   for (auto &col : cols) {
     table->DefineColumn(col.GetName(), col.GetType(), col.GetNullable(), col.GetOid());
@@ -48,12 +49,30 @@ void TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema
   table->Create();
   // Add to pg_class
   pg_class_->StartRow();
-  pg_class_->SetIntColInRow(0, !table->Oid());
-  pg_class_->SetVarcharColInRow(1, name.c_str());
-  pg_class_->SetIntColInRow(2, !nsp_oid_);
-  pg_class_->SetIntColInRow(3,
+  pg_class_->SetBigintColInRow(0, reinterpret_cast<int64_t>(table));
+  pg_class_->SetIntColInRow(1, !table->Oid());
+  pg_class_->SetVarcharColInRow(2, name.c_str());
+  pg_class_->SetIntColInRow(3, !nsp_oid_);
+  pg_class_->SetIntColInRow(4,
                             !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid());
   pg_class_->EndRowAndInsert(txn);
+  return table;
+}
+
+SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
+  // TODO(yangjuns): error handling
+  // get the namespace_oid of the table to check if it's a table under current namespace
+  namespace_oid_t nsp_oid(0);
+  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, !oid);
+  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, row));
+  if (nsp_oid != nsp_oid_) return nullptr;
+  auto ptr = reinterpret_cast<SqlTableRW *>(pg_class_->GetBigintColInRow(0, row));
+  delete[] reinterpret_cast<byte *>(row);
+  return ptr;
+}
+
+SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, const std::string &name) {
+  return GetTable(txn, NameToOid(txn, name));
 }
 
 }  // namespace terrier::catalog

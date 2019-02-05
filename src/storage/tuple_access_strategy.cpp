@@ -27,7 +27,7 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->NumSlots() = layout_.NumSlots();
 
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets()[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets()[i] = column_offsets_[i];
 
   result->NumAttrs(layout_) = layout_.NumColumns();
 
