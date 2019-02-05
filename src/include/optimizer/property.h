@@ -3,7 +3,7 @@
 #include <string>
 #include <typeinfo>
 #include "common/hash_util.h"
-#include "optimizer/optimizer_def.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
