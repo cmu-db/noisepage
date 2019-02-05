@@ -981,6 +981,14 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
   }
 
   std::unique_ptr<AbstractExpression> condition;
+
+  // TODO(WAN): quick fix to prevent segfaulting on the following test case
+  // SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;
+  // we should figure out how to treat CROSS JOIN properly
+  if (root->quals == nullptr) {
+    PARSER_LOG_AND_THROW("JoinTransform", "root->quals", nullptr);
+  }
+
   switch (root->quals->type) {
     case T_A_Expr: {
       condition = AExprTransform(reinterpret_cast<A_Expr *>(root->quals));
@@ -1793,7 +1801,7 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(InsertStmt *roo
 
 // Postgres.List -> column names
 std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(List *root) {
-  std::unique_ptr<std::vector<std::string>> result;
+  auto result = std::make_unique<std::vector<std::string>>();
 
   if (root == nullptr) {
     return result;
