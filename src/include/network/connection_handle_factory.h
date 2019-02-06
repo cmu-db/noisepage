@@ -40,9 +40,10 @@ class ConnectionHandleFactory {
   ConnectionHandle &NewConnectionHandle(int conn_fd, ConnectionHandlerTask *task);
 
   /**
-   * Destructor for connection handle factory to clean up anything in reusable_handles_
+   * Teardown for connection handle factory to clean up anything in reusable_handles_
    */
   void TearDown() {
+    DedicatedThreadRegistry::GetInstance().TearDown();
     reusable_handles_.clear();
   }
 

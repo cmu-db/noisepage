@@ -1,7 +1,7 @@
+#include <network/connection_handle_factory.h>
 #include <network/network_defs.h>
 #include <fstream>
 #include <memory>
-#include <network/connection_handle_factory.h>
 #include "common/utility.h"
 #include "event2/thread.h"
 
@@ -42,7 +42,7 @@ TerrierServer &TerrierServer::SetupServer() {
   int conn_backlog = 12;
 
   struct sockaddr_in sin;
-  TERRIER_MEMSET(&sin, 0, sizeof(sin));
+  std::memset(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(port_);

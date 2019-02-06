@@ -36,12 +36,20 @@ class DedicatedThreadRegistry {
     // owners are notified as this class should have the same life cycle
     // as the entire terrier process.
 
+    TearDown();
+  }
+
+  /**
+   * TearDown function to clear the thread registry and stop all dedicated threads gracefully
+   */
+  void TearDown() {
     for (auto &entry : thread_owners_table_) {
       for (auto &task : entry.second) {
         task->Terminate();
         threads_table_[task.get()].join();
       }
     }
+    thread_owners_table_.clear();
   }
 
   // TODO(tianyu): Remove when we remove singletons
