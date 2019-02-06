@@ -1,7 +1,9 @@
-#include <util/test_harness.h>
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <util/test_harness.h>
+#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
@@ -16,7 +18,6 @@ namespace terrier::network {
 
 class NetworkTests : public TerrierTest {
  protected:
-
   TerrierServer server;
   uint16_t port = 2888;
   std::thread server_thread;
@@ -45,7 +46,6 @@ class NetworkTests : public TerrierTest {
 
     TerrierTest::TearDown();
   }
-
 };
 
 /**
@@ -143,20 +143,51 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   LOG_INFO("[SimpleQueryTest] Client has closed");
 }
 
-ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd)
-{
+ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
   ssize_t n;
-  while(true)
-  {
+  while (true) {
     n = read(socket_fd, in_buffer, max_len);
-    if(n == 0 || in_buffer[n-6] == 'Z') // Ready for request
+    if (n == 0 || in_buffer[n - 6] == 'Z')  // Ready for request
       break;
   }
   return n;
 }
 
-TEST_F(NetworkTests, BadQueryTest) {
+/* strlcpy based on OpenBSDs strlcpy.
+ * this is a safer version of strcpy.
+ * clang-tidy does not accept strcpy so we need this function.
+ * */
+size_t strlcpy(char *, const char *, size_t);
 
+/*
+ * Copy src to string dst of size siz.  At most siz-1 characters
+ * will be copied.  Always NUL terminates (unless siz == 0).
+ * Returns strlen(src); if retval >= siz, truncation occurred.
+ */
+size_t strlcpy(char *dst, const char *src, size_t siz) {
+  char *d = dst;
+  const char *s = src;
+  size_t n = siz;
+
+  /* Copy as many bytes as will fit */
+  if (n != 0 && --n != 0) {
+    do {
+      if ((*d++ = *s++) == 0) break;
+    } while (--n != 0);
+  }
+
+  /* Not enough room in dst, add NUL and traverse rest of src */
+  if (n == 0) {
+    if (siz != 0) *d = '\0'; /* NUL-terminate dst */
+    while (*s++)
+      ;
+  }
+
+  return (s - src - 1); /* count does not include NUL */
+}
+
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, BadQueryTest) {
   try {
     // Manually open a socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -167,9 +198,8 @@ TEST_F(NetworkTests, BadQueryTest) {
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     serv_addr.sin_port = htons(port);
 
-    long ret = connect(socket_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr));
-    if(ret < 0)
-      LOG_ERROR("Connection Error");
+    int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+    if (ret < 0) LOG_ERROR("Connection Error");
 
     // Build the startup message
     char out_buffer[1000] = {};
@@ -178,44 +208,41 @@ TEST_F(NetworkTests, BadQueryTest) {
     out_buffer[5] = 3;
     std::vector<std::string> params({"user", "postgres", "database", "postgres", "application_name", "psql"});
     size_t offset = 8;
-    for(std::string &str : params)
-    {
-      strcpy(out_buffer + offset, str.c_str());
+    for (std::string &str : params) {
+      strlcpy(out_buffer + offset, str.c_str(), str.length());
       offset += str.length() + 1;
     }
 
-    out_buffer[3] = char(offset+1);
+    out_buffer[3] = char(offset + 1);
 
-    write(socket_fd, out_buffer, offset+1);
+    write(socket_fd, out_buffer, offset + 1);
     ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
 
     // Build a correct query message, "SELECT A FROM B"
     memset(out_buffer, 0, sizeof(out_buffer));
     out_buffer[0] = 'Q';
     std::string query = "SELECT A FROM B;";
-    strcpy(out_buffer + 5, query.c_str());
+    strlcpy(out_buffer + 5, query.c_str(), query.length());
     size_t len = 5 + query.length();
     out_buffer[4] = char(len);
 
     // Beware the buffer length should be message length + 1 for query messages
-    write(socket_fd, out_buffer, len+1);
+    write(socket_fd, out_buffer, len + 1);
     ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
-    EXPECT_GT(ret, 0); // should be okay
+    EXPECT_GT(ret, 0);  // should be okay
 
     // Send a bad query packet
     memset(out_buffer, 0, sizeof(out_buffer));
     std::string bad_query = "some_random_bad_packet";
-    write(socket_fd, out_buffer, bad_query.length()+1);
+    write(socket_fd, out_buffer, bad_query.length() + 1);
     ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
-    EXPECT_EQ(0, ret); // socket should be closed
+    EXPECT_EQ(0, ret);  // socket should be closed
 
-} catch (const std::exception &e) {
+  } catch (const std::exception &e) {
     LOG_INFO("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
   LOG_INFO("[BadQueryTest] Client has closed");
 }
-
-
 
 }  // namespace terrier::network
