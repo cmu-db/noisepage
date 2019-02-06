@@ -5,7 +5,7 @@
 #include "type/value_peeker.h"
 #include "util/test_harness.h"
 
-namespace terrier {
+namespace terrier::type {
 
 class ValueTests : public TerrierTest {
  public:
@@ -257,4 +257,4 @@ TEST_F(ValueTests, VarCharTest) {
   }
 }
 
-}  // namespace terrier
+}  // namespace terrier::type

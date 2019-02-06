@@ -3,8 +3,13 @@
 #include <algorithm>
 #include <cstring>
 #include "common/hash_util.h"
+#include "gtest/gtest_prod.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}
 
 namespace terrier::type {
 class ValueFactory;
@@ -13,40 +18,14 @@ class ValuePeeker;
 class TransientValue {
   friend class ValueFactory;
   friend class ValuePeeker;
+  friend class terrier::parser::ConstantValueExpression;  // This is because it calls the private copy constructor for
+                                                          // Value which we don't really want to expose due to its
+                                                          // likelihood of being abused (it calls malloc)
 
  public:
   TypeId Type() const { return static_cast<TypeId>(static_cast<uint8_t>(type_) & 0x7F); }
 
   TransientValue() = delete;
-
-  TransientValue(const TransientValue &other) {
-    // clear internal buffer
-    data_ = 0;
-    type_ = other.type_;
-    if (Type() != TypeId::VARCHAR) {
-      data_ = other.data_;
-    } else {
-      CopyVarChar(reinterpret_cast<const char *const>(other.data_));
-    }
-  }
-
-  TransientValue &operator=(const TransientValue &other) {
-    if (this != &other) {  // self-assignment check expected
-      if (Type() == TypeId::VARCHAR) {
-        // free VARCHAR buffer
-        delete[] reinterpret_cast<char *const>(data_);
-      }
-      // clear internal buffer
-      data_ = 0;
-      type_ = other.type_;
-      if (Type() != TypeId::VARCHAR) {
-        data_ = other.data_;
-      } else {
-        CopyVarChar(reinterpret_cast<const char *const>(other.data_));
-      }
-    }
-    return *this;
-  }
 
   bool Null() const { return static_cast<bool>(static_cast<uint8_t>(type_) & 0x80); }
 
@@ -93,6 +72,16 @@ class TransientValue {
   }
 
  private:
+  FRIEND_TEST(ValueTests, BooleanTest);
+  FRIEND_TEST(ValueTests, TinyIntTest);
+  FRIEND_TEST(ValueTests, SmallIntTest);
+  FRIEND_TEST(ValueTests, IntegerTest);
+  FRIEND_TEST(ValueTests, BigIntTest);
+  FRIEND_TEST(ValueTests, DecimalTest);
+  FRIEND_TEST(ValueTests, TimestampTest);
+  FRIEND_TEST(ValueTests, DateTest);
+  FRIEND_TEST(ValueTests, VarCharTest);
+
   template <typename T>
   TransientValue(const TypeId type, T data) {
     // clear internal buffer
@@ -101,6 +90,35 @@ class TransientValue {
     const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & 0x7F),
                                     static_cast<uint8_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
+  }
+
+  TransientValue(const TransientValue &other) {
+    // clear internal buffer
+    data_ = 0;
+    type_ = other.type_;
+    if (Type() != TypeId::VARCHAR) {
+      data_ = other.data_;
+    } else {
+      CopyVarChar(reinterpret_cast<const char *const>(other.data_));
+    }
+  }
+
+  TransientValue &operator=(const TransientValue &other) {
+    if (this != &other) {  // self-assignment check expected
+      if (Type() == TypeId::VARCHAR) {
+        // free VARCHAR buffer
+        delete[] reinterpret_cast<char *const>(data_);
+      }
+      // clear internal buffer
+      data_ = 0;
+      type_ = other.type_;
+      if (Type() != TypeId::VARCHAR) {
+        data_ = other.data_;
+      } else {
+        CopyVarChar(reinterpret_cast<const char *const>(other.data_));
+      }
+    }
+    return *this;
   }
 
   template <typename T>
