@@ -166,11 +166,17 @@ class DataTable {
   }
 
   /**
-   * @return one past the last tuple slot contained in the data table
+   * Returns one past the last tuple slot contained in the data table. Note that this is not an accurate number when
+   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
+   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   *
+   * @return one past the last tuple slot contained in the data table.
    */
   SlotIterator end() const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.end(), 0};
+    // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in. 
+    return blocks_.empty() ? SlotIterator(this, blocks_.end(), 0)
+                           : SlotIterator(this, blocks_.end()--, blocks_.back()->insert_head_ + 1);
   }
 
   /**
@@ -241,7 +247,7 @@ class DataTable {
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
-  template <class RowType>
+  template<class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
   // Atomically read out the version pointer value.
