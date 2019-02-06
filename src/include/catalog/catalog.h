@@ -14,6 +14,7 @@ namespace terrier::catalog {
 
 class DatabaseHandle;
 class TablespaceHandle;
+
 /**
  * The global catalog object. It contains all the information about global catalog tables. It's also
  * the entry point for transactions to access any data in any sql table.
@@ -83,8 +84,8 @@ class Catalog {
    * Destructor
    */
   ~Catalog() {
-    // destory all DB
-    DestoryDB(DEFAULT_DATABASE_OID);
+    // destroy all DB
+    DestroyDB(DEFAULT_DATABASE_OID);
   }
 
  private:
@@ -127,7 +128,7 @@ class Catalog {
 
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
 
-  void DestoryDB(db_oid_t oid);
+  void DestroyDB(db_oid_t oid);
 
  private:
   transaction::TransactionManager *txn_manager_;
