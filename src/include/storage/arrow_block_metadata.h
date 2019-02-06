@@ -44,7 +44,11 @@ class ArrowBlockMetadata {
 
   uint32_t &NumRecords() { return num_records_; }
 
+  uint32_t NumRecords() const { return num_records_; }
+
   uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
+
+  uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
 
   ArrowVarlenColumn &GetVarlenColumn(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
