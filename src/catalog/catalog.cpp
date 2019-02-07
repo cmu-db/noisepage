@@ -255,7 +255,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   pg_class->EndRowAndInsert(txn);
 }
 
-void Catalog::DestoryDB(db_oid_t oid) {
+void Catalog::DestroyDB(db_oid_t oid) {
   // Note that we are using shared pointers for SqlTableRW. Catalog class have references to all the catalog tables,
   // (i.e, tables that have namespace "pg_catalog") but not user created tables. We cannot use a shared pointer for a
   // user table because it will be automatically freed if no one holds it.
@@ -298,4 +298,5 @@ void Catalog::DestoryDB(db_oid_t oid) {
   delete[] buffer;
   delete txn;
 }
+
 }  // namespace terrier::catalog
