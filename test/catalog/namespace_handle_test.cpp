@@ -37,6 +37,24 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
   auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+
+  // get the pg_catalog namespace
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
+
+  EXPECT_EQ(1012, namespace_entry_ptr->GetColumn(0).GetIntValue());
+  EXPECT_STREQ("pg_catalog", namespace_entry_ptr->GetColumn(1).GetStringValue());
+  // get the public namespace
+  namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "public");
+
+  EXPECT_EQ(1013, namespace_entry_ptr->GetColumn(0).GetIntValue());
+  EXPECT_STREQ("public", namespace_entry_ptr->GetColumn(1).GetStringValue());
+
+#ifdef notdef
+  txn_ = txn_manager_->BeginTransaction();
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
   EXPECT_NE(namespace_entry_ptr, nullptr);
@@ -51,11 +69,24 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
   nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
   EXPECT_STREQ(nsp_name, "public");
   free(nsp_name);
+#endif /* notdef */
 }
 
 // Tests that we can create namespace
 // NOLINTNEXTLINE
 TEST_F(NamespaceHandleTests, CreateTest) {
+  txn_ = txn_manager_->BeginTransaction();
+  // terrier has db_oid_t DEFAULT_DATABASE_OID
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto namespace_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid);
+  namespace_handle.CreateNamespace(txn_, "test_namespace");
+
+  // verify correctly created
+  auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
+  EXPECT_STREQ("test_namespace", namespace_entry_ptr->GetColumn(1).GetStringValue());
+
+#ifdef notdef
   txn_ = txn_manager_->BeginTransaction();
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
@@ -69,5 +100,6 @@ TEST_F(NamespaceHandleTests, CreateTest) {
   auto nsp_name = namespace_entry_ptr->GetVarcharColInRow(1);
   EXPECT_STREQ(nsp_name, "test_namespace");
   free(nsp_name);
+#endif /* notdef */
 }
 }  // namespace terrier

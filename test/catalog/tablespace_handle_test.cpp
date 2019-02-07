@@ -29,16 +29,12 @@ struct TablespaceHandleTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
-// Tests that we can get the default namespace and get the correct value from the corresponding row in pg_namespace
+// Tests that we can get the default namespace and get the correct value from the corresponding row in pg_tablespace
 // NOLINTNEXTLINE
 TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
-  EXPECT_NE(tsp_entry_ptr, nullptr);
-  // test if we are getting the correct value
-  auto name = tsp_entry_ptr->GetVarcharColInRow(1);
-  EXPECT_STREQ("pg_global", name);
-  free(name);
+  EXPECT_STREQ("pg_global", tsp_entry_ptr->GetColumn(1).GetStringValue());
 }
 }  // namespace terrier

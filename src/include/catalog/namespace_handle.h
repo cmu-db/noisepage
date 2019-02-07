@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
@@ -21,7 +22,7 @@ class NamespaceHandle {
   /**
    * A namespace entry represent a row in pg_namespace catalog.
    */
-  class NamespaceEntry {
+  class OldNamespaceEntry {
    public:
     /**
      * Constructs a namespace entry.
@@ -30,8 +31,8 @@ class NamespaceHandle {
      * @param map a map that encodes how to access attributes of the row
      * @param pg_namespace a pointer to the pg_namespace sql table
      */
-    NamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
-                   std::shared_ptr<catalog::SqlTableRW> pg_namespace)
+    OldNamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
+                      std::shared_ptr<catalog::SqlTableRW> pg_namespace)
         : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(std::move(pg_namespace)) {}
 
     /**
@@ -58,7 +59,7 @@ class NamespaceHandle {
     /**
      * Destruct namespace entry. It frees the memory for storing the projected row.
      */
-    ~NamespaceEntry() {
+    ~OldNamespaceEntry() {
       TERRIER_ASSERT(row_ != nullptr, "namespace entry should always represent a valid row");
       delete[] reinterpret_cast<byte *>(row_);
     }
@@ -68,6 +69,31 @@ class NamespaceHandle {
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
     std::shared_ptr<catalog::SqlTableRW> pg_namespace_erw_;
+  };
+
+  /**
+   * A namespace entry represent a row in pg_namespace catalog.
+   */
+  class NamespaceEntry {
+   public:
+    /**
+     * Constructs a namespace entry.
+     * @param oid the namespace_oid of the underlying database
+     * @param entry: the row as a vector of values
+     */
+    NamespaceEntry(namespace_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+
+    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+    /**
+     * Return the namespace_oid of the underlying database
+     * @return namespace_oid of the database
+     */
+    namespace_oid_t GetNamespaceOid() { return oid_; }
+
+   private:
+    namespace_oid_t oid_;
+    std::vector<type::Value> entry_;
   };
 
   /**

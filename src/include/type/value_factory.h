@@ -86,7 +86,13 @@ class ValueFactory {
    * @param value
    * @return string value instance
    */
-  static Value GetStringValue(const char *value) { return {TypeId::STRING, Value::Val{.string_ = value}}; }
+  static Value GetStringValue(const char *value) {
+    size_t size = strlen(value);
+    auto *value_st = static_cast<char *>(malloc(size + 1));
+    memcpy(value_st, value, size + 1);
+    // NOLINTNEXTLINE
+    return {TypeId::STRING, Value::Val{.string_ = value_st}};
+  }
 };
 
 }  // namespace terrier::type

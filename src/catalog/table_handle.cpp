@@ -17,6 +17,7 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
+
   storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, !oid);
   nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, row));
   if (nsp_oid != nsp_oid_) return nullptr;

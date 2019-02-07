@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/exception.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 #include "type/value.h"
@@ -28,7 +29,7 @@ class SqlTableRW {
     delete pri_;
     delete pr_map_;
     delete schema_;
-    delete[] read_buffer_;
+    // delete[] read_buffer_;
   }
 
   /**
@@ -282,12 +283,11 @@ class SqlTableRW {
    * @param col_num the column number
    * @param value the integer value of the column attribute we want to find
    * @return the corresponding row
+   * notes: to be deprecated
    */
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, uint32_t value) {
     // TODO(yangjuns): assert correct column type
-    if (read_buffer_ == nullptr) {
-      read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    }
+    auto read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer_);
 
     auto tuple_iter = table_->begin();
@@ -310,12 +310,11 @@ class SqlTableRW {
    * @param col_num the column number
    * @param value the string value of the column attribute we want to find
    * @return the corresponding row
+   * notes: to be deprecated
    */
   storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, const char *value) {
     // TODO(yangjuns): assert correct column type
-    if (read_buffer_ == nullptr) {
-      read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    }
+    auto read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer_);
 
     auto tuple_iter = table_->begin();
@@ -325,11 +324,11 @@ class SqlTableRW {
       auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
       uint32_t size = entry->Size();
       if ((size == strlen(value)) && (memcmp(value, entry->Content(), size) == 0)) {
+        // TODO(pakhtar): caller needs to free read_buffer_
         return read;
       }
     }
     delete[] read_buffer_;
-    read_buffer_ = nullptr;
     return nullptr;
   }
 
@@ -340,10 +339,9 @@ class SqlTableRW {
    *    all values are matched (i.e. AND for values).
    * @return on success, a vector of Values for the first matching row.
    *    only one row is returned.
-   *    on failure, an empty vector.
+   *    on failure, throws a catalog exception.
    */
   std::vector<type::Value> FindRow(transaction::TransactionContext *txn, const std::vector<type::Value> &search_vec) {
-    std::vector<type::Value> empty_vec;
     bool row_match;
     auto layout_and_map = storage::StorageUtil::BlockLayoutFromSchema(*schema_);
     auto layout = layout_and_map.first;
@@ -370,7 +368,7 @@ class SqlTableRW {
       }
     }
     delete[] buffer;
-    return empty_vec;
+    throw CATALOG_EXCEPTION("row not found");
   }
 
  private:
@@ -389,7 +387,10 @@ class SqlTableRW {
     TERRIER_ASSERT(!search_vec.empty(), "empty search vector");
     // iterate over the search_vec columns
     for (uint32_t index = 0; index < search_vec.size(); index++) {
-      // Ignore NULL values in search_vec?
+      // Ignore NULL values in search_vec
+      if (search_vec[index].IsNull()) {
+        continue;
+      }
       if (!ColEqualsValue(index, row_view, search_vec)) {
         return false;
       }
@@ -405,9 +406,11 @@ class SqlTableRW {
    * @return true if the column value matches
    *         false otherwise
    */
-  bool ColEqualsValue(int32_t index, storage::ProjectedColumns::RowView row_view, const std::vector<type::Value> &search_vec) {
+  bool ColEqualsValue(int32_t index, storage::ProjectedColumns::RowView row_view,
+                      const std::vector<type::Value> &search_vec) {
     type::TypeId col_type = cols_[index].GetType();
-    TERRIER_ASSERT(col_type == search_vec[index].GetType(), "schema <-> column type mismatch");
+    // TODO(pakhtar): add back updated type check
+    // TERRIER_ASSERT(col_type == search_vec[index].GetType(), "schema <-> column type mismatch");
     byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(index));
 
     switch (col_type) {
@@ -420,14 +423,14 @@ class SqlTableRW {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
         const char *st = search_vec[index].GetStringValue();
         uint32_t size = vc_entry->Size();
-        if (strlen(st) != size + 1) {
+        if (strlen(st) != size) {
           return false;
         }
-        return strncmp(st, reinterpret_cast<const char *>(vc_entry->Content()), size) != 0;
+        return strncmp(st, reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
       } break;
 
       default:
-        throw std::runtime_error("unsupported type in ColEqualsValue");
+        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColEqualsValue");
     }
   }
 
@@ -457,10 +460,11 @@ class SqlTableRW {
           *(ret_st + size - 1) = 0;
           // TODO(pakhtar): replace with Value varchar
           ret_vec.emplace_back(type::ValueFactory::GetStringValue(ret_st));
+          free(ret_st);
         } break;
 
         default:
-          throw std::runtime_error("unsupported type in ColToValueVec");
+          throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColToValueVec");
       }
     }
     return ret_vec;
@@ -484,7 +488,7 @@ class SqlTableRW {
   byte *insert_buffer_ = nullptr;
   storage::ProjectedRow *insert_ = nullptr;
 
-  byte *read_buffer_ = nullptr;
+  // byte *read_buffer_ = nullptr;
 };
 
 }  // namespace terrier::catalog

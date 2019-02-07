@@ -43,6 +43,10 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   // lookup the default database
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
+  EXPECT_EQ(!terrier_oid, db_entry_ptr->GetColumn(0).GetIntValue());
+  EXPECT_STREQ("terrier", db_entry_ptr->GetColumn(1).GetStringValue());
+
+#ifdef notdef
   // must get back an entry
   EXPECT_NE(db_entry_ptr, nullptr);
   auto db_oid = db_entry_ptr->GetIntColInRow(0);
@@ -50,7 +54,7 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   // column 2 is the database name.
   auto db_name = db_entry_ptr->GetVarcharColInRow(1);
   EXPECT_STREQ("terrier", db_name);
-
   free(db_name);
+#endif /* notdef */
 }
 }  // namespace terrier

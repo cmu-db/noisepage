@@ -14,25 +14,20 @@ namespace terrier::catalog {
 
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, tablespace_oid_t oid) {
-  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 0, !oid);
-  if (row == nullptr) {
-    return nullptr;
-  }
-
-  return std::make_shared<TablespaceEntry>(pg_tablespace_, oid, row, *pg_tablespace_->GetPRMap());
+  std::vector<type::Value> search_vec, ret_row;
+  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
+  ret_row = pg_tablespace_->FindRow(txn, search_vec);
+  return std::make_shared<TablespaceEntry>(oid, ret_row);
 }
 
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
-  storage::ProjectedRow *row = pg_tablespace_->FindRow(txn, 1, name.c_str());
-  if (row == nullptr) {
-    return nullptr;
-  }
-
-  // now recover the oid
-  auto offset = pg_tablespace_->ColNumToOffset(0);
-  tablespace_oid_t oid(*reinterpret_cast<tablespace_oid_t *>(row->AccessForceNotNull(offset)));
-  return std::make_shared<TablespaceEntry>(pg_tablespace_, oid, row, *pg_tablespace_->GetPRMap());
+  std::vector<type::Value> search_vec, ret_row;
+  search_vec.push_back(type::ValueFactory::GetNullValue());
+  search_vec.push_back(type::ValueFactory::GetStringValue(name.c_str()));
+  ret_row = pg_tablespace_->FindRow(txn, search_vec);
+  tablespace_oid_t oid(ret_row[0].GetIntValue());
+  return std::make_shared<TablespaceEntry>(oid, ret_row);
 }
 
 }  // namespace terrier::catalog

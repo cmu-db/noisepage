@@ -14,32 +14,25 @@ namespace terrier::catalog {
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, namespace_oid_t oid) {
-  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 0, !oid);
-  if (p_row == nullptr) {
-    return nullptr;
-  }
-
-  return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
+  std::vector<type::Value> search_vec, ret_row;
+  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
+  ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
+  return std::make_shared<NamespaceEntry>(oid, ret_row);
 }
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
-  storage::ProjectedRow *p_row = pg_namespace_hrw_->FindRow(txn, 1, name.c_str());
-  if (p_row == nullptr) {
-    return nullptr;
-  }
-
-  // now recover the oid
-  namespace_oid_t oid(pg_namespace_hrw_->GetIntColInRow(0, p_row));
-  return std::make_shared<NamespaceEntry>(oid, p_row, *pg_namespace_hrw_->GetPRMap(), pg_namespace_hrw_);
+  std::vector<type::Value> search_vec, ret_row;
+  search_vec.push_back(type::ValueFactory::GetNullValue());
+  search_vec.push_back(type::ValueFactory::GetStringValue(name.c_str()));
+  ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
+  namespace_oid_t oid(ret_row[0].GetIntValue());
+  return std::make_shared<NamespaceEntry>(oid, ret_row);
 }
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
-  // TODO(yangjuns): repeated work if the user wants an entry later. Maybe cache can solve it.
-  auto row = pg_namespace_hrw_->FindRow(txn, 1, name.c_str());
-  auto result = namespace_oid_t(pg_namespace_hrw_->GetIntColInRow(0, row));
-  delete[] reinterpret_cast<byte *>(row);
-  return result;
+  auto nse = GetNamespaceEntry(txn, name);
+  return namespace_oid_t(nse->GetColumn(0).GetIntValue());
 }
 
 TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name) {

@@ -35,7 +35,7 @@ class DatabaseHandle {
   /**
    * A database entry represent a row in pg_database catalog.
    */
-  class DatabaseEntry {
+  class OldDatabaseEntry {
    public:
     /**
      * Constructs a database entry.
@@ -43,7 +43,7 @@ class DatabaseHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    DatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
+    OldDatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)) {}
 
     /**
@@ -53,8 +53,8 @@ class DatabaseHandle {
      * @param row a pointer points to the projection of the row
      * @param map a map that encodes how to access attributes of the row
      */
-    DatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
-                  storage::ProjectionMap map)
+    OldDatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
+                     storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(std::move(pg_db_sqltbl_rw)) {}
 
     /**
@@ -81,7 +81,7 @@ class DatabaseHandle {
     /**
      * Destruct database entry. It frees the memory for storing the projected row.
      */
-    ~DatabaseEntry() {
+    ~OldDatabaseEntry() {
       TERRIER_ASSERT(row_ != nullptr, "database entry should always represent a valid row");
       delete[] reinterpret_cast<byte *>(row_);
     }
@@ -92,6 +92,31 @@ class DatabaseHandle {
     storage::ProjectionMap map_;
 
     std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw_;
+  };
+
+  /**
+   * A database entry represents a row in pg_database catalog.
+   */
+  class DatabaseEntry {
+   public:
+    /**
+     * Constructs a database entry.
+     * @param oid: the db_oid of the underlying database
+     * @param entry: the row as a vector of values
+     */
+    DatabaseEntry(db_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+
+    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+    /**
+     * Return the db_oid of the underlying database
+     * @return db_oid of the database
+     */
+    db_oid_t GetDatabaseOid() { return oid_; }
+
+   private:
+    db_oid_t oid_;
+    std::vector<type::Value> entry_;
   };
 
   /**

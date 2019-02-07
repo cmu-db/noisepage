@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
@@ -31,7 +32,7 @@ class TablespaceHandle {
   /**
    * A tablespace entry represent a row in pg_tablespace catalog.
    */
-  class TablespaceEntry {
+  class OldTablespaceEntry {
    public:
     /**
      * Constructs a tablespace entry.
@@ -40,8 +41,8 @@ class TablespaceHandle {
      * @param map a map that encodes how to access attributes of the row
      * @param pg_tblspc_rw a pointer to the pg_tablespace SqlTableRW class
      */
-    TablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid, storage::ProjectedRow *row,
-                    storage::ProjectionMap map)
+    OldTablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid,
+                       storage::ProjectedRow *row, storage::ProjectionMap map)
         : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(std::move(pg_tblspc_rw)) {}
 
     /**
@@ -68,7 +69,7 @@ class TablespaceHandle {
     /**
      * Destruct tablespace entry. It frees the memory for storing the projected row.
      */
-    ~TablespaceEntry() {
+    ~OldTablespaceEntry() {
       TERRIER_ASSERT(row_ != nullptr, "tablespace entry should always represent a valid row");
       delete[] reinterpret_cast<byte *>(row_);
     }
@@ -78,6 +79,31 @@ class TablespaceHandle {
     storage::ProjectedRow *row_;
     storage::ProjectionMap map_;
     std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
+  };
+
+  /**
+   * A tablespace entry represent a row in pg_tablespace catalog.
+   */
+  class TablespaceEntry {
+   public:
+    /**
+     * Constructs a tablespace entry.
+     * @param oid the tablespace_oid of the underlying database
+     * @param entry: the row as a vector of values
+     */
+    TablespaceEntry(tablespace_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+
+    /**
+     * Return the tablespace_oid
+     * @return tablespace_oid the tablespace oid
+     */
+    tablespace_oid_t GetTablespaceOid() { return oid_; }
+
+    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+   private:
+    tablespace_oid_t oid_;
+    std::vector<type::Value> entry_;
   };
 
   /**

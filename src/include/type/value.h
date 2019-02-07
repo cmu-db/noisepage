@@ -15,11 +15,37 @@ class Value {
   friend class ValueFactory;
 
  public:
+  Value(const Value &v) {
+    type_id_ = v.type_id_;
+    value_ = v.value_;
+    switch (type_id_) {
+      case TypeId::STRING: {
+        size_t size = strlen(v.value_.string_);
+        value_.string_ = static_cast<char *>(malloc(size + 1));
+        memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+      }
+        return;
+
+      default:
+        return;
+    }
+  }
+
   /**
    * Destructs a value
    */
-  // TODO(Tianyu): Should the value object be responsible for deallocation of varlen elements it hold?
-  ~Value() = default;
+  ~Value() {
+    switch (type_id_) {
+      case TypeId::STRING:
+        free(const_cast<char *>(value_.string_));
+        value_.string_ = nullptr;
+        return;
+
+      default:
+        return;
+    }
+  }
+
   /**
    * Encapsulates length and data of a varlen entry
    */

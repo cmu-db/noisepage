@@ -13,12 +13,13 @@ namespace terrier {
  */
 
 #define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
+#define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
  */
-enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, PARSER = 2 };
+enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, CATALOG = 2, PARSER = 3 };
 
 /**
  * Exception base class.
@@ -53,6 +54,8 @@ class Exception : public std::runtime_error {
     switch (type_) {
       case ExceptionType::NOT_IMPLEMENTED:
         return "Not Implemented";
+      case ExceptionType::CATALOG:
+        return "Catalog";
       case ExceptionType::PARSER:
         return "Parser";
       default:
@@ -98,6 +101,7 @@ class Exception : public std::runtime_error {
   }
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
+DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 
 }  // namespace terrier
