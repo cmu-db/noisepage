@@ -47,10 +47,10 @@ class TransientValue {
     if (type_ != rhs.type_) return false;
     if (type_ != TypeId::VARCHAR) return data_ == rhs.data_;
 
-    const char *const varchar = reinterpret_cast<const char *const>(data_);
+    const auto *const varchar = reinterpret_cast<const char *const>(data_);
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
 
-    const char *const rhs_varchar = reinterpret_cast<const char *const>(rhs.data_);
+    const auto *const rhs_varchar = reinterpret_cast<const char *const>(rhs.data_);
     const uint32_t rhs_length = *reinterpret_cast<const uint32_t *const>(rhs_varchar);
 
     if (length != rhs_length) return false;
@@ -128,9 +128,9 @@ class TransientValue {
 
   void CopyVarChar(const char *const other) {
     // allocate a VARCHAR buffer
-    const char *const other_varchar = reinterpret_cast<const char *const>(other);
+    const auto *const other_varchar = reinterpret_cast<const char *const>(other);
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(other_varchar);
-    char *const varchar = new char[length + sizeof(uint32_t)];
+    auto *const varchar = new char[length + sizeof(uint32_t)];
 
     // copy the length field into the VARCHAR buffer
     *(reinterpret_cast<uint32_t *const>(varchar)) = length;

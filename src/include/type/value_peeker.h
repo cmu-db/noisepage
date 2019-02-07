@@ -59,9 +59,9 @@ class ValuePeeker {
   static inline const char *const PeekVarChar(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
     TERRIER_ASSERT(value.Type() == TypeId::VARCHAR, "TypeId mismatch.");
-    const char *const varchar = value.GetAs<const char *const>();
+    const auto *const varchar = value.GetAs<const char *const>();
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
-    char *const cstring = new char[length + 1];
+    auto *const cstring = new char[length + 1];
     std::memcpy(cstring, varchar + sizeof(uint32_t), length);
     cstring[length] = '\0';
     return cstring;

@@ -225,7 +225,7 @@ TEST_F(ValueTests, DateTest) {
 TEST_F(ValueTests, VarCharTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto length = std::uniform_int_distribution<uint32_t>(1, UINT8_MAX)(generator_);
-    char *const data = new char[length];
+    auto *const data = new char[length];
     for (uint32_t j = 0; j < length - 1; j++) {
       data[j] = std::uniform_int_distribution<char>('A', 'z')(generator_);
     }
