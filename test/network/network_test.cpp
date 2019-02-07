@@ -1,9 +1,11 @@
-#include <stdio.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <util/test_harness.h>
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
@@ -156,10 +158,7 @@ ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
 /* strlcpy based on OpenBSDs strlcpy.
  * this is a safer version of strcpy.
  * clang-tidy does not accept strcpy so we need this function.
- * */
-size_t strlcpy(char *, const char *, size_t);
-
-/*
+ *
  * Copy src to string dst of size siz.  At most siz-1 characters
  * will be copied.  Always NUL terminates (unless siz == 0).
  * Returns strlen(src); if retval >= siz, truncation occurred.
@@ -179,8 +178,8 @@ size_t strlcpy(char *dst, const char *src, size_t siz) {
   /* Not enough room in dst, add NUL and traverse rest of src */
   if (n == 0) {
     if (siz != 0) *d = '\0'; /* NUL-terminate dst */
-    while (*s++)
-      ;
+    while ((*s++) != 0) {
+    }
   }
 
   return (s - src - 1); /* count does not include NUL */
@@ -213,7 +212,7 @@ TEST_F(NetworkTests, BadQueryTest) {
       offset += str.length() + 1;
     }
 
-    out_buffer[3] = char(offset + 1);
+    out_buffer[3] = static_cast<char>(offset + 1);
 
     write(socket_fd, out_buffer, offset + 1);
     ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
@@ -224,7 +223,7 @@ TEST_F(NetworkTests, BadQueryTest) {
     std::string query = "SELECT A FROM B;";
     strlcpy(out_buffer + 5, query.c_str(), query.length());
     size_t len = 5 + query.length();
-    out_buffer[4] = char(len);
+    out_buffer[4] = static_cast<char>(len);
 
     // Beware the buffer length should be message length + 1 for query messages
     write(socket_fd, out_buffer, len + 1);
@@ -237,7 +236,6 @@ TEST_F(NetworkTests, BadQueryTest) {
     write(socket_fd, out_buffer, bad_query.length() + 1);
     ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
     EXPECT_EQ(0, ret);  // socket should be closed
-
   } catch (const std::exception &e) {
     LOG_INFO("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
