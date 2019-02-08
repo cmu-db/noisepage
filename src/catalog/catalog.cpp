@@ -48,36 +48,38 @@ void Catalog::Bootstrap() {
   delete txn;
 }
 
-#ifdef notdef
-void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  std::shared_ptr<catalog::SqlTableRW> pg_namespace;
-
-  // refer to OID assignment scheme in catalog.h
-  table_oid_.store(DATABASE_CATALOG_TABLE_START_OID);
-  col_oid_.store(DATABASE_CATALOG_COL_START_OID);
-
-  // TODO(pakhtar): replace nspname type with VARCHAR
-  /*
-   * Create pg_namespace.
-   * Postgres has 4 columns in pg_namespace. We currently implement:
-   * - oid
-   * - nspname - will be type varlen - the namespace name.
-   */
-  table_oid_t pg_namespace_oid(GetNextTableOid());
-  pg_namespace = std::make_shared<catalog::SqlTableRW>(pg_namespace_oid);
-  pg_namespace->DefineColumn("oid", type::TypeId::INTEGER, false, GetNextColOid());
-  pg_namespace->DefineColumn("nspname", type::TypeId::INTEGER, false, GetNextColOid());
-  pg_namespace->Create();
-  map_[db_oid][pg_namespace_oid] = pg_namespace
-                                       .
-
-                                   // to this database's namespace, add a pg_catalog namespace
-                                   pg_namespace->StartRow();
-  pg_namespace->SetIntColInRow(0, !PG_CATALOG_OID);
-  pg_namespace->SetIntColInRow(1, 22222);
-  pg_namespace->EndRowAndInsert(txn);
+void Catalog::AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
+                                     const std::vector<UnusedSchemaCols> &cols) {
+  for (const auto &col : cols) {
+    db_p->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
+  }
 }
-#endif /* notdef */
+
+void Catalog::SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
+                                     const std::vector<UnusedSchemaCols> &cols) {
+  /* this could (and probably should) be done via pg_attrdef. It would
+   * be more flexible
+   */
+  for (const auto col : cols) {
+    switch (col.type_id) {
+      case type::TypeId::BOOLEAN:
+        break;
+
+      case type::TypeId::INTEGER:
+        db_p->SetIntColInRow(col.col_num, 0);
+        break;
+
+      case type::TypeId::VARCHAR:
+        db_p->SetVarcharColInRow(col.col_num, nullptr);
+        break;
+
+      default:
+        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in SetUnusedSchemaColumns");
+    }
+
+    db_p->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
+  }
+}
 
 void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   CATALOG_LOG_TRACE("Creating pg_database table");
@@ -85,9 +87,9 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   pg_database_ = std::make_shared<catalog::SqlTableRW>(table_oid);
 
   // add the schema
-  // TODO(pakhtar): we don't support VARCHAR at the moment, use INTEGER for now
   pg_database_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_database_->DefineColumn("datname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
+  AddUnusedSchemaColumns(pg_database_, pg_database_unused_cols_);
   // create the table
   pg_database_->Create();
 }
@@ -99,6 +101,7 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
   pg_database_->StartRow();
   pg_database_->SetIntColInRow(0, !terrier_oid);
   pg_database_->SetVarcharColInRow(1, "terrier");
+  SetUnusedSchemaColumns(pg_database_, pg_database_unused_cols_);
   pg_database_->EndRowAndInsert(txn);
 
   // add it to the map

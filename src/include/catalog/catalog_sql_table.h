@@ -98,6 +98,17 @@ class SqlTableRW {
   }
 
   /**
+   * Save a boolean, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetBooleanColInRow(int32_t col_num, bool value) {
+    auto bool_value = static_cast<int8_t>(value);
+    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+    (*reinterpret_cast<int8_t *>(col_p)) = bool_value;
+  }
+
+  /**
    * Read an integer from a (supplied) row. This method is used by the handle
    * and entry classes.
    * @param col_num - column number in the schema
@@ -168,11 +179,14 @@ class SqlTableRW {
    * @param st C string to save.
    */
   void SetVarcharColInRow(int32_t col_num, const char *st) {
+    size_t size = 0;
+    byte *varlen = nullptr;
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    // string size, without null terminator
-    size_t size = strlen(st);
-    byte *varlen = common::AllocationUtil::AllocateAligned(size);
-    memcpy(varlen, st, size);
+    if (st != nullptr) {
+      size = strlen(st);
+      varlen = common::AllocationUtil::AllocateAligned(size);
+      memcpy(varlen, st, size);
+    }
     *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
 
@@ -414,6 +428,11 @@ class SqlTableRW {
     byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(index));
 
     switch (col_type) {
+      case type::TypeId::BOOLEAN: {
+        auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
+        return (row_bool_val == static_cast<int8_t>(search_vec[index].GetBooleanValue()));
+      } break;
+
       case type::TypeId::INTEGER: {
         auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
         return (row_int_val == search_vec[index].GetIntValue());
@@ -446,6 +465,11 @@ class SqlTableRW {
       byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(i));
 
       switch (schema_col_type) {
+        case type::TypeId::BOOLEAN: {
+          auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
+        } break;
+
         case type::TypeId::INTEGER: {
           auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
           ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
@@ -453,6 +477,8 @@ class SqlTableRW {
 
         case type::TypeId::VARCHAR: {
           auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+          // TODO(pakhtar): unnecessary copy. Fix appropriately when
+          // replaced by updated Value implementation.
           // add space for null terminator
           uint32_t size = vc_entry->Size() + 1;
           auto *ret_st = static_cast<char *>(malloc(size));

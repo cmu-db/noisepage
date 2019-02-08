@@ -28,15 +28,6 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
   auto row_vec = pg_database_rw->FindRow(txn, search_vec);
   return std::make_shared<DatabaseEntry>(oid, row_vec);
-
-#ifdef notdef
-  storage::ProjectedRow *row = pg_database_rw->FindRow(txn, 0, !oid);
-  if (row == nullptr) {
-    return nullptr;
-  }
-
-  return std::make_shared<DatabaseEntry>(pg_database_rw, oid, row, *pg_database_rw->GetPRMap());
-#endif /* notdef */
 }
 
 }  // namespace terrier::catalog

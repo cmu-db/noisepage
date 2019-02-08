@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
@@ -89,6 +90,29 @@ class Catalog {
   }
 
  private:
+  struct UnusedSchemaCols {
+    int32_t col_num;
+    const char *col_name;
+    type::TypeId type_id;
+  };
+
+  /**
+   * Add columns created for Postgres compatibility, but unused, to the schema
+   * @param db_p - shared_ptr to database
+   * @param cols - vector specifying the columns
+   *
+   */
+  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
+                              const std::vector<UnusedSchemaCols> &cols);
+
+  /**
+   * Set values for unused columns.
+   * @param db_p - shared_ptr to database
+   * @param cols - vector specifying the columns
+   */
+  void SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
+                              const std::vector<UnusedSchemaCols> &cols);
+
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
    * correctly perform SQL queries.
@@ -142,8 +166,17 @@ class Catalog {
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid
   std::atomic<uint32_t> oid_;
-};
 
+  /**
+   * pg_database specific items. Should be in a pg_database util class
+   */
+  // unused column spec for pg_database
+  std::vector<UnusedSchemaCols> pg_database_unused_cols_ = {
+      {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
+      {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
+      {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
+      {8, "datconnlimit", type::TypeId::INTEGER}};
+};
 extern std::shared_ptr<Catalog> terrier_catalog;
 
 }  // namespace terrier::catalog
