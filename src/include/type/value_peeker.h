@@ -4,9 +4,9 @@
 #include "type/value.h"
 
 namespace terrier::type {
-class ValuePeeker {
+class TransientValuePeeker {
  public:
-  ValuePeeker() = delete;
+  TransientValuePeeker() = delete;
 
   static inline bool PeekBoolean(const TransientValue &value) {
     TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");

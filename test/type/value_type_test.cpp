@@ -18,9 +18,9 @@ TEST_F(ValueTests, BooleanTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
-    auto value = type::ValueFactory::GetBoolean(data);
+    auto value = type::TransientValueFactory::GetBoolean(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekBoolean(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekBoolean(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -28,11 +28,11 @@ TEST_F(ValueTests, BooleanTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekBoolean(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekBoolean(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(!data);
+    auto value3 = type::TransientValueFactory::GetBoolean(!data);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -44,9 +44,9 @@ TEST_F(ValueTests, TinyIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetTinyInt(data);
+    auto value = type::TransientValueFactory::GetTinyInt(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekTinyInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -54,11 +54,11 @@ TEST_F(ValueTests, TinyIntTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekTinyInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -70,9 +70,9 @@ TEST_F(ValueTests, SmallIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetSmallInt(data);
+    auto value = type::TransientValueFactory::GetSmallInt(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekSmallInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -80,11 +80,11 @@ TEST_F(ValueTests, SmallIntTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekSmallInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -96,9 +96,9 @@ TEST_F(ValueTests, IntegerTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetInteger(data);
+    auto value = type::TransientValueFactory::GetInteger(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekInteger(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -106,11 +106,11 @@ TEST_F(ValueTests, IntegerTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekInteger(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -122,9 +122,9 @@ TEST_F(ValueTests, BigIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetBigInt(data);
+    auto value = type::TransientValueFactory::GetBigInt(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekBigInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -132,11 +132,11 @@ TEST_F(ValueTests, BigIntTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekBigInt(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -148,9 +148,9 @@ TEST_F(ValueTests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-    auto value = type::ValueFactory::GetDecimal(data);
+    auto value = type::TransientValueFactory::GetDecimal(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekDecimal(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -158,11 +158,11 @@ TEST_F(ValueTests, DecimalTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekDecimal(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -174,9 +174,9 @@ TEST_F(ValueTests, TimestampTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetTimestamp(data);
+    auto value = type::TransientValueFactory::GetTimestamp(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekTimestamp(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -184,11 +184,11 @@ TEST_F(ValueTests, TimestampTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekTimestamp(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -200,9 +200,9 @@ TEST_F(ValueTests, DateTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-    auto value = type::ValueFactory::GetDate(data);
+    auto value = type::TransientValueFactory::GetDate(data);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekDate(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -210,11 +210,11 @@ TEST_F(ValueTests, DateTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::ValuePeeker::PeekDate(value));
+    EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);
@@ -231,9 +231,9 @@ TEST_F(ValueTests, VarCharTest) {
     }
     data[length - 1] = '\0';  // null terminate the c-string
 
-    auto value = type::ValueFactory::GetVarChar(data);
+    auto value = type::TransientValueFactory::GetVarChar(data);
     EXPECT_FALSE(value.Null());
-    const char *peeked_data = type::ValuePeeker::PeekVarChar(value);
+    const char *peeked_data = type::TransientValuePeeker::PeekVarChar(value);
     EXPECT_EQ(0, std::memcmp(data, peeked_data, length));
     delete[] peeked_data;
 
@@ -243,14 +243,14 @@ TEST_F(ValueTests, VarCharTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    peeked_data = type::ValuePeeker::PeekVarChar(value);
+    peeked_data = type::TransientValuePeeker::PeekVarChar(value);
     EXPECT_EQ(0, std::memcmp(data, peeked_data, length));
     delete[] peeked_data;
     delete[] data;
 
     auto value2(value);
     EXPECT_EQ(value, value2);
-    auto value3 = type::ValueFactory::GetBoolean(true);
+    auto value3 = type::TransientValueFactory::GetBoolean(true);
     EXPECT_NE(value, value3);
     value3 = value;
     EXPECT_EQ(value, value3);

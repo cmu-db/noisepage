@@ -4,6 +4,7 @@
 #include <cstring>
 #include "common/hash_util.h"
 #include "gtest/gtest_prod.h"
+#include "loggers/type_logger.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 
@@ -12,17 +13,25 @@ class ConstantValueExpression;
 }
 
 namespace terrier::type {
-class ValueFactory;
-class ValuePeeker;
+class TransientValueFactory;
+class TransientValuePeeker;
 
+/**
+ * TransientValue objects are immutable containers for SQL type variables. They are intended to be used as a transport
+ * class for values between the parser layer and the execution layer. TransientValue objects are created using the
+ * TransientValueFactory, rather than exposing any constructors directly. This is to make it as obvious as possible if
+ * the user is doing something that may hurt performance like repeatedly creating and destroying TransientValue objects.
+ * C types are extracted from TransientValue objects using the TransientValuePeeker class.
+ */
 class TransientValue {
-  friend class ValueFactory;
-  friend class ValuePeeker;
-  friend class terrier::parser::ConstantValueExpression;  // This is because it calls the private copy constructor for
-                                                          // Value which we don't really want to expose due to its
-                                                          // likelihood of being abused (it calls malloc)
+  friend class TransientValueFactory;                     // Access to constructor
+  friend class TransientValuePeeker;                      // Access to GetAs
+  friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor
 
  public:
+  /**
+   * @return TypeId of this TransientValue object
+   */
   TypeId Type() const { return static_cast<TypeId>(static_cast<uint8_t>(type_) & 0x7F); }
 
   TransientValue() = delete;
@@ -69,6 +78,23 @@ class TransientValue {
 
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
     return common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(data_), length + sizeof(uint32_t));
+  }
+
+  TransientValue &operator=(TransientValue &&other) noexcept {
+    TYPE_LOG_TRACE("");
+    if (this != &other) {  // self-assignment check expected
+      if (Type() == TypeId::VARCHAR) {
+        // free VARCHAR buffer
+        delete[] reinterpret_cast<char *const>(data_);
+      }
+      // take ownership of other's contents
+      type_ = other.type_;
+      data_ = other.data_;
+      // leave other in a valid state, let's just set it to NULL
+      other.data_ = 0;
+      other.SetNull(true);
+    }
+    return *this;
   }
 
  private:

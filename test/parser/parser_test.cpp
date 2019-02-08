@@ -145,7 +145,8 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left_child.get())->GetColumnName(), "baz");
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue()),
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(
+                reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue()),
             1);
 }
 
@@ -567,7 +568,7 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
     auto right_const = reinterpret_cast<ConstantValueExpression *>(right_child.get());
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
-    EXPECT_EQ(type::ValuePeeker::PeekInteger(right_const->GetValue()), 2);
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
   }
 }
 
@@ -583,7 +584,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(upd0->GetColumnName(), "s_quantity");
   auto constant = reinterpret_cast<ConstantValueExpression *>(upd0->GetUpdateValue().get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::DECIMAL);
-  ASSERT_DOUBLE_EQ(type::ValuePeeker::PeekDecimal(constant->GetValue()), 48.0);
+  ASSERT_DOUBLE_EQ(type::TransientValuePeeker::PeekDecimal(constant->GetValue()), 48.0);
 
   // Test Second Set Condition
   auto upd1 = update_stmt->GetUpdateClauses().at(1);
@@ -594,7 +595,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(child1->GetColumnName(), "s_ytd");
   auto child2 = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).get());
   EXPECT_EQ(child2->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(child2->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child2->GetValue()), 1);
 
   // Test Where clause
   auto where = reinterpret_cast<OperatorExpression *>(update_stmt->GetUpdateCondition().get());
@@ -606,7 +607,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(column->GetColumnName(), "s_i_id");
   constant = reinterpret_cast<ConstantValueExpression *>(cond1->GetChild(1).get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(constant->GetValue()), 68999);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 68999);
 
   auto cond2 = reinterpret_cast<OperatorExpression *>(where->GetChild(1).get());
   EXPECT_EQ(cond2->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
@@ -614,7 +615,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(column->GetColumnName(), "s_w_id");
   constant = reinterpret_cast<ConstantValueExpression *>(cond2->GetChild(1).get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(constant->GetValue()), 4);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
 }
 
 // NOLINTNEXTLINE
@@ -659,10 +660,13 @@ TEST_F(ParserTestBase, DISABLED_OldStringUpdateTest) {
   EXPECT_EQ(child01->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child11->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child01.get())->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child01.get())->GetValue()),
-            2101);
+  EXPECT_EQ(
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child01.get())->GetValue()),
+      2101);
   EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue()), 2);
+  EXPECT_EQ(
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue()),
+      2);
 
   // Check update clause
   auto &update_clause = update->GetUpdateClauses()[0];
@@ -720,7 +724,7 @@ TEST_F(ParserTestBase, OldInsertTest) {
   // Second item of second tuple == 5
   constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1).get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(constant->GetValue()), 5);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 5);
 }
 
 // NOLINTNEXTLINE
@@ -923,12 +927,12 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   auto child0 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(0).get());
   EXPECT_NE(child0, nullptr);
   EXPECT_EQ(child0->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(child0->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child0->GetValue()), 1);
 
   auto child1 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(1).get());
   EXPECT_NE(child1, nullptr);
   EXPECT_EQ(child1->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(child1->GetValue()), 2);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child1->GetValue()), 2);
 
   // Check Second column
   column = create_stmt->GetColumns()[1].get();
@@ -958,12 +962,12 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   auto plus_child2 = reinterpret_cast<ConstantValueExpression *>(check_child1->GetChild(1).get());
   EXPECT_NE(plus_child2, nullptr);
   EXPECT_EQ(plus_child2->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(plus_child2->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plus_child2->GetValue()), 1);
 
   auto check_child2 = reinterpret_cast<ConstantValueExpression *>(column->GetCheckExpression()->GetChild(1).get());
   EXPECT_NE(check_child2, nullptr);
   EXPECT_EQ(check_child2->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(check_child2->GetValue()), 0);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(check_child2->GetValue()), 0);
 
   // Check the foreign key constraint
   column = create_stmt->GetForeignKeys()[0].get();
@@ -1109,7 +1113,7 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
   auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(const_expr->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
   auto tv_expr = reinterpret_cast<TupleValueExpression *>(fun_expr->GetChild(1).get());
   EXPECT_NE(tv_expr, nullptr);
@@ -1137,7 +1141,7 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
   const_expr = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(const_expr->GetValue()), 2);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 2);
 }
 
 // NOLINTNEXTLINE
@@ -1154,7 +1158,7 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
   auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::ValuePeeker::PeekInteger(const_expr->GetValue()), 1);
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
   auto tv_expr = reinterpret_cast<TupleValueExpression *>(fun_expr->GetChild(1).get());
   EXPECT_NE(tv_expr, nullptr);

@@ -5,9 +5,9 @@
 #include "type/value.h"
 
 namespace terrier::type {
-class ValueFactory {
+class TransientValueFactory {
  public:
-  ValueFactory() = delete;
+  TransientValueFactory() = delete;
 
   static TransientValue GetBoolean(const bool value) { return {TypeId::BOOLEAN, value}; }
 
