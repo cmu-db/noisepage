@@ -96,7 +96,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
   // The header is ready to be read, fill in fields accordingly
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
   curr_input_packet_.len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
-  if(curr_input_packet_.len_> PACKET_LEN_LIMIT){
+  if (curr_input_packet_.len_ > PACKET_LEN_LIMIT) {
     throw NETWORK_PROCESS_EXCEPTION("Packet too large");
   }
 

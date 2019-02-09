@@ -86,7 +86,5 @@ void PosixSocketIoWrapper::RestartState() {
   out_->Reset();
 }
 
-void PosixSocketIoWrapper::Restart() {
-  RestartState();
-}
+void PosixSocketIoWrapper::Restart() { RestartState(); }
 }  // namespace terrier::network
