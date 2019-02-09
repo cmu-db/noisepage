@@ -5,6 +5,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstring>
 #include <string>
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
@@ -106,7 +107,7 @@ class BufferedLogWriter {
       WriteUnsynced(data, size);
     } else {
       TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
-      TERRIER_MEMCPY(buffer_ + buffer_size_, data, size);
+      std::memcpy(buffer_ + buffer_size_, data, size);
       buffer_size_ += size;
     }
   }
@@ -183,7 +184,7 @@ class BufferedLogReader {
 
   void ReadFromBuffer(void *dest, uint32_t size) {
     TERRIER_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");
-    TERRIER_MEMCPY(dest, buffer_ + read_head_, size);
+    std::memcpy(dest, buffer_ + read_head_, size);
     read_head_ += size;
   }
 

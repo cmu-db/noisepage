@@ -1,4 +1,5 @@
 #include "storage/storage_util.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -14,7 +15,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
   if (from == nullptr)
     to->SetNull(projection_list_index);
   else
-    memcpy(to->AccessForceNotNull(projection_list_index), from, size);
+    std::memcpy(to->AccessForceNotNull(projection_list_index), from, size);
 }
 
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
@@ -26,7 +27,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStr
   if (from == nullptr)
     accessor.SetNull(to, col_id);
   else
-    memcpy(accessor.AccessForceNotNull(to, col_id), from, accessor.GetBlockLayout().AttrSize(col_id));
+    std::memcpy(accessor.AccessForceNotNull(to, col_id), from, accessor.GetBlockLayout().AttrSize(col_id));
 }
 
 template <class RowType>

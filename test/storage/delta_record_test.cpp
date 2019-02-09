@@ -1,3 +1,4 @@
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -43,7 +44,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       // get random layout
       storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
       storage::TupleAccessStrategy tested(layout);
-      TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+      std::memset(raw_block_, 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
       // get data table
@@ -80,7 +81,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // get a random table layout
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    std::memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     // generate a random projectedRow
