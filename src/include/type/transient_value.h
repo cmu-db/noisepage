@@ -110,14 +110,20 @@ class TransientValue {
   bool operator!=(const TransientValue &rhs) const { return !(operator==(rhs)); }
 
   /**
-   * @return hash_t representing the contents of this TransientValue
+   * @return hash_t representing this TransientValue
    */
   common::hash_t Hash() const {
-    if (type_ != TypeId::VARCHAR)
-      return common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(&data_), sizeof(uintptr_t));
+    const auto type_hash = common::HashUtil::Hash(type_);
+
+    if (type_ != TypeId::VARCHAR) {
+      const auto data_hash = common::HashUtil::Hash(data_);
+      return common::HashUtil::CombineHashes(type_hash, data_hash);
+    }
 
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
-    return common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(data_), length + sizeof(uint32_t));
+    const auto data_hash =
+        common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(data_), length + sizeof(uint32_t));
+    return common::HashUtil::CombineHashes(type_hash, data_hash);
   }
 
   /**
