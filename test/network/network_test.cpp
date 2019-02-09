@@ -1,9 +1,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <util/test_harness.h>
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <cstdio>
 #include <cstring>
+#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <string>
 #include <vector>
 #include "gtest/gtest.h"
