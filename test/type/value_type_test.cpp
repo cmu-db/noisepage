@@ -30,12 +30,19 @@ TEST_F(ValueTests, BooleanTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekBoolean(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(!data);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(!data);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(!data);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -56,12 +63,19 @@ TEST_F(ValueTests, TinyIntTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -82,12 +96,19 @@ TEST_F(ValueTests, SmallIntTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -108,12 +129,19 @@ TEST_F(ValueTests, IntegerTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -134,12 +162,19 @@ TEST_F(ValueTests, BigIntTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -160,12 +195,19 @@ TEST_F(ValueTests, DecimalTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -186,12 +228,19 @@ TEST_F(ValueTests, TimestampTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -212,12 +261,19 @@ TEST_F(ValueTests, DateTest) {
     EXPECT_FALSE(value.Null());
     EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 
@@ -248,12 +304,19 @@ TEST_F(ValueTests, VarCharTest) {
     delete[] peeked_data;
     delete[] data;
 
-    auto value2(value);
-    EXPECT_EQ(value, value2);
-    auto value3 = type::TransientValueFactory::GetBoolean(true);
-    EXPECT_NE(value, value3);
-    value3 = value;
-    EXPECT_EQ(value, value3);
+    auto copy_constructed_value(value);
+    EXPECT_EQ(value, copy_constructed_value);
+    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(value, copy_assigned_value);
+    copy_assigned_value = value;
+    EXPECT_EQ(value, copy_assigned_value);
+
+    auto move_constructed_value(std::move(value));
+    EXPECT_EQ(copy_assigned_value, move_constructed_value);
+    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    EXPECT_NE(copy_assigned_value, move_assigned_value);
+    move_assigned_value = std::move(copy_assigned_value);
+    EXPECT_EQ(copy_constructed_value, move_assigned_value);
   }
 }
 

@@ -22,6 +22,8 @@ class TransientValuePeeker;
  * TransientValueFactory, rather than exposing any constructors directly. This is to make it as obvious as possible if
  * the user is doing something that may hurt performance like repeatedly creating and destroying TransientValue objects.
  * C types are extracted from TransientValue objects using the TransientValuePeeker class.
+ * @see TransientValueFactory
+ * @see TransientValuePeeker
  */
 class TransientValue {
   friend class TransientValueFactory;                     // Access to constructor
@@ -30,22 +32,42 @@ class TransientValue {
 
  public:
   /**
-   * @return TypeId of this TransientValue object
+   * @return TypeId of this TransientValue object.
    */
-  TypeId Type() const { return static_cast<TypeId>(static_cast<uint8_t>(type_) & 0x7F); }
+  TypeId Type() const {
+    // bitwise AND the TypeId with 01111111 to return TypeId value without the embedded NULL bit
+    return static_cast<TypeId>(static_cast<uint8_t>(type_) & 0x7F);
+  }
 
+  /**
+   * Can't see any reason to have a default constructor. If we were to have one, it would probably just set the TypeId
+   * to boolean and SetNull(true) but I can't come up with a good reason to expose this.
+   */
   TransientValue() = delete;
 
+  /**
+   * @return true if TransientValue is a SQL NULL, otherwise false
+   */
   bool Null() const { return static_cast<bool>(static_cast<uint8_t>(type_) & 0x80); }
 
-  void SetNull(const bool null) {
-    if (null) {
+  /**
+   * Change the SQL NULL value of this TransientValue. We use the MSB to reflect this since we don't need all 8 bits for
+   * TypeId
+   * @param set_null true if TransientValue should be set to NULL, false otherwise
+   */
+  void SetNull(const bool set_null) {
+    if (set_null) {
+      // bitwise OR the TypeId with 1000000 to set NULL bit
       type_ = static_cast<TypeId>(static_cast<uint8_t>(type_) | 0x80);
     } else {
+      // bitwise AND the TypeId with 01111111 to clear NULL bit
       type_ = static_cast<TypeId>(static_cast<uint8_t>(type_) & 0x7F);
     }
   }
 
+  /**
+   * VARCHAR's own their own internal buffer so we need to make sure to free it.
+   */
   ~TransientValue() {
     if (Type() == TypeId::VARCHAR) {
       delete[] reinterpret_cast<char *const>(data_);
@@ -80,8 +102,15 @@ class TransientValue {
     return common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(data_), length + sizeof(uint32_t));
   }
 
+  /**
+   * Move assignment operator that takes ownership of another TransientValue's varlen buffer, if allocated. Otherwise
+   * just simple assignment. This is public because in theory it's not as expensive as other assignemnt operators, and
+   * should be favored if needing to assign a TransientValue from another TransientValue, assuming you don't need the
+   * other object anymore.
+   * @param other TransientValue to be moved from. It will be left as a NULL Boolean
+   * @return reference of object assigned to
+   */
   TransientValue &operator=(TransientValue &&other) noexcept {
-    TYPE_LOG_TRACE("");
     if (this != &other) {  // self-assignment check expected
       if (Type() == TypeId::VARCHAR) {
         // free VARCHAR buffer
@@ -90,14 +119,35 @@ class TransientValue {
       // take ownership of other's contents
       type_ = other.type_;
       data_ = other.data_;
-      // leave other in a valid state, let's just set it to NULL
+      // leave other in a valid state, let's just set it to a NULL boolean for fun
       other.data_ = 0;
+      other.type_ = TypeId::BOOLEAN;
       other.SetNull(true);
     }
     return *this;
   }
 
+  /**
+   * Move constructor that takes ownership of another TransientValue's varlen buffer, if allocated. Otherwise
+   * just simple assignment. This is public because in theory it's not as expensive as other constructors, and should be
+   * favored if needing to construct a TransientValue from another TransientValue, assuming you don't need the other
+   * object anymore.
+   * @param other TransientValue to be moved from. It will be left as a NULL Boolean
+   * @return new object assigned to
+   */
+  TransientValue(TransientValue &&other) noexcept {
+    // take ownership of other's contents
+    type_ = other.type_;
+    data_ = other.data_;
+    // leave other in a valid state, let's just set it to a NULL boolean for fun
+    other.data_ = 0;
+    other.type_ = TypeId::BOOLEAN;
+    other.SetNull(true);
+  }
+
  private:
+  // The tests make sure that the private copy constructor and copy assignment operator work, so they need to be friends
+  // of the TransientValue class.
   FRIEND_TEST(ValueTests, BooleanTest);
   FRIEND_TEST(ValueTests, TinyIntTest);
   FRIEND_TEST(ValueTests, SmallIntTest);
@@ -118,6 +168,15 @@ class TransientValue {
     std::memcpy(&data_, &data, num_bytes);
   }
 
+  /**
+   * The copy constructor for TransientValue is currently only used by a single parser node, and should be used
+   * sparingly due to its reliance on malloc/free. The new TransientValue will have the same contents as the other
+   * TransientValue, but in its own memory buffers.
+   * @param other TransientValue to copy from.
+   * @warning No, seriously: don't go crazy with this thing because it will tank performance if the system calls malloc
+   * too much. We saw this with the old Value system in Peloton when Value objects were created and destroyed too
+   * frequently during query execution.
+   */
   TransientValue(const TransientValue &other) {
     // clear internal buffer
     data_ = 0;
@@ -129,6 +188,16 @@ class TransientValue {
     }
   }
 
+  /**
+   * The copy assignment operator for TransientValue is currently unused, and should be used
+   * sparingly due to its reliance on malloc/free. The assigned to TransientValue will have the same contents as the
+   * other TransientValue, but in its own memory buffers.
+   * @param other TransientValue to copy from
+   * @return reference of object assigned to
+   * @warning No, seriously: don't go crazy with this thing because it will tank performance if the system calls malloc
+   * too much. We saw this with the old Value system in Peloton when Value objects were created and destroyed too
+   * frequently during query execution.
+   */
   TransientValue &operator=(const TransientValue &other) {
     if (this != &other) {  // self-assignment check expected
       if (Type() == TypeId::VARCHAR) {
@@ -147,14 +216,27 @@ class TransientValue {
     return *this;
   }
 
+  /**
+   * Used by TransientValuePeeker to get the internal buffer of the TransientValue. Don't use directly.
+   * @tparam T C type to generate a TransientValue from
+   * @return reinterpreted version of the internal buffer based on the C type template parameter
+   * @see: TransientValuePeeker for actual access to TransientValue's data as a C type
+   */
   template <typename T>
   T GetAs() const {
     return *reinterpret_cast<const T *const>(&data_);
   }
 
-  void CopyVarChar(const char *const other) {
+  /**
+   * Helper method to take a null-terminated C string, allocate a VARCHAR buffer, copy the C string into the buffer, and
+   * then assign the pointer to the TransientValue's internal data buffer.
+   * @param other null-terminated C string to build a VARCHAR buffer for
+   */
+  void CopyVarChar(const char *const c_string) {
+    TERRIER_ASSERT(Type() == TypeId::VARCHAR,
+                   "This TransientValue's type should be set to VARCHAR if this function is being called.");
     // allocate a VARCHAR buffer
-    const auto *const other_varchar = reinterpret_cast<const char *const>(other);
+    const auto *const other_varchar = reinterpret_cast<const char *const>(c_string);
     const uint32_t length = *reinterpret_cast<const uint32_t *const>(other_varchar);
     auto *const varchar = new char[length + sizeof(uint32_t)];
 
