@@ -1,5 +1,5 @@
 #include <random>
-#include "gtest/gtest.h"
+#include <utility>
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"

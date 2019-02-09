@@ -48,7 +48,10 @@ class TransientValue {
   /**
    * @return true if TransientValue is a SQL NULL, otherwise false
    */
-  bool Null() const { return static_cast<bool>(static_cast<uint8_t>(type_) & 0x80); }
+  bool Null() const {
+    // bitwise AND the TypeId with 1000000 to extract NULL bit
+    return static_cast<bool>(static_cast<uint8_t>(type_) & 0x80);
+  }
 
   /**
    * Change the SQL NULL value of this TransientValue. We use the MSB to reflect this since we don't need all 8 bits for
@@ -74,8 +77,16 @@ class TransientValue {
     }
   }
 
+  /**
+   * @param rhs TransientValue to compare this against
+   * @return true if two TransientValues are equal, satisfying the following predicates:
+   * 1) they share the same TypeId
+   * 2) they share the same NULL value
+   * 3) they share the same data_ value if non-VARCHARs, or their VARCHAR contents are the same if VARCHARS
+   * false otherwise
+   */
   bool operator==(const TransientValue &rhs) const {
-    if (type_ != rhs.type_) return false;
+    if (type_ != rhs.type_) return false;  // checks TypeId and NULL at the same time due to stolen MSB of type_ field
     if (type_ != TypeId::VARCHAR) return data_ == rhs.data_;
 
     const auto *const varchar = reinterpret_cast<const char *const>(data_);
@@ -92,8 +103,15 @@ class TransientValue {
     return std::memcmp(varchar_contents, rhs_varchar_contents, length) == 0;
   }
 
+  /**
+   * @param rhs TransientValue to compare this against
+   * @return Negation of @see TransientValue::operator==
+   */
   bool operator!=(const TransientValue &rhs) const { return !(operator==(rhs)); }
 
+  /**
+   * @return hash_t representing the contents of this TransientValue
+   */
   common::hash_t Hash() const {
     if (type_ != TypeId::VARCHAR)
       return common::HashUtil::HashBytes(reinterpret_cast<const byte *const>(&data_), sizeof(uintptr_t));
