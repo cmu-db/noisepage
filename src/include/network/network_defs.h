@@ -33,6 +33,9 @@ namespace terrier::network {
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT 2
 
+// Limit on the length of a packet
+#define PACKET_LEN_LIMIT 2500000
+
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value
 // I don't think it matters whether this is 0 or -1
