@@ -20,15 +20,7 @@ Transition NetworkIoWrapper::FlushAllWrites() {
 
 PosixSocketIoWrapper::PosixSocketIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out)
     : NetworkIoWrapper(sock_fd, std::move(in), std::move(out)) {
-  // Set Non Blocking
-  auto flags = fcntl(sock_fd_, F_GETFL);
-  flags |= O_NONBLOCK;
-  if (fcntl(sock_fd_, F_SETFL, flags) < 0) {
-    LOG_ERROR("Failed to set non-blocking socket");
-  }
-  // Set TCP No Delay
-  int one = 1;
-  setsockopt(sock_fd_, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+  RestartState();
 }
 
 Transition PosixSocketIoWrapper::FillReadBuffer() {
@@ -77,5 +69,24 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
   }
   wbuf->Reset();
   return Transition::PROCEED;
+}
+
+void PosixSocketIoWrapper::RestartState() {
+  // Set Non Blocking
+  auto flags = fcntl(sock_fd_, F_GETFL);
+  flags |= O_NONBLOCK;
+  if (fcntl(sock_fd_, F_SETFL, flags) < 0) {
+    LOG_ERROR("Failed to set non-blocking socket");
+  }
+  // Set TCP No Delay
+  int one = 1;
+  setsockopt(sock_fd_, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+
+  in_->Reset();
+  out_->Reset();
+}
+
+void PosixSocketIoWrapper::Restart() {
+  RestartState();
 }
 }  // namespace terrier::network

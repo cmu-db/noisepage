@@ -61,7 +61,7 @@
 
 #define AND_WAIT_ON_READ                      \
   ([](ConnectionHandle &w) {                  \
-    w.UpdateEventFlags(EV_READ | EV_PERSIST); \
+    w.UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT); \
     return Transition::NONE;                  \
   })                                          \
   };                                          // NOLINT

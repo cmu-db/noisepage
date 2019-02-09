@@ -24,16 +24,14 @@
 
 namespace terrier::network {
 
-// For all of the enums defined in this header, we will
-// use this value to indicate that it is an invalid value
-// I don't think it matters whether this is 0 or -1
-// #define INVALID_TYPE_ID 0
-
 // For epoch
 // static const size_t EPOCH_LENGTH = 40;
 
 // For threads
 #define CONNECTION_THREAD_COUNT 1
+
+// Number of seconds to timeout on a client read
+#define READ_TIMEOUT 2
 
 // For all of the enums defined in this header, we will
 // use this value to indicate that it is an invalid value

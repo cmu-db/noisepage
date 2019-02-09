@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// dedicated_thread_registry.h
-//
-// Identification: src/include/common/dedicated_thread_registry.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 #include <memory>
 #include <thread>  // NOLINT
@@ -49,6 +37,7 @@ class DedicatedThreadRegistry {
         threads_table_[task.get()].join();
       }
     }
+    threads_table_.clear();
     thread_owners_table_.clear();
   }
 
@@ -73,6 +62,7 @@ class DedicatedThreadRegistry {
   void RegisterDedicatedThread(DedicatedThreadOwner *requester, std::shared_ptr<Task> task) {
     thread_owners_table_[requester].push_back(task);
     requester->NotifyNewThread();
+    TERRIER_ASSERT(threads_table_.find(task.get()) == threads_table_.end(), "Task is already registered");
     threads_table_.emplace(task.get(), std::thread([=] { task->RunTask(); }));
   }
 

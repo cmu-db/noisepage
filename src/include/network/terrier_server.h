@@ -17,7 +17,6 @@
 #include <memory>
 #include <vector>
 
-#include "common/container/lock_free_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
 #include "common/notifiable_task.h"

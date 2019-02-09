@@ -44,6 +44,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
       case NetworkProtocolType::POSTGRES_PSQL:
         LOG_TRACE("PSQL result");
         ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
+      default:
+        throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
     }
   }
 

@@ -232,7 +232,7 @@ TEST_F(NetworkTests, BadQueryTest) {
 
     // Send a bad query packet
     memset(out_buffer, 0, sizeof(out_buffer));
-    std::string bad_query = "some_random_bad_packet";
+    std::string bad_query = "e_random_bad_packet";
     write(socket_fd, out_buffer, bad_query.length() + 1);
     ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
     EXPECT_EQ(0, ret);  // socket should be closed

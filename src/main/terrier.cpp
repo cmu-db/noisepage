@@ -25,8 +25,9 @@ int main() {
     terrier::storage::init_index_logger();
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
-    terrier::network::TerrierServer terrier_server;
     terrier::parser::init_parser_logger();
+
+    terrier::network::TerrierServer terrier_server;
 
     terrier_server.SetupServer().ServerLoop();
     // Flush all *registered* loggers using a worker thread.

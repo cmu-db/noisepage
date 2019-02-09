@@ -14,7 +14,12 @@
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
                                                 CallbackFunc callback) {
-  if (!TryBuildPacket(in)) return Transition::NEED_READ;
+  try {
+    if (!TryBuildPacket(in)) return Transition::NEED_READ;
+  } catch (std::exception &e) {
+    LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
+    return Transition::TERMINATE;
+  }
   if (startup_) {
     // Always flush startup packet response
     out->ForceFlush();
@@ -94,9 +99,9 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
 
   // Extend the buffer as needed
   if (curr_input_packet_.len_ > in->Capacity()) {
-    LOG_INFO("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
     // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
     curr_input_packet_.buf_ = std::make_shared<ReadBuffer>(curr_input_packet_.len_);
+    LOG_INFO("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
     curr_input_packet_.extended_ = true;
   } else {
     curr_input_packet_.buf_ = in;

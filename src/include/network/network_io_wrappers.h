@@ -50,6 +50,11 @@ class NetworkIoWrapper {
   virtual Transition Close() = 0;
 
   /**
+   * @brief Restarts this IOWrapper
+   */
+  virtual void Restart() = 0;
+
+  /**
    * @return The socket file descriptor this IOWrapper communciates on
    */
   int GetSocketFd() { return sock_fd_; }
@@ -171,5 +176,13 @@ class PosixSocketIoWrapper : public NetworkIoWrapper {
     terrier_close(sock_fd_);
     return Transition::PROCEED;
   }
+
+  /**
+   * @see NetworkIoWrapper::Restart
+   */
+  void Restart() override;
+
+ private:
+  void RestartState();
 };
 }  // namespace terrier::network

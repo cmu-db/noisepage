@@ -232,6 +232,7 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
       if (varlen != nullptr) {
         TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
+
         txn->loose_ptrs_.push_back(varlen->Content());
       }
     }

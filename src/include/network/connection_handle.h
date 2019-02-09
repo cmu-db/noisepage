@@ -69,7 +69,16 @@ class ConnectionHandle {
   /**
    * Handles a libevent event. This simply delegates the the state machine.
    */
-  void HandleEvent(int, short) { state_machine_.Accept(Transition::WAKEUP, *this); }  // NOLINT
+  void HandleEvent(int, short flags) {  // NOLINT as we don't need the fd argument to be used
+    Transition t;
+    if ((flags & EV_TIMEOUT) != 0) {
+      t = Transition::TERMINATE;
+      LOG_INFO("TIMEOUT OCCURRED");
+    } else {
+      t = Transition ::WAKEUP;
+    }
+    state_machine_.Accept(t, *this);
+  }
 
   /* State Machine Actions */
   /**
@@ -113,10 +122,20 @@ class ConnectionHandle {
    * Updates the event flags of the network event. This configures how the
    * handler reacts to client activity from this connection.
    * @param flags new flags for the event handle.
+   * @param timeout_secs number of seconds for timeout for this event, this is ignored if flags doesn't include
+   * EV_TIMEOUT
    */
-  void UpdateEventFlags(int16_t flags) {
+  void UpdateEventFlags(int16_t flags, int timeout_secs = 0) {
+    struct timeval timeout;
+    struct timeval *timeout_str;
+
+    if ((flags & EV_TIMEOUT) != 0) {
+      timeout_str = &timeout;
+      timeout.tv_usec = 0;
+      timeout.tv_sec = timeout_secs;
+    }
     conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
-                               METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+                               METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this, timeout_str);
   }
 
   /**
