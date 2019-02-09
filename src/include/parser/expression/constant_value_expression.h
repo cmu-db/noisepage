@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
-#include "type/value.h"
+#include "type/transient_value.h"
 
 namespace terrier::parser {
 

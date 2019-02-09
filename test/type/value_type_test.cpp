@@ -1,8 +1,8 @@
 #include <random>
 #include "gtest/gtest.h"
-#include "type/value.h"
-#include "type/value_factory.h"
-#include "type/value_peeker.h"
+#include "type/transient_value.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 
 namespace terrier::type {
@@ -12,6 +12,21 @@ class ValueTests : public TerrierTest {
   std::default_random_engine generator_;
   const uint32_t num_iterations_ = 10000;
 };
+
+/**
+ * These tests all follow the same basic structure:
+ * 1) Randomly generate reference C type data
+ * 2) Create a TransientValue using the TransientValueFactory from this C type
+ * 3) Assert that the new TransientValue is not NULL
+ * 4) Assert that the C type returned by TransientValuePeeker matches the reference C type data
+ * 5) Flip a coin for reference NULL value
+ * 6) Test SetNull, compare NULL value to reference
+ * 7) Clear SetNull, compare to original reference C type
+ * 8) Test copy constructor
+ * 9) Test copy assignment operator
+ * 10) Test move constructor
+ * 11) Test move assignment operator
+ */
 
 // NOLINTNEXTLINE
 TEST_F(ValueTests, BooleanTest) {

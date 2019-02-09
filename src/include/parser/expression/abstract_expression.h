@@ -8,7 +8,7 @@
 #include "common/json.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
-#include "type/value.h"
+#include "type/transient_value.h"
 
 namespace terrier::parser {
 /**

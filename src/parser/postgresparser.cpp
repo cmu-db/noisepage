@@ -27,7 +27,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
-#include "type/value_factory.h"
+#include "type/transient_value_factory.h"
 
 /**
  * Log information about the error, then throw an exception

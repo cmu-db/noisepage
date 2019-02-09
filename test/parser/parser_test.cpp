@@ -10,7 +10,7 @@
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
 
-#include "type/value_peeker.h"
+#include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 
 namespace terrier::parser {

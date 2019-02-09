@@ -19,8 +19,8 @@
 #include "parser/expression/tuple_value_expression.h"
 #include "parser/parameter.h"
 
-#include "type/value.h"
-#include "type/value_factory.h"
+#include "type/transient_value.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::parser::expression {
 
