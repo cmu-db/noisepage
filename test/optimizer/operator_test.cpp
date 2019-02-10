@@ -180,7 +180,7 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   auto columns = new std::vector<std::string>;
   auto values = new std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>>;
-  Operator insert = Insert::make(nullptr, columns, values);
+  Operator insert = Insert::make(nullptr, std::vector<catalog::index_oid_t>(), values);
 
   EXPECT_EQ(insert.GetType(), OpType::Insert);
   EXPECT_EQ(insert.GetName(), "Insert");
@@ -191,7 +191,7 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // InsertSelect
   //===--------------------------------------------------------------------===//
-  Operator insert_select = InsertSelect::make(nullptr);
+  Operator insert_select = InsertSelect::make(nullptr, std::vector<catalog::index_oid_t>());
 
   EXPECT_EQ(insert_select.GetType(), OpType::InsertSelect);
   EXPECT_EQ(insert_select.GetName(), "InsertSelect");
@@ -199,7 +199,7 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   // Delete
   //===--------------------------------------------------------------------===//
-  Operator del = Delete::make(nullptr);
+  Operator del = Delete::make(nullptr, std::vector<catalog::index_oid_t>());
 
   EXPECT_EQ(del.GetType(), OpType::Delete);
   EXPECT_EQ(del.GetName(), "Delete");
@@ -220,7 +220,7 @@ TEST(OperatorTests, BasicTest) {
   // Update
   //===--------------------------------------------------------------------===//
   auto updates = new std::vector<std::unique_ptr<parser::UpdateClause>>;
-  Operator update = Update::make(nullptr, updates);
+  Operator update = Update::make(nullptr, , std::vector<catalog::index_oid_t>(), updates);
 
   EXPECT_EQ(update.GetType(), OpType::Update);
   EXPECT_EQ(update.GetName(), "Update");

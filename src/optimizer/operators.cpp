@@ -302,10 +302,12 @@ Operator OuterHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_pr
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
-Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table, const std::vector<std::string> *columns,
+Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                      std::vector<catalog::index_oid_t> &&target_index, const std::vector<std::string> *columns,
                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values) {
   auto *insert_op = new Insert;
   insert_op->target_table = std::move(target_table);
+  insert_op->target_index = std::move(target_index);
   insert_op->columns = columns;
   insert_op->values = values;
   return Operator(insert_op);
@@ -314,18 +316,22 @@ Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table, 
 //===--------------------------------------------------------------------===//
 // PhysicalInsertSelect
 //===--------------------------------------------------------------------===//
-Operator InsertSelect::make(std::shared_ptr<catalog::TableCatalogEntry> target_table) {
+Operator InsertSelect::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                            std::vector<catalog::index_oid_t> &&target_index) {
   auto *insert_op = new InsertSelect;
   insert_op->target_table = std::move(target_table);
+  insert_op->target_index = std::move(target_index);
   return Operator(insert_op);
 }
 
 //===--------------------------------------------------------------------===//
 // PhysicalDelete
 //===--------------------------------------------------------------------===//
-Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table) {
+Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                      std::vector<catalog::index_oid_t> &&target_index) {
   auto *delete_op = new Delete;
   delete_op->target_table = std::move(target_table);
+  delete_op->target_index = std::move(target_index);
   return Operator(delete_op);
 }
 
@@ -333,11 +339,13 @@ Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table) 
 // Update
 //===--------------------------------------------------------------------===//
 Operator Update::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                      std::vector<catalog::index_oid_t> &&target_index,
                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates) {
-  auto *update = new Update;
-  update->target_table = std::move(target_table);
-  update->updates = updates;
-  return Operator(update);
+  auto *update_op = new Update;
+  update_op->target_table = std::move(target_table);
+  update_op->target_index = std::move(target_index);
+  update_op->updates = updates;
+  return Operator(update_op);
 }
 
 //===--------------------------------------------------------------------===//

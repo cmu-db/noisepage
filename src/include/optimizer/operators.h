@@ -235,10 +235,10 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 class Insert : public OperatorNode<Insert> {
  public:
   static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
-                       const std::vector<std::string> *columns,
+                       std::vector<catalog::index_oid_t> &&target_index, const std::vector<std::string> *columns,
                        const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
-
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::vector<catalog::index_oid_t> target_index;
   const std::vector<std::string> *columns;
   const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
 };
@@ -248,9 +248,11 @@ class Insert : public OperatorNode<Insert> {
 //===--------------------------------------------------------------------===//
 class InsertSelect : public OperatorNode<InsertSelect> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       std::vector<catalog::index_oid_t> &&target_index);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::vector<catalog::index_oid_t> target_index;
 };
 
 //===--------------------------------------------------------------------===//
@@ -258,8 +260,11 @@ class InsertSelect : public OperatorNode<InsertSelect> {
 //===--------------------------------------------------------------------===//
 class Delete : public OperatorNode<Delete> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table);
+  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       std::vector<catalog::index_oid_t> &&target_index);
+
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::vector<catalog::index_oid_t> target_index;
 };
 
 //===--------------------------------------------------------------------===//
@@ -287,9 +292,11 @@ class ExportExternalFile : public OperatorNode<ExportExternalFile> {
 class Update : public OperatorNode<Update> {
  public:
   static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+                       std::vector<catalog::index_oid_t> &&target_index,
                        const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
 
   std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::vector<catalog::index_oid_t> target_index;
   const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
 };
 
