@@ -40,12 +40,6 @@ class TransientValue {
   }
 
   /**
-   * Can't see any reason to have a default constructor. If we were to have one, it would probably just set the TypeId
-   * to boolean and SetNull(true) but I can't come up with a good reason to expose this.
-   */
-  TransientValue() = delete;
-
-  /**
    * @return true if TransientValue is a SQL NULL, otherwise false
    */
   bool Null() const {
