@@ -12,10 +12,12 @@ struct ArrowVarlenColumn {
   // is less than ideal but will do for now.
 
   void Allocate(uint32_t num_values, uint32_t total_size) {
+    varlen_size_ = total_size;
     offsets_ = new uint32_t[num_values + 1];
     values_ = common::AllocationUtil::AllocateAligned(total_size);
   }
 
+  uint32_t varlen_size_;
   uint32_t *offsets_ = nullptr;
   byte *values_ = nullptr;
 };
