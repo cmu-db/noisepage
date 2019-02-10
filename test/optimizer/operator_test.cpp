@@ -180,7 +180,7 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   auto columns = new std::vector<std::string>;
   auto values = new std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>>;
-  Operator insert = Insert::make(nullptr, std::vector<catalog::index_oid_t>(), values);
+  Operator insert = Insert::make(nullptr, std::vector<catalog::index_oid_t>(), columns, values);
 
   EXPECT_EQ(insert.GetType(), OpType::Insert);
   EXPECT_EQ(insert.GetName(), "Insert");
@@ -220,7 +220,7 @@ TEST(OperatorTests, BasicTest) {
   // Update
   //===--------------------------------------------------------------------===//
   auto updates = new std::vector<std::unique_ptr<parser::UpdateClause>>;
-  Operator update = Update::make(nullptr, , std::vector<catalog::index_oid_t>(), updates);
+  Operator update = Update::make(nullptr, std::vector<catalog::index_oid_t>(), updates);
 
   EXPECT_EQ(update.GetType(), OpType::Update);
   EXPECT_EQ(update.GetName(), "Update");
