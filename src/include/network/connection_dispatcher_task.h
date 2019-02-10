@@ -6,6 +6,8 @@
 #include "common/dedicated_thread_registry.h"
 #include "common/notifiable_task.h"
 
+#include "loggers/network_logger.h"
+
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
 

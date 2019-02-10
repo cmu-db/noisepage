@@ -17,7 +17,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ;
   } catch (std::exception &e) {
-    LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
+    NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
   }
   if (startup_) {
@@ -37,7 +37,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
                                                        const std::shared_ptr<WriteQueue> &out) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
-  LOG_INFO("protocol version: {0}", proto_version);
+  NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
@@ -47,7 +47,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
-    LOG_ERROR("Protocol error: only protocol version 3 is supported");
+    NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
     writer.WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
     return Transition::TERMINATE;
   }
@@ -57,7 +57,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
   while (in->HasMore(2)) {
     // TODO(Tianyu): We don't seem to really handle the other flags?
     std::string key = in->ReadString(), value = in->ReadString();
-    LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
+    NETWORK_LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
     if (key == std::string("database"))
       // state_.db_name_ = value;
       cmdline_options_[key] = std::move(value);

@@ -44,7 +44,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
         case EINTR:
           continue;
         default:
-          LOG_ERROR("Error writing: {0}", strerror(errno));
+          NETWORK_LOG_ERROR("Error writing: {0}", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Error when filling read buffer");
       }
     }
@@ -62,7 +62,7 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
         case EAGAIN:
           return Transition::NEED_WRITE;
         default:
-          LOG_ERROR("Error writing: %s", strerror(errno));
+          NETWORK_LOG_ERROR("Error writing: %s", strerror(errno));
           throw NETWORK_PROCESS_EXCEPTION("Fatal error during write");
       }
     }
@@ -76,7 +76,7 @@ void PosixSocketIoWrapper::RestartState() {
   auto flags = fcntl(sock_fd_, F_GETFL);
   flags |= O_NONBLOCK;
   if (fcntl(sock_fd_, F_SETFL, flags) < 0) {
-    LOG_ERROR("Failed to set non-blocking socket");
+    NETWORK_LOG_ERROR("Failed to set non-blocking socket");
   }
   // Set TCP No Delay
   int one = 1;

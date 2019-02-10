@@ -5,31 +5,13 @@
 #####################################################
 
 Description
-This is a prototype implementation of the Postgres network protocol in C++ in order to support communication with Postgres shell and JDBC clients with Terrier. To test the correctness of the implementation, this protocol is backed against Sqlite. This helps us provide the required database support for fully executing the YCSB and TPCC benchmarks and inspecting whether this protocol design can potentially support these benchmarks.
-
-The Sqlite sources have been included in the source folder for the network protocol, to avoid introducing Sqlite linking dependencies in the Terrier Makefiles.
-
-The protocol abstracts the server-client interaction for every query through packet formats. The full details about the protocol can be found in the Postgres Documentation.
-
-Preliminary results
-The underlying socket layer has been evaluated to support (over a single connection)
-
-    ~70,000 NOPs (empty queries) per second
-    ~12,000 exact-match queries per second
+This is a prototype implementation of the Postgres network protocol in C++ in order to support communication with Postgres shell clients with Terrier.
 
 Deployment and Testing
 
     Build by using the standard terrier make and install
 
-    The wire_server using wire_server binary (ex: > wire_server 57721). The wire_server behaves similarly to the Postgres Server.
-
-    build/tests/wire_test can be used for elementary testing
-
-    using psql shell pointed to wire_server's port can be used to run simple queries. Any of the SQL tests in scripts/testing could be used to test the Simple Query Protocol
-
-    Use scripts/testing/jdbc/test-jdbc.sh to test the Extended Query Protocol
-
-    Run oltpbench/ycsb for more comprehensive tests
+    test/network/network_test
 
 
 Basic implementation of the Postgres network protocol for Terrier.

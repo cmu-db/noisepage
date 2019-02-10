@@ -7,7 +7,7 @@ namespace terrier::network {
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id) : NotifiableTask(task_id) {
   int fds[2];
   if (pipe(fds) != 0) {
-    LOG_ERROR("Can't create notify pipe to accept connections");
+    NETWORK_LOG_ERROR("Can't create notify pipe to accept connections");
     exit(1);
   }
   new_conn_send_fd_ = fds[1];
@@ -18,7 +18,7 @@ void ConnectionHandlerTask::Notify(int conn_fd) {
   int buf[1];
   buf[0] = conn_fd;
   if (write(new_conn_send_fd_, buf, sizeof(int)) != sizeof(int)) {
-    LOG_ERROR("Failed to write to thread notify pipe");
+    NETWORK_LOG_ERROR("Failed to write to thread notify pipe");
   }
 }
 
@@ -31,7 +31,7 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // 
   while (bytes_read < sizeof(int)) {
     ssize_t result = read(new_conn_recv_fd, client_fd + bytes_read, sizeof(int) - bytes_read);
     if (result < 0) {
-      LOG_ERROR("Error when reading from dispatch");
+      NETWORK_LOG_ERROR("Error when reading from dispatch");
     }
     bytes_read += static_cast<size_t>(result);
   }

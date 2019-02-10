@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "loggers/main_logger.h"
+#include "loggers/network_logger.h"
 
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrappers.h"
@@ -69,11 +69,11 @@ class ConnectionHandle {
   /**
    * Handles a libevent event. This simply delegates the the state machine.
    */
-  void HandleEvent(int, short flags) {  // NOLINT as we don't need the fd argument to be used
+  void HandleEvent(int fd, int16_t flags) {
     Transition t;
     if ((flags & EV_TIMEOUT) != 0) {
       t = Transition::TERMINATE;
-      LOG_INFO("TIMEOUT OCCURRED");
+      NETWORK_LOG_TRACE("Timeout occurred on file descriptor {0}", fd);
     } else {
       t = Transition ::WAKEUP;
     }

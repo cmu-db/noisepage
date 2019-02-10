@@ -1,7 +1,6 @@
 #pragma once
 #include <utility>
 #include "common/macros.h"
-#include "loggers/main_logger.h"
 #include "network/network_defs.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_utils.h"

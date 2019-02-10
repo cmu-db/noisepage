@@ -41,7 +41,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
 
   int new_conn_fd = accept(fd, reinterpret_cast<struct sockaddr *>(&addr), &addrlen);
   if (new_conn_fd == -1) {
-    LOG_ERROR("Failed to accept");
+    NETWORK_LOG_ERROR("Failed to accept");
   }
 
   // Dispatch by rand number
@@ -51,7 +51,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   next_handler_ = (next_handler_ + 1) % handlers_.size();
 
   std::shared_ptr<ConnectionHandlerTask> handler = handlers_[handler_id];
-  LOG_DEBUG("Dispatching connection to worker {0}", handler_id);
+  NETWORK_LOG_TRACE("Dispatching connection to worker {0}", handler_id);
 
   handler->Notify(new_conn_fd);
 }

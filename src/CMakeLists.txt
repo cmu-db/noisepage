@@ -41,5 +41,5 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp)
+add_executable(terrier main/terrier.cpp loggers/network_logger.cpp include/loggers/network_logger.h)
 target_link_libraries(terrier terrier_shared)

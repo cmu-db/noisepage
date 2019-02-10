@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include "loggers/main_logger.h"
+#include "loggers/network_logger.h"
 #include "network/postgres_network_commands.h"
 #include "network/protocol_interpreter.h"
 
@@ -38,11 +38,11 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
     PostgresPacketWriter writer(out);
     switch (protocol_type_) {
       case NetworkProtocolType::POSTGRES_JDBC:
-        LOG_TRACE("JDBC result");
+        NETWORK_LOG_TRACE("JDBC result");
         ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
         break;
       case NetworkProtocolType::POSTGRES_PSQL:
-        LOG_TRACE("PSQL result");
+        NETWORK_LOG_TRACE("PSQL result");
         ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
       default:
         throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");

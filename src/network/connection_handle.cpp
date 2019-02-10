@@ -157,12 +157,12 @@ ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
-  LOG_INFO("result");
+  NETWORK_LOG_INFO("result");
   return Transition::PROCEED;
 }
 
 Transition ConnectionHandle::TryCloseConnection() {
-  LOG_DEBUG("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
+  NETWORK_LOG_DEBUG("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   // TODO(Tianyu): Handle close failure
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;

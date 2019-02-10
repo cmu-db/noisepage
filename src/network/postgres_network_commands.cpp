@@ -68,7 +68,7 @@ Transition CloseCommand::Exec(PostgresProtocolInterpreter *const interpreter, Po
 
 Transition TerminateCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                                   CallbackFunc callback) {
-  LOG_INFO("Terminated");
+  NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
 }  // namespace terrier::network
