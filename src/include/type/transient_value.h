@@ -78,6 +78,8 @@ class TransientValue {
    * 2) they share the same NULL value
    * 3) they share the same data_ value if non-VARCHARs, or their VARCHAR contents are the same if VARCHARS
    * false otherwise
+   * @warning This is an object equality check, and does not follow SQL equality semantics (specifically, NULL
+   * comparison)
    */
   bool operator==(const TransientValue &rhs) const {
     if (type_ != rhs.type_) return false;  // checks TypeId and NULL at the same time due to stolen MSB of type_ field
@@ -100,6 +102,8 @@ class TransientValue {
   /**
    * @param rhs TransientValue to compare this against
    * @return Negation of @see TransientValue::operator==
+   * @warning This is an object equality check, and does not follow SQL equality semantics (specifically, NULL
+   * comparison)
    */
   bool operator!=(const TransientValue &rhs) const { return !(operator==(rhs)); }
 
@@ -270,6 +274,7 @@ class TransientValue {
   }
 
   TypeId type_ = TypeId::INVALID;
+  // TODO(Matt): we should consider padding 7 bytes to inline small varlens in the future if we want
   uintptr_t data_;
 };
 
