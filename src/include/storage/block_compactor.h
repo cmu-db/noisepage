@@ -203,7 +203,7 @@ class BlockCompactor {
     uint32_t num_filled = 0;
     for (auto &entry : cg->blocks_to_compact_) {
       all_blocks.push_back(entry.first);
-      num_filled += entry.second.filled_.size();
+      num_filled += static_cast<uint32_t>(entry.second.filled_.size());
     }
     // Sort all the blocks within a group based on the number of filled slots, indescending order.
     std::sort(all_blocks.begin(), all_blocks.end(), [&](RawBlock *a, RawBlock *b) {
