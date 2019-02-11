@@ -159,6 +159,8 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
 
 void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
   TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
+  // If nothing commits, then all our reads are vacuously correct
+  if (commits->empty()) return;
   VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
   // make sure table_version is updated
   transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
