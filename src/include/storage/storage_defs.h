@@ -209,6 +209,17 @@ class VarlenEntry {
    */
   const byte *Content() const { return content_; }
 
+  /**
+   * @param rhs is the right hand side of the comparison
+   * @return true iff this < rhs according to a lexicographic order.
+   */
+  bool operator<(const VarlenEntry& rhs) {
+    for (uint32_t i = 0; i < std::min(Size(), rhs.Size()); i++) {
+      if (Content()[i] != rhs.Content()[i]) return Content()[i] < rhs.Content()[i];
+    }
+    return Size() < rhs.Size();
+  }
+
  private:
   // we use the sign bit to denote if
   int32_t size_;

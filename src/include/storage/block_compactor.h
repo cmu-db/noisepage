@@ -26,15 +26,30 @@ class BlockCompactor {
   // in the block itself if compaction to arrow itself is successful.
   struct BlockCompactionTask {
     explicit BlockCompactionTask(const BlockLayout &layout) {
-      for (col_id_t col : layout.Varlens()) total_varlen_sizes_[col] = 0;
       new_block_metadata_ = reinterpret_cast<ArrowBlockMetadata *>(
           common::AllocationUtil::AllocateAligned(ArrowBlockMetadata::Size(layout.NumColumns())));
       new_block_metadata_->Initialize(layout.NumColumns());
     }
 
+    /**
+     * Add a varlen to the total count if it has not been encountered yet and update indices.
+     * @param varlen is the VarlenEntry to add.
+     * @param col_id is the corresponding column id.
+     * @param offset is the slot offset.
+     */
+    void AddVarlen(VarlenEntry* varlen, col_id_t col_id, uint32_t idx) {
+      if (indices_[col_id][*varlen].empty()) {
+        total_varlen_sizes_[col_id] += varlen->Size();
+      }
+      indices_[col_id][*varlen].emplace_back(idx);
+    }
+
     std::vector<TupleSlot> filled_, empty_;
-    std::unordered_map<col_id_t, uint32_t> total_varlen_sizes_;
     ArrowBlockMetadata *new_block_metadata_;
+    // For each column, count the number of unique varlens.
+    std::unordered_map<col_id_t, uint32_t> total_varlen_sizes_;
+    // For each column, map unique varlens to their corresponding indices.
+    std::unordered_map<col_id_t, std::map<VarlenEntry, std::list<uint32_t >>> indices_;
   };
 
   // A Compaction group is a series of blocks all belonging to the same data table. We compact them together
@@ -155,7 +170,7 @@ class BlockCompactor {
               if (entry == nullptr) task.new_block_metadata_->NullCount(col_id)++;
               if (layout.IsVarlen(col_id)) {
                 auto *varlen = reinterpret_cast<VarlenEntry *>(cg->read_buffer_->AccessWithNullCheck(i));
-                task.total_varlen_sizes_[col_id] += (varlen == nullptr ? 0 : varlen->Size());
+                if (varlen != nullptr) task.AddVarlen(varlen, col_id, offset);
               }
             }
           }
@@ -229,9 +244,9 @@ class BlockCompactor {
           if (varlen == nullptr) {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
             giver_bct.new_block_metadata_->NullCount(col_id)--;
+          } else {
+            taker_bct.AddVarlen(varlen, col_id, empty_slot.GetOffset());
           }
-          taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
-          giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
         }
         taker_bct.new_block_metadata_->NumRecords()++;
         giver_bct.new_block_metadata_->NumRecords()--;
@@ -273,15 +288,12 @@ class BlockCompactor {
       for (auto &entry : cg->blocks_to_compact_) {
         RawBlock *block = entry.first;
         BlockCompactionTask &bct = entry.second;
-        // allocate varlen buffers for update
+        // allocate dict buffers
         for (col_id_t col_id : layout.Varlens())
-          bct.new_block_metadata_->GetVarlenColumn(layout, col_id)
-              .Allocate(bct.new_block_metadata_->NumRecords(), bct.total_varlen_sizes_[col_id]);
-        // This will accumulate the prefix sum of varlen sizes that we need as the offsets array for arrow
-        std::unordered_map<col_id_t, uint32_t> acc;
-        for (col_id_t varlen_col_id : layout.Varlens()) acc[varlen_col_id] = 0;
+          bct.new_block_metadata_->GetDictColumn(layout, col_id)
+              .Allocate(bct.new_block_metadata_->NumRecords(), bct.total_varlen_sizes_[col_id], bct.indices_[col_id]);
 
-        // Scan through all the tuples and copy them if there are varlens.
+        // Scan through all the tuples and update varlen pointers.
         for (uint32_t offset = 0; offset < bct.new_block_metadata_->NumRecords(); offset++) {
           TupleSlot slot(block, offset);
           // we will need to copy varlen into the allocated buffer. If we cannot, there is a conflict and we should
@@ -291,29 +303,17 @@ class BlockCompactor {
           RedoRecord *update = cg->txn_->StageWrite(cg->table_, slot, varlens_initializer);
           for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
             col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
-            ArrowVarlenColumn &varlen_col = bct.new_block_metadata_->GetVarlenColumn(layout, col_id);
-            auto offset_in_values_buffer = varlen_col.offsets_[offset] = acc[col_id];
+            ArrowDictColumn &dict_col = bct.new_block_metadata_->GetDictColumn(layout, col_id);
+            uint32_t offset_in_values_buffer = dict_col.offsets_[dict_col.indices_[offset]];
             auto *varlen = reinterpret_cast<VarlenEntry *>(cg->read_buffer_->AccessWithNullCheck(i));
             if (varlen == nullptr) {
               update->Delta()->SetNull(i);
             } else {
-              // If the old varlen is not gathered, it will be GCed by the normal transaction code path. Otherwise,
-              // we will replace and delete the old varlen buffer and we should be okay
-              memcpy(varlen_col.values_ + offset_in_values_buffer, varlen->Content(), varlen->Size());
               *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) = {
-                  varlen_col.values_ + offset_in_values_buffer, varlen->Size(), true};
-              acc[col_id] += varlen->Size();
+                  dict_col.values_ + offset_in_values_buffer, varlen->Size(), true};
             }
             if (!cg->table_->Update(cg->txn_, slot, *update->Delta())) return false;
           }
-        }
-        // Need to write one last offsets to denote the end of the last varlen
-        for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
-          col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
-          TERRIER_ASSERT(bct.total_varlen_sizes_[col_id] == acc[col_id],
-                         "Prefix sum result should match previous calculation");
-          bct.new_block_metadata_->GetVarlenColumn(layout, col_id).offsets_[bct.new_block_metadata_->NumRecords()] =
-              acc[col_id];
         }
       }
     }
@@ -334,8 +334,9 @@ class BlockCompactor {
       for (col_id_t varlen_col_id : layout.Varlens()) {
         // Depending on whether the compaction was successful, we either need to swap in the new metadata and
         // deallocate the old, or throw away the new one if compaction failed.
-        ArrowVarlenColumn &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
-                                     .GetVarlenColumn(layout, varlen_col_id);
+        ArrowDictColumn &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
+                                     .GetDictColumn(layout, varlen_col_id);
+        cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.indices_));
         cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.offsets_));
         cg->txn_->loose_ptrs_.push_back(col.values_);
       }
