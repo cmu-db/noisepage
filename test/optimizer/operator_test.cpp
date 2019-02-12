@@ -234,7 +234,8 @@ TEST(OperatorTests, BasicTest) {
       HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   Operator hash_group_by_2 =
       HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_hash_group_by = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  auto expr_hash_group_by =
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   Operator hash_group_by_3 = HashGroupBy::make(
       std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_hash_group_by}, std::vector<AnnotatedExpression>());
 
@@ -250,7 +251,8 @@ TEST(OperatorTests, BasicTest) {
       SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   Operator sort_group_by_2 =
       SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_sort_group_by = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
+  auto expr_sort_group_by =
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   Operator sort_group_by_3 = SortGroupBy::make(
       std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_sort_group_by}, std::vector<AnnotatedExpression>());
 

@@ -59,7 +59,8 @@ class IndexScan : public OperatorNode<IndexScan> {
   static Operator make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                        std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
                        std::vector<catalog::col_oid_t> key_column_id_list,
-                       std::vector<parser::ExpressionType> expr_type_list, std::vector<type::TransientValue> value_list);
+                       std::vector<parser::ExpressionType> expr_type_list,
+                       std::vector<type::TransientValue> value_list);
 
   bool operator==(const BaseOperatorNode &r) override;
 

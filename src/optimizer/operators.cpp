@@ -54,7 +54,8 @@ common::hash_t SeqScan::Hash() const {
 Operator IndexScan::make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                          std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
                          std::vector<catalog::col_oid_t> key_column_id_list,
-                         std::vector<parser::ExpressionType> expr_type_list, std::vector<type::TransientValue> value_list) {
+                         std::vector<parser::ExpressionType> expr_type_list,
+                         std::vector<type::TransientValue> value_list) {
   auto *scan = new IndexScan;
   scan->table_ = std::move(table);
   scan->is_for_update = update;
