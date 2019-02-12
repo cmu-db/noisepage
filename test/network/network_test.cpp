@@ -226,7 +226,7 @@ void TestExtendedQuery(uint16_t port) {
   strlcpy(out_buffer + sizeof(char) + sizeof(int32_t), query.c_str(), query.length());
   size_t len = sizeof(char) + sizeof(int32_t) + sizeof(int16_t) + sizeof(int32_t) + query.length();
 
-  //make conversion safe
+  // make conversion safe
   assert(len < UINT32_MAX);
   reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
 
