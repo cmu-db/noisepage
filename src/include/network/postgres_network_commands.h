@@ -61,13 +61,14 @@ class PostgresNetworkCommand {
   bool flush_on_complete_;
 };
 
+// Set all to force flush for now
 DEFINE_COMMAND(SimpleQueryCommand, true);
-DEFINE_COMMAND(ParseCommand, false);
-DEFINE_COMMAND(BindCommand, false);
-DEFINE_COMMAND(DescribeCommand, false);
-DEFINE_COMMAND(ExecuteCommand, false);
+DEFINE_COMMAND(ParseCommand, true);
+DEFINE_COMMAND(BindCommand, true);
+DEFINE_COMMAND(DescribeCommand, true);
+DEFINE_COMMAND(ExecuteCommand, true);
 DEFINE_COMMAND(SyncCommand, true);
-DEFINE_COMMAND(CloseCommand, false);
+DEFINE_COMMAND(CloseCommand, true);
 DEFINE_COMMAND(TerminateCommand, true);
 
 }  // namespace terrier::network

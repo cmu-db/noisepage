@@ -126,16 +126,18 @@ class ConnectionHandle {
    * EV_TIMEOUT
    */
   void UpdateEventFlags(int16_t flags, int timeout_secs = 0) {
-    struct timeval timeout;
-    struct timeval *timeout_str;
-
     if ((flags & EV_TIMEOUT) != 0) {
+      struct timeval timeout;
+      struct timeval *timeout_str;
       timeout_str = &timeout;
       timeout.tv_usec = 0;
       timeout.tv_sec = timeout_secs;
+      conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
+                                 METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this, timeout_str);
+    } else {
+      conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
+                                 METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
     }
-    conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
-                               METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this, timeout_str);
   }
 
   /**

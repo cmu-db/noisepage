@@ -61,7 +61,7 @@
 
 #define AND_WAIT_ON_READ                      \
   ([](ConnectionHandle &w) {                  \
-    w.UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT); \
+    w.UpdateEventFlags(EV_READ | EV_PERSIST); \
     return Transition::NONE;                  \
   })                                          \
   };                                          // NOLINT
@@ -76,6 +76,13 @@
 #define AND_WAIT_ON_TERRIER        \
   ([](ConnectionHandle &w) {       \
     w.StopReceivingNetworkEvent(); \
+    return Transition::NONE;       \
+  })                               \
+  };                               // NOLINT
+
+#define AND_WAIT_ON_READ_TIMEOUT        \
+  ([](ConnectionHandle &w) {       \
+    w.UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT); \
     return Transition::NONE;       \
   })                               \
   };                               // NOLINT
@@ -95,6 +102,7 @@ DEF_TRANSITION_GRAPH
         ON(WAKEUP) SET_STATE_TO(READ) AND_INVOKE(TryRead)
         ON(PROCEED) SET_STATE_TO(PROCESS) AND_INVOKE(Process)
         ON(NEED_READ) SET_STATE_TO(READ) AND_WAIT_ON_READ
+        ON(NEED_READ_TIMEOUT) SET_STATE_TO(READ) AND_WAIT_ON_READ_TIMEOUT
         // This case happens only when we use SSL and are blocked on a write
         // during handshake. From terrier's perspective we are still waiting
         // for reads.
@@ -112,6 +120,7 @@ DEF_TRANSITION_GRAPH
         ON(WAKEUP) SET_STATE_TO(PROCESS) AND_INVOKE(GetResult)
         ON(PROCEED) SET_STATE_TO(WRITE) AND_INVOKE(TryWrite)
         ON(NEED_READ) SET_STATE_TO(READ) AND_INVOKE(TryRead)
+        ON(NEED_READ_TIMEOUT) SET_STATE_TO(READ) AND_WAIT_ON_READ_TIMEOUT
         // Client connections are ignored while we wait on terrier
         // to execute the query
         ON(NEED_RESULT) SET_STATE_TO(PROCESS) AND_WAIT_ON_TERRIER

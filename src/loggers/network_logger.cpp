@@ -10,7 +10,6 @@ std::shared_ptr<spdlog::logger> network_logger;
 void init_network_logger() {
   network_logger = std::make_shared<spdlog::logger>("network_logger", ::default_sink);
   spdlog::register_logger(network_logger);
-  std::cout << "INITIALIZED NETWORK LOGGER";
 }
 
 }  // namespace terrier::network

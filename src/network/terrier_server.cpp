@@ -1,9 +1,11 @@
-#include <network/connection_handle_factory.h>
-#include <network/network_defs.h>
 #include <fstream>
 #include <memory>
 #include "common/utility.h"
 #include "event2/thread.h"
+#include "network/connection_handle_factory.h"
+#include "network/network_defs.h"
+
+#include "loggers/network_logger.h"
 
 #include "common/dedicated_thread_registry.h"
 #include "network/terrier_server.h"

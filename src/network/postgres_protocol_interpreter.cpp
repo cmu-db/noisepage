@@ -15,7 +15,7 @@ namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
                                                 CallbackFunc callback) {
   try {
-    if (!TryBuildPacket(in)) return Transition::NEED_READ;
+    if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
     NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
