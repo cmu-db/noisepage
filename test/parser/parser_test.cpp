@@ -318,6 +318,102 @@ TEST_F(ParserTestBase, UpdateTest) {
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);
 }
 
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, OperatorTest) {
+  {
+    std::string query = "SELECT 10+10 AS Addition;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
+  }
+
+  {
+    std::string query = "SELECT 15-721 AS Subtraction;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
+  }
+
+  {
+    std::string query = "SELECT 5*7 AS Multiplication;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MULTIPLY);
+  }
+
+  {
+    std::string query = "SELECT 1/2 AS Division;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_DIVIDE);
+  }
+
+  {
+    std::string query = "SELECT 15||213 AS Concatenation;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CONCAT);
+  }
+
+  {
+    std::string query = "SELECT 4%2 AS Mod;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MOD);
+  }
+
+  {
+    std::string query = "SELECT CAST('100' AS INTEGER) AS Casting;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::CAST);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::INTEGER);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE NOT id = 1;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_NOT);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id IS NULL;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE EXISTS (SELECT * from bar);";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_EXISTS);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+}
+
 /*
  * All the converted old tests from postgresparser_test.cpp are below.
  * Notable differences:
