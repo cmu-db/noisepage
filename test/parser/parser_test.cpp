@@ -405,6 +405,19 @@ TEST_F(ParserTestBase, OperatorTest) {
   }
 
   {
+    std::vector<std::string> queries;
+
+    // Coverage for NullNodeTransform
+    queries.emplace_back("SELECT * FROM foo WHERE 0 IS NULL;");
+    queries.emplace_back("SELECT * FROM foo WHERE 0*1 IS NULL;");
+    queries.emplace_back("SELECT * FROM foo WHERE ? IS NULL;");
+
+    for (const auto &query : queries) {
+      auto stmt_list = pgparser.BuildParseTree(query);
+    }
+  }
+
+  {
     std::string query = "SELECT * FROM foo WHERE EXISTS (SELECT * from bar);";
     auto stmt_list = pgparser.BuildParseTree(query);
     auto &sql_stmt = stmt_list[0];
