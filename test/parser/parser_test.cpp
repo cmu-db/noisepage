@@ -414,6 +414,69 @@ TEST_F(ParserTestBase, OperatorTest) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CompareTest) {
+  {
+    std::string query = "SELECT * FROM foo WHERE id < 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id <= 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id >= 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str ~~ '%test%';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LIKE);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str !~~ '%test%';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_NOT_LIKE);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str IS DISTINCT FROM 'test';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_IS_DISTINCT_FROM);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+}
+
 /*
  * All the converted old tests from postgresparser_test.cpp are below.
  * Notable differences:
@@ -440,6 +503,7 @@ TEST_F(ParserTestBase, OldAggTest) {
   queries.emplace_back("SELECT COUNT(DISTINCT id) FROM foo;");
   queries.emplace_back("SELECT MAX(*) FROM foo;");
   queries.emplace_back("SELECT MIN(*) FROM foo;");
+  queries.emplace_back("SELECT AVG(*) FROM foo;");
 
   for (const auto &query : queries) {
     auto stmt_list = pgparser.BuildParseTree(query);
