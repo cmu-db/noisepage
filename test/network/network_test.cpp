@@ -1,3 +1,5 @@
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <util/test_harness.h>
@@ -121,7 +123,7 @@ size_t strlcpy(char *dst, const char *src, size_t siz) {
   return (s - src - 1); /* count does not include NUL */
 }
 
-int StartConnection(int port) {
+int StartConnection(uint16_t port) {
   // Manually open a socket
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -158,7 +160,7 @@ void TerminateConnection(int socket_fd) {
   // Build a correct query message, "SELECT A FROM B"
   memset(out_buffer, 0, sizeof(out_buffer));
   out_buffer[0] = 'X';
-  int32_t len = sizeof(int32_t) + sizeof(char);
+  int len = sizeof(int32_t) + sizeof(char);
   reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
   write(socket_fd, nullptr, len + 1);
 }
@@ -212,7 +214,7 @@ TEST_F(NetworkTests, SSLTest) {
 }
 
 // TODO(tanujnay112): Change to use a struct instead of this
-void TestExtendedQuery(int port) {
+void TestExtendedQuery(uint16_t port) {
   int socket_fd = StartConnection(port);
   char out_buffer[1000] = {};
   char in_buffer[1000] = {};
@@ -222,7 +224,10 @@ void TestExtendedQuery(int port) {
   std::string query = "PREPARE fooplan (int, text, bool, numeric)\0INSERT INTO foo VALUES($1, $2, $3, $4);";
 
   strlcpy(out_buffer + sizeof(char) + sizeof(int32_t), query.c_str(), query.length());
-  int32_t len = sizeof(char) + sizeof(int32_t) + sizeof(int16_t) + sizeof(int32_t) + query.length();
+  size_t len = sizeof(char) + sizeof(int32_t) + sizeof(int16_t) + sizeof(int32_t) + query.length();
+
+  //make conversion safe
+  assert(len < UINT32_MAX);
   reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
 
   // Beware the buffer length should be message length + 1 for query messages
