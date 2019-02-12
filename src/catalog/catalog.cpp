@@ -116,6 +116,8 @@ void Catalog::CreatePGTablespace(table_oid_t table_oid) {
   // add the schema
   pg_tablespace_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_tablespace_->DefineColumn("spcname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
+  AddUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
+  // create the table
   pg_tablespace_->Create();
 }
 
@@ -128,12 +130,16 @@ void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
   pg_tablespace_->StartRow();
   pg_tablespace_->SetIntColInRow(0, !pg_global_oid);
   pg_tablespace_->SetVarcharColInRow(1, "pg_global");
+  SetUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
   pg_tablespace_->EndRowAndInsert(txn);
 
   pg_tablespace_->StartRow();
   pg_tablespace_->SetIntColInRow(0, !pg_default_oid);
   pg_tablespace_->SetVarcharColInRow(1, "pg_default");
+  SetUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
   pg_tablespace_->EndRowAndInsert(txn);
+
+  // TODO(yeshengm): do we have to add it to the global map?
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
@@ -159,6 +165,7 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   pg_namespace = std::make_shared<catalog::SqlTableRW>(pg_namespace_oid);
   pg_namespace->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_namespace->DefineColumn("nspname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
+  AddUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->Create();
 
   map_[db_oid][pg_namespace_oid] = pg_namespace;
@@ -169,6 +176,7 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   pg_namespace->StartRow();
   pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
   pg_namespace->SetVarcharColInRow(1, "pg_catalog");
+  SetUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->EndRowAndInsert(txn);
 
   // insert public
@@ -176,6 +184,7 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   pg_namespace->StartRow();
   pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
   pg_namespace->SetVarcharColInRow(1, "public");
+  SetUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->EndRowAndInsert(txn);
 }
 
