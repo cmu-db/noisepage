@@ -21,7 +21,7 @@ Operator DummyScan::make() {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
-Operator SeqScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+Operator SeqScan::make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                        std::vector<AnnotatedExpression> predicates, bool update) {
   auto *scan = new SeqScan;
   scan->table_ = std::move(table);
@@ -51,10 +51,10 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-Operator IndexScan::make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+Operator IndexScan::make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                          std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
                          std::vector<catalog::col_oid_t> key_column_id_list,
-                         std::vector<parser::ExpressionType> expr_type_list, std::vector<type::Value> value_list) {
+                         std::vector<parser::ExpressionType> expr_type_list, std::vector<type::TransientValue> value_list) {
   auto *scan = new IndexScan;
   scan->table_ = std::move(table);
   scan->is_for_update = update;
@@ -302,7 +302,7 @@ Operator OuterHashJoin::make(std::shared_ptr<parser::AbstractExpression> join_pr
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
-Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+Operator Insert::make(std::shared_ptr<catalog::TableHandle> target_table,
                       std::vector<catalog::index_oid_t> &&target_index, const std::vector<std::string> *columns,
                       const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values) {
   auto *insert_op = new Insert;
@@ -316,7 +316,7 @@ Operator Insert::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
 //===--------------------------------------------------------------------===//
 // PhysicalInsertSelect
 //===--------------------------------------------------------------------===//
-Operator InsertSelect::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+Operator InsertSelect::make(std::shared_ptr<catalog::TableHandle> target_table,
                             std::vector<catalog::index_oid_t> &&target_index) {
   auto *insert_op = new InsertSelect;
   insert_op->target_table = std::move(target_table);
@@ -327,7 +327,7 @@ Operator InsertSelect::make(std::shared_ptr<catalog::TableCatalogEntry> target_t
 //===--------------------------------------------------------------------===//
 // PhysicalDelete
 //===--------------------------------------------------------------------===//
-Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+Operator Delete::make(std::shared_ptr<catalog::TableHandle> target_table,
                       std::vector<catalog::index_oid_t> &&target_index) {
   auto *delete_op = new Delete;
   delete_op->target_table = std::move(target_table);
@@ -338,7 +338,7 @@ Operator Delete::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-Operator Update::make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+Operator Update::make(std::shared_ptr<catalog::TableHandle> target_table,
                       std::vector<catalog::index_oid_t> &&target_index,
                       const std::vector<std::unique_ptr<parser::UpdateClause>> *updates) {
   auto *update_op = new Update;

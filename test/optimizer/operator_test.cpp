@@ -9,8 +9,8 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
-#include "type/value.h"
-#include "type/value_factory.h"
+#include "type/transient_value.h"
+#include "type/transient_value_factory.h"
 
 #include "gtest/gtest.h"
 
@@ -39,13 +39,13 @@ TEST(OperatorTests, BasicTest) {
   //===--------------------------------------------------------------------===//
   Operator index_scan_1 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
                                           catalog::index_oid_t(0), std::vector<catalog::col_oid_t>(),
-                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   Operator index_scan_2 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
                                           catalog::index_oid_t(0), std::vector<catalog::col_oid_t>(),
-                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   Operator index_scan_3 = IndexScan::make(nullptr, "table", std::vector<AnnotatedExpression>(), false,
                                           catalog::index_oid_t(1), std::vector<catalog::col_oid_t>(),
-                                          std::vector<parser::ExpressionType>(), std::vector<type::Value>());
+                                          std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
 
   EXPECT_EQ(index_scan_1.GetType(), OpType::IndexScan);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
@@ -70,7 +70,7 @@ TEST(OperatorTests, BasicTest) {
   auto alias_to_expr_map_1 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto alias_to_expr_map_2 = std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>>();
   auto expr_query_derived_scan =
-      std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
+      std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   alias_to_expr_map_1["constant expr"] = expr_query_derived_scan;
   alias_to_expr_map_2["constant expr"] = expr_query_derived_scan;
   Operator query_derived_scan_1 = QueryDerivedScan::make("alias", alias_to_expr_map_1);
@@ -234,7 +234,7 @@ TEST(OperatorTests, BasicTest) {
       HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   Operator hash_group_by_2 =
       HashGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_hash_group_by = std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
+  auto expr_hash_group_by = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   Operator hash_group_by_3 = HashGroupBy::make(
       std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_hash_group_by}, std::vector<AnnotatedExpression>());
 
@@ -250,7 +250,7 @@ TEST(OperatorTests, BasicTest) {
       SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
   Operator sort_group_by_2 =
       SortGroupBy::make(std::vector<std::shared_ptr<parser::AbstractExpression>>(), std::vector<AnnotatedExpression>());
-  auto expr_sort_group_by = std::make_shared<parser::ConstantValueExpression>(type::ValueFactory::GetTinyIntValue(1));
+  auto expr_sort_group_by = std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(1));
   Operator sort_group_by_3 = SortGroupBy::make(
       std::vector<std::shared_ptr<parser::AbstractExpression>>{expr_sort_group_by}, std::vector<AnnotatedExpression>());
 

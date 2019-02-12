@@ -10,7 +10,7 @@
 #include "optimizer/operator_node.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
-#include "type/value.h"
+#include "type/transient_value.h"
 
 namespace terrier {
 
@@ -20,7 +20,7 @@ class UpdateClause;
 }  // namespace parser
 
 namespace catalog {
-class TableCatalogEntry;
+class TableHandle;
 }
 
 namespace optimizer {
@@ -38,7 +38,7 @@ class DummyScan : public OperatorNode<DummyScan> {
 //===--------------------------------------------------------------------===//
 class SeqScan : public OperatorNode<SeqScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+  static Operator make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                        std::vector<AnnotatedExpression> predicates, bool update);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -48,7 +48,7 @@ class SeqScan : public OperatorNode<SeqScan> {
   std::vector<AnnotatedExpression> predicates;
   std::string table_alias;
   bool is_for_update;
-  std::shared_ptr<catalog::TableCatalogEntry> table_;
+  std::shared_ptr<catalog::TableHandle> table_;
 };
 
 //===--------------------------------------------------------------------===//
@@ -56,10 +56,10 @@ class SeqScan : public OperatorNode<SeqScan> {
 //===--------------------------------------------------------------------===//
 class IndexScan : public OperatorNode<IndexScan> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> table, std::string alias,
+  static Operator make(std::shared_ptr<catalog::TableHandle> table, std::string alias,
                        std::vector<AnnotatedExpression> predicates, bool update, catalog::index_oid_t index_id,
                        std::vector<catalog::col_oid_t> key_column_id_list,
-                       std::vector<parser::ExpressionType> expr_type_list, std::vector<type::Value> value_list);
+                       std::vector<parser::ExpressionType> expr_type_list, std::vector<type::TransientValue> value_list);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -69,11 +69,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   std::vector<AnnotatedExpression> predicates;
   std::string table_alias;
   bool is_for_update;
-  std::shared_ptr<catalog::TableCatalogEntry> table_;
+  std::shared_ptr<catalog::TableHandle> table_;
 
   std::vector<catalog::col_oid_t> key_column_id_list;
   std::vector<parser::ExpressionType> expr_type_list;
-  std::vector<type::Value> value_list;
+  std::vector<type::TransientValue> value_list;
 };
 
 //===--------------------------------------------------------------------===//
@@ -234,10 +234,10 @@ class OuterHashJoin : public OperatorNode<OuterHashJoin> {
 //===--------------------------------------------------------------------===//
 class Insert : public OperatorNode<Insert> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
                        std::vector<catalog::index_oid_t> &&target_index, const std::vector<std::string> *columns,
                        const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values);
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::shared_ptr<catalog::TableHandle> target_table;
   std::vector<catalog::index_oid_t> target_index;
   const std::vector<std::string> *columns;
   const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *values;
@@ -248,10 +248,10 @@ class Insert : public OperatorNode<Insert> {
 //===--------------------------------------------------------------------===//
 class InsertSelect : public OperatorNode<InsertSelect> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
                        std::vector<catalog::index_oid_t> &&target_index);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::shared_ptr<catalog::TableHandle> target_table;
   std::vector<catalog::index_oid_t> target_index;
 };
 
@@ -260,10 +260,10 @@ class InsertSelect : public OperatorNode<InsertSelect> {
 //===--------------------------------------------------------------------===//
 class Delete : public OperatorNode<Delete> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
                        std::vector<catalog::index_oid_t> &&target_index);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::shared_ptr<catalog::TableHandle> target_table;
   std::vector<catalog::index_oid_t> target_index;
 };
 
@@ -291,11 +291,11 @@ class ExportExternalFile : public OperatorNode<ExportExternalFile> {
 //===--------------------------------------------------------------------===//
 class Update : public OperatorNode<Update> {
  public:
-  static Operator make(std::shared_ptr<catalog::TableCatalogEntry> target_table,
+  static Operator make(std::shared_ptr<catalog::TableHandle> target_table,
                        std::vector<catalog::index_oid_t> &&target_index,
                        const std::vector<std::unique_ptr<parser::UpdateClause>> *updates);
 
-  std::shared_ptr<catalog::TableCatalogEntry> target_table;
+  std::shared_ptr<catalog::TableHandle> target_table;
   std::vector<catalog::index_oid_t> target_index;
   const std::vector<std::unique_ptr<parser::UpdateClause>> *updates;
 };
