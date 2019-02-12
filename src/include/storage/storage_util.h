@@ -37,8 +37,7 @@ class StorageUtil {
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
    * set the null bit on attribute.
    * @param from pointer location to copy fro, or nullptr
-   * @param to ProjectedRow to copy into
-   * @param accessor TupleAccessStrategy used to interact with the given block.
+   * @param accessor TupleAccessStrategy used to interact with the given block
    * @param to tuple slot to copy into
    * @param col_id the col_id to copy into
    */
