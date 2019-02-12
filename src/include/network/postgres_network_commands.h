@@ -4,7 +4,6 @@
 #include "network/network_defs.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_utils.h"
-#include "type/value_factory.h"
 
 #define DEFINE_COMMAND(name, flush)                                                      \
   class name : public PostgresNetworkCommand {                                           \
