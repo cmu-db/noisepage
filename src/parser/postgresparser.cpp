@@ -27,7 +27,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
-#include "type/value_factory.h"
+#include "type/transient_value_factory.h"
 
 /**
  * Log information about the error, then throw an exception
@@ -696,25 +696,26 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
   std::unique_ptr<AbstractExpression> result;
   switch (val.type) {
     case T_Integer: {
-      auto v = type::ValueFactory::GetIntegerValue(val.val.ival);
+      auto v = type::TransientValueFactory::GetInteger(val.val.ival);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_String: {
-      auto v = type::ValueFactory::GetStringValue(val.val.str);
+      auto v = type::TransientValueFactory::GetVarChar(val.val.str);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Float: {
-      auto v = type::ValueFactory::GetDecimalValue(std::stod(val.val.str));
+      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Null: {
-      auto v = type::ValueFactory::GetNullValue();
+      auto v = type::TransientValueFactory::GetBoolean(false);
+      v.SetNull(true);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
