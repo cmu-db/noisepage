@@ -301,7 +301,7 @@ void TestExtendedQuery(uint16_t port) {
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
   ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
-  EXPECT_EQ(ret, 0);
+  EXPECT_GT(ret, 0);
 
   // DescribeCommand
   memset(out_buffer, 0, sizeof(out_buffer));
