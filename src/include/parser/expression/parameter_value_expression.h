@@ -16,8 +16,7 @@ class ParameterValueExpression : public AbstractExpression {
    * @param value_idx the offset of the parameter
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
-      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::PARAMETER_OFFSET, {}),
-        value_idx_(value_idx) {}
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INTEGER, {}), value_idx_(value_idx) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override {
     return std::make_unique<ParameterValueExpression>(*this);
