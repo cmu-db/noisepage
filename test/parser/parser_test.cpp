@@ -99,6 +99,42 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
       "BEGIN RETURN i + 1; END; $$ "
       "LANGUAGE plpgsql;";
   stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_varchar ("
+      " i VARCHAR"
+      " )"
+      " RETURNS VARCHAR AS $$ "
+      "BEGIN RETURN 'foo'; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_text ("
+      " i TEXT"
+      " )"
+      " RETURNS TEXT AS $$ "
+      "BEGIN RETURN 'foo'; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_bool ("
+      " i BOOLEAN"
+      " )"
+      " RETURNS BOOLEAN AS $$ "
+      "BEGIN RETURN false; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_real ("
+      " i REAL"
+      " )"
+      " RETURNS REAL AS $$ "
+      "BEGIN RETURN 1.0; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
 }
 
 // NOLINTNEXTLINE
