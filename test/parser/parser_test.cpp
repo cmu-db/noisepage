@@ -381,7 +381,7 @@ TEST_F(ParserTestBase, OperatorTest) {
     auto &sql_stmt = stmt_list[0];
     auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
     auto expr = select_stmt->GetSelectColumns().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::CAST);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::INTEGER);
   }
 
