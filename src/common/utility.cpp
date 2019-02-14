@@ -14,6 +14,17 @@ int close$NOCANCEL(int);
 
 namespace terrier {
 
+/**
+ * Close a file descriptor. On all systems supported by terrier,
+ * the file descriptor is closed and no retry or error recovery is required.
+ *
+ * WARNING: On some systems such as HPUX, return codes such as EINTR do require
+ * additional error recovery.
+ *
+ * @param fd - descriptor to close
+ * @return int error code from close. Informational only, no action required.
+ */
+
 int terrier_close(int fd) {
   // On Mac OS, close$NOCANCEL guarantees that no descriptor leak & no need to retry on failure.
   // On linux, close will do the same.

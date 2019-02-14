@@ -30,7 +30,7 @@ class ConnectionHandleFactory {
 
   /**
    * @brief Creates or re-purpose a NetworkIoWrapper object for new use.
-   * The returned value always uses Posix I/O methods unles explicitly
+   * The returned value always uses Posix I/O methods unless explicitly
    * converted.
    * @see NetworkIoWrapper for details
    * @param conn_fd Client connection fd

@@ -151,7 +151,7 @@ END_DEF
     try {
       next = result.second(connection);
     } catch (NetworkProcessException &e) {
-      LOG_ERROR("{0}\n", e.what());
+      NETWORK_LOG_ERROR("{0}\n", e.what());
       next = Transition::TERMINATE;
     }
   }
@@ -166,13 +166,12 @@ ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
-  NETWORK_LOG_INFO("result");
+  NETWORK_LOG_TRACE("GetResult");
   return Transition::PROCEED;
 }
 
 Transition ConnectionHandle::TryCloseConnection() {
-  NETWORK_LOG_DEBUG("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
-  // TODO(Tianyu): Handle close failure
+  NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
   // Remove listening event

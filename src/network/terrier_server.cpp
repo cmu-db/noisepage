@@ -1,5 +1,6 @@
 #include <fstream>
 #include <memory>
+#include "common/settings.h"
 #include "common/utility.h"
 #include "event2/thread.h"
 #include "network/connection_handle_factory.h"
@@ -15,9 +16,9 @@
 namespace terrier::network {
 
 TerrierServer::TerrierServer() {
-  port_ = 2888;
+  port_ = common::Settings::SERVER_PORT;
   // settings::SettingsManager::GetInt(settings::SettingId::port);
-  max_connections_ = 250;
+  max_connections_ = common::Settings::MAX_CONNECTIONS;
   // settings::SettingsManager::GetInt(settings::SettingId::max_connections);
 
   // For logging purposes
@@ -29,7 +30,8 @@ TerrierServer::TerrierServer() {
   // When we upgrade this should be uncommented
   //  event_enable_debug_logging(EVENT_DBG_ALL);
 
-  // Ignore the broken pipe signal
+  // TODO(tanuj): review where the write failures are handled.
+  // Ignore the broken pipe signal, return EPIPE on pipe write failures.
   // We don't want to exit on write when the client disconnects
   signal(SIGPIPE, SIG_IGN);
 }
@@ -41,7 +43,7 @@ TerrierServer &TerrierServer::SetupServer() {
           settings::SettingId::socket_family) != "AF_INET")
     throw ConnectionException("Unsupported socket family");*/
 
-  int conn_backlog = 12;
+  int conn_backlog = common::Settings::CONNECTION_BACKLOG;
 
   struct sockaddr_in sin;
   std::memset(&sin, 0, sizeof(sin));
@@ -85,7 +87,7 @@ void TerrierServer::ServerLoop() {
 }
 
 void TerrierServer::Close() {
-  LOG_INFO("Begin to stop server");
+  NETWORK_LOG_TRACE("Begin to stop server");
   dispatcher_task_->ExitLoop();
 }
 

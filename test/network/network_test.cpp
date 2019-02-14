@@ -9,11 +9,17 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 
 #define NUM_THREADS 1
+
+/*
+ * Read and write buffer size for the test
+ */
+#define TEST_BUF_SIZE 1000
 
 namespace terrier::network {
 
@@ -24,7 +30,7 @@ namespace terrier::network {
 class NetworkTests : public TerrierTest {
  protected:
   TerrierServer server;
-  uint16_t port = 2888;
+  uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
 
   /**
@@ -33,8 +39,6 @@ class NetworkTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    LOG_INFO("Server initialized");
-    init_network_logger();
     network_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
 
@@ -42,15 +46,17 @@ class NetworkTests : public TerrierTest {
       server.SetPort(port);
       server.SetupServer();
     } catch (NetworkProcessException &exception) {
-      LOG_INFO("[LaunchServer] exception when launching server");
+      LOG_ERROR("[LaunchServer] exception when launching server");
+      throw;
     }
+    LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server.ServerLoop(); });
   }
 
   void TearDown() override {
     server.Close();
     server_thread.join();
-    LOG_INFO("Terrier has shut down");
+    LOG_DEBUG("Terrier has shut down");
 
     TerrierTest::TearDown();
   }
@@ -77,10 +83,10 @@ TEST_F(NetworkTests, SimpleQueryTest) {
     txn1.commit();
     EXPECT_EQ(R.size(), 0);
   } catch (const std::exception &e) {
-    LOG_INFO("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  LOG_INFO("[SimpleQueryTest] Client has closed");
+  LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
 
 ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
@@ -137,8 +143,8 @@ int StartConnection(uint16_t port) {
   if (ret < 0) LOG_ERROR("Connection Error");
 
   // Build the startup message
-  char out_buffer[1000] = {};
-  char in_buffer[1000] = {};
+  char out_buffer[TEST_BUF_SIZE] = {};
+  char in_buffer[TEST_BUF_SIZE] = {};
   // 3: protocol version number
   out_buffer[5] = 3;
   std::vector<std::string> params({"user", "postgres", "database", "postgres", "application_name", "psql"});
@@ -151,12 +157,12 @@ int StartConnection(uint16_t port) {
   out_buffer[3] = static_cast<char>(offset + 1);
 
   write(socket_fd, out_buffer, offset + 1);
-  ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   return socket_fd;
 }
 
 void TerminateConnection(int socket_fd) {
-  char out_buffer[1000] = {};
+  char out_buffer[TEST_BUF_SIZE] = {};
   // Build a correct query message, "SELECT A FROM B"
   memset(out_buffer, 0, sizeof(out_buffer));
   out_buffer[0] = 'X';
@@ -168,9 +174,10 @@ void TerminateConnection(int socket_fd) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, BadQueryTest) {
   try {
+    LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
     int socket_fd = StartConnection(port);
-    char out_buffer[1000] = {};
-    char in_buffer[1000] = {};
+    char out_buffer[TEST_BUF_SIZE] = {};
+    char in_buffer[TEST_BUF_SIZE] = {};
     // Build a correct query message, "SELECT A FROM B"
     memset(out_buffer, 0, sizeof(out_buffer));
     out_buffer[0] = 'Q';
@@ -181,21 +188,21 @@ TEST_F(NetworkTests, BadQueryTest) {
 
     // Beware the buffer length should be message length + 1 for query messages
     write(socket_fd, out_buffer, len + 1);
-    ssize_t ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+    ssize_t ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
     EXPECT_GT(ret, 0);  // should be okay
 
     // Send a bad query packet
     memset(out_buffer, 0, sizeof(out_buffer));
     std::string bad_query = "e_random_bad_packet";
     write(socket_fd, out_buffer, bad_query.length() + 1);
-    ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+    ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
     EXPECT_EQ(0, ret);
     TerminateConnection(socket_fd);
   } catch (const std::exception &e) {
-    LOG_INFO("[BadQueryTest] Exception occurred: {0}", e.what());
+    LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  LOG_INFO("[BadQueryTest] Client has closed");
+  LOG_INFO("[BadQueryTest] Completed");
 }
 
 // NOLINTNEXTLINE
@@ -208,7 +215,7 @@ TEST_F(NetworkTests, SSLTest) {
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
   } catch (const std::exception &e) {
-    LOG_INFO("[SSLTest] Exception occurred: {0}", e.what());
+    LOG_ERROR("[SSLTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -216,8 +223,8 @@ TEST_F(NetworkTests, SSLTest) {
 // TODO(tanujnay112): Change to use a struct instead of this
 void TestExtendedQuery(uint16_t port) {
   int socket_fd = StartConnection(port);
-  char out_buffer[1000] = {};
-  char in_buffer[1000] = {};
+  char out_buffer[TEST_BUF_SIZE] = {};
+  char in_buffer[TEST_BUF_SIZE] = {};
   // Build a correct query message, "SELECT A FROM B"
   memset(out_buffer, 0, sizeof(out_buffer));
   out_buffer[0] = 'P';
@@ -232,7 +239,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ssize_t ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ssize_t ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
 
   TerminateConnection(socket_fd);
   EXPECT_GT(ret, 0);  // should be okay
@@ -266,7 +273,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   EXPECT_GT(ret, 0);  // should be okay
 
   memset(out_buffer, 0, sizeof(out_buffer));
@@ -287,7 +294,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   EXPECT_GT(ret, 0);  // should be okay
 
   // SyncCommand
@@ -300,7 +307,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   EXPECT_GT(ret, 0);
 
   // DescribeCommand
@@ -321,7 +328,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   EXPECT_GT(ret, 0);
 
   // closeCommand
@@ -342,7 +349,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, 1000, socket_fd);
+  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
   EXPECT_GT(ret, 0);
 }
 
@@ -351,7 +358,7 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
   try {
     TestExtendedQuery(port);
   } catch (const std::exception &e) {
-    LOG_INFO("[NetworkCommands] Exception occurred: {0}", e.what());
+    LOG_ERROR("[NetworkCommands] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }

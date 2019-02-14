@@ -31,9 +31,10 @@ void ConnectionHandlerTask::HandleDispatch(int new_conn_recv_fd, int16_t) {  // 
   while (bytes_read < sizeof(int)) {
     ssize_t result = read(new_conn_recv_fd, client_fd + bytes_read, sizeof(int) - bytes_read);
     if (result < 0) {
-      NETWORK_LOG_ERROR("Error when reading from dispatch");
+      NETWORK_LOG_ERROR("Error when reading from dispatch: errno {}", errno);
+    } else {
+      bytes_read += static_cast<size_t>(result);
     }
-    bytes_read += static_cast<size_t>(result);
   }
   ConnectionHandleFactory::GetInstance()
       .NewConnectionHandle(*reinterpret_cast<int *>(client_fd), this)

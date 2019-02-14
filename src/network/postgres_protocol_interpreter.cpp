@@ -97,6 +97,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
   curr_input_packet_.len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
   if (curr_input_packet_.len_ > PACKET_LEN_LIMIT) {
+    NETWORK_LOG_ERROR("Packet size {} > limit {}", curr_input_packet_.len_, PACKET_LEN_LIMIT);
     throw NETWORK_PROCESS_EXCEPTION("Packet too large");
   }
 
@@ -104,7 +105,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
   if (curr_input_packet_.len_ > in->Capacity()) {
     // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
     curr_input_packet_.buf_ = std::make_shared<ReadBuffer>(curr_input_packet_.len_);
-    LOG_INFO("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
+    NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
     curr_input_packet_.extended_ = true;
   } else {
     curr_input_packet_.buf_ = in;

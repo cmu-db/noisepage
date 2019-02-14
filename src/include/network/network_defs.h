@@ -31,7 +31,7 @@ namespace terrier::network {
 #define CONNECTION_THREAD_COUNT 1
 
 // Number of seconds to timeout on a client read
-#define READ_TIMEOUT (20*60)
+#define READ_TIMEOUT (20 * 60)
 
 // Limit on the length of a packet
 #define PACKET_LEN_LIMIT 2500000
