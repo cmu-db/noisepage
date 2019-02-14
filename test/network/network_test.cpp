@@ -1,4 +1,4 @@
-#pragma GCC diagnostic ignored "-Wconversion"
+// #pragma GCC diagnostic ignored "-Wconversion"
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -46,17 +46,17 @@ class NetworkTests : public TerrierTest {
       server.SetPort(port);
       server.SetupServer();
     } catch (NetworkProcessException &exception) {
-      LOG_ERROR("[LaunchServer] exception when launching server");
+      TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
-    LOG_DEBUG("Server initialized");
+    TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server.ServerLoop(); });
   }
 
   void TearDown() override {
     server.Close();
     server_thread.join();
-    LOG_DEBUG("Terrier has shut down");
+    TEST_LOG_DEBUG("Terrier has shut down");
 
     TerrierTest::TearDown();
   }
@@ -83,10 +83,10 @@ TEST_F(NetworkTests, SimpleQueryTest) {
     txn1.commit();
     EXPECT_EQ(R.size(), 0);
   } catch (const std::exception &e) {
-    LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  LOG_DEBUG("[SimpleQueryTest] Client has closed");
+  TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
 
 ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
@@ -140,7 +140,7 @@ int StartConnection(uint16_t port) {
   serv_addr.sin_port = htons(port);
 
   int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-  if (ret < 0) LOG_ERROR("Connection Error");
+  if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
   // Build the startup message
   char out_buffer[TEST_BUF_SIZE] = {};
@@ -174,7 +174,7 @@ void TerminateConnection(int socket_fd) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, BadQueryTest) {
   try {
-    LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
+    TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
     int socket_fd = StartConnection(port);
     char out_buffer[TEST_BUF_SIZE] = {};
     char in_buffer[TEST_BUF_SIZE] = {};
@@ -199,10 +199,10 @@ TEST_F(NetworkTests, BadQueryTest) {
     EXPECT_EQ(0, ret);
     TerminateConnection(socket_fd);
   } catch (const std::exception &e) {
-    LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  LOG_INFO("[BadQueryTest] Completed");
+  TEST_LOG_INFO("[BadQueryTest] Completed");
 }
 
 // NOLINTNEXTLINE
@@ -215,7 +215,7 @@ TEST_F(NetworkTests, SSLTest) {
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
   } catch (const std::exception &e) {
-    LOG_ERROR("[SSLTest] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[SSLTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -235,7 +235,7 @@ void TestExtendedQuery(uint16_t port) {
 
   // make conversion safe
   assert(len < UINT32_MAX);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -269,7 +269,7 @@ void TestExtendedQuery(uint16_t port) {
   offset += sizeof(int16_t);
 
   len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -290,7 +290,7 @@ void TestExtendedQuery(uint16_t port) {
   offset += sizeof(int32_t);
 
   len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -303,7 +303,7 @@ void TestExtendedQuery(uint16_t port) {
   offset = sizeof(char) + sizeof(int32_t);
 
   len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -324,7 +324,7 @@ void TestExtendedQuery(uint16_t port) {
   offset += prepared.length();
 
   len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -345,7 +345,7 @@ void TestExtendedQuery(uint16_t port) {
   offset += prepared.length();
 
   len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
 
   // Beware the buffer length should be message length + 1 for query messages
   write(socket_fd, out_buffer, len + 1);
@@ -358,7 +358,7 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
   try {
     TestExtendedQuery(port);
   } catch (const std::exception &e) {
-    LOG_ERROR("[NetworkCommands] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[NetworkCommands] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
