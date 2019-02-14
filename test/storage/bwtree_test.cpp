@@ -208,6 +208,10 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ConcurrentMixed) {
+  // This test's logic expects an even number of threads for the logic to work. That's not an ideal assumption, but
+  // we'll test the index more robustly through the wrapper.
+  if (num_threads_ % 2 != 0) return;
+
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
 
