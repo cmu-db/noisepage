@@ -57,8 +57,10 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CastTest) {
   auto stmts = pgparser.BuildParseTree("SELECT CAST('100' AS INTEGER);");
-  auto copy_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
-  EXPECT_EQ(copy_stmt->GetType(), StatementType::SELECT);
+  auto cast_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
+  EXPECT_EQ(cast_stmt->GetType(), StatementType::SELECT);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetReturnValueType(), type::TypeId::INTEGER);
 }
 
 // NOLINTNEXTLINE

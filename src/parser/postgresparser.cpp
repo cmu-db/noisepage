@@ -409,6 +409,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
 
   if (root->kind == AEXPR_DISTINCT) {
     target_type = ExpressionType::COMPARE_IS_DISTINCT_FROM;
+    children.emplace_back(ExprTransform(root->lexpr));
+    children.emplace_back(ExprTransform(root->rexpr));
   } else if (root->kind == AEXPR_OP && root->type == T_TypeCast) {
     target_type = ExpressionType::OPERATOR_CAST;
   } else {
