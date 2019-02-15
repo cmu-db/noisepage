@@ -3,6 +3,11 @@
 #include <limits>
 #include <random>
 #include <vector>
+#include "storage/data_table.h"
+#include "storage/index/index_builder.h"
+#include "storage/record_buffer.h"
+#include "transaction/transaction_context.h"
+#include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier {
@@ -55,13 +60,50 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyTest<4>(num_iters, &generator);
 }
 
-TEST_F(BwTreeIndexTests, CompactIntsKeyBuilderTest) {}
+// TEST_F(BwTreeIndexTests, CompactIntsKeyBuilderTest) {}
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, BuilderTest) {
-  storage::index::Builder builder;
-  auto *bwtree = builder.Build();
+  std::default_random_engine generator;
 
+  std::vector<catalog::Schema::Column> columns;
+  std::vector<catalog::col_oid_t> col_oids;
+  col_oids.emplace_back(catalog::col_oid_t(100));
+  columns.emplace_back("Potato", type::TypeId::INTEGER, false, catalog::col_oid_t(100));
+
+  catalog::Schema schema(columns);
+
+  storage::ColumnMap map;
+  map.emplace(100, 0);
+
+  auto layout = StorageTestUtil::RandomLayout(8, &generator);
+  storage::BlockStore block_store{100, 100};
+  auto table = storage::DataTable(&block_store, layout, storage::layout_version_t(0));
+
+  auto dtv = storage::SqlTable::DataTableVersion{&table, layout, schema, map};
+  storage::index::IndexBuilder builder;
+  builder.SetColOids(col_oids);
+  builder.SetDataTableVersion(&dtv);
+  builder.SetOid(catalog::index_oid_t(1));
+  builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
+
+  auto init = storage::ProjectedRowInitializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+  auto *redo_buffer = common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
+  auto *redo = init.InitializeRow(redo_buffer);
+  StorageTestUtil::PopulateRandomRow(redo, layout, 0.0, &generator);
+
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
+  auto *txn = new transaction::TransactionContext(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                                  &buffer_pool_, LOGGING_DISABLED);
+  storage::TupleSlot slot = table.Insert(txn, *redo);
+
+  auto *bwtree = builder.Build();
+  bwtree->Insert(*redo, slot);
+
+  std::vector<storage::TupleSlot> result;
+  bwtree->ScanKey(*redo, result);
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result[0], slot);
   delete bwtree;
 }
 }  // namespace terrier

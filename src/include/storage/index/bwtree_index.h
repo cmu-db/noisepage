@@ -13,51 +13,46 @@ namespace terrier::storage::index {
 
 template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
 class BwTreeIndex final : public Index {
+  friend class IndexBuilder;
+
  private:
-  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type)
-      : oid_{oid},
-        constraint_type_{constraint_type},
+  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes, std::vector<uint16_t> attr_offsets)
+      : Index(oid, constraint_type, attr_sizes, attr_offsets),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
             false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
 
-  const catalog::index_oid_t oid_;
-  const ConstraintType constraint_type_;
-  //  const KeyComparator key_comparator_;
-  //  const KeyEqualityChecker key_equality_checker_;
-  //  const KeyHashFunc key_hash_func_;
   third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc> *const bwtree_;
 
  public:
   ~BwTreeIndex() final { delete bwtree_; }
 
   bool Insert(const ProjectedRow &tuple, const TupleSlot location) final {
-    TERRIER_ASSERT(constraint_type_ == ConstraintType::DEFAULT,
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromKey(tuple);
-    return bwtree_->Insert(index_key, location, false);
+    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
+    auto unique_keys = GetConstraintType() == ConstraintType::UNIQUE;
+    return bwtree_->Insert(index_key, location, unique_keys);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromKey(tuple);
+    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
     return bwtree_->Delete(index_key, location);
   }
 
   bool ConditionalInsert(const ProjectedRow &tuple, const TupleSlot location,
-                         std::function<bool(const void *)> predicate) final {
-    TERRIER_ASSERT(constraint_type_ == ConstraintType::PRIMARY_KEY || constraint_type_ == ConstraintType::UNIQUE,
+                         std::function<bool(const TupleSlot)> predicate) final {
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::PRIMARY_KEY || GetConstraintType() == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromKey(tuple);
-
+    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
     bool predicate_satisfied = false;
 
-    // This function will complete them in one step predicate will be set to nullptr if the predicate returns true for
-    // some value
+    // predicate is set to nullptr if the predicate returns true for some value
     const bool ret = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
 
-    // If predicate is not satisfied then we know insertion succeeds
+    // if predicate is not satisfied then we know insertion succeeds
     if (!predicate_satisfied) {
       TERRIER_ASSERT(ret, "Insertion should always succeed. (Ziqi)");
     } else {
@@ -65,6 +60,12 @@ class BwTreeIndex final : public Index {
     }
 
     return ret;
+  }
+
+  void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> &value_list) final {
+    KeyType index_key;
+    index_key.SetFromProjectedRow(key, GetAttrSizes(), GetAttrOffsets());
+    bwtree_->GetValue(index_key, value_list);
   }
 };
 

@@ -1,12 +1,10 @@
 #pragma once
 
+#include <utility>
 #include <vector>
-#include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
-#include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
-#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 
 // clang-format off
@@ -23,10 +21,13 @@ class Index {
  private:
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
+  const std::vector<uint8_t> attr_sizes_;
+  const std::vector<uint16_t> attr_offsets_;
 
  protected:
-  Index(const catalog::index_oid_t oid, const ConstraintType constraint_type)
-      : oid_{oid}, constraint_type_{constraint_type} {}
+  Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes,
+      std::vector<uint16_t> attr_offsets)
+      : oid_{oid}, constraint_type_{constraint_type}, attr_sizes_(std::move(attr_sizes)), attr_offsets_(std::move(attr_offsets)) {}
 
  public:
   virtual ~Index() = default;
@@ -36,59 +37,20 @@ class Index {
   virtual bool Delete(const ProjectedRow &tuple, TupleSlot location) = 0;
 
   virtual bool ConditionalInsert(const ProjectedRow &tuple, TupleSlot location,
-                                 std::function<bool(const void *)> predicate) = 0;
+                                 std::function<bool(const TupleSlot)> predicate) = 0;
+
+  virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> &value_list) = 0;
 
   ConstraintType GetConstraintType() const { return constraint_type_; }
   catalog::index_oid_t GetOid() const { return oid_; }
+
+  std::vector<uint8_t> GetAttrSizes() const {
+    return attr_sizes_;
+  }
+
+  std::vector<uint16_t> GetAttrOffsets() const {
+    return attr_offsets_;
+  }
 };
-
-class Builder {
- private:
-  catalog::index_oid_t index_oid_;
-  ConstraintType constraint_type_ = ConstraintType::INVALID;
-  std::vector<catalog::col_oid_t> col_oids_;
-  const SqlTable::DataTableVersion *data_table_version_;
-
- public:
-  Builder() = default;
-
-  Index *Build() const {
-    Index *index = nullptr;
-    TERRIER_ASSERT(!col_oids_.empty(), "Cannot build an index without col_oids.");
-    TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
-
-    bool all_int_attrs = true;
-
-    for (const auto col_oid : col_oids_) {
-      TERRIER_ASSERT(data_table_version_->column_map.count(col_oid) > 0,
-                     "Requested col_oid does not exist in this schema.");
-      const col_id_t col_id = data_table_version_->column_map[col_oid];
-      const uint8_t attr_size = data_table_version_->layout.AttrSize(col_id);
-      const type::TypeId attr_type = data_table_version_->schema.GetColumn(col_id).GetType();
-    }
-
-    return index;
-  }
-
-  Builder &SetOid(const catalog::index_oid_t index_oid) {
-    index_oid_ = index_oid;
-    return *this;
-  }
-
-  Builder &SetConstraintType(const ConstraintType constraint_type) {
-    constraint_type_ = constraint_type;
-    return *this;
-  }
-
-  Builder &SetColOids(const std::vector<catalog::col_oid_t> &col_oids) {
-    col_oids_ = col_oids;
-    return *this;
-  }
-
-  Builder &SetDataTableVersion(const SqlTable::DataTableVersion *data_table_version) {
-    data_table_version_ = data_table_version;
-    return *this;
-  }
-};  // class Builder
 
 }  // namespace terrier::storage::index

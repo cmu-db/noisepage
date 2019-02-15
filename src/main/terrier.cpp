@@ -11,6 +11,7 @@
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 #include "storage/data_table.h"
+#include "storage/index/index_builder.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"

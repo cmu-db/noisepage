@@ -91,8 +91,8 @@ class Schema {
   explicit Schema(std::vector<Column> columns) : columns_(std::move(columns)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and 32767.");
-    for (uint32_t i = 0; i < columns.size(); i++) {
-      col_oid_to_offset[columns[i].GetOid()] = i;
+    for (uint32_t i = 0; i < columns_.size(); i++) {
+      col_oid_to_offset[columns_[i].GetOid()] = i;
     }
   }
   /**

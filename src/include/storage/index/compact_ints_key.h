@@ -149,7 +149,7 @@ class CompactIntsKey {
     // NOTE: Must cast 0x1 to the correct type first
     // otherwise, 0x1 is treated as the signed int type, and after leftshifting
     // if it is extended to larger type then sign extension will be used
-    IntType mask = static_cast<IntType>(0x1) << (sizeof(IntType) * 8UL - 1);
+    IntType mask = static_cast<IntType>(static_cast<IntType>(0x1) << (sizeof(IntType) * 8UL - 1));
 
     return data ^ mask;
   }
@@ -210,25 +210,25 @@ class CompactIntsKey {
     switch (attr_size) {
       case sizeof(int8_t): {
         int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
-        AddInteger<int8_t>(data, offset);
+        AddInteger<int8_t>(data, *offset);
         *offset += sizeof(data);
         break;
       }
       case sizeof(int16_t): {
         int16_t data = *reinterpret_cast<const int16_t *>(stored_attr);
-        AddInteger<int16_t>(data, offset);
+        AddInteger<int16_t>(data, *offset);
         *offset += sizeof(data);
         break;
       }
       case sizeof(int32_t): {
         int32_t data = *reinterpret_cast<const int32_t *>(stored_attr);
-        AddInteger<int32_t>(data, offset);
+        AddInteger<int32_t>(data, *offset);
         *offset += sizeof(data);
         break;
       }
       case sizeof(int64_t): {
         int64_t data = *reinterpret_cast<const int64_t *>(stored_attr);
-        AddInteger<int64_t>(data, offset);
+        AddInteger<int64_t>(data, *offset);
         *offset += sizeof(data);
         break;
       }
@@ -257,7 +257,7 @@ class CompactIntsKey {
 
     uint8_t offset = 0;
     for (uint8_t i = 0; i < attr_offsets.size(); i++) {
-      CopyAttrFromProjection(from, attr_offsets[i], attr_sizes[i], offset);
+      CopyAttrFromProjection(from, attr_offsets[i], attr_sizes[i], &offset);
       TERRIER_ASSERT(offset <= key_size_byte, "offset went out of bounds");
     }
   }

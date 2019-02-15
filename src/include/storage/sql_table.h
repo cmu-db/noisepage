@@ -12,7 +12,7 @@
 namespace terrier::storage {
 
 namespace index {
-class Builder;
+class IndexBuilder;
 }
 
 /**
@@ -23,7 +23,7 @@ class Builder;
  * translation to BlockLayout and col_id_t to talk to the DataTable and other areas of the storage layer.
  */
 class SqlTable {
- private:
+ public:  // TODO(WAN): public for testing. gtest/gtest_prod.h looks awful i hate it
   /**
    * Contains all of the metadata the SqlTable needs to reference a DataTable. We shouldn't ever have to expose these
    * concepts to anyone above the SqlTable level. If you find yourself wanting to return BlockLayout or col_id_t above
@@ -191,7 +191,7 @@ class SqlTable {
   }
 
  private:
-  friend index::Builder;
+  friend index::IndexBuilder;
 
   BlockStore *const block_store_;
   const catalog::sqltable_oid_t oid_;
