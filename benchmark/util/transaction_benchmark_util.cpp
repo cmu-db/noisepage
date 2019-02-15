@@ -1,5 +1,6 @@
 #include "util/transaction_benchmark_util.h"
 #include <algorithm>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
@@ -34,8 +35,8 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   StorageTestUtil::PopulateRandomRow(update, test_object_->layout_, 0.0, generator);
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(nullptr, updated, initializer);
-    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+    auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
+    std::memcpy(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -53,8 +54,8 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *insert);
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_) {
-    auto *record = txn_->StageWrite(nullptr, inserted, initializer);
-    TERRIER_MEMCPY(record->Delta(), insert, insert->Size());
+    auto *record = txn_->StageWrite(&test_object_->table_, inserted, initializer);
+    std::memcpy(record->Delta(), insert, insert->Size());
   }
 }
 
@@ -101,7 +102,7 @@ LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomWorkloadTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -125,7 +126,7 @@ uint64_t LargeTransactionBenchmarkObject::SimulateOltp(uint32_t num_transactions
     };
   }
 
-  thread_pool.RunThreadsUntilFinish(num_concurrent_txns, workload);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomWorkloadTransaction *txn : txns) {
@@ -162,7 +163,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_) {
       auto *record = initial_txn_->StageWrite(nullptr, inserted, row_initializer_);
-      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+      std::memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, nullptr);
   }

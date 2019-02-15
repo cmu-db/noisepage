@@ -18,12 +18,16 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
                  "number of columns must be between 1 and 32767");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
-  std::sort(attr_sizes_.begin(), attr_sizes_.end(), std::greater<>());
+  // This is always safe because we know there are at last 2 columns
+  std::sort(attr_sizes_.begin() + 1, attr_sizes_.end(), std::greater<>());
+  for (uint32_t i = 0; i < attr_sizes_.size(); i++)
+    if (attr_sizes_[i] == VARLEN_COLUMN) varlens_.emplace_back(i);
 }
 
 uint32_t BlockLayout::ComputeTupleSize() const {
   uint32_t result = 0;
-  for (auto size : attr_sizes_) result += size;
+  // size in attr_sizes_ can be negative to denote varlens.
+  for (auto size : attr_sizes_) result += static_cast<uint8_t>(INT8_MAX & size);
   return result;
 }
 
@@ -36,13 +40,11 @@ uint32_t BlockLayout::ComputeStaticHeaderSize() const {
 
 uint32_t BlockLayout::ComputeNumSlots() const {
   // TODO(Tianyu):
-  // subtracting 1 from this number so we will always have
-  // space to pad each individual bitmap to full bytes (every attribute is
-  // at least a byte). Subtracting another 1 to account for padding. Somebody can come and fix
+  // We will have to subtract 8 bytes maximum padding for each column's bitmap. Subtracting another 1 to account for
+  // the padding at the end of each column. Somebody can come and fix
   // this later, because I don't feel like thinking about this now.
-  // TODO(Tianyu): Now with sortedness in our layout, we don't necessarily have the worse case where padding can take
-  // up to the size of 1 tuple, so this can probably change to be more optimistic,
-  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_) / (8 * tuple_size_ + NumColumns() + 1) - 2;
+  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 2 * 8 * NumColumns()) /
+         (8 * tuple_size_ + NumColumns() + 1);
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {

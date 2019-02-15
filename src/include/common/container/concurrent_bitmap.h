@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
@@ -43,7 +44,7 @@ class RawConcurrentBitmap {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
     auto *result = AllocationUtil::AllocateAligned(num_bytes);
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
-    TERRIER_MEMSET(result, 0, num_bytes);
+    std::memset(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
 
@@ -59,7 +60,7 @@ class RawConcurrentBitmap {
    * @return true if 1, false if 0
    */
   bool Test(const uint32_t pos) const {
-    return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & ONE_HOT_MASK(pos % BYTE_SIZE));
+    return static_cast<bool>(bits_[pos / BYTE_SIZE].load() & LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
   }
 
   /**
@@ -80,7 +81,7 @@ class RawConcurrentBitmap {
    */
   bool Flip(const uint32_t pos, const bool expected_val) {
     const uint32_t element = pos / BYTE_SIZE;
-    auto mask = static_cast<uint8_t>(ONE_HOT_MASK(pos % BYTE_SIZE));
+    auto mask = static_cast<uint8_t>(LSB_ONE_HOT_MASK(pos % BYTE_SIZE));
     for (uint8_t old_val = bits_[element]; static_cast<bool>(old_val & mask) == expected_val;
          old_val = bits_[element]) {
       uint8_t new_val = old_val ^ mask;
@@ -91,8 +92,7 @@ class RawConcurrentBitmap {
 
   /**
    * Returns the position of the first unset bit, if it exists.
-   * We search beginning from start_pos, but will wrap around to the beginning
-   * if we can't find an unset bit, so every bit in the bitmap will be tried once.
+   * We search beginning from start_pos. It does not wrap back if it runs out of bits.
    * Note that this result is immediately stale.
    * Furthermore, this function assumes byte 0 is aligned to 64 bits.
    * @param bitmap_num_bits number of bits in the bitmap.
@@ -135,21 +135,14 @@ class RawConcurrentBitmap {
           for (uint32_t pos = 0; pos < BYTE_SIZE; pos++) {
             uint32_t current_pos = pos + byte_pos * BYTE_SIZE;
             // we are always padded to a byte, but we don't want to use the padding.
-            if (current_pos >= bitmap_num_bits) {
-              // wrap-around if possible.
-              if (start_pos != 0) {
-                return FirstUnsetPos(start_pos, 0, out_pos);
-              }
-              // otherwise, we have reached the padding. time to give up.
-              return false;
-            }
+            if (current_pos >= bitmap_num_bits) return false;
             // we want to make sure it is after the start pos.
             if (current_pos < start_pos) {
               continue;
             }
             // if we're here, we have a valid position.
             // if it locates an unset bit, return it.
-            auto is_set = static_cast<bool>(bits & ONE_HOT_MASK(pos));
+            auto is_set = static_cast<bool>(bits & LSB_ONE_HOT_MASK(pos));
             if (!is_set) {
               *out_pos = current_pos;
               return true;
@@ -160,15 +153,10 @@ class RawConcurrentBitmap {
         // e.g. the only free bit available was before start_pos
         // so we always want to increment our byte_pos to ensure progress
         byte_pos += 1;
+        // Also decrease bits_left, making sure that start_pos is taken into account
+        bits_left -= BYTE_SIZE - (start_pos % BYTE_SIZE);
       }
     }
-
-    // if we didn't start searching from 0, we want to wrap around
-    // there are exactly start_pos bits before our current start_pos
-    if (start_pos != 0) {
-      return FirstUnsetPos(start_pos, 0, out_pos);
-    }
-
     return false;
   }
 
@@ -180,7 +168,7 @@ class RawConcurrentBitmap {
    */
   void UnsafeClear(const uint32_t num_bits) {
     auto size = RawBitmap::SizeInBytes(num_bits);
-    TERRIER_MEMSET(bits_, 0, size);
+    std::memset(bits_, 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
@@ -200,16 +188,12 @@ class RawConcurrentBitmap {
    */
   template <class T>
   bool FindUnsetBit(uint32_t *const byte_pos, uint32_t *const bits_left) const {
+    TERRIER_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE, "Need to check that there are enough bits left before calling");
     // for a signed integer, -1 represents that all the bits are set
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
       *byte_pos += static_cast<uint32_t>(sizeof(T));
-      // prevent underflow
-      if (*bits_left < sizeof(T) * BYTE_SIZE) {
-        *bits_left = 0;
-      } else {
-        *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
-      }
+      *bits_left = *bits_left - static_cast<uint32_t>(sizeof(T) * BYTE_SIZE);
       return false;
     }
     return true;

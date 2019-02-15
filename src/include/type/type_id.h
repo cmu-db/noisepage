@@ -6,12 +6,8 @@ namespace terrier::type {
 STRONG_TYPEDEF(date_t, uint32_t);
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
-/**
- * All of our possible SQL types
- */
 enum class TypeId : uint8_t {
   INVALID = 0,
-  PARAMETER_OFFSET,
   BOOLEAN,
   TINYINT,
   SMALLINT,
@@ -21,8 +17,6 @@ enum class TypeId : uint8_t {
   TIMESTAMP,
   DATE,
   VARCHAR,
-  VARBINARY,
-  ARRAY,
-  UDT
+  VARBINARY  // TODO(Matt): unimplemented, needed for postgresparser
 };
 }  // namespace terrier::type

@@ -1,4 +1,5 @@
 #include "storage/data_table.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -16,7 +17,7 @@ class RandomDataTableTestObject {
   template <class Random>
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
+      : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
         table_(block_store, layout_, storage::layout_version_t(0)),
         null_bias_(null_bias) {}
 
@@ -46,6 +47,24 @@ class RandomDataTableTestObject {
     return slot;
   }
 
+  // Generate an insert using the given transaction context. This is equivalent to the version of the call taking in
+  // a timestamp, but more space efficient if the insertions are large.
+  template <class Random>
+  storage::TupleSlot InsertRandomTuple(transaction::TransactionContext *txn, Random *generator,
+                                       storage::RecordBufferSegmentPool *buffer_pool) {
+    // generate a random redo ProjectedRow to Insert
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+    loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
+    StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
+
+    storage::TupleSlot slot = table_.Insert(txn, *redo);
+    inserted_slots_.push_back(slot);
+    tuple_versions_[slot].emplace_back(txn->StartTime(), redo);
+
+    return slot;
+  }
+
   // be sure to only update tuple incrementally (cannot go back in time)
   template <class Random>
   bool RandomlyUpdateTuple(const transaction::timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
@@ -71,7 +90,7 @@ class RandomDataTableTestObject {
       auto *version_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
       loose_pointers_.push_back(version_buffer);
       // Copy previous version
-      TERRIER_MEMCPY(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
+      std::memcpy(version_buffer, tuple_versions_[slot].back().second, redo_initializer_.ProjectedRowSize());
       auto *version = reinterpret_cast<storage::ProjectedRow *>(version_buffer);
       // apply delta
       storage::StorageUtil::ApplyDelta(layout_, *update, version);
@@ -255,6 +274,34 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, transaction::timestamp_t(UINT64_MAX), &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, transaction::timestamp_t(UINT64_MAX));
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));
+  }
+}
+
+// Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
+// a lot easier to write.
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, InsertNoWrap) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 10;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    storage::RawBlock *block = nullptr;
+    // fill the block. bypass the test object to be more efficient with buffers
+    transaction::timestamp_t timestamp(0);
+    auto *txn = new transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
+    for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++) {
+      storage::RawBlock *inserted_block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
+      if (block == nullptr) block = inserted_block;
+      EXPECT_EQ(inserted_block, block);
+    }
+
+    // Bypass concurrency control and remove some tuples
+    storage::TupleAccessStrategy accessor(tested.Layout());
+    accessor.Deallocate({block, 0});
+
+    // Even though there is still space available, we should insert into a new block
+    EXPECT_NE(block, tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_).GetBlock());
+    delete txn;
   }
 }
 }  // namespace terrier

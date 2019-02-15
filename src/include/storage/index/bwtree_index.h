@@ -16,7 +16,8 @@ class BwTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes, std::vector<uint16_t> attr_offsets)
+  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes,
+              std::vector<uint16_t> attr_offsets)
       : Index(oid, constraint_type, attr_sizes, attr_offsets),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
             false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
@@ -62,10 +63,10 @@ class BwTreeIndex final : public Index {
     return ret;
   }
 
-  void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> &value_list) final {
+  void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) final {
     KeyType index_key;
     index_key.SetFromProjectedRow(key, GetAttrSizes(), GetAttrOffsets());
-    bwtree_->GetValue(index_key, value_list);
+    bwtree_->GetValue(index_key, *value_list);
   }
 };
 

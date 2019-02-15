@@ -26,8 +26,11 @@ class Index {
 
  protected:
   Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes,
-      std::vector<uint16_t> attr_offsets)
-      : oid_{oid}, constraint_type_{constraint_type}, attr_sizes_(std::move(attr_sizes)), attr_offsets_(std::move(attr_offsets)) {}
+        std::vector<uint16_t> attr_offsets)
+      : oid_{oid},
+        constraint_type_{constraint_type},
+        attr_sizes_(std::move(attr_sizes)),
+        attr_offsets_(std::move(attr_offsets)) {}
 
  public:
   virtual ~Index() = default;
@@ -39,18 +42,14 @@ class Index {
   virtual bool ConditionalInsert(const ProjectedRow &tuple, TupleSlot location,
                                  std::function<bool(const TupleSlot)> predicate) = 0;
 
-  virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> &value_list) = 0;
+  virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) = 0;
 
   ConstraintType GetConstraintType() const { return constraint_type_; }
   catalog::index_oid_t GetOid() const { return oid_; }
 
-  std::vector<uint8_t> GetAttrSizes() const {
-    return attr_sizes_;
-  }
+  std::vector<uint8_t> GetAttrSizes() const { return attr_sizes_; }
 
-  std::vector<uint16_t> GetAttrOffsets() const {
-    return attr_offsets_;
-  }
+  std::vector<uint16_t> GetAttrOffsets() const { return attr_offsets_; }
 };
 
 }  // namespace terrier::storage::index

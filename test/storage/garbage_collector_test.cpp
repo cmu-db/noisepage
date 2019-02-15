@@ -1,4 +1,5 @@
 #include "storage/garbage_collector.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -17,7 +18,7 @@ class GarbageCollectorDataTableTestObject {
  public:
   template <class Random>
   GarbageCollectorDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
-      : layout_(StorageTestUtil::RandomLayout(max_col, generator)),
+      : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
         table_(block_store, layout_, storage::layout_version_t(0)) {}
 
   ~GarbageCollectorDataTableTestObject() {
@@ -52,7 +53,7 @@ class GarbageCollectorDataTableTestObject {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    TERRIER_MEMCPY(buffer, &previous, initializer_.ProjectedRowSize());
+    std::memcpy(buffer, &previous, initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
     return version;

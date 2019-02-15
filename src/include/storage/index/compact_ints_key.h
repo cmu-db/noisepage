@@ -149,15 +149,14 @@ class CompactIntsKey {
     // NOTE: Must cast 0x1 to the correct type first
     // otherwise, 0x1 is treated as the signed int type, and after leftshifting
     // if it is extended to larger type then sign extension will be used
-    IntType mask = static_cast<IntType>(static_cast<IntType>(0x1) << (sizeof(IntType) * 8UL - 1));
-
+    auto mask = static_cast<IntType>(static_cast<IntType>(0x1) << (sizeof(IntType) * 8UL - 1));
     return data ^ mask;
   }
 
   /*
    * ZeroOut() - Sets all bits to zero
    */
-  void ZeroOut() { TERRIER_MEMSET(key_data, 0x00, key_size_byte); }
+  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
 
   /*
    * GetRawData() - Returns the raw data array
@@ -298,7 +297,7 @@ class CompactIntsKey {
     auto big_endian = ToBigEndian(sign_flipped);
 
     // This will almost always be optimized into single move
-    TERRIER_MEMCPY(key_data + offset, &big_endian, sizeof(IntType));
+    std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
   }
 
   /*
@@ -314,7 +313,7 @@ class CompactIntsKey {
     auto big_endian = ToBigEndian(data);
 
     // This will almost always be optimized into single move
-    TERRIER_MEMCPY(key_data + offset, &big_endian, sizeof(IntType));
+    std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
   }
 };
 

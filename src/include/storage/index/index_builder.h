@@ -63,7 +63,7 @@ class IndexBuilder {
     bool can_use_integer_keys = all_int_attrs && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
     TERRIER_ASSERT(can_use_integer_keys, "Currently, we only have integer keys of limited size.");
 
-    return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(attr_sizes), std::move(attr_offsets));
+    return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, attr_sizes, attr_offsets);
   }
 
   IndexBuilder &SetOid(const catalog::index_oid_t index_oid) {
@@ -88,7 +88,7 @@ class IndexBuilder {
 
  private:
   Index *BuildBwTreeIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type, uint32_t key_size,
-                            std::vector<uint8_t> attr_sizes, std::vector<uint16_t> attr_offsets) const {
+                            const std::vector<uint8_t> &attr_sizes, const std::vector<uint16_t> &attr_offsets) const {
     TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {

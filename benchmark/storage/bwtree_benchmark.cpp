@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "util/bwtree_test_util.h"
-#include "util/test_thread_pool.h"
+#include "util/multithread_test_util.h"
 
 namespace terrier {
 
@@ -33,7 +33,7 @@ class BwTreeBenchmark : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const tree = BwTreeTestUtil::GetEmptyTree();
@@ -55,7 +55,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     delete tree;
@@ -66,7 +66,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const tree = BwTreeTestUtil::GetEmptyTree();
@@ -88,7 +88,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     delete tree;
@@ -99,7 +99,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(key_permutation_[i], key_permutation_[i]);
@@ -128,7 +128,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &st
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -140,7 +140,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &st
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(key_permutation_[i], key_permutation_[i]);
@@ -169,7 +169,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -181,7 +181,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(i, i);
@@ -210,7 +210,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -222,7 +222,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertSequentialRead)(benchmark::State &state) {
-  TestThreadPool thread_pool;
+  common::WorkerPool thread_pool(num_threads_, {});
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(i, i);
@@ -251,7 +251,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertSequentialRead)(benchmark::S
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer timer(&elapsed_ms);
-      thread_pool.RunThreadsUntilFinish(num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
     }
     tree->UpdateThreadLocal(1);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

@@ -63,7 +63,7 @@ class TupleAccessStrategy {
 
     // return the miniblock for the column at the given offset.
     MiniBlock *Column(const col_id_t col_id) {
-      byte *head = reinterpret_cast<byte *>(this) + AttrOffets()[!col_id];
+      byte *head = reinterpret_cast<byte *>(this) + AttrOffsets()[!col_id];
       return reinterpret_cast<MiniBlock *>(head);
     }
 
@@ -77,11 +77,11 @@ class TupleAccessStrategy {
     uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
 
     // return reference to attr_offsets. Use as an array.
-    uint32_t *AttrOffets() { return &NumSlots() + 1; }
+    uint32_t *AttrOffsets() { return &NumSlots() + 1; }
 
     // return reference to num_attrs. Use as a member.
     uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffets() + layout.NumColumns());
+      return *reinterpret_cast<uint16_t *>(AttrOffsets() + layout.NumColumns());
     }
 
     // return reference to attr_sizes. Use as an array.
@@ -212,13 +212,12 @@ class TupleAccessStrategy {
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
 
   /**
-   * Deallocates a slot, making it usable for later inserts.
+   * Deallocates a slot.
    * @param slot the slot to free up
    */
   void Deallocate(const TupleSlot slot) const {
     TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
-    slot.GetBlock()->num_records_--;
   }
 
   /**

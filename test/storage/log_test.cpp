@@ -50,7 +50,7 @@ class WriteAheadLoggingTests : public TerrierTest {
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false);
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto table_oid UNUSED_ATTRIBUTE = in->ReadValue<catalog::table_oid_t>();
@@ -98,12 +98,23 @@ class WriteAheadLoggingTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  LargeTransactionTestObject tested(5, 1, 5, {0.5, 0.5}, &block_store_, &pool_, &generator_, true, true, &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.5, 0.5})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(true)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -164,13 +175,24 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  LargeTransactionTestObject tested(5, 1, 5, {0.0, 1.0}, &block_store_, &pool_, &generator_, true, false,
-                                    &log_manager_);
+  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
+                                          .SetMaxColumns(5)
+                                          .SetInitialTableSize(1)
+                                          .SetTxnLength(5)
+                                          .SetUpdateSelectRatio({0.0, 1.0})
+                                          .SetBlockStore(&block_store_)
+                                          .SetBufferPool(&pool_)
+                                          .SetGenerator(&generator_)
+                                          .SetGcOn(true)
+                                          .SetBookkeeping(false)
+                                          .SetLogManager(&log_manager_)
+                                          .build();
+
   StartLogging(10);
   StartGC(tested.GetTxnManager(), 10);
   auto result = tested.SimulateOltp(100, 4);
-  EndGC();
   EndLogging();
+  EndGC();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.

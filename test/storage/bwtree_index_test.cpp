@@ -76,7 +76,7 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
   storage::ColumnMap map;
   map.emplace(100, 0);
 
-  auto layout = StorageTestUtil::RandomLayout(8, &generator);
+  auto layout = StorageTestUtil::RandomLayoutNoVarlen(8, &generator);
   storage::BlockStore block_store{100, 100};
   auto table = storage::DataTable(&block_store, layout, storage::layout_version_t(0));
 
@@ -101,7 +101,7 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
   bwtree->Insert(*redo, slot);
 
   std::vector<storage::TupleSlot> result;
-  bwtree->ScanKey(*redo, result);
+  bwtree->ScanKey(*redo, &result);
   EXPECT_EQ(result.size(), 1);
   EXPECT_EQ(result[0], slot);
   delete bwtree;
