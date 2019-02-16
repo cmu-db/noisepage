@@ -16,5 +16,6 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(storage)
     add_subdirectory(transaction)
     add_subdirectory(type)
+    add_subdirectory(tcop)
 endif()
 
