@@ -7,7 +7,7 @@
 #include "tcop/sqlite.h"
 
 namespace terrier {
-Sqlite::Sqlite() {
+SqliteEngine::SqliteEngine() {
   auto rc = sqlite3_open_v2(
       "sqlite.db", &sqlite_db_,
       SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
@@ -20,8 +20,17 @@ Sqlite::Sqlite() {
   }
 }
 
-Sqlite::~Sqlite() {
+SqliteEngine::~SqliteEngine() {
   sqlite3_close(sqlite_db_);
+}
+void SqliteEngine::ExecuteQuery(const char *query, SqliteCallback callback) {
+
+  sqlite3_exec(sqlite_db_, query, callback, nullptr, &error_msg);
+  if(error_msg != nullptr)
+  {
+    LOG_ERROR("Error msg from Sqlite3: " + std::string(error_msg));
+    sqlite3_free(error_msg);
+  }
 }
 
 }

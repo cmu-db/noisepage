@@ -4,8 +4,11 @@
 namespace terrier{
 class TrafficCop {
 
+ public:
+  void ExecuteQuery(const char *query, SqliteCallback callback);
+
  private:
-  Sqlite sqlite_engine;
+  SqliteEngine sqlite_engine;
 
 };
 }
