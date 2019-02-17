@@ -52,16 +52,7 @@ class DataTable {
      * pre-fix increment.
      * @return self-reference after the iterator is advanced
      */
-    SlotIterator &operator++() {
-      common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
-      if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots()) {
-        ++block_;
-        current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
-      } else {
-        current_slot_ = {*block_, current_slot_.GetOffset() + 1};
-      }
-      return *this;
-    }
+    SlotIterator &operator++();
 
     /**
      * post-fix increment.
@@ -99,6 +90,7 @@ class DataTable {
         : table_(table), block_(block) {
       current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
     }
+
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
@@ -172,12 +164,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const {
-    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
-    return blocks_.empty() ? SlotIterator(this, blocks_.end(), 0)
-                           : SlotIterator(this, blocks_.end()--, blocks_.back()->insert_head_ + 1);
-  }
+  SlotIterator end() const;
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
