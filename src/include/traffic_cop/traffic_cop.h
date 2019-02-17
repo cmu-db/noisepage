@@ -2,6 +2,15 @@
 #include "sqlite.h"
 
 namespace terrier{
+
+/*
+ * Traffic Cop of the database.
+ * This is the reception of the backend execution system.
+ *
+ * *Should be a singleton*
+ * */
+
+
 class TrafficCop {
 
  public:
@@ -11,5 +20,6 @@ class TrafficCop {
   SqliteEngine sqlite_engine;
 
 };
+
 }
 

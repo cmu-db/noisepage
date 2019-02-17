@@ -23,6 +23,7 @@ SqliteEngine::SqliteEngine() {
 SqliteEngine::~SqliteEngine() {
   sqlite3_close(sqlite_db_);
 }
+
 void SqliteEngine::ExecuteQuery(const char *query, SqliteCallback callback) {
 
   sqlite3_exec(sqlite_db_, query, callback, nullptr, &error_msg);

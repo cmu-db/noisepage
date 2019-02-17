@@ -24,7 +24,6 @@ static int PrintRows(void *callback_param, int argc, char **values, char **col_n
 TEST_F(TrafficCopTests, FirstTest) {
   TrafficCop traffic_cop;
 
-
   traffic_cop.ExecuteQuery("DROP TABLE IF EXISTS TableA", PrintRows);
   traffic_cop.ExecuteQuery("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);", PrintRows);
   traffic_cop.ExecuteQuery("INSERT INTO TableA VALUES (1, 'abc');", PrintRows);
