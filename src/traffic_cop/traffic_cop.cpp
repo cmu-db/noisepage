@@ -1,8 +1,7 @@
 #include <sqlite3.h>
 #include <util/test_harness.h>
-#include <tcop/tcop.h>
 
-#include "tcop/tcop.h"
+#include "traffic_cop/traffic_cop.h"
 
 namespace terrier{
 

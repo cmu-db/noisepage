@@ -1,10 +1,9 @@
 #include <sqlite3.h>
 #include <cstdio>
-#include <tcop/sqlite.h>
 
 #include "loggers/main_logger.h"
 
-#include "tcop/sqlite.h"
+#include "traffic_cop/sqlite.h"
 
 namespace terrier {
 SqliteEngine::SqliteEngine() {

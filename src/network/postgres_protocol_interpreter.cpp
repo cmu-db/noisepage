@@ -6,6 +6,8 @@
 #include "network/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
+#include "traffic_cop/traffic_cop.h"
+
 #define MAKE_COMMAND(type) \
   std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(&curr_input_packet_))
 #define SSL_MESSAGE_VERNO 80877103
@@ -13,7 +15,7 @@
 
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                                                CallbackFunc callback) {
+                                                TrafficCopPtr t_cop, CallbackFunc callback) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
@@ -30,7 +32,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   curr_input_packet_.Clear();
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  return command->Exec(this, &writer, callback);
+  return command->Exec(this, &writer, t_cop, callback);
 }
 
 Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<ReadBuffer> &in,

@@ -27,6 +27,8 @@
 #include "network/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 
+#include "traffic_cop/traffic_cop.h"
+
 namespace terrier::network {
 
 /**
@@ -42,7 +44,7 @@ class ConnectionHandle {
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, const TrafficCopPtr &t_cop);
 
   /**
    * Disable copying and moving ConnectionHandle instances
@@ -102,8 +104,8 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
-                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+        [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
   /**
@@ -212,5 +214,7 @@ class ConnectionHandle {
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
+
+  TrafficCopPtr traffic_cop_;
 };
 }  // namespace terrier::network

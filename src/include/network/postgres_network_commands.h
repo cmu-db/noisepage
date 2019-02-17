@@ -10,7 +10,7 @@
    public:                                                                               \
     explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}        \
     Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, \
-                    CallbackFunc callback) override;                                     \
+                    TrafficCopPtr t_cop, CallbackFunc callback) override;                \
   }
 
 namespace terrier::network {
@@ -30,7 +30,7 @@ class PostgresNetworkCommand {
    * @return The next transition for the client's state machine
    */
   virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                          CallbackFunc callback) = 0;
+                          TrafficCopPtr t_cop, CallbackFunc callback) = 0;
 
   /**
    * @return Whether or not to flush the output network packets from this on completion

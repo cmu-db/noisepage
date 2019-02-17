@@ -21,6 +21,7 @@
 #include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
 #include "type/type_id.h"
+#include "traffic_cop/traffic_cop.h"
 
 namespace terrier::network {
 
@@ -53,6 +54,8 @@ using uchar = unsigned char;
 using ByteBuf = std::vector<uchar>;
 
 using CallbackFunc = std::function<void(void)>;
+
+using TrafficCopPtr = std::shared_ptr<TrafficCop>;
 
 enum class NetworkProtocolType {
   POSTGRES_JDBC,
