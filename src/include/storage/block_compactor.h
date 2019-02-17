@@ -131,12 +131,14 @@ class BlockCompactor {
         // out of the compaction group and proceed with the rest? Will not matter until we actually start making groups
         // larger than 1.
         // If there is a version pointer in the table, maybe it is not fully cold yet, so hands off
-        if (cg->table_->AtomicallyReadVersionPtr(slot, accessor) != nullptr) return false;
+        if (cg->table_->AtomicallyReadVersionPtr(slot, accessor) != nullptr)
+          return false;
 
         bool allocated = accessor.Allocated(slot);
         // A logically deleted column implies that some changes are happening since the GC put this block into the
         // compaction queue. We should not do anything to this block further.
-        if (allocated && accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID)) return false;
+        if (allocated && accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID))
+          return false;
 
         // Push this slots to be either in the list of empty slots of filled slots
         if (!allocated) {
@@ -229,9 +231,10 @@ class BlockCompactor {
           if (varlen == nullptr) {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
             giver_bct.new_block_metadata_->NullCount(col_id)--;
+          } else {
+            taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
+            giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
           }
-          taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
-          giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
         }
         taker_bct.new_block_metadata_->NumRecords()++;
         giver_bct.new_block_metadata_->NumRecords()--;
