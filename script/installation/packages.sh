@@ -86,10 +86,10 @@ install_linux() {
   # Arrow crap
   apt-get install -y -V apt-transport-https lsb-release
   wget -O /usr/share/keyrings/apache-arrow-keyring.gpg https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-keyring.gpg
-  tee /etc/apt/sources.list.d/apache-arrow.list <<APT_LINE
+  tee /etc/apt/sources.list.d/apache-arrow.list
   deb [arch=amd64 signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
   deb-src [signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
-  APT_LINE
+
   apt-get -y update
   # end of Arrrow crap
   # Install packages.
