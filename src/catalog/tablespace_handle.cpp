@@ -23,8 +23,8 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
 std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetNullValue());
-  search_vec.push_back(type::ValueFactory::GetStringValue(name.c_str()));
+  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+  search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
   tablespace_oid_t oid(ret_row[0].GetIntValue());
   return std::make_shared<TablespaceEntry>(oid, ret_row);

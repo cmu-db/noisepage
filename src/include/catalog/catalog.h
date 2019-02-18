@@ -175,14 +175,13 @@ class Catalog {
       {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
       {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
       {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
-      {8, "datconnlimit", type::TypeId::INTEGER}
-  };
-  std::vector<UnusedSchemaCols> pg_tablespace_unused_cols_ = {
-      {2, "spcowner", type::TypeId::INTEGER},      {3, "spcacl", type::TypeId::VARCHAR},
-      {4, "spcoptions", type::TypeId::VARCHAR}
-  };
+      {8, "datconnlimit", type::TypeId::INTEGER}};
+  std::vector<UnusedSchemaCols> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
+                                                              {3, "spcacl", type::TypeId::VARCHAR},
+                                                              {4, "spcoptions", type::TypeId::VARCHAR}};
   std::vector<UnusedSchemaCols> pg_namespace_unused_cols_ = {
-      {2, "nspowner", type::TypeId::INTEGER},      {3, "nspacl", type::TypeId::VARCHAR},
+      {2, "nspowner", type::TypeId::INTEGER},
+      {3, "nspacl", type::TypeId::VARCHAR},
   };
   // TODO(yeshengm): unused column for pg_class. Not implemented now due to __ptr in our pg_class,
   //                 which breaks the numbering of columns as in postgres.

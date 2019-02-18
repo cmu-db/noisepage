@@ -20,9 +20,9 @@ class ValueFactory {
   ValueFactory() = delete;
 
   /**
-   * Create a NULL value
+   * Create a NULL value for a SQL Type
    */
-  static Value GetNullValue() { return {TypeId::NULL_TYPE, Value::Val{.integer_ = 0}}; }
+  static Value GetNullValue(TypeId type) { return Value{type}; }
 
   /**
    * Create a boolean Value
@@ -86,12 +86,12 @@ class ValueFactory {
    * @param value
    * @return string value instance
    */
-  static Value GetStringValue(const char *value) {
+  static Value GetVarcharValue(const char *value) {
     size_t size = strlen(value);
     auto *value_st = static_cast<char *>(malloc(size + 1));
     memcpy(value_st, value, size + 1);
     // NOLINTNEXTLINE
-    return {TypeId::STRING, Value::Val{.string_ = value_st}};
+    return {TypeId::VARCHAR, Value::Val{.string_ = value_st}};
   }
 };
 

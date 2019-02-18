@@ -143,7 +143,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
 
   auto row_p = table.FindRow(txn, search_vec);
   EXPECT_EQ(100, row_p[0].GetIntValue());
-  EXPECT_STREQ("name", row_p[1].GetStringValue());
+  EXPECT_STREQ("name", row_p[1].GetVarcharValue());
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;

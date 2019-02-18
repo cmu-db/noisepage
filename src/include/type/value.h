@@ -19,7 +19,7 @@ class Value {
     type_id_ = v.type_id_;
     value_ = v.value_;
     switch (type_id_) {
-      case TypeId::STRING: {
+      case TypeId::VARCHAR: {
         size_t size = strlen(v.value_.string_);
         value_.string_ = static_cast<char *>(malloc(size + 1));
         memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
@@ -36,7 +36,7 @@ class Value {
    */
   ~Value() {
     switch (type_id_) {
-      case TypeId::STRING:
+      case TypeId::VARCHAR:
         free(const_cast<char *>(value_.string_));
         value_.string_ = nullptr;
         return;
@@ -65,6 +65,29 @@ class Value {
    * @return TypeId
    */
   TypeId GetType() const { return type_id_; }
+
+  /**
+   * @return true if TransientValue is a SQL NULL, otherwise false
+   */
+  bool Null() const {
+    // bitwise AND the TypeId with 1000000 to extract NULL bit
+    return static_cast<bool>(static_cast<uint8_t>(type_id_) & 0x80);
+  }
+
+  /**
+   * Change the SQL NULL value of this TransientValue. We use the MSB to reflect this since we don't need all 8 bits for
+   * TypeId
+   * @param set_null true if TransientValue should be set to NULL, false otherwise
+   */
+  void SetNull(const bool set_null) {
+    if (set_null) {
+      // bitwise OR the TypeId with 1000000 to set NULL bit
+      type_id_ = static_cast<TypeId>(static_cast<uint8_t>(type_id_) | 0x80);
+    } else {
+      // bitwise AND the TypeId with 01111111 to clear NULL bit
+      type_id_ = static_cast<TypeId>(static_cast<uint8_t>(type_id_) & 0x7F);
+    }
+  }
 
   // value retrieval methods
   /**
@@ -134,8 +157,8 @@ class Value {
    * Get the string value
    * @return ptr to string
    */
-  const char *GetStringValue() const {
-    TERRIER_ASSERT(type_id_ == TypeId::STRING, "The type must be a string");
+  const char *GetVarcharValue() const {
+    TERRIER_ASSERT(type_id_ == TypeId::VARCHAR, "The type must be a varchar");
     return value_.string_;
   }
 
@@ -147,12 +170,6 @@ class Value {
     TERRIER_ASSERT(type_id_ == TypeId::DATE, "The type must be a date");
     return value_.date_;
   }
-
-  /**
-   * Is the value NULL
-   * @return bool
-   */
-  const bool IsNull() const { return (type_id_ == TypeId::NULL_TYPE); }
 
   /**
    * Compare values for equality
@@ -178,7 +195,7 @@ class Value {
         return value_.decimal_ == rhs.value_.decimal_;
       case TypeId::TIMESTAMP:
         return value_.timestamp_ == rhs.value_.timestamp_;
-      case TypeId::STRING:
+      case TypeId::VARCHAR:
         return value_.string_ == rhs.value_.string_;
       default:
         TERRIER_ASSERT(false, "unsupported type");
@@ -215,10 +232,10 @@ class Value {
         return common::HashUtil::Hash(GetDecimalValue());
       case TypeId::TIMESTAMP:
         return common::HashUtil::Hash(GetTimestampValue());
-      case TypeId::STRING:
-        return common::HashUtil::Hash(GetStringValue());
-      case TypeId::VARBINARY:
       case TypeId::VARCHAR:
+        return common::HashUtil::Hash(GetVarcharValue());
+      case TypeId::VARBINARY:
+        //      case TypeId::VARCHAR:
         return common::HashUtil::HashBytes(value_.varlen_.data_, value_.varlen_.size_);
       default:
         TERRIER_ASSERT(false, "unsupported type");
@@ -241,8 +258,9 @@ class Value {
   };
 
   Value(TypeId type_id, Val val) : type_id_(type_id), value_(val) {}
-  // for NULL_TYPE
-  // Value(TypeId type_id) : type_id_(type_id) {}
+
+  // NULL Value constructor
+  explicit Value(TypeId type_id) : type_id_(type_id) { SetNull(true); }
 
   TypeId type_id_;
   Val value_;

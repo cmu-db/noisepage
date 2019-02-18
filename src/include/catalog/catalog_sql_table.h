@@ -402,7 +402,7 @@ class SqlTableRW {
     // iterate over the search_vec columns
     for (uint32_t index = 0; index < search_vec.size(); index++) {
       // Ignore NULL values in search_vec
-      if (search_vec[index].IsNull()) {
+      if (search_vec[index].Null()) {
         continue;
       }
       if (!ColEqualsValue(index, row_view, search_vec)) {
@@ -440,7 +440,7 @@ class SqlTableRW {
 
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-        const char *st = search_vec[index].GetStringValue();
+        const char *st = search_vec[index].GetVarcharValue();
         uint32_t size = vc_entry->Size();
         if (strlen(st) != size) {
           return false;
@@ -485,7 +485,7 @@ class SqlTableRW {
           memcpy(ret_st, vc_entry->Content(), size - 1);
           *(ret_st + size - 1) = 0;
           // TODO(pakhtar): replace with Value varchar
-          ret_vec.emplace_back(type::ValueFactory::GetStringValue(ret_st));
+          ret_vec.emplace_back(type::ValueFactory::GetVarcharValue(ret_st));
           free(ret_st);
         } break;
 

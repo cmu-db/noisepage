@@ -23,8 +23,8 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetNullValue());
-  search_vec.push_back(type::ValueFactory::GetStringValue(name.c_str()));
+  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+  search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   namespace_oid_t oid(ret_row[0].GetIntValue());
   return std::make_shared<NamespaceEntry>(oid, ret_row);

@@ -45,12 +45,12 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
    * access to the generated value. Hardcoded, it is very fragile.
    */
   // EXPECT_EQ(1012, namespace_entry_ptr->GetColumn(0).GetIntValue());
-  EXPECT_STREQ("pg_catalog", namespace_entry_ptr->GetColumn(1).GetStringValue());
+  EXPECT_STREQ("pg_catalog", namespace_entry_ptr->GetColumn(1).GetVarcharValue());
   // get the public namespace
   namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "public");
 
   // EXPECT_EQ(1013, namespace_entry_ptr->GetColumn(0).GetIntValue());
-  EXPECT_STREQ("public", namespace_entry_ptr->GetColumn(1).GetStringValue());
+  EXPECT_STREQ("public", namespace_entry_ptr->GetColumn(1).GetVarcharValue());
 }
 
 // Tests that we can create namespace
@@ -65,6 +65,6 @@ TEST_F(NamespaceHandleTests, CreateTest) {
 
   // verify correctly created
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
-  EXPECT_STREQ("test_namespace", namespace_entry_ptr->GetColumn(1).GetStringValue());
+  EXPECT_STREQ("test_namespace", namespace_entry_ptr->GetColumn(1).GetVarcharValue());
 }
 }  // namespace terrier

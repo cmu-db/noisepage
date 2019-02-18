@@ -44,6 +44,6 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
   EXPECT_EQ(!terrier_oid, db_entry_ptr->GetColumn(0).GetIntValue());
-  EXPECT_STREQ("terrier", db_entry_ptr->GetColumn(1).GetStringValue());
+  EXPECT_STREQ("terrier", db_entry_ptr->GetColumn(1).GetVarcharValue());
 }
 }  // namespace terrier

@@ -35,6 +35,6 @@ TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   txn_ = txn_manager_->BeginTransaction();
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
-  EXPECT_STREQ("pg_global", tsp_entry_ptr->GetColumn(1).GetStringValue());
+  EXPECT_STREQ("pg_global", tsp_entry_ptr->GetColumn(1).GetVarcharValue());
 }
 }  // namespace terrier
