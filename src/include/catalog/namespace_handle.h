@@ -83,6 +83,11 @@ class NamespaceHandle {
      */
     NamespaceEntry(namespace_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
 
+    /**
+     * Get the value for a given column
+     * @param col_num the column index
+     * @return the value of the column
+     */
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**

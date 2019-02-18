@@ -99,6 +99,11 @@ class TablespaceHandle {
      */
     tablespace_oid_t GetTablespaceOid() { return oid_; }
 
+    /**
+     * Get the value for a given column
+     * @param col_num the column index
+     * @return the value of the column
+     */
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
    private:

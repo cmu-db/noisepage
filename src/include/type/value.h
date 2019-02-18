@@ -15,6 +15,10 @@ class Value {
   friend class ValueFactory;
 
  public:
+  /**
+   * Create a copy of a value
+   * @param v the copy
+   */
   Value(const Value &v) {
     type_id_ = v.type_id_;
     value_ = v.value_;

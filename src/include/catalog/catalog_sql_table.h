@@ -222,7 +222,12 @@ class SqlTableRW {
     return num_cols;
   }
 
-  /* Do not use */
+  /**
+   * DO NOT USE
+   * @param txn
+   * @param row_num
+   * @return
+   */
   storage::ProjectedRow *GetRow(transaction::TransactionContext *txn, int32_t row_num) {
     TERRIER_ASSERT(row_num < GetNumRows(), "not enough rows");
 
@@ -240,7 +245,9 @@ class SqlTableRW {
 
   /**
    * Return a Value, from the requested col_num of the row
+   *
    * @param p_row projected row
+   * @param col_num
    * @return Value instance
    * Deprecate?
    */
@@ -251,6 +258,12 @@ class SqlTableRW {
     return CreateColValue(col_type, col_p);
   }
 
+  /**
+   * Create a value by reinterpret a byte stream
+   * @param type_id the type of the value that we want to create
+   * @param col_p the pointer to bytes
+   * @return a value
+   */
   type::Value CreateColValue(type::TypeId type_id, byte *col_p) {
     switch (type_id) {
       case type::TypeId::INTEGER:
