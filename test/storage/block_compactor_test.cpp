@@ -1,9 +1,10 @@
 #include "storage/block_compactor.h"
+#include <vector>
+#include "arrow/api.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "arrow/api.h"
 
 namespace terrier {
 // NOLINTNEXTLINE
@@ -24,7 +25,7 @@ TEST(BlockCompactorTest, SingleBlockTest) {
 
   storage::BlockCompactor compactor;
   compactor.PutInQueue({block, &table});
-  compactor.ProcessCompactionQueue(&txn_manager); // should always succeed with no other threads
+  compactor.ProcessCompactionQueue(&txn_manager);  // should always succeed with no other threads
 
   storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
   byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -32,19 +33,19 @@ TEST(BlockCompactorTest, SingleBlockTest) {
   std::vector<storage::ProjectedRow *> moved_rows;
   // This transaction is guaranteed to start after the compacting one commits
   transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-  const uint32_t num_tuples = tuples.size();
+  auto num_tuples = tuples.size();
   for (uint32_t i = 0; i < layout.NumSlots(); i++) {
     storage::TupleSlot slot(block, i);
     bool visible = table.Select(txn, slot, read_row);
     if (i >= num_tuples) {
-      EXPECT_FALSE(visible); // Should be deleted after compaction
+      EXPECT_FALSE(visible);  // Should be deleted after compaction
     } else {
-      EXPECT_TRUE(visible); // Should be filled after compaction
+      EXPECT_TRUE(visible);  // Should be filled after compaction
       auto it = tuples.find(slot);
       if (it != tuples.end()) {
-        // Here we can assume that the row is not moved. Check that everything is still equal
-        if (!StorageTestUtil::ProjectionListEqualShallow(layout, it->second, read_row))
-          throw std::runtime_error("");
+        // Here we can assume that the row is not moved. Check that everything is still equal. Has to be deep
+        // equality because varlens are moved.
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(layout, it->second, read_row));
         delete[] reinterpret_cast<byte *>(tuples[slot]);
         tuples.erase(slot);
       } else {
@@ -60,7 +61,8 @@ TEST(BlockCompactorTest, SingleBlockTest) {
   for (auto *moved_row : moved_rows) {
     bool match_found = false;
     for (auto &entry : tuples) {
-      if (StorageTestUtil::ProjectionListEqualShallow(layout, entry.second, moved_row)) {
+      // This comparison needs to be deep because varlens are moved.
+      if (StorageTestUtil::ProjectionListEqualDeep(layout, entry.second, moved_row)) {
         // Here we can assume that the row is not moved. All good.
         delete[] reinterpret_cast<byte *>(entry.second);
         tuples.erase(entry.first);

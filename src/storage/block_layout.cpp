@@ -45,8 +45,9 @@ uint32_t BlockLayout::ComputeNumSlots() const {
   // We will have to subtract 8 bytes maximum padding for each column's bitmap. Subtracting another 1 to account for
   // the padding at the end of each column. Somebody can come and fix
   // this later, because I don't feel like thinking about this now.
-  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 8 * (NumColumns() + 1)) // There can be padding after bitmap
-           / (8 * tuple_size_ + NumColumns() + 1) - 1;
+  return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 8 * (NumColumns() + 1)) /
+             (8 * tuple_size_ + NumColumns() + 1) -
+         1;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {
