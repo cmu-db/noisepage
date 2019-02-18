@@ -277,7 +277,6 @@ class SqlTableRW {
   /**
    * Misc access.
    */
-  // maybe not needed?
   std::shared_ptr<storage::SqlTable> GetSqlTable() { return table_; }
 
   /**

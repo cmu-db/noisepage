@@ -152,6 +152,8 @@ class Catalog {
 
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  void CreatePGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid);
+
   void DestroyDB(db_oid_t oid);
 
  private:
