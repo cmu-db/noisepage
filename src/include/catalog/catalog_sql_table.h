@@ -222,7 +222,7 @@ class SqlTableRW {
   }
 
   /**
-   * Insert a row
+   * Insert a row. (This function is noticeably slower than SetIntColInRow ... due to Value type copies)
    * @param txn
    * @param row
    */
