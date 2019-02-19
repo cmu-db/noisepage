@@ -22,11 +22,13 @@ class Value {
   Value(const Value &v) {
     type_id_ = v.type_id_;
     value_ = v.value_;
-    switch (type_id_) {
+    switch (Type()) {
       case TypeId::VARCHAR: {
-        size_t size = strlen(v.value_.string_);
-        value_.string_ = static_cast<char *>(malloc(size + 1));
-        memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+        if (!Null()) {
+          size_t size = strlen(v.value_.string_);
+          value_.string_ = static_cast<char *>(malloc(size + 1));
+          memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+        }
       }
         return;
 
@@ -39,9 +41,11 @@ class Value {
    * Destructs a value
    */
   ~Value() {
-    switch (type_id_) {
+    switch (Type()) {
       case TypeId::VARCHAR:
-        free(const_cast<char *>(value_.string_));
+        if (!Null()) {
+          free(const_cast<char *>(value_.string_));
+        }
         value_.string_ = nullptr;
         return;
 
@@ -65,11 +69,12 @@ class Value {
   };
 
   /**
-   * Get the type of this value
-   * @return TypeId
+   * @return TypeId of thisValue object.
    */
-  TypeId GetType() const { return type_id_; }
-
+  TypeId Type() const {
+    // bitwise AND the TypeId with 01111111 to return TypeId value without the embedded NULL bit
+    return static_cast<TypeId>(static_cast<uint8_t>(type_id_) & 0x7F);
+  }
   /**
    * @return true if TransientValue is a SQL NULL, otherwise false
    */
@@ -182,7 +187,7 @@ class Value {
    */
   bool operator==(const Value &rhs) const {
     if (type_id_ != rhs.type_id_) return false;
-    switch (type_id_) {
+    switch (Type()) {
       case TypeId::BOOLEAN:
         return value_.boolean_ == rhs.value_.boolean_;
       case TypeId::TINYINT:
@@ -222,15 +227,17 @@ class Value {
   Value &operator=(const Value &v) {
     if (this != &v) {
       if (type_id_ == type::TypeId::VARCHAR) {
-        free(const_cast<char *>(value_.string_));
+        if (!Null()) free(const_cast<char *>(value_.string_));
         value_.string_ = nullptr;
       }
       type_id_ = v.type_id_;
       value_ = v.value_;
       if (v.type_id_ == type::TypeId::VARCHAR) {
         size_t size = strlen(v.value_.string_);
-        value_.string_ = static_cast<char *>(malloc(size + 1));
-        memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+        if (!Null()) {
+          value_.string_ = static_cast<char *>(malloc(size + 1));
+          memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+        }
       }
     }
     return *this;  // return the object itself (by reference)
@@ -241,7 +248,7 @@ class Value {
    * @return hashed value
    */
   common::hash_t Hash() const {
-    switch (type_id_) {
+    switch (Type()) {
       case TypeId::BOOLEAN:
         return common::HashUtil::Hash(GetBooleanValue());
       case TypeId::TINYINT:

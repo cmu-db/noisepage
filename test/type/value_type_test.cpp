@@ -24,6 +24,8 @@ TEST(valueTests, BasicTest) {
   aaa = pv_varchar;
   EXPECT_STREQ(aaa.GetVarcharValue(), message);
 
+  Value null_char = ValueFactory::GetNullValue(type::TypeId::VARCHAR);
+  EXPECT_TRUE(null_char.Null());
   // smallint
   // integer
   // bigint
