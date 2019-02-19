@@ -66,11 +66,11 @@ void Catalog::SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> 
         break;
 
       case type::TypeId::INTEGER:
-        db_p->SetIntColInRow(col.col_num, 0);
+        db_p->SetColInRow(col.col_num, type::ValueFactory::GetIntegerValue(0));
         break;
 
       case type::TypeId::VARCHAR:
-        db_p->SetVarcharColInRow(col.col_num, nullptr);
+        db_p->SetColInRow(col.col_num, type::ValueFactory::GetNullValue(type::TypeId::VARCHAR));
         break;
 
       default:
@@ -99,8 +99,8 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
 
   CATALOG_LOG_TRACE("Populate pg_database table");
   pg_database_->StartRow();
-  pg_database_->SetIntColInRow(0, !terrier_oid);
-  pg_database_->SetVarcharColInRow(1, "terrier");
+  pg_database_->SetColInRow(0, type::ValueFactory::GetIntegerValue(!terrier_oid));
+  pg_database_->SetColInRow(1, type::ValueFactory::GetVarcharValue("terrier"));
   SetUnusedSchemaColumns(pg_database_, pg_database_unused_cols_);
   pg_database_->EndRowAndInsert(txn);
 
@@ -128,14 +128,14 @@ void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
   tablespace_oid_t pg_default_oid = tablespace_oid_t(GetNextOid());
 
   pg_tablespace_->StartRow();
-  pg_tablespace_->SetIntColInRow(0, !pg_global_oid);
-  pg_tablespace_->SetVarcharColInRow(1, "pg_global");
+  pg_tablespace_->SetColInRow(0, type::ValueFactory::GetIntegerValue(!pg_global_oid));
+  pg_tablespace_->SetColInRow(1, type::ValueFactory::GetVarcharValue("pg_global"));
   SetUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
   pg_tablespace_->EndRowAndInsert(txn);
 
   pg_tablespace_->StartRow();
-  pg_tablespace_->SetIntColInRow(0, !pg_default_oid);
-  pg_tablespace_->SetVarcharColInRow(1, "pg_default");
+  pg_tablespace_->SetColInRow(0, type::ValueFactory::GetIntegerValue(!pg_default_oid));
+  pg_tablespace_->SetColInRow(1, type::ValueFactory::GetVarcharValue("pg_default"));
   SetUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
   pg_tablespace_->EndRowAndInsert(txn);
 
@@ -175,16 +175,16 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   // insert pg_catalog
   uint32_t pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
   pg_namespace->StartRow();
-  pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
-  pg_namespace->SetVarcharColInRow(1, "pg_catalog");
+  pg_namespace->SetColInRow(0, type::ValueFactory::GetIntegerValue(pg_namespace_col_oid));
+  pg_namespace->SetColInRow(1, type::ValueFactory::GetVarcharValue("pg_catalog"));
   SetUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->EndRowAndInsert(txn);
 
   // insert public
   pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
   pg_namespace->StartRow();
-  pg_namespace->SetIntColInRow(0, pg_namespace_col_oid);
-  pg_namespace->SetVarcharColInRow(1, "public");
+  pg_namespace->SetColInRow(0, type::ValueFactory::GetIntegerValue(pg_namespace_col_oid));
+  pg_namespace->SetColInRow(1, type::ValueFactory::GetVarcharValue("public"));
   SetUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->EndRowAndInsert(txn);
 }
@@ -215,11 +215,12 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
       !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
   auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
   pg_class->StartRow();
-  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_database").get()));
-  pg_class->SetIntColInRow(1, entry_db_oid);
-  pg_class->SetVarcharColInRow(2, "pg_database");
-  pg_class->SetIntColInRow(3, namespace_oid);
-  pg_class->SetIntColInRow(4, tablespace_oid);
+  pg_class->SetColInRow(0, type::ValueFactory::GetBigIntValue(
+                               reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_database").get())));
+  pg_class->SetColInRow(1, type::ValueFactory::GetIntegerValue(entry_db_oid));
+  pg_class->SetColInRow(2, type::ValueFactory::GetVarcharValue("pg_database"));
+  pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
+  pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_tablespace
@@ -230,11 +231,12 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_tablespace").get()));
-  pg_class->SetIntColInRow(1, entry_db_oid);
-  pg_class->SetVarcharColInRow(2, "pg_tablespace");
-  pg_class->SetIntColInRow(3, namespace_oid);
-  pg_class->SetIntColInRow(4, tablespace_oid);
+  pg_class->SetColInRow(0, type::ValueFactory::GetBigIntValue(
+                               reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_tablespace").get())));
+  pg_class->SetColInRow(1, type::ValueFactory::GetIntegerValue(entry_db_oid));
+  pg_class->SetColInRow(2, type::ValueFactory::GetVarcharValue("pg_tablespace"));
+  pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
+  pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_namespace
@@ -245,11 +247,12 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_namespace").get()));
-  pg_class->SetIntColInRow(1, entry_db_oid);
-  pg_class->SetVarcharColInRow(2, "pg_namespace");
-  pg_class->SetIntColInRow(3, namespace_oid);
-  pg_class->SetIntColInRow(4, tablespace_oid);
+  pg_class->SetColInRow(0, type::ValueFactory::GetBigIntValue(
+                               reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_namespace").get())));
+  pg_class->SetColInRow(1, type::ValueFactory::GetIntegerValue(entry_db_oid));
+  pg_class->SetColInRow(2, type::ValueFactory::GetVarcharValue("pg_namespace"));
+  pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
+  pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->EndRowAndInsert(txn);
 
   // Insert pg_class
@@ -260,11 +263,12 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
   pg_class->StartRow();
-  pg_class->SetBigintColInRow(0, reinterpret_cast<uint64_t>(pg_class.get()));
-  pg_class->SetIntColInRow(1, entry_db_oid);
-  pg_class->SetVarcharColInRow(2, "pg_class");
-  pg_class->SetIntColInRow(3, namespace_oid);
-  pg_class->SetIntColInRow(4, tablespace_oid);
+  pg_class->SetColInRow(
+      0, type::ValueFactory::GetBigIntValue(reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_class").get())));
+  pg_class->SetColInRow(1, type::ValueFactory::GetIntegerValue(entry_db_oid));
+  pg_class->SetColInRow(2, type::ValueFactory::GetVarcharValue("pg_class"));
+  pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
+  pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->EndRowAndInsert(txn);
 }
 

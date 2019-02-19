@@ -47,8 +47,8 @@ TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn
 
 void NamespaceHandle::CreateNamespace(terrier::transaction::TransactionContext *txn, const std::string &name) {
   pg_namespace_hrw_->StartRow();
-  pg_namespace_hrw_->SetIntColInRow(0, catalog_->GetNextOid());
-  pg_namespace_hrw_->SetVarcharColInRow(1, name.c_str());
+  pg_namespace_hrw_->SetColInRow(0, type::ValueFactory::GetIntegerValue(catalog_->GetNextOid()));
+  pg_namespace_hrw_->SetColInRow(1, type::ValueFactory::GetVarcharValue(name.c_str()));
   pg_namespace_hrw_->EndRowAndInsert(txn);
 }
 }  // namespace terrier::catalog

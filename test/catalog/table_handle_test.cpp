@@ -137,8 +137,8 @@ TEST_F(TableHandleTests, CreateTest) {
   auto ptr = table_handle.GetTable(txn_, "test_table");
   EXPECT_EQ(ptr, table);
   ptr->StartRow();
-  ptr->SetIntColInRow(0, 123);
-  ptr->SetVarcharColInRow(1, "test_name");
+  ptr->SetColInRow(0, type::ValueFactory::GetIntegerValue(123));
+  ptr->SetColInRow(1, type::ValueFactory::GetVarcharValue("test_name"));
   ptr->EndRowAndInsert(txn_);
 
   txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);

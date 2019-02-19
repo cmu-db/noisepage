@@ -55,12 +55,13 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
   table->Create();
   // Add to pg_class
   pg_class_->StartRow();
-  pg_class_->SetBigintColInRow(0, reinterpret_cast<int64_t>(table));
-  pg_class_->SetIntColInRow(1, !table->Oid());
-  pg_class_->SetVarcharColInRow(2, name.c_str());
-  pg_class_->SetIntColInRow(3, !nsp_oid_);
-  pg_class_->SetIntColInRow(4,
-                            !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid());
+  pg_class_->SetColInRow(0, type::ValueFactory::GetBigIntValue(reinterpret_cast<int64_t>(table)));
+  pg_class_->SetColInRow(1, type::ValueFactory::GetIntegerValue(!table->Oid()));
+  pg_class_->SetColInRow(2, type::ValueFactory::GetVarcharValue(name.c_str()));
+  pg_class_->SetColInRow(3, type::ValueFactory::GetIntegerValue(!nsp_oid_));
+  pg_class_->SetColInRow(
+      4, type::ValueFactory::GetIntegerValue(
+             !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid()));
   pg_class_->EndRowAndInsert(txn);
   return table;
 }
