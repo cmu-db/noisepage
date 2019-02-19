@@ -65,7 +65,7 @@ class TableHandle {
      * @param col_num the column number
      * @return the value
      */
-    const type::Value GetColInRow(uint32_t col_num) {
+    const type::Value &GetColInRow(uint32_t col_num) {
       // TODO(yangjuns): error handling
       // get the namespace_oid and tablespace_oid of the table
       namespace_oid_t nsp_oid = namespace_oid_t(rows_[1][3].GetIntValue());
