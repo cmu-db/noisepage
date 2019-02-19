@@ -99,17 +99,6 @@ class SqlTableRW {
   }
 
   /**
-   * Save a boolean, for insertion by EndRowAndInsert
-   * @param col_num column number in the schema
-   * @param value to save
-   */
-  void SetBooleanColInRow(int32_t col_num, bool value) {
-    auto bool_value = static_cast<int8_t>(value);
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    (*reinterpret_cast<int8_t *>(col_p)) = bool_value;
-  }
-
-  /**
    * Save a value, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param value to save
