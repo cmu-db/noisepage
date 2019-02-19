@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include "common/exception.h"
+#include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 #include "type/value.h"
@@ -114,10 +115,10 @@ class SqlTableRW {
    * @param value to save
    */
   void SetColInRow(int32_t col_num, const type::Value &value) {
-    switch (value.GetType()) {
+    switch (value.Type()) {
       case type::TypeId::BOOLEAN: {
         byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-        (*reinterpret_cast<int8_t *>(col_p)) = value.GetBooleanValue();
+        (*reinterpret_cast<int8_t *>(col_p)) = static_cast<int8_t>(value.GetBooleanValue());
         break;
       }
       case type::TypeId::INTEGER: {
@@ -134,9 +135,11 @@ class SqlTableRW {
         size_t size = 0;
         byte *varlen = nullptr;
         byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-        size = strlen(value.GetVarcharValue());
-        varlen = common::AllocationUtil::AllocateAligned(size);
-        memcpy(varlen, value.GetVarcharValue(), size);
+        if (!value.Null()) {
+          size = strlen(value.GetVarcharValue());
+          varlen = common::AllocationUtil::AllocateAligned(size);
+          memcpy(varlen, value.GetVarcharValue(), size);
+        }
         *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
         break;
       }
@@ -144,43 +147,6 @@ class SqlTableRW {
       default:
         break;
     }
-  }
-
-  /**
-   * Save an integer, for insertion by EndRowAndInsert
-   * @param col_num column number in the schema
-   * @param value to save
-   */
-  void SetIntColInRow(int32_t col_num, int32_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    (*reinterpret_cast<int32_t *>(col_p)) = value;
-  }
-
-  /**
-   * Save a big integer, for insertion by EndRowAndInsert
-   * @param col_num column number in the schema
-   * @param value to save
-   */
-  void SetBigintColInRow(int32_t col_num, int64_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    (*reinterpret_cast<int64_t *>(col_p)) = value;
-  }
-
-  /**
-   * Save a string, for insertion by EndRowAndInsert
-   * @param col_num column number in the schema
-   * @param st C string to save.
-   */
-  void SetVarcharColInRow(int32_t col_num, const char *st) {
-    size_t size = 0;
-    byte *varlen = nullptr;
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    if (st != nullptr) {
-      size = strlen(st);
-      varlen = common::AllocationUtil::AllocateAligned(size);
-      memcpy(varlen, st, size);
-    }
-    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
 
   /**
