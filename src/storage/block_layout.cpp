@@ -46,7 +46,8 @@ uint32_t BlockLayout::ComputeNumSlots() const {
   // the padding at the end of each column. Somebody can come and fix
   // this later, because I don't feel like thinking about this now.
   return 8 * (common::Constants::BLOCK_SIZE - static_header_size_ - 8 * (NumColumns() + 1)) /
-             (8 * tuple_size_ + NumColumns() + 1) - 1;
+             (8 * tuple_size_ + NumColumns() + 1) -
+         1;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {
