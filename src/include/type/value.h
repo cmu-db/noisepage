@@ -215,6 +215,28 @@ class Value {
   bool operator!=(const Value &rhs) const { return operator==(rhs); }
 
   /**
+   * Deep copy assignment operator
+   * @param v the value to be assigned
+   * @return the copied value
+   */
+  Value &operator=(const Value &v) {
+    if (this != &v) {
+      if (type_id_ == type::TypeId::VARCHAR) {
+        free(const_cast<char *>(value_.string_));
+        value_.string_ = nullptr;
+      }
+      type_id_ = v.type_id_;
+      value_ = v.value_;
+      if (v.type_id_ == type::TypeId::VARCHAR) {
+        size_t size = strlen(v.value_.string_);
+        value_.string_ = static_cast<char *>(malloc(size + 1));
+        memcpy(const_cast<char *>(value_.string_), v.value_.string_, size + 1);
+      }
+    }
+    return *this;  // return the object itself (by reference)
+  }
+
+  /**
    * Hash the value
    * @return hashed value
    */
