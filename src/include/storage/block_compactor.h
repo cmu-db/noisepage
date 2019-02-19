@@ -1,5 +1,5 @@
 #pragma once
-#include<algorithm>
+#include <algorithm>
 #include <forward_list>
 #include <unordered_map>
 #include <utility>
@@ -37,7 +37,7 @@ class BlockCompactor {
      * @param col_id is the corresponding column id.
      * @param offset is the slot offset.
      */
-    void AddVarlen(VarlenEntry* varlen, col_id_t col_id, uint32_t idx) {
+    void AddVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
       if (indices_[col_id][*varlen].empty()) {
         total_varlen_sizes_[col_id] += varlen->Size();
       }
@@ -49,7 +49,7 @@ class BlockCompactor {
     // For each column, count the number of unique varlens.
     std::unordered_map<col_id_t, uint32_t> total_varlen_sizes_;
     // For each column, map unique varlens to their corresponding indices.
-    std::unordered_map<col_id_t, std::map<VarlenEntry, std::list<uint32_t >>> indices_;
+    std::unordered_map<col_id_t, std::map<VarlenEntry, std::list<uint32_t>>> indices_;
   };
 
   // A Compaction group is a series of blocks all belonging to the same data table. We compact them together
@@ -335,7 +335,7 @@ class BlockCompactor {
         // Depending on whether the compaction was successful, we either need to swap in the new metadata and
         // deallocate the old, or throw away the new one if compaction failed.
         ArrowDictColumn &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
-                                     .GetDictColumn(layout, varlen_col_id);
+                                   .GetDictColumn(layout, varlen_col_id);
         cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.indices_));
         cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.offsets_));
         cg->txn_->loose_ptrs_.push_back(col.values_);

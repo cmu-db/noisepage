@@ -1,9 +1,9 @@
 #pragma once
+#include <list>
+#include <map>
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
-#include <map>
-#include <list>
 
 namespace terrier::storage {
 
@@ -22,7 +22,6 @@ struct ArrowVarlenColumn {
   byte *values_ = nullptr;
 };
 
-
 struct ArrowDictColumn {
   /**
    * Allocates a dictionary column in Arrow.
@@ -30,19 +29,19 @@ struct ArrowDictColumn {
    * @param total_size is the total length of varlen values.
    * @param indices maps each varlen to the indices where it occurs
    */
-  void Allocate(uint32_t num_values, uint32_t total_size, const std::map<VarlenEntry, std::list<uint32_t >> &indices) {
+  void Allocate(uint32_t num_values, uint32_t total_size, const std::map<VarlenEntry, std::list<uint32_t>> &indices) {
     values_length_ = total_size;
     indices_ = new uint32_t[num_values];
     offsets_ = new uint32_t[num_values + 1];
     values_ = common::AllocationUtil::AllocateAligned(total_size);
     uint32_t curr_offset = 0;
     uint32_t curr_idx = 0;
-    for (const auto & entry: indices) {
+    for (const auto &entry : indices) {
       offsets_[curr_idx] = curr_offset;
       // Write the varlen into the values buffer.
       memcpy(values_ + curr_offset, entry.first.Content(), entry.first.Size());
       // Make all corresponding indices point to this offset.
-      for (const uint32_t & idx: entry.second) {
+      for (const uint32_t &idx : entry.second) {
         indices_[idx] = curr_idx;
       }
       curr_offset += entry.first.Size();
@@ -76,8 +75,8 @@ class ArrowBlockMetadata {
   MEM_REINTERPRETATION_ONLY(ArrowBlockMetadata);
 
   static uint32_t Size(uint16_t num_cols) {
-    return StorageUtil::PadUpToSize(sizeof(uint64_t), static_cast<uint32_t >(sizeof(uint32_t)) * (num_cols + 1)) +
-           num_cols * static_cast<uint32_t >(sizeof(ArrowDictColumn));
+    return StorageUtil::PadUpToSize(sizeof(uint64_t), static_cast<uint32_t>(sizeof(uint32_t)) * (num_cols + 1)) +
+           num_cols * static_cast<uint32_t>(sizeof(ArrowDictColumn));
   }
 
   void Initialize(uint16_t num_cols) {
