@@ -5,6 +5,7 @@
 #include "storage/arrow_block_metadata.h"
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
+#include "storage/arrow_block_metadata.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 

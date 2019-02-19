@@ -1,5 +1,5 @@
 #pragma once
-#include<algorithm>
+#include <algorithm>
 #include <forward_list>
 #include <unordered_map>
 #include <utility>
@@ -229,9 +229,10 @@ class BlockCompactor {
           if (varlen == nullptr) {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
             giver_bct.new_block_metadata_->NullCount(col_id)--;
+          } else {
+            taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
+            giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
           }
-          taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
-          giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
         }
         taker_bct.new_block_metadata_->NumRecords()++;
         giver_bct.new_block_metadata_->NumRecords()--;

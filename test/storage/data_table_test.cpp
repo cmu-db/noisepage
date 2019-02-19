@@ -183,7 +183,7 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
       storage::ProjectedRow *stored =
           tested.SelectIntoBuffer(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_);
       const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), stored, ref));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), stored, ref));
     }
   }
 }
@@ -212,7 +212,7 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(tested.Layout(), i);
       const storage::ProjectedRow *ref =
           tested.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(1));
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), &stored, ref));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
     }
     delete[] buffer;
   }
@@ -246,7 +246,7 @@ TEST_F(DataTableTests, SimpleVersionChain) {
           tested.GetReferenceVersionedTuple(tuple, transaction::timestamp_t(i));
       storage::ProjectedRow *stored_version =
           tested.SelectIntoBuffer(tuple, transaction::timestamp_t(i), &buffer_pool_);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), reference_version, stored_version));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), reference_version, stored_version));
     }
   }
 }
@@ -273,7 +273,7 @@ TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     storage::ProjectedRow *stored = tested.SelectIntoBuffer(tuple, transaction::timestamp_t(UINT64_MAX), &buffer_pool_);
     const storage::ProjectedRow *ref = tested.GetReferenceVersionedTuple(tuple, transaction::timestamp_t(UINT64_MAX));
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), ref, stored));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), ref, stored));
   }
 }
 

@@ -1,95 +1,81 @@
 #include "storage/block_compactor.h"
+#include <vector>
+#include "arrow/api.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "arrow/api.h"
 
 namespace terrier {
 // NOLINTNEXTLINE
-TEST(BlockCompactorTest, SimpleTest) {
+TEST(BlockCompactorTest, SingleBlockTest) {
+  std::default_random_engine generator;
   storage::BlockStore block_store{1, 1};
   storage::RawBlock *block = block_store.Get();
   storage::BlockLayout layout({8, 8, VARLEN_COLUMN});
   storage::TupleAccessStrategy accessor(layout);
   accessor.InitializeRawBlock(block, storage::layout_version_t(0));
 
+  // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
   storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
   transaction::TransactionManager txn_manager(&buffer_pool, false, LOGGING_DISABLED);
-
-  storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  auto *row = initializer.InitializeRow(buffer);
-
-  for (uint32_t i = 0; i < 20; i++) {
-    storage::TupleSlot slot;
-    accessor.Allocate(block, &slot);
-    if (slot.GetOffset() % 5 == 0) {
-      *reinterpret_cast<byte **>(accessor.AccessForceNotNull(slot, storage::col_id_t(0))) = nullptr;
-      auto *foo = new char[4];
-      *reinterpret_cast<storage::VarlenEntry *>(accessor.AccessForceNotNull(slot, storage::col_id_t(1))) = {
-          reinterpret_cast<byte *>(foo), 4, false};
-      *reinterpret_cast<uint64_t *>(accessor.AccessForceNotNull(slot, storage::col_id_t(2))) = slot.GetOffset() / 5;
-    } else {
-      accessor.Deallocate(slot);
-    }
-  }
-  block->insert_head_ = layout.NumSlots();
+  
+  auto tuples = StorageTestUtil::PopulateBlockRandomly(layout, block, 0.1, &generator);
 
   storage::BlockCompactor compactor;
   compactor.PutInQueue({block, &table});
-  compactor.ProcessCompactionQueue(&txn_manager);
+  compactor.ProcessCompactionQueue(&txn_manager);  // should always succeed with no other threads
 
+  storage::ProjectedRowInitializer initializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *read_row = initializer.InitializeRow(buffer);
+  std::vector<storage::ProjectedRow *> moved_rows;
+  // This transaction is guaranteed to start after the compacting one commits
   transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-
-  for (uint32_t i = 0; i < 4; i++) {
-    table.Select(txn, {block, i}, row);
-    StorageTestUtil::PrintRow(*row, layout);
+  auto num_tuples = tuples.size();
+  for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+    storage::TupleSlot slot(block, i);
+    bool visible = table.Select(txn, slot, read_row);
+    if (i >= num_tuples) {
+      EXPECT_FALSE(visible);  // Should be deleted after compaction
+    } else {
+      EXPECT_TRUE(visible);  // Should be filled after compaction
+      auto it = tuples.find(slot);
+      if (it != tuples.end()) {
+        // Here we can assume that the row is not moved. Check that everything is still equal. Has to be deep
+        // equality because varlens are moved.
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(layout, it->second, read_row));
+        delete[] reinterpret_cast<byte *>(tuples[slot]);
+        tuples.erase(slot);
+      } else {
+        // Need to copy and do quadratic comparison later.
+        byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+        std::memcpy(buffer, read_row, initializer.ProjectedRowSize());
+        moved_rows.push_back(reinterpret_cast<storage::ProjectedRow *>(buffer));
+      }
+    }
   }
-  for (uint32_t i = 4; i < 20; i++) {
-    EXPECT_FALSE(table.Select(txn, {block, i}, row));
+  delete[] buffer;
+
+  for (auto *moved_row : moved_rows) {
+    bool match_found = false;
+    for (auto &entry : tuples) {
+      // This comparison needs to be deep because varlens are moved.
+      if (StorageTestUtil::ProjectionListEqualDeep(layout, entry.second, moved_row)) {
+        // Here we can assume that the row is not moved. All good.
+        delete[] reinterpret_cast<byte *>(entry.second);
+        tuples.erase(entry.first);
+        match_found = true;
+        break;
+      }
+    }
+    // the read tuple should be one of the original tuples that are moved.
+    EXPECT_TRUE(match_found);
+    delete[] reinterpret_cast<byte *>(moved_row);
   }
-
-  storage::ArrowBlockMetadata &arrow_metadata = accessor.GetArrowBlockMetadata(block);
-  auto id_bitmap = std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(
-                                                       accessor.ColumnNullBitmap(block, storage::col_id_t(2))), 1);
-  auto id_data = std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(
-                                                     accessor.ColumnStart(block, storage::col_id_t(2))), 32);
-  auto id_array_data = arrow::ArrayData::Make(arrow::int64(),
-                                              arrow_metadata.NumRecords(),
-                                              {id_bitmap, id_data},
-                                              arrow_metadata.NullCount(storage::col_id_t(2)));
-
-  auto id_array = std::make_shared<arrow::Int64Array>(id_array_data);
-//  auto id_array = std::make_shared<arrow::Array>();
-//  id_array->SetData(id_array_data);
-
-  auto varlen_bitmap =
-      std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(accessor.ColumnNullBitmap(block,
-                                                                                            storage::col_id_t(1))), 1);
-  storage::ArrowVarlenColumn varlen_col = arrow_metadata.GetVarlenColumn(layout, storage::col_id_t(1));
-  auto varlen_offset = std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(varlen_col.offsets_), 20);
-
-  auto varlen_values_buffer = std::make_shared<arrow::Buffer>(reinterpret_cast<uint8_t *>(varlen_col.values_), 16);
-  auto varlen_values_array_data = arrow::ArrayData::Make(arrow::uint8(), 16, {NULLPTR, varlen_values_buffer}, 0);
-
-  auto varlen_array_data = arrow::ArrayData::Make(arrow::utf8(),
-                                                  arrow_metadata.NumRecords(),
-                                                  {varlen_bitmap, varlen_offset},
-                                                  {varlen_values_array_data},
-                                                  arrow_metadata.NullCount(storage::col_id_t(1)));
-  auto varlen_array = std::make_shared<arrow::Array>();
-  varlen_array->SetData(id_array_data);
-
-  std::vector<std::shared_ptr<arrow::Field>> schema_vector = {
-      arrow::field("id", arrow::int64()), arrow::field("varlen", arrow::utf8())};
-  auto schema = std::make_shared<arrow::Schema>(schema_vector);
-  auto arrow_table = arrow::Table::Make(schema, {std::static_pointer_cast<arrow::Array>(id_array), varlen_array});
-  auto ids = std::static_pointer_cast<arrow::Int64Array>(arrow_table->column(0)->data()->chunk(0));
-  for (uint32_t i = 0; i < arrow_table->num_rows(); i++) {
-    printf("%llu\n", ids->Value(i));
-  }
-};
+  // All tuples from the original block should have been accounted for.
+  EXPECT_TRUE(tuples.empty());
+}
 
 }  // namespace terrier
