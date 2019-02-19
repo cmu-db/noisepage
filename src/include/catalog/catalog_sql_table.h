@@ -109,6 +109,44 @@ class SqlTableRW {
   }
 
   /**
+   * Save a value, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param value to save
+   */
+  void SetColInRow(int32_t col_num, const type::Value &value) {
+    switch (value.GetType()) {
+      case type::TypeId::BOOLEAN: {
+        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        (*reinterpret_cast<int8_t *>(col_p)) = value.GetBooleanValue();
+        break;
+      }
+      case type::TypeId::INTEGER: {
+        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        (*reinterpret_cast<int32_t *>(col_p)) = value.GetIntValue();
+        break;
+      }
+      case type::TypeId::BIGINT: {
+        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        (*reinterpret_cast<int64_t *>(col_p)) = value.GetBigIntValue();
+        break;
+      }
+      case type::TypeId::VARCHAR: {
+        size_t size = 0;
+        byte *varlen = nullptr;
+        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        size = strlen(value.GetVarcharValue());
+        varlen = common::AllocationUtil::AllocateAligned(size);
+        memcpy(varlen, value.GetVarcharValue(), size);
+        *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
+        break;
+      }
+        // TODO(yangjuns): support other types
+      default:
+        break;
+    }
+  }
+
+  /**
    * Save an integer, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param value to save
@@ -228,32 +266,7 @@ class SqlTableRW {
    */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
     for (size_t i = 0; i < row.size(); i++) {
-      byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[i]));
-      switch (row[i].GetType()) {
-        case type::TypeId::INTEGER: {
-          (*reinterpret_cast<int64_t *>(col_p)) = row[i].GetIntValue();
-          break;
-        }
-        case type::TypeId::BIGINT: {
-          (*reinterpret_cast<int64_t *>(col_p)) = row[i].GetBigIntValue();
-          break;
-        }
-        case type::TypeId::VARCHAR: {
-          size_t size = 0;
-          byte *varlen = nullptr;
-          const char *st = row[i].GetVarcharValue();
-          if (st != nullptr) {
-            size = strlen(st);
-            varlen = common::AllocationUtil::AllocateAligned(size);
-            memcpy(varlen, st, size);
-          }
-          *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
-          break;
-        }
-          // TODO(yangjuns): support other types
-        default:
-          break;
-      }
+      SetColInRow(static_cast<int32_t>(i), row[i]);
     }
   }
 
