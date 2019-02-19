@@ -20,7 +20,7 @@ TEST(BlockCompactorTest, SingleBlockTest) {
   storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
   storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
   transaction::TransactionManager txn_manager(&buffer_pool, false, LOGGING_DISABLED);
-
+  
   auto tuples = StorageTestUtil::PopulateBlockRandomly(layout, block, 0.1, &generator);
 
   storage::BlockCompactor compactor;
