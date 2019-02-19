@@ -14,12 +14,14 @@ namespace terrier::catalog {
 
 std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
                                                                     table_oid_t oid) {
-  // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
+  std::vector<type::Value> search_vec;
+  search_vec.emplace_back(type::ValueFactory::GetNullValue(type::TypeId::BIGINT));
+  search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
 
-  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, !oid);
-  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, row));
+  std::vector<type::Value> row = pg_class_->FindRow(txn, search_vec);
+  nsp_oid = namespace_oid_t(row[3].GetIntValue());
   if (nsp_oid != nsp_oid_) return nullptr;
   return std::make_shared<TableEntry>(oid, row, txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
@@ -30,11 +32,14 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
 }
 
 table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
-  // TODO(yangjuns): error handling
   // TODO(yangjuns): repeated work if the row can be used later. Maybe cache can solve it.
-  auto row = pg_class_->FindRow(txn, 2, name.c_str());
-  auto result = table_oid_t(pg_class_->GetIntColInRow(1, row));
-  delete[] reinterpret_cast<byte *>(row);
+  std::vector<type::Value> search_vec;
+  search_vec.emplace_back(type::ValueFactory::GetNullValue(type::TypeId::BIGINT));
+  search_vec.emplace_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+  search_vec.emplace_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+
+  std::vector<type::Value> row = pg_class_->FindRow(txn, search_vec);
+  auto result = table_oid_t(row[1].GetIntValue());
   return result;
 }
 
@@ -63,12 +68,14 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
 SqlTableRW *TableHandle::GetTable(transaction::TransactionContext *txn, table_oid_t oid) {
   // TODO(yangjuns): error handling
   // get the namespace_oid of the table to check if it's a table under current namespace
-  namespace_oid_t nsp_oid(0);
-  storage::ProjectedRow *row = pg_class_->FindRow(txn, 1, !oid);
-  nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, row));
+  std::vector<type::Value> search_vec;
+  search_vec.emplace_back(type::ValueFactory::GetNullValue(type::TypeId::BIGINT));
+  search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
+
+  std::vector<type::Value> row = pg_class_->FindRow(txn, search_vec);
+  namespace_oid_t nsp_oid = namespace_oid_t(row[3].GetIntValue());
   if (nsp_oid != nsp_oid_) return nullptr;
-  auto ptr = reinterpret_cast<SqlTableRW *>(pg_class_->GetBigintColInRow(0, row));
-  delete[] reinterpret_cast<byte *>(row);
+  auto ptr = reinterpret_cast<SqlTableRW *>(row[0].GetBigIntValue());
   return ptr;
 }
 

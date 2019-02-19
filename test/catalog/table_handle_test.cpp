@@ -142,13 +142,12 @@ TEST_F(TableHandleTests, CreateTest) {
   ptr->EndRowAndInsert(txn_);
 
   txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+
   // Read row from the table
-  auto row = ptr->FindRow(txn_, 0, 123);
-  auto id = ptr->GetColInRow(row, 0);
-  EXPECT_EQ(id.GetIntValue(), 123);
-  auto name = ptr->GetColInRow(row, 1);
-  EXPECT_STREQ(name.GetVarcharValue(), "test_name");
-  // free memory
-  delete[] reinterpret_cast<byte *>(row);
+  std::vector<type::Value> search_vec;
+  search_vec.emplace_back(type::ValueFactory::GetIntegerValue(123));
+  std::vector<type::Value> row = ptr->FindRow(txn_, search_vec);
+  EXPECT_EQ(row[0].GetIntValue(), 123);
+  EXPECT_STREQ(row[1].GetVarcharValue(), "test_name");
 }
 }  // namespace terrier

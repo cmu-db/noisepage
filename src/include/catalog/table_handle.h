@@ -11,6 +11,8 @@
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
+#include "type/value.h"
+#include "type/value_factory.h"
 namespace terrier::catalog {
 
 class Catalog;
@@ -46,7 +48,7 @@ class TableHandle {
      * @param pg_namespace a pointer to pg_namespace
      * @param pg_tablespace a pointer to tablespace
      */
-    TableEntry(table_oid_t oid, storage::ProjectedRow *row, transaction::TransactionContext *txn,
+    TableEntry(table_oid_t oid, const std::vector<type::Value> &row, transaction::TransactionContext *txn,
                std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
                std::shared_ptr<SqlTableRW> pg_tablespace)
         : oid_(oid),
@@ -54,35 +56,45 @@ class TableHandle {
           pg_class_(std::move(pg_class)),
           pg_namespace_(std::move(pg_namespace)),
           pg_tablespace_(std::move(pg_tablespace)) {
-      rows_.emplace_back(row);
+      rows_.resize(3);
+      rows_[1] = row;
     }
 
+    /**
+     * Get the value for a given column number
+     * @param col_num the column number
+     * @return the value
+     */
     const type::Value GetColInRow(uint32_t col_num) {
       // TODO(yangjuns): error handling
       // get the namespace_oid and tablespace_oid of the table
-      namespace_oid_t nsp_oid(0);
-      tablespace_oid_t tsp_oid(0);
-      nsp_oid = namespace_oid_t(pg_class_->GetIntColInRow(3, rows_[0]));
-      tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(4, rows_[0]));
+      namespace_oid_t nsp_oid = namespace_oid_t(rows_[1][3].GetIntValue());
+      tablespace_oid_t tsp_oid = tablespace_oid_t(rows_[1][4].GetIntValue());
 
       // for different attribute we need to look up different sql tables
       switch (col_num) {
         case 0: {
           // schemaname
-          storage::ProjectedRow *nsp_row = pg_namespace_->FindRow(txn_, 0, !nsp_oid);
-          // TODO(yangjuns): if the function is called multiple times, we are doing repeated work and keep pushing back
-          // pointers
-          rows_.emplace_back(nsp_row);
-          return pg_namespace_->GetColInRow(nsp_row, 1);
+          if (rows_[0].empty()) {
+            std::vector<type::Value> search_vec;
+            search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!nsp_oid));
+            std::vector<type::Value> nsp_row = pg_namespace_->FindRow(txn_, search_vec);
+            rows_[0] = nsp_row;
+          }
+          return rows_[0][1];
         }
         case 1: {
           // tablename
-          return pg_class_->GetColInRow(rows_[0], 2);
+          return rows_[1][2];
         }
         case 2: {
-          storage::ProjectedRow *tsp_row = pg_tablespace_->FindRow(txn_, 0, !tsp_oid);
-          rows_.emplace_back(tsp_row);
-          return pg_tablespace_->GetColInRow(tsp_row, 1);
+          if (rows_[2].empty()) {
+            std::vector<type::Value> search_vec;
+            search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!tsp_oid));
+            std::vector<type::Value> tsp_row = pg_tablespace_->FindRow(txn_, search_vec);
+            rows_[2] = tsp_row;
+          }
+          return rows_[2][1];
         }
         default:
           throw std::out_of_range("Attribute name doesn't exist");
@@ -95,20 +107,11 @@ class TableHandle {
      */
     table_oid_t GetTableOid() { return oid_; }
 
-    /**
-     * Destruct tablespace entry. It frees the memory for storing allocated memory.
-     */
-    ~TableEntry() {
-      for (auto &r : rows_) {
-        delete[] reinterpret_cast<byte *>(r);
-      }
-    }
-
    private:
     table_oid_t oid_;
     transaction::TransactionContext *txn_;
-    // keep track of the memory allocated to represent a row in pg_table
-    std::vector<storage::ProjectedRow *> rows_;
+    // it stores three rows in three tables
+    std::vector<std::vector<type::Value>> rows_;
     std::shared_ptr<SqlTableRW> pg_class_;
     std::shared_ptr<SqlTableRW> pg_namespace_;
     std::shared_ptr<SqlTableRW> pg_tablespace_;

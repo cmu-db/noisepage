@@ -287,6 +287,11 @@ class SqlTableRW {
     return pr_map_->at(col_oids_[col_num]);
   }
 
+  /**
+   * Insert a row
+   * @param txn
+   * @param row
+   */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
     for (size_t i = 0; i < row.size(); i++) {
       byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[i]));
@@ -316,62 +321,6 @@ class SqlTableRW {
           break;
       }
     }
-    return;
-  }
-
-  /**
-   * Find a row in a sql table based on a value of an integer column attribute
-   * @param txn the transaction context
-   * @param col_num the column number
-   * @param value the integer value of the column attribute we want to find
-   * @return the corresponding row
-   * notes: to be deprecated
-   */
-  storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, uint32_t value) {
-    // TODO(yangjuns): assert correct column type
-    auto read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer_);
-
-    auto tuple_iter = table_->begin();
-    for (; tuple_iter != table_->end(); tuple_iter++) {
-      table_->Select(txn, *tuple_iter, read);
-      byte *col_p = read->AccessForceNotNull(ColNumToOffset(col_num));
-      if (*(reinterpret_cast<uint32_t *>(col_p)) == value) {
-        // TODO(pakhtar): need to free read_buffer...
-        return read;
-      }
-    }
-    delete[] read_buffer_;
-    read_buffer_ = nullptr;
-    return nullptr;
-  }
-
-  /**
-   * Find a row in a sql table based on a value of a varchar column attribute
-   * @param txn the transaction context
-   * @param col_num the column number
-   * @param value the string value of the column attribute we want to find
-   * @return the corresponding row
-   * notes: to be deprecated
-   */
-  storage::ProjectedRow *FindRow(transaction::TransactionContext *txn, int32_t col_num, const char *value) {
-    // TODO(yangjuns): assert correct column type
-    auto read_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer_);
-
-    auto tuple_iter = table_->begin();
-    for (; tuple_iter != table_->end(); tuple_iter++) {
-      table_->Select(txn, *tuple_iter, read);
-      byte *col_p = read->AccessForceNotNull(ColNumToOffset(col_num));
-      auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-      uint32_t size = entry->Size();
-      if ((size == strlen(value)) && (memcmp(value, entry->Content(), size) == 0)) {
-        // TODO(pakhtar): caller needs to free read_buffer_
-        return read;
-      }
-    }
-    delete[] read_buffer_;
-    return nullptr;
   }
 
   /**
@@ -525,13 +474,19 @@ class SqlTableRW {
         case type::TypeId::BOOLEAN: {
           auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
           ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
-        } break;
+          break;
+        }
 
         case type::TypeId::INTEGER: {
           auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
           ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
-        } break;
-
+          break;
+        }
+        case type::TypeId::BIGINT: {
+          auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetBigIntValue(row_int_val));
+          break;
+        }
         case type::TypeId::VARCHAR: {
           auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
           // TODO(pakhtar): unnecessary copy. Fix appropriately when
@@ -544,7 +499,8 @@ class SqlTableRW {
           // TODO(pakhtar): replace with Value varchar
           ret_vec.emplace_back(type::ValueFactory::GetVarcharValue(ret_st));
           free(ret_st);
-        } break;
+          break;
+        }
 
         default:
           throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColToValueVec");
