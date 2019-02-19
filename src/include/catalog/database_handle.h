@@ -33,68 +33,6 @@ class NamespaceHandle;
 class DatabaseHandle {
  public:
   /**
-   * A database entry represent a row in pg_database catalog.
-   */
-  class OldDatabaseEntry {
-   public:
-    /**
-     * Constructs a database entry.
-     * @param oid the db_oid of the underlying database
-     * @param row a pointer points to the projection of the row
-     * @param map a map that encodes how to access attributes of the row
-     */
-    OldDatabaseEntry(db_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)) {}
-
-    /**
-     * Constructs a database entry.
-     * @param pg_db_sqltbl_rw the pointer to the pg_database SqlTabltRW class
-     * @param oid the db_oid of the underlying database
-     * @param row a pointer points to the projection of the row
-     * @param map a map that encodes how to access attributes of the row
-     */
-    OldDatabaseEntry(std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw, db_oid_t oid, storage::ProjectedRow *row,
-                     storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_db_sqltbl_rw_(std::move(pg_db_sqltbl_rw)) {}
-
-    /**
-     * From this entry, return col_num as an integer
-     * @param col_num - column number in the schema
-     * @return integer
-     */
-    uint32_t GetIntColInRow(int32_t col_num) { return pg_db_sqltbl_rw_->GetIntColInRow(col_num, row_); }
-
-    /**
-     * From this entry, return col_num as a C string.
-     * @param col_num - column number in the schema
-     * @return malloc'ed C string (with null terminator). Caller must
-     *   free.
-     */
-    char *GetVarcharColInRow(int32_t col_num) { return pg_db_sqltbl_rw_->GetVarcharColInRow(col_num, row_); }
-
-    /**
-     * Return the db_oid of the underlying database
-     * @return db_oid of the database
-     */
-    db_oid_t GetDatabaseOid() { return oid_; }
-
-    /**
-     * Destruct database entry. It frees the memory for storing the projected row.
-     */
-    ~OldDatabaseEntry() {
-      TERRIER_ASSERT(row_ != nullptr, "database entry should always represent a valid row");
-      delete[] reinterpret_cast<byte *>(row_);
-    }
-
-   private:
-    db_oid_t oid_;
-    storage::ProjectedRow *row_;
-    storage::ProjectionMap map_;
-
-    std::shared_ptr<catalog::SqlTableRW> pg_db_sqltbl_rw_;
-  };
-
-  /**
    * A database entry represents a row in pg_database catalog.
    */
   class DatabaseEntry {

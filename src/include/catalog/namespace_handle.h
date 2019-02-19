@@ -22,58 +22,6 @@ class NamespaceHandle {
   /**
    * A namespace entry represent a row in pg_namespace catalog.
    */
-  class OldNamespaceEntry {
-   public:
-    /**
-     * Constructs a namespace entry.
-     * @param oid the namespace_oid of the underlying database
-     * @param row a pointer points to the projection of the row
-     * @param map a map that encodes how to access attributes of the row
-     * @param pg_namespace a pointer to the pg_namespace sql table
-     */
-    OldNamespaceEntry(namespace_oid_t oid, storage::ProjectedRow *row, storage::ProjectionMap map,
-                      std::shared_ptr<catalog::SqlTableRW> pg_namespace)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_namespace_erw_(std::move(pg_namespace)) {}
-
-    /**
-     *From this entry, return col_num as an integer
-     * @param col_num - column number in the schema
-     * @return integer
-     */
-    uint32_t GetIntColInRow(int32_t col_num) { return pg_namespace_erw_->GetIntColInRow(col_num, row_); }
-
-    /**
-     * From this entry, return col_num as a C string.
-     * @param col_num - column number in the schema
-     * @return malloc'ed C string (with null terminator). Caller must
-     *   free.
-     */
-    char *GetVarcharColInRow(int32_t col_num) { return pg_namespace_erw_->GetVarcharColInRow(col_num, row_); }
-
-    /**
-     * Return the namespace_oid of the underlying database
-     * @return namespace_oid of the database
-     */
-    namespace_oid_t GetNamespaceOid() { return oid_; }
-
-    /**
-     * Destruct namespace entry. It frees the memory for storing the projected row.
-     */
-    ~OldNamespaceEntry() {
-      TERRIER_ASSERT(row_ != nullptr, "namespace entry should always represent a valid row");
-      delete[] reinterpret_cast<byte *>(row_);
-    }
-
-   private:
-    namespace_oid_t oid_;
-    storage::ProjectedRow *row_;
-    storage::ProjectionMap map_;
-    std::shared_ptr<catalog::SqlTableRW> pg_namespace_erw_;
-  };
-
-  /**
-   * A namespace entry represent a row in pg_namespace catalog.
-   */
   class NamespaceEntry {
    public:
     /**

@@ -109,18 +109,6 @@ class SqlTableRW {
   }
 
   /**
-   * Read an integer from a (supplied) row. This method is used by the handle
-   * and entry classes.
-   * @param col_num - column number in the schema
-   * @param row - to read from
-   * @return integer value
-   */
-  int32_t GetIntColInRow(int32_t col_num, storage::ProjectedRow *row) {
-    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
-    return *(reinterpret_cast<uint32_t *>(col_p));
-  }
-
-  /**
    * Save an integer, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param value to save
@@ -128,18 +116,6 @@ class SqlTableRW {
   void SetIntColInRow(int32_t col_num, int32_t value) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     (*reinterpret_cast<int32_t *>(col_p)) = value;
-  }
-
-  /**
-   * Read a big integer from a (supplied) row. This method is used by the handle
-   * and entry classes.
-   * @param col_num - column number in the schema
-   * @param row - to read from
-   * @return integer value
-   */
-  int64_t GetBigintColInRow(int32_t col_num, storage::ProjectedRow *row) {
-    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
-    return *(reinterpret_cast<int64_t *>(col_p));
   }
 
   /**
@@ -220,27 +196,6 @@ class SqlTableRW {
     delete[] buffer;
     delete txn;
     return num_cols;
-  }
-
-  /**
-   * DO NOT USE
-   * @param txn
-   * @param row_num
-   * @return
-   */
-  storage::ProjectedRow *GetRow(transaction::TransactionContext *txn, int32_t row_num) {
-    TERRIER_ASSERT(row_num < GetNumRows(), "not enough rows");
-
-    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-
-    auto tuple_iter = table_->begin();
-    for (int32_t row = 0; row < row_num; row++) {
-      tuple_iter++;
-    }
-    // Select returns all rows, not just valid, populated ones
-    table_->Select(txn, *tuple_iter, read);
-    return read;
   }
 
   /**

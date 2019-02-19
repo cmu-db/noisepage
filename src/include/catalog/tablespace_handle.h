@@ -32,58 +32,6 @@ class TablespaceHandle {
   /**
    * A tablespace entry represent a row in pg_tablespace catalog.
    */
-  class OldTablespaceEntry {
-   public:
-    /**
-     * Constructs a tablespace entry.
-     * @param oid the tablespace_oid of the underlying database
-     * @param row a pointer points to the projection of the row
-     * @param map a map that encodes how to access attributes of the row
-     * @param pg_tblspc_rw a pointer to the pg_tablespace SqlTableRW class
-     */
-    OldTablespaceEntry(std::shared_ptr<catalog::SqlTableRW> pg_tblspc_rw, tablespace_oid_t oid,
-                       storage::ProjectedRow *row, storage::ProjectionMap map)
-        : oid_(oid), row_(row), map_(std::move(map)), pg_tablespace_(std::move(pg_tblspc_rw)) {}
-
-    /**
-     *From this entry, return col_num as an integer
-     * @param col_num - column number in the schema
-     * @return integer
-     */
-    uint32_t GetIntColInRow(int32_t col_num) { return pg_tablespace_->GetIntColInRow(col_num, row_); }
-
-    /**
-     * From this entry, return col_num as a C string.
-     * @param col_num - column number in the schema
-     * @return malloc'ed C string (with null terminator). Caller must
-     *   free.
-     */
-    char *GetVarcharColInRow(int32_t col_num) { return pg_tablespace_->GetVarcharColInRow(col_num, row_); }
-
-    /**
-     * Return the tablespace_oid
-     * @return tablespace_oid the tablespace oid
-     */
-    tablespace_oid_t GetTablespaceOid() { return oid_; }
-
-    /**
-     * Destruct tablespace entry. It frees the memory for storing the projected row.
-     */
-    ~OldTablespaceEntry() {
-      TERRIER_ASSERT(row_ != nullptr, "tablespace entry should always represent a valid row");
-      delete[] reinterpret_cast<byte *>(row_);
-    }
-
-   private:
-    tablespace_oid_t oid_;
-    storage::ProjectedRow *row_;
-    storage::ProjectionMap map_;
-    std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
-  };
-
-  /**
-   * A tablespace entry represent a row in pg_tablespace catalog.
-   */
   class TablespaceEntry {
    public:
     /**
