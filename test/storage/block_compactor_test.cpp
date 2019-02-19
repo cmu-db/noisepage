@@ -79,8 +79,7 @@ TEST(BlockCompactorTest, SimpleTest) {
                                                   {varlen_bitmap, varlen_offset},
                                                   {varlen_values_array_data},
                                                   arrow_metadata.NullCount(storage::col_id_t(1)));
-  auto varlen_array = std::make_shared<arrow::Array>();
-  varlen_array->SetData(id_array_data);
+  auto varlen_array = arrow::MakeArray(varlen_array_data);
 
   std::vector<std::shared_ptr<arrow::Field>> schema_vector = {
       arrow::field("id", arrow::int64()), arrow::field("varlen", arrow::utf8())};
@@ -88,7 +87,7 @@ TEST(BlockCompactorTest, SimpleTest) {
   auto arrow_table = arrow::Table::Make(schema, {std::static_pointer_cast<arrow::Array>(id_array), varlen_array});
   auto ids = std::static_pointer_cast<arrow::Int64Array>(arrow_table->column(0)->data()->chunk(0));
   for (uint32_t i = 0; i < arrow_table->num_rows(); i++) {
-    printf("%llu\n", ids->Value(i));
+    printf("%ld\n", ids->Value(i));
   }
 };
 
