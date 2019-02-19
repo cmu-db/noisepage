@@ -57,24 +57,7 @@ class TableHandle {
       rows_.emplace_back(row);
     }
 
-    /**
-     *From this entry, return col_num as an integer
-     * @param col_num - column number in the schema
-     * @return integer
-     */
-    uint32_t GetIntColInRow(int32_t col_num) {
-      // TODO(yangjuns): error handling
-      TERRIER_ASSERT(false, "there is no IntegerRow in this table");
-      return 0;
-    }
-
-    /**
-     * From this entry, return col_num as a C string.
-     * @param col_num - column number in the schema
-     * @return malloc'ed C string (with null terminator). Caller must
-     *   free.
-     */
-    char *GetVarcharColInRow(int32_t col_num) {
+    const type::Value GetColInRow(uint32_t col_num) {
       // TODO(yangjuns): error handling
       // get the namespace_oid and tablespace_oid of the table
       namespace_oid_t nsp_oid(0);
@@ -83,25 +66,27 @@ class TableHandle {
       tsp_oid = tablespace_oid_t(pg_class_->GetIntColInRow(4, rows_[0]));
 
       // for different attribute we need to look up different sql tables
-      if (col_num == 0) {
-        // schemaname
-        storage::ProjectedRow *nsp_row = pg_namespace_->FindRow(txn_, 0, !nsp_oid);
-        rows_.emplace_back(nsp_row);
-        return pg_namespace_->GetVarcharColInRow(1, nsp_row);
+      switch (col_num) {
+        case 0: {
+          // schemaname
+          storage::ProjectedRow *nsp_row = pg_namespace_->FindRow(txn_, 0, !nsp_oid);
+          // TODO(yangjuns): if the function is called multiple times, we are doing repeated work and keep pushing back
+          // pointers
+          rows_.emplace_back(nsp_row);
+          return pg_namespace_->GetColInRow(nsp_row, 1);
+        }
+        case 1: {
+          // tablename
+          return pg_class_->GetColInRow(rows_[0], 2);
+        }
+        case 2: {
+          storage::ProjectedRow *tsp_row = pg_tablespace_->FindRow(txn_, 0, !tsp_oid);
+          rows_.emplace_back(tsp_row);
+          return pg_tablespace_->GetColInRow(tsp_row, 1);
+        }
+        default:
+          throw std::out_of_range("Attribute name doesn't exist");
       }
-      if (col_num == 1) {
-        // tablename
-        CATALOG_LOG_TRACE("retrieve information from pg_class ... ");
-        return pg_class_->GetVarcharColInRow(2, rows_[0]);
-      }
-
-      if (col_num == 2) {
-        CATALOG_LOG_TRACE("looking at tablespace attribute ...");
-        storage::ProjectedRow *tsp_row = pg_tablespace_->FindRow(txn_, 0, !tsp_oid);
-        rows_.emplace_back(tsp_row);
-        return pg_tablespace_->GetVarcharColInRow(1, tsp_row);
-      }
-      throw std::out_of_range("Attribute name doesn't exist");
     }
 
     /**

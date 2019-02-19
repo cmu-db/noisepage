@@ -44,78 +44,65 @@ TEST_F(TableHandleTests, BasicCorrectnessTest) {
   // test if get correct tablename
   auto table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  auto str = table_entry_ptr->GetVarcharColInRow(1);
-  EXPECT_STREQ(str, "pg_database");
-  free(str);
+  auto str = table_entry_ptr->GetColInRow(1);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_database");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(1);
-  EXPECT_STREQ(str, "pg_tablespace");
-  free(str);
+  str = table_entry_ptr->GetColInRow(1);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_tablespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(1);
-  EXPECT_STREQ(str, "pg_namespace");
-  free(str);
+  str = table_entry_ptr->GetColInRow(1);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_namespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(1);
-  LOG_INFO("LALAL {}", str);
-  EXPECT_STREQ(str, "pg_class");
-  free(str);
+  str = table_entry_ptr->GetColInRow(1);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_class");
 
   // test if get correct schemaname (namespace)
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(0);
-  EXPECT_STREQ(str, "pg_catalog");
-  free(str);
+  str = table_entry_ptr->GetColInRow(0);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(0);
-  EXPECT_STREQ(str, "pg_catalog");
-  free(str);
+  str = table_entry_ptr->GetColInRow(0);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(0);
-  EXPECT_STREQ(str, "pg_catalog");
-  free(str);
+  str = table_entry_ptr->GetColInRow(0);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(0);
-  EXPECT_STREQ(str, "pg_catalog");
-  free(str);
+  str = table_entry_ptr->GetColInRow(0);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
 
   // test if get correct tablespace
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(2);
-  EXPECT_STREQ(str, "pg_global");
-  free(str);
+  str = table_entry_ptr->GetColInRow(2);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(2);
-  EXPECT_STREQ(str, "pg_global");
-  free(str);
+  str = table_entry_ptr->GetColInRow(2);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(2);
-  EXPECT_STREQ(str, "pg_default");
-  free(str);
+  str = table_entry_ptr->GetColInRow(2);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetVarcharColInRow(2);
-  EXPECT_STREQ(str, "pg_default");
-  free(str);
+  str = table_entry_ptr->GetColInRow(2);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
 }
 
 // Tests for creating a table
@@ -137,15 +124,14 @@ TEST_F(TableHandleTests, CreateTest) {
   auto table = table_handle.CreateTable(txn_, schema, "test_table");
   auto table_entry = table_handle.GetTableEntry(txn_, "test_table");
   EXPECT_NE(table_entry, nullptr);
-  auto str = table_entry->GetVarcharColInRow(0);
-  EXPECT_STREQ(str, "public");
-  free(str);
-  str = table_entry->GetVarcharColInRow(1);
-  EXPECT_STREQ(str, "test_table");
-  free(str);
-  str = table_entry->GetVarcharColInRow(2);
-  EXPECT_STREQ(str, "pg_default");
-  free(str);
+  auto str = table_entry->GetColInRow(0);
+  EXPECT_STREQ(str.GetVarcharValue(), "public");
+
+  str = table_entry->GetColInRow(1);
+  EXPECT_STREQ(str.GetVarcharValue(), "test_table");
+
+  str = table_entry->GetColInRow(2);
+  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
 
   // Insert a row into the table
   auto ptr = table_handle.GetTable(txn_, "test_table");
@@ -158,12 +144,11 @@ TEST_F(TableHandleTests, CreateTest) {
   txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
   // Read row from the table
   auto row = ptr->FindRow(txn_, 0, 123);
-  auto id = ptr->GetIntColInRow(0, row);
-  EXPECT_EQ(id, 123);
-  auto name = ptr->GetVarcharColInRow(1, row);
-  EXPECT_STREQ(name, "test_name");
+  auto id = ptr->GetColInRow(row, 0);
+  EXPECT_EQ(id.GetIntValue(), 123);
+  auto name = ptr->GetColInRow(row, 1);
+  EXPECT_STREQ(name.GetVarcharValue(), "test_name");
   // free memory
   delete[] reinterpret_cast<byte *>(row);
-  free(name);
 }
 }  // namespace terrier

@@ -259,22 +259,6 @@ class SqlTableRW {
   }
 
   /**
-   * Create a value by reinterpret a byte stream
-   * @param type_id the type of the value that we want to create
-   * @param col_p the pointer to bytes
-   * @return a value
-   */
-  type::Value CreateColValue(type::TypeId type_id, byte *col_p) {
-    switch (type_id) {
-      case type::TypeId::INTEGER:
-        return type::ValueFactory::GetIntegerValue(*(reinterpret_cast<uint32_t *>(col_p)));
-
-      default:
-        throw std::runtime_error("unknown type");
-    }
-  }
-
-  /**
    * Misc access.
    */
   std::shared_ptr<storage::SqlTable> GetSqlTable() { return table_; }
@@ -454,6 +438,35 @@ class SqlTableRW {
       }
     }
     return true;
+  }
+
+  /**
+   * Create a value by reinterpret a byte stream
+   * @param type_id the type of the value that we want to create
+   * @param col_p the pointer to bytes
+   * @return a value
+   */
+  type::Value CreateColValue(type::TypeId type_id, byte *col_p) {
+    switch (type_id) {
+      case type::TypeId::INTEGER:
+        return type::ValueFactory::GetIntegerValue(*(reinterpret_cast<uint32_t *>(col_p)));
+      case type::TypeId::VARCHAR: {
+        auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+        // TODO(pakhtar): unnecessary copy. Fix appropriately when
+        // replaced by updated Value implementation.
+        // add space for null terminator
+        uint32_t size = vc_entry->Size() + 1;
+        auto *ret_st = static_cast<char *>(malloc(size));
+        memcpy(ret_st, vc_entry->Content(), size - 1);
+        *(ret_st + size - 1) = 0;
+        // TODO(pakhtar): replace w
+        auto result = type::ValueFactory::GetVarcharValue(ret_st);
+        free(ret_st);
+        return result;
+      }
+      default:
+        throw std::runtime_error("unknown type");
+    }
   }
 
   /**
