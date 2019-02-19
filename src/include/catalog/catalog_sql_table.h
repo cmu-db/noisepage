@@ -129,27 +129,6 @@ class SqlTableRW {
   }
 
   /**
-   * Read a string from a (supplied) row. This method is used by the handle
-   * and entry classes.
-   * @param col_num column number in the schema
-   * @param row - to read from
-   * @return malloc'ed C string (with null terminator). Caller must
-   *   free.
-   */
-  char *GetVarcharColInRow(int32_t col_num, storage::ProjectedRow *row) {
-    byte *col_p = row->AccessForceNotNull(ColNumToOffset(col_num));
-    auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-    // stored string has no null terminator, add space for it
-    uint32_t size = entry->Size() + 1;
-    // allocate return string
-    auto *ret_st = static_cast<char *>(malloc(size));
-    memcpy(ret_st, entry->Content(), size - 1);
-    // add the null terminator
-    *(ret_st + size - 1) = 0;
-    return ret_st;
-  }
-
-  /**
    * Save a string, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
    * @param st C string to save.
