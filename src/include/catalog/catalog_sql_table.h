@@ -303,6 +303,38 @@ class SqlTableRW {
     return pr_map_->at(col_oids_[col_num]);
   }
 
+  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+    for (size_t i = 0; i < row.size(); i++) {
+      byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[i]));
+      switch (row[i].GetType()) {
+        case type::TypeId::INTEGER: {
+          (*reinterpret_cast<int64_t *>(col_p)) = row[i].GetIntValue();
+          break;
+        }
+        case type::TypeId::BIGINT: {
+          (*reinterpret_cast<int64_t *>(col_p)) = row[i].GetBigIntValue();
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          size_t size = 0;
+          byte *varlen = nullptr;
+          const char *st = row[i].GetVarcharValue();
+          if (st != nullptr) {
+            size = strlen(st);
+            varlen = common::AllocationUtil::AllocateAligned(size);
+            memcpy(varlen, st, size);
+          }
+          *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
+          break;
+        }
+          // TODO(yangjuns): support other types
+        default:
+          break;
+      }
+    }
+    return;
+  }
+
   /**
    * Find a row in a sql table based on a value of an integer column attribute
    * @param txn the transaction context
