@@ -60,7 +60,7 @@ enum class PlanNodeType {
   HASH,
 
   // Test
-  MOCK = 80
+  MOCK
 };
 
 //===--------------------------------------------------------------------===//
@@ -69,7 +69,7 @@ enum class PlanNodeType {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(catalog::Schema output_schema);
+  AbstractPlanNode(catalog::Schema &output_schema);
 
   virtual ~AbstractPlanNode();
 
@@ -95,7 +95,7 @@ class AbstractPlanNode {
 
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
-  catalog::Schema GetOutputSchema() { return output_schema_; }
+  catalog::Schema GetOutputSchema() const { return output_schema_; }
 
   // Get the estimated cardinality of this plan
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
