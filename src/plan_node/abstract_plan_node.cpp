@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// abstract_plan.cpp
-//
-// Identification: src/planner/abstract_plan.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #include "plan_node/abstract_plan_node.h"
 
 namespace terrier::plan_node {
@@ -18,17 +6,13 @@ AbstractPlanNode::AbstractPlanNode(catalog::Schema output_schema) : output_schem
 
 AbstractPlanNode::~AbstractPlanNode() {}
 
-void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) {
-  children_.emplace_back(std::move(child));
-}
+void AbstractPlanNode::AddChild(std::unique_ptr<AbstractPlanNode> &&child) { children_.emplace_back(std::move(child)); }
 
-const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren()
-    const {
-  return children_;
-}
+const std::vector<std::unique_ptr<AbstractPlanNode>> &AbstractPlanNode::GetChildren() const { return children_; }
 
 const AbstractPlanNode *AbstractPlanNode::GetChild(uint32_t child_index) const {
-  TERRIER_ASSERT(child_index < children_.size(), "index into children of plan node should be less than number of children");
+  TERRIER_ASSERT(child_index < children_.size(),
+                 "index into children of plan node should be less than number of children");
   return children_[child_index].get();
 }
 
@@ -42,11 +26,9 @@ common::hash_t AbstractPlanNode::Hash() const {
 
 bool AbstractPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto num = GetChildren().size();
-  if (num != rhs.GetChildren().size())
-    return false;
+  if (num != rhs.GetChildren().size()) return false;
   for (unsigned int i = 0; i < num; i++) {
-    if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i))
-      return false;
+    if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i)) return false;
   }
   return true;
 }

@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// abstract_plan.h
-//
-// Identification: src/include/planner/abstract_plan.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <cstdint>
@@ -18,8 +6,6 @@
 
 #include "catalog/schema.h"
 #include "common/hash_util.h"
-
-
 
 namespace terrier::plan_node {
 
@@ -37,7 +23,7 @@ enum class PlanNodeType {
   CSVSCAN,
 
   // Join Nodes
-  NESTLOOP ,
+  NESTLOOP,
   HASHJOIN,
 
   // Mutator Nodes
@@ -69,7 +55,7 @@ enum class PlanNodeType {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(catalog::Schema &output_schema);
+  AbstractPlanNode(catalog::Schema output_schema);
 
   virtual ~AbstractPlanNode();
 
@@ -99,7 +85,7 @@ class AbstractPlanNode {
 
   // Get the estimated cardinality of this plan
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
-  
+
   // FOR TESTING ONLY. This function should only be called during construction of plan (ConvertOpExpression) or
   // for tests.
   void SetEstimatedCardinality(int cardinality) { estimated_cardinality_ = cardinality; }
@@ -112,9 +98,7 @@ class AbstractPlanNode {
   virtual common::hash_t Hash() const;
 
   virtual bool operator==(const AbstractPlanNode &rhs) const;
-  virtual bool operator!=(const AbstractPlanNode &rhs) const {
-    return !(*this == rhs);
-  }
+  virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
   // A plan node can have multiple children
