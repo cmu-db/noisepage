@@ -282,7 +282,7 @@ void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
       if (!accessor_.Allocated(slot)) continue;
       auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
       // If entry is null here, the varlen entry is a null SQL value.
-      if (entry != nullptr) delete[] entry->Content();
+      if (entry != nullptr && entry->IsReclaimable()) delete[] entry->Content();
     }
   }
 }

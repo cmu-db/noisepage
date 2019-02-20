@@ -142,9 +142,15 @@ class SqlTableRW {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     // string size, without null terminator
     size_t size = strlen(st);
-    byte *varlen = common::AllocationUtil::AllocateAligned(size);
-    std::memcpy(varlen, st, size);
-    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false, false};
+    if (size <= storage::VarlenEntry::InlineThreshold()) {
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::CreateEntryInline(reinterpret_cast<const byte *>(st), size);
+    } else {
+      byte *varlen = common::AllocationUtil::AllocateAligned(size);
+      std::memcpy(varlen, st, size);
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::CreateEntry(varlen, static_cast<uint32_t>(size), true);
+    }
   }
 
  private:
