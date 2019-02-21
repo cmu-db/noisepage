@@ -42,7 +42,7 @@ class CompactIntsKey {
   friend class CompactIntsHasher<KeySize>;
 
   // This is the actual byte size of the key
-  static constexpr size_t key_size_byte = KeySize * 8UL;
+  static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
 
   // This is the array we use for storing integers
   byte key_data[key_size_byte];
@@ -251,7 +251,7 @@ class CompactIntsKey {
     TERRIER_ASSERT(attr_sizes.size() == attr_offsets.size(), "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
     TERRIER_ASSERT(attr_sizes.size() <= INTSKEY_MAX_SLOTS, "attr_sizes has too many values for this type.");
-    TERRIER_ASSERT(attr_sizes.size() <= from.NumColumns(), "Key cannot have more attributes than the ProjectedRow.");
+    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
     ZeroOut();
 
     uint8_t offset = 0;

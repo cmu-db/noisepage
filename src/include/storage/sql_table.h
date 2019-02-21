@@ -11,16 +11,12 @@
 
 namespace terrier::storage {
 
-namespace index {
-class IndexBuilder;
-}
-
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
- * concepts like Schema. This layer will also handle index maintenance, and possibly constraint checking (confirm when
- * we bring in execution layer). The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level.
- * The SqlTable API should only refer to storage concepts via things like Schema and col_oid_t, and then perform the
- * translation to BlockLayout and col_id_t to talk to the DataTable and other areas of the storage layer.
+ * concepts like Schema. This layer will also possibly perform constraint checking (confirm when we bring in execution
+ * layer). The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level. The SqlTable API should
+ * only refer to storage concepts via things like Schema and col_oid_t, and then perform the translation to BlockLayout
+ * and col_id_t to talk to the DataTable and other areas of the storage layer.
  */
 class SqlTable {
  public:  // TODO(WAN): public for testing. gtest/gtest_prod.h looks awful i hate it
@@ -82,7 +78,6 @@ class SqlTable {
    */
   bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
     return table_->data_table->Update(txn, slot, redo);
   }
 
@@ -96,7 +91,6 @@ class SqlTable {
    */
   TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
     return table_->data_table->Insert(txn, redo);
   }
 
@@ -108,7 +102,6 @@ class SqlTable {
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
     return table_->data_table->Delete(txn, slot);
   }
 
@@ -191,8 +184,6 @@ class SqlTable {
   }
 
  private:
-  friend index::IndexBuilder;
-
   BlockStore *const block_store_;
   const catalog::sqltable_oid_t oid_;
 
