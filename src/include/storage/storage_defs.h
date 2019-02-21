@@ -234,7 +234,7 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return size_ > InlineThreshold(); }
+  bool NeedReclaim() const { return size_ > static_cast<int32_t>(InlineThreshold()); }
 
   /**
    * @return pointer to the stored prefix of the varlen entry
@@ -246,7 +246,7 @@ class VarlenEntry {
    */
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
-// private:
+  // private:
   int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
