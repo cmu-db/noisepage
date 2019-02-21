@@ -168,9 +168,6 @@ enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
  */
 class VarlenEntry {
  public:
-  // Have to define a default constructor to make this POD
-  VarlenEntry() = default;
-
   /**
    * Constructs a new varlen entry. The varlen entry will take ownership of the pointer given if reclaimable is true,
    * which means GC can delete the buffer pointed to when this entry is no longer visible in the storage engine.
