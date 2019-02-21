@@ -143,6 +143,12 @@
 //===----------------------------------------------------------------------===//
 #ifdef NDEBUG
 #define GTEST_DEBUG_ONLY(TestName) DISABLED_##TestName
+
+#define FRIEND_TEST(test_case_name, test_name)
+
 #else
 #define GTEST_DEBUG_ONLY(TestName) TestName
+
+#define FRIEND_TEST(test_case_name, test_name) friend class test_case_name##_##test_name##_Test
+
 #endif
