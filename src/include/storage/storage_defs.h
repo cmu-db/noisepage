@@ -176,15 +176,15 @@ class VarlenEntry {
    * which means GC can delete the buffer pointed to when this entry is no longer visible in the storage engine.
    * @param content pointer to the varlen content itself
    * @param size length of the varlen content, in bytes (no C-style nul-terminator)
-   * @param reclaimable whether the varlen entry's content pointer can be deleted by itself. If the pointer was not
+   * @param reclaim whether the varlen entry's content pointer can be deleted by itself. If the pointer was not
    *                    allocated by itself (e.g. inlined, or part of a dictionary batch or arrow buffer), it cannot
    *                    be freed by the GC, which simply calls delete.
    * @return constructed VarlenEntry object
    */
-  static VarlenEntry CreateEntry(byte *content, uint32_t size, bool reclaimable) {
+  static VarlenEntry Create(byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
     TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
-    result.size_ = reclaimable ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
+    result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
     std::memcpy(result.prefix_, content, sizeof(uint32_t));
     result.content_ = content;
     return result;
@@ -199,7 +199,7 @@ class VarlenEntry {
    *             InlineThreshold())
    * @return constructed VarlenEntry object
    */
-  static VarlenEntry CreateEntryInline(const byte *content, uint32_t size) {
+  static VarlenEntry CreateInline(const byte *content, uint32_t size) {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
     result.size_ = size;
@@ -231,10 +231,10 @@ class VarlenEntry {
   bool IsInlined() const { return Size() <= InlineThreshold(); }
 
   /**
-   * Helper method to decide if the content can be GCed separately
+   * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool IsReclaimable() const { return size_ > InlineThreshold(); }
+  bool NeedReclaim() const { return size_ > InlineThreshold(); }
 
   /**
    * @return pointer to the stored prefix of the varlen entry
@@ -246,7 +246,7 @@ class VarlenEntry {
    */
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
- private:
+// private:
   int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined

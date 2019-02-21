@@ -105,12 +105,12 @@ struct StorageTestUtil {
             FillWithRandomBytes(size, varlen, generator);
             // varlen entries always start off not inlined
             *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
-                storage::VarlenEntry::CreateEntry(varlen, size, true);
+                storage::VarlenEntry::Create(varlen, size, true);
           } else {
             byte buf[storage::VarlenEntry::InlineThreshold()];
             FillWithRandomBytes(size, buf, generator);
             *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
-                storage::VarlenEntry::CreateEntryInline(buf, size);
+                storage::VarlenEntry::CreateInline(buf, size);
           }
         } else {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
@@ -197,7 +197,7 @@ struct StorageTestUtil {
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
         printf("col_id: %u is varlen, ptr %p, size %u, reclaimable %d, content ", !col_id, entry->Content(),
-               entry->Size(), entry->IsReclaimable());
+               entry->Size(), entry->NeedReclaim());
         for (uint8_t pos = 0; pos < entry->Size(); pos++) printf("%02x", static_cast<uint8_t>(entry->Content()[pos]));
         printf("\n");
       } else {

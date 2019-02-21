@@ -144,12 +144,12 @@ class SqlTableRW {
     size_t size = strlen(st);
     if (size <= storage::VarlenEntry::InlineThreshold()) {
       *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-          storage::VarlenEntry::CreateEntryInline(reinterpret_cast<const byte *>(st), size);
+          storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(st), size);
     } else {
       byte *varlen = common::AllocationUtil::AllocateAligned(size);
       std::memcpy(varlen, st, size);
       *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-          storage::VarlenEntry::CreateEntry(varlen, static_cast<uint32_t>(size), true);
+          storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
     }
   }
 
