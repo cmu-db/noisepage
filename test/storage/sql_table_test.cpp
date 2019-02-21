@@ -141,7 +141,7 @@ class SqlTableRW {
   void SetVarcharColInRow(int32_t col_num, const char *st) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     // string size, without null terminator
-    size_t size = strlen(st);
+    auto size = static_cast<uint32_t>(strlen(st));
     if (size <= storage::VarlenEntry::InlineThreshold()) {
       *reinterpret_cast<storage::VarlenEntry *>(col_p) =
           storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(st), size);
