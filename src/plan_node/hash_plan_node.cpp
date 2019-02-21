@@ -6,7 +6,9 @@ common::hash_t HashPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  for (auto &hash_key : hash_keys_) hash = common::HashUtil::CombineHashes(hash, hash_key->Hash());
+  for (auto &hash_key : hash_keys_) {
+    hash = common::HashUtil::CombineHashes(hash, hash_key->Hash());
+  }
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }

@@ -55,21 +55,25 @@ enum class PlanNodeType {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(catalog::Schema output_schema);
+  AbstractPlanNode(catalog::Schema output_schema) : output_schema_(output_schema) {}
 
-  virtual ~AbstractPlanNode();
+  virtual ~AbstractPlanNode() {}
 
   //===--------------------------------------------------------------------===//
   // Children Helpers
   //===--------------------------------------------------------------------===//
 
-  void AddChild(std::unique_ptr<AbstractPlanNode> &&child);
+  void AddChild(std::unique_ptr<AbstractPlanNode> &&child) { children_.emplace_back(std::move(child)); }
 
-  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const;
+  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
 
   size_t GetChildrenSize() const { return children_.size(); }
 
-  const AbstractPlanNode *GetChild(uint32_t child_index) const;
+  const AbstractPlanNode *GetChild(uint32_t child_index) const {
+    TERRIER_ASSERT(child_index < children_.size(),
+                   "index into children of plan node should be less than number of children");
+    return children_[child_index].get();
+  }
 
   //===--------------------------------------------------------------------===//
   // Accessors
@@ -95,9 +99,23 @@ class AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
-  virtual common::hash_t Hash() const;
+  virtual common::hash_t Hash() const {
+    common::hash_t hash = 0;
+    for (auto &child : GetChildren()) {
+      hash = common::HashUtil::CombineHashes(hash, child->Hash());
+    }
+    return hash;
+  }
 
-  virtual bool operator==(const AbstractPlanNode &rhs) const;
+  virtual bool operator==(const AbstractPlanNode &rhs) const {
+    auto num = GetChildren().size();
+    if (num != rhs.GetChildren().size()) return false;
+    for (unsigned int i = 0; i < num; i++) {
+      if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i)) return false;
+    }
+    return true;
+  }
+
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
