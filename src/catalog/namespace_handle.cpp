@@ -40,7 +40,7 @@ TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
+  return TableHandle(catalog_, db_oid_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }
