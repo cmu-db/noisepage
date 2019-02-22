@@ -6,48 +6,11 @@
 
 #include "catalog/schema.h"
 #include "common/hash_util.h"
+#include "plan_node_defs.h"
+
+// TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
 
 namespace terrier::plan_node {
-
-//===--------------------------------------------------------------------===//
-// Plan Node Types
-//===--------------------------------------------------------------------===//
-
-enum class PlanNodeType {
-
-  INVALID = 0,
-
-  // Scan Nodes
-  SEQSCAN,
-  INDEXSCAN,
-  CSVSCAN,
-
-  // Join Nodes
-  NESTLOOP,
-  HASHJOIN,
-
-  // Mutator Nodes
-  UPDATE,
-  INSERT,
-  DELETE,
-
-  // DDL Nodes
-  DROP,
-  CREATE,
-  POPULATE_INDEX,
-  ANALYZE,
-
-  // Algebra Nodes
-  AGGREGATE,
-  ORDERBY,
-  PROJECTION,
-  LIMIT,
-  DISTINCT,
-  HASH,
-
-  // Test
-  MOCK
-};
 
 //===--------------------------------------------------------------------===//
 // Abstract Plan Node
