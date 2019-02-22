@@ -36,8 +36,7 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
   const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
   auto db_handle = catalog_->GetDatabaseHandle();
-  auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid)
-      .GetTableHandle(txn_, "pg_catalog");
+  auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "pg_catalog");
   auto attribute_handle = table_handle.GetAttributeHandle(txn_, "pg_database");
 
   // pg_database has columns: oid | datname
@@ -45,11 +44,10 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   EXPECT_NE(attribute_entry_ptr, nullptr);
 
   // the oid should belongs to pg_database table
-  uint32_t  rel_id = attribute_entry_ptr->GetColumn(1).GetIntValue();
+  uint32_t rel_id = attribute_entry_ptr->GetColumn(1).GetIntValue();
   EXPECT_EQ(rel_id, !table_handle.NameToOid(txn_, "pg_database"));
 
   // pg_database doesn't have column "attrelid". Searching for such column should result in an exception.
   EXPECT_THROW(attribute_handle.GetAttributeEntry(txn_, "attrlid"), CatalogException);
-
 }
 }  // namespace terrier

@@ -15,8 +15,7 @@ namespace terrier::catalog {
 class Catalog;
 /**
  * A attribute handle contains information about all the attributes in a table. It is used to
- * retrieve attribute related information and it serves as the entry point for access the tables
- * under different attributes.
+ * retrieve attribute related information. It presents a part of pg_attribute.
  *
  * pg_attribute:
  *      oid | attrelid | attname | atttypid | attlen | attnum
@@ -30,7 +29,7 @@ class AttributeHandle {
    public:
     /**
      * Constructs a attribute entry.
-     * @param oid the col_oid of the underlying database
+     * @param oid the col_oid of the attribute
      * @param entry: the row as a vector of values
      */
     AttributeEntry(col_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
@@ -43,8 +42,8 @@ class AttributeHandle {
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
-     * Return the col_oid of the underlying database
-     * @return col_oid of the database
+     * Return the col_oid of the attribute
+     * @return col_oid of the attribute
      */
     col_oid_t GetAttributeOid() { return oid_; }
 
@@ -55,12 +54,11 @@ class AttributeHandle {
 
   /**
    * Construct a attribute handle. It keeps a pointer to the pg_attribute sql table.
-   * @param catalog a pointer to the catalog
-   * @param oid the db oid of the underlying database
+   * @param table a pointer to SqlTableRW
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
-  explicit AttributeHandle(Catalog *catalog, SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
-      : catalog_(catalog), table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
+  explicit AttributeHandle(SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
+      : table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
 
   /**
    * Convert a attribute string to its oid representation
@@ -93,7 +91,7 @@ class AttributeHandle {
   std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, const std::string &name);
 
  private:
-  Catalog *catalog_;
+  //  Catalog *catalog_;
   SqlTableRW *table_;
   std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
 };

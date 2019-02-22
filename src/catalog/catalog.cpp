@@ -82,7 +82,7 @@ void Catalog::SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> 
 }
 
 void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                      std::shared_ptr<storage::SqlTable> table) {
+                                      const std::shared_ptr<storage::SqlTable> &table) {
   Schema schema = table->GetSchema();
   std::vector<Schema::Column> cols = schema.GetColumns();
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
