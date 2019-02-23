@@ -260,7 +260,7 @@ void LargeTransactionTestObject::CheckTransactionReadCorrect(RandomWorkloadTrans
   EXPECT_TRUE(transaction::TransactionUtil::NewerThan(start_time, version_timestamp));
   for (auto &entry : txn->selects_) {
     auto it = before_snapshot.find(entry.first);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(layout_, entry.second, it->second));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout_, entry.second, it->second));
   }
 }
 

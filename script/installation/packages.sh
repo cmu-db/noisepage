@@ -77,11 +77,21 @@ install_mac() {
   brew ls --versions jemalloc || brew install jemalloc
   (brew ls --versions llvm | grep 6) || brew install llvm@6
   brew ls --versions tbb || brew install tbb
+  brew ls --versions apache-arrow || brew install apache-arrow
 }
 
 install_linux() {
   # Update apt-get.
   apt-get -y update
+  # Arrow crap
+  apt-get install -y -V apt-transport-https lsb-release
+  wget -O /usr/share/keyrings/apache-arrow-keyring.gpg https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-keyring.gpg
+  tee /etc/apt/sources.list.d/apache-arrow.list
+  deb [arch=amd64 signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
+  deb-src [signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
+
+  apt-get -y update
+  # end of Arrrow crap
   # Install packages.
   apt-get -y install \
       build-essential \
@@ -95,8 +105,14 @@ install_linux() {
       libboost-filesystem-dev \
       libjemalloc-dev \
       libtbb-dev \
+<<<<<<< HEAD
       zlib1g-dev \
       llvm-6.0
+=======
+      libz-dev \
+      llvm-6.0 \
+      libarrow-dev
+>>>>>>> 61a056fb823b20154316e40d95055205a01d4455
 }
 
 main "$@"

@@ -14,10 +14,12 @@ struct ArrowVarlenColumn {
   // is less than ideal but will do for now.
 
   void Allocate(uint32_t num_values, uint32_t total_size) {
+    varlen_size_ = total_size;
     offsets_ = new uint32_t[num_values + 1];
     values_ = common::AllocationUtil::AllocateAligned(total_size);
   }
 
+  uint32_t varlen_size_;
   uint32_t *offsets_ = nullptr;
   byte *values_ = nullptr;
 };
@@ -86,7 +88,11 @@ class ArrowBlockMetadata {
 
   uint32_t &NumRecords() { return num_records_; }
 
+  uint32_t NumRecords() const { return num_records_; }
+
   uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
+
+  uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
 
   ArrowVarlenColumn &GetVarlenColumn(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
