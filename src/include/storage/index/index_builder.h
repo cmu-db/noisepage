@@ -107,7 +107,6 @@ class IndexBuilder {
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
   }
-
 };  // class Builder
 
 }  // namespace terrier::storage::index

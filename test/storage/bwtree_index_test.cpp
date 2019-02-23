@@ -87,7 +87,8 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
   builder.SetOid(catalog::index_oid_t(1));
   builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
 
-  auto init = storage::ProjectedRowInitializer(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+  auto init = storage::ProjectedRowInitializer(
+      storage::ProjectedRowInitializer::PreparePRInit(layout, StorageTestUtil::ProjectionListAllColumns(layout)));
   auto *redo_buffer = common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
   auto *redo = init.InitializeRow(redo_buffer);
   StorageTestUtil::PopulateRandomRow(redo, layout, 0.0, &generator);

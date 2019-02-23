@@ -160,6 +160,12 @@ class PACKED ProjectedRow {
  */
 class ProjectedRowInitializer {
  public:
+  // TODO(WAN): names are hard
+  struct PRInitCreator {
+    std::vector<uint8_t> attr_sizes;
+    std::vector<col_id_t> col_ids;
+  };
+
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
@@ -173,7 +179,7 @@ class ProjectedRowInitializer {
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
-  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
+  explicit ProjectedRowInitializer(PRInitCreator creator);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer
@@ -196,6 +202,10 @@ class ProjectedRowInitializer {
    * @return column ids at the given offset in the projection list
    */
   col_id_t ColId(uint16_t i) const { return col_ids_.at(i); }
+
+  static PRInitCreator PreparePRInit(const BlockLayout &layout, std::vector<col_id_t> col_ids);
+
+  static PRInitCreator PreparePRInit(std::vector<uint8_t> attr_sizes);
 
  private:
   uint32_t size_ = 0;

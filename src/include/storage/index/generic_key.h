@@ -2,6 +2,7 @@
 
 #include <boost/functional/hash.hpp>
 #include <cstring>
+#include <functional>
 #include <vector>
 
 #include "storage/projected_row.h"
