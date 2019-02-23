@@ -37,11 +37,11 @@ class BlockCompactor {
      * @param col_id is the corresponding column id.
      * @param offset is the slot offset.
      */
-    void AddVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
-      if (indices_[col_id][*varlen].empty()) {
-        total_varlen_sizes_[col_id] += varlen->Size();
-      }
-      indices_[col_id][*varlen].emplace_back(idx);
+    void AddVarlen(VarlenEntry *, col_id_t, uint32_t) {
+//      if (indices_[col_id][*varlen].empty()) {
+//        total_varlen_sizes_[col_id] += varlen->Size();
+//      }
+//      indices_[col_id][*varlen].emplace_back(idx);
     }
 
     std::vector<TupleSlot> filled_, empty_;
@@ -309,8 +309,10 @@ class BlockCompactor {
             if (varlen == nullptr) {
               update->Delta()->SetNull(i);
             } else {
-              *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) = {
-                  dict_col.values_ + offset_in_values_buffer, varlen->Size(), true};
+              *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) =
+                  varlen->Size() > VarlenEntry::InlineThreshold()
+                  ? VarlenEntry::Create(dict_col.values_ + offset_in_values_buffer, varlen->Size(), false)
+                  : VarlenEntry::CreateInline(dict_col.values_ + offset_in_values_buffer, varlen->Size());
             }
             if (!cg->table_->Update(cg->txn_, slot, *update->Delta())) return false;
           }

@@ -73,6 +73,17 @@ class TupleAccessStrategy {
       return reinterpret_cast<MiniBlock *>(head);
     }
 
+    // return reference to num_slots. Use as a member.
+    uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
+
+    // return reference to attr_offsets. Use as an array.
+    uint32_t *AttrOffsets() { return &NumSlots() + 1; }
+
+    // return reference to num_attrs. Use as a member.
+    uint16_t &NumAttrs(const BlockLayout &layout) {
+      return *reinterpret_cast<uint16_t *>(AttrOffsets() + layout.NumColumns());
+    }
+
     RawBlock block_;
   };
 

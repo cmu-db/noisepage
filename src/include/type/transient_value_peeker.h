@@ -1,0 +1,122 @@
+#pragma once
+
+#include "type/transient_value.h"
+#include "type/type_id.h"
+
+namespace terrier::type {
+
+/**
+ * TransientValuePeeker is the static class for generating C types from corresponding SQL types stored in
+ * TransientValues.
+ */
+class TransientValuePeeker {
+ public:
+  TransientValuePeeker() = delete;
+
+  /**
+   * @param value TransientValue with TypeId BOOLEAN to generate a C type for
+   * @return bool representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline bool PeekBoolean(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::BOOLEAN, "TypeId mismatch.");
+    return value.GetAs<bool>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId TINYINT to generate a C type for
+   * @return int8_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline int8_t PeekTinyInt(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::TINYINT, "TypeId mismatch.");
+    return value.GetAs<int8_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId SMALLINT to generate a C type for
+   * @return int16_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline int16_t PeekSmallInt(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::SMALLINT, "TypeId mismatch.");
+    return value.GetAs<int16_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId INTEGER to generate a C type for
+   * @return int32_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline int32_t PeekInteger(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::INTEGER, "TypeId mismatch.");
+    return value.GetAs<int32_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId BIGINT to generate a C type for
+   * @return int64_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline int64_t PeekBigInt(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::BIGINT, "TypeId mismatch.");
+    return value.GetAs<int64_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId DECIMAL to generate a C type for
+   * @return double representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline double PeekDecimal(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::DECIMAL, "TypeId mismatch.");
+    return value.GetAs<double>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId TIMESTAMP to generate a C type for
+   * @return timestamp_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline timestamp_t PeekTimestamp(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::TIMESTAMP, "TypeId mismatch.");
+    return value.GetAs<timestamp_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId DATE to generate a C type for
+   * @return date_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline date_t PeekDate(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::DATE, "TypeId mismatch.");
+    return value.GetAs<date_t>();
+  }
+
+  /**
+   * @param value TransientValue with TypeId VARCHAR to generate a C type for
+   * @return C string representing the value of the TransientValue. This null-terminated C string lives on the heap, and
+   * should be freed after use by the caller.
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static inline const char *const PeekVarChar(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::VARCHAR, "TypeId mismatch.");
+    const auto *const varchar = value.GetAs<const char *const>();
+    const uint32_t length = *reinterpret_cast<const uint32_t *const>(varchar);
+    auto *const cstring = new char[length + 1];
+    std::memcpy(cstring, varchar + sizeof(uint32_t), length);
+    cstring[length] = '\0';
+    return cstring;
+  }
+};
+
+}  // namespace terrier::type

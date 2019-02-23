@@ -19,8 +19,8 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
                  "number of columns must be between 1 and 32767");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
-  // This is always safe because we know there are at last 2 columns
-  std::sort(attr_sizes_.begin() + 1, attr_sizes_.end(), std::greater<>());
+  // skip the reserved columns because we still want those first and shouldn't mess up 8-byte alignment
+  std::sort(attr_sizes_.begin() + NUM_RESERVED_COLUMNS, attr_sizes_.end(), std::greater<>());
   for (uint32_t i = 0; i < attr_sizes_.size(); i++)
     if (attr_sizes_[i] == VARLEN_COLUMN) varlens_.emplace_back(i);
 }
