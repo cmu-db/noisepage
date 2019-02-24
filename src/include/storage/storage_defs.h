@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/hash_util.h>
 #include <algorithm>
 #include <functional>
 #include <ostream>
@@ -264,6 +265,50 @@ class VarlenEntry {
 // To make sure our explicit padding is not screwing up the layout
 static_assert(sizeof(VarlenEntry) == 16, "size of the class should be 16 bytes");
 
+/**
+ * Equality checker that checks the underlying varlen bytes are equal (deep)
+ */
+struct VarlenContentDeepEqual {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether the two varlen entries hold the same underlying value
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) {
+    if (lhs.Size() != rhs.Size()) return false;
+    // TODO(Tianyu): Can optimize using prefixes
+    return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
+  }
+};
+
+/**
+ * Hasher that hashes the entry using the underlying varlen value
+ */
+struct VarlenContentHasher {
+  size_t operator()(const VarlenEntry &obj) { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+};
+
+/**
+ * Lexicographic comparison of two varlen entries.
+ */
+struct VarlenContentCompare {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether lhs < rhs in lexicographic order
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) {
+    // Compare up to the minimum of the two sizes
+    int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
+    if (res == 0) {
+      // Shorter wins. If the two are equal, also return false.
+      return lhs.Size() < rhs.Size();
+    }
+    return res < 0;
+  }
+};
 }  // namespace terrier::storage
 
 namespace std {

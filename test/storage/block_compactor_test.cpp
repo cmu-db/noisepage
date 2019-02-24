@@ -4,7 +4,6 @@
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
-#include "storage/garbage_collector.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
@@ -84,7 +83,7 @@ TEST_F(BlockCompactorTest, SingleBlockTest) {
   // All tuples from the original block should have been accounted for.
   EXPECT_TRUE(tuples.empty());
   gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection(); // Second call to deallocate.
+  gc.PerformGarbageCollection();  // Second call to deallocate.
 }
 
 }  // namespace terrier

@@ -1,9 +1,9 @@
 #pragma once
 #include <map>
+#include <unordered_set>
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
-#include <unordered_set>
 
 namespace terrier::storage {
 
@@ -24,6 +24,16 @@ struct ArrowVarlenColumn {
   byte *values_ = nullptr;
 };
 
+// TODO(Tianyu): Can use to specify cases where we don't concat per-block in the future (e.g. no need to put
+//  blob into Arrow)
+enum class ArrowColumnType : uint8_t { FIXED_LENGTH = 0, GATHERED_VARLEN, DICTIONARY_COMPRESSED };
+
+struct ArrowColumnInfo {
+  ArrowColumnType type_;
+  ArrowVarlenColumn varlen_column_;  // For varlen and dictionary
+  uint32_t *indices_ = nullptr;      // for dictionary
+};
+
 struct ArrowDictColumn {
   /**
    * Allocates a dictionary column in Arrow.
@@ -31,7 +41,8 @@ struct ArrowDictColumn {
    * @param total_size is the total length of varlen values.
    * @param indices maps each varlen to the indices where it occurs
    */
-  void Allocate(uint32_t num_values, uint32_t total_size, const std::map<VarlenEntry, std::unordered_set<uint32_t>> &indices) {
+  void Allocate(uint32_t num_values, uint32_t total_size,
+                const std::map<VarlenEntry, std::unordered_set<uint32_t>> &indices) {
     values_length_ = total_size;
     indices_ = new uint32_t[num_values];
     offsets_ = new uint32_t[indices.size() + 1];
@@ -53,8 +64,6 @@ struct ArrowDictColumn {
     offsets_[curr_idx] = curr_offset;
   }
 
-  // TODO (Amadou): Update the id after the schemas are in place.
-  uint32_t id_;
   // TODO (Amadou): Check if I need to store the number of records and the nullbitvector.
   // But it looks like the block already has metadata about these.
   uint32_t values_length_;
@@ -78,7 +87,7 @@ class ArrowBlockMetadata {
 
   static uint32_t Size(uint16_t num_cols) {
     return StorageUtil::PadUpToSize(sizeof(uint64_t), static_cast<uint32_t>(sizeof(uint32_t)) * (num_cols + 1)) +
-           num_cols * static_cast<uint32_t>(sizeof(ArrowDictColumn));
+           num_cols * static_cast<uint32_t>(sizeof(ArrowColumnInfo));
   }
 
   void Initialize(uint16_t num_cols) {
@@ -94,16 +103,10 @@ class ArrowBlockMetadata {
 
   uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
 
-  ArrowVarlenColumn &GetVarlenColumn(const BlockLayout &layout, col_id_t col_id) {
+  ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowVarlenColumn *>(null_count_end)[!col_id];
-  }
-
-  ArrowDictColumn &GetDictColumn(const BlockLayout &layout, col_id_t col_id) {
-    byte *null_count_end =
-        storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowDictColumn *>(null_count_end)[!col_id];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
   }
 
  private:

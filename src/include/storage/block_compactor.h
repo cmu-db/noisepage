@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <forward_list>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -9,8 +10,6 @@
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include <iostream>
-
 
 namespace terrier::storage {
 
@@ -22,6 +21,9 @@ namespace terrier::storage {
  */
 class BlockCompactor {
  private:
+  // We cannot use sorted set because that still does not provide us with an index lookup given a key, which we need
+  // for the dictionary code.
+  using FrequencyCount = std::unordered_map<VarlenEntry, uint32_t, VarlenContentHasher, VarlenContentDeepEqual>;
   static void NoOp(void * /*unused*/) {}
 
   // We have to write down a variety of information and pass them around between stages of compaction.
@@ -35,37 +37,13 @@ class BlockCompactor {
       new_block_metadata_->Initialize(layout.NumColumns());
     }
 
-    /**
-     * Add a varlen to the total count if it has not been encountered yet and update indices.
-     * @param varlen is the VarlenEntry to add.
-     * @param col_id is the corresponding column id.
-     * @param idx is the slot offset.
-     */
-    void AddVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
-      if (indices_[col_id][*varlen].empty()) {
-        total_varlen_sizes_[col_id] += varlen->Size();
-      }
-      indices_[col_id][*varlen].emplace(idx);
-    }
-
-    /**
-     * Remove an index corresponding to a varlen, and decrease the total count if the reference count goes to 0.
-     * @param varlen if the VarlenEntry to remove.
-     * @param col_id is the corresponding column id.
-     * @param idx is the slot offset.
-     */
-    void RemoveVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
-      indices_[col_id][*varlen].erase(idx);
-      if (indices_[col_id][*varlen].empty()) {
-        total_varlen_sizes_[col_id] -= varlen->Size();
-      }
-    }
-
     std::vector<TupleSlot> filled_, empty_;
+    // This map is used to keep track of the length of the varlen buffer we need to allocate. Its meaning changes
+    // based on whether we are merely gathering or compressing. When compressing, we only count distinct varlen lengths.
     std::unordered_map<col_id_t, uint32_t> total_varlen_sizes_;
+    // This is unused unless we are dictionary encoding
+    std::unordered_map<col_id_t, FrequencyCount> dictionary_corpus_;
     ArrowBlockMetadata *new_block_metadata_;
-    // For each column, map unique varlens to their corresponding indices.
-    std::unordered_map<col_id_t, std::map<VarlenEntry, std::unordered_set<uint32_t>>> indices_;
   };
 
   // A Compaction group is a series of blocks all belonging to the same data table. We compact them together
@@ -154,6 +132,7 @@ class BlockCompactor {
       BlockCompactionTask &task = entry.second;
       TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(),
                      "The block should be full to stop inserts from coming in");
+      ArrowBlockMetadata &metadata = accessor.GetArrowBlockMetadata(block);
       // We will loop through each block and figure out if we are safe to proceed with compaction and identify
       // any gaps
       for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
@@ -177,17 +156,36 @@ class BlockCompactor {
           task.filled_.push_back(slot);
           // If the tuple is present, we also need to count the size of all the varlens and nulls. This count needs to
           // be adjusted as we shuffle tuples around blocks to fill gaps and will not be final count.
-          if (!layout.Varlens().empty()) {
-            bool valid UNUSED_ATTRIBUTE = cg->table_->Select(cg->txn_, slot, cg->read_buffer_);
-            TERRIER_ASSERT(valid, "this read should not return an invisible tuple");
-            for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
-              col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
-              byte *entry = cg->read_buffer_->AccessWithNullCheck(i);
-              if (entry == nullptr) task.new_block_metadata_->NullCount(col_id)++;
-              if (layout.IsVarlen(col_id)) {
-                auto *varlen = reinterpret_cast<VarlenEntry *>(cg->read_buffer_->AccessWithNullCheck(i));
-                task.total_varlen_sizes_[col_id] += (varlen == nullptr ? 0 : varlen->Size());
+          // TODO(Tianyu): Can modify to use scan instead of select for performance
+          bool valid UNUSED_ATTRIBUTE = cg->table_->Select(cg->txn_, slot, cg->read_buffer_);
+          TERRIER_ASSERT(valid, "this read should not return an invisible tuple");
+          for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
+            col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
+            byte *attr = cg->read_buffer_->AccessWithNullCheck(i);
+            if (attr == nullptr) {
+              task.new_block_metadata_->NullCount(col_id)++;
+              continue;
+            }
+            ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+            switch (col_info.type_) {
+              case ArrowColumnType::GATHERED_VARLEN: {
+                TERRIER_ASSERT(layout.IsVarlen(col_id), "Only varlens can be gathered");
+                auto *varlen = reinterpret_cast<VarlenEntry *>(attr);
+                task.total_varlen_sizes_[col_id] += varlen->Size();
+                break;
               }
+              case ArrowColumnType::DICTIONARY_COMPRESSED: {
+                TERRIER_ASSERT(layout.IsVarlen(col_id), "Only varlens can be dictionary compressed");
+                auto *varlen = reinterpret_cast<VarlenEntry *>(attr);
+                auto &freq_count = task.dictionary_corpus_[col_id][*varlen];
+                if (freq_count == 0) task.total_varlen_sizes_[col_id] += varlen->Size();
+                freq_count++;
+                break;
+              }
+              case ArrowColumnType::FIXED_LENGTH:
+                break;  // no operation required
+              default:
+                throw std::runtime_error("Unexpected arrow column type");
             }
           }
         }
@@ -261,8 +259,29 @@ class BlockCompactor {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
             giver_bct.new_block_metadata_->NullCount(col_id)--;
           } else {
-            taker_bct.AddVarlen(varlen, col_id, empty_slot.GetOffset());
-            giver_bct.RemoveVarlen(varlen, col_id, filled_slot.GetOffset());
+            ArrowColumnInfo &col_info = taker_bct.new_block_metadata_->GetColumnInfo(layout, col_id);
+            switch (col_info.type_) {
+              case ArrowColumnType::GATHERED_VARLEN:
+                giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
+                taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
+                break;
+              case ArrowColumnType::DICTIONARY_COMPRESSED: {
+                auto &giver_freq_count = giver_bct.dictionary_corpus_[col_id][*varlen];
+                giver_freq_count--;
+                if (giver_freq_count == 0) {
+                  giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
+                  giver_bct.dictionary_corpus_[col_id].erase(*varlen);
+                }
+                auto &taker_freq_count = taker_bct.dictionary_corpus_[col_id][*varlen];
+                if (taker_freq_count == 0) taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
+                taker_freq_count++;
+                break;
+              }
+              case ArrowColumnType::FIXED_LENGTH:
+                break;  // no operation required
+              default:
+                throw std::runtime_error("Unexpected arrow column type");
+            }
           }
         }
         taker_bct.new_block_metadata_->NumRecords()++;
@@ -306,12 +325,55 @@ class BlockCompactor {
         RawBlock *block = entry.first;
         BlockCompactionTask &bct = entry.second;
         // allocate varlen buffers for update
-        for (col_id_t col_id : layout.Varlens())
-          bct.new_block_metadata_->GetVarlenColumn(layout, col_id)
-              .Allocate(bct.new_block_metadata_->NumRecords(), bct.total_varlen_sizes_[col_id]);
+        for (col_id_t col_id : layout.Varlens()) {
+          ArrowColumnInfo &col_info = bct.new_block_metadata_->GetColumnInfo(layout, col_id);
+          switch (col_info.type_) {
+            case ArrowColumnType::GATHERED_VARLEN:
+              col_info.varlen_column_.Allocate(bct.new_block_metadata_->NumRecords(), bct.total_varlen_sizes_[col_id]);
+              break;
+            case ArrowColumnType::DICTIONARY_COMPRESSED:
+              col_info.varlen_column_.Allocate(bct.dictionary_corpus_[col_id].size(), bct.total_varlen_sizes_[col_id]);
+              col_info.indices_ = reinterpret_cast<uint32_t *>(
+                  common::AllocationUtil::AllocateAligned(bct.new_block_metadata_->NumRecords() * sizeof(uint32_t)));
+              break;
+            default:
+              throw std::runtime_error("Unexpected arrow column type");
+          }
+        }
         // This will accumulate the prefix sum of varlen sizes that we need as the offsets array for arrow
         std::unordered_map<col_id_t, uint32_t> acc;
-        for (col_id_t varlen_col_id : layout.Varlens()) acc[varlen_col_id] = 0;
+        std::unordered_map<col_id_t,
+                           std::unordered_map<VarlenEntry, uint32_t, VarlenContentHasher, VarlenContentDeepEqual>>
+            index_map;
+        for (col_id_t varlen_col_id : layout.Varlens()) {
+          ArrowColumnInfo &col_info = bct.new_block_metadata_->GetColumnInfo(layout, varlen_col_id);
+          switch (col_info.type_) {
+            case ArrowColumnType::GATHERED_VARLEN:
+              acc[varlen_col_id] = 0;
+              break;
+            case ArrowColumnType::DICTIONARY_COMPRESSED: {
+              std::vector<VarlenEntry> unique_varlens;
+              for (const auto &entry : bct.dictionary_corpus_) {
+                unique_varlens.emplace_back(entry.first);
+              }
+              std::sort(unique_varlens.begin(), unique_varlens.end(), VarlenContentCompare());
+              uint32_t offset = 0;
+              for (uint32_t idx = 0; idx < unique_varlens.size(); idx++) {
+                VarlenEntry &varlen = unique_varlens[idx];
+                index_map[varlen_col_id][varlen] = idx;
+                col_info.varlen_column_.offsets_[idx] = offset;
+                std::memcpy(col_info.varlen_column_.values_ + offset, varlen.Content(), varlen.Size());
+                offset += varlen.Size();
+              }
+              TERRIER_ASSERT(offset == bct.total_varlen_sizes_[varlen_col_id],
+                             "Final offset should be the same as the total size");
+              col_info.varlen_column_.offsets_[unique_varlens.size()] = offset;
+              break;
+            }
+            default:
+              throw std::runtime_error("Unexpected arrow column type");
+          }
+        }
 
         // Scan through all the tuples and copy them if there are varlens.
         for (uint32_t offset = 0; offset < bct.new_block_metadata_->NumRecords(); offset++) {
@@ -323,33 +385,50 @@ class BlockCompactor {
           RedoRecord *update = cg->txn_->StageWrite(cg->table_, slot, varlens_initializer);
           for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
             col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
-            ArrowDictColumn &dict_col = bct.new_block_metadata_->GetDictColumn(layout, col_id);
-            std::cout << "SSSSSSS" << std::endl;
-            uint32_t offset_in_values_buffer = dict_col.offsets_[dict_col.indices_[offset]];
-            std::cout << "SSSSSSS1" << std::endl;
+            TERRIER_ASSERT(layout.IsVarlen(col_id), "Read buffer should only have varlens");
+            ArrowColumnInfo &col_info = bct.new_block_metadata_->GetColumnInfo(layout, col_id);
             auto *varlen = reinterpret_cast<VarlenEntry *>(cg->read_buffer_->AccessWithNullCheck(i));
             if (varlen == nullptr) {
               update->Delta()->SetNull(i);
             } else {
-              // If the old varlen is not gathered, it will be GCed by the normal transaction code path. Otherwise,
-              // we will replace and delete the old varlen buffer and we should be okay
-              memcpy(varlen_col.values_ + offset_in_values_buffer, varlen->Content(), varlen->Size());
-              *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) =
-                  varlen->Size() > VarlenEntry::InlineThreshold()
-                      ? VarlenEntry::Create(varlen_col.values_ + offset_in_values_buffer, varlen->Size(), false)
-                      : VarlenEntry::CreateInline(varlen_col.values_ + offset_in_values_buffer, varlen->Size());
-              acc[col_id] += varlen->Size();
+              switch (col_info.type_) {
+                case ArrowColumnType::GATHERED_VARLEN:
+                  // If the old varlen is not gathered, it will be GCed by the normal transaction code path. Otherwise,
+                  // we will replace and delete the old varlen buffer and we should be okay
+                  memcpy(col_info.varlen_column_.values_ + acc[col_id], varlen->Content(), varlen->Size());
+                  *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) =
+                      varlen->Size() > VarlenEntry::InlineThreshold()
+                          ? VarlenEntry::Create(col_info.varlen_column_.values_ + acc[col_id], varlen->Size(), false)
+                          : VarlenEntry::CreateInline(col_info.varlen_column_.values_ + acc[col_id], varlen->Size());
+                  acc[col_id] += varlen->Size();
+                  break;
+                case ArrowColumnType::DICTIONARY_COMPRESSED: {
+                  uint32_t index = col_info.indices_[offset] = index_map[col_id][*varlen];
+                  *reinterpret_cast<VarlenEntry *>(update->Delta()->AccessForceNotNull(i)) =
+                      varlen->Size() > VarlenEntry::InlineThreshold()
+                          ? VarlenEntry::Create(
+                                col_info.varlen_column_.values_ + col_info.varlen_column_.offsets_[index],
+                                varlen->Size(), false)
+                          : VarlenEntry::CreateInline(
+                                col_info.varlen_column_.values_ + col_info.varlen_column_.offsets_[index],
+                                varlen->Size());
+                  break;
+                }
+
+                default:
+                  throw std::runtime_error("Unexpected arrow column type");
+              }
             }
-            if (!cg->table_->Update(cg->txn_, slot, *update->Delta())) return false;
           }
+          if (!cg->table_->Update(cg->txn_, slot, *update->Delta())) return false;
         }
         // Need to write one last offsets to denote the end of the last varlen
-        for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
-          col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
+        for (col_id_t col_id : layout.Varlens()) {
+          ArrowColumnInfo &col_info = bct.new_block_metadata_->GetColumnInfo(layout, col_id);
+          if (col_info.type_ != ArrowColumnType::GATHERED_VARLEN) continue;
           TERRIER_ASSERT(bct.total_varlen_sizes_[col_id] == acc[col_id],
                          "Prefix sum result should match previous calculation");
-          bct.new_block_metadata_->GetVarlenColumn(layout, col_id).offsets_[bct.new_block_metadata_->NumRecords()] =
-              acc[col_id];
+          col_info.varlen_column_.offsets_[bct.new_block_metadata_->NumRecords()] = acc[col_id];
         }
       }
     }
@@ -370,10 +449,11 @@ class BlockCompactor {
       for (col_id_t varlen_col_id : layout.Varlens()) {
         // Depending on whether the compaction was successful, we either need to swap in the new metadata and
         // deallocate the old, or throw away the new one if compaction failed.
-        ArrowVarlenColumn &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
-                                     .GetVarlenColumn(layout, varlen_col_id);
-        cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.offsets_));
-        cg->txn_->loose_ptrs_.push_back(col.values_);
+        ArrowColumnInfo &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
+                                   .GetColumnInfo(layout, varlen_col_id);
+        cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.indices_));
+        cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.varlen_column_.offsets_));
+        cg->txn_->loose_ptrs_.push_back(col.varlen_column_.values_);
       }
       if (successful)
         memcpy(&accessor.GetArrowBlockMetadata(block), bct.new_block_metadata_,
