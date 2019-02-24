@@ -1,9 +1,9 @@
 #pragma once
-#include <list>
 #include <map>
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
+#include <unordered_set>
 
 namespace terrier::storage {
 
@@ -31,10 +31,10 @@ struct ArrowDictColumn {
    * @param total_size is the total length of varlen values.
    * @param indices maps each varlen to the indices where it occurs
    */
-  void Allocate(uint32_t num_values, uint32_t total_size, const std::map<VarlenEntry, std::list<uint32_t>> &indices) {
+  void Allocate(uint32_t num_values, uint32_t total_size, const std::map<VarlenEntry, std::unordered_set<uint32_t>> &indices) {
     values_length_ = total_size;
     indices_ = new uint32_t[num_values];
-    offsets_ = new uint32_t[num_values + 1];
+    offsets_ = new uint32_t[indices.size() + 1];
     values_ = common::AllocationUtil::AllocateAligned(total_size);
     uint32_t curr_offset = 0;
     uint32_t curr_idx = 0;
