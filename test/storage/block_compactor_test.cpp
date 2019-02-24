@@ -1,6 +1,7 @@
 #include "storage/block_compactor.h"
 #include <vector>
 #include "arrow/api.h"
+#include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/garbage_collector.h"
@@ -22,6 +23,7 @@ TEST_F(BlockCompactorTest, SingleBlockTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
   storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
+  // Enable GC to cleanup transactions started by the block compactor
   transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
   storage::GarbageCollector gc(&txn_manager);
 
@@ -60,7 +62,7 @@ TEST_F(BlockCompactorTest, SingleBlockTest) {
       }
     }
   }
-//  delete txn;
+  delete txn;
   delete[] buffer;
 
   for (auto *moved_row : moved_rows) {
@@ -81,9 +83,8 @@ TEST_F(BlockCompactorTest, SingleBlockTest) {
   }
   // All tuples from the original block should have been accounted for.
   EXPECT_TRUE(tuples.empty());
-  // Call twice to actually deallocate
   gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection(); // Second call to deallocate.
 }
 
 }  // namespace terrier

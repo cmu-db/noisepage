@@ -2,12 +2,15 @@
 #include <algorithm>
 #include <forward_list>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
+#include <iostream>
+
 
 namespace terrier::storage {
 
@@ -32,9 +35,37 @@ class BlockCompactor {
       new_block_metadata_->Initialize(layout.NumColumns());
     }
 
+    /**
+     * Add a varlen to the total count if it has not been encountered yet and update indices.
+     * @param varlen is the VarlenEntry to add.
+     * @param col_id is the corresponding column id.
+     * @param idx is the slot offset.
+     */
+    void AddVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
+      if (indices_[col_id][*varlen].empty()) {
+        total_varlen_sizes_[col_id] += varlen->Size();
+      }
+      indices_[col_id][*varlen].emplace(idx);
+    }
+
+    /**
+     * Remove an index corresponding to a varlen, and decrease the total count if the reference count goes to 0.
+     * @param varlen if the VarlenEntry to remove.
+     * @param col_id is the corresponding column id.
+     * @param idx is the slot offset.
+     */
+    void RemoveVarlen(VarlenEntry *varlen, col_id_t col_id, uint32_t idx) {
+      indices_[col_id][*varlen].erase(idx);
+      if (indices_[col_id][*varlen].empty()) {
+        total_varlen_sizes_[col_id] -= varlen->Size();
+      }
+    }
+
     std::vector<TupleSlot> filled_, empty_;
     std::unordered_map<col_id_t, uint32_t> total_varlen_sizes_;
     ArrowBlockMetadata *new_block_metadata_;
+    // For each column, map unique varlens to their corresponding indices.
+    std::unordered_map<col_id_t, std::map<VarlenEntry, std::unordered_set<uint32_t>>> indices_;
   };
 
   // A Compaction group is a series of blocks all belonging to the same data table. We compact them together
@@ -230,8 +261,8 @@ class BlockCompactor {
             taker_bct.new_block_metadata_->NullCount(col_id)++;
             giver_bct.new_block_metadata_->NullCount(col_id)--;
           } else {
-            taker_bct.total_varlen_sizes_[col_id] += varlen->Size();
-            giver_bct.total_varlen_sizes_[col_id] -= varlen->Size();
+            taker_bct.AddVarlen(varlen, col_id, empty_slot.GetOffset());
+            giver_bct.RemoveVarlen(varlen, col_id, filled_slot.GetOffset());
           }
         }
         taker_bct.new_block_metadata_->NumRecords()++;
@@ -292,8 +323,10 @@ class BlockCompactor {
           RedoRecord *update = cg->txn_->StageWrite(cg->table_, slot, varlens_initializer);
           for (uint16_t i = 0; i < cg->read_buffer_->NumColumns(); i++) {
             col_id_t col_id = cg->read_buffer_->ColumnIds()[i];
-            ArrowVarlenColumn &varlen_col = bct.new_block_metadata_->GetVarlenColumn(layout, col_id);
-            auto offset_in_values_buffer = varlen_col.offsets_[offset] = acc[col_id];
+            ArrowDictColumn &dict_col = bct.new_block_metadata_->GetDictColumn(layout, col_id);
+            std::cout << "SSSSSSS" << std::endl;
+            uint32_t offset_in_values_buffer = dict_col.offsets_[dict_col.indices_[offset]];
+            std::cout << "SSSSSSS1" << std::endl;
             auto *varlen = reinterpret_cast<VarlenEntry *>(cg->read_buffer_->AccessWithNullCheck(i));
             if (varlen == nullptr) {
               update->Delta()->SetNull(i);
@@ -345,6 +378,8 @@ class BlockCompactor {
       if (successful)
         memcpy(&accessor.GetArrowBlockMetadata(block), bct.new_block_metadata_,
                ArrowBlockMetadata::Size(layout.NumColumns()));
+      // Safe to delete
+      delete[] reinterpret_cast<byte *>(bct.new_block_metadata_);
     }
   }
 
