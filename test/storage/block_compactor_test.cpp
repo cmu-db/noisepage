@@ -3,12 +3,15 @@
 #include "arrow/api.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/garbage_collector.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier {
+struct BlockCompactorTest : public ::terrier::TerrierTest {};
+
 // NOLINTNEXTLINE
-TEST(BlockCompactorTest, SingleBlockTest) {
+TEST_F(BlockCompactorTest, SingleBlockTest) {
   std::default_random_engine generator;
   storage::BlockStore block_store{1, 1};
   storage::RawBlock *block = block_store.Get();
@@ -19,7 +22,8 @@ TEST(BlockCompactorTest, SingleBlockTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(&block_store, layout, storage::layout_version_t(0));
   storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
-  transaction::TransactionManager txn_manager(&buffer_pool, false, LOGGING_DISABLED);
+  transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
+  storage::GarbageCollector gc(&txn_manager);
 
   auto tuples = StorageTestUtil::PopulateBlockRandomly(layout, block, 0.1, &generator);
 
@@ -56,7 +60,7 @@ TEST(BlockCompactorTest, SingleBlockTest) {
       }
     }
   }
-
+//  delete txn;
   delete[] buffer;
 
   for (auto *moved_row : moved_rows) {
@@ -77,6 +81,9 @@ TEST(BlockCompactorTest, SingleBlockTest) {
   }
   // All tuples from the original block should have been accounted for.
   EXPECT_TRUE(tuples.empty());
+  // Call twice to actually deallocate
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();
 }
 
 }  // namespace terrier
