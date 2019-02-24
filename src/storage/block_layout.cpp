@@ -41,6 +41,11 @@ uint32_t BlockLayout::ComputeStaticHeaderSize() const {
 }
 
 uint32_t BlockLayout::ComputeNumSlots() const {
+  // TODO(Tianyu):
+  // We will have to subtract 8 bytes maximum padding for each column's bitmap. Subtracting another 1 to account for
+  // the padding at the end of each column. Somebody can come and fix
+  // this later, because I don't feel like thinking about this now.
+
   uint32_t bytes_available = common::Constants::BLOCK_SIZE - static_header_size_;
   // account for paddings up to 64 bits-aligned. There is padding between every bitmap and value field.
   // Each column has a bitmap and a value buffer. The first column can have padding against header. The
