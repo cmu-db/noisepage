@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "catalog/schema.h"
+#include "output_schema.h"
 #include "common/hash_util.h"
 #include "plan_node_defs.h"
 
@@ -18,7 +18,7 @@ namespace terrier::plan_node {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(catalog::Schema output_schema) : output_schema_(output_schema) {}
+  AbstractPlanNode(OutputSchema output_schema) : output_schema_(output_schema) {}
 
   virtual ~AbstractPlanNode() {}
 
@@ -48,7 +48,7 @@ class AbstractPlanNode {
 
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
-  catalog::Schema GetOutputSchema() const { return output_schema_; }
+  OutputSchema GetOutputSchema() const { return output_schema_; }
 
   // Get the estimated cardinality of this plan
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
@@ -87,7 +87,7 @@ class AbstractPlanNode {
 
   int estimated_cardinality_ = 500000;
 
-  catalog::Schema output_schema_;
+  OutputSchema output_schema_;
 
  private:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);

@@ -13,7 +13,7 @@ class HashPlanNode : public AbstractPlanNode {
   typedef const parser::AbstractExpression HashKeyType;
   typedef std::unique_ptr<HashKeyType> HashKeyPtrType;
 
-  HashPlanNode(catalog::Schema output_schema, std::vector<HashKeyPtrType> &hashkeys)
+  HashPlanNode(OutputSchema output_schema, std::vector<HashKeyPtrType> &hashkeys)
       : AbstractPlanNode(output_schema), hash_keys_(std::move(hashkeys)) {}
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
