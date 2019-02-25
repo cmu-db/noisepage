@@ -158,6 +158,7 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(FreeTest)) {
   }
 }
 
+// A basic test, registering a DataTable counter
 // NOLINTNEXTLINE
 TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
   terrier::storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
