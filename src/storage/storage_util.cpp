@@ -1,4 +1,5 @@
 #include "storage/storage_util.h"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -14,7 +15,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
   if (from == nullptr)
     to->SetNull(projection_list_index);
   else
-    memcpy(to->AccessForceNotNull(projection_list_index), from, size);
+    std::memcpy(to->AccessForceNotNull(projection_list_index), from, size);
 }
 
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
@@ -26,7 +27,7 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStr
   if (from == nullptr)
     accessor.SetNull(to, col_id);
   else
-    memcpy(accessor.AccessForceNotNull(to, col_id), from, accessor.GetBlockLayout().AttrSize(col_id));
+    std::memcpy(accessor.AccessForceNotNull(to, col_id), from, accessor.GetBlockLayout().AttrSize(col_id));
 }
 
 template <class RowType>
@@ -95,13 +96,21 @@ uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset
 
 // TODO(Tianyu): Rewrite these two functions to deal with varlens
 std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
-  uint16_t num_8_byte_attrs = NUM_RESERVED_COLUMNS;
+  uint16_t num_8_byte_attrs = 0;
   uint16_t num_4_byte_attrs = 0;
   uint16_t num_2_byte_attrs = 0;
   uint16_t num_1_byte_attrs = 0;
+  uint16_t num_varlen_byte_attrs = 0;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
-  std::vector<uint8_t> attr_sizes({8});
+  std::vector<uint8_t> attr_sizes;
+  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
+
+  for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+    attr_sizes.emplace_back(8);
+    num_8_byte_attrs++;
+  }
+
   TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
                  "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
@@ -121,18 +130,21 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
       case 1:
         num_1_byte_attrs++;
         break;
+      case VARLEN_COLUMN:
+        num_varlen_byte_attrs++;
       default:
         break;
     }
   }
 
   TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
-                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs,
+                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs + num_varlen_byte_attrs,
                  "Number of attr_sizes does not match the sum of attr counts.");
 
   // Initialize the offsets for each attr_size
-  uint16_t offset_8_byte_attrs = NUM_RESERVED_COLUMNS;
-  uint16_t offset_4_byte_attrs = num_8_byte_attrs;
+  auto offset_varlen_byte_attrs = static_cast<uint16_t>(NUM_RESERVED_COLUMNS);
+  auto offset_8_byte_attrs = static_cast<uint16_t>(offset_varlen_byte_attrs + num_varlen_byte_attrs);
+  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + (num_8_byte_attrs - NUM_RESERVED_COLUMNS));
   auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
   auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
 
@@ -152,8 +164,11 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
       case 1:
         col_oid_to_id[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
         break;
-      default:
+      case VARLEN_COLUMN:
+        col_oid_to_id[column.GetOid()] = col_id_t(offset_varlen_byte_attrs++);
         break;
+      default:
+        throw std::runtime_error("unexpected switch case value");
     }
   }
 

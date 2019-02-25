@@ -81,7 +81,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
-    TERRIER_MEMSET(raw_block_, 0, sizeof(storage::RawBlock));
+    std::memset(raw_block_, 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     storage::TupleSlot slot;
@@ -128,7 +128,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // store the values as a reference
     auto *copy_bufffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *copy = reinterpret_cast<storage::ProjectedRow *>(copy_bufffer);
-    memcpy(copy, old, initializer.ProjectedRowSize());
+    std::memcpy(copy, old, initializer.ProjectedRowSize());
 
     // the delta change to apply
     std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
@@ -194,7 +194,8 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
     EXPECT_EQ(layout.NumColumns(), column_map.size() + NUM_RESERVED_COLUMNS);
 
     // Verify that the BlockLayout's columns are sorted by attribute size in descending order
-    for (uint16_t i = 0; i < layout.NumColumns() - 1; i++) {
+    // Reserved columns precede all user defined columns, so exclude them.
+    for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns() - 1; i++) {
       EXPECT_GE(layout.AttrSize(storage::col_id_t(i)),
                 layout.AttrSize(storage::col_id_t(static_cast<uint16_t>(i + 1))));
     }
@@ -211,7 +212,9 @@ TEST_F(StorageUtilTests, BlockLayoutFromSchema) {
           std::find_if(schema.GetColumns().cbegin(), schema.GetColumns().cend(),
                        [&](const catalog::Schema::Column &col) -> bool { return col.GetOid() == col_oid; });
       // The attribute size in the schema should match the attribute size in the BlockLayout
-      EXPECT_EQ(schema_column->GetAttrSize(), layout.AttrSize(col_id));
+      // varlen columns have the high bit set, remove it
+      uint8_t sc_attr_size = schema_column->GetAttrSize() & INT8_MAX;
+      EXPECT_EQ(sc_attr_size, layout.AttrSize(col_id));
     }
   }
 }

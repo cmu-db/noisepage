@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/strong_typedef.h"
+#include "storage/block_layout.h"
 #include "type/type_id.h"
 
 namespace terrier::type {
@@ -26,7 +27,6 @@ class TypeUtil {
       case TypeId::SMALLINT:
         return 2;
       case TypeId::INTEGER:
-      case TypeId::PARAMETER_OFFSET:
       case TypeId::DATE:
         return 4;
       case TypeId::BIGINT:
@@ -34,9 +34,7 @@ class TypeUtil {
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::VARCHAR:
-      case TypeId::VARBINARY:
-      case TypeId::ARRAY:
-        return 0;
+        return VARLEN_COLUMN;
       default:
         throw std::runtime_error("Unknown type.");
     }

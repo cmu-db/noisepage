@@ -1,5 +1,6 @@
 #include "util/transaction_test_util.h"
 #include <algorithm>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
@@ -49,7 +50,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   // TODO(Tianyu): Hardly efficient, but will do for testing.
   if (test_object_->wal_on_ || test_object_->bookkeeping_) {
     auto *record = txn_->StageWrite(&test_object_->table_, updated, initializer);
-    TERRIER_MEMCPY(record->Delta(), update, update->Size());
+    std::memcpy(record->Delta(), update, update->Size());
   }
   auto result = test_object_->table_.Update(txn_, updated, *update);
   aborted_ = !result;
@@ -158,6 +159,8 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
 
 void LargeTransactionTestObject::CheckReadsCorrect(std::vector<RandomWorkloadTransaction *> *commits) {
   TERRIER_ASSERT(bookkeeping_, "Cannot check for correctness with bookkeeping off");
+  // If nothing commits, then all our reads are vacuously correct
+  if (commits->empty()) return;
   VersionedSnapshots snapshots = ReconstructVersionedTable(commits);
   // make sure table_version is updated
   transaction::timestamp_t latest_version = commits->at(commits->size() - 1)->commit_time_;
@@ -204,7 +207,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     if (wal_on_ || bookkeeping_) {
       auto *record = initial_txn_->StageWrite(&table_, inserted, row_initializer_);
-      TERRIER_MEMCPY(record->Delta(), redo, redo->Size());
+      std::memcpy(record->Delta(), redo, redo->Size());
     }
     last_checked_version_.emplace_back(inserted, bookkeeping_ ? redo : nullptr);
   }
@@ -215,7 +218,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
 
 storage::ProjectedRow *LargeTransactionTestObject::CopyTuple(storage::ProjectedRow *other) {
   auto *copy = common::AllocationUtil::AllocateAligned(other->Size());
-  TERRIER_MEMCPY(copy, other, other->Size());
+  std::memcpy(copy, other, other->Size());
   return reinterpret_cast<storage::ProjectedRow *>(copy);
 }
 
