@@ -1,8 +1,8 @@
 #pragma once
 
+#include "abstract_scan_plan_node.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
-#include "abstract_scan_plan_node.h"
 #include "plan_node_defs.h"
 
 namespace terrier::plan_node {
