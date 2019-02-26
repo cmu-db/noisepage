@@ -27,7 +27,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
-#include "type/value_factory.h"
+#include "type/transient_value_factory.h"
 
 /**
  * Log information about the error, then throw an exception
@@ -230,7 +230,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
       break;
     }
     case T_TypeCast: {
-      expr = TypeCastTransform(reinterpret_cast<TypeCast *>(node));
+      expr = AExprTransform(reinterpret_cast<A_Expr *>(node));
       break;
     }
     default: {
@@ -270,9 +270,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   }
   if (str == "OPERATOR_MOD" || str == "%") {
     return ExpressionType::OPERATOR_MOD;
-  }
-  if (str == "OPERATOR_CAST") {
-    return ExpressionType::OPERATOR_CAST;
   }
   if (str == "OPERATOR_NOT") {
     return ExpressionType::OPERATOR_NOT;
@@ -394,9 +391,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "TABLE_REF") {
     return ExpressionType::TABLE_REF;
   }
-  if (str == "CAST") {
-    return ExpressionType::CAST;
-  }
 
   PARSER_LOG_DEBUG("StringToExpressionType: type {} unsupported", str.c_str());
   throw PARSER_EXCEPTION("StringToExpressionType: unsupported type");
@@ -411,17 +405,20 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
   }
 
   ExpressionType target_type;
+  std::vector<std::shared_ptr<AbstractExpression>> children;
 
   if (root->kind == AEXPR_DISTINCT) {
     target_type = ExpressionType::COMPARE_IS_DISTINCT_FROM;
+    children.emplace_back(ExprTransform(root->lexpr));
+    children.emplace_back(ExprTransform(root->rexpr));
+  } else if (root->kind == AEXPR_OP && root->type == T_TypeCast) {
+    target_type = ExpressionType::OPERATOR_CAST;
   } else {
     auto name = (reinterpret_cast<value *>(root->name->head->data.ptr_value))->val.str;
     target_type = StringToExpressionType(name);
+    children.emplace_back(ExprTransform(root->lexpr));
+    children.emplace_back(ExprTransform(root->rexpr));
   }
-
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  children.emplace_back(ExprTransform(root->lexpr));
-  children.emplace_back(ExprTransform(root->rexpr));
 
   switch (target_type) {
     case ExpressionType::OPERATOR_UNARY_MINUS:
@@ -431,12 +428,14 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(A_Expr *root)
     case ExpressionType::OPERATOR_DIVIDE:
     case ExpressionType::OPERATOR_CONCAT:
     case ExpressionType::OPERATOR_MOD:
-    case ExpressionType::OPERATOR_CAST:
     case ExpressionType::OPERATOR_NOT:
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL:
     case ExpressionType::OPERATOR_EXISTS: {
       return std::make_unique<OperatorExpression>(target_type, type::TypeId::INVALID, std::move(children));
+    }
+    case ExpressionType::OPERATOR_CAST: {
+      return TypeCastTransform(reinterpret_cast<TypeCast *>(root));
     }
     case ExpressionType::COMPARE_EQUAL:
     case ExpressionType::COMPARE_NOT_EQUAL:
@@ -696,28 +695,26 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
   std::unique_ptr<AbstractExpression> result;
   switch (val.type) {
     case T_Integer: {
-      auto v = type::ValueFactory::GetIntegerValue(val.val.ival);
+      auto v = type::TransientValueFactory::GetInteger(val.val.ival);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_String: {
-      // TODO(WAN): This will trigger "heap-use-after-free" in sanitizer,
-      // because the const char * is freed once the parse finishes.
-      auto v = type::ValueFactory::GetStringValue(val.val.str);
+      auto v = type::TransientValueFactory::GetVarChar(val.val.str);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Float: {
-      // TODO(WAN): Parse "12345678910" to BIGINT instead of DECIMAL
-      auto v = type::ValueFactory::GetDecimalValue(std::stod(val.val.str));
+      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val.str));
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
 
     case T_Null: {
-      auto v = type::ValueFactory::GetNullValue();
+      auto v = type::TransientValueFactory::GetBoolean(false);
+      v.SetNull(true);
       result = std::make_unique<ConstantValueExpression>(v);
       break;
     }
@@ -984,6 +981,14 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
   }
 
   std::unique_ptr<AbstractExpression> condition;
+
+  // TODO(WAN): quick fix to prevent segfaulting on the following test case
+  // SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;
+  // we should figure out how to treat CROSS JOIN properly
+  if (root->quals == nullptr) {
+    PARSER_LOG_AND_THROW("JoinTransform", "root->quals", nullptr);
+  }
+
   switch (root->quals->type) {
     case T_A_Expr: {
       condition = AExprTransform(reinterpret_cast<A_Expr *>(root->quals));
@@ -1796,7 +1801,7 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(InsertStmt *roo
 
 // Postgres.List -> column names
 std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(List *root) {
-  std::unique_ptr<std::vector<std::string>> result;
+  auto result = std::make_unique<std::vector<std::string>>();
 
   if (root == nullptr) {
     return result;

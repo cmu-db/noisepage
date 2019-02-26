@@ -18,7 +18,8 @@ struct BwTreeTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
-  const uint32_t num_threads_ = MultiThreadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads_ =
+      MultiThreadTestUtil::HardwareConcurrency() + (MultiThreadTestUtil::HardwareConcurrency() % 2);
 };
 
 /**
@@ -208,6 +209,9 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ConcurrentMixed) {
+  TERRIER_ASSERT(num_threads_ % 2 == 0,
+                 "This test requires an even number of threads. This should have been handled when it was assigned.");
+
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
 
