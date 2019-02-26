@@ -96,14 +96,21 @@ uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset
 
 // TODO(Tianyu): Rewrite these two functions to deal with varlens
 std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
-  uint16_t num_8_byte_attrs = NUM_RESERVED_COLUMNS;
+  uint16_t num_8_byte_attrs = 0;
   uint16_t num_4_byte_attrs = 0;
   uint16_t num_2_byte_attrs = 0;
   uint16_t num_1_byte_attrs = 0;
   uint16_t num_varlen_byte_attrs = 0;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
-  std::vector<uint8_t> attr_sizes({8});
+  std::vector<uint8_t> attr_sizes;
+  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
+
+  for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+    attr_sizes.emplace_back(8);
+    num_8_byte_attrs++;
+  }
+
   TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
                  "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
@@ -137,7 +144,7 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
   // Initialize the offsets for each attr_size
   auto offset_varlen_byte_attrs = static_cast<uint16_t>(NUM_RESERVED_COLUMNS);
   auto offset_8_byte_attrs = static_cast<uint16_t>(offset_varlen_byte_attrs + num_varlen_byte_attrs);
-  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + num_8_byte_attrs - NUM_RESERVED_COLUMNS);
+  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + (num_8_byte_attrs - NUM_RESERVED_COLUMNS));
   auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
   auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
 
