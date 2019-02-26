@@ -1,9 +1,9 @@
-#include "plan_node/seq_scan_plan_node.h"
+#include "plan_node/index_scan_plan_node.h"
 #include "common/hash_util.h"
 
 namespace terrier::plan_node {
 
-common::hash_t SeqScanPlanNode::Hash() const {
+common::hash_t IndexScanPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
@@ -14,10 +14,6 @@ common::hash_t SeqScanPlanNode::Hash() const {
 
   // TODO(Gus,Wen): Hash output_schema
 
-  // Hash is parallel
-  auto is_parallel = IsParallel();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_parallel));
-
   // Hash is_for_update
   auto is_for_update = IsForUpdate();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update));
@@ -25,10 +21,10 @@ common::hash_t SeqScanPlanNode::Hash() const {
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
+bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &rhs_plan_node = static_cast<const SeqScanPlanNode &>(rhs);
+  auto &rhs_plan_node = static_cast<const IndexScanPlanNode &>(rhs);
 
   // Predicate
   auto *pred = GetPredicate();
@@ -38,8 +34,6 @@ bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (pred && *pred != *rhs_plan_node_pred) return false;
 
   // TODO(Gus,Wen): Include output schema equality
-
-  // TODO(Gus,Wen): Should we also compare IsParallel()?
 
   if (IsForUpdate() != rhs_plan_node.IsForUpdate()) return false;
 
