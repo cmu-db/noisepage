@@ -53,7 +53,7 @@ class AttributeHandle {
   };
 
   /**
-   * Construct a attribute handle. It keeps a pointer to the pg_attribute sql table.
+   * Construct an attribute handle. It keeps a pointer to the pg_attribute sql table.
    * @param table a pointer to SqlTableRW
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
