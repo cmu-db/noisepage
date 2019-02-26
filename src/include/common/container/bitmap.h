@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include "common/strong_typedef.h"
 
@@ -50,7 +51,7 @@ class RawBitmap {
   static RawBitmap *Allocate(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
     auto *result = new uint8_t[size];
-    TERRIER_MEMSET(result, 0, size);
+    std::memset(result, 0, size);
     return reinterpret_cast<RawBitmap *>(result);
   }
 
@@ -107,7 +108,7 @@ class RawBitmap {
    */
   void Clear(const uint32_t num_bits) {
     auto size = SizeInBytes(num_bits);
-    TERRIER_MEMSET(bits_, 0, size);
+    std::memset(bits_, 0, size);
   }
 
  private:

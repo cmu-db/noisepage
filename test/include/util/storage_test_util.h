@@ -211,7 +211,7 @@ struct StorageTestUtil {
       if (val_ptr == nullptr)
         tested.SetNull(slot, storage::col_id_t(projection_list_index));
       else
-        memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
+        std::memcpy(tested.AccessForceNotNull(slot, col_id), val_ptr, layout.AttrSize(col_id));
     }
   }
 
@@ -239,7 +239,11 @@ struct StorageTestUtil {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
-    attr_sizes[0] = 8;
+
+    for (uint16_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+      attr_sizes[i] = 8;
+    }
+
     for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
