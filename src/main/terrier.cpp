@@ -48,8 +48,7 @@ int main() {
   terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
   auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
-  auto init = terrier::storage::ProjectedRowInitializer(
-      terrier::storage::ProjectedRowInitializer::PreparePRInit(block_layout_, col_ids));
+  auto init = terrier::storage::ProjectedRowInitializer::CreateProjectedRowInitializer(block_layout_, col_ids);
   auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
   auto *redo = init.InitializeRow(redo_buffer_);
 
