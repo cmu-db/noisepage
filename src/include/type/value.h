@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <cstring>
 #include "common/hash_util.h"
 #include "common/strong_typedef.h"
 #include "type/type_id.h"

@@ -114,6 +114,14 @@ class Catalog {
                               const std::vector<UnusedSchemaCols> &cols);
 
   /**
+   * Utility function for adding columns in a table to pg_attribute. To use this function, pg_attribute has to exist.
+   * @param txn the transaction that's adding the columns
+   * @param db_oid the database the pg_attribute belongs to
+   * @param table the table which the columns belong to
+   */
+  void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
+                               const std::shared_ptr<storage::SqlTable> &table);
+  /**
    * Bootstrap all the catalog tables so that new coming transactions can
    * correctly perform SQL queries.
    * 1) It creates and populates all the global catalogs

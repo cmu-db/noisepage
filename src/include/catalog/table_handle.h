@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "catalog/attribute_handle.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
@@ -16,6 +17,7 @@
 namespace terrier::catalog {
 
 class Catalog;
+class AttributeHandle;
 /**
  * A tablespace handle contains information about all the tables in a database.
  * It is equivalent to pg_tables in postgres, which is a view.
@@ -122,13 +124,15 @@ class TableHandle {
    * It uses use these three tables to provide the view of pg_tables.
    * @param catalog a pointer to catalog
    * @param nsp_oid the namespace oid which the tables belong to
+   * @param db_oid the database oid
    * @param pg_class a pointer to pg_class
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
+  TableHandle(Catalog *catalog, db_oid_t db_oid, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
               std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
       : catalog_(catalog),
+        db_oid_(db_oid),
         nsp_oid_(nsp_oid),
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
@@ -165,6 +169,14 @@ class TableHandle {
   std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
+   * Get a table handle under the given namespace
+   * @param txn the transaction context
+   * @param table_name the name of the table
+   * @return a handle to all the attributes in the table
+   */
+  AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, const std::string &table_name);
+
+  /**
    * Create a SqlTable. The namespace of the table is the same as the TableHandle.
    * @param txn the transaction context
    * @param name the table name
@@ -190,6 +202,7 @@ class TableHandle {
 
  private:
   Catalog *catalog_;
+  db_oid_t db_oid_;
   namespace_oid_t nsp_oid_;
   std::shared_ptr<SqlTableRW> pg_class_;
   std::shared_ptr<SqlTableRW> pg_namespace_;

@@ -81,6 +81,24 @@ void Catalog::SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> 
   }
 }
 
+void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
+                                      const std::shared_ptr<storage::SqlTable> &table) {
+  Schema schema = table->GetSchema();
+  std::vector<Schema::Column> cols = schema.GetColumns();
+  std::shared_ptr<catalog::SqlTableRW> pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  for (auto &c : cols) {
+    pg_attribute->StartRow();
+    pg_attribute->SetColInRow(0, type::ValueFactory::GetIntegerValue(!c.GetOid()));
+    pg_attribute->SetColInRow(1, type::ValueFactory::GetIntegerValue(!table->Oid()));
+    pg_attribute->SetColInRow(2, type::ValueFactory::GetVarcharValue(c.GetName().c_str()));
+    // the following 3 attributes are just placeholders, so I just use 0.
+    pg_attribute->SetColInRow(3, type::ValueFactory::GetIntegerValue(0));
+    pg_attribute->SetColInRow(4, type::ValueFactory::GetIntegerValue(0));
+    pg_attribute->SetColInRow(5, type::ValueFactory::GetIntegerValue(0));
+    pg_attribute->EndRowAndInsert(txn);
+  }
+}
+
 void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   CATALOG_LOG_TRACE("Creating pg_database table");
   // set the oid
@@ -149,9 +167,42 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   name_map_[db_oid]["pg_database"] = pg_database_->Oid();
   name_map_[db_oid]["pg_tablespace"] = pg_tablespace_->Oid();
 
+  // Order: pg_attribute -> pg_namespace -> pg_class
+  CreatePGAttribute(txn, db_oid);
   CreatePGNameSpace(txn, db_oid);
   CreatePGClass(txn, db_oid);
-  CreatePGAttribute(txn, db_oid);
+}
+
+void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
+  // oid for pg_attribute table
+  table_oid_t pg_attribute_oid(GetNextOid());
+  std::shared_ptr<catalog::SqlTableRW> pg_attribute;
+  CATALOG_LOG_TRACE("pg_attribute oid (table_oid) {}", !pg_attribute_oid);
+  pg_attribute = std::make_shared<catalog::SqlTableRW>(pg_attribute_oid);
+
+  // add the schema
+  std::vector<col_oid_t> next_col_oids(6);
+  for (auto &oid : next_col_oids) {
+    oid = col_oid_t(GetNextOid());
+  }
+  pg_attribute->DefineColumn("oid", type::TypeId::INTEGER, false, next_col_oids[0]);
+  pg_attribute->DefineColumn("attrelid", type::TypeId::INTEGER, false, next_col_oids[1]);
+  pg_attribute->DefineColumn("attname", type::TypeId::VARCHAR, false, next_col_oids[2]);
+  pg_attribute->DefineColumn("atttypid", type::TypeId::INTEGER, true, next_col_oids[3]);
+  pg_attribute->DefineColumn("attlen", type::TypeId::INTEGER, true, next_col_oids[4]);
+  pg_attribute->DefineColumn("attnum", type::TypeId::INTEGER, true, next_col_oids[5]);
+  pg_attribute->Create();
+
+  map_[db_oid][pg_attribute_oid] = pg_attribute;
+  name_map_[db_oid]["pg_attribute"] = pg_attribute_oid;
+
+  // Insert columns of pg_attribute
+  CATALOG_LOG_TRACE("Inserting columns of pg_attribute into pg_attribute ...");
+  AddColumnsToPGAttribute(txn, db_oid, pg_attribute->GetSqlTable());
+
+  // Insert columns of global catalogs
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
 }
 
 void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
@@ -169,8 +220,15 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
   AddUnusedSchemaColumns(pg_namespace, pg_namespace_unused_cols_);
   pg_namespace->Create();
 
+  // Add columns to pg_attribute
+  AddColumnsToPGAttribute(txn, db_oid, pg_namespace->GetSqlTable());
+
+  // insert to catalog map
   map_[db_oid][pg_namespace_oid] = pg_namespace;
   name_map_[db_oid]["pg_namespace"] = pg_namespace_oid;
+
+  // insert columns to pg_attribute
+  pg_namespace->GetSqlTable()->GetSchema();
 
   // insert pg_catalog
   uint32_t pg_namespace_col_oid = !namespace_oid_t(GetNextOid());
@@ -204,6 +262,9 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   pg_class->DefineColumn("relnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_class->DefineColumn("reltablespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
   pg_class->Create();
+
+  // Add columns to pg_attribute
+  AddColumnsToPGAttribute(txn, db_oid, pg_class->GetSqlTable());
 
   map_[db_oid][pg_class_oid] = pg_class;
   name_map_[db_oid]["pg_class"] = pg_class_oid;
@@ -270,45 +331,22 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
   pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->EndRowAndInsert(txn);
-}
 
-void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  // oid for pg_attribute table
-  table_oid_t pg_attribute_oid(GetNextOid());
-  std::shared_ptr<catalog::SqlTableRW> pg_attribute;
-  CATALOG_LOG_TRACE("pg_attribute oid (table_oid) {}", !pg_attribute_oid);
-  pg_attribute = std::make_shared<catalog::SqlTableRW>(pg_attribute_oid);
+  // Insert pg_attribute
+  CATALOG_LOG_TRACE("Inserting pg_class into pg_class ...");
+  entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_attribute")->Oid();
+  namespace_oid =
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+  tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
 
-  // add the schema
-  std::vector<col_oid_t> next_col_oids(6);
-  for (auto &oid : next_col_oids) {
-    oid = col_oid_t(GetNextOid());
-  }
-  pg_attribute->DefineColumn("oid", type::TypeId::INTEGER, false, next_col_oids[0]);
-  pg_attribute->DefineColumn("attrelid", type::TypeId::INTEGER, false, next_col_oids[1]);
-  pg_attribute->DefineColumn("attname", type::TypeId::VARCHAR, false, next_col_oids[2]);
-  pg_attribute->DefineColumn("atttypid", type::TypeId::INTEGER, true, next_col_oids[3]);
-  pg_attribute->DefineColumn("attlen", type::TypeId::INTEGER, true, next_col_oids[4]);
-  pg_attribute->DefineColumn("attnum", type::TypeId::INTEGER, true, next_col_oids[5]);
-  pg_attribute->Create();
-
-  map_[db_oid][pg_attribute_oid] = pg_attribute;
-  name_map_[db_oid]["pg_attribute"] = pg_attribute_oid;
-
-  // Insert columns of pg_attribute
-  //  CATALOG_LOG_TRACE("Inserting columns of pg_attribute into pg_attribute ...");
-  //  auto entry_db_oid = !GetDatabaseCatalog(db_oid, "pg_database")->Oid();
-  //  auto namespace_oid =
-  //      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  //  auto tablespace_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  //  pg_attribute->StartRow();
-  //  pg_attribute->SetIntColInRow(0, !next_col_oids[0]);
-  //  pg_attribute->SetIntColInRow(1, !pg_attribute_oid);
-  //  pg_attribute->SetVarcharColInRow(2, "oid");
-  //  pg_attribute->SetIntColInRow(3, type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  //  pg_attribute->SetIntColInRow(4, tablespace_oid);
-  //  pg_attribute->SetIntColInRow(5, tablespace_oid);
-  //  pg_attribute->EndRowAndInsert(txn);
+  pg_class->StartRow();
+  pg_class->SetColInRow(0, type::ValueFactory::GetBigIntValue(
+                               reinterpret_cast<uint64_t>(GetDatabaseCatalog(db_oid, "pg_attribute").get())));
+  pg_class->SetColInRow(1, type::ValueFactory::GetIntegerValue(entry_db_oid));
+  pg_class->SetColInRow(2, type::ValueFactory::GetVarcharValue("pg_attribute"));
+  pg_class->SetColInRow(3, type::ValueFactory::GetIntegerValue(namespace_oid));
+  pg_class->SetColInRow(4, type::ValueFactory::GetIntegerValue(tablespace_oid));
+  pg_class->EndRowAndInsert(txn);
 }
 
 void Catalog::DestroyDB(db_oid_t oid) {
