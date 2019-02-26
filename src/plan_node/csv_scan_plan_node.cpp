@@ -7,7 +7,6 @@ std::unique_ptr<AbstractPlanNode> CSVScanPlanNode::Copy() const {
       new CSVScanPlanNode(GetOutputSchema(), file_name_, delimiter_, quote_, escape_, null_string_));
 }
 
-// TODO(Gus): Is this the best way to hash an std::string?
 common::hash_t CSVScanPlanNode::Hash() const {
   common::hash_t hash = std::hash<std::string>{}(file_name_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
