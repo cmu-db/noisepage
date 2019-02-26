@@ -123,7 +123,7 @@ class SqlTableRW {
     // stored string has no null terminator, add space for it
     uint32_t size = entry->Size() + 1;
     // allocate return string
-    auto *ret_st = static_cast<char *>(malloc(size));
+    auto *ret_st = reinterpret_cast<char *>(common::AllocationUtil::AllocateAligned(size));
     std::memcpy(ret_st, entry->Content(), size);
     // add the null terminator
     *(ret_st + size - 1) = 0;
@@ -217,7 +217,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
   EXPECT_EQ(100, id);
   char *table_name = table.GetVarcharColInRow(1, row_slot);
   EXPECT_STREQ("name", table_name);
-  free(table_name);
+  delete[] table_name;
 }
 
 }  // namespace terrier
