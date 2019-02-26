@@ -243,7 +243,7 @@ class VarlenEntry {
    */
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
-  // private:
+ private:
   int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
