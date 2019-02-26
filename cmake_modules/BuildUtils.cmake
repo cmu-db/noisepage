@@ -249,7 +249,7 @@ function(ADD_TERRIER_BENCHMARK_DEPENDENCIES REL_BENCHMARK_NAME)
   if (NO_BENCHMARKS)
     return()
   endif ()
-  get_filename_component(BENCMARK_NAME ${REL_BENCHMARK_NAME} NAME_WE)
+  get_filename_component(BENCHMARK_NAME ${REL_BENCHMARK_NAME} NAME_WE)
 
   add_dependencies(${BENCHMARK_NAME} ${ARGN})
 endfunction()
