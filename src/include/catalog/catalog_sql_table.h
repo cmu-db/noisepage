@@ -30,7 +30,8 @@ class SqlTableRW {
     delete pri_;
     delete pr_map_;
     delete schema_;
-    // delete[] read_buffer_;
+    delete layout_and_map_;
+    delete col_initer_;
   }
 
   /**
@@ -50,7 +51,6 @@ class SqlTableRW {
    */
   void Create() {
     schema_ = new catalog::Schema(cols_);
-    // table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
     table_ = std::make_shared<storage::SqlTable>(&block_store_, *schema_, table_oid_);
 
     for (const auto &c : cols_) {
@@ -58,6 +58,8 @@ class SqlTableRW {
     }
 
     // save information needed for (later) reading and writing
+    // TODO(pakhtar): review to see if still needed, since we are using
+    // projected columns
     auto row_pair = table_->InitializerForProjectedRow(col_oids_);
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
@@ -147,6 +149,7 @@ class SqlTableRW {
 
   /**
    * Return the number of rows in the table.
+   * TODO(pakhtar): use cached info.
    */
   int32_t GetNumRows() {
     int32_t num_cols = 0;
@@ -236,14 +239,20 @@ class SqlTableRW {
    */
   std::vector<type::Value> FindRow(transaction::TransactionContext *txn, const std::vector<type::Value> &search_vec) {
     bool row_match;
-    auto layout_and_map = storage::StorageUtil::BlockLayoutFromSchema(*schema_);
-    auto layout = layout_and_map.first;
+
+    if (layout_and_map_ == nullptr) {
+      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(storage::StorageUtil::BlockLayoutFromSchema(*schema_));
+    }
+    auto layout = layout_and_map_->first;
     // setup parameters for a scan
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
     // get one row at a time
-    storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
-    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer.ProjectedColumnsSize());
-    storage::ProjectedColumns *proj_col_bufp = col_initer.Initialize(buffer);
+    // storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
+    if (col_initer_ == nullptr) {
+      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
+    }
+    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
+    storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
 
     // do a Scan
     auto it = table_->begin();
@@ -429,7 +438,9 @@ class SqlTableRW {
   byte *insert_buffer_ = nullptr;
   storage::ProjectedRow *insert_ = nullptr;
 
-  // byte *read_buffer_ = nullptr;
+  // cache some items, for efficiency
+  std::pair<storage::BlockLayout, storage::ColumnMap> *layout_and_map_ = nullptr;
+  storage::ProjectedColumnsInitializer *col_initer_ = nullptr;
 };
 
 }  // namespace terrier::catalog

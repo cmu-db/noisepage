@@ -92,6 +92,9 @@ class DatabaseHandle {
 
  private:
   Catalog *catalog_;
+
+  // temporary
+ public:
   std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
 };
 

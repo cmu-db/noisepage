@@ -8,6 +8,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_sql_table.h"
 #include "catalog/database_handle.h"
+#include "common/exception.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
@@ -111,8 +112,20 @@ TEST_F(SqlTableTests, SelectInsertTest1) {
 
   // now search for a non-existent value in column 2.
   // This is slow.
-  // search_vec.emplace_back(type::ValueFactory::GetIntegerValue(19));
-  // row_p = table.FindRow(txn, search_vec);
+  search_vec.clear();
+  search_vec.emplace_back(type::ValueFactory::GetIntegerValue(19));
+  try {
+    row_p = table.FindRow(txn, search_vec);
+  } catch (const CatalogException& ce) {
+    // ok
+    EXPECT_STREQ("row not found", ce.what());
+  } catch (...) {
+    throw;
+  }
+
+
+
+
   // EXPECT_EQ(0, row_p.size());
 
   // search for second item
