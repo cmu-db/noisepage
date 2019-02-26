@@ -3,9 +3,9 @@
 
 #include "traffic_cop/traffic_cop.h"
 
-namespace terrier{
+namespace terrier::traffic_cop{
 
-void TrafficCop::ExecuteQuery(const char *query, SqliteCallback callback) {
+void TrafficCop::ExecuteQuery(const char *query, std::function<void(FakeResultSet &)> &callback) {
   sqlite_engine.ExecuteQuery(query, callback);
 }
 

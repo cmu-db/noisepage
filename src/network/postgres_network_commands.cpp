@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <network/postgres_network_commands.h>
 
 #include "network/postgres_network_commands.h"
 #include "network/postgres_protocol_interpreter.h"
@@ -15,13 +16,36 @@ namespace terrier::network {
 // the code here can honestly just be deleted. This is going to be a larger
 // project though, so I want to do the architectural refactor first.
 
+void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_set) {
+  if(result_set.column_names_.empty())
+    return;
+
+  std::string columns;
+  for(auto &column : result_set.column_names_)
+  {
+    columns += column + "\t";
+  }
+  LOG_INFO(columns)
+  for(auto &row : result_set.rows_)
+  {
+    std::string values;
+    for(auto &value: row)
+    {
+      values += value + "\t";
+    }
+    LOG_INFO(values);
+  }
+}
+
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                    TrafficCopPtr t_cop, CallbackFunc callback) {
+                                    TrafficCopPtr t_cop, NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute query: {0}", query.c_str());
 
-  t_cop->ExecuteQuery(query.c_str(), nullptr);
+  std::function<void(traffic_cop::FakeResultSet &)> result_callback = AcceptResults;
+
+  t_cop->ExecuteQuery(query.c_str(), result_callback);
 
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
@@ -29,7 +53,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpret
 }
 
 Transition ParseCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                              TrafficCopPtr t_cop, CallbackFunc callback) {
+                              TrafficCopPtr t_cop, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Parse query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -38,7 +62,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *const interpreter, Po
 }
 
 Transition BindCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                             TrafficCopPtr t_cop, CallbackFunc callback) {
+                             TrafficCopPtr t_cop, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Bind query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -47,7 +71,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *const interpreter, Pos
 }
 
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                 TrafficCopPtr t_cop, CallbackFunc callback) {
+                                 TrafficCopPtr t_cop, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Parse query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -56,7 +80,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *const interpreter,
 }
 
 Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                TrafficCopPtr t_cop, CallbackFunc callback) {
+                                TrafficCopPtr t_cop, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Exec query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -65,7 +89,7 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *const interpreter, 
 }
 
 Transition SyncCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                             TrafficCopPtr t_cop, CallbackFunc callback) {
+                             TrafficCopPtr t_cop, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
@@ -73,7 +97,7 @@ Transition SyncCommand::Exec(PostgresProtocolInterpreter *const interpreter, Pos
 }
 
 Transition CloseCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                              TrafficCopPtr t_cop, CallbackFunc callback) {
+                              TrafficCopPtr t_cop, NetworkCallback callback) {
   // Send close complete response
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
@@ -81,7 +105,7 @@ Transition CloseCommand::Exec(PostgresProtocolInterpreter *const interpreter, Po
 }
 
 Transition TerminateCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                  TrafficCopPtr t_cop, CallbackFunc callback) {
+                                  TrafficCopPtr t_cop, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }

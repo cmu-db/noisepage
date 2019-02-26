@@ -15,7 +15,7 @@
 
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                                                TrafficCopPtr t_cop, CallbackFunc callback) {
+                                                TrafficCopPtr t_cop, NetworkCallback callback) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {

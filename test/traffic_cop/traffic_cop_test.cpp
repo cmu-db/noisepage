@@ -8,7 +8,7 @@
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
 
-namespace terrier{
+namespace terrier::traffic_cop{
 class TrafficCopTests : public TerrierTest
 {
  protected:
@@ -45,7 +45,7 @@ class TrafficCopTests : public TerrierTest
     TerrierTest::TearDown();
   }
 };
-
+/*
 static int PrintRows(void *callback_param, int argc, char **values, char **col_name){
   int i;
   if(callback_param != nullptr)
@@ -56,8 +56,9 @@ static int PrintRows(void *callback_param, int argc, char **values, char **col_n
   printf("\n");
   return 0;
 }
+*/
 
-
+/*
 //NOLINTNEXTLINE
 TEST_F(TrafficCopTests, FirstTest) {
   TrafficCop traffic_cop;
@@ -69,7 +70,7 @@ TEST_F(TrafficCopTests, FirstTest) {
   traffic_cop.ExecuteQuery("SELECT * FROM TableA", PrintRows);
 
 }
-
+*/
 //NOLINTNEXTLINE
 TEST_F(TrafficCopTests, RoundTripTest)
 {
@@ -86,7 +87,7 @@ TEST_F(TrafficCopTests, RoundTripTest)
     pqxx::result R = txn1.exec("SELECT * FROM TableA");
     txn1.commit();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 

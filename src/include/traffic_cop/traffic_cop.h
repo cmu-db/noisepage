@@ -1,7 +1,7 @@
 #pragma once
 #include "sqlite.h"
 
-namespace terrier{
+namespace terrier::traffic_cop {
 
 /*
  * Traffic Cop of the database.
@@ -10,11 +10,10 @@ namespace terrier{
  * *Should be a singleton*
  * */
 
-
 class TrafficCop {
 
  public:
-  void ExecuteQuery(const char *query, SqliteCallback callback);
+  void ExecuteQuery(const char *query, std::function<void(FakeResultSet &)> &callback);
 
  private:
   SqliteEngine sqlite_engine;
