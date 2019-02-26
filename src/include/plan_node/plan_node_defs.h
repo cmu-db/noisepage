@@ -15,6 +15,7 @@ enum class PlanNodeType {
   // Scan Nodes
   SEQSCAN,
   INDEXSCAN,
+  HYBRIDSCAN,
   CSVSCAN,
 
   // Join Nodes
@@ -53,5 +54,10 @@ enum class AggregateStrategy {
   HASH = 2,
   PLAIN = 3  // no group-by
 };
+
+//===--------------------------------------------------------------------===//
+// Hybrid Scan Types
+//===--------------------------------------------------------------------===//
+enum class HybridScanType { INVALID = INVALID_TYPE_ID, SEQUENTIAL = 1, INDEX = 2, HYBRID = 3 };
 
 }  // namespace terrier::plan_node
