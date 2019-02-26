@@ -44,7 +44,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
   txn_ = txn_manager_->BeginTransaction();
 
-// NOLINTNEXTLINE
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     for (int32_t iter = 0; iter < num_lookups; iter++) {
       ret_row = db_handle.pg_database_rw_->FindRow(txn_, search_vec);
@@ -55,8 +55,6 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
   delete txn_;
 }
 
-BENCHMARK_REGISTER_F(CatalogBenchmark, DatabaseLookupTime)
-    ->Unit(benchmark::kMillisecond)
-    ->MinTime(2);
+BENCHMARK_REGISTER_F(CatalogBenchmark, DatabaseLookupTime)->Unit(benchmark::kMillisecond)->MinTime(2);
 
 }  // namespace terrier

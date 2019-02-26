@@ -116,16 +116,12 @@ TEST_F(SqlTableTests, SelectInsertTest1) {
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(19));
   try {
     row_p = table.FindRow(txn, search_vec);
-  } catch (const CatalogException& ce) {
+  } catch (const CatalogException &ce) {
     // ok
     EXPECT_STREQ("row not found", ce.what());
   } catch (...) {
     throw;
   }
-
-
-
-
   // EXPECT_EQ(0, row_p.size());
 
   // search for second item

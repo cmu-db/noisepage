@@ -37,6 +37,7 @@ class TypeHandle {
      * Return the col_oid of the type.
      */
     type_oid_t GetTypeOid() { return oid_; }
+
    private:
     type_oid_t oid_;
     std::vector<type::Value> entry_;
@@ -54,4 +55,4 @@ class TypeHandle {
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
 };
 
-}
+}  // namespace terrier::catalog

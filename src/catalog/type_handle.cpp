@@ -1,6 +1,5 @@
 #include "catalog/type_handle.h"
 
-
 namespace terrier::catalog {
 TypeHandle::TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type)
     : catalog_(catalog), pg_type_rw_(std::move(pg_type)) {}
@@ -10,8 +9,4 @@ std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::Tra
   return nullptr;
 }
 
-}
-
-
-
-
+}  // namespace terrier::catalog

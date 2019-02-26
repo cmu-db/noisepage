@@ -241,7 +241,8 @@ class SqlTableRW {
     bool row_match;
 
     if (layout_and_map_ == nullptr) {
-      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(storage::StorageUtil::BlockLayoutFromSchema(*schema_));
+      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
+          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
     }
     auto layout = layout_and_map_->first;
     // setup parameters for a scan
