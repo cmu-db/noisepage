@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../catalog/catalog_defs.h"
-#include "../catalog/schema.h"
+#include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "abstract_scan_plan_node.h"
 #include "plan_node_defs.h"
 
@@ -37,7 +37,6 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
 
   HybridScanType hybrid_scan_type_;
 
- private:
   DISALLOW_COPY_AND_MOVE(HybridScanPlanNode);
 };
 

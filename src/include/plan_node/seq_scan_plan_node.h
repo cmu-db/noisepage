@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../catalog/catalog_defs.h"
+#include "catalog/catalog_defs.h"
 #include "abstract_plan_node.h"
 #include "abstract_scan_plan_node.h"
 #include "catalog/schema.h"
