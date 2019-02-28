@@ -1,3 +1,5 @@
+#include <memory>
+#include <utility>
 #include "catalog/type_handle.h"
 
 namespace terrier::catalog {

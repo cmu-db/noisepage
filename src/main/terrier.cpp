@@ -44,14 +44,14 @@ int main() {
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
 
+  // create the global transaction mgr
+  terrier::storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
+  terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+  // create the (system) catalogs
+  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
   LOG_INFO("Initialization complete");
 
   // shutdown loggers
   spdlog::shutdown();
   main_stat_reg->Shutdown(false);
-
-  // catalog bootstrap
-  terrier::storage::RecordBufferSegmentPool  buffer_pool_(100000, 10000);
-  terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
-  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
 }

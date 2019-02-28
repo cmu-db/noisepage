@@ -205,8 +205,9 @@ class Value {
         return value_.decimal_ == rhs.value_.decimal_;
       case TypeId::TIMESTAMP:
         return value_.timestamp_ == rhs.value_.timestamp_;
-      case TypeId::VARCHAR:
-        return value_.string_ == rhs.value_.string_;
+      case TypeId::VARCHAR: {
+        return strcmp(value_.string_, rhs.value_.string_) == 0;
+      }
       default:
         TERRIER_ASSERT(false, "unsupported type");
         throw std::runtime_error("unreachable control flow");
@@ -218,12 +219,12 @@ class Value {
    * @param rhs the value to compare to
    * @return true if not not equal, false otherwise
    */
-  bool operator!=(const Value &rhs) const { return operator==(rhs); }
+  bool operator!=(const Value &rhs) const { return !operator==(rhs); }
 
   /**
    * Deep copy assignment operator
    * @param v the value to be assigned
-   * @return the copied value
+   * @return the copied valueref_row[i]==row[i]);
    */
   Value &operator=(const Value &v) {
     if (this != &v) {

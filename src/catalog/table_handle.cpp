@@ -51,6 +51,7 @@ AttributeHandle TableHandle::GetAttributeHandle(transaction::TransactionContext 
 
 SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
                                      const std::string &name) {
+  std::vector<type::Value> row;
   // TODO(yangjuns): error handling
   // Create SqlTable
   auto table = new SqlTableRW(table_oid_t(catalog_->GetNextOid()));
@@ -60,15 +61,13 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
   }
   table->Create();
   // Add to pg_class
-  pg_class_->StartRow();
-  pg_class_->SetColInRow(0, type::ValueFactory::GetBigIntValue(reinterpret_cast<int64_t>(table)));
-  pg_class_->SetColInRow(1, type::ValueFactory::GetIntegerValue(!table->Oid()));
-  pg_class_->SetColInRow(2, type::ValueFactory::GetVarcharValue(name.c_str()));
-  pg_class_->SetColInRow(3, type::ValueFactory::GetIntegerValue(!nsp_oid_));
-  pg_class_->SetColInRow(
-      4, type::ValueFactory::GetIntegerValue(
-             !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid()));
-  pg_class_->EndRowAndInsert(txn);
+  row.emplace_back(type::ValueFactory::GetBigIntValue(reinterpret_cast<int64_t>(table)));
+  row.emplace_back(type::ValueFactory::GetIntegerValue(!table->Oid()));
+  row.emplace_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+  row.emplace_back(type::ValueFactory::GetIntegerValue(!nsp_oid_));
+  row.emplace_back(type::ValueFactory::GetIntegerValue(
+      !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid()));
+  pg_class_->InsertRow(txn, row);
   return table;
 }
 

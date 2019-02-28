@@ -66,66 +66,32 @@ class SqlTableRW {
   }
 
   /**
-   * First step in writing a row.
-   */
-  void StartRow() {
-    insert_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    insert_ = pri_->InitializeRow(insert_buffer_);
-  }
-
-  /**
-   * Insert the row into the table
-   * @param txn_in - if non-null, use the supplied transaction.
-   *    If nullptr, generate a transaction.
-   */
-  storage::TupleSlot EndRowAndInsert(transaction::TransactionContext *txn_in) {
-    bool local_txn = false;
-    transaction::TransactionContext *txn = nullptr;
-
-    if (txn_in == nullptr) {
-      local_txn = true;
-      txn = txn_manager_.BeginTransaction();
-    } else {
-      txn = txn_in;
-    }
-
-    auto slot = table_->Insert(txn, *insert_);
-    insert_ = nullptr;
-
-    delete[] insert_buffer_;
-    if (local_txn) {
-      txn_manager_.Commit(txn, EmptyCallback, nullptr);
-      delete txn;
-    }
-    return storage::TupleSlot(slot.GetBlock(), slot.GetOffset());
-  }
-
-  /**
    * Save a value, for insertion by EndRowAndInsert
+   * @param proj_row projected row
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetColInRow(int32_t col_num, const type::Value &value) {
+  void SetColInRow(storage::ProjectedRow *proj_row, int32_t col_num, const type::Value &value) {
     switch (value.Type()) {
       case type::TypeId::BOOLEAN: {
-        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
         (*reinterpret_cast<int8_t *>(col_p)) = static_cast<int8_t>(value.GetBooleanValue());
         break;
       }
       case type::TypeId::INTEGER: {
-        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
         (*reinterpret_cast<int32_t *>(col_p)) = value.GetIntValue();
         break;
       }
       case type::TypeId::BIGINT: {
-        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
         (*reinterpret_cast<int64_t *>(col_p)) = value.GetBigIntValue();
         break;
       }
       case type::TypeId::VARCHAR: {
         size_t size = 0;
         byte *varlen = nullptr;
-        byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
         if (!value.Null()) {
           size = strlen(value.GetVarcharValue());
           varlen = common::AllocationUtil::AllocateAligned(size);
@@ -220,12 +186,19 @@ class SqlTableRW {
   /**
    * Insert a row. (This function is noticeably slower than SetIntColInRow ... due to Value type copies)
    * @param txn
-   * @param row
+   * @param row - vector of values to insert
    */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+    // get buffer for insertion and use as a row
+    auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    auto proj_row = pri_->InitializeRow(insert_buffer);
+
     for (size_t i = 0; i < row.size(); i++) {
-      SetColInRow(static_cast<int32_t>(i), row[i]);
+      SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
     }
+    table_->Insert(txn, *proj_row);
+
+    delete[] insert_buffer;
   }
 
   /**
@@ -426,7 +399,6 @@ class SqlTableRW {
 
   storage::BlockStore block_store_{100, 100};
   catalog::table_oid_t table_oid_;
-  // storage::SqlTable *table_ = nullptr;
   std::shared_ptr<storage::SqlTable> table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
@@ -435,9 +407,6 @@ class SqlTableRW {
 
   storage::ProjectedRowInitializer *pri_ = nullptr;
   storage::ProjectionMap *pr_map_ = nullptr;
-
-  byte *insert_buffer_ = nullptr;
-  storage::ProjectedRow *insert_ = nullptr;
 
   // cache some items, for efficiency
   std::pair<storage::BlockLayout, storage::ColumnMap> *layout_and_map_ = nullptr;

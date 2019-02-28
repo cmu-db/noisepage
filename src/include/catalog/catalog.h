@@ -40,6 +40,16 @@ class Catalog {
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
+  /* Create a database (no tables are created). Insert the name into
+   * the catalogs and setup everything related.
+   *
+   * @param txn transaction to use
+   * @param name of the database
+   */
+  void CreateDatabase(transaction::TransactionContext *txn, const char *name);
+
+  // void DeleteDatabase(transaction::TransactionContext *txn, const char *name);
+
   /**
    * Lookup a database oid and return a database handle.
    * @return the corresponding database handle
@@ -97,6 +107,11 @@ class Catalog {
   };
 
   /**
+   * Add a row into pg_database
+   */
+  void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const char *name);
+
+  /**
    * Add columns created for Postgres compatibility, but unused, to the schema
    * @param db_p - shared_ptr to database
    * @param cols - vector specifying the columns
@@ -107,11 +122,10 @@ class Catalog {
 
   /**
    * Set values for unused columns.
-   * @param db_p - shared_ptr to database
-   * @param cols - vector specifying the columns
+   * @param vec append to this vector of values
+   * @param cols vector of column types
    */
-  void SetUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
-                              const std::vector<UnusedSchemaCols> &cols);
+  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<UnusedSchemaCols> &cols);
 
   /**
    * Utility function for adding columns in a table to pg_attribute. To use this function, pg_attribute has to exist.
@@ -152,16 +166,47 @@ class Catalog {
    */
   static void BootstrapCallback(void * /*unused*/) {}
 
+  /**
+   * Add initial contents to pg_database, during startup.
+   * @param txn_manager the global transaction manager
+   */
   void PopulatePGDatabase(transaction::TransactionContext *txn);
 
+  /**
+   * Add initial contents to pg_tablespace, during startup.
+   * @param txn_manager the global transaction manager
+   */
   void PopulatePGTablespace(transaction::TransactionContext *txn);
 
+  /**
+   * During startup, create pg_namespace table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
   void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  /**
+   * During startup, create pg_class table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
   void CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  /**
+   * During startup, create pg_attribute table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
   void CreatePGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid);
 
+  /**
+   * During startup, create pg_attrdef table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
+  void CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  /**
+   * For catalog shutdown.
+   * Delete all user created tables.
+   * @param oid - database from which tables are to be deleted.
+   */
   void DestroyDB(db_oid_t oid);
 
  private:

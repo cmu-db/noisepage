@@ -1,8 +1,11 @@
 #pragma once
 
 #include <type/value.h>
-#include "catalog_defs.h"
-#include "catalog_sql_table.h"
+#include <memory>
+#include <utility>
+#include <vector>
+#include "catalog/catalog_defs.h"
+#include "catalog/catalog_sql_table.h"
 
 namespace terrier::catalog {
 

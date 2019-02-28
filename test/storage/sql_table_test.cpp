@@ -19,49 +19,50 @@ struct SqlTableTests : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
+  void CheckRow(const std::vector<type::Value> &ref_row, const std::vector<type::Value> &row) {
+    EXPECT_EQ(ref_row.size(), row.size());
+    for (uint32_t i = 0; i < ref_row.size(); i++) {
+      EXPECT_TRUE(ref_row[i] == row[i]);
+    }
+  }
+
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 };
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectInsertTest) {
+  std::vector<type::Value> found_row;
   catalog::SqlTableRW table(catalog::table_oid_t(2));
 
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
   table.Create();
-  table.StartRow();
-  table.SetColInRow(0, type::ValueFactory::GetIntegerValue(100));
-  table.SetColInRow(1, type::ValueFactory::GetIntegerValue(15721));
-  table.EndRowAndInsert(txn);
 
-  table.StartRow();
-  table.SetColInRow(0, type::ValueFactory::GetIntegerValue(200));
-  table.SetColInRow(1, type::ValueFactory::GetIntegerValue(25721));
-  table.EndRowAndInsert(txn);
+  std::vector<type::Value> row1;
+  row1.emplace_back(type::ValueFactory::GetIntegerValue(100));
+  row1.emplace_back(type::ValueFactory::GetIntegerValue(15721));
+  table.InsertRow(txn, row1);
+
+  std::vector<type::Value> row2;
+  row2.emplace_back(type::ValueFactory::GetIntegerValue(200));
+  row2.emplace_back(type::ValueFactory::GetIntegerValue(25721));
+  table.InsertRow(txn, row2);
 
   // This operation is slow, due to how sequential scan is done for a datatable.
-  // auto num_rows = table.GetNumRows();
-  // EXPECT_EQ(2, num_rows);
+  auto num_rows = table.GetNumRows();
+  EXPECT_EQ(2, num_rows);
 
   std::vector<type::Value> search_vec;
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(100));
-  std::vector<type::Value> row_p = table.FindRow(txn, search_vec);
-  uint32_t id = row_p[0].GetIntValue();
-  EXPECT_EQ(100, id);
-  uint32_t datname = row_p[1].GetIntValue();
-  EXPECT_EQ(15721, datname);
-  // leaks the row_buffer_
+  found_row = table.FindRow(txn, search_vec);
+  CheckRow(row1, found_row);
 
   search_vec.clear();
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(200));
-  row_p = table.FindRow(txn, search_vec);
-  id = row_p[0].GetIntValue();
-  EXPECT_EQ(200, id);
-  datname = row_p[1].GetIntValue();
-  EXPECT_EQ(25721, datname);
-  // leaks the row_buffer_
+  found_row = table.FindRow(txn, search_vec);
+  CheckRow(row2, found_row);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
@@ -70,7 +71,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
 /**
  * Insertion test, with content verification using the Value vector calls
  */
-//// NOLINTNEXTLINE
+// NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectInsertTest1) {
   catalog::SqlTableRW table(catalog::table_oid_t(2));
 
@@ -79,43 +80,38 @@ TEST_F(SqlTableTests, SelectInsertTest1) {
   table.DefineColumn("c1", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
   table.DefineColumn("c2", type::TypeId::INTEGER, false, catalog::col_oid_t(2));
   table.Create();
-  table.StartRow();
-  table.SetColInRow(0, type::ValueFactory::GetIntegerValue(100));
-  table.SetColInRow(1, type::ValueFactory::GetIntegerValue(15721));
-  table.SetColInRow(2, type::ValueFactory::GetIntegerValue(17));
-  table.EndRowAndInsert(txn);
 
-  table.StartRow();
-  table.SetColInRow(0, type::ValueFactory::GetIntegerValue(200));
-  table.SetColInRow(1, type::ValueFactory::GetIntegerValue(25721));
-  table.SetColInRow(2, type::ValueFactory::GetIntegerValue(27));
-  table.EndRowAndInsert(txn);
+  std::vector<type::Value> row1;
+  row1.emplace_back(type::ValueFactory::GetIntegerValue(100));
+  row1.emplace_back(type::ValueFactory::GetIntegerValue(15721));
+  row1.emplace_back(type::ValueFactory::GetIntegerValue(17));
+  table.InsertRow(txn, row1);
+
+  std::vector<type::Value> row2;
+  row2.emplace_back(type::ValueFactory::GetIntegerValue(200));
+  row2.emplace_back(type::ValueFactory::GetIntegerValue(25721));
+  row2.emplace_back(type::ValueFactory::GetIntegerValue(27));
+  table.InsertRow(txn, row2);
 
   // search for a single column
   std::vector<type::Value> search_vec;
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(100));
 
   // search for a value in column 0
-  auto row_p = table.FindRow(txn, search_vec);
-  EXPECT_EQ(3, row_p.size());
-  EXPECT_EQ(100, row_p[0].GetIntValue());
-  EXPECT_EQ(15721, row_p[1].GetIntValue());
-  EXPECT_EQ(17, row_p[2].GetIntValue());
+  auto found_row = table.FindRow(txn, search_vec);
+  CheckRow(row1, found_row);
 
   // add a value for column 1 and search again
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(15721));
-  row_p = table.FindRow(txn, search_vec);
-  EXPECT_EQ(3, row_p.size());
-  EXPECT_EQ(100, row_p[0].GetIntValue());
-  EXPECT_EQ(15721, row_p[1].GetIntValue());
-  EXPECT_EQ(17, row_p[2].GetIntValue());
+  found_row = table.FindRow(txn, search_vec);
+  CheckRow(row1, found_row);
 
   // now search for a non-existent value in column 2.
   // This is slow.
   search_vec.clear();
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(19));
   try {
-    row_p = table.FindRow(txn, search_vec);
+    found_row = table.FindRow(txn, search_vec);
   } catch (const CatalogException &ce) {
     // ok
     EXPECT_STREQ("row not found", ce.what());
@@ -127,11 +123,8 @@ TEST_F(SqlTableTests, SelectInsertTest1) {
   // search for second item
   search_vec.clear();
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(200));
-  row_p = table.FindRow(txn, search_vec);
-  EXPECT_EQ(3, row_p.size());
-  EXPECT_EQ(200, row_p[0].GetIntValue());
-  EXPECT_EQ(25721, row_p[1].GetIntValue());
-  EXPECT_EQ(27, row_p[2].GetIntValue());
+  found_row = table.FindRow(txn, search_vec);
+  CheckRow(row2, found_row);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
@@ -146,17 +139,16 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
   table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
   table.Create();
 
-  table.StartRow();
-  table.SetColInRow(0, type::ValueFactory::GetIntegerValue(100));
-  table.SetColInRow(1, type::ValueFactory::GetVarcharValue("name"));
-  table.EndRowAndInsert(txn);
+  std::vector<type::Value> insert_vec;
+  insert_vec.emplace_back(type::ValueFactory::GetIntegerValue(100));
+  insert_vec.emplace_back(type::ValueFactory::GetVarcharValue("name"));
+  table.InsertRow(txn, insert_vec);
 
   std::vector<type::Value> search_vec;
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(100));
 
-  auto row_p = table.FindRow(txn, search_vec);
-  EXPECT_EQ(100, row_p[0].GetIntValue());
-  EXPECT_STREQ("name", row_p[1].GetVarcharValue());
+  auto found_row = table.FindRow(txn, search_vec);
+  CheckRow(insert_vec, found_row);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;

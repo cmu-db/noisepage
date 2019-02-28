@@ -136,17 +136,19 @@ TEST_F(TableHandleTests, CreateTest) {
   // Insert a row into the table
   auto ptr = table_handle.GetTable(txn_, "test_table");
   EXPECT_EQ(ptr, table);
-  ptr->StartRow();
-  ptr->SetColInRow(0, type::ValueFactory::GetIntegerValue(123));
-  ptr->SetColInRow(1, type::ValueFactory::GetVarcharValue("test_name"));
-  ptr->EndRowAndInsert(txn_);
+
+  std::vector<type::Value> row;
+  row.emplace_back(type::ValueFactory::GetIntegerValue(123));
+  row.emplace_back(type::ValueFactory::GetVarcharValue("test_name"));
+  ptr->InsertRow(txn_, row);
 
   txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 
   // Read row from the table
   std::vector<type::Value> search_vec;
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(123));
-  std::vector<type::Value> row = ptr->FindRow(txn_, search_vec);
+  row.clear();
+  row = ptr->FindRow(txn_, search_vec);
   EXPECT_EQ(row[0].GetIntValue(), 123);
   EXPECT_STREQ(row[1].GetVarcharValue(), "test_name");
 }
