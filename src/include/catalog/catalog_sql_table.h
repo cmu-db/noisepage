@@ -92,12 +92,20 @@ class SqlTableRW {
         size_t size = 0;
         byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-        if (!value.Null()) {
+        if (value.Null()) {
+          *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(varlen, static_cast<uint32_t>(size));
+        } else {
+          // not null
           size = strlen(value.GetVarcharValue());
-          varlen = common::AllocationUtil::AllocateAligned(size);
-          memcpy(varlen, value.GetVarcharValue(), size);
+          if (size > storage::VarlenEntry::InlineThreshold()) {
+            varlen = common::AllocationUtil::AllocateAligned(size);
+            memcpy(varlen, value.GetVarcharValue(), size);
+            *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
+          } else {
+            auto byte_p = reinterpret_cast<const byte *>(value.GetVarcharValue());
+            *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
+          }
         }
-        *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
         break;
       }
         // TODO(yangjuns): support other types
