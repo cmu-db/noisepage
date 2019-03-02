@@ -9,7 +9,7 @@ namespace terrier::plan_node {
 
 class LimitPlanNode : public AbstractPlanNode {
  public:
-  LimitPlanNode(catalog::Schema output_schema, size_t limit, size_t offset)
+  LimitPlanNode(std::shared_ptr<catalog::Schema> output_schema, size_t limit, size_t offset)
       : AbstractPlanNode(output_schema), limit_(limit), offset_(offset) {}
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }

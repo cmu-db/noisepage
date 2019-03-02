@@ -9,7 +9,7 @@ namespace terrier::plan_node {
 
 class HybridScanPlanNode : public AbstractScanPlanNode {
  public:
-  HybridScanPlanNode(catalog::Schema output_schema, catalog::index_oid_t index_oid,
+  HybridScanPlanNode(std::shared_ptr<catalog::Schema> output_schema, catalog::index_oid_t index_oid,
                      parser::AbstractExpression *predicate, HybridScanType hybrid_scan_type)
       : AbstractScanPlanNode(output_schema, predicate), index_oid_(index_oid), hybrid_scan_type_(hybrid_scan_type) {}
 

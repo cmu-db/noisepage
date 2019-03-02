@@ -18,8 +18,7 @@ bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
 }
 
 std::unique_ptr<AbstractPlanNode> ExportExternalFilePlanNode::Copy() const {
-  return std::unique_ptr<AbstractPlanNode>{
-      new ExportExternalFilePlanNode(GetOutputSchema(), file_name_, delimiter_, quote_, escape_)};
+  return std::unique_ptr<AbstractPlanNode>{new ExportExternalFilePlanNode(file_name_, delimiter_, quote_, escape_)};
 }
 
 }  // namespace terrier::plan_node

@@ -27,7 +27,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     AggregateTerm Copy() const { return AggregateTerm(aggregate_type_, expression_->Copy().get(), distinct_); }
   };
 
-  AggregatePlanNode(catalog::Schema output_schema,
+  AggregatePlanNode(std::shared_ptr<catalog::Schema> output_schema,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
                     const std::vector<AggregateTerm> &&aggregate_terms, AggregateStrategy aggregate_strategy)
       : AbstractPlanNode(output_schema),

@@ -18,7 +18,7 @@ namespace terrier::plan_node {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(catalog::Schema output_schema) : output_schema_(output_schema) {}
+  AbstractPlanNode(std::shared_ptr<catalog::Schema> output_schema) : output_schema_(std::move(output_schema)) {}
 
   virtual ~AbstractPlanNode() {}
 
@@ -48,7 +48,7 @@ class AbstractPlanNode {
 
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
-  catalog::Schema GetOutputSchema() const { return output_schema_; }
+  std::shared_ptr<catalog::Schema> GetOutputSchema() const { return output_schema_; }
 
   // Get the estimated cardinality of this plan
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
@@ -87,7 +87,7 @@ class AbstractPlanNode {
 
   int estimated_cardinality_ = 500000;
 
-  catalog::Schema output_schema_;
+  std::shared_ptr<catalog::Schema> output_schema_;
 
  private:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);

@@ -3,7 +3,8 @@
 #include "abstract_plan_node.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be
-// the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer
+// the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer, so I put
+// it as null_ptr for now
 
 namespace terrier::plan_node {
 
@@ -14,9 +15,8 @@ namespace terrier::plan_node {
  */
 class ExportExternalFilePlanNode : public AbstractPlanNode {
  public:
-  ExportExternalFilePlanNode(catalog::Schema output_schema, std::string file_name, char delimiter = ',',
-                             char quote = '"', char escape = '\"')
-      : AbstractPlanNode(output_schema), file_name_(file_name), delimiter_(delimiter), quote_(quote), escape_(escape) {}
+  ExportExternalFilePlanNode(std::string file_name, char delimiter = ',', char quote = '"', char escape = '\"')
+      : AbstractPlanNode(nullptr), file_name_(file_name), delimiter_(delimiter), quote_(quote), escape_(escape) {}
 
   PlanNodeType GetPlanNodeType() const override;
 

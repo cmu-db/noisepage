@@ -10,8 +10,8 @@ namespace terrier::plan_node {
 
 class SeqScanPlanNode : public AbstractScanPlanNode {
  public:
-  SeqScanPlanNode(catalog::Schema output_schema, parser::AbstractExpression *predicate, catalog::table_oid_t table_oid,
-                  bool is_for_update = false, bool parallel = false)
+  SeqScanPlanNode(std::shared_ptr<catalog::Schema> output_schema, parser::AbstractExpression *predicate,
+                  catalog::table_oid_t table_oid, bool is_for_update = false, bool parallel = false)
       : AbstractScanPlanNode(output_schema, predicate, is_for_update, parallel), table_oid_(table_oid) {}
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SEQSCAN; }

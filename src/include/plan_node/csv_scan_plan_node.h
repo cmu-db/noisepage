@@ -18,8 +18,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * that match the quote character.
    * @param null_string the null string for the file
    */
-  CSVScanPlanNode(catalog::Schema output_schema, std::string file_name, char delimiter = ',', char quote = '"',
-                  char escape = '"', std::string null_string = "")
+  CSVScanPlanNode(std::shared_ptr<catalog::Schema> output_schema, std::string file_name, char delimiter = ',',
+                  char quote = '"', char escape = '"', std::string null_string = "")
       : AbstractScanPlanNode(output_schema, nullptr /* predicate */),
         file_name_(file_name),
         delimiter_(delimiter),

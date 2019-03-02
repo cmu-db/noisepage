@@ -17,7 +17,7 @@ namespace terrier::plan_node {
 
 class IndexScanPlanNode : public AbstractScanPlanNode {
  public:
-  IndexScanPlanNode(catalog::Schema output_schema, catalog::index_oid_t index_oid,
+  IndexScanPlanNode(std::shared_ptr<catalog::Schema> output_schema, catalog::index_oid_t index_oid,
                     parser::AbstractExpression *predicate)
       : AbstractScanPlanNode(output_schema, predicate), index_oid_(index_oid) {}
 
