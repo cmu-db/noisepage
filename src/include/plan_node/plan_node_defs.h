@@ -69,4 +69,16 @@ enum class HybridScanType { INVALID = INVALID_TYPE_ID, SEQUENTIAL = 1, INDEX = 2
 
 enum class OrderByOrdering { ASC, DESC };
 
+//===--------------------------------------------------------------------===//
+// Logical Join Types
+//===--------------------------------------------------------------------===//
+enum class LogicalJoinType {
+  INVALID = INVALID_TYPE_ID,  // invalid join type
+  LEFT = 1,                   // left
+  RIGHT = 2,                  // right
+  INNER = 3,                  // inner
+  OUTER = 4,                  // outer
+  SEMI = 5                    // IN+Subquery is SEMI
+};
+
 }  // namespace terrier::plan_node
