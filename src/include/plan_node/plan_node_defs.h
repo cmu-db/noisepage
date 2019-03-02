@@ -63,4 +63,10 @@ enum class AggregateStrategy {
 //===--------------------------------------------------------------------===//
 enum class HybridScanType { INVALID = INVALID_TYPE_ID, SEQUENTIAL = 1, INDEX = 2, HYBRID = 3 };
 
+//===--------------------------------------------------------------------===//
+// Order by Orderings
+//===--------------------------------------------------------------------===//
+
+enum class OrderByOrdering { ASC, DESC };
+
 }  // namespace terrier::plan_node

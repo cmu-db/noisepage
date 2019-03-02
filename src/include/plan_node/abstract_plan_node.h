@@ -60,6 +60,8 @@ class AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
+
+  // TODO(Gus,Wen): Schema needs a copy function in order to copy the shared ptr
   virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
   virtual common::hash_t Hash() const {
