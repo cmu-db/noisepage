@@ -16,15 +16,14 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Check predicate
   auto *pred = GetPredicate();
   auto *other_pred = other.GetPredicate();
-  if ((pred == nullptr && other_pred != nullptr) ||
-      (pred != nullptr && other_pred == nullptr)) {
+  if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
     return false;
   }
   if (pred != nullptr && *pred != *other_pred) {
     return false;
   }
 
-  //TODO(Gus,Wen): Compare output schema
+  // TODO(Gus,Wen): Compare output schema
 
   return true;
 }

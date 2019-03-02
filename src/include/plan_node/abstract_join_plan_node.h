@@ -3,7 +3,6 @@
 #include "abstract_plan_node.h"
 #include "parser/expression/abstract_expression.h"
 
-
 namespace terrier::plan_node {
 
 //===--------------------------------------------------------------------===//
@@ -12,14 +11,9 @@ namespace terrier::plan_node {
 
 class AbstractJoinPlanNode : public AbstractPlanNode {
  public:
-  AbstractJoinPlanNode(
-      std::shared_ptr<catalog::Schema> output_schema,
-      LogicalJoinType join_type,
-      parser::AbstractExpression *predicate)
-      : AbstractPlanNode(output_schema),
-        join_type_(join_type),
-        predicate_(predicate) {
-  }
+  AbstractJoinPlanNode(std::shared_ptr<catalog::Schema> output_schema, LogicalJoinType join_type,
+                       parser::AbstractExpression *predicate)
+      : AbstractPlanNode(output_schema), join_type_(join_type), predicate_(predicate) {}
 
   common::hash_t Hash() const override;
 
@@ -32,14 +26,12 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
 
   LogicalJoinType GetLogicalJoinType() const { return join_type_; }
 
-  const parser::AbstractExpression *GetPredicate() const {
-    return predicate_;
-  }
+  const parser::AbstractExpression *GetPredicate() const { return predicate_; }
 
  private:
   LogicalJoinType join_type_;
 
-  const parser::AbstractExpression* predicate_;
+  const parser::AbstractExpression *predicate_;
 
  private:
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
