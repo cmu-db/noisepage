@@ -41,6 +41,9 @@ enum class PlanNodeType {
   DISTINCT,
   HASH,
 
+  // Utility
+  EXPORT_EXTERNAL_FILE,
+
   // Test
   MOCK
 };
