@@ -37,7 +37,7 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
 
-  auto &other = static_cast<const plan_node::OrderByPlanNode &>(rhs);
+  auto &other = static_cast<const OrderByPlanNode &>(rhs);
 
   // Sort Keys
   if (GetSortKeys() != other.GetSortKeys()) {
