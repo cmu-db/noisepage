@@ -26,6 +26,13 @@ std::unique_ptr<AbstractPlanNode> HashJoinPlanNode::Copy() const {
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 
+  // Hash Join Type
+  auto logical_join_type = GetLogicalJoinType();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&logical_join_type));
+
+  // Hash Predicate
+  hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
+
   // Hash left keys
   for (const auto &left_hash_key : left_hash_keys_) {
     hash = common::HashUtil::CombineHashes(hash, left_hash_key->Hash());
@@ -52,7 +59,11 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   const auto &other = static_cast<const HashJoinPlanNode &>(rhs);
 
+  if (GetLogicalJoinType() != other.GetLogicalJoinType()) return false;
+
   if (IsBloomFilterEnabled() != other.IsBloomFilterEnabled()) return false;
+
+  if (*GetPredicate() != *other.GetPredicate()) return false;
 
   // Left hash keys
   const auto &left_keys = GetLeftHashKeys();
@@ -82,7 +93,8 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // TODO(Gus,Wen): Compare equality of schema
 
-  return AbstractPlanNode::operator==(rhs);
+  return GetLeftHashKeys() == other.GetLeftHashKeys() && GetRightHashKeys() == other.GetRightHashKeys() &&
+         AbstractPlanNode::operator==(rhs);
 }
 
 }  // namespace terrier::plan_node

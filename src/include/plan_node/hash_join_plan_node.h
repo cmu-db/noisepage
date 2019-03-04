@@ -2,6 +2,8 @@
 
 #include "abstract_join_plan_node.h"
 
+// TODO(Gus,Wen): Do we need left and right keys, or is this something you can figure out from the predicate?
+
 namespace terrier::plan_node {
 
 class HashJoinPlanNode : public AbstractJoinPlanNode {
