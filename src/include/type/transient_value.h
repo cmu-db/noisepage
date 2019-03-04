@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include "common/hash_util.h"
-#include "gtest/gtest_prod.h"
+#include "common/macros.h"
 #include "loggers/type_logger.h"
 #include "type/type_id.h"
 #include "type/type_util.h"

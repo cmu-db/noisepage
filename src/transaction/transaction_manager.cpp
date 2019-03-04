@@ -146,8 +146,8 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
-        txn->loose_ptrs_.push_back(varlen->Content());
+        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+        if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }
   }
@@ -217,8 +217,8 @@ void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
   if (layout.IsVarlen(col_id)) {
     auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
     if (varlen != nullptr) {
-      TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
-      txn->loose_ptrs_.push_back(varlen->Content());
+      TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+      if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
     }
   }
 }
@@ -231,8 +231,8 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(!varlen->IsGathered(), "Fresh updates cannot be gathered already");
-        txn->loose_ptrs_.push_back(varlen->Content());
+        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+        if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }
   }

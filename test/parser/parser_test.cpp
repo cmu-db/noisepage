@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "common/exception.h"
+#include "parser/expression/comparison_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -56,8 +57,10 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CastTest) {
   auto stmts = pgparser.BuildParseTree("SELECT CAST('100' AS INTEGER);");
-  auto copy_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
-  EXPECT_EQ(copy_stmt->GetType(), StatementType::SELECT);
+  auto cast_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
+  EXPECT_EQ(cast_stmt->GetType(), StatementType::SELECT);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetReturnValueType(), type::TypeId::INTEGER);
 }
 
 // NOLINTNEXTLINE
@@ -380,7 +383,7 @@ TEST_F(ParserTestBase, OperatorTest) {
     auto &sql_stmt = stmt_list[0];
     auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
     auto expr = select_stmt->GetSelectColumns().at(0).get();
-    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::CAST);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::INTEGER);
   }
 
@@ -634,29 +637,78 @@ TEST_F(ParserTestBase, DISABLED_OldConstTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldJoinTest) {
-  std::vector<std::string> queries;
+  std::string query;
 
-  // Select with join
-  queries.emplace_back("SELECT * FROM foo INNER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo LEFT JOIN bar ON foo.id=bar.id;");
-  queries.emplace_back("SELECT * FROM foo RIGHT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo FULL OUTER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;");
-
-  for (const auto &query : queries) {
+  {
+    query = "SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;";
     auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
 
-    // TODO(WAN): this was a pretty jank way to test, also won't scale
-    // Test for multiple table join
-    if (query == "SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;") {
-      auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
-      auto join_table = select_stmt->GetSelectTable().get();
-      EXPECT_TRUE(join_table->GetTableReferenceType() == TableReferenceType::JOIN);
-      auto l_join = join_table->GetJoin()->GetLeftTable().get();
-      auto r_table = join_table->GetJoin()->GetRightTable().get();
-      EXPECT_TRUE(l_join->GetTableReferenceType() == TableReferenceType::JOIN);
-      EXPECT_TRUE(r_table->GetTableReferenceType() == TableReferenceType::NAME);
-    }
+    auto join_cond = join_table->GetJoin()->GetJoinCondition().get();
+    EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+    auto jcl = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(0).get());
+    EXPECT_EQ(jcl->GetTableName(), "foo");
+    EXPECT_EQ(jcl->GetColumnName(), "id2");
+    auto jcr = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(1).get());
+    EXPECT_EQ(jcr->GetTableName(), "baz");
+    EXPECT_EQ(jcr->GetColumnName(), "id2");
+
+    auto l_join = join_table->GetJoin()->GetLeftTable().get();
+    EXPECT_EQ(l_join->GetTableReferenceType(), TableReferenceType::JOIN);
+    auto ll_join = l_join->GetJoin()->GetLeftTable().get();
+    EXPECT_EQ(ll_join->GetTableName(), "foo");
+    auto lr_join = l_join->GetJoin()->GetRightTable().get();
+    EXPECT_EQ(lr_join->GetTableName(), "bar");
+
+    auto r_table = join_table->GetJoin()->GetRightTable().get();
+    EXPECT_EQ(r_table->GetTableReferenceType(), TableReferenceType::NAME);
+    EXPECT_EQ(r_table->GetTableName(), "baz");
+  }
+
+  {
+    query = "SELECT * FROM foo INNER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
+  }
+
+  {
+    query = "SELECT * FROM foo LEFT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::LEFT);
+  }
+
+  {
+    query = "SELECT * FROM foo RIGHT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::RIGHT);
+  }
+
+  {
+    query = "SELECT * FROM foo FULL OUTER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::OUTER);
+  }
+
+  {
+    // test case from SQLite
+    query = "SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;";
+    EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
   }
 }
 
