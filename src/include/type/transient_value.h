@@ -246,7 +246,8 @@ class TransientValue {
    */
   template <typename T>
   T GetAs() const {
-    return *reinterpret_cast<const T *const>(&data_);
+    const auto *const value = reinterpret_cast<const T *const>(&data_);
+    return *value;
   }
 
   /**
