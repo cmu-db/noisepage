@@ -78,7 +78,7 @@ bool PostgresProtocolInterpreter::TryBuildPacket(const std::shared_ptr<ReadBuffe
                            ? curr_input_packet_.len_ - curr_input_packet_.buf_->BytesAvailable()
                            : curr_input_packet_.len_;
 
-  size_t can_read = MIN(size_needed, in->BytesAvailable());
+  size_t can_read = std::min(size_needed, in->BytesAvailable());
   size_t remaining_bytes = size_needed - can_read;
 
   // copy bytes only if the packet is longer than the read buffer,
