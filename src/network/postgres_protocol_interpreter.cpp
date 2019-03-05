@@ -27,10 +27,11 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     return ProcessStartup(in, out);
   }
   std::shared_ptr<PostgresNetworkCommand> command = PacketToCommand();
-  curr_input_packet_.Clear();
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  return command->Exec(this, &writer, callback);
+  Transition ret = command->Exec(this, &writer, callback);
+  curr_input_packet_.Clear();
+  return ret;
 }
 
 Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<ReadBuffer> &in,
@@ -76,12 +77,17 @@ bool PostgresProtocolInterpreter::TryBuildPacket(const std::shared_ptr<ReadBuffe
   size_t size_needed = curr_input_packet_.extended_
                            ? curr_input_packet_.len_ - curr_input_packet_.buf_->BytesAvailable()
                            : curr_input_packet_.len_;
-  if (!in->HasMore(size_needed)) return false;
+
+  size_t can_read = MIN(size_needed, in->BytesAvailable());
+  size_t remaining_bytes = size_needed - can_read;
 
   // copy bytes only if the packet is longer than the read buffer,
   // otherwise we can use the read buffer to save space
-  if (curr_input_packet_.extended_) curr_input_packet_.buf_->FillBufferFrom(*in, size_needed);
-  return true;
+  if (curr_input_packet_.extended_) {
+    curr_input_packet_.buf_->FillBufferFrom(*in, can_read);
+  }
+
+  return remaining_bytes <= 0;
 }
 
 bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in) {

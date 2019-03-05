@@ -1,5 +1,3 @@
-// #pragma GCC diagnostic ignored "-Wconversion"
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <util/test_harness.h>
@@ -91,8 +89,12 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 
 ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
   ssize_t n;
+  char *current_buff_head = in_buffer;
   while (true) {
-    n = read(socket_fd, in_buffer, max_len);
+    n = read(socket_fd, current_buff_head, max_len);
+    if (n < 0) {
+      return n;
+    }
     if (n == 0 || in_buffer[n - 6] == 'Z')  // Ready for request
       break;
   }
@@ -206,7 +208,7 @@ TEST_F(NetworkTests, BadQueryTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(NetworkTests, SSLTest) {
+TEST_F(NetworkTests, NoSSLTest) {
   try {
     pqxx::connection C(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port));
 
@@ -215,7 +217,7 @@ TEST_F(NetworkTests, SSLTest) {
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[SSLTest] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[NoSSLTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -358,7 +360,24 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
   try {
     TestExtendedQuery(port);
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[NetworkCommands] Exception occurred: {0}", e.what());
+    TEST_LOG_ERROR("[PgNetworkCommandsTest] Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, LargePacketsTest) {
+  try {
+    pqxx::connection C(
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+
+    pqxx::work txn1(C);
+    std::string longQueryPacketString(255555, 'a');
+    longQueryPacketString[longQueryPacketString.size() - 1] = '\0';
+    txn1.exec(longQueryPacketString);
+    txn1.commit();
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }

@@ -42,6 +42,7 @@ void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   int new_conn_fd = accept(fd, reinterpret_cast<struct sockaddr *>(&addr), &addrlen);
   if (new_conn_fd == -1) {
     NETWORK_LOG_ERROR("Failed to accept");
+    return;
   }
 
   // Dispatch by rand number
