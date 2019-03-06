@@ -43,7 +43,6 @@ class LimitPlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
 
-inline void to_json(nlohmann::json &j, const LimitPlanNode &plan_node) { j = plan_node.ToJson(); }  /* NOLINT */
-inline void from_json(const nlohmann::json &j, LimitPlanNode &plan_node) { plan_node.FromJson(j); } /* NOLINT */
+DEFINE_JSON_DECLARATIONS(LimitPlanNode);
 
 }  // namespace terrier::plan_node

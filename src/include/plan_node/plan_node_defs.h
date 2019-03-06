@@ -2,6 +2,14 @@
 
 namespace terrier::plan_node {
 
+//===--------------------------------------------------------------------===//
+// JSON (de)serialization declarations
+//===--------------------------------------------------------------------===//
+
+#define DEFINE_JSON_DECLARATIONS(ClassName)                                                    \
+  inline void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */ \
+  inline void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */
+
 constexpr int INVALID_TYPE_ID = 0;
 
 //===--------------------------------------------------------------------===//

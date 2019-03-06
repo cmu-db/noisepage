@@ -133,9 +133,7 @@ class Hash {
 };
 
 // JSON library interface. Do not modify.
-inline void to_json(nlohmann::json &j, const AbstractPlanNode &plan_node) { j = plan_node.ToJson(); }  /* NOLINT */
-inline void from_json(const nlohmann::json &j, AbstractPlanNode &plan_node) { plan_node.FromJson(j); } /* NOLINT */
-
+DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
 std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::plan_node
