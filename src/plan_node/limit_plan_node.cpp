@@ -23,4 +23,24 @@ inline bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return (limit_ == other.limit_ && offset_ == other.offset_ && AbstractPlanNode::operator==(rhs));
 }
 
+nlohmann::json LimitPlanNode::ToJson() const {
+  nlohmann::json output;
+  output["Limit"] = limit_;
+  output["Offset"] = offset_;
+
+  // Serialize metadata from base class
+  auto abstract_plan_json = AbstractPlanNode::ToJson();
+  output.update(abstract_plan_json);
+
+  return output;
+}
+
+void LimitPlanNode::FromJson(const nlohmann::json &json) {
+  TERRIER_ASSERT(GetPlanNodeType() == json["PlanNodeType"].get<PlanNodeType>(), "Mismatching plan node types");
+  limit_ = json["Limit"].get<size_t>();
+  offset_ = json["Offset"].get<size_t>();
+
+  AbstractPlanNode::FromJson(json);
+}
+
 }  // namespace terrier::plan_node

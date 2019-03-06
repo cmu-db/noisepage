@@ -12,6 +12,8 @@ enum class PlanNodeType {
 
   INVALID = INVALID_TYPE_ID,
 
+  ABSTRACTPLAN,
+
   // Scan Nodes
   SEQSCAN,
   INDEXSCAN,

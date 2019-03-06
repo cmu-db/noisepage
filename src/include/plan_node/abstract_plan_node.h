@@ -6,6 +6,7 @@
 
 #include "catalog/schema.h"
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "plan_node_defs.h"
 
 // TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
@@ -19,6 +20,9 @@ namespace terrier::plan_node {
 class AbstractPlanNode {
  public:
   AbstractPlanNode(std::shared_ptr<catalog::Schema> output_schema) : output_schema_(std::move(output_schema)) {}
+
+  // For Deserialization
+  AbstractPlanNode() {}
 
   virtual ~AbstractPlanNode() {}
 
@@ -44,7 +48,7 @@ class AbstractPlanNode {
 
   // Each sub-class will have to implement this function to return their type
   // This is better than having to store redundant types in all the objects
-  virtual PlanNodeType GetPlanNodeType() const = 0;
+  virtual PlanNodeType GetPlanNodeType() const { return PlanNodeType::ABSTRACTPLAN; }
 
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
@@ -58,11 +62,29 @@ class AbstractPlanNode {
   void SetEstimatedCardinality(int cardinality) { estimated_cardinality_ = cardinality; }
 
   //===--------------------------------------------------------------------===//
+  // JSON Serialization/Deserialization
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * Return the current plan node in JSON format.
+   * @return JSON representation of plan node
+   */
+  virtual nlohmann::json ToJson() const;
+
+  /**
+   * Populates the plan node with the information in the given JSON.
+   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+   */
+  virtual void FromJson(const nlohmann::json &json);
+
+  //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
 
   // TODO(Gus,Wen): Schema needs a copy function in order to copy the shared ptr
-  virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
+  virtual std::unique_ptr<AbstractPlanNode> Copy() const {
+    return std::unique_ptr<AbstractPlanNode>(new AbstractPlanNode(output_schema_));
+  }
 
   virtual common::hash_t Hash() const {
     common::hash_t hash = 0;
@@ -109,5 +131,11 @@ class Hash {
     return static_cast<size_t>(plan->Hash());
   }
 };
+
+// JSON library interface. Do not modify.
+inline void to_json(nlohmann::json &j, const AbstractPlanNode &plan_node) { j = plan_node.ToJson(); }  /* NOLINT */
+inline void from_json(const nlohmann::json &j, AbstractPlanNode &plan_node) { plan_node.FromJson(j); } /* NOLINT */
+
+std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::plan_node
