@@ -68,6 +68,9 @@ enum class NetworkMessageType : unsigned char {
   // That means we cannot have an invalid type
   NULL_COMMAND = '0',
 
+  // Messages that don't have headers (like Startup message)
+  NO_HEADER,
+
   // Responses
   PARSE_COMPLETE = '1',
   BIND_COMPLETE = '2',

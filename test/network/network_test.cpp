@@ -87,18 +87,25 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
 
-ssize_t ReadUntilReadyOrClose(char *in_buffer, size_t max_len, int socket_fd) {
-  ssize_t n;
-  char *current_buff_head = in_buffer;
+/**
+ * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
+ * @param io_socket
+ * @return true if reads ReadyForQuery, false for closed.
+ */
+bool ReadUntilReadyOrClose(std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
   while (true) {
-    n = read(socket_fd, current_buff_head, max_len);
-    if (n < 0) {
-      return n;
+    Transition trans = io_socket->FillReadBuffer();
+    if(trans == Transition::TERMINATE)
+      return false;
+    else if(io_socket->in_->BytesAvailable() >= 6)
+    {
+      // Directly check if the last message is ReadyForQuery, whose length is 6
+      // without parsing the whole packet
+      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
+      if(io_socket->in_->ReadValue<NetworkMessageType>()==NetworkMessageType::READY_FOR_QUERY)
+        return true;
     }
-    if (n == 0 || in_buffer[n - 6] == 'Z')  // Ready for request
-      break;
   }
-  return n;
 }
 
 /* strlcpy based on OpenBSDs strlcpy.
@@ -131,7 +138,7 @@ size_t strlcpy(char *dst, const char *src, size_t siz) {
   return (s - src - 1); /* count does not include NUL */
 }
 
-int StartConnection(uint16_t port) {
+std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -144,23 +151,16 @@ int StartConnection(uint16_t port) {
   int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
   if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
-  // Build the startup message
-  char out_buffer[TEST_BUF_SIZE] = {};
-  char in_buffer[TEST_BUF_SIZE] = {};
-  // 3: protocol version number
-  out_buffer[5] = 3;
-  std::vector<std::string> params({"user", "postgres", "database", "postgres", "application_name", "psql"});
-  size_t offset = 8;
-  for (std::string &str : params) {
-    strlcpy(out_buffer + offset, str.c_str(), str.length());
-    offset += str.length() + 1;
-  }
+  auto io_socket = std::make_shared<PosixSocketIoWrapper>(socket_fd);
+  PostgresPacketWriter writer(io_socket->out_);
 
-  out_buffer[3] = static_cast<char>(offset + 1);
+  std::unordered_map<std::string, std::string> params {{"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
 
-  write(socket_fd, out_buffer, offset + 1);
-  ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  return socket_fd;
+  writer.WriteStartupRequest(params);
+  io_socket->FlushAllWrites();
+
+  ReadUntilReadyOrClose(io_socket);
+  return io_socket;
 }
 
 void TerminateConnection(int socket_fd) {
@@ -177,29 +177,25 @@ void TerminateConnection(int socket_fd) {
 TEST_F(NetworkTests, BadQueryTest) {
   try {
     TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    int socket_fd = StartConnection(port);
-    char out_buffer[TEST_BUF_SIZE] = {};
-    char in_buffer[TEST_BUF_SIZE] = {};
-    // Build a correct query message, "SELECT A FROM B"
-    memset(out_buffer, 0, sizeof(out_buffer));
-    out_buffer[0] = 'Q';
-    std::string query = "SELECT A FROM B;";
-    strlcpy(out_buffer + 5, query.c_str(), query.length());
-    size_t len = 5 + query.length();
-    out_buffer[4] = static_cast<char>(len);
+    std::shared_ptr<PosixSocketIoWrapper> io_socket = StartConnection(port);
+    PostgresPacketWriter writer(io_socket->out_);
 
-    // Beware the buffer length should be message length + 1 for query messages
-    write(socket_fd, out_buffer, len + 1);
-    ssize_t ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-    EXPECT_GT(ret, 0);  // should be okay
+    // Build a correct query message, "SELECT A FROM B"
+    std::string query = "SELECT A FROM B;";
+    writer.WriteQuery(query);
+    io_socket->FlushAllWrites();
+    bool is_ready = ReadUntilReadyOrClose(io_socket);
+    EXPECT_TRUE(is_ready);  // should be okay
 
     // Send a bad query packet
-    memset(out_buffer, 0, sizeof(out_buffer));
-    std::string bad_query = "e_random_bad_packet";
-    write(socket_fd, out_buffer, bad_query.length() + 1);
-    ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-    EXPECT_EQ(0, ret);
-    TerminateConnection(socket_fd);
+    std::string bad_query = "a_random_bad_packet";
+    io_socket->out_->Reset();
+    io_socket->out_->BufferWriteRaw(bad_query.data(), bad_query.length());
+    io_socket->FlushAllWrites();
+
+    is_ready = ReadUntilReadyOrClose(io_socket);
+    EXPECT_FALSE(is_ready);
+    io_socket->Close();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -222,6 +218,7 @@ TEST_F(NetworkTests, NoSSLTest) {
   }
 }
 
+/*
 // TODO(tanujnay112): Change to use a struct instead of this
 void TestExtendedQuery(uint16_t port) {
   int socket_fd = StartConnection(port);
@@ -381,5 +378,6 @@ TEST_F(NetworkTests, LargePacketsTest) {
     EXPECT_TRUE(false);
   }
 }
+ */
 
 }  // namespace terrier::network
