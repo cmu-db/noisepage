@@ -13,17 +13,17 @@ namespace terrier::common {
  */
 
 struct Settings {
-  /*
+  /**
    * Port on which the terrier server listens
    */
   static const uint16_t SERVER_PORT = 2888;
 
-  /*
+  /**
    * Maximum number of connections to the server.
    */
   static const size_t MAX_CONNECTIONS = 250;
 
-  /*
+  /**
    * Server connection backlog.
    */
   static const int CONNECTION_BACKLOG = 12;

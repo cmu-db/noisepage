@@ -90,8 +90,9 @@ struct StorageTestUtil {
   static void PopulateRandomRow(storage::ProjectedRow *const row, const storage::BlockLayout &layout,
                                 const double null_bias, Random *const generator) {
     std::bernoulli_distribution coin(1 - null_bias);
-    // I don't think this matters as a tunable thing?
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 10);
+    // TODO(Tianyu): I don't think this matters as a tunable thing?
+    // Make sure we have a mix of inlined and non-inlined values
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -99,11 +100,18 @@ struct StorageTestUtil {
       if (coin(*generator)) {
         if (layout.IsVarlen(col)) {
           uint32_t size = varlen_size(*generator);
-          byte *varlen = common::AllocationUtil::AllocateAligned(size);
-          FillWithRandomBytes(size, varlen, generator);
-          // varlen entries always start off not inlined
-          *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) = {varlen, size,
-                                                                                                     false};
+          if (size > storage::VarlenEntry::InlineThreshold()) {
+            byte *varlen = common::AllocationUtil::AllocateAligned(size);
+            FillWithRandomBytes(size, varlen, generator);
+            // varlen entries always start off not inlined
+            *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
+                storage::VarlenEntry::Create(varlen, size, true);
+          } else {
+            byte buf[storage::VarlenEntry::InlineThreshold()];
+            FillWithRandomBytes(size, buf, generator);
+            *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
+                storage::VarlenEntry::CreateInline(buf, size);
+          }
         } else {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
         }
@@ -188,8 +196,8 @@ struct StorageTestUtil {
 
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
-        printf("col_id: %u is varlen, ptr %p, size %u, gathered %d, content ", !col_id, entry->Content(), entry->Size(),
-               entry->IsGathered());
+        printf("col_id: %u is varlen, ptr %p, size %u, reclaimable %d, content ", !col_id, entry->Content(),
+               entry->Size(), entry->NeedReclaim());
         for (uint8_t pos = 0; pos < entry->Size(); pos++) printf("%02x", static_cast<uint8_t>(entry->Content()[pos]));
         printf("\n");
       } else {

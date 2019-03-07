@@ -42,30 +42,13 @@ int main() {
   }
 
   // log init now complete
-  LOG_INFO("woof!");
-  std::cout << "hello world!" << std::endl;
-
-  terrier::storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
-  terrier::storage::BlockStore block_store_{1000, 100};
-  terrier::storage::BlockLayout block_layout_({8, 8, 8});
-  const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{1},
-                                                           terrier::storage::col_id_t{2}};
-  terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
-  terrier::transaction::timestamp_t timestamp(0);
-  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED);
-  auto init = terrier::storage::ProjectedRowInitializer(block_layout_, col_ids);
-  auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
-  auto *redo = init.InitializeRow(redo_buffer_);
-
-  data_table_.Insert(txn, *redo);
+  LOG_TRACE("Logger initialization complete");
 
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
-  main_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
-  std::cout << main_stat_reg->DumpStats() << std::endl;
 
-  delete[] redo_buffer_;
-  delete txn;
+  LOG_INFO("Initialization complete");
+
   // shutdown loggers
   spdlog::shutdown();
   main_stat_reg->Shutdown(false);
