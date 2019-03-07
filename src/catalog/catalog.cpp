@@ -21,7 +21,16 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
 
 void Catalog::CreateDatabase(transaction::TransactionContext *txn, const char *name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
-  AddEntryToPGDatabase(txn, new_db_oid, name);
+ Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
+}
+
+void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *db_name) {
+  // get database handle
+  auto db_handle = GetDatabaseHandle();
+  auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
+  // TODO(pakhtar): complete
+  // delete the entry
+  // delete from the maps
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }

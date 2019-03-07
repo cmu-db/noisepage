@@ -1,6 +1,6 @@
+#include "catalog/type_handle.h"
 #include <memory>
 #include <utility>
-#include "catalog/type_handle.h"
 
 namespace terrier::catalog {
 TypeHandle::TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type)

@@ -29,6 +29,9 @@ std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEn
   search_vec.push_back(type::ValueFactory::GetIntegerValue(!table_->Oid()));
   search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
+  if (ret_row.empty()) {
+    throw CATALOG_EXCEPTION("attribute doesn't exist");
+  }
   col_oid_t oid(ret_row[0].GetIntValue());
   return std::make_shared<AttributeEntry>(oid, ret_row);
 }
@@ -41,7 +44,7 @@ col_oid_t AttributeHandle::NameToOid(transaction::TransactionContext *txn, const
       return c.GetOid();
     }
   }
-  CATALOG_EXCEPTION("column doesn't exist");
+  throw CATALOG_EXCEPTION("column doesn't exist");
   return col_oid_t(0);
 }
 }  // namespace terrier::catalog

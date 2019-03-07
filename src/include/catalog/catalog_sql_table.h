@@ -93,17 +93,20 @@ class SqlTableRW {
         byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
         if (value.Null()) {
-          *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(varlen, static_cast<uint32_t>(size));
+          *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+              storage::VarlenEntry::CreateInline(varlen, static_cast<uint32_t>(size));
         } else {
           // not null
           size = strlen(value.GetVarcharValue());
           if (size > storage::VarlenEntry::InlineThreshold()) {
             varlen = common::AllocationUtil::AllocateAligned(size);
             memcpy(varlen, value.GetVarcharValue(), size);
-            *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
+            *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+                storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
           } else {
             auto byte_p = reinterpret_cast<const byte *>(value.GetVarcharValue());
-            *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
+            *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+                storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
           }
         }
         break;
@@ -202,7 +205,7 @@ class SqlTableRW {
     auto proj_row = pri_->InitializeRow(insert_buffer);
 
     for (size_t i = 0; i < row.size(); i++) {
-      SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
+      SqlTableRW::SetColInRow(proj_row, static_cast<int32_t>(i), row[i]);
     }
     table_->Insert(txn, *proj_row);
 
@@ -216,7 +219,7 @@ class SqlTableRW {
    *    all values are matched (i.e. AND for values).
    * @return on success, a vector of Values for the first matching row.
    *    only one row is returned.
-   *    on failure, throws a catalog exception.
+   *    on failure, returns an empty vector;
    */
   std::vector<type::Value> FindRow(transaction::TransactionContext *txn, const std::vector<type::Value> &search_vec) {
     bool row_match;
@@ -240,6 +243,9 @@ class SqlTableRW {
     auto it = table_->begin();
     while (it != table_->end()) {
       table_->Scan(txn, &it, proj_col_bufp);
+      if (proj_col_bufp->NumTuples() == 0) {
+        continue;
+      }
       // interpret as a row
       storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
       // check if this row matches
@@ -252,7 +258,109 @@ class SqlTableRW {
       }
     }
     delete[] buffer;
-    throw CATALOG_EXCEPTION("row not found");
+    // return an empty vector
+    return std::vector<type::Value>();
+  }
+
+  /**
+   */
+  storage::ProjectedColumns *FindRowProjCol(transaction::TransactionContext *txn,
+                                            const std::vector<type::Value> &search_vec) {
+    bool row_match;
+
+    // TODO(pakhtar): replace with GetLayout
+    if (layout_and_map_ == nullptr) {
+      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
+          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
+    }
+    auto layout = layout_and_map_->first;
+    // setup parameters for a scan
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    // get one row at a time
+    // storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
+    if (col_initer_ == nullptr) {
+      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
+    }
+    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
+    storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
+
+    // do a Scan
+    auto it = table_->begin();
+    while (it != table_->end()) {
+      table_->Scan(txn, &it, proj_col_bufp);
+      if (proj_col_bufp->NumTuples() == 0) {
+        continue;
+      }
+      // interpret as a row
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
+      // check if this row matches
+      row_match = RowFound(row_view, search_vec);
+      if (row_match) {
+        // buffer ownership rules?
+        return proj_col_bufp;
+      }
+    }
+    delete[] buffer;
+    // delete col_initer_;
+    return nullptr;
+  }
+
+  storage::BlockLayout GetLayout() {
+    if (layout_and_map_ == nullptr) {
+      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
+          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
+    }
+    return layout_and_map_->first;
+  }
+
+  /**
+   * Convert a row into a vector of Values
+   * @param row_view - row to convert
+   * @return a vector of Values
+   */
+  std::vector<type::Value> ColToValueVec(storage::ProjectedColumns::RowView row_view) {
+    std::vector<type::Value> ret_vec;
+    for (int32_t i = 0; i < row_view.NumColumns(); i++) {
+      type::TypeId schema_col_type = cols_[i].GetType();
+      byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(i));
+
+      switch (schema_col_type) {
+        case type::TypeId::BOOLEAN: {
+          auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
+          break;
+        }
+
+        case type::TypeId::INTEGER: {
+          auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
+          break;
+        }
+        case type::TypeId::BIGINT: {
+          auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetBigIntValue(row_int_val));
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+          // TODO(pakhtar): unnecessary copy. Fix appropriately when
+          // replaced by updated Value implementation.
+          // add space for null terminator
+          uint32_t size = vc_entry->Size() + 1;
+          auto *ret_st = static_cast<char *>(malloc(size));
+          memcpy(ret_st, vc_entry->Content(), size - 1);
+          *(ret_st + size - 1) = 0;
+          // TODO(pakhtar): replace with Value varchar
+          ret_vec.emplace_back(type::ValueFactory::GetVarcharValue(ret_st));
+          free(ret_st);
+          break;
+        }
+
+        default:
+          throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColToValueVec");
+      }
+    }
+    return ret_vec;
   }
 
  private:
@@ -350,56 +458,6 @@ class SqlTableRW {
       default:
         throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColEqualsValue");
     }
-  }
-
-  /**
-   * Convert a row into a vector of Values
-   * @param row_view - row to convert
-   * @return a vector of Values
-   */
-  std::vector<type::Value> ColToValueVec(storage::ProjectedColumns::RowView row_view) {
-    std::vector<type::Value> ret_vec;
-    for (int32_t i = 0; i < row_view.NumColumns(); i++) {
-      type::TypeId schema_col_type = cols_[i].GetType();
-      byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(i));
-
-      switch (schema_col_type) {
-        case type::TypeId::BOOLEAN: {
-          auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
-          break;
-        }
-
-        case type::TypeId::INTEGER: {
-          auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
-          break;
-        }
-        case type::TypeId::BIGINT: {
-          auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetBigIntValue(row_int_val));
-          break;
-        }
-        case type::TypeId::VARCHAR: {
-          auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-          // TODO(pakhtar): unnecessary copy. Fix appropriately when
-          // replaced by updated Value implementation.
-          // add space for null terminator
-          uint32_t size = vc_entry->Size() + 1;
-          auto *ret_st = static_cast<char *>(malloc(size));
-          memcpy(ret_st, vc_entry->Content(), size - 1);
-          *(ret_st + size - 1) = 0;
-          // TODO(pakhtar): replace with Value varchar
-          ret_vec.emplace_back(type::ValueFactory::GetVarcharValue(ret_st));
-          free(ret_st);
-          break;
-        }
-
-        default:
-          throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColToValueVec");
-      }
-    }
-    return ret_vec;
   }
 
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};

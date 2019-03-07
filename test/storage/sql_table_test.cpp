@@ -106,19 +106,11 @@ TEST_F(SqlTableTests, SelectInsertTest1) {
   found_row = table.FindRow(txn, search_vec);
   CheckRow(row1, found_row);
 
-  // now search for a non-existent value in column 2.
-  // This is slow.
+  // now search for a non-existent value in column 2. This is slow.
   search_vec.clear();
   search_vec.emplace_back(type::ValueFactory::GetIntegerValue(19));
-  try {
-    found_row = table.FindRow(txn, search_vec);
-  } catch (const CatalogException &ce) {
-    // ok
-    EXPECT_STREQ("row not found", ce.what());
-  } catch (...) {
-    throw;
-  }
-  // EXPECT_EQ(0, row_p.size());
+  found_row = table.FindRow(txn, search_vec);
+  EXPECT_EQ(0, found_row.size());
 
   // search for second item
   search_vec.clear();

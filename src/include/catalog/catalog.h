@@ -48,7 +48,7 @@ class Catalog {
    */
   void CreateDatabase(transaction::TransactionContext *txn, const char *name);
 
-  // void DeleteDatabase(transaction::TransactionContext *txn, const char *name);
+  void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
 
   /**
    * Lookup a database oid and return a database handle.

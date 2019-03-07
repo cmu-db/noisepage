@@ -45,6 +45,13 @@ class DatabaseHandle {
     DatabaseEntry(db_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
+     * Construct a database entry from a projected column
+     */
+    DatabaseEntry(std::shared_ptr<DatabaseHandle> handle_p, storage::ProjectedColumns *proj_col_p);
+
+    ~DatabaseEntry() { delete[] reinterpret_cast<byte *>(proj_col_p_); }
+
+    /**
      * Get the value for a given column
      * @param col_num the column index
      * @return the value of the column
@@ -57,9 +64,19 @@ class DatabaseHandle {
      */
     db_oid_t GetDatabaseOid() { return oid_; }
 
+    /**
+     * Delete the data (for this entry) from the storage table.
+     * After this, the entry object must be deleted as no other
+     * operations are possible.
+     */
+    bool Delete(transaction::TransactionContext *txn);
+
    private:
     db_oid_t oid_;
+    storage::ProjectedColumns *proj_col_p_ = nullptr;
+    // we don't really need to store this. GetColumn changes though...
     std::vector<type::Value> entry_;
+    std::shared_ptr<DatabaseHandle> handle_p_;
   };
 
   /**
@@ -89,6 +106,16 @@ class DatabaseHandle {
    * access another database.
    */
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
+   * Lookup database named db_name and return an entry
+   * @param txn the transaction that initiates the read
+   * @param db_name the name of the database
+   * @return a shared pointer to database entry; NULL if not found
+   */
+  std::shared_ptr<DatabaseEntry> GetOldDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
 
  private:
   Catalog *catalog_;

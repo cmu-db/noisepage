@@ -6,6 +6,7 @@
 #include "catalog/catalog_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
+#include "util/transaction_test_util.h"
 namespace terrier {
 
 struct DatabaseHandleTests : public TerrierTest {
@@ -14,9 +15,12 @@ struct DatabaseHandleTests : public TerrierTest {
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
     catalog_ = new catalog::Catalog(txn_manager_);
+    txn_ = txn_manager_->BeginTransaction();
   }
 
   void TearDown() override {
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+
     TerrierTest::TearDown();
     delete catalog_;  // need to delete catalog_first
     delete txn_manager_;
@@ -39,11 +43,37 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   // the handle provides accessors to the database
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
 
-  txn_ = txn_manager_->BeginTransaction();
   // lookup the default database
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
   EXPECT_EQ(!terrier_oid, db_entry_ptr->GetColumn(0).GetIntValue());
   EXPECT_STREQ("terrier", db_entry_ptr->GetColumn(1).GetVarcharValue());
+}
+
+// NOLINTNEXTLINE
+TEST_F(DatabaseHandleTests, BasicEntryTest) {
+  // the oid of the default database, the global catalog of all databases
+  // const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+
+  // the handle provides accessors to the database
+  catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
+
+  // check absence
+  auto no_entry_p = db_handle.GetDatabaseEntry(txn_, "test_db");
+  EXPECT_EQ(nullptr, no_entry_p);
+
+  // create an entry
+  catalog_->CreateDatabase(txn_, "test_db");
+
+  // check existence
+  auto test_entry_p = db_handle.GetDatabaseEntry(txn_, "test_db");
+  EXPECT_NE(nullptr, test_entry_p);
+
+  // delete the entry
+  test_entry_p->Delete(txn_);
+
+  // check absence
+  no_entry_p = db_handle.GetDatabaseEntry(txn_, "test_db");
+  EXPECT_EQ(nullptr, no_entry_p);
 }
 }  // namespace terrier
