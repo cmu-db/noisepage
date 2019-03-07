@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include "fake_result_set.h"
+#include "network/postgres_protocol_utils.h"
 
 struct sqlite3;
 
@@ -13,7 +14,9 @@ class SqliteEngine
   SqliteEngine();
   virtual ~SqliteEngine();
 
-  void ExecuteQuery(const char *query, std::function<void(FakeResultSet &)> &callback);
+  void ExecuteQuery(const char *query,
+                      network::PostgresPacketWriter *out,
+                      std::function<void(FakeResultSet & , network::PostgresPacketWriter * )> &callback);
 
  private:
   // SQLite database

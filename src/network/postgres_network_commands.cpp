@@ -1,7 +1,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <network/postgres_network_commands.h>
 
 #include "network/postgres_network_commands.h"
 #include "network/postgres_protocol_interpreter.h"
@@ -16,25 +15,16 @@ namespace terrier::network {
 // the code here can honestly just be deleted. This is going to be a larger
 // project though, so I want to do the architectural refactor first.
 
-void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_set) {
+void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_set, PostgresPacketWriter *const out) {
   if(result_set.column_names_.empty())
+  {
+    out->WriteEmptyQueryResponse();
     return;
+  }
 
-  std::string columns;
-  for(auto &column : result_set.column_names_)
-  {
-    columns += column + "\t";
-  }
-  LOG_INFO(columns)
-  for(auto &row : result_set.rows_)
-  {
-    std::string values;
-    for(auto &value: row)
-    {
-      values += value + "\t";
-    }
-    LOG_INFO(values);
-  }
+  out->WriteRowDescription(result_set.column_names_);
+  for(auto &row:result_set.rows_)
+    out->WriteDataRow(row);
 }
 
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
@@ -43,11 +33,9 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpret
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute query: {0}", query.c_str());
 
-  std::function<void(traffic_cop::FakeResultSet &)> result_callback = AcceptResults;
+  std::function<void(traffic_cop::FakeResultSet &, PostgresPacketWriter *)> result_callback = AcceptResults;
 
-  t_cop->ExecuteQuery(query.c_str(), result_callback);
-
-  out->WriteEmptyQueryResponse();
+  t_cop->ExecuteQuery(query.c_str(), out, result_callback);
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }

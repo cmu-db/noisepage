@@ -25,7 +25,9 @@ SqliteEngine::~SqliteEngine() {
   sqlite3_close(sqlite_db_);
 }
 
-void SqliteEngine::ExecuteQuery(const char *query, std::function<void(FakeResultSet&)> &callback) {
+void SqliteEngine::ExecuteQuery(const char *query,
+                                network::PostgresPacketWriter *out,
+                                std::function<void(FakeResultSet & , network::PostgresPacketWriter * )> &callback) {
 
   FakeResultSet result_set;
 
@@ -36,7 +38,7 @@ void SqliteEngine::ExecuteQuery(const char *query, std::function<void(FakeResult
     sqlite3_free(error_msg);
   }
 
-  callback(result_set);
+  callback(result_set, out);
 
 }
 

@@ -88,7 +88,7 @@ struct PostgresInputPacket {
 };
 
 /**
- * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
+ * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
  */
 class PostgresPacketWriter {
@@ -250,6 +250,33 @@ class PostgresPacketWriter {
    * Writes an empty query response
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
+
+  void WriteRowDescription(std::vector<std::string> &columns)
+  {
+    BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    for(auto &col_name : columns) {
+      AppendString(col_name)
+          .AppendValue<int32_t>(0)
+          .AppendValue<int16_t>(0)
+          .AppendValue<int32_t>(0)
+          .AppendValue<int16_t>(-2) //Currently, null terminated C-string
+          .AppendValue<int32_t>(0)
+          .AppendValue<int16_t>(0);
+    }
+
+    EndPacket();
+  }
+
+  void WriteDataRow(std::vector<std::string> &values){
+    BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
+    for(auto &value : values)
+    {
+      AppendValue<int32_t>(static_cast<int32_t>(value.length())).AppendString(value, false);
+    }
+    EndPacket();
+  }
+
+
 
   /**
    * End the packet. A packet write must be in progress and said write is not

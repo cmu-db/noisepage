@@ -56,7 +56,7 @@ class PostgresNetworkCommand {
    */
   ReadBufferView in_;
 
-  static void AcceptResults(traffic_cop::FakeResultSet &result_set);
+  static void AcceptResults(traffic_cop::FakeResultSet &result_set, PostgresPacketWriter *out);
 
  private:
   bool flush_on_complete_;

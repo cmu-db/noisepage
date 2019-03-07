@@ -21,8 +21,11 @@
 #include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
 #include "type/type_id.h"
-#include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/fake_result_set.h"
+
+namespace terrier::traffic_cop {
+  class TrafficCop;
+}
 
 namespace terrier::network {
 
