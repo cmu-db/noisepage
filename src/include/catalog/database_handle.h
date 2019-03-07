@@ -47,7 +47,7 @@ class DatabaseHandle {
     /**
      * Construct a database entry from a projected column
      */
-    DatabaseEntry(std::shared_ptr<DatabaseHandle> handle_p, storage::ProjectedColumns *proj_col_p);
+    DatabaseEntry(const std::shared_ptr<DatabaseHandle> &handle_p, storage::ProjectedColumns *proj_col_p);
 
     ~DatabaseEntry() { delete[] reinterpret_cast<byte *>(proj_col_p_); }
 

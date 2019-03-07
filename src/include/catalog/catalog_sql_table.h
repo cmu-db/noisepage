@@ -72,27 +72,34 @@ class SqlTableRW {
    * @param value to save
    */
   void SetColInRow(storage::ProjectedRow *proj_row, int32_t col_num, const type::Value &value) {
+    auto offset = pr_map_->at(col_oids_[col_num]);
+    if (value.Null()) {
+      proj_row->SetNull(offset);
+      return;
+    }
+
     switch (value.Type()) {
       case type::TypeId::BOOLEAN: {
-        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(offset);
         (*reinterpret_cast<int8_t *>(col_p)) = static_cast<int8_t>(value.GetBooleanValue());
         break;
       }
       case type::TypeId::INTEGER: {
-        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(offset);
         (*reinterpret_cast<int32_t *>(col_p)) = value.GetIntValue();
         break;
       }
       case type::TypeId::BIGINT: {
-        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(offset);
         (*reinterpret_cast<int64_t *>(col_p)) = value.GetBigIntValue();
         break;
       }
       case type::TypeId::VARCHAR: {
         size_t size = 0;
         byte *varlen = nullptr;
-        byte *col_p = proj_row->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+        byte *col_p = proj_row->AccessForceNotNull(offset);
         if (value.Null()) {
+          // TODO(pakhtar): remove this case
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::CreateInline(varlen, static_cast<uint32_t>(size));
         } else {
@@ -126,7 +133,7 @@ class SqlTableRW {
 
   /**
    * Return the number of rows in the table.
-   * TODO(pakhtar): use cached info.
+   * TODO(pakhtar): use cached info, use caller supplied transaction
    */
   int32_t GetNumRows() {
     int32_t num_cols = 0;
@@ -162,6 +169,7 @@ class SqlTableRW {
     storage::col_id_t storage_col_id(static_cast<uint16_t>(col_num));
     type::TypeId col_type = table_->GetSchema().GetColumn(storage_col_id).GetType();
     byte *col_p = p_row->AccessForceNotNull(ColNumToOffset(col_num));
+    // fix
     return CreateColValue(col_type, col_p);
   }
 
@@ -322,7 +330,11 @@ class SqlTableRW {
     std::vector<type::Value> ret_vec;
     for (int32_t i = 0; i < row_view.NumColumns(); i++) {
       type::TypeId schema_col_type = cols_[i].GetType();
-      byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(i));
+      byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(i));
+      if (col_p == nullptr) {
+        ret_vec.emplace_back(type::ValueFactory::GetNullValue(schema_col_type));
+        continue;
+      }
 
       switch (schema_col_type) {
         case type::TypeId::BOOLEAN: {
@@ -420,8 +432,8 @@ class SqlTableRW {
   }
 
   /**
-   * Check if a column in the row_view matches a value in the search vector
-   * @param index - which column to check
+   * Check if a column in the row_view matches a value in the search vector.
+   * @param index - which column to check.
    * @param row_view - a row
    * @param search_vector - values to check against
    * @return true if the column value matches
@@ -432,7 +444,14 @@ class SqlTableRW {
     type::TypeId col_type = cols_[index].GetType();
     // TODO(pakhtar): add back updated type check
     // TERRIER_ASSERT(col_type == search_vec[index].GetType(), "schema <-> column type mismatch");
-    byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(index));
+
+    TERRIER_ASSERT(search_vec[index].Null() == false, "search_vec[index] is null");
+    // byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(index));
+    byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(index));
+    if (col_p == nullptr) {
+      // since search_vec[index] cannot be null
+      return false;
+    }
 
     switch (col_type) {
       case type::TypeId::BOOLEAN: {

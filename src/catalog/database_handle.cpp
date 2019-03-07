@@ -63,7 +63,7 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   return std::make_shared<DatabaseEntry>(std::make_shared<DatabaseHandle>(*this), proj_col_p);
 }
 
-DatabaseHandle::DatabaseEntry::DatabaseEntry(std::shared_ptr<DatabaseHandle> handle_p,
+DatabaseHandle::DatabaseEntry::DatabaseEntry(const std::shared_ptr<DatabaseHandle> &handle_p,
                                              terrier::storage::ProjectedColumns *proj_col_p)
     : proj_col_p_(proj_col_p), handle_p_(handle_p) {
   auto layout = handle_p_->pg_database_rw_->GetLayout();
