@@ -5,6 +5,7 @@
 #include "catalog/namespace_handle.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
+#include "util/transaction_test_util.h"
 namespace terrier {
 
 struct TablespaceHandleTests : public TerrierTest {
@@ -13,9 +14,12 @@ struct TablespaceHandleTests : public TerrierTest {
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
     catalog_ = new catalog::Catalog(txn_manager_);
+    txn_ = txn_manager_->BeginTransaction();
   }
 
   void TearDown() override {
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+
     TerrierTest::TearDown();
     delete catalog_;  // delete catalog first
     delete txn_manager_;
@@ -32,7 +36,6 @@ struct TablespaceHandleTests : public TerrierTest {
 // Tests that we can get the default namespace and get the correct value from the corresponding row in pg_tablespace
 // NOLINTNEXTLINE
 TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
-  txn_ = txn_manager_->BeginTransaction();
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
   EXPECT_STREQ("pg_global", tsp_entry_ptr->GetColumn(1).GetVarcharValue());
