@@ -5,7 +5,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -92,18 +94,16 @@ TEST_F(NetworkTests, SimpleQueryTest) {
  * @param io_socket
  * @return true if reads ReadyForQuery, false for closed.
  */
-bool ReadUntilReadyOrClose(std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
+bool ReadUntilReadyOrClose(const std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
   while (true) {
     Transition trans = io_socket->FillReadBuffer();
-    if(trans == Transition::TERMINATE)
-      return false;
-    else if(io_socket->in_->BytesAvailable() >= 6)
-    {
-      // Directly check if the last message is ReadyForQuery, whose length is 6
-      // without parsing the whole packet
+    if (trans == Transition::TERMINATE) return false;
+
+    // Check if the last message is ReadyForQuery, whose length is fixed 6, without parsing the whole packet.
+    // Sometimes there are more than one message in one packet, so don't simply check the first character.
+    if (io_socket->in_->BytesAvailable() >= 6) {
       io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
-      if(io_socket->in_->ReadValue<NetworkMessageType>()==NetworkMessageType::READY_FOR_QUERY)
-        return true;
+      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
     }
   }
 }
@@ -154,7 +154,8 @@ std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   auto io_socket = std::make_shared<PosixSocketIoWrapper>(socket_fd);
   PostgresPacketWriter writer(io_socket->out_);
 
-  std::unordered_map<std::string, std::string> params {{"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
+  std::unordered_map<std::string, std::string> params{
+      {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
 
   writer.WriteStartupRequest(params);
   io_socket->FlushAllWrites();

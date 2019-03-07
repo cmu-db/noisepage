@@ -132,8 +132,7 @@ class PostgresPacketWriter {
   PostgresPacketWriter &BeginPacket(NetworkMessageType type) {
     // No active packet being constructed
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    if(type != NetworkMessageType::NO_HEADER)
-      queue_.BufferWriteRawValue(type);
+    if (type != NetworkMessageType::NO_HEADER) queue_.BufferWriteRawValue(type);
     // Remember the size field since we will need to modify it as we go along.
     // It is important that our size field is contiguous and not broken between
     // two buffers.
@@ -250,20 +249,17 @@ class PostgresPacketWriter {
   /**
    * Writes the startup message, used by clients
    */
-  void WriteStartupRequest(std::unordered_map<std::string, std::string> &config, int16_t major_version=3)
-  {
+  void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
-    for(auto p:config)
-      AppendString(p.first).AppendString(p.second);
+    for (auto p : config) AppendString(p.first).AppendString(p.second);
     EndPacket();
   }
 
   /**
    * Writes a query message, used by clients
    */
-  void WriteQuery(std::string &query)
-  {
+  void WriteQuery(const std::string &query) {
     BeginPacket(NetworkMessageType::SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
   }
 
