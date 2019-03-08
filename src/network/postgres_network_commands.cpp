@@ -25,6 +25,10 @@ void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_se
   out->WriteRowDescription(result_set.column_names_);
   for(auto &row:result_set.rows_)
     out->WriteDataRow(row);
+
+  // TODO(Weichen): We need somehow to know which kind of query it is. (INSERT? DELETE? SELECT?)
+  // and the number of rows. This is needed in the tag. Now just use an empty string.
+  out->WriteCommandComplete("");
 }
 
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,

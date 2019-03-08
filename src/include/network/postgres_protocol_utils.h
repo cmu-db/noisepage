@@ -271,15 +271,16 @@ class PostgresPacketWriter {
 
   void WriteRowDescription(std::vector<std::string> &columns)
   {
+    // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
     BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for(auto &col_name : columns) {
       AppendString(col_name)
-          .AppendValue<int32_t>(0)
-          .AppendValue<int16_t>(0)
-          .AppendValue<int32_t>(0)
-          .AppendValue<int16_t>(-2) //Currently, null terminated C-string
-          .AppendValue<int32_t>(0)
-          .AppendValue<int16_t>(0);
+          .AppendValue<int32_t>(0) // table oid, 0 for now
+          .AppendValue<int16_t>(0) // column oid, 0 for now
+          .AppendValue<int32_t>(25) // type oid, 25 for varchar, perhaps not unique?
+          .AppendValue<int16_t>(-1) // Variable Length
+          .AppendValue<int32_t>(-1) // pg_attribute.attrmod, generally -1
+          .AppendValue<int16_t>(0); // text=0
     }
 
     EndPacket();
@@ -294,7 +295,10 @@ class PostgresPacketWriter {
     EndPacket();
   }
 
-
+  void WriteCommandComplete(const std::string &tag)
+  {
+    BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
+  }
 
   /**
    * End the packet. A packet write must be in progress and said write is not
