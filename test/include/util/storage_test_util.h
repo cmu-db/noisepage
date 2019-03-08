@@ -209,7 +209,7 @@ struct StorageTestUtil {
       } else {
         os << "col_id: " << !col_id;
         os << " is ";
-        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++){
+        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) {
           os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(attr[pos]);
         }
         os << std::endl;
