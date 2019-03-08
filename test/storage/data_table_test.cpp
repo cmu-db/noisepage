@@ -158,7 +158,7 @@ class RandomDataTableTestObject {
 
 struct DataTableTests : public TerrierTest {
   storage::BlockStore block_store_{100, 100};
-  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -193,11 +193,14 @@ TEST_F(DataTableTests, SimpleInsertSelect) {
 // Insert some number of tuples and sequentially scan for them down the table
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleSequentialScan) {
-  const uint32_t num_iterations = 50;
-  const uint32_t num_inserts = 1000;
-  const uint16_t max_columns = 100;
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    // make sure we test the edge case where a block is filled
+    uint32_t num_inserts = iteration == 0
+                               ? tested.Layout().NumSlots()
+                               : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
     // Populate the table with random tuples
     for (uint32_t i = 0; i < num_inserts; ++i)
@@ -210,6 +213,10 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
     auto it = tested.GetTable().begin();
     tested.Scan(&it, transaction::timestamp_t(1), columns, &buffer_pool_);
     EXPECT_EQ(num_inserts, columns->NumTuples());
+    // Test that the scan ends as soon as there are no more valid tuples,
+    if (it != tested.GetTable().end()) {
+      EXPECT_EQ(it, tested.GetTable().end());
+    }
     for (uint32_t i = 0; i < tested.InsertedTuples().size(); i++) {
       storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(tested.Layout(), i);
       const storage::ProjectedRow *ref =

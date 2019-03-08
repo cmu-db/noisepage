@@ -173,41 +173,89 @@ enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
  */
 class VarlenEntry {
  public:
-  // Have to define a default constructor to make this POD
-  VarlenEntry() = default;
   /**
-   * Constructs a new varlen entry
+   * Constructs a new varlen entry. The varlen entry will take ownership of the pointer given if reclaimable is true,
+   * which means GC can delete the buffer pointed to when this entry is no longer visible in the storage engine.
    * @param content pointer to the varlen content itself
    * @param size length of the varlen content, in bytes (no C-style nul-terminator)
-   * @param gathered whether the varlen entry's content pointer is part of a large buffer (for arrow-compatibility),
-   *                 which means it cannot be deallocated by itself.
+   * @param reclaim whether the varlen entry's content pointer can be deleted by itself. If the pointer was not
+   *                    allocated by itself (e.g. inlined, or part of a dictionary batch or arrow buffer), it cannot
+   *                    be freed by the GC, which simply calls delete.
+   * @return constructed VarlenEntry object
    */
-  VarlenEntry(byte *content, uint32_t size, bool gathered)
-      // the sign bit on size is used to store the "gathered" attribute, so we mask it off on size depending on that.
-      : size_(size | (gathered ? INT32_MIN : 0)), content_(content) {}
+  static VarlenEntry Create(byte *content, uint32_t size, bool reclaim) {
+    VarlenEntry result;
+    TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
+    result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
+    std::memcpy(result.prefix_, content, sizeof(uint32_t));
+    result.content_ = content;
+    return result;
+  }
+
   /**
-   * @return size of the varlen entry in bytes.
+   * Constructs a new varlen entry, with the associated varlen value inlined within the struct itself. This is only
+   * possible when the inlined value is smaller than InlinedThreshold() as defined. The value is copied and the given
+   * pointer can be safely deallocated regardless of the state of the system.
+   * @param content pointer to the varlen content
+   * @param size length of the varlen content, in bytes (no C-style nul-terminator. Must be smaller than
+   *             InlineThreshold())
+   * @return constructed VarlenEntry object
+   */
+  static VarlenEntry CreateInline(const byte *content, uint32_t size) {
+    TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
+    VarlenEntry result;
+    result.size_ = size;
+    // overwrite the content field's 8 bytes for inline storage
+    std::memcpy(result.prefix_, content, size);
+    return result;
+  }
+
+  /**
+   * @return The maximum size of the varlen field, in bytes, that can be inlined within the object. Any objects that are
+   * larger need to be stored as a pointer to a separate buffer.
+   */
+  static constexpr uint32_t InlineThreshold() { return sizeof(VarlenEntry) - sizeof(uint32_t); }
+
+  /**
+   * @return length of the prefix of the varlen stored in the object for execution engine, if the varlen entry is not
+   * inlined.
+   */
+  static constexpr uint32_t PrefixSize() { return sizeof(uint32_t); }
+
+  /**
+   * @return size of the varlen value stored in this entry, in bytes.
    */
   uint32_t Size() const { return static_cast<uint32_t>(INT32_MAX & size_); }
 
   /**
-   * @return whether the varlen is gathered into a per-block contiguous buffer (which means it cannot be
-   * deallocated by itself) for arrow-compatibility
+   * @return whether the content is inlined or not.
    */
-  bool IsGathered() const { return static_cast<bool>(INT32_MIN & size_); }
+  bool IsInlined() const { return Size() <= InlineThreshold(); }
+
+  /**
+   * Helper method to decide if the content needs to be GCed separately
+   * @return whether the content can be deallocated by itself
+   */
+  bool NeedReclaim() const { return size_ > static_cast<int32_t>(InlineThreshold()); }
+
+  /**
+   * @return pointer to the stored prefix of the varlen entry
+   */
+  const byte *Prefix() const { return prefix_; }
 
   /**
    * @return pointer to the varlen entry contents.
    */
-  const byte *Content() const { return content_; }
+  const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
  private:
-  // we use the sign bit to denote if
-  int32_t size_;
-  // TODO(Tianyu): we can use the extra 4 bytes for something else (storing the prefix?)
-  // Contents of the varlen entry.
-  const byte *content_;
+  int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
+  byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
+  const byte *content_;            // pointer to content of the varlen entry if not inlined
 };
+// To make sure our explicit padding is not screwing up the layout
+static_assert(sizeof(VarlenEntry) == 16, "size of the class should be 16 bytes");
+
 }  // namespace terrier::storage
 
 namespace std {

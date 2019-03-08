@@ -17,7 +17,7 @@ class TypeCastExpression : public AbstractExpression {
    * Instantiates a new type cast expression.
    */
   TypeCastExpression(type::TypeId type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : AbstractExpression(ExpressionType::CAST, type, std::move(children)) {}
+      : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)) {}
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TypeCastExpression>(*this); }
 };
