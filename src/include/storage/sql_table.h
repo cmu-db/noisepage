@@ -176,7 +176,8 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer = ProjectedRowInitializer::CreateProjectedRowInitializer(table_->layout, col_ids);
+    ProjectedRowInitializer initializer =
+        ProjectedRowInitializer::CreateProjectedRowInitializer(table_->layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap should be the same number of columns as requested col_oids.");

@@ -75,8 +75,8 @@ class MVCCDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
-  storage::ProjectedRowInitializer redo_initializer =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer redo_initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
   bool select_result_;
 };

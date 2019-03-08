@@ -151,8 +151,8 @@ class RandomDataTableTestObject {
   std::vector<transaction::TransactionContext *> loose_txns_;
   double null_bias_;
   // These always over-provision in the case of partial selects or deltas, which is fine.
-  storage::ProjectedRowInitializer redo_initializer_ =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer redo_initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
 };
 

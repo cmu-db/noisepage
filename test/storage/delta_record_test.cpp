@@ -56,7 +56,8 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
 
       // compute the size of the buffer
       const std::vector<storage::col_id_t> col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
-      storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, col_ids);
+      storage::ProjectedRowInitializer initializer =
+          storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, col_ids);
       transaction::timestamp_t time = static_cast<transaction::timestamp_t>(timestamp_dist_(generator_));
       auto *record_buffer = common::AllocationUtil::AllocateAligned(storage::UndoRecord::Size(initializer));
       storage::UndoRecord *record =

@@ -73,8 +73,8 @@ class GarbageCollectorDataTableTestObject {
   // we don't want the logically deleted field to end up set NULL.
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
-  storage::ProjectedRowInitializer initializer_ =
-      storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+  storage::ProjectedRowInitializer initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
   bool select_result_;
 };

@@ -121,7 +121,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 
     // the old row
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
     auto *old_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *old = initializer.InitializeRow(old_buffer);
     StorageTestUtil::PopulateRandomRow(old, layout, null_ratio_(generator_), &generator_);
