@@ -36,8 +36,6 @@ struct CatalogTests : public TerrierTest {
 
 // Tests for higher level catalog API
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, BasicTest) {
-  catalog_->CreateDatabase(txn_, "test_database");
-}
+TEST_F(CatalogTests, BasicTest) { catalog_->CreateDatabase(txn_, "test_database"); }
 
 }  // namespace terrier

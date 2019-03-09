@@ -1,8 +1,9 @@
-#include "catalog/catalog.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "catalog/catalog.h"
 #include "catalog/database_handle.h"
 #include "catalog/tablespace_handle.h"
 #include "loggers/catalog_logger.h"
@@ -21,7 +22,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
 
 void Catalog::CreateDatabase(transaction::TransactionContext *txn, const char *name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
- Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
+  Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
 }
 
 void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *db_name) {
@@ -360,6 +361,26 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
   row.emplace_back(type::ValueFactory::GetIntegerValue(namespace_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(tablespace_oid));
   pg_class->InsertRow(txn, row);
+}
+
+void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
+  table_oid_t pg_type_oid(GetNextOid());
+  std::shared_ptr<catalog::SqlTableRW> pg_type;
+
+  pg_type = std::make_shared<catalog::SqlTableRW>(pg_type_oid);
+  pg_type->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_type->DefineColumn("typname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
+  pg_type->DefineColumn("typnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
+  pg_type->DefineColumn("typlen", type::TypeId::SMALLINT, false, col_oid_t(GetNextOid()));
+  pg_type->DefineColumn("typtype", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
+  AddUnusedSchemaColumns(pg_type, pg_type_unused_cols);
+  pg_type->Create();
+
+  map_[db_oid][pg_type_oid] = pg_type;
+  name_map_[db_oid]["pg_type"] = pg_type_oid;
+
+  CATALOG_LOG_TRACE("pg_type oid {})", !pg_type_oid);
+  // TODO(yeshengm) add currently supported types into this.
 }
 
 void Catalog::DestroyDB(db_oid_t oid) {

@@ -115,6 +115,12 @@ class DatabaseHandle {
    */
   std::shared_ptr<DatabaseEntry> GetOldDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
 
+  /**
+   * Lookup database named db_name and return an entry
+   * @param txn the transaction that initiates the read
+   * @param db_name db_name the name of the database
+   * @return a shared pointer to database entry; NULL if not found
+   */
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
 
  private:
@@ -122,6 +128,9 @@ class DatabaseHandle {
 
   // temporary
  public:
+  /**
+   * pg_database SQL table
+   */
   std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
 };
 

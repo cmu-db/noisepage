@@ -40,7 +40,8 @@ class Catalog {
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
-  /* Create a database (no tables are created). Insert the name into
+  /**
+   * Create a database (no tables are created). Insert the name into
    * the catalogs and setup everything related.
    *
    * @param txn transaction to use
@@ -48,6 +49,12 @@ class Catalog {
    */
   void CreateDatabase(transaction::TransactionContext *txn, const char *name);
 
+  /**
+   * Delete a database.
+   *
+   * @param txn transaction to use
+   * @param db_name of the database
+   */
   void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
 
   /**
@@ -203,6 +210,12 @@ class Catalog {
   void CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
+   * During startup, create pg_type table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
+  void CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  /**
    * For catalog shutdown.
    * Delete all user created tables.
    * @param oid - database from which tables are to be deleted.
@@ -237,6 +250,21 @@ class Catalog {
   std::vector<UnusedSchemaCols> pg_namespace_unused_cols_ = {
       {2, "nspowner", type::TypeId::INTEGER},
       {3, "nspacl", type::TypeId::VARCHAR},
+  };
+  std::vector<UnusedSchemaCols> pg_type_unused_cols = {
+      {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
+      {7, "typcatagory", type::TypeId::VARCHAR},   {8, "typispreferred", type::TypeId::BOOLEAN},
+      {9, "typisdefined", type::TypeId::BOOLEAN},  {10, "typdelim", type::TypeId::VARCHAR},
+      {11, "typrelid", type::TypeId::INTEGER},     {12, "typelem", type::TypeId::INTEGER},
+      {13, "typarray", type::TypeId::INTEGER},     {14, "typinput", type::TypeId::INTEGER},
+      {15, "typoutput", type::TypeId::INTEGER},    {16, "typreceive", type::TypeId::INTEGER},
+      {17, "typsend", type::TypeId::INTEGER},      {18, "typmodin", type::TypeId::INTEGER},
+      {19, "typmodout", type::TypeId::INTEGER},    {20, "typanalyze", type::TypeId::INTEGER},
+      {21, "typalign", type::TypeId::VARCHAR},     {22, "typstorage", type::TypeId::VARCHAR},
+      {23, "typnotnull", type::TypeId::BOOLEAN},   {24, "typbasetype", type::TypeId::INTEGER},
+      {25, "typtypmod", type::TypeId::INTEGER},    {26, "typndims", type::TypeId::INTEGER},
+      {27, "typcollation", type::TypeId::INTEGER}, {28, "typdefaultbin", type::TypeId::VARCHAR},
+      {29, "typdefault", type::TypeId::VARCHAR},   {30, "typacl", type::TypeId::VARCHAR},
   };
   // TODO(yeshengm): unused column for pg_class. Not implemented now due to __ptr in our pg_class,
   //                 which breaks the numbering of columns as in postgres.

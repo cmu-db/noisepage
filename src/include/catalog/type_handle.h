@@ -51,10 +51,17 @@ class TypeHandle {
    */
   explicit TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type);
 
+  /**
+   * Get a type entry from pg_type handle
+   *
+   * @param txn the transaction to run
+   * @param oid type entry oid
+   * @return a shared pointer to the type entry
+   */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid);
 
  private:
-  Catalog *catalog_;
+  // Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
 };
 
