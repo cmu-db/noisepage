@@ -23,8 +23,6 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<uint8_t> &att
   TERRIER_ASSERT(col_ids_.size() == attr_sizes.size(), "Attribute sizes should correspond to the column indexes");
   TERRIER_ASSERT(std::is_sorted(attr_sizes.cbegin(), attr_sizes.cend(), std::greater<>()),
                  "Attribute sizes must be sorted descending.");
-  TERRIER_ASSERT(std::is_sorted(col_ids_.cbegin(), col_ids_.cend(), std::less<>()),
-                 "Column ids must be sorted ascending.");
   TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
                  "There should not be any duplicates in the col_ids.");
   // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
@@ -79,15 +77,16 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(c
   return ProjectedRowInitializer(attr_sizes, std::move(col_ids));
 }
 
-ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(const std::vector<uint8_t> &attr_sizes) {
+ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
+    const std::vector<uint8_t> &attr_sizes, const std::vector<uint16_t> &cmp_order) {
   TERRIER_ASSERT(std::is_sorted(attr_sizes.cbegin(), attr_sizes.cend(), std::greater<>()),
                  "Attribute sizes must be sorted descending.");
   std::vector<col_id_t> col_ids;
-  col_ids.reserve(attr_sizes.size());
-  for (uint32_t i = 0; i < attr_sizes.size(); i++) {
+  col_ids.reserve(cmp_order.size());
+  for (const auto i : cmp_order) {
     col_ids.emplace_back(i);
   }
-  return ProjectedRowInitializer(attr_sizes, std::move(col_ids));
+  return ProjectedRowInitializer(attr_sizes, col_ids);
 }
 
 }  // namespace terrier::storage

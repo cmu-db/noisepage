@@ -206,8 +206,10 @@ class ProjectedRowInitializer {
    * @warning attr_sizes should be sorted descending
    *
    * @param attr_sizes attribute sizes
+   * @param cmp_order comparison order
    */
-  static ProjectedRowInitializer CreateProjectedRowInitializer(const std::vector<uint8_t> &attr_sizes);
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(const std::vector<uint8_t> &attr_sizes,
+                                                                         const std::vector<uint16_t> &cmp_order);
 
  private:
   /**
@@ -221,6 +223,9 @@ class ProjectedRowInitializer {
   ProjectedRowInitializer(const std::vector<uint8_t> &attr_sizes, std::vector<col_id_t> col_ids);
 
   uint32_t size_ = 0;
+  /**
+   * col_ids is overloaded to mean comparison order for indexes.
+   */
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };

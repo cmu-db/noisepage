@@ -6,6 +6,7 @@
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
+#include "storage/index/index_metadata.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 
@@ -16,9 +17,8 @@ class BwTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes,
-              std::vector<uint16_t> attr_offsets)
-      : Index(oid, constraint_type, attr_sizes, attr_offsets),
+  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, const IndexMetadata &metadata)
+      : Index(oid, constraint_type, metadata),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
             false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
 
@@ -31,14 +31,14 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
+    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
     auto unique_keys = GetConstraintType() == ConstraintType::UNIQUE;
     return bwtree_->Insert(index_key, location, unique_keys);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
+    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
     return bwtree_->Delete(index_key, location);
   }
 
@@ -47,7 +47,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::PRIMARY_KEY || GetConstraintType() == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttrSizes(), GetAttrOffsets());
+    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
     bool predicate_satisfied = false;
 
     // predicate is set to nullptr if the predicate returns true for some value
@@ -65,7 +65,7 @@ class BwTreeIndex final : public Index {
 
   void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(key, GetAttrSizes(), GetAttrOffsets());
+    index_key.SetFromProjectedRow(key, GetAttributeSizes(), GetAttributeOffsets());
     bwtree_->GetValue(index_key, *value_list);
   }
 };

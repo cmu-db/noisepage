@@ -5,6 +5,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
 #include "storage/index/index_defs.h"
+#include "storage/index/index_metadata.h"
 #include "storage/storage_defs.h"
 
 // clang-format off
@@ -21,16 +22,11 @@ class Index {
  private:
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
-  const std::vector<uint8_t> attr_sizes_;
-  const std::vector<uint16_t> attr_offsets_;
+  const IndexMetadata metadata_;
 
  protected:
-  Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, std::vector<uint8_t> attr_sizes,
-        std::vector<uint16_t> attr_offsets)
-      : oid_{oid},
-        constraint_type_{constraint_type},
-        attr_sizes_(std::move(attr_sizes)),
-        attr_offsets_(std::move(attr_offsets)) {}
+  Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
+      : oid_{oid}, constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
 
  public:
   virtual ~Index() = default;
@@ -47,9 +43,12 @@ class Index {
   ConstraintType GetConstraintType() const { return constraint_type_; }
   catalog::index_oid_t GetOid() const { return oid_; }
 
-  std::vector<uint8_t> GetAttrSizes() const { return attr_sizes_; }
-
-  std::vector<uint16_t> GetAttrOffsets() const { return attr_offsets_; }
+  const std::vector<KeyData> &GetKeySchema() const { return metadata_.GetKeySchema(); }
+  const std::vector<uint16_t> &GetProjectedRowOffsets() const { return metadata_.GetProjectedRowOffsets(); }
+  const std::vector<uint16_t> &GetComparisonOrder() const { return metadata_.GetComparisonOrder(); }
+  const std::vector<uint8_t> &GetAttributeSizes() const { return metadata_.GetAttributeSizes(); }
+  const std::vector<uint8_t> &GetAttributeOffsets() const { return metadata_.GetAttributeOffsets(); }
+  const uint32_t GetOffset(key_oid_t key_oid) const { return metadata_.GetKeyOidToOffsetMap().at(key_oid); }
 };
 
 }  // namespace terrier::storage::index
