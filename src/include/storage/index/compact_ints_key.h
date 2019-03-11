@@ -202,33 +202,28 @@ class CompactIntsKey {
    */
 
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
-                              const uint8_t attr_size, uint8_t *offset) {
+                              const uint8_t attr_size, const uint8_t compact_ints_offset) {
     const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
-    // TODO(Matt): this assertion may not stay true forever
-    TERRIER_ASSERT(stored_attr != nullptr, "Should not be trying to index a nullable attribute.");
+    TERRIER_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
     switch (attr_size) {
       case sizeof(int8_t): {
         int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
-        AddInteger<int8_t>(data, *offset);
-        *offset += sizeof(data);
+        AddInteger<int8_t>(data, compact_ints_offset);
         break;
       }
       case sizeof(int16_t): {
         int16_t data = *reinterpret_cast<const int16_t *>(stored_attr);
-        AddInteger<int16_t>(data, *offset);
-        *offset += sizeof(data);
+        AddInteger<int16_t>(data, compact_ints_offset);
         break;
       }
       case sizeof(int32_t): {
         int32_t data = *reinterpret_cast<const int32_t *>(stored_attr);
-        AddInteger<int32_t>(data, *offset);
-        *offset += sizeof(data);
+        AddInteger<int32_t>(data, compact_ints_offset);
         break;
       }
       case sizeof(int64_t): {
         int64_t data = *reinterpret_cast<const int64_t *>(stored_attr);
-        AddInteger<int64_t>(data, *offset);
-        *offset += sizeof(data);
+        AddInteger<int64_t>(data, compact_ints_offset);
         break;
       }
       default:
@@ -247,17 +242,16 @@ class CompactIntsKey {
   }
 
   void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
-                           const std::vector<uint16_t> &attr_offsets) {
-    TERRIER_ASSERT(attr_sizes.size() == attr_offsets.size(), "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    TERRIER_ASSERT(attr_sizes.size() <= INTSKEY_MAX_SLOTS, "attr_sizes has too many values for this type.");
+                           const std::vector<uint8_t> &compact_ints_offsets) {
     TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+                   "attr_sizes and attr_offsets must be equal in size.");
+    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
     ZeroOut();
 
-    uint8_t offset = 0;
-    for (uint8_t i = 0; i < attr_offsets.size(); i++) {
-      CopyAttrFromProjection(from, attr_offsets[i], attr_sizes[i], &offset);
-      TERRIER_ASSERT(offset <= key_size_byte, "offset went out of bounds");
+    for (uint8_t i = 0; i < from.NumColumns(); i++) {
+      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
+      CopyAttrFromProjection(from, i, attr_sizes[i], compact_ints_offsets[i]);
     }
   }
 
