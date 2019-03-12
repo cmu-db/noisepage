@@ -4,16 +4,37 @@
 #include <random>
 #include <vector>
 #include "storage/data_table.h"
-// #include "storage/index/index_builder.h"
+#include "storage/index/index_builder.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/record_buffer.h"
 #include "transaction/transaction_context.h"
+#include "util/random_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
 namespace terrier {
 
 struct BwTreeIndexTests : public ::terrier::TerrierTest {};
+
+// compactintskey
+// generickey
+// two versions
+
+template <typename Random>
+storage::index::KeySchema RandomKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types, Random *generator) {
+  TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
+  storage::index::key_oid_t key_oid_generator(1);
+  storage::index::KeySchema key_schema;
+
+  for (auto i = 0; i < num_cols; i++) {
+    auto key_oid = key_oid_generator++;
+    auto type = *RandomTestUtil::UniformRandomElement(&types, generator);
+    auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
+    key_schema.emplace_back(key_oid, type, is_nullable);
+  }
+
+  return key_schema;
+}
 
 template <uint8_t KeySize, typename Random>
 void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
