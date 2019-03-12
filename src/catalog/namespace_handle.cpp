@@ -45,11 +45,47 @@ TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn
                      catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }
 
-void NamespaceHandle::CreateNamespace(terrier::transaction::TransactionContext *txn, const std::string &name) {
+void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::Value> row;
 
   row.emplace_back(type::ValueFactory::GetIntegerValue(catalog_->GetNextOid()));
   row.emplace_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+  catalog_->SetUnusedColumns(&row, NamespaceHandle::unused_schema_cols_);
   pg_namespace_hrw_->InsertRow(txn, row);
 }
+
+std::shared_ptr<catalog::SqlTableRW> NamespaceHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                             db_oid_t db_oid, const std::string &name) {
+  std::shared_ptr<catalog::SqlTableRW> storage_table;
+
+  // get an oid
+  table_oid_t storage_table_oid(catalog->GetNextOid());
+
+  // uninitialized storage
+  storage_table = std::make_shared<catalog::SqlTableRW>(storage_table_oid);
+
+  // columns we use
+  for (auto col : NamespaceHandle::schema_cols_) {
+    storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
+  }
+
+  // columns we don't use
+  for (auto col : NamespaceHandle::unused_schema_cols_) {
+    storage_table->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
+  }
+  // now actually create, with the provided schema
+  storage_table->Create();
+  catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
+  catalog->AddColumnsToPGAttribute(txn, db_oid, storage_table->GetSqlTable());
+  return storage_table;
+}
+
+const std::vector<SchemaCols> NamespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+                                                               {1, "nspname", type::TypeId::VARCHAR}};
+
+const std::vector<SchemaCols> NamespaceHandle::unused_schema_cols_ = {
+    {2, "nspowner", type::TypeId::INTEGER},
+    {3, "nspacl", type::TypeId::VARCHAR},
+};
+
 }  // namespace terrier::catalog

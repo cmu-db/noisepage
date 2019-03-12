@@ -16,6 +16,11 @@ namespace terrier::catalog {
 DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database)
     : catalog_(catalog), pg_database_rw_(std::move(pg_database)) {}
 
+ClassHandle DatabaseHandle::GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid) {
+  std::string pg_class("pg_class");
+  return ClassHandle(catalog_, catalog_->GetDatabaseCatalog(oid, pg_class));
+}
+
 NamespaceHandle DatabaseHandle::GetNamespaceHandle(transaction::TransactionContext *txn, db_oid_t oid) {
   std::string pg_namespace("pg_namespace");
   return NamespaceHandle(catalog_, oid, catalog_->GetDatabaseCatalog(oid, pg_namespace));
@@ -84,5 +89,14 @@ bool DatabaseHandle::DatabaseEntry::Delete(transaction::TransactionContext *txn)
   bool status = handle_p_->pg_database_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
   return status;
 }
+
+const std::vector<SchemaCols> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+                                                              {1, "datname", type::TypeId::VARCHAR}};
+
+const std::vector<SchemaCols> DatabaseHandle::unused_schema_cols_ = {
+    {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
+    {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
+    {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
+    {8, "datconnlimit", type::TypeId::INTEGER}};
 
 }  // namespace terrier::catalog

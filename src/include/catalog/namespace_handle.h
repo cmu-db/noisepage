@@ -12,6 +12,8 @@
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
+struct SchemaCols;
+
 /**
  * A namespace handle contains information about all the namespaces in a database. It is used to
  * retrieve namespace related information and it serves as the entry point for access the tables
@@ -89,11 +91,10 @@ class NamespaceHandle {
   std::shared_ptr<NamespaceEntry> GetNamespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Create a namespace.
-   * @param txn the transaction context
-   * @param name the namespace you want to create
+   * Add name into the namespace table.
+   * Replaces CreateNameSpace.
    */
-  void CreateNamespace(transaction::TransactionContext *txn, const std::string &name);
+  void AddEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Get a table handle under the given namespace
@@ -103,8 +104,18 @@ class NamespaceHandle {
    */
   TableHandle GetTableHandle(transaction::TransactionContext *txn, const std::string &nsp_name);
 
+  /**
+   * Create the storage table
+   */
+  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                     db_oid_t db_oid, const std::string &name);
+
+  static const std::vector<SchemaCols> schema_cols_;
+  static const std::vector<SchemaCols> unused_schema_cols_;
+
  private:
   Catalog *catalog_;
+  // database parent of this namespace
   db_oid_t db_oid_;
   std::shared_ptr<catalog::SqlTableRW> pg_namespace_hrw_;
 };

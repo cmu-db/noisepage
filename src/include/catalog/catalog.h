@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
@@ -15,6 +16,12 @@ namespace terrier::catalog {
 
 class DatabaseHandle;
 class TablespaceHandle;
+
+struct SchemaCols {
+  int32_t col_num;
+  const char *col_name;
+  type::TypeId type_id;
+};
 
 /**
  * The global catalog object. It contains all the information about global catalog tables. It's also
@@ -106,13 +113,30 @@ class Catalog {
     DestroyDB(DEFAULT_DATABASE_OID);
   }
 
- private:
-  struct UnusedSchemaCols {
-    int32_t col_num;
-    const char *col_name;
-    type::TypeId type_id;
-  };
+  // methods for catalog initializations
+  void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name,
+                 std::shared_ptr<SqlTableRW> table_rw_p) {
+    map_[db_oid][table_oid] = std::move(table_rw_p);
+    name_map_[db_oid][name] = table_oid;
+  }
 
+  /**
+   * Utility function for adding columns in a table to pg_attribute. To use this function, pg_attribute has to exist.
+   * @param txn the transaction that's adding the columns
+   * @param db_oid the database the pg_attribute belongs to
+   * @param table the table which the columns belong to
+   */
+  void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
+                               const std::shared_ptr<storage::SqlTable> &table);
+
+  /**
+   * Set values for unused columns.
+   * @param vec append to this vector of values
+   * @param cols vector of column types
+   */
+  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCols> &cols);
+
+ private:
   /**
    * Add a row into pg_database
    */
@@ -124,24 +148,7 @@ class Catalog {
    * @param cols - vector specifying the columns
    *
    */
-  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
-                              const std::vector<UnusedSchemaCols> &cols);
-
-  /**
-   * Set values for unused columns.
-   * @param vec append to this vector of values
-   * @param cols vector of column types
-   */
-  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<UnusedSchemaCols> &cols);
-
-  /**
-   * Utility function for adding columns in a table to pg_attribute. To use this function, pg_attribute has to exist.
-   * @param txn the transaction that's adding the columns
-   * @param db_oid the database the pg_attribute belongs to
-   * @param table the table which the columns belong to
-   */
-  void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                               const std::shared_ptr<storage::SqlTable> &table);
+  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p, const std::vector<SchemaCols> &cols);
 
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -205,12 +212,6 @@ class Catalog {
   void CreatePGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
-   * During startup, create pg_attrdef table (local to db_oid)
-   * @param txn_manager the global transaction manager
-   */
-  void CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid);
-
-  /**
    * During startup, create pg_type table (local to db_oid)
    * @param txn_manager the global transaction manager
    */
@@ -231,7 +232,7 @@ class Catalog {
 
   // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>> map_;
-  // map from (db_oid, catalog name) to sql table
+  // map from (db_oid, catalog name) to table_oid
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid
   std::atomic<uint32_t> oid_;
@@ -239,20 +240,12 @@ class Catalog {
   /**
    * pg_database specific items. Should be in a pg_database util class
    */
-  // unused column spec for pg_database
-  std::vector<UnusedSchemaCols> pg_database_unused_cols_ = {
-      {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
-      {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
-      {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
-      {8, "datconnlimit", type::TypeId::INTEGER}};
-  std::vector<UnusedSchemaCols> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                              {3, "spcacl", type::TypeId::VARCHAR},
-                                                              {4, "spcoptions", type::TypeId::VARCHAR}};
-  std::vector<UnusedSchemaCols> pg_namespace_unused_cols_ = {
-      {2, "nspowner", type::TypeId::INTEGER},
-      {3, "nspacl", type::TypeId::VARCHAR},
-  };
-  std::vector<UnusedSchemaCols> pg_type_unused_cols = {
+
+  std::vector<SchemaCols> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
+                                                        {3, "spcacl", type::TypeId::VARCHAR},
+                                                        {4, "spcoptions", type::TypeId::VARCHAR}};
+
+  std::vector<SchemaCols> pg_type_unused_cols = {
       {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
       {7, "typcatagory", type::TypeId::VARCHAR},   {8, "typispreferred", type::TypeId::BOOLEAN},
       {9, "typisdefined", type::TypeId::BOOLEAN},  {10, "typdelim", type::TypeId::VARCHAR},

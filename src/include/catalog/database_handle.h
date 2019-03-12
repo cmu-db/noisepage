@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/class_handle.h"
 #include "catalog/namespace_handle.h"
 #include "catalog/type_handle.h"
 #include "storage/sql_table.h"
@@ -16,6 +17,7 @@ namespace terrier::catalog {
 class Catalog;
 class NamespaceHandle;
 class TypeHandle;
+struct SchemaCols;
 
 /**
  * A DatabaseHandle provides access to the (global) system pg_database
@@ -90,6 +92,12 @@ class DatabaseHandle {
   DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database);
 
   /**
+   * Get a class handle for the database.
+   * @return A class handle
+   */
+  ClassHandle GetClassHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
    * Get a namespace handle for the database.
    * @return A namespace handle
    */
@@ -131,6 +139,9 @@ class DatabaseHandle {
    * @return a shared pointer to database entry; NULL if not found
    */
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+
+  static const std::vector<SchemaCols> schema_cols_;
+  static const std::vector<SchemaCols> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
