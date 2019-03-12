@@ -208,6 +208,8 @@ void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, t
   AddColumnsToPGAttribute(txn, db_oid, pg_attribute->GetSqlTable());
 
   // Insert columns of global catalogs
+  // PA: this is probably the wrong place. If we want to use this function for any database,
+  // we want to add the global table columns only once.
   AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
   AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
 }
