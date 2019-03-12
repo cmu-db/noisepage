@@ -27,7 +27,7 @@ class IndexMetadata {
 
   IndexMetadata(KeySchema key_schema, const std::vector<uint8_t> &attr_sizes)
       : key_schema_(std::move(key_schema)),
-        pr_offsets_(StorageUtil::ComputeAttributeOffsets(attr_sizes, 0)),
+        pr_offsets_(ComputePROffsets(attr_sizes)),
         cmp_order_(ComputeComparisonOrder(attr_sizes)),
         attr_sizes_(attr_sizes),
         attr_offsets_(ComputeAttributeOffsets(attr_sizes, pr_offsets_)),
@@ -48,6 +48,37 @@ class IndexMetadata {
   std::vector<uint8_t> attr_offsets_;
   std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;
 
+  static std::vector<uint16_t> ComputePROffsets(const std::vector<uint8_t> &attr_sizes) {
+    auto starting_offsets = StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);
+
+    std::vector<uint16_t> pr_offsets;
+    pr_offsets.reserve(attr_sizes.size());
+
+    for (const auto &size : attr_sizes) {
+      switch (size) {
+        case VARLEN_COLUMN:
+          pr_offsets.emplace_back(starting_offsets[0]++);
+          break;
+        case 8:
+          pr_offsets.emplace_back(starting_offsets[1]++);
+          break;
+        case 4:
+          pr_offsets.emplace_back(starting_offsets[2]++);
+          break;
+        case 2:
+          pr_offsets.emplace_back(starting_offsets[3]++);
+          break;
+        case 1:
+          pr_offsets.emplace_back(starting_offsets[4]++);
+          break;
+        default:
+          throw std::runtime_error("unexpected switch case value");
+      }
+    }
+
+    return pr_offsets;
+  }
+
   /**
    * Computes the final comparison order for the given vector of attribute sizes.
    * e.g.   if attr_sizes {4, 4, 8, 1, 2},
@@ -56,8 +87,7 @@ class IndexMetadata {
    */
   static std::vector<uint16_t> ComputeComparisonOrder(const std::vector<uint8_t> &attr_sizes) {
     // note: at most uint16_t num_columns in ProjectedRow
-    std::vector<uint16_t> cmp_order;
-    cmp_order.reserve(attr_sizes.size());
+    std::vector<uint16_t> cmp_order(attr_sizes.size());
     std::iota(cmp_order.begin(), cmp_order.end(), 0);
     std::stable_sort(cmp_order.begin(), cmp_order.end(),
                      [&](const uint16_t &i, const uint16_t &j) -> bool { return attr_sizes[i] > attr_sizes[j]; });
@@ -87,34 +117,14 @@ class IndexMetadata {
   }
 
   /**
-   * Computes the mapping from key oid to projected row offset.
-   * @warning Modifies pr_offsets.
+   * Computes the mapping from key oid to projected row offset
    */
   static std::unordered_map<key_oid_t, uint32_t> ComputeKeyOidToOffset(const KeySchema &key_schema,
                                                                        const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset;
     key_oid_to_offset.reserve(key_schema.size());
-    uint16_t offsets[5] = {0, 0, 0, 0, 0};
-    for (const auto &k : key_schema) {
-      switch (type::TypeUtil::GetTypeSize(k.type_id)) {
-        case VARLEN_COLUMN:
-          key_oid_to_offset[k.key_oid] = static_cast<uint16_t>(pr_offsets[0] + offsets[0]++);
-          break;
-        case 8:
-          key_oid_to_offset[k.key_oid] = static_cast<uint16_t>(pr_offsets[1] + offsets[1]++);
-          break;
-        case 4:
-          key_oid_to_offset[k.key_oid] = static_cast<uint16_t>(pr_offsets[2] + offsets[2]++);
-          break;
-        case 2:
-          key_oid_to_offset[k.key_oid] = static_cast<uint16_t>(pr_offsets[3] + offsets[3]++);
-          break;
-        case 1:
-          key_oid_to_offset[k.key_oid] = static_cast<uint16_t>(pr_offsets[4] + offsets[4]++);
-          break;
-        default:
-          throw std::runtime_error("unexpected switch case value");
-      }
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      key_oid_to_offset[key_schema[i].key_oid] = pr_offsets[i];
     }
     return key_oid_to_offset;
   }

@@ -112,7 +112,7 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
     attr_sizes.push_back(column.GetAttrSize());
   }
 
-  auto offsets = ComputeAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
+  auto offsets = ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
 
   ColumnMap col_oid_to_id;
   // Build the map from Schema columns to underlying columns
@@ -141,8 +141,8 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
   return {storage::BlockLayout(attr_sizes), col_oid_to_id};
 }
 
-std::vector<uint16_t> StorageUtil::ComputeAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
-                                                           int num_reserved_columns) {
+std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+                                                               int num_reserved_columns) {
   std::vector<uint16_t> offsets;
   offsets.reserve(5);
   for (auto i = 0; i < 5; i++) {

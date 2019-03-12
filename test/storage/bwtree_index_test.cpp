@@ -132,7 +132,7 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, BuilderTest) {
-  const uint32_t num_iters = 100000;
+  const uint32_t num_iters = 100;
   std::default_random_engine generator;
 
   //  const std::vector<type::TypeId> generic_key_types{
@@ -149,6 +149,8 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
         .SetKeySchema(key_schema)
         .SetOid(catalog::index_oid_t(i));
     UNUSED_ATTRIBUTE auto *index = builder.Build();
+
+    delete index;
   }
 }
 }  // namespace terrier

@@ -125,14 +125,14 @@ class StorageUtil {
    * Given attribute sizes which will be sorted descending, computes the starting offsets for each of them.
    *
    * e.g. attribute_sizes {1, 2, 2, VARLEN} sorts to {VARLEN, 2, 2, 1}
-   * so the offsets returned are {0, 1, 3}
+   * so the offsets returned are {0, 1, 1, 1, 3}
    *
    * @param attr_sizes attribute sizes
    * @param num_reserved_columns number of extra 8-byte columns
    *
    * @return {offset_varlen, offset_8, offset_4, offset_2, offset_1}
    */
-  static std::vector<uint16_t> ComputeAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
-                                                       int num_reserved_columns);
+  static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+                                                           int num_reserved_columns);
 };
 }  // namespace terrier::storage

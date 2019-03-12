@@ -203,12 +203,10 @@ class ProjectedRowInitializer {
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
    *
-   * @warning attr_sizes should be sorted descending
-   *
-   * @param attr_sizes attribute sizes
-   * @param cmp_order comparison order
+   * @param attr_sizes unsorted attribute sizes
+   * @param cmp_order comparison order for the sorted attribute sizes
    */
-  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(const std::vector<uint8_t> &attr_sizes,
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<uint8_t> attr_sizes,
                                                                          const std::vector<uint16_t> &cmp_order);
 
  private:

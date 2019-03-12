@@ -78,9 +78,8 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(c
 }
 
 ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-    const std::vector<uint8_t> &attr_sizes, const std::vector<uint16_t> &cmp_order) {
-  TERRIER_ASSERT(std::is_sorted(attr_sizes.cbegin(), attr_sizes.cend(), std::greater<>()),
-                 "Attribute sizes must be sorted descending.");
+    std::vector<uint8_t> attr_sizes, const std::vector<uint16_t> &cmp_order) {
+  std::sort(attr_sizes.begin(), attr_sizes.end(), std::greater<>());
   std::vector<col_id_t> col_ids;
   col_ids.reserve(cmp_order.size());
   for (const auto i : cmp_order) {

@@ -23,10 +23,15 @@ class Index {
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
   const IndexMetadata metadata_;
+  const ProjectedRowInitializer initializer_;
 
  protected:
   Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : oid_{oid}, constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
+      : oid_{oid},
+        constraint_type_{constraint_type},
+        metadata_(std::move(metadata)),
+        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
+            metadata_.GetAttributeSizes(), metadata_.GetComparisonOrder())) {}
 
  public:
   virtual ~Index() = default;
@@ -49,6 +54,7 @@ class Index {
   const std::vector<uint8_t> &GetAttributeSizes() const { return metadata_.GetAttributeSizes(); }
   const std::vector<uint8_t> &GetAttributeOffsets() const { return metadata_.GetAttributeOffsets(); }
   const uint32_t GetOffset(key_oid_t key_oid) const { return metadata_.GetKeyOidToOffsetMap().at(key_oid); }
+  const ProjectedRowInitializer &GetProjectedRowInitializer() const { return initializer_; }
 };
 
 }  // namespace terrier::storage::index
