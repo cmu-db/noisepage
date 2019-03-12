@@ -47,12 +47,12 @@ storage::index::KeySchema RandomGenericKeySchema(const uint32_t num_cols, const 
 
 template <typename Random>
 storage::index::KeySchema RandomCompactIntsKeySchema(Random *generator) {
-  const auto key_size = static_cast<uint16_t>(std::uniform_int_distribution(1, 256)(*generator));
+  const auto key_size = static_cast<uint16_t>(std::uniform_int_distribution(1, 32)(*generator));
 
   const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
                                         type::TypeId::BIGINT};  // has to be sorted in ascending type size order
 
-  const uint16_t max_cols = 256;  // could have up to 256 TINYINT
+  const uint16_t max_cols = 32;  // could have up to 32 TINYINT
   std::vector<storage::index::key_oid_t> key_oids;
   key_oids.reserve(max_cols);
 
@@ -134,14 +134,20 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
   const uint32_t num_iters = 100000;
   std::default_random_engine generator;
 
-  const std::vector<type::TypeId> generic_key_types{
-      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
-      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
-      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
+//  const std::vector<type::TypeId> generic_key_types{
+//      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
+//      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
+//      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
 
   for (uint32_t i = 0; i < num_iters; i++) {
-    const UNUSED_ATTRIBUTE auto ks1 = RandomGenericKeySchema(10, generic_key_types, &generator);
-    const UNUSED_ATTRIBUTE auto ks2 = RandomCompactIntsKeySchema(&generator);
+//    const UNUSED_ATTRIBUTE auto ks1 = RandomGenericKeySchema(10, generic_key_types, &generator);
+    const auto key_schema = RandomCompactIntsKeySchema(&generator);
+
+    storage::index::IndexBuilder builder;
+    builder.SetConstraintType(storage::index::ConstraintType::DEFAULT)
+        .SetKeySchema(key_schema)
+        .SetOid(catalog::index_oid_t(i));
+    UNUSED_ATTRIBUTE auto *index = builder.Build();
   }
 }
 }  // namespace terrier
