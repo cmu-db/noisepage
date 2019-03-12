@@ -33,8 +33,7 @@ class BwTreeIndex final : public Index {
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
-    auto unique_keys = GetConstraintType() == ConstraintType::UNIQUE;
-    return bwtree_->Insert(index_key, location, unique_keys);
+    return bwtree_->Insert(index_key, location, false);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
@@ -65,6 +64,9 @@ class BwTreeIndex final : public Index {
   }
 
   void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(
+        value_list->empty(),
+        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
     KeyType index_key;
     index_key.SetFromProjectedRow(key, GetAttributeSizes(), GetAttributeOffsets());
     bwtree_->GetValue(index_key, *value_list);

@@ -152,16 +152,38 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
 
     auto initializer = index->GetProjectedRowInitializer();
 
-
     auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
 
     auto *key = initializer.InitializeRow(key_buffer);
 
     const auto &cmp_order = index->GetComparisonOrder();
 
-    for (uint16_t i = 0; i < cmp_order.size(); i++) {
-      EXPECT_EQ(cmp_order[i], !(key->ColumnIds()[i]));
+    for (uint16_t j = 0; j < cmp_order.size(); j++) {
+      EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
+      key->AccessForceNotNull(j);
     }
+
+    std::vector<storage::TupleSlot> results;
+
+    index->ScanKey(*key, &results);
+
+    EXPECT_TRUE(results.empty());
+
+    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
+
+    index->ScanKey(*key, &results);
+
+    EXPECT_EQ(results.size(), 1);
+
+    EXPECT_EQ(results[0], storage::TupleSlot());
+
+    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+    results.clear();
+
+    index->ScanKey(*key, &results);
+
+    EXPECT_TRUE(results.empty());
 
     delete index;
   }
