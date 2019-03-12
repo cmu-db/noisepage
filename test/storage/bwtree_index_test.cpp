@@ -148,7 +148,20 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
     builder.SetConstraintType(storage::index::ConstraintType::DEFAULT)
         .SetKeySchema(key_schema)
         .SetOid(catalog::index_oid_t(i));
-    UNUSED_ATTRIBUTE auto *index = builder.Build();
+    auto *index = builder.Build();
+
+    auto initializer = index->GetProjectedRowInitializer();
+
+
+    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+
+    auto *key = initializer.InitializeRow(key_buffer);
+
+    const auto &cmp_order = index->GetComparisonOrder();
+
+    for (uint16_t i = 0; i < cmp_order.size(); i++) {
+      EXPECT_EQ(cmp_order[i], !(key->ColumnIds()[i]));
+    }
 
     delete index;
   }
