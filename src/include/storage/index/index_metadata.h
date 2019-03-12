@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "common/macros.h"
 #include "storage/index/index_defs.h"
 #include "storage/storage_util.h"
 #include "type/type_util.h"
@@ -14,8 +15,7 @@ namespace terrier::storage::index {
 
 class IndexMetadata {
  public:
-  IndexMetadata &operator=(const IndexMetadata &) = delete;
-  IndexMetadata(const IndexMetadata &) = delete;
+  DISALLOW_COPY(IndexMetadata);
 
   IndexMetadata(IndexMetadata &&other) noexcept
       : key_schema_(std::move(other.key_schema_)),
