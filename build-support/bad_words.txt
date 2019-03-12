@@ -1,0 +1,8 @@
+#include "include/
+\binline\b
+\bcalloc(
+\bmalloc(
+\bfree(
+\bstd::cout\b
+\bcout\b
+\bprintf(

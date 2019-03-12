@@ -178,7 +178,6 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
   // initialize stat registry
   auto test_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
   test_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
-  std::cout << test_stat_reg->DumpStats() << std::endl;
   delete[] redo_buffer_;
   delete txn;
 
