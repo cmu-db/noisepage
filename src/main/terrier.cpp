@@ -31,7 +31,7 @@ int main() {
     // Registered loggers must be thread safe for this to work correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
   } catch (const spdlog::spdlog_ex &ex) {
-    std::cout << "debug log init failed " << ex.what() << std::endl;
+    std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
     return 1;
   }
 
