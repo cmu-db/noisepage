@@ -1,11 +1,10 @@
-// #include "storage/index/bwtree_index.h"
 #include <functional>
 #include <limits>
 #include <random>
 #include <vector>
 #include "storage/data_table.h"
-#include "storage/index/index_builder.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/index_builder.h"
 #include "storage/record_buffer.h"
 #include "transaction/transaction_context.h"
 #include "util/random_test_util.h"
@@ -21,16 +20,64 @@ struct BwTreeIndexTests : public ::terrier::TerrierTest {};
 // two versions
 
 template <typename Random>
-storage::index::KeySchema RandomKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types, Random *generator) {
+storage::index::KeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+                                                 Random *generator) {
   TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
-  storage::index::key_oid_t key_oid_generator(1);
+
+  std::vector<storage::index::key_oid_t> key_oids;
+  key_oids.reserve(num_cols);
+
+  for (auto i = 0; i < num_cols; i++) {
+    key_oids.emplace_back(i);
+  }
+
+  std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
   storage::index::KeySchema key_schema;
 
   for (auto i = 0; i < num_cols; i++) {
-    auto key_oid = key_oid_generator++;
-    auto type = *RandomTestUtil::UniformRandomElement(&types, generator);
+    auto key_oid = key_oids[i];
+    auto type = *RandomTestUtil::UniformRandomElement(types, generator);
     auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
     key_schema.emplace_back(key_oid, type, is_nullable);
+  }
+
+  return key_schema;
+}
+
+template <typename Random>
+storage::index::KeySchema RandomCompactIntsKeySchema(Random *generator) {
+  const auto key_size = static_cast<uint16_t>(std::uniform_int_distribution(1, 256)(*generator));
+
+  const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                        type::TypeId::BIGINT};  // has to be sorted in ascending type size order
+
+  const uint16_t max_cols = 256;  // could have up to 256 TINYINT
+  std::vector<storage::index::key_oid_t> key_oids;
+  key_oids.reserve(max_cols);
+
+  for (auto i = 0; i < max_cols; i++) {
+    key_oids.emplace_back(i);
+  }
+
+  std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+  storage::index::KeySchema key_schema;
+
+  uint8_t col = 0;
+
+  for (uint16_t bytes_used = 0; bytes_used != key_size;) {
+    auto max_offset = static_cast<uint8_t>(types.size() - 1);
+    for (const auto &type : types) {
+      if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
+        max_offset--;
+      }
+    }
+    const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
+    const auto type = types[type_offset];
+
+    key_schema.emplace_back(key_oids[col++], type, false);
+    bytes_used += type::TypeUtil::GetTypeSize(type);
   }
 
   return key_schema;
@@ -82,49 +129,19 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyTest<4>(num_iters, &generator);
 }
 
-//// NOLINTNEXTLINE
-// TEST_F(BwTreeIndexTests, BuilderTest) {
-//  std::default_random_engine generator;
-//
-//  std::vector<catalog::Schema::Column> columns;
-//  std::vector<catalog::col_oid_t> col_oids;
-//  col_oids.emplace_back(catalog::col_oid_t(100));
-//  columns.emplace_back("Potato", type::TypeId::INTEGER, false, catalog::col_oid_t(100));
-//
-//  catalog::Schema schema(columns);
-//
-//  storage::ColumnMap map;
-//  map.emplace(100, 0);
-//
-//  auto layout = StorageTestUtil::RandomLayoutNoVarlen(8, &generator);
-//  storage::BlockStore block_store{100, 100};
-//  auto table = storage::DataTable(&block_store, layout, storage::layout_version_t(0));
-//
-//  auto dtv = storage::SqlTable::DataTableVersion{&table, layout, schema, map};
-//  storage::index::IndexBuilder builder;
-//  builder.SetColOids(col_oids);
-//  builder.SetDataTableVersion(&dtv);
-//  builder.SetOid(catalog::index_oid_t(1));
-//  builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
-//
-//  auto init = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
-//      layout, StorageTestUtil::ProjectionListAllColumns(layout));
-//  auto *redo_buffer = common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
-//  auto *redo = init.InitializeRow(redo_buffer);
-//  StorageTestUtil::PopulateRandomRow(redo, layout, 0.0, &generator);
-//
-//  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
-//  auto *txn = new transaction::TransactionContext(transaction::timestamp_t(0), transaction::timestamp_t(0),
-//                                                  &buffer_pool_, LOGGING_DISABLED);
-//  storage::TupleSlot slot = table.Insert(txn, *redo);
-//
-//  auto *bwtree = builder.Build();
-//  bwtree->Insert(*redo, slot);
-//
-//  std::vector<storage::TupleSlot> result;
-//  bwtree->ScanKey(*redo, &result);
-//  EXPECT_EQ(result.size(), 1);
-//  EXPECT_EQ(result[0], slot);
-//  delete bwtree;
-//}
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, BuilderTest) {
+  const uint32_t num_iters = 100000;
+  std::default_random_engine generator;
+
+  const std::vector<type::TypeId> generic_key_types{
+      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
+      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
+      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
+
+  for (uint32_t i = 0; i < num_iters; i++) {
+    const UNUSED_ATTRIBUTE auto ks1 = RandomGenericKeySchema(10, generic_key_types, &generator);
+    const UNUSED_ATTRIBUTE auto ks2 = RandomCompactIntsKeySchema(&generator);
+  }
+}
 }  // namespace terrier

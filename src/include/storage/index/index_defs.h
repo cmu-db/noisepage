@@ -11,6 +11,9 @@ struct KeyData {
   key_oid_t key_oid;
   type::TypeId type_id;
   bool is_nullable;
+
+  KeyData(const key_oid_t oid, const type::TypeId type, const bool nullable)
+      : key_oid(oid), type_id(type), is_nullable(nullable) {}
 };
 
 /**

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "catalog/catalog_defs.h"
