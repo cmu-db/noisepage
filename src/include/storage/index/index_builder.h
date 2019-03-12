@@ -47,7 +47,7 @@ class IndexBuilder {
 
     IndexMetadata metadata(key_schema_, attr_sizes);
 
-    return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, metadata);
+    return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
   }
 
   IndexBuilder &SetOid(const catalog::index_oid_t index_oid) {
@@ -83,21 +83,21 @@ class IndexBuilder {
   }
 
   Index *BuildBwTreeIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type, uint32_t key_size,
-                            const IndexMetadata &metadata) const {
+                            IndexMetadata metadata) const {
     TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {
       index = new BwTreeIndex<CompactIntsKey<1>, CompactIntsComparator<1>, CompactIntsEqualityChecker<1>,
-                              CompactIntsHasher<1>>(index_oid, constraint_type, metadata);
+                              CompactIntsHasher<1>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 2) {
       index = new BwTreeIndex<CompactIntsKey<2>, CompactIntsComparator<2>, CompactIntsEqualityChecker<2>,
-                              CompactIntsHasher<2>>(index_oid, constraint_type, metadata);
+                              CompactIntsHasher<2>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 3) {
       index = new BwTreeIndex<CompactIntsKey<3>, CompactIntsComparator<3>, CompactIntsEqualityChecker<3>,
-                              CompactIntsHasher<3>>(index_oid, constraint_type, metadata);
+                              CompactIntsHasher<3>>(index_oid, constraint_type, std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 4) {
       index = new BwTreeIndex<CompactIntsKey<4>, CompactIntsComparator<4>, CompactIntsEqualityChecker<4>,
-                              CompactIntsHasher<4>>(index_oid, constraint_type, metadata);
+                              CompactIntsHasher<4>>(index_oid, constraint_type, std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;

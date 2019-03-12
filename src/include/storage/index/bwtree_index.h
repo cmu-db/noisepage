@@ -17,8 +17,8 @@ class BwTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, const IndexMetadata &metadata)
-      : Index(oid, constraint_type, metadata),
+  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
+      : Index(oid, constraint_type, std::move(metadata)),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
             false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
 

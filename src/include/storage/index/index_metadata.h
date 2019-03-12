@@ -14,9 +14,16 @@ namespace terrier::storage::index {
 
 class IndexMetadata {
  public:
-  // TODO(WAN): I'm pretty sure I want to disable copying on this
-  // but I need to remember how move constructors work
-  // IndexMetadata(const IndexMetadata &) = delete;
+  IndexMetadata &operator=(const IndexMetadata &) = delete;
+  IndexMetadata(const IndexMetadata &) = delete;
+
+  IndexMetadata(IndexMetadata &&other) noexcept
+      : key_schema_(std::move(other.key_schema_)),
+        pr_offsets_(std::move(other.pr_offsets_)),
+        cmp_order_(std::move(other.cmp_order_)),
+        attr_sizes_(std::move(other.attr_sizes_)),
+        attr_offsets_(std::move(other.attr_offsets_)),
+        key_oid_to_offset_(std::move(other.key_oid_to_offset_)) {}
 
   IndexMetadata(KeySchema key_schema, const std::vector<uint8_t> &attr_sizes)
       : key_schema_(std::move(key_schema)),
@@ -34,12 +41,12 @@ class IndexMetadata {
   const std::unordered_map<key_oid_t, uint32_t> &GetKeyOidToOffsetMap() const { return key_oid_to_offset_; }
 
  private:
-  const std::vector<KeyData> key_schema_;
-  const std::vector<uint16_t> pr_offsets_;
-  const std::vector<uint16_t> cmp_order_;
-  const std::vector<uint8_t> attr_sizes_;
-  const std::vector<uint8_t> attr_offsets_;
-  const std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;
+  std::vector<KeyData> key_schema_;
+  std::vector<uint16_t> pr_offsets_;
+  std::vector<uint16_t> cmp_order_;
+  std::vector<uint8_t> attr_sizes_;
+  std::vector<uint8_t> attr_offsets_;
+  std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;
 
   /**
    * Computes the final comparison order for the given vector of attribute sizes.
