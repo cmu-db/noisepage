@@ -213,7 +213,7 @@ endif ()
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###########################################################
-# "make check-lint" target
+# "make check-lint" and "make check-censored" targets
 ###########################################################
 if (NOT TERRIER_VERBOSE_LINT)
   set(TERRIER_LINT_QUIET "--quiet")
@@ -242,6 +242,21 @@ if (UNIX)
       --linelength=120
       --filter=-legal/copyright,-build/header_guard
       )
+
+  set(CENSOR_FILES ${LINT_FILES})
+
+  # If whitelisting becomes necessary, do it here. Make it harder so that people try not to do it.
+  #  list(REMOVE_ITEM CENSOR_FILES
+  #
+  #      )
+
+  add_custom_target(check-censored
+          grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
+          | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
+          | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
+          || exit 0                                                     # if nothing found, return 0
+          && exit 1                                                     # else return 1, note || && left-associative
+          )
 endif (UNIX)
 
 ###########################################################
