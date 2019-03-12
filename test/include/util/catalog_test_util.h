@@ -17,11 +17,11 @@ struct CatalogTestUtil {
     TERRIER_ASSERT(max_cols > 0, "There should be at least 1 columm.");
     catalog::col_oid_t col_oid(0);
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
-    const std::vector<type::TypeId> possible_attr_types{
+    std::vector<type::TypeId> possible_attr_types{
         type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
         type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
         type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
-    const std::vector<bool> possible_attr_nullable{true, false};
+    std::vector<bool> possible_attr_nullable{true, false};
     std::vector<catalog::Schema::Column> columns;
     for (uint16_t i = 0; i < num_attrs; i++) {
       type::TypeId attr_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
