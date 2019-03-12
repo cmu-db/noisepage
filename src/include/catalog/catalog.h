@@ -142,6 +142,7 @@ class Catalog {
    */
   void AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
                                const std::shared_ptr<storage::SqlTable> &table);
+
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
    * correctly perform SQL queries.
