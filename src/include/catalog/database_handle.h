@@ -7,12 +7,15 @@
 
 #include "catalog/catalog.h"
 #include "catalog/namespace_handle.h"
+#include "catalog/type_handle.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
+
 namespace terrier::catalog {
 
 class Catalog;
 class NamespaceHandle;
+class TypeHandle;
 
 /**
  * A DatabaseHandle provides access to the (global) system pg_database
@@ -91,6 +94,12 @@ class DatabaseHandle {
    * @return A namespace handle
    */
   NamespaceHandle GetNamespaceHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
+   * Get a type handle for the database.
+   * @return A type handle
+   */
+  TypeHandle GetTypeHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a

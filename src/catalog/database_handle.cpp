@@ -21,6 +21,10 @@ NamespaceHandle DatabaseHandle::GetNamespaceHandle(transaction::TransactionConte
   return NamespaceHandle(catalog_, oid, catalog_->GetDatabaseCatalog(oid, pg_namespace));
 }
 
+TypeHandle DatabaseHandle::GetTypeHandle(transaction::TransactionContext *txn, db_oid_t oid) {
+  return TypeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_type"));
+}
+
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                                 db_oid_t oid) {
   auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");

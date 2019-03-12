@@ -2,6 +2,7 @@
 
 #include <type/value.h>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -49,7 +50,9 @@ class TypeHandle {
   /**
    * Construct a type handle. It keeps a pointer to the pg_type sql table.
    */
-  explicit TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type);
+  TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type);
+
+  type_oid_t TypeToOid(transaction::TransactionContext *txn, const std::string &type);
 
   /**
    * Get a type entry from pg_type handle
@@ -60,6 +63,16 @@ class TypeHandle {
    */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid);
 
+  /**
+   * Get a type entry from pg_type handle
+   *
+   * @param txn the transaction to run
+   * @param oid type entry oid
+   * @return a shared pointer to the type entry
+   */
+  std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
+
+  // TODO(yeshengm): we have to add support for UDF in the future
  private:
   // Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
