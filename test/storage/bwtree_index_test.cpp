@@ -84,10 +84,14 @@ storage::index::KeySchema RandomCompactIntsKeySchema(Random *generator) {
   return key_schema;
 }
 
-template <uint8_t KeySize, typename Random>
+template <uint8_t KeySize, typename AttrType, typename Random>
 void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
-  std::uniform_int_distribution<int64_t> val_dis(std::numeric_limits<int64_t>::min(),
-                                                 std::numeric_limits<int64_t>::max());
+
+  const uint8_t num_cols = KeySize * sizeof(AttrType);
+  TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
+
+  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(),
+                                                 std::numeric_limits<int8_t>::max());
 
   // Verify that we can instantiate all of the helper classes for this KeySize
   auto equality = storage::index::CompactIntsEqualityChecker<KeySize>();
@@ -100,12 +104,12 @@ void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
 
     auto key1 = storage::index::CompactIntsKey<KeySize>();
     auto key2 = storage::index::CompactIntsKey<KeySize>();
-    std::vector<int64_t> key1_ref(KeySize);
-    std::vector<int64_t> key2_ref(KeySize);
+    std::vector<int8_t> key1_ref(num_cols);
+    std::vector<int8_t> key2_ref(num_cols);
 
-    for (uint8_t j = 0; j < KeySize; j++) {
-      const int64_t val1 = val_dis(*generator);
-      const int64_t val2 = val_dis(*generator);
+    for (uint8_t j = 0; j < num_cols; j++) {
+      const int8_t val1 = val_dis(*generator);
+      const int8_t val2 = val_dis(*generator);
       key1.AddInteger(val1, offset);
       key2.AddInteger(val2, offset);
       key1_ref[j] = val1;
@@ -123,11 +127,26 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   const uint32_t num_iters = 100000;
   std::default_random_engine generator;
 
-  // Test all 4 KeySizes
-  CompactIntsKeyTest<1>(num_iters, &generator);
-  CompactIntsKeyTest<2>(num_iters, &generator);
-  CompactIntsKeyTest<3>(num_iters, &generator);
-  CompactIntsKeyTest<4>(num_iters, &generator);
+  CompactIntsKeyTest<1, int8_t>(num_iters, &generator);
+  CompactIntsKeyTest<1, int16_t>(num_iters, &generator);
+  CompactIntsKeyTest<1, int32_t>(num_iters, &generator);
+  CompactIntsKeyTest<1, int64_t>(num_iters, &generator);
+
+  CompactIntsKeyTest<2, int8_t>(num_iters, &generator);
+  CompactIntsKeyTest<2, int16_t>(num_iters, &generator);
+  CompactIntsKeyTest<2, int32_t>(num_iters, &generator);
+  CompactIntsKeyTest<2, int64_t>(num_iters, &generator);
+
+  CompactIntsKeyTest<3, int8_t>(num_iters, &generator);
+  CompactIntsKeyTest<3, int16_t>(num_iters, &generator);
+  CompactIntsKeyTest<3, int32_t>(num_iters, &generator);
+  CompactIntsKeyTest<3, int64_t>(num_iters, &generator);
+
+  CompactIntsKeyTest<4, int8_t>(num_iters, &generator);  // test 32 int8_ts
+  CompactIntsKeyTest<4, int16_t>(num_iters, &generator);  // test 16 int16_ts
+  CompactIntsKeyTest<4, int32_t>(num_iters, &generator);  // test 8 int32_ts
+  CompactIntsKeyTest<4, int64_t>(num_iters, &generator);  // test 4 int64_ts
+
 }
 
 // NOLINTNEXTLINE
