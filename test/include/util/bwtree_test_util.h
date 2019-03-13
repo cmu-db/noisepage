@@ -27,7 +27,7 @@ struct BwTreeTestUtil {
    */
   class KeyComparator {
    public:
-    inline bool operator()(const int64_t k1, const int64_t k2) const { return k1 < k2; }
+    bool operator()(const int64_t k1, const int64_t k2) const { return k1 < k2; }
 
     explicit KeyComparator(int dummy UNUSED_ATTRIBUTE) {}
 
@@ -44,7 +44,7 @@ struct BwTreeTestUtil {
    */
   class KeyEqualityChecker {
    public:
-    inline bool operator()(const int64_t k1, const int64_t k2) const { return k1 == k2; }
+    bool operator()(const int64_t k1, const int64_t k2) const { return k1 == k2; }
 
     explicit KeyEqualityChecker(int dummy UNUSED_ATTRIBUTE) {}
 

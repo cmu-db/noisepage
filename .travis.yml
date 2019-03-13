@@ -65,7 +65,8 @@ before_script:
       docker exec build /bin/sh -c "cd /repo/build && make gbenchmark_ep -j 4" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-clang-tidy" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
-      docker exec build /bin/sh -c "cd /repo/build && make check-lint";
+      docker exec build /bin/sh -c "cd /repo/build && make check-lint" &&
+      docker exec build /bin/sh -c "cd /repo/build && make check-censored";
     else
       cd apidoc &&
       touch warnings.txt &&
@@ -81,7 +82,8 @@ before_script:
       ASAN_OPTIONS=detect_container_overflow=0 make gbenchmark_ep &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-clang-tidy &&
       ASAN_OPTIONS=detect_container_overflow=0 make check-format &&
-      ASAN_OPTIONS=detect_container_overflow=0 make check-lint;
+      ASAN_OPTIONS=detect_container_overflow=0 make check-lint &&
+      ASAN_OPTIONS=detect_container_overflow=0 make check-censored;
     fi
 
 script:
