@@ -79,6 +79,9 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(c
 
 ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
     std::vector<uint8_t> attr_sizes, const std::vector<uint16_t> &cmp_order) {
+  // This is necessary because we're computing the byte offsets, so we need to mask off the (possibly) negative MSB
+  std::transform(attr_sizes.begin(), attr_sizes.end(), attr_sizes.begin(),
+                 [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
   std::sort(attr_sizes.begin(), attr_sizes.end(), std::greater<>());
   std::vector<col_id_t> col_ids;
   col_ids.reserve(cmp_order.size());

@@ -86,12 +86,10 @@ storage::index::KeySchema RandomCompactIntsKeySchema(Random *generator) {
 
 template <uint8_t KeySize, typename AttrType, typename Random>
 void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
-
   const uint8_t num_cols = KeySize * sizeof(AttrType);
   TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
 
-  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(),
-                                                 std::numeric_limits<int8_t>::max());
+  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(), std::numeric_limits<int8_t>::max());
 
   // Verify that we can instantiate all of the helper classes for this KeySize
   auto equality = storage::index::CompactIntsEqualityChecker<KeySize>();
@@ -142,25 +140,18 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyTest<3, int32_t>(num_iters, &generator);
   CompactIntsKeyTest<3, int64_t>(num_iters, &generator);
 
-  CompactIntsKeyTest<4, int8_t>(num_iters, &generator);  // test 32 int8_ts
+  CompactIntsKeyTest<4, int8_t>(num_iters, &generator);   // test 32 int8_ts
   CompactIntsKeyTest<4, int16_t>(num_iters, &generator);  // test 16 int16_ts
   CompactIntsKeyTest<4, int32_t>(num_iters, &generator);  // test 8 int32_ts
   CompactIntsKeyTest<4, int64_t>(num_iters, &generator);  // test 4 int64_ts
-
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, BuilderTest) {
+TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
   const uint32_t num_iters = 100;
   std::default_random_engine generator;
 
-  //  const std::vector<type::TypeId> generic_key_types{
-  //      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
-  //      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
-  //      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
-
   for (uint32_t i = 0; i < num_iters; i++) {
-    //    const UNUSED_ATTRIBUTE auto ks1 = RandomGenericKeySchema(10, generic_key_types, &generator);
     const auto key_schema = RandomCompactIntsKeySchema(&generator);
 
     storage::index::IndexBuilder builder;
@@ -169,40 +160,59 @@ TEST_F(BwTreeIndexTests, BuilderTest) {
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    auto initializer = index->GetProjectedRowInitializer();
+    //    auto initializer = index->GetProjectedRowInitializer();
+    //
+    //    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    //
+    //    auto *key = initializer.InitializeRow(key_buffer);
+    //
+    //    const auto &cmp_order = index->GetComparisonOrder();
+    //
+    //    for (uint16_t j = 0; j < cmp_order.size(); j++) {
+    //      EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
+    //      key->AccessForceNotNull(j);
+    //    }
+    //
+    //    std::vector<storage::TupleSlot> results;
+    //    index->ScanKey(*key, &results);
+    //    EXPECT_TRUE(results.empty());
+    //
+    //    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
+    //
+    //    index->ScanKey(*key, &results);
+    //    EXPECT_EQ(results.size(), 1);
+    //    EXPECT_EQ(results[0], storage::TupleSlot());
+    //
+    //    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+    //
+    //    results.clear();
+    //    index->ScanKey(*key, &results);
+    //    EXPECT_TRUE(results.empty());
+    //
+    //    delete key_buffer;
 
-    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    delete index;
+  }
+}
 
-    auto *key = initializer.InitializeRow(key_buffer);
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
+  const uint32_t num_iters = 100;
+  std::default_random_engine generator;
 
-    const auto &cmp_order = index->GetComparisonOrder();
+  const std::vector<type::TypeId> generic_key_types{
+      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
+      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
+      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
 
-    for (uint16_t j = 0; j < cmp_order.size(); j++) {
-      EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
-      key->AccessForceNotNull(j);
-    }
+  for (uint32_t i = 0; i < num_iters; i++) {
+    const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator);
 
-    std::vector<storage::TupleSlot> results;
-
-    index->ScanKey(*key, &results);
-
-    EXPECT_TRUE(results.empty());
-
-    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
-
-    index->ScanKey(*key, &results);
-
-    EXPECT_EQ(results.size(), 1);
-
-    EXPECT_EQ(results[0], storage::TupleSlot());
-
-    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-
-    results.clear();
-
-    index->ScanKey(*key, &results);
-
-    EXPECT_TRUE(results.empty());
+    storage::index::IndexBuilder builder;
+    builder.SetConstraintType(storage::index::ConstraintType::DEFAULT)
+        .SetKeySchema(key_schema)
+        .SetOid(catalog::index_oid_t(i));
+    auto *index = builder.Build();
 
     delete index;
   }

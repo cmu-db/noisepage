@@ -95,7 +95,6 @@ uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset
   return remainder == 0 ? offset : offset + word_size - remainder;
 }
 
-// TODO(Tianyu): Rewrite these two functions to deal with varlens
 std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint8_t> attr_sizes;

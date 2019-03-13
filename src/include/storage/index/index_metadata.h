@@ -41,11 +41,11 @@ class IndexMetadata {
   const std::unordered_map<key_oid_t, uint32_t> &GetKeyOidToOffsetMap() const { return key_oid_to_offset_; }
 
  private:
-  std::vector<KeyData> key_schema_;
-  std::vector<uint16_t> pr_offsets_;
-  std::vector<uint16_t> cmp_order_;
-  std::vector<uint8_t> attr_sizes_;
-  std::vector<uint8_t> attr_offsets_;
+  std::vector<KeyData> key_schema_;    // for GenericKey
+  std::vector<uint16_t> pr_offsets_;   // not needed long term?
+  std::vector<uint16_t> cmp_order_;    // not needed long term?
+  std::vector<uint8_t> attr_sizes_;    // for CompactIntsKey
+  std::vector<uint8_t> attr_offsets_;  // for CompactIntsKey
   std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;
 
   static std::vector<uint16_t> ComputePROffsets(const std::vector<uint8_t> &attr_sizes) {
@@ -105,6 +105,9 @@ class IndexMetadata {
                                                       const std::vector<uint16_t> &pr_offsets) {
     // exclusive scan on a copy
     std::vector<uint8_t> scan = attr_sizes;
+    // This is not necessary because we're only computing the offsets, which don't change if you mask off the MSB
+    //    std::transform(scan.begin(), scan.end(), scan.begin(),
+    //                   [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
     std::sort(scan.begin(), scan.end(), std::greater<>());
     std::exclusive_scan(scan.begin(), scan.end(), scan.begin(), 0u);
     // compute attribute offsets

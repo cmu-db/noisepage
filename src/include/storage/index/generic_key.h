@@ -16,7 +16,7 @@ namespace terrier::storage::index {
  * class GenericKey - Key used for indexing with opaque data
  *
  * This key type uses an fixed length array to hold data for indexing
- * purposes, the actual size of which is specified and instanciated
+ * purposes, the actual size of which is specified and instantiated
  * with a template argument.
  */
 template <uint16_t KeySize>
@@ -28,21 +28,18 @@ class GenericKey {
   /*
    * ZeroOut() - Sets all bits to zero
    */
-  void ZeroOut() { TERRIER_MEMSET(key_data, 0x00, key_size_byte); }
+  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
 
   void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
-                           const std::vector<uint16_t> &attr_offsets) {
-    TERRIER_ASSERT(attr_sizes.size() == attr_offsets.size(), "attr_sizes and attr_offsets must be equal in size.");
+                           const std::vector<uint8_t> &compact_ints_offsets) {
+    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+                   "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    TERRIER_ASSERT(attr_sizes.size() <= INTSKEY_MAX_SLOTS, "attr_sizes has too many values for this type.");
-    TERRIER_ASSERT(attr_sizes.size() <= from.NumColumns(), "Key cannot have more attributes than the ProjectedRow.");
     ZeroOut();
 
-    uint8_t offset = 0;
-    for (uint8_t i = 0; i < attr_offsets.size(); i++) {
-      CopyAttrFromProjection(from, attr_offsets[i], attr_sizes[i], offset);
-      TERRIER_ASSERT(offset <= key_size_byte, "offset went out of bounds");
-    }
+    // TODO(Matt): alignment?
+    std::memcpy(key_data, &from, from.Size());
   }
 
   byte key_data[KeySize];
@@ -56,26 +53,7 @@ class GenericKey {
 template <uint16_t KeySize>
 class FastGenericComparator {
  public:
-  inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
-    auto schema = lhs.schema;
-
-    type::Value lhs_value;
-    type::Value rhs_value;
-
-    for (oid_t col_itr = 0; col_itr < schema->GetColumnCount(); col_itr++) {
-      const char *lhs_data = lhs.GetRawData(schema, col_itr);
-      const char *rhs_data = rhs.GetRawData(schema, col_itr);
-      type::Type type = schema->GetType(col_itr);
-      bool inlined = schema->IsInlined(col_itr);
-
-      if (type::TypeUtil::CompareLessThanRaw(type, lhs_data, rhs_data, inlined) == CmpBool::CmpTrue)
-        return true;
-      else if (type::TypeUtil::CompareGreaterThanRaw(type, lhs_data, rhs_data, inlined) == CmpBool::CmpTrue)
-        return false;
-    }
-
-    return false;
-  }
+  inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const { return false; }
 
   FastGenericComparator(const FastGenericComparator &) = default;
   FastGenericComparator() = default;
@@ -88,13 +66,8 @@ template <uint16_t KeySize>
 class GenericEqualityChecker {
  public:
   inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
-    auto schema = lhs.schema;
-
-    storage::Tuple lhTuple(schema);
-    lhTuple.MoveToTuple(reinterpret_cast<const void *>(&lhs));
-    storage::Tuple rhTuple(schema);
-    rhTuple.MoveToTuple(reinterpret_cast<const void *>(&rhs));
-    return lhTuple.EqualsNoSchemaCheck(rhTuple);
+    const auto pr_size = reinterpret_cast<const ProjectedRow *const>(lhs.key_data)->Size();
+    return std::memcmp(lhs.key_data, rhs.key_data, pr_size) == 0;
   }
 
   GenericEqualityChecker(const GenericEqualityChecker &) = default;
@@ -107,13 +80,7 @@ class GenericEqualityChecker {
 template <uint16_t KeySize>
 struct GenericHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
   /** Generate a 64-bit number for the key value */
-  inline size_t operator()(GenericKey<KeySize> const &p) const {
-    auto schema = p.schema;
-
-    storage::Tuple pTuple(schema);
-    pTuple.MoveToTuple(reinterpret_cast<const void *>(&p));
-    return pTuple.HashCode();
-  }
+  inline size_t operator()(GenericKey<KeySize> const &p) const { return 1; }
 
   GenericHasher(const GenericHasher &) = default;
   GenericHasher() = default;

@@ -6,9 +6,11 @@
 #include "catalog/catalog_defs.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/generic_key.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
+#include "storage/projected_row.h"
 
 namespace terrier::storage::index {
 
@@ -43,11 +45,11 @@ class IndexBuilder {
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 
-    TERRIER_ASSERT(use_compact_ints, "Currently, we only have integer keys of limited size.");
-
     IndexMetadata metadata(key_schema_, attr_sizes);
 
-    return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
+    if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
+
+    return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
   }
 
   IndexBuilder &SetOid(const catalog::index_oid_t index_oid) {
@@ -98,6 +100,30 @@ class IndexBuilder {
     } else if (key_size <= sizeof(uint64_t) * 4) {
       index = new BwTreeIndex<CompactIntsKey<4>, CompactIntsComparator<4>, CompactIntsEqualityChecker<4>,
                               CompactIntsHasher<4>>(index_oid, constraint_type, std::move(metadata));
+    }
+    TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    return index;
+  }
+
+  Index *BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
+                               IndexMetadata metadata) const {
+    const auto pr_size = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(),
+                                                                                          metadata.GetComparisonOrder())
+                             .ProjectedRowSize();
+    Index *index = nullptr;
+    if (pr_size <= 8) {
+      index = new BwTreeIndex<GenericKey<8>, FastGenericComparator<8>, GenericEqualityChecker<8>, GenericHasher<8>>(
+          index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 16) {
+      index = new BwTreeIndex<GenericKey<16>, FastGenericComparator<16>, GenericEqualityChecker<16>, GenericHasher<16>>(
+          index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 64) {
+      index = new BwTreeIndex<GenericKey<64>, FastGenericComparator<64>, GenericEqualityChecker<64>, GenericHasher<64>>(
+          index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 256) {
+      index =
+          new BwTreeIndex<GenericKey<256>, FastGenericComparator<256>, GenericEqualityChecker<256>, GenericHasher<256>>(
+              index_oid, constraint_type, std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
