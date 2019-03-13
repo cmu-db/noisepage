@@ -25,9 +25,9 @@ class HashPlanNode : public AbstractPlanNode {
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     std::vector<HashKeyPtrType> copied_hash_keys;
     for (const auto &key : hash_keys_) {
-      copied_hash_keys.push_back(std::unique_ptr<HashKeyType>(key->Copy()));
+      copied_hash_keys.emplace_back(std::make_unique<HashKeyPtrType>(key->Copy()));
     }
-    return std::unique_ptr<AbstractPlanNode>(new HashPlanNode(GetOutputSchema(), copied_hash_keys));
+    return std::make_unique<AbstractPlanNode>(new HashPlanNode(GetOutputSchema(), copied_hash_keys));
   }
 
   common::hash_t Hash() const override;
