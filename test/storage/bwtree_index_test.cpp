@@ -156,7 +156,6 @@ void BasicOps(storage::index::Index *const index) {
   const auto &cmp_order = index->GetComparisonOrder();
 
   for (uint16_t j = 0; j < cmp_order.size(); j++) {
-    EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
     key->AccessForceNotNull(j);
   }
 
@@ -218,7 +217,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    //    BasicOps(index);
+//    BasicOps(index);
 
     delete index;
   }

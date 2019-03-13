@@ -83,10 +83,9 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerFo
   std::transform(attr_sizes.begin(), attr_sizes.end(), attr_sizes.begin(),
                  [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
   std::sort(attr_sizes.begin(), attr_sizes.end(), std::greater<>());
-  std::vector<col_id_t> col_ids;
-  col_ids.reserve(cmp_order.size());
-  for (const auto i : cmp_order) {
-    col_ids.emplace_back(i);
+  std::vector<col_id_t> col_ids(cmp_order.size());
+  for (uint16_t i = 0; i < cmp_order.size(); i++) {
+    col_ids[cmp_order[i]] = col_id_t(i);
   }
   return ProjectedRowInitializer(attr_sizes, col_ids);
 }

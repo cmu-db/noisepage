@@ -15,6 +15,8 @@ namespace terrier::storage::index {
 
 template <uint16_t KeySize>
 class GenericKeyEqualityChecker;
+template <uint16_t KeySize>
+class GenericKeyComparator;
 
 /*
  * class GenericKey - Key used for indexing with opaque data
@@ -40,6 +42,7 @@ class GenericKey {
 
  private:
   friend class GenericKeyEqualityChecker<KeySize>;
+  friend class GenericKeyComparator<KeySize>;
 
   void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
 
@@ -60,7 +63,10 @@ class GenericKey {
 template <uint16_t KeySize>
 class GenericKeyComparator {
  public:
-  inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const { return false; }
+  bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+    TERRIER_ASSERT(lhs.schema == rhs.schema, "Keys must have the same schema.");
+    return false;
+  }
 
   GenericKeyComparator(const GenericKeyComparator &) = default;
   GenericKeyComparator() = default;
@@ -69,7 +75,8 @@ class GenericKeyComparator {
 template <uint16_t KeySize>
 class GenericKeyEqualityChecker {
  public:
-  inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+  bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+    TERRIER_ASSERT(lhs.schema == rhs.schema, "Keys must have the same schema.");
     return std::memcmp(lhs.key_data, rhs.key_data, GenericKey<KeySize>::key_size_byte) == 0;
   }
 
@@ -79,8 +86,7 @@ class GenericKeyEqualityChecker {
 
 template <uint16_t KeySize>
 struct GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
-  /** Generate a 64-bit number for the key value */
-  inline size_t operator()(GenericKey<KeySize> const &p) const { return 1; }
+  size_t operator()(GenericKey<KeySize> const &p) const { return 1; }
 
   GenericKeyHasher(const GenericKeyHasher &) = default;
   GenericKeyHasher() = default;
