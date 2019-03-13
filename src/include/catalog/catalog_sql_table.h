@@ -198,7 +198,9 @@ class SqlTableRW {
    * @return the offset
    */
   uint16_t ColNumToOffset(int32_t col_num) {
-    // TODO(pakhtar): add safety checks
+    if (static_cast<size_t>(col_num) >= pr_map_->size()) {
+      throw CATALOG_EXCEPTION("col_num > size");
+    }
     return pr_map_->at(col_oids_[col_num]);
   }
 
@@ -232,15 +234,10 @@ class SqlTableRW {
   std::vector<type::Value> FindRow(transaction::TransactionContext *txn, const std::vector<type::Value> &search_vec) {
     bool row_match;
 
-    if (layout_and_map_ == nullptr) {
-      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
-          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
-    }
-    auto layout = layout_and_map_->first;
+    auto layout = GetLayout();
     // setup parameters for a scan
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
     // get one row at a time
-    // storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
     if (col_initer_ == nullptr) {
       col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
     }
@@ -271,17 +268,15 @@ class SqlTableRW {
   }
 
   /**
+   * Find a row and return a projected column pointer
+   *
+   * For entry deletion, we need access to the tuple slot via the projected column api, in order to delete.
    */
   storage::ProjectedColumns *FindRowProjCol(transaction::TransactionContext *txn,
                                             const std::vector<type::Value> &search_vec) {
     bool row_match;
 
-    // TODO(pakhtar): replace with GetLayout
-    if (layout_and_map_ == nullptr) {
-      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
-          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
-    }
-    auto layout = layout_and_map_->first;
+    auto layout = GetLayout();
     // setup parameters for a scan
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
     // get one row at a time
@@ -446,7 +441,6 @@ class SqlTableRW {
     // TERRIER_ASSERT(col_type == search_vec[index].GetType(), "schema <-> column type mismatch");
 
     TERRIER_ASSERT(search_vec[index].Null() == false, "search_vec[index] is null");
-    // byte *col_p = row_view.AccessForceNotNull(ColNumToOffset(index));
     byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(index));
     if (col_p == nullptr) {
       // since search_vec[index] cannot be null
