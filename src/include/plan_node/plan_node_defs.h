@@ -119,5 +119,4 @@ enum class DropType {
   TRIGGER = 5,                // trigger drop type
   SCHEMA = 6,                 // trigger drop type
 };
-
 }  // namespace terrier::plan_node

@@ -12,7 +12,6 @@
 // TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
 
 namespace terrier::plan_node {
-
 //===--------------------------------------------------------------------===//
 // Abstract Plan Node
 //===--------------------------------------------------------------------===//

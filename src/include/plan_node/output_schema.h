@@ -128,10 +128,10 @@ class OutputSchema {
   }
 
   /**
-     * Inequality check
-     * @param rhs other
-     * @return true if the two OutputSchema are not equal
-     */
+   * Inequality check
+   * @param rhs other
+   * @return true if the two OutputSchema are not equal
+   */
   bool operator!=(const OutputSchema &rhs) const { return !operator==(rhs); }
 
   /**

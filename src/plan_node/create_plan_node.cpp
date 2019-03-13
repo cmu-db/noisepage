@@ -11,13 +11,14 @@ CreatePlanNode::CreatePlanNode(std::string database_name, CreateType c_type)
 
 CreatePlanNode::CreatePlanNode(std::string table_name, std::string schema_name, std::string database_name,
                                std::shared_ptr<catalog::Schema> schema, CreateType c_type)
-    : table_name_(std::move(table_name)),
+    : AbstractPlanNode(nullptr),
+      table_name_(std::move(table_name)),
       schema_name_(std::move(schema_name)),
       database_name_(std::move(database_name)),
       table_schema_(std::move(schema)),
       create_type_(c_type) {}
 
-CreatePlanNode::CreatePlanNode(parser::CreateStatement *create_stmt) {
+CreatePlanNode::CreatePlanNode(parser::CreateStatement *create_stmt) : AbstractPlanNode(nullptr) {
   switch (create_stmt->GetCreateType()) {
     case parser::CreateStatement::CreateType::kDatabase: {
       create_type_ = CreateType::DB;
