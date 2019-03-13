@@ -22,10 +22,11 @@ class Index {
  private:
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
+
+ protected:
   const IndexMetadata metadata_;
   const ProjectedRowInitializer initializer_;
 
- protected:
   Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
       : oid_{oid},
         constraint_type_{constraint_type},

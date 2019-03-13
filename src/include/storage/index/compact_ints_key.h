@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/portable_endian.h"
+#include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 
@@ -241,8 +242,10 @@ class CompactIntsKey {
     ZeroOut();
   }
 
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
-                           const std::vector<uint8_t> &compact_ints_offsets) {
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+    const auto &attr_sizes = metadata.GetAttributeSizes();
+    const auto &compact_ints_offsets = metadata.GetAttributeOffsets();
+
     TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
                    "attr_sizes and attr_offsets must be equal in size.");

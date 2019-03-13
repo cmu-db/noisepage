@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 
+#include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 
@@ -28,8 +29,7 @@ class GenericKey {
   // This is the actual byte size of the key
   static constexpr size_t key_size_byte = KeySize;
 
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
-                           const std::vector<uint8_t> &compact_ints_offsets) {
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     TERRIER_ASSERT(from.NumColumns() == schema->GetColumns().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
 

@@ -218,7 +218,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-//    BasicOps(index);
+    //    BasicOps(index);
 
     delete index;
   }

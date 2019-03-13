@@ -32,13 +32,13 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
                    "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
+    index_key.SetFromProjectedRow(tuple, metadata_);
     return bwtree_->Insert(index_key, location, false);
   }
 
   bool Delete(const ProjectedRow &tuple, const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
+    index_key.SetFromProjectedRow(tuple, metadata_);
     return bwtree_->Delete(index_key, location);
   }
 
@@ -47,7 +47,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::PRIMARY_KEY || GetConstraintType() == ConstraintType::UNIQUE,
                    "This Insert is designed for indexes with primary key or uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, GetAttributeSizes(), GetAttributeOffsets());
+    index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
 
     // predicate is set to nullptr if the predicate returns true for some value
@@ -68,7 +68,7 @@ class BwTreeIndex final : public Index {
         value_list->empty(),
         "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(key, GetAttributeSizes(), GetAttributeOffsets());
+    index_key.SetFromProjectedRow(key, metadata_);
     bwtree_->GetValue(index_key, *value_list);
   }
 };

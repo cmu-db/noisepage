@@ -41,12 +41,12 @@ class IndexMetadata {
   const std::unordered_map<key_oid_t, uint32_t> &GetKeyOidToOffsetMap() const { return key_oid_to_offset_; }
 
  private:
-  std::vector<KeyData> key_schema_;    // for GenericKey
-  std::vector<uint16_t> pr_offsets_;   // not needed long term?
-  std::vector<uint16_t> cmp_order_;    // not needed long term?
-  std::vector<uint8_t> attr_sizes_;    // for CompactIntsKey
-  std::vector<uint8_t> attr_offsets_;  // for CompactIntsKey
-  std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;
+  std::vector<KeyData> key_schema_;                            // for GenericKey
+  std::vector<uint16_t> pr_offsets_;                           // not needed long term?
+  std::vector<uint16_t> cmp_order_;                            // not needed long term?
+  std::vector<uint8_t> attr_sizes_;                            // for CompactIntsKey
+  std::vector<uint8_t> attr_offsets_;                          // for CompactIntsKey
+  std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
 
   static std::vector<uint16_t> ComputePROffsets(const std::vector<uint8_t> &attr_sizes) {
     auto starting_offsets = StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);
