@@ -275,7 +275,7 @@ struct VarlenContentDeepEqual {
    * @param rhs right hand side of comparison
    * @return whether the two varlen entries hold the same underlying value
    */
-  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) {
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
     if (lhs.Size() != rhs.Size()) return false;
     // TODO(Tianyu): Can optimize using prefixes
     return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
@@ -286,7 +286,7 @@ struct VarlenContentDeepEqual {
  * Hasher that hashes the entry using the underlying varlen value
  */
 struct VarlenContentHasher {
-  size_t operator()(const VarlenEntry &obj) { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+  size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
 };
 
 /**
@@ -299,7 +299,7 @@ struct VarlenContentCompare {
    * @param rhs right hand side of comparison
    * @return whether lhs < rhs in lexicographic order
    */
-  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) {
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
     // Compare up to the minimum of the two sizes
     int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
     if (res == 0) {

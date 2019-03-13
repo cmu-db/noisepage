@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <set>
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
@@ -133,7 +133,7 @@ class TransactionContext {
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
   //
-  std::vector<const byte *> loose_ptrs_;
+  std::set<const byte *> loose_ptrs_;
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;

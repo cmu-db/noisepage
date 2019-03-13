@@ -105,14 +105,9 @@ install_linux() {
       libboost-filesystem-dev \
       libjemalloc-dev \
       libtbb-dev \
-<<<<<<< HEAD
-      zlib1g-dev \
-      llvm-6.0
-=======
       libz-dev \
       llvm-6.0 \
       libarrow-dev
->>>>>>> 61a056fb823b20154316e40d95055205a01d4455
 }
 
 main "$@"

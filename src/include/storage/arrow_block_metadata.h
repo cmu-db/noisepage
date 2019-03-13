@@ -15,10 +15,12 @@ struct ArrowVarlenColumn {
 
   void Allocate(uint32_t num_values, uint32_t total_size) {
     varlen_size_ = total_size;
+    num_offsets = num_values + 1;
     offsets_ = new uint32_t[num_values + 1];
     values_ = common::AllocationUtil::AllocateAligned(total_size);
   }
 
+  uint32_t num_offsets;
   uint32_t varlen_size_;
   uint32_t *offsets_ = nullptr;
   byte *values_ = nullptr;
@@ -34,43 +36,31 @@ struct ArrowColumnInfo {
   uint32_t *indices_ = nullptr;      // for dictionary
 };
 
-struct ArrowDictColumn {
-  /**
-   * Allocates a dictionary column in Arrow.
-   * @param num_values is the number of records in this column
-   * @param total_size is the total length of varlen values.
-   * @param indices maps each varlen to the indices where it occurs
-   */
-  void Allocate(uint32_t num_values, uint32_t total_size,
-                const std::map<VarlenEntry, std::unordered_set<uint32_t>> &indices) {
-    values_length_ = total_size;
-    indices_ = new uint32_t[num_values];
-    offsets_ = new uint32_t[indices.size() + 1];
-    values_ = common::AllocationUtil::AllocateAligned(total_size);
-    uint32_t curr_offset = 0;
-    uint32_t curr_idx = 0;
-    for (const auto &entry : indices) {
-      offsets_[curr_idx] = curr_offset;
-      // Write the varlen into the values buffer.
-      memcpy(values_ + curr_offset, entry.first.Content(), entry.first.Size());
-      // Make all corresponding indices point to this offset.
-      for (const uint32_t &idx : entry.second) {
-        indices_[idx] = curr_idx;
-      }
-      curr_offset += entry.first.Size();
-      curr_idx++;
+/**
+ * @param column_info the ArrowColumnInfo of the current column
+ * @param varlen the string to be located
+ * @return the code of the smallest element >= to varlen.
+ */
+uint32_t Locate(ArrowColumnInfo *column_info, VarlenEntry *varlen) {
+  TERRIER_ASSERT(column_info->type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
+                 "Can only call Locate on dictionary compressed column");
+  uint32_t lo = 0;
+  uint32_t hi = column_info->varlen_column_.num_offsets;
+  VarlenContentCompare comparator;
+  VarlenEntry rhs;
+  // TODO(Amadou): Early stopping is possible if the comparator could distinguish >= and ==.
+  while (hi - lo > 1) {
+    uint32_t mid = lo + (hi - lo) / 2;
+    uint32_t size = column_info->varlen_column_.offsets_[mid + 1] - column_info->varlen_column_.offsets_[mid];
+    rhs = VarlenEntry::Create(column_info->varlen_column_.values_ + mid, size, false);
+    if (comparator(*varlen, rhs)) {
+      hi = mid;
+    } else {
+      lo = mid;
     }
-    // Write the last offset.
-    offsets_[curr_idx] = curr_offset;
   }
-
-  // TODO (Amadou): Check if I need to store the number of records and the nullbitvector.
-  // But it looks like the block already has metadata about these.
-  uint32_t values_length_;
-  uint32_t *indices_ = nullptr;
-  uint32_t *offsets_ = nullptr;
-  byte *values_ = nullptr;
-};
+  return lo;
+}
 
 /**
  * This class encapsulates all the information needed by arrow to interpret a block, such as
@@ -107,6 +97,19 @@ class ArrowBlockMetadata {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
     return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+  }
+
+  ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) const {
+    byte *null_count_end =
+        storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+  }
+
+  void Deallocate(const BlockLayout &layout, col_id_t col_id) {
+    auto &col_info = GetColumnInfo(layout, col_id);
+    delete[] col_info.indices_;
+    delete[] col_info.varlen_column_.offsets_;
+    delete[] col_info.varlen_column_.values_;
   }
 
  private:

@@ -45,10 +45,10 @@ uint32_t BlockLayout::ComputeNumSlots() const {
   // account for paddings up to 64 bits-aligned. There is padding between every bitmap and value field.
   // Each column has a bitmap and a value buffer. The first column can have padding against header. The
   // last column has nothing to pad to.
-  bytes_available -= sizeof(uint64_t) * 2 * NumColumns();
+  bytes_available -= static_cast<uint32_t>(sizeof(uint64_t)) * 2 * NumColumns();
   // Every column needs a bit for bitmap, plus a global presence bit for the whole tuple
   uint32_t bits_per_tuple = BYTE_SIZE * tuple_size_ + NumColumns() + 1;
-  return BYTE_SIZE * bytes_available / bits_per_tuple;
+  return BYTE_SIZE * bytes_available / bits_per_tuple - 2;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {
