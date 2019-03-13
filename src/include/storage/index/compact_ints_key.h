@@ -374,7 +374,7 @@ class CompactIntsHasher {
     const auto *const ptr = reinterpret_cast<const size_t *const>(p.GetRawData());
 
     // For every 8 byte word just combine it with the current seed
-    for (size_t i = 0; i < (CompactIntsKey<KeySize>::key_size_byte / sizeof(uint64_t)); i++) {
+    for (size_t i = 0; i < KeySize; i++) {
       boost::hash_combine(seed, ptr[i]);
     }
 

@@ -146,6 +146,39 @@ TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyTest<4, int64_t>(num_iters, &generator);  // test 4 int64_ts
 }
 
+void BasicOps(storage::index::Index *const index) {
+  auto initializer = index->GetProjectedRowInitializer();
+
+  auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+
+  auto *key = initializer.InitializeRow(key_buffer);
+
+  const auto &cmp_order = index->GetComparisonOrder();
+
+  for (uint16_t j = 0; j < cmp_order.size(); j++) {
+    EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
+    key->AccessForceNotNull(j);
+  }
+
+  std::vector<storage::TupleSlot> results;
+  index->ScanKey(*key, &results);
+  EXPECT_TRUE(results.empty());
+
+  EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
+
+  index->ScanKey(*key, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results[0], storage::TupleSlot());
+
+  EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+  results.clear();
+  index->ScanKey(*key, &results);
+  EXPECT_TRUE(results.empty());
+
+  delete key_buffer;
+}
+
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
   const uint32_t num_iters = 100;
@@ -160,36 +193,7 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    //    auto initializer = index->GetProjectedRowInitializer();
-    //
-    //    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    //
-    //    auto *key = initializer.InitializeRow(key_buffer);
-    //
-    //    const auto &cmp_order = index->GetComparisonOrder();
-    //
-    //    for (uint16_t j = 0; j < cmp_order.size(); j++) {
-    //      EXPECT_EQ(cmp_order[j], !(key->ColumnIds()[j]));
-    //      key->AccessForceNotNull(j);
-    //    }
-    //
-    //    std::vector<storage::TupleSlot> results;
-    //    index->ScanKey(*key, &results);
-    //    EXPECT_TRUE(results.empty());
-    //
-    //    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
-    //
-    //    index->ScanKey(*key, &results);
-    //    EXPECT_EQ(results.size(), 1);
-    //    EXPECT_EQ(results[0], storage::TupleSlot());
-    //
-    //    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-    //
-    //    results.clear();
-    //    index->ScanKey(*key, &results);
-    //    EXPECT_TRUE(results.empty());
-    //
-    //    delete key_buffer;
+    BasicOps(index);
 
     delete index;
   }
@@ -213,6 +217,8 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
         .SetKeySchema(key_schema)
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
+
+//    BasicOps(index);
 
     delete index;
   }

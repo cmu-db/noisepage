@@ -111,19 +111,20 @@ class IndexBuilder {
                                                                                           metadata.GetComparisonOrder())
                              .ProjectedRowSize();
     Index *index = nullptr;
+
     if (pr_size <= 8) {
-      index = new BwTreeIndex<GenericKey<8>, FastGenericComparator<8>, GenericEqualityChecker<8>, GenericHasher<8>>(
-          index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 16) {
-      index = new BwTreeIndex<GenericKey<16>, FastGenericComparator<16>, GenericEqualityChecker<16>, GenericHasher<16>>(
-          index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 64) {
-      index = new BwTreeIndex<GenericKey<64>, FastGenericComparator<64>, GenericEqualityChecker<64>, GenericHasher<64>>(
-          index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 256) {
       index =
-          new BwTreeIndex<GenericKey<256>, FastGenericComparator<256>, GenericEqualityChecker<256>, GenericHasher<256>>(
+          new BwTreeIndex<GenericKey<8>, GenericKeyComparator<8>, GenericKeyEqualityChecker<8>, GenericKeyHasher<8>>(
               index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 16) {
+      index = new BwTreeIndex<GenericKey<16>, GenericKeyComparator<16>, GenericKeyEqualityChecker<16>,
+                              GenericKeyHasher<16>>(index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 64) {
+      index = new BwTreeIndex<GenericKey<64>, GenericKeyComparator<64>, GenericKeyEqualityChecker<64>,
+                              GenericKeyHasher<64>>(index_oid, constraint_type, std::move(metadata));
+    } else if (pr_size <= 256) {
+      index = new BwTreeIndex<GenericKey<256>, GenericKeyComparator<256>, GenericKeyEqualityChecker<256>,
+                              GenericKeyHasher<256>>(index_oid, constraint_type, std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;

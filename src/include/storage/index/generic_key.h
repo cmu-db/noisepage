@@ -12,6 +12,9 @@ namespace terrier::storage::index {
 
 #define GENERICKEY_MAX_SIZE 256
 
+template <uint16_t KeySize>
+class GenericKeyEqualityChecker;
+
 /*
  * class GenericKey - Key used for indexing with opaque data
  *
@@ -25,65 +28,62 @@ class GenericKey {
   // This is the actual byte size of the key
   static constexpr size_t key_size_byte = KeySize;
 
-  /*
-   * ZeroOut() - Sets all bits to zero
-   */
-  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
-
   void SetFromProjectedRow(const storage::ProjectedRow &from, const std::vector<uint8_t> &attr_sizes,
                            const std::vector<uint8_t> &compact_ints_offsets) {
-    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    TERRIER_ASSERT(from.NumColumns() == schema->GetColumns().size(),
+                   "ProjectedRow should have the same number of columns at the original key schema.");
+
     ZeroOut();
 
-    // TODO(Matt): alignment?
-    std::memcpy(key_data, &from, from.Size());
+    std::memcpy(GetProjectedRow(), &from, from.Size());
   }
 
-  byte key_data[KeySize];
+ private:
+  friend class GenericKeyEqualityChecker<KeySize>;
+
+  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
+
+  ProjectedRow *const GetProjectedRow() const {
+    auto *const pr = reinterpret_cast<ProjectedRow *const>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data));
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
+                   "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                   "ProjectedRow will access out of bounds.");
+    return pr;
+  }
+
+  byte key_data[key_size_byte];
 
   const catalog::Schema *schema;
 };
 
-/**
- * Function object returns true if lhs < rhs, used for trees
- */
 template <uint16_t KeySize>
-class FastGenericComparator {
+class GenericKeyComparator {
  public:
   inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const { return false; }
 
-  FastGenericComparator(const FastGenericComparator &) = default;
-  FastGenericComparator() = default;
+  GenericKeyComparator(const GenericKeyComparator &) = default;
+  GenericKeyComparator() = default;
 };
 
-/**
- * Equality-checking function object
- */
 template <uint16_t KeySize>
-class GenericEqualityChecker {
+class GenericKeyEqualityChecker {
  public:
   inline bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
-    const auto pr_size = reinterpret_cast<const ProjectedRow *const>(lhs.key_data)->Size();
-    return std::memcmp(lhs.key_data, rhs.key_data, pr_size) == 0;
+    return std::memcmp(lhs.key_data, rhs.key_data, GenericKey<KeySize>::key_size_byte) == 0;
   }
 
-  GenericEqualityChecker(const GenericEqualityChecker &) = default;
-  GenericEqualityChecker() = default;
+  GenericKeyEqualityChecker(const GenericKeyEqualityChecker &) = default;
+  GenericKeyEqualityChecker() = default;
 };
 
-/**
- * Hash function object for an array of SlimValues
- */
 template <uint16_t KeySize>
-struct GenericHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
+struct GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
   /** Generate a 64-bit number for the key value */
   inline size_t operator()(GenericKey<KeySize> const &p) const { return 1; }
 
-  GenericHasher(const GenericHasher &) = default;
-  GenericHasher() = default;
+  GenericKeyHasher(const GenericKeyHasher &) = default;
+  GenericKeyHasher() = default;
 };
 
 }  // namespace terrier::storage::index
