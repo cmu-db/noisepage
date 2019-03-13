@@ -175,7 +175,7 @@ void BasicOps(storage::index::Index *const index) {
   index->ScanKey(*key, &results);
   EXPECT_TRUE(results.empty());
 
-  delete key_buffer;
+  delete[] key_buffer;
 }
 
 // NOLINTNEXTLINE
@@ -204,9 +204,9 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
   std::default_random_engine generator;
 
   const std::vector<type::TypeId> generic_key_types{
-      type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
-      type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::DECIMAL,
-      type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
+      type::TypeId::BOOLEAN, type::TypeId::TINYINT, type::TypeId::SMALLINT,  type::TypeId::INTEGER,
+      type::TypeId::BIGINT,  type::TypeId::DECIMAL, type::TypeId::TIMESTAMP, type::TypeId::DATE};
+  // TODO(Matt): add these back    type::TypeId::VARCHAR};
 
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator);
@@ -217,7 +217,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
         .SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-//    BasicOps(index);
+    // BasicOps(index);
 
     delete index;
   }

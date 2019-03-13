@@ -1,10 +1,10 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
 #include <cstring>
 #include <functional>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
@@ -17,14 +17,9 @@ template <uint16_t KeySize>
 class GenericKeyEqualityChecker;
 template <uint16_t KeySize>
 class GenericKeyComparator;
+template <uint16_t KeySize>
+class GenericKeyHasher;
 
-/*
- * class GenericKey - Key used for indexing with opaque data
- *
- * This key type uses an fixed length array to hold data for indexing
- * purposes, the actual size of which is specified and instantiated
- * with a template argument.
- */
 template <uint16_t KeySize>
 class GenericKey {
  public:
@@ -32,22 +27,24 @@ class GenericKey {
   static constexpr size_t key_size_byte = KeySize;
 
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    TERRIER_ASSERT(from.NumColumns() == schema->GetColumns().size(),
+    TERRIER_ASSERT(from.NumColumns() == metadata.GetKeySchema().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
 
     ZeroOut();
 
+    metadata_ = &metadata;
     std::memcpy(GetProjectedRow(), &from, from.Size());
   }
 
  private:
   friend class GenericKeyEqualityChecker<KeySize>;
   friend class GenericKeyComparator<KeySize>;
+  friend class GenericKeyHasher<KeySize>;
 
-  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
+  void ZeroOut() { std::memset(key_data_, 0x00, key_size_byte); }
 
   ProjectedRow *const GetProjectedRow() const {
-    auto *const pr = reinterpret_cast<ProjectedRow *const>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data));
+    auto *const pr = reinterpret_cast<ProjectedRow *const>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
                    "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + key_size_byte,
@@ -55,29 +52,116 @@ class GenericKey {
     return pr;
   }
 
-  byte key_data[key_size_byte];
+  byte key_data_[key_size_byte];
 
-  const catalog::Schema *schema;
+  const IndexMetadata *metadata_;
 };
 
 template <uint16_t KeySize>
 class GenericKeyComparator {
  public:
   bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
-    TERRIER_ASSERT(lhs.schema == rhs.schema, "Keys must have the same schema.");
+    TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
+
+    const auto &key_schema = lhs.metadata_->GetKeySchema();
+
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto *const lhs_pr = lhs.GetProjectedRow();
+      const auto *const rhs_pr = rhs.GetProjectedRow();
+
+      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
+
+      const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
+      const byte *const rhs_attr = rhs_pr->AccessWithNullCheck(offset);
+
+      if (lhs_attr == nullptr) {
+        if (rhs_attr == nullptr) {
+          // attributes are both NULL (equal), continue
+          continue;
+        }
+        // lhs is NULL, rhs is non-NULL, lhs is less than
+        return true;
+      }
+
+      if (rhs_attr == nullptr) {
+        // lhs is non-NULL, rhs is NULL, lhs is greater than
+        return false;
+      }
+
+      const type::TypeId type = key_schema[i].type_id;
+
+      if (CompareLessThan(type, lhs_attr, rhs_attr)) return true;
+      if (CompareGreaterThan(type, lhs_attr, rhs_attr)) return false;
+
+      // attributes are equal, continue
+    }
+
+    // keys are equal
     return false;
   }
 
   GenericKeyComparator(const GenericKeyComparator &) = default;
   GenericKeyComparator() = default;
+
+ private:
+  static bool CompareLessThan(const type::TypeId type, const byte *const lhs_attr, const byte *const rhs_attr) {
+    switch (type) {
+      case type::TypeId::BOOLEAN:
+      case type::TypeId::TINYINT:
+        return *reinterpret_cast<const int8_t *const>(lhs_attr) < *reinterpret_cast<const int8_t *const>(rhs_attr);
+      case type::TypeId::SMALLINT:
+        return *reinterpret_cast<const int16_t *const>(lhs_attr) < *reinterpret_cast<const int16_t *const>(rhs_attr);
+      case type::TypeId::INTEGER:
+        return *reinterpret_cast<const int32_t *const>(lhs_attr) < *reinterpret_cast<const int32_t *const>(rhs_attr);
+      case type::TypeId::DATE:
+        return *reinterpret_cast<const uint32_t *const>(lhs_attr) < *reinterpret_cast<const uint32_t *const>(rhs_attr);
+      case type::TypeId::BIGINT:
+        return *reinterpret_cast<const int64_t *const>(lhs_attr) < *reinterpret_cast<const int64_t *const>(rhs_attr);
+      case type::TypeId::DECIMAL:
+        return *reinterpret_cast<const double *const>(lhs_attr) < *reinterpret_cast<const double *const>(rhs_attr);
+      case type::TypeId::TIMESTAMP:
+        return *reinterpret_cast<const uint64_t *const>(lhs_attr) < *reinterpret_cast<const uint64_t *const>(rhs_attr);
+        // TODO(Matt): do this
+        //        case type::TypeId::VARCHAR:
+        //          return VARLEN_COLUMN;
+      default:
+        throw std::runtime_error("Unknown type.");
+    }
+  }
+
+  static bool CompareGreaterThan(const type::TypeId type, const byte *const lhs_attr, const byte *const rhs_attr) {
+    switch (type) {
+      case type::TypeId::BOOLEAN:
+      case type::TypeId::TINYINT:
+        return *reinterpret_cast<const int8_t *const>(lhs_attr) > *reinterpret_cast<const int8_t *const>(rhs_attr);
+      case type::TypeId::SMALLINT:
+        return *reinterpret_cast<const int16_t *const>(lhs_attr) > *reinterpret_cast<const int16_t *const>(rhs_attr);
+      case type::TypeId::INTEGER:
+        return *reinterpret_cast<const int32_t *const>(lhs_attr) > *reinterpret_cast<const int32_t *const>(rhs_attr);
+      case type::TypeId::DATE:
+        return *reinterpret_cast<const uint32_t *const>(lhs_attr) > *reinterpret_cast<const uint32_t *const>(rhs_attr);
+      case type::TypeId::BIGINT:
+        return *reinterpret_cast<const int64_t *const>(lhs_attr) > *reinterpret_cast<const int64_t *const>(rhs_attr);
+      case type::TypeId::DECIMAL:
+        return *reinterpret_cast<const double *const>(lhs_attr) > *reinterpret_cast<const double *const>(rhs_attr);
+      case type::TypeId::TIMESTAMP:
+        return *reinterpret_cast<const uint64_t *const>(lhs_attr) > *reinterpret_cast<const uint64_t *const>(rhs_attr);
+        // TODO(Matt): do this
+        //        case type::TypeId::VARCHAR:
+        //          return VARLEN_COLUMN;
+      default:
+        throw std::runtime_error("Unknown type.");
+    }
+  }
 };
 
 template <uint16_t KeySize>
 class GenericKeyEqualityChecker {
  public:
   bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
-    TERRIER_ASSERT(lhs.schema == rhs.schema, "Keys must have the same schema.");
-    return std::memcmp(lhs.key_data, rhs.key_data, GenericKey<KeySize>::key_size_byte) == 0;
+    TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
+    return std::memcmp(lhs.key_data_, rhs.key_data_, GenericKey<KeySize>::key_size_byte) == 0;
   }
 
   GenericKeyEqualityChecker(const GenericKeyEqualityChecker &) = default;
@@ -85,8 +169,11 @@ class GenericKeyEqualityChecker {
 };
 
 template <uint16_t KeySize>
-struct GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
-  size_t operator()(GenericKey<KeySize> const &p) const { return 1; }
+class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
+ public:
+  size_t operator()(GenericKey<KeySize> const &p) const {
+    return common::HashUtil::HashBytes(p.key_data_, GenericKey<KeySize>::key_size_byte);
+  }
 
   GenericKeyHasher(const GenericKeyHasher &) = default;
   GenericKeyHasher() = default;

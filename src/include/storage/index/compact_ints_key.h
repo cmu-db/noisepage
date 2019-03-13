@@ -1,9 +1,9 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
 #include <cstring>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
@@ -373,15 +373,8 @@ class CompactIntsHasher {
    * accumulated to the hash one by one. Since
    */
   size_t operator()(const CompactIntsKey<KeySize> &p) const {
-    size_t seed = 0UL;
-    const auto *const ptr = reinterpret_cast<const size_t *const>(p.GetRawData());
-
-    // For every 8 byte word just combine it with the current seed
-    for (size_t i = 0; i < KeySize; i++) {
-      boost::hash_combine(seed, ptr[i]);
-    }
-
-    return seed;
+    const auto *const ptr = reinterpret_cast<const byte *const>(p.GetRawData());
+    return common::HashUtil::HashBytes(ptr, CompactIntsKey<KeySize>::key_size_byte);
   }
 };
 
