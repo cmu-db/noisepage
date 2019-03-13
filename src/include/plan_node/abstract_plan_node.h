@@ -4,8 +4,9 @@
 #include <memory>
 #include <vector>
 
-#include "output_schema.h"
 #include "common/hash_util.h"
+#include "common/json.h"
+#include "output_schema.h"
 #include "plan_node_defs.h"
 
 // TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
@@ -18,9 +19,12 @@ namespace terrier::plan_node {
 
 class AbstractPlanNode {
  public:
-  AbstractPlanNode(OutputSchema output_schema) : output_schema_(output_schema) {}
+  explicit AbstractPlanNode(std::shared_ptr<OutputSchema> output_schema) : output_schema_(std::move(output_schema)) {}
 
-  virtual ~AbstractPlanNode() {}
+  // For Deserialization and DDL statements
+  AbstractPlanNode() = default;
+
+  virtual ~AbstractPlanNode() = default;
 
   //===--------------------------------------------------------------------===//
   // Children Helpers
@@ -44,11 +48,11 @@ class AbstractPlanNode {
 
   // Each sub-class will have to implement this function to return their type
   // This is better than having to store redundant types in all the objects
-  virtual PlanNodeType GetPlanNodeType() const = 0;
+  virtual PlanNodeType GetPlanNodeType() const { return PlanNodeType::ABSTRACTPLAN; }
 
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
-  OutputSchema GetOutputSchema() const { return output_schema_; }
+  std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
 
   // Get the estimated cardinality of this plan
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
@@ -58,12 +62,27 @@ class AbstractPlanNode {
   void SetEstimatedCardinality(int cardinality) { estimated_cardinality_ = cardinality; }
 
   //===--------------------------------------------------------------------===//
+  // JSON Serialization/Deserialization
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * Return the current plan node in JSON format.
+   * @return JSON representation of plan node
+   */
+  virtual nlohmann::json ToJson() const;
+
+  /**
+   * Populates the plan node with the information in the given JSON.
+   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+   */
+  virtual void FromJson(const nlohmann::json &json);
+
+  //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
-  virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
-
   virtual common::hash_t Hash() const {
-    common::hash_t hash = 0;
+    common::hash_t hash = common::HashUtil::Hash(output_schema_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetPlanNodeType()));
     for (auto &child : GetChildren()) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
@@ -71,15 +90,18 @@ class AbstractPlanNode {
   }
 
   virtual bool operator==(const AbstractPlanNode &rhs) const {
+    if (*GetOutputSchema() != *rhs.GetOutputSchema()) return false;
     auto num = GetChildren().size();
     if (num != rhs.GetChildren().size()) return false;
     for (unsigned int i = 0; i < num; i++) {
-      if (*GetChild(i) != *(AbstractPlanNode *)rhs.GetChild(i)) return false;
+      if (*GetChild(i) != *const_cast<AbstractPlanNode *>(rhs.GetChild(i))) return false;
     }
     return true;
   }
 
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
+
+  virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
  private:
   // A plan node can have multiple children
@@ -87,7 +109,7 @@ class AbstractPlanNode {
 
   int estimated_cardinality_ = 500000;
 
-  OutputSchema output_schema_;
+  std::shared_ptr<OutputSchema> output_schema_;
 
  private:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
@@ -97,7 +119,7 @@ class Equal {
  public:
   bool operator()(const std::shared_ptr<plan_node::AbstractPlanNode> &a,
                   const std::shared_ptr<plan_node::AbstractPlanNode> &b) const {
-    return *a.get() == *b.get();
+    return *a == *b;
   }
 };
 
@@ -107,5 +129,9 @@ class Hash {
     return static_cast<size_t>(plan->Hash());
   }
 };
+
+// JSON library interface. Do not modify.
+DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::plan_node

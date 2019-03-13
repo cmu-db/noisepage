@@ -78,6 +78,8 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (GetAggregateStrategy() != other.GetAggregateStrategy()) return false;
 
+  if (*GetOutputSchema() != *other.GetOutputSchema()) return false;
+
   return (AbstractPlanNode::operator==(rhs));
 }
 
