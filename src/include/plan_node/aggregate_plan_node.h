@@ -29,13 +29,13 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   AggregatePlanNode(std::shared_ptr<OutputSchema> output_schema,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
-                    const std::vector<AggregateTerm> &&aggregate_terms, AggregateStrategy aggregate_strategy)
-      : AbstractPlanNode(output_schema),
+                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategy aggregate_strategy)
+      : AbstractPlanNode(std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
-        aggregate_terms_(aggregate_terms),
+        aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy) {}
 
-  ~AggregatePlanNode() {
+  ~AggregatePlanNode() override {
     for (auto term : aggregate_terms_) {
       delete term.expression_;
     }

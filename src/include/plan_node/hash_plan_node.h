@@ -10,11 +10,11 @@ namespace terrier::plan_node {
 
 class HashPlanNode : public AbstractPlanNode {
  public:
-  typedef const parser::AbstractExpression HashKeyType;
-  typedef std::unique_ptr<HashKeyType> HashKeyPtrType;
+  using HashKeyType = const parser::AbstractExpression;
+  using HashKeyPtrType = std::unique_ptr<HashKeyType>;
 
-  HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> &hashkeys)
-      : AbstractPlanNode(output_schema), hash_keys_(std::move(hashkeys)) {}
+  HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hashkeys)
+      : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hashkeys)) {}
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 

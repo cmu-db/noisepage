@@ -11,9 +11,11 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
  public:
   HybridScanPlanNode(std::shared_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
                      parser::AbstractExpression *predicate, HybridScanType hybrid_scan_type)
-      : AbstractScanPlanNode(output_schema, predicate), index_oid_(index_oid), hybrid_scan_type_(hybrid_scan_type) {}
+      : AbstractScanPlanNode(std::move(output_schema), predicate),
+        index_oid_(index_oid),
+        hybrid_scan_type_(hybrid_scan_type) {}
 
-  ~HybridScanPlanNode() {}
+  ~HybridScanPlanNode() override;
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HYBRIDSCAN; }
 

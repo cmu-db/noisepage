@@ -30,8 +30,8 @@ class OutputSchema {
      * @param type SQL type for this column
      * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const catalog::col_oid_t oid)
-        : name_(std::move(name)), type_(type), oid_(oid) {
+    Column(std::string name, const type::TypeId type, const bool nullable, const catalog::col_oid_t oid)
+        : name_(std::move(name)), type_(type), nullable_(nullable), oid_(oid) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
     /**
@@ -42,6 +42,10 @@ class OutputSchema {
      * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
+    /**
+     * @return true if the column is nullable, false otherwise
+     */
+    bool GetNullable() const { return nullable_; }
     /**
      * @return internal unique identifier for this column
      */
@@ -68,6 +72,7 @@ class OutputSchema {
    private:
     const std::string name_;
     const type::TypeId type_;
+    const bool nullable_;
     const catalog::col_oid_t oid_;
   };
 

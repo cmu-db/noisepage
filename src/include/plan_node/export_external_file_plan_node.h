@@ -15,8 +15,12 @@ namespace terrier::plan_node {
  */
 class ExportExternalFilePlanNode : public AbstractPlanNode {
  public:
-  ExportExternalFilePlanNode(std::string file_name, char delimiter = ',', char quote = '"', char escape = '\"')
-      : AbstractPlanNode(nullptr), file_name_(file_name), delimiter_(delimiter), quote_(quote), escape_(escape) {}
+  explicit ExportExternalFilePlanNode(std::string file_name, char delimiter = ',', char quote = '"', char escape = '\"')
+      : AbstractPlanNode(nullptr),
+        file_name_(std::move(file_name)),
+        delimiter_(delimiter),
+        quote_(quote),
+        escape_(escape) {}
 
   PlanNodeType GetPlanNodeType() const override;
 

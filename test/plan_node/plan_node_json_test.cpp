@@ -1,5 +1,5 @@
-#include "catalog/schema.h"
 #include "plan_node/limit_plan_node.h"
+#include "plan_node/output_schema.h"
 #include "type/type_id.h"
 
 #include "util/test_harness.h"
@@ -18,8 +18,8 @@ TEST(PlanNodeJsonTests, BasicTest) {
   size_t limit = 10;
   size_t offset = 10;
   catalog::col_oid_t col_oid(0);
-  catalog::Schema::Column column("test", type::TypeId::INTEGER, true, col_oid);
-  std::shared_ptr<catalog::Schema> schema(new catalog::Schema({column}));
+  OutputSchema::Column column("test", type::TypeId::INTEGER, true, col_oid);
+  std::shared_ptr<OutputSchema> schema(new OutputSchema({column}));
   std::unique_ptr<AbstractPlanNode> original_plan(new LimitPlanNode(schema, limit, offset));
 
   // Serialize to Json

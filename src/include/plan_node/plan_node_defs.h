@@ -55,6 +55,7 @@ enum class PlanNodeType {
 
   // Utility
   EXPORT_EXTERNAL_FILE,
+  MATERIALIZE,
 
   // Test
   MOCK

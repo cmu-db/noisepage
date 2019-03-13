@@ -8,7 +8,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
  public:
   NestedLoopJoinPlanNode(std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                          parser::AbstractExpression *predicate)
-      : AbstractJoinPlanNode(output_schema, join_type, predicate) {}
+      : AbstractJoinPlanNode(std::move(output_schema), join_type, predicate) {}
 
   common::hash_t Hash() const override;
 

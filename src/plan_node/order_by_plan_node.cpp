@@ -6,9 +6,8 @@ std::unique_ptr<AbstractPlanNode> OrderByPlanNode::Copy() const {
   if (HasLimit()) {
     return std::unique_ptr<AbstractPlanNode>(
         new OrderByPlanNode(GetOutputSchema(), sort_keys_, sort_key_orderings_, limit_, offset_));
-  } else {
-    return std::unique_ptr<AbstractPlanNode>(new OrderByPlanNode(GetOutputSchema(), sort_keys_, sort_key_orderings_));
   }
+  return std::unique_ptr<AbstractPlanNode>(new OrderByPlanNode(GetOutputSchema(), sort_keys_, sort_key_orderings_));
 }
 
 common::hash_t OrderByPlanNode::Hash() const {
@@ -23,7 +22,7 @@ common::hash_t OrderByPlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&flag));
   }
 
-  // TODO(Gus,Wen): Hash output schema
+  hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
 
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&has_limit_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));

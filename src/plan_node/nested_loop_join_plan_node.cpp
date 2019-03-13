@@ -6,7 +6,7 @@ std::unique_ptr<AbstractPlanNode> NestedLoopJoinPlanNode::Copy() const {
   parser::AbstractExpression *predicate_copy(GetPredicate() != nullptr ? GetPredicate()->Copy().get() : nullptr);
 
   NestedLoopJoinPlanNode *new_plan =
-      new NestedLoopJoinPlanNode(GetOutputSchema(), GetLogicalJoinType(), std::move(predicate_copy));
+      new NestedLoopJoinPlanNode(GetOutputSchema(), GetLogicalJoinType(), predicate_copy);
 
   return std::unique_ptr<AbstractPlanNode>(new_plan);
 }

@@ -6,7 +6,8 @@ namespace terrier::plan_node {
 
 class ProjectionPlanNode : public AbstractPlanNode {
  public:
-  ProjectionPlanNode(std::shared_ptr<OutputSchema> output_schema) : AbstractPlanNode(output_schema) {}
+  explicit ProjectionPlanNode(std::shared_ptr<OutputSchema> output_schema)
+      : AbstractPlanNode(std::move(output_schema)) {}
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::PROJECTION; }
 

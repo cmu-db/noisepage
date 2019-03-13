@@ -18,8 +18,8 @@ std::unique_ptr<AbstractPlanNode> HashJoinPlanNode::Copy() const {
   }
 
   // Create plan copy
-  auto *new_plan = new HashJoinPlanNode(GetOutputSchema(), GetLogicalJoinType(), std::move(predicate_copy),
-                                        left_hash_keys_copy, right_hash_keys_copy, IsBloomFilterEnabled());
+  auto *new_plan = new HashJoinPlanNode(GetOutputSchema(), GetLogicalJoinType(), predicate_copy, left_hash_keys_copy,
+                                        right_hash_keys_copy, IsBloomFilterEnabled());
   return std::unique_ptr<AbstractPlanNode>(new_plan);
 }
 

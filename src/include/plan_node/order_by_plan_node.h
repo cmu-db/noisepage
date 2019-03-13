@@ -9,21 +9,21 @@ namespace terrier::plan_node {
 class OrderByPlanNode : public AbstractPlanNode {
  public:
   // Constructor for SORT without LIMIT
-  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, const std::vector<catalog::col_oid_t> &sort_keys,
-                  const std::vector<OrderByOrdering> &sort_key_orderings)
-      : AbstractPlanNode(output_schema),
-        sort_keys_(sort_keys),
-        sort_key_orderings_(sort_key_orderings),
+  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
+                  std::vector<OrderByOrdering> sort_key_orderings)
+      : AbstractPlanNode(std::move(output_schema)),
+        sort_keys_(std::move(sort_keys)),
+        sort_key_orderings_(std::move(sort_key_orderings)),
         has_limit_(false),
         limit_(0),
         offset_(0) {}
 
   // Constructor for SORT with LIMIT
-  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, const std::vector<catalog::col_oid_t> &sort_keys,
-                  const std::vector<OrderByOrdering> &sort_key_orderings, size_t limit, size_t offset)
-      : AbstractPlanNode(output_schema),
-        sort_keys_(sort_keys),
-        sort_key_orderings_(sort_key_orderings),
+  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
+                  std::vector<OrderByOrdering> sort_key_orderings, size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(output_schema)),
+        sort_keys_(std::move(sort_keys)),
+        sort_key_orderings_(std::move(sort_key_orderings)),
         has_limit_(true),
         limit_(limit),
         offset_(offset) {}

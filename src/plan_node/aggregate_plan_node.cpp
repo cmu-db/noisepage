@@ -10,12 +10,12 @@ std::unique_ptr<AbstractPlanNode> AggregatePlanNode::Copy() const {
 
   AggregatePlanNode *new_plan = new AggregatePlanNode(
       GetOutputSchema(), std::unique_ptr<const parser::AbstractExpression>(having_clause_predicate_->Copy()),
-      std::move(copied_aggregate_terms), GetAggregateStrategy());
+      copied_aggregate_terms, GetAggregateStrategy());
   return std::unique_ptr<AbstractPlanNode>(new_plan);
 }
 
 common::hash_t AggregatePlanNode::HashAggregateTerms(
-    const std::vector<AggregatePlanNode::AggregateTerm> &aggregate_terms) const {
+    const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const {
   common::hash_t hash = 0;
 
   for (auto &agg_term : GetAggregateTerms()) {
@@ -56,7 +56,7 @@ bool AggregatePlanNode::AreEqual(const std::vector<AggregatePlanNode::AggregateT
 
     auto *expr = A[i].expression_;
 
-    if (expr && (*expr != *(B[i].expression_))) return false;
+    if (expr != nullptr && (*expr != *(B[i].expression_))) return false;
 
     if (A[i].distinct_ != B[i].distinct_) return false;
   }
@@ -72,7 +72,7 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto *pred = GetHavingClausePredicate();
   auto *other_pred = other.GetHavingClausePredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
-  if (pred && *pred != *other_pred) return false;
+  if (pred != nullptr && *pred != *other_pred) return false;
 
   if (!AreEqual(GetAggregateTerms(), other.GetAggregateTerms())) return false;
 

@@ -10,10 +10,10 @@ namespace terrier::plan_node {
 class LimitPlanNode : public AbstractPlanNode {
  public:
   LimitPlanNode(std::shared_ptr<OutputSchema> output_schema, size_t limit, size_t offset)
-      : AbstractPlanNode(output_schema), limit_(limit), offset_(offset) {}
+      : AbstractPlanNode(std::move(output_schema)), limit_(limit), offset_(offset) {}
 
   // For Deserialization
-  LimitPlanNode() {}
+  LimitPlanNode() = default;
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 

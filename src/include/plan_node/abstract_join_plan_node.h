@@ -13,7 +13,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
  public:
   AbstractJoinPlanNode(std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                        parser::AbstractExpression *predicate)
-      : AbstractPlanNode(output_schema), join_type_(join_type), predicate_(predicate) {}
+      : AbstractPlanNode(std::move(output_schema)), join_type_(join_type), predicate_(predicate) {}
 
   common::hash_t Hash() const override;
 

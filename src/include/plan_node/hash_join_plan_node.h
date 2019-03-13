@@ -9,11 +9,11 @@ namespace terrier::plan_node {
 class HashJoinPlanNode : public AbstractJoinPlanNode {
  public:
   HashJoinPlanNode(std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                   parser::AbstractExpression *predicate, std::vector<parser::AbstractExpression *> &left_hash_keys,
-                   std::vector<parser::AbstractExpression *> &right_hash_keys, bool build_bloomfilter = false)
-      : AbstractJoinPlanNode(output_schema, join_type, predicate),
-        left_hash_keys_(left_hash_keys),
-        right_hash_keys_(right_hash_keys) {}
+                   parser::AbstractExpression *predicate, std::vector<parser::AbstractExpression *> left_hash_keys,
+                   std::vector<parser::AbstractExpression *> right_hash_keys, bool build_bloomfilter = false)
+      : AbstractJoinPlanNode(std::move(output_schema), join_type, predicate),
+        left_hash_keys_(std::move(left_hash_keys)),
+        right_hash_keys_(std::move(right_hash_keys)) {}
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASHJOIN; }
 

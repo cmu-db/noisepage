@@ -12,7 +12,7 @@ common::hash_t SeqScanPlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
   }
 
-  // TODO(Gus,Wen): Hash output_schema
+  hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
 
   // Hash is parallel
   auto is_parallel = IsParallel();
@@ -35,11 +35,11 @@ bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto *rhs_plan_node_pred = rhs_plan_node.GetPredicate();
   if ((pred == nullptr && rhs_plan_node_pred != nullptr) || (pred != nullptr && rhs_plan_node_pred == nullptr))
     return false;
-  if (pred && *pred != *rhs_plan_node_pred) return false;
+  if (pred != nullptr && *pred != *rhs_plan_node_pred) return false;
 
-  // TODO(Gus,Wen): Include output schema equality
+  if (*GetOutputSchema() != *rhs_plan_node.GetOutputSchema()) return false;
 
-  // TODO(Gus,Wen): Should we also compare IsParallel()?
+  if (IsParallel() != rhs_plan_node.IsParallel()) return false;
 
   if (IsForUpdate() != rhs_plan_node.IsForUpdate()) return false;
 

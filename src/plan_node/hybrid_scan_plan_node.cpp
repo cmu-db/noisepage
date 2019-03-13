@@ -35,9 +35,9 @@ bool HybridScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto *rhs_plan_node_pred = rhs_plan_node.GetPredicate();
   if ((pred == nullptr && rhs_plan_node_pred != nullptr) || (pred != nullptr && rhs_plan_node_pred == nullptr))
     return false;
-  if (pred && *pred != *rhs_plan_node_pred) return false;
+  if (pred != nullptr && *pred != *rhs_plan_node_pred) return false;
 
-  // TODO(Gus,Wen): Include output schema equality
+  if (*GetOutputSchema() != *rhs_plan_node.GetOutputSchema()) return false;
 
   if (GetHybridScanType() != rhs_plan_node.GetHybridScanType()) return false;
 
