@@ -23,7 +23,7 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
 
-  if(*GetOutputSchema() != *rhs.GetOutputSchema()) {
+  if (*GetOutputSchema() != *rhs.GetOutputSchema()) {
     return false;
   }
 

@@ -7,7 +7,7 @@ namespace terrier::plan_node {
 // TODO(Gus,Wen) Do catalog lookups once catalog is available
 
 DeletePlanNode::DeletePlanNode(std::shared_ptr<storage::SqlTable> target_table)
-    : target_table_(std::move(target_table)) {}
+    : AbstractPlanNode(nullptr), target_table_(std::move(target_table)) {}
 
 DeletePlanNode::DeletePlanNode(parser::DeleteStatement *delete_stmt) {
   table_name_ = delete_stmt->GetDeletionTable()->GetTableName();

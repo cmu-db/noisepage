@@ -3,7 +3,8 @@
 
 namespace terrier::plan_node {
 
-CreateFunctionPlanNode::CreateFunctionPlanNode(parser::CreateFunctionStatement *create_func_stmt) {
+CreateFunctionPlanNode::CreateFunctionPlanNode(parser::CreateFunctionStatement *create_func_stmt)
+    : AbstractPlanNode(nullptr) {
   language = create_func_stmt->GetPLType();
   function_body = create_func_stmt->GetFuncBody();
   is_replace = create_func_stmt->ShouldReplace();

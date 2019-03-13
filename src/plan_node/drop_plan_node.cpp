@@ -4,12 +4,12 @@
 
 namespace terrier::plan_node {
 
-DropPlanNode::DropPlanNode(std::string table_name) {
+DropPlanNode::DropPlanNode(std::string table_name) : AbstractPlanNode(nullptr) {
   table_name_ = std::move(table_name);
   if_exists_ = false;
 }
 
-DropPlanNode::DropPlanNode(parser::DropStatement *drop_stmt) {
+DropPlanNode::DropPlanNode(parser::DropStatement *drop_stmt) : AbstractPlanNode(nullptr) {
   switch (drop_stmt->GetDropType()) {
     case parser::DropStatement::DropType::kDatabase:
       database_name_ = drop_stmt->GetDatabaseName();

@@ -8,11 +8,11 @@ namespace terrier::plan_node {
 // TODO(Gus,Wen): Do catalog lookups once catalog is available
 
 AnalyzePlanNode::AnalyzePlanNode(std::shared_ptr<storage::SqlTable> target_table)
-    : target_table_(std::move(target_table)) {}
+    : AbstractPlanNode(nullptr), target_table_(std::move(target_table)) {}
 
 AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
                                  const std::string &database_name, transaction::TransactionContext *txn)
-    : table_name_(std::move(table_name)) {
+    : AbstractPlanNode(nullptr), table_name_(std::move(table_name)) {
   /*target_table_ = catalog::Catalog::GetInstance()->GetTableWithName(txn,
                                                                     database_name,
                                                                     schema_name,
@@ -23,7 +23,7 @@ AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &sche
 AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
                                  const std::string &database_name, std::vector<std::string> &&column_names,
                                  transaction::TransactionContext *txn)
-    : table_name_(std::move(table_name)), column_names_(std::move(column_names)) {
+    : AbstractPlanNode(nullptr), table_name_(std::move(table_name)), column_names_(std::move(column_names)) {
   /*target_table_ = catalog::Catalog::GetInstance()->GetTableWithName(txn,
                                                                     database_name,
                                                                     schema_name,
@@ -31,7 +31,8 @@ AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &sche
   */
 }
 
-AnalyzePlanNode::AnalyzePlanNode(parser::AnalyzeStatement *analyze_stmt, transaction::TransactionContext *txn) {
+AnalyzePlanNode::AnalyzePlanNode(parser::AnalyzeStatement *analyze_stmt, transaction::TransactionContext *txn)
+    : AbstractPlanNode(nullptr) {
   table_name_ = analyze_stmt->GetAnalyzeTable()->GetTableName();
   column_names_ = *analyze_stmt->GetAnalyzeColumns();
 

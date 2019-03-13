@@ -4,7 +4,6 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::plan_node {
-
 class AbstractScanPlanNode : public AbstractPlanNode {
  public:
   AbstractScanPlanNode(std::shared_ptr<OutputSchema> output_schema, parser::AbstractExpression *predicate,
