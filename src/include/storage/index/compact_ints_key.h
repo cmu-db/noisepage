@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <functional>
 #include <vector>
 
 #include "common/hash_util.h"
@@ -31,18 +32,81 @@ namespace terrier::storage::index {
  * For details of how and why integers must be stored in a big-endian and
  * sign-magnitude format, please refer to adaptive radix tree's key format
  *
- * Note: CompactIntsKey should always be aligned to 64 bit boundaries; There
+ * Note: CompactIntsKey size must always be aligned to 64 bit boundaries; There
  * are static assertion to enforce this rule
+ *
+ * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
 class CompactIntsKey {
  public:
-  // This is the actual byte size of the key
+  /**
+   * key size in bytes, exposed for hasher and comparators
+   */
   static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
+  static_assert(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS);  // size must be no greater than 256-bits
+  static_assert(key_size_byte % sizeof(uintptr_t) == 0);       // size must be multiple of 8 bytes
+
+  /**
+   * @return underlying byte array, exposed for hasher and comparators
+   */
+  const byte *KeyData() const { return key_data_; }
+
+  /**
+   * Set the CompactIntsKey's data based on a ProjectedRow and associated index metadata
+   * @param from ProjectedRow to generate CompactIntsKey representation of
+   * @param metadata index information, primarily attribute sizes and the precomputed offsets to translate PR layout to
+   * CompactIntsKey
+   */
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+    const auto &attr_sizes = metadata.GetAttributeSizes();
+    const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
+
+    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+                   "attr_sizes and attr_offsets must be equal in size.");
+    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+
+    std::memset(key_data_, 0, key_size_byte);
+
+    for (uint8_t i = 0; i < from.NumColumns(); i++) {
+      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
+      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
+    }
+  }
 
  private:
-  // This is the array we use for storing integers
-  byte key_data[key_size_byte];
+  byte key_data_[key_size_byte];
+
+  void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
+                              const uint8_t attr_size, const uint8_t compact_ints_offset) {
+    const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
+    TERRIER_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
+    switch (attr_size) {
+      case sizeof(int8_t): {
+        int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
+        AddInteger<int8_t>(data, compact_ints_offset);
+        break;
+      }
+      case sizeof(int16_t): {
+        int16_t data = *reinterpret_cast<const int16_t *>(stored_attr);
+        AddInteger<int16_t>(data, compact_ints_offset);
+        break;
+      }
+      case sizeof(int32_t): {
+        int32_t data = *reinterpret_cast<const int32_t *>(stored_attr);
+        AddInteger<int32_t>(data, compact_ints_offset);
+        break;
+      }
+      case sizeof(int64_t): {
+        int64_t data = *reinterpret_cast<const int64_t *>(stored_attr);
+        AddInteger<int64_t>(data, compact_ints_offset);
+        break;
+      }
+      default:
+        throw std::runtime_error("Invalid attribute size.");
+    }
+  }
 
   /*
    * TwoBytesToBigEndian() - Change 2 bytes to big endian
@@ -134,7 +198,7 @@ class CompactIntsKey {
    * SignFlip() - Flips the highest bit of a given integral type
    *
    * This flip is logical, i.e. it happens on the logical highest bit of an
-   * integer. The actual position on the address space is related to endianess
+   * integer. The actual position on the address space is related to endianness
    * Therefore this should happen first.
    *
    * It does not matter whether IntType is signed or unsigned because we do
@@ -150,10 +214,35 @@ class CompactIntsKey {
     return data ^ mask;
   }
 
-  /*
-   * ZeroOut() - Sets all bits to zero
+  /**
+   * Adds an integer into key_data_ in compact form
+   * @tparam IntType must be of the following 4 types: int8_t; int16_t; int32_t; int64_t
+   * @param data value to be inserted
+   * @param offset byte offset within key_data_ to write to
    */
-  void ZeroOut() { std::memset(key_data, 0, key_size_byte); }
+  template <typename IntType>
+  void AddInteger(const IntType data, const size_t offset) {
+    const auto sign_flipped = SignFlip<IntType>(data);
+    AddUnsignedInteger(sign_flipped, offset);
+  }
+
+  /**
+   * Adds an unsigned integer into key_data_ in compact form
+   * @tparam IntType must be of the following 4 types: uint8_t; uint16_t; uint32_t; uint64_t
+   * @param data value to be inserted
+   * @param offset byte offset within key_data_ to write to
+   */
+  template <typename IntType>
+  void AddUnsignedInteger(const IntType data, const size_t offset) {
+    // This function always returns the unsigned type
+    // so we must use automatic type inference
+    const auto big_endian = ToBigEndian(data);
+
+    TERRIER_ASSERT(offset + sizeof(IntType) <= key_size_byte, "Out of bounds access on key_data_.");
+
+    // This will almost always be optimized into single move
+    std::memcpy(key_data_ + offset, &big_endian, sizeof(IntType));
+  }
 
   /*
    * GetInteger() - Extracts an integer from the given offset
@@ -162,7 +251,7 @@ class CompactIntsKey {
    */
   template <typename IntType>
   IntType GetInteger(size_t offset) const {
-    const auto *ptr = reinterpret_cast<const IntType *>(key_data + offset);
+    const auto *ptr = reinterpret_cast<const IntType *>(key_data_ + offset);
 
     // This always returns an unsigned number
     auto host_endian = ToHostEndian(*ptr);
@@ -173,112 +262,47 @@ class CompactIntsKey {
   /*
    * GetUnsignedInteger() - Extracts an unsigned integer from the given offset
    *
-   * The same constraint about IntType applies
+   * This function has the same limitation as stated for AddUnsignedInteger()
    */
   template <typename IntType>
   IntType GetUnsignedInteger(size_t offset) {
-    const IntType *ptr = reinterpret_cast<IntType *>(key_data + offset);
+    const IntType *ptr = reinterpret_cast<IntType *>(key_data_ + offset);
     auto host_endian = ToHostEndian(*ptr);
     return static_cast<IntType>(host_endian);
-  }
-
-  void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
-                              const uint8_t attr_size, const uint8_t compact_ints_offset) {
-    const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
-    TERRIER_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
-    switch (attr_size) {
-      case sizeof(int8_t): {
-        int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
-        AddInteger<int8_t>(data, compact_ints_offset);
-        break;
-      }
-      case sizeof(int16_t): {
-        int16_t data = *reinterpret_cast<const int16_t *>(stored_attr);
-        AddInteger<int16_t>(data, compact_ints_offset);
-        break;
-      }
-      case sizeof(int32_t): {
-        int32_t data = *reinterpret_cast<const int32_t *>(stored_attr);
-        AddInteger<int32_t>(data, compact_ints_offset);
-        break;
-      }
-      case sizeof(int64_t): {
-        int64_t data = *reinterpret_cast<const int64_t *>(stored_attr);
-        AddInteger<int64_t>(data, compact_ints_offset);
-        break;
-      }
-      default:
-        // Invalid attr size
-        throw std::runtime_error("Invalid key write value");
-    }
-  }
-
-  /*
-   * AddInteger() - Adds a new integer into the compact form
-   *
-   * Note that IntType must be of the following 8 types:
-   *   int8_t; int16_t; int32_t; int64_t
-   * Otherwise the result is undefined
-   */
-  template <typename IntType>
-  void AddInteger(IntType data, size_t offset) {
-    auto sign_flipped = SignFlip<IntType>(data);
-    AddUnsignedInteger(sign_flipped, offset);
-  }
-
-  /*
-   * AddUnsignedInteger() - Adds an unsigned integer of a certain type
-   *
-   * Only the following unsigned type should be used:
-   *   uint8_t; uint16_t; uint32_t; uint64_t
-   */
-  template <typename IntType>
-  void AddUnsignedInteger(IntType data, size_t offset) {
-    // This function always returns the unsigned type
-    // so we must use automatic type inference
-    auto big_endian = ToBigEndian(data);
-
-    // This will almost always be optimized into single move
-    std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
-  }
-
- public:
-  static_assert(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS);
-
-  /*
-   * GetRawData() - Returns the raw data array
-   */
-  const byte *KeyData() const { return key_data; }
-
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    const auto &attr_sizes = metadata.GetAttributeSizes();
-    const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
-
-    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    ZeroOut();
-
-    for (uint8_t i = 0; i < from.NumColumns(); i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
-      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
-    }
   }
 };
 }  // namespace terrier::storage::index
 
 namespace std {
+
+/**
+ * Implements std::hash for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
+ */
 template <uint8_t KeySize>
 struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
+  /**
+   * @param key key to be hashed
+   * @return hash of the key's underlying data
+   */
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
     const auto *const ptr = key.KeyData();
     return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
   }
 };
 
+/**
+ * Implements std::equal_to for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
+ */
 template <uint8_t KeySize>
 struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
+  /**
+   * Due to the KeySize constraints this should be optimized to a single SIMD instruction.
+   * @param lhs first key to be compared
+   * @param rhs second key to be compared
+   * @return true if first key is equal to the second key
+   */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) ==
@@ -286,8 +310,18 @@ struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
   }
 };
 
+/**
+ * Implements std::less for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
+ */
 template <uint8_t KeySize>
 struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
+  /**
+   * Due to the KeySize constraints, this should be optimized to a single SIMD instruction.
+   * @param lhs first key to be compared
+   * @param rhs second key to be compared
+   * @return true if first key is less than the second key
+   */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) <
