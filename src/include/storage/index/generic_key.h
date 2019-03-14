@@ -172,6 +172,8 @@ template <uint16_t KeySize>
 class GenericKeyComparator {
  public:
   bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+    TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
+    TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
 
     const auto &key_schema = lhs.metadata_->GetKeySchema();
@@ -220,6 +222,8 @@ template <uint16_t KeySize>
 class GenericKeyEqualityChecker {
  public:
   bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+    TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
+    TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
 
     const auto &key_schema = lhs.metadata_->GetKeySchema();
@@ -269,45 +273,48 @@ class GenericKeyEqualityChecker {
 template <uint16_t KeySize>
 class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
  public:
-  size_t operator()(GenericKey<KeySize> const &p) const {
-    return common::HashUtil::HashBytes(p.key_data_, GenericKey<KeySize>::key_size_byte);
-    //
-    //
-    //    const auto &key_schema = p.metadata_->GetKeySchema();
-    //
-    //    for (uint16_t i = 0; i < key_schema.size(); i++) {
-    //      const auto *const pr = p.GetProjectedRow();
-    //
-    //      const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
-    //
-    //      const byte *const attr = pr->AccessWithNullCheck(offset);
-    //
-    //      if (attr == nullptr) {
-    //        if (rhs_attr == nullptr) {
-    //          // attributes are both NULL (equal), continue
-    //          continue;
-    //        }
-    //        // lhs is NULL, rhs is non-NULL, return non-equal
-    //        return false;
-    //      }
-    //
-    //      if (rhs_attr == nullptr) {
-    //        // lhs is non-NULL, rhs is NULL, return non-equal
-    //        return false;
-    //      }
-    //
-    //      const type::TypeId type_id = key_schema[i].type_id;
-    //
-    //      if (!TypeComparators<KeySize>::CompareEquals(type_id, lhs_attr, rhs_attr)) {
-    //        // one of the attrs didn't match, return non-equal
-    //        return false;
-    //      }
-    //
-    //      // attributes are equal, continue
-    //    }
-    //
-    //    // keys are equal
-    //    return true;
+  size_t operator()(GenericKey<KeySize> const &key) const {
+    TERRIER_ASSERT(key.metadata_ != nullptr, "Don't think it makes sense to hash an empty GenericKey.");
+
+    const auto &key_schema = key.metadata_->GetKeySchema();
+    const auto &attr_sizes = key.metadata_->GetAttributeSizes();
+
+    size_t running_hash = terrier::common::HashUtil::Hash(*(key.metadata_));
+
+    const auto *const pr = key.GetProjectedRow();
+
+    running_hash = terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->Size()));
+    running_hash =
+        terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
+
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto type_id = key_schema[i].type_id;
+      const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
+      const byte *const attr = pr->AccessWithNullCheck(offset);
+      if (attr == nullptr) {
+        // attribute is NULL, just hash the nullptr to contribute something to the hash
+        running_hash = terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(attr));
+        continue;
+      }
+
+      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY) {
+        const auto varlen = *reinterpret_cast<const VarlenEntry *const>(attr);
+        if (!varlen.IsInlined()) {
+          const auto *const content = varlen.Content();
+          TERRIER_ASSERT(content != nullptr, "Varlen's non-inlined content cannot point to null.");
+          terrier::common::HashUtil::CombineHashes(running_hash,
+                                                   terrier::common::HashUtil::HashBytes(content, varlen.Size()));
+          continue;
+        }
+      }
+
+      // just hash the attribute bytes for inlined attributes
+      terrier::common::HashUtil::CombineHashes(
+          running_hash, terrier::common::HashUtil::HashBytes(
+                            attr, static_cast<uint8_t>(attr_sizes[i] & INT8_MAX)));
+    }
+
+    return running_hash;
   }
 
   GenericKeyHasher(const GenericKeyHasher &) = default;
