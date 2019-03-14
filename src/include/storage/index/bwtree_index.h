@@ -13,17 +13,16 @@
 
 namespace terrier::storage::index {
 
-template <typename KeyType, typename KeyComparator, typename KeyEqualityChecker, typename KeyHashFunc>
+template <typename KeyType>
 class BwTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
       : Index(oid, constraint_type, std::move(metadata)),
-        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc>{
-            false, KeyComparator{}, KeyEqualityChecker{}, KeyHashFunc{}}} {}
+        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
-  third_party::bwtree::BwTree<KeyType, TupleSlot, KeyComparator, KeyEqualityChecker, KeyHashFunc> *const bwtree_;
+  third_party::bwtree::BwTree<KeyType, TupleSlot> *const bwtree_;
 
  public:
   ~BwTreeIndex() final { delete bwtree_; }

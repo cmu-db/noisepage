@@ -127,11 +127,6 @@ void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
 
   std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(), std::numeric_limits<int8_t>::max());
 
-  // Verify that we can instantiate all of the helper classes for this KeySize
-  auto equality = CompactIntsEqualityChecker<KeySize>();
-  UNUSED_ATTRIBUTE auto hasher = CompactIntsHasher<KeySize>();
-  auto comparator = CompactIntsComparator<KeySize>();
-
   // Build two random keys and compare verify that equality and comparator helpers give correct results
   for (uint32_t i = 0; i < num_iters; i++) {
     uint8_t offset = 0;
@@ -151,8 +146,8 @@ void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
       offset += sizeof(val1);
     }
 
-    EXPECT_EQ(equality(key1, key2), key1_ref == key2_ref);
-    EXPECT_EQ(comparator(key1, key2), key1_ref < key2_ref);
+    EXPECT_EQ(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2), key1_ref == key2_ref);
+    EXPECT_EQ(std::less<CompactIntsKey<KeySize>>()(key1, key2), key1_ref < key2_ref);
   }
 }
 
@@ -218,23 +213,21 @@ void BasicOps(Index *const index, const Random &generator) {
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                    const storage::ProjectedRow &pr_B) {
-  auto equality = CompactIntsEqualityChecker<KeySize>();
   auto key_A = CompactIntsKey<KeySize>();
   auto key_B = CompactIntsKey<KeySize>();
   key_A.SetFromProjectedRow(pr_A, metadata);
   key_B.SetFromProjectedRow(pr_B, metadata);
-  return equality(key_A, key_B);
+  return std::equal_to<CompactIntsKey<KeySize>>()(key_A, key_B);
 }
 
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                     const storage::ProjectedRow &pr_B) {
-  auto comparator = CompactIntsComparator<KeySize>();
   auto key_A = CompactIntsKey<KeySize>();
   auto key_B = CompactIntsKey<KeySize>();
   key_A.SetFromProjectedRow(pr_A, metadata);
   key_B.SetFromProjectedRow(pr_B, metadata);
-  return comparator(key_A, key_B);
+  return std::less<CompactIntsKey<KeySize>>()(key_A, key_B);
 }
 
 TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
@@ -325,24 +318,24 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
-  const uint32_t num_iters = 100;
-
-  const std::vector<type::TypeId> generic_key_types{
-      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
-      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
-
-  for (uint32_t i = 0; i < num_iters; i++) {
-    const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator_);
-
-    IndexBuilder builder;
-    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = builder.Build();
-
-    //    BasicOps(index, &generator_);
-
-    delete index;
-  }
-}
+// TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
+//  const uint32_t num_iters = 100;
+//
+//  const std::vector<type::TypeId> generic_key_types{
+//      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
+//      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
+//      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
+//
+//  for (uint32_t i = 0; i < num_iters; i++) {
+//    const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator_);
+//
+//    IndexBuilder builder;
+//    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+//    auto *index = builder.Build();
+//
+//    //    BasicOps(index, &generator_);
+//
+//    delete index;
+//  }
+//}
 }  // namespace terrier::storage::index

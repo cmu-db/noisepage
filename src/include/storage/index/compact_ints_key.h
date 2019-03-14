@@ -39,11 +39,12 @@ class CompactIntsHasher;
  */
 template <uint8_t KeySize>
 class CompactIntsKey {
- private:
-  friend class CompactIntsHasher<KeySize>;
-
+ public:
   // This is the actual byte size of the key
   static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
+
+ private:
+  friend class CompactIntsHasher<KeySize>;
 
   // This is the array we use for storing integers
   byte key_data[key_size_byte];
@@ -160,11 +161,6 @@ class CompactIntsKey {
   void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
 
   /*
-   * GetRawData() - Returns the raw data array
-   */
-  const byte *GetRawData() const { return key_data; }
-
-  /*
    * GetInteger() - Extracts an integer from the given offset
    *
    * This function has the same limitation as stated for AddInteger()
@@ -242,6 +238,11 @@ class CompactIntsKey {
     ZeroOut();
   }
 
+  /*
+   * GetRawData() - Returns the raw data array
+   */
+  const byte *GetRawData() const { return key_data; }
+
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
@@ -313,54 +314,30 @@ class CompactIntsKey {
     std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
   }
 };
-
-template <uint8_t KeySize>
-class CompactIntsComparator {
- public:
-  CompactIntsComparator() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
-  CompactIntsComparator(const CompactIntsComparator &) = default;
-
-  /*
-   * operator()() - Returns true if lhs < rhs
-   */
-  bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
-    return CompactIntsKey<KeySize>::LessThan(lhs, rhs);
-  }
-};
-
-/*
- * class CompactIntsEqualityChecker - Compares whether two integer keys are
- *                                    equivalent
- */
-template <uint8_t KeySize>
-class CompactIntsEqualityChecker {
- public:
-  CompactIntsEqualityChecker() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
-  CompactIntsEqualityChecker(const CompactIntsEqualityChecker &) = default;
-
-  bool operator()(const CompactIntsKey<KeySize> &lhs, const CompactIntsKey<KeySize> &rhs) const {
-    return CompactIntsKey<KeySize>::Equals(lhs, rhs);
-  }
-};
-
-template <uint8_t KeySize>
-class CompactIntsHasher {
- public:
-  // Emphasize here that we want a 8 byte aligned object
-  static_assert(sizeof(CompactIntsKey<KeySize>) % sizeof(uint64_t) == 0,
-                "Please align the size of compact integer key");
-
-  // Make sure there is no other field
-  static_assert(sizeof(CompactIntsKey<KeySize>) == CompactIntsKey<KeySize>::key_size_byte,
-                "Extra fields detected in class CompactIntsKey");
-
-  CompactIntsHasher() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
-  CompactIntsHasher(const CompactIntsHasher &) = default;
-
-  size_t operator()(const CompactIntsKey<KeySize> &p) const {
-    const auto *const ptr = reinterpret_cast<const byte *const>(p.GetRawData());
-    return common::HashUtil::HashBytes(ptr, CompactIntsKey<KeySize>::key_size_byte);
-  }
-};
-
 }  // namespace terrier::storage::index
+
+namespace std {
+template <uint8_t KeySize>
+struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
+  size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
+    const auto *const ptr = key.GetRawData();
+    return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
+  }
+};
+
+template <uint8_t KeySize>
+struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
+  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+    return terrier::storage::index::CompactIntsKey<KeySize>::Equals(lhs, rhs);
+  }
+};
+
+template <uint8_t KeySize>
+struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
+  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+    return terrier::storage::index::CompactIntsKey<KeySize>::LessThan(lhs, rhs);
+  }
+};
+}  // namespace std
