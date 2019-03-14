@@ -51,7 +51,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
   table.InsertRow(txn, row2);
 
   // This operation is slow, due to how sequential scan is done for a datatable.
-  auto num_rows = table.GetNumRows();
+  auto num_rows = table.GetNumRows(txn);
   EXPECT_EQ(2, num_rows);
 
   std::vector<type::Value> search_vec;

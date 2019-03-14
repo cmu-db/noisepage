@@ -78,6 +78,7 @@ class SqlTableRW {
       return;
     }
 
+    // value must be non-null onwards
     switch (value.Type()) {
       case type::TypeId::BOOLEAN: {
         byte *col_p = proj_row->AccessForceNotNull(offset);
@@ -98,23 +99,18 @@ class SqlTableRW {
         size_t size = 0;
         byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        if (value.Null()) {
-          // TODO(pakhtar): remove this case
+        size = strlen(value.GetVarcharValue());
+        if (size > storage::VarlenEntry::InlineThreshold()) {
+          // not inline, allocate storage
+          varlen = common::AllocationUtil::AllocateAligned(size);
+          memcpy(varlen, value.GetVarcharValue(), size);
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-              storage::VarlenEntry::CreateInline(varlen, static_cast<uint32_t>(size));
+              storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
         } else {
-          // not null
-          size = strlen(value.GetVarcharValue());
-          if (size > storage::VarlenEntry::InlineThreshold()) {
-            varlen = common::AllocationUtil::AllocateAligned(size);
-            memcpy(varlen, value.GetVarcharValue(), size);
-            *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-                storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
-          } else {
-            auto byte_p = reinterpret_cast<const byte *>(value.GetVarcharValue());
-            *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-                storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
-          }
+          // small enought to be stored inline
+          auto byte_p = reinterpret_cast<const byte *>(value.GetVarcharValue());
+          *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+              storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
         }
         break;
       }
@@ -133,14 +129,11 @@ class SqlTableRW {
 
   /**
    * Return the number of rows in the table.
-   * TODO(pakhtar): use cached info, use caller supplied transaction
+   * @param txn transaction
    */
-  int32_t GetNumRows() {
+  int32_t GetNumRows(transaction::TransactionContext *txn) {
     int32_t num_cols = 0;
-    auto layout_and_map = storage::StorageUtil::BlockLayoutFromSchema(*schema_);
-    auto layout = layout_and_map.first;
-
-    auto txn = txn_manager_.BeginTransaction();
+    auto layout = GetLayout();
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
     storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 100);
     auto *buffer = common::AllocationUtil::AllocateAligned(col_initer.ProjectedColumnsSize());
@@ -151,9 +144,7 @@ class SqlTableRW {
       table_->Scan(txn, &it, proj_col_bufp);
       num_cols += proj_col_bufp->NumTuples();
     }
-    txn_manager_.Commit(txn, EmptyCallback, nullptr);
     delete[] buffer;
-    delete txn;
     return num_cols;
   }
 
@@ -437,9 +428,7 @@ class SqlTableRW {
   bool ColEqualsValue(int32_t index, storage::ProjectedColumns::RowView row_view,
                       const std::vector<type::Value> &search_vec) {
     type::TypeId col_type = cols_[index].GetType();
-    // TODO(pakhtar): add back updated type check
-    // TERRIER_ASSERT(col_type == search_vec[index].GetType(), "schema <-> column type mismatch");
-
+    TERRIER_ASSERT(col_type == search_vec[index].Type(), "schema <-> column type mismatch");
     TERRIER_ASSERT(search_vec[index].Null() == false, "search_vec[index] is null");
     byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(index));
     if (col_p == nullptr) {
