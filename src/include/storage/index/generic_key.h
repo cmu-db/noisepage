@@ -134,14 +134,28 @@ class GenericKeyComparator {
   static int CompareVarlens(const VarlenEntry &lhs_varlen, const VarlenEntry &rhs_varlen) {
     const uint32_t lhs_size = lhs_varlen.Size();
     const uint32_t rhs_size = rhs_varlen.Size();
+    const auto smallest_size = std::min(lhs_size, rhs_size);
 
+    auto prefix_result =
+        std::memcmp(lhs_varlen.Prefix(), rhs_varlen.Prefix(), std::min(smallest_size, VarlenEntry::PrefixSize()));
+
+    if (prefix_result == 0 && smallest_size <= VarlenEntry::PrefixSize()) {
+      // strings compared as equal, but they have different lengths and one fit within prefix, decide based on length
+      return lhs_size - rhs_size;
+    }
+    if (prefix_result != 0) {
+      // strings compared as non-equal with the prefix, we can use that result without inspecting any more
+      return prefix_result;
+    }
+
+    // get the pointers to the content, handling if the content is inlined or not
     const byte *const lhs_content = lhs_varlen.IsInlined()
                                         ? lhs_varlen.Content()
                                         : *reinterpret_cast<const byte *const *const>(lhs_varlen.Content());
     const byte *const rhs_content = rhs_varlen.IsInlined()
                                         ? rhs_varlen.Content()
                                         : *reinterpret_cast<const byte *const *const>(rhs_varlen.Content());
-    auto result = std::memcmp(lhs_content, rhs_content, std::min(lhs_size, rhs_size));
+    auto result = std::memcmp(lhs_content, rhs_content, smallest_size);
     if (result == 0 && lhs_size != rhs_size) {
       // strings compared as equal, but they have different lengths. Decide based on length
       result = lhs_size - rhs_size;
