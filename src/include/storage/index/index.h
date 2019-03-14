@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/macros.h"
 #include "common/performance_counter.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
@@ -20,6 +21,7 @@ namespace terrier::storage::index {
 
 class Index {
  private:
+  FRIEND_TEST(BwTreeIndexTests, RandomCompactIntsKeyTest);
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
 
@@ -53,7 +55,7 @@ class Index {
   const std::vector<uint16_t> &GetProjectedRowOffsets() const { return metadata_.GetProjectedRowOffsets(); }
   const std::vector<uint16_t> &GetComparisonOrder() const { return metadata_.GetComparisonOrder(); }
   const std::vector<uint8_t> &GetAttributeSizes() const { return metadata_.GetAttributeSizes(); }
-  const std::vector<uint8_t> &GetAttributeOffsets() const { return metadata_.GetAttributeOffsets(); }
+  const std::vector<uint8_t> &GetAttributeOffsets() const { return metadata_.GetCompactIntsOffsets(); }
   const uint32_t GetOffset(key_oid_t key_oid) const { return metadata_.GetKeyOidToOffsetMap().at(key_oid); }
   const ProjectedRowInitializer &GetProjectedRowInitializer() const { return initializer_; }
 };

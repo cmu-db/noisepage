@@ -244,7 +244,7 @@ class CompactIntsKey {
 
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     const auto &attr_sizes = metadata.GetAttributeSizes();
-    const auto &compact_ints_offsets = metadata.GetAttributeOffsets();
+    const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
 
     TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),

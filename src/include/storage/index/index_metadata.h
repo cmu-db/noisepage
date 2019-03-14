@@ -22,7 +22,7 @@ class IndexMetadata {
         pr_offsets_(std::move(other.pr_offsets_)),
         cmp_order_(std::move(other.cmp_order_)),
         attr_sizes_(std::move(other.attr_sizes_)),
-        attr_offsets_(std::move(other.attr_offsets_)),
+        compact_ints_offsets_(std::move(other.compact_ints_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)) {}
 
   IndexMetadata(KeySchema key_schema, const std::vector<uint8_t> &attr_sizes)
@@ -30,14 +30,14 @@ class IndexMetadata {
         pr_offsets_(ComputePROffsets(attr_sizes)),
         cmp_order_(ComputeComparisonOrder(attr_sizes)),
         attr_sizes_(attr_sizes),
-        attr_offsets_(ComputeAttributeOffsets(attr_sizes, pr_offsets_)),
+        compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, pr_offsets_)) {}
 
   const std::vector<KeyData> &GetKeySchema() const { return key_schema_; }
   const std::vector<uint16_t> &GetProjectedRowOffsets() const { return pr_offsets_; }
   const std::vector<uint16_t> &GetComparisonOrder() const { return cmp_order_; }
   const std::vector<uint8_t> &GetAttributeSizes() const { return attr_sizes_; }
-  const std::vector<uint8_t> &GetAttributeOffsets() const { return attr_offsets_; }
+  const std::vector<uint8_t> &GetCompactIntsOffsets() const { return compact_ints_offsets_; }
   const std::unordered_map<key_oid_t, uint32_t> &GetKeyOidToOffsetMap() const { return key_oid_to_offset_; }
 
  private:
@@ -45,7 +45,7 @@ class IndexMetadata {
   std::vector<uint16_t> pr_offsets_;                           // not needed long term?
   std::vector<uint16_t> cmp_order_;                            // not needed long term?
   std::vector<uint8_t> attr_sizes_;                            // for CompactIntsKey
-  std::vector<uint8_t> attr_offsets_;                          // for CompactIntsKey
+  std::vector<uint8_t> compact_ints_offsets_;                  // for CompactIntsKey
   std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
 
   static std::vector<uint16_t> ComputePROffsets(const std::vector<uint8_t> &attr_sizes) {
@@ -95,28 +95,20 @@ class IndexMetadata {
   }
 
   /**
-   * Computes the attribute offsets for the given vector of attribute sizes.
+   * Computes the compact int offsets for the given vector of attribute sizes.
    * e.g.   if attr_sizes {4, 4, 8, 1, 2}
-   *        sort the sizes {8, 4, 4, 2, 1}
-   *        exclusive scan {0, 8, 12, 16, 18}
-   *        scan[pr_offsets] gives attr_offsets {8, 12, 0, 18, 16}
+   *        exclusive scan {0, 4, 8, 16, 17}
+   *        gives where you should write the attrs in a compact ints key
    */
-  static std::vector<uint8_t> ComputeAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
-                                                      const std::vector<uint16_t> &pr_offsets) {
+  static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint8_t> &attr_sizes) {
+    // no varlens allowed
     // exclusive scan on a copy
     std::vector<uint8_t> scan = attr_sizes;
     // This is not necessary because we're only computing the offsets, which don't change if you mask off the MSB
     //    std::transform(scan.begin(), scan.end(), scan.begin(),
     //                   [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
-    std::sort(scan.begin(), scan.end(), std::greater<>());
     std::exclusive_scan(scan.begin(), scan.end(), scan.begin(), 0u);
-    // compute attribute offsets
-    std::vector<uint8_t> attr_offsets;
-    attr_offsets.reserve(attr_sizes.size());
-    for (auto i = 0; i < attr_sizes.size(); i++) {
-      attr_offsets.emplace_back(scan[pr_offsets[i]]);
-    }
-    return attr_offsets;
+    return scan;
   }
 
   /**
