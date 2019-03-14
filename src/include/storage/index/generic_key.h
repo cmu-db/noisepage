@@ -12,21 +12,30 @@
 
 namespace terrier::storage::index {
 
+// This is the maximum number of bytes to pack into a single GenericKey template. This contraint is arbitrary and can be
+// increased if 256-bytes is too small for future workloads.
 #define GENERICKEY_MAX_SIZE 256
 
+/**
+ * GenericKey is a slower key type than CompactIntsKey for use when the constraints of CompactIntsKey make it
+ * unsuitable. For example, GenericKey supports VARLEN and NULLable attributes.
+ * @tparam KeySize number of bytes for the key's internal buffer
+ */
 template <uint16_t KeySize>
 class GenericKey {
  public:
-  // This is the actual byte size of the key
+  /**
+   * key size in bytes, exposed for hasher and comparators
+   */
   static constexpr size_t key_size_byte = KeySize;
+  static_assert(KeySize > 0 && KeySize <= GENERICKEY_MAX_SIZE);  // size must be no greater than 256-bits
 
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     TERRIER_ASSERT(from.NumColumns() == metadata.GetKeySchema().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
 
-    ZeroOut();
-
     metadata_ = &metadata;
+    std::memset(key_data_, 0, key_size_byte);
     std::memcpy(GetProjectedRow(), &from, from.Size());
   }
 
@@ -56,8 +65,6 @@ class GenericKey {
     }
   }
 
-  void ZeroOut() { std::memset(key_data_, 0x00, key_size_byte); }
-
   ProjectedRow *const GetProjectedRow() const {
     auto *const pr = reinterpret_cast<ProjectedRow *const>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
@@ -67,12 +74,16 @@ class GenericKey {
     return pr;
   }
 
-  byte key_data_[key_size_byte];
+  const IndexMetadata &GetIndexMetadata() const {
+    TERRIER_ASSERT(metadata_ != nullptr, "This key has no metadata.");
+    return *metadata_;
+  }
 
+ private:
+  byte key_data_[key_size_byte];
   const IndexMetadata *metadata_ = nullptr;
 };
 
-template <uint16_t KeySize>
 class TypeComparators {
  public:
   TypeComparators() = delete;
@@ -154,114 +165,25 @@ class TypeComparators {
 }  // namespace terrier::storage::index
 
 namespace std {
-template <uint16_t KeySize>
-struct less<terrier::storage::index::GenericKey<KeySize>> {
- public:
-  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
-                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
-    TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
-    TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
 
-    const auto &key_schema = lhs.metadata_->GetKeySchema();
-
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
-      const auto *const lhs_pr = lhs.GetProjectedRow();
-      const auto *const rhs_pr = rhs.GetProjectedRow();
-
-      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
-      TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
-
-      const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
-      const byte *const rhs_attr = rhs_pr->AccessWithNullCheck(offset);
-
-      if (lhs_attr == nullptr) {
-        if (rhs_attr == nullptr) {
-          // attributes are both NULL (equal), continue
-          continue;
-        }
-        // lhs is NULL, rhs is non-NULL, lhs is less than
-        return true;
-      }
-
-      if (rhs_attr == nullptr) {
-        // lhs is non-NULL, rhs is NULL, lhs is greater than
-        return false;
-      }
-
-      const terrier::type::TypeId type_id = key_schema[i].type_id;
-
-      if (terrier::storage::index::TypeComparators<KeySize>::CompareLessThan(type_id, lhs_attr, rhs_attr)) return true;
-      if (terrier::storage::index::TypeComparators<KeySize>::CompareGreaterThan(type_id, lhs_attr, rhs_attr))
-        return false;
-
-      // attributes are equal, continue
-    }
-
-    // keys are equal
-    return false;
-  }
-};
-
-template <uint16_t KeySize>
-struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
-  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
-                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
-    TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
-    TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
-    TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
-
-    const auto &key_schema = lhs.metadata_->GetKeySchema();
-
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
-      const auto *const lhs_pr = lhs.GetProjectedRow();
-      const auto *const rhs_pr = rhs.GetProjectedRow();
-
-      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
-      TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
-
-      const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
-      const byte *const rhs_attr = rhs_pr->AccessWithNullCheck(offset);
-
-      if (lhs_attr == nullptr) {
-        if (rhs_attr == nullptr) {
-          // attributes are both NULL (equal), continue
-          continue;
-        }
-        // lhs is NULL, rhs is non-NULL, return non-equal
-        return false;
-      }
-
-      if (rhs_attr == nullptr) {
-        // lhs is non-NULL, rhs is NULL, return non-equal
-        return false;
-      }
-
-      const terrier::type::TypeId type_id = key_schema[i].type_id;
-
-      if (!terrier::storage::index::TypeComparators<KeySize>::CompareEquals(type_id, lhs_attr, rhs_attr)) {
-        // one of the attrs didn't match, return non-equal
-        return false;
-      }
-
-      // attributes are equal, continue
-    }
-
-    // keys are equal
-    return true;
-  }
-};
-
+/**
+ * Implements std::hash for GenericKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of bytes for the key's internal buffer
+ */
 template <uint16_t KeySize>
 struct hash<terrier::storage::index::GenericKey<KeySize>> {
  public:
+  /**
+   * @param key key to be hashed
+   * @return hash of the key's underlying data
+   */
   size_t operator()(terrier::storage::index::GenericKey<KeySize> const &key) const {
-    TERRIER_ASSERT(key.metadata_ != nullptr, "Don't think it makes sense to hash an empty GenericKey.");
+    const auto &metadata = key.GetIndexMetadata();
 
-    const auto &key_schema = key.metadata_->GetKeySchema();
-    const auto &attr_sizes = key.metadata_->GetAttributeSizes();
+    const auto &key_schema = metadata.GetKeySchema();
+    const auto &attr_sizes = metadata.GetAttributeSizes();
 
-    uint64_t running_hash = terrier::common::HashUtil::Hash(*(key.metadata_));
+    uint64_t running_hash = terrier::common::HashUtil::Hash(metadata);
 
     const auto *const pr = key.GetProjectedRow();
 
@@ -296,6 +218,113 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     }
 
     return running_hash;
+  }
+};
+
+/**
+ * Implements std::equal_to for GenericKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of bytes for the key's internal buffer
+ */
+template <uint16_t KeySize>
+struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
+  /**
+   * @param lhs first key to be compared
+   * @param rhs second key to be compared
+   * @return true if first key is equal to the second key
+   */
+  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
+                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
+    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto *const lhs_pr = lhs.GetProjectedRow();
+      const auto *const rhs_pr = rhs.GetProjectedRow();
+
+      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
+
+      const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
+      const byte *const rhs_attr = rhs_pr->AccessWithNullCheck(offset);
+
+      if (lhs_attr == nullptr) {
+        if (rhs_attr == nullptr) {
+          // attributes are both NULL (equal), continue
+          continue;
+        }
+        // lhs is NULL, rhs is non-NULL, return non-equal
+        return false;
+      }
+
+      if (rhs_attr == nullptr) {
+        // lhs is non-NULL, rhs is NULL, return non-equal
+        return false;
+      }
+
+      const terrier::type::TypeId type_id = key_schema[i].type_id;
+
+      if (!terrier::storage::index::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
+        // one of the attrs didn't match, return non-equal
+        return false;
+      }
+
+      // attributes are equal, continue
+    }
+
+    // keys are equal
+    return true;
+  }
+};
+
+/**
+ * Implements std::less for GenericKey. Allows the class to be used with STL containers and the BwTree index.
+ * @tparam KeySize number of bytes for the key's internal buffer
+ */
+template <uint16_t KeySize>
+struct less<terrier::storage::index::GenericKey<KeySize>> {
+  /**
+   * Due to the KeySize constraints, this should be optimized to a single SIMD instruction.
+   * @param lhs first key to be compared
+   * @param rhs second key to be compared
+   * @return true if first key is less than the second key
+   */
+  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
+                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
+    const auto &key_schema = lhs.GetIndexMetadata().GetKeySchema();
+
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto *const lhs_pr = lhs.GetProjectedRow();
+      const auto *const rhs_pr = rhs.GetProjectedRow();
+
+      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
+
+      const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
+      const byte *const rhs_attr = rhs_pr->AccessWithNullCheck(offset);
+
+      if (lhs_attr == nullptr) {
+        if (rhs_attr == nullptr) {
+          // attributes are both NULL (equal), continue
+          continue;
+        }
+        // lhs is NULL, rhs is non-NULL, lhs is less than
+        return true;
+      }
+
+      if (rhs_attr == nullptr) {
+        // lhs is non-NULL, rhs is NULL, lhs is greater than
+        return false;
+      }
+
+      const terrier::type::TypeId type_id = key_schema[i].type_id;
+
+      if (terrier::storage::index::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr)) return true;
+      if (terrier::storage::index::TypeComparators::CompareGreaterThan(type_id, lhs_attr, rhs_attr)) return false;
+
+      // attributes are equal, continue
+    }
+
+    // keys are equal
+    return false;
   }
 };
 }  // namespace std
