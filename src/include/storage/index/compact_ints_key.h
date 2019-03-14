@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "common/portable_endian.h"
+#include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
@@ -314,9 +314,6 @@ class CompactIntsKey {
   }
 };
 
-/*
- * class CompactIntsComparator - Compares two compact integer key
- */
 template <uint8_t KeySize>
 class CompactIntsComparator {
  public:
@@ -346,12 +343,6 @@ class CompactIntsEqualityChecker {
   }
 };
 
-/*
- * class CompactIntsHasher - Hash function for integer key
- *
- * This function assumes the length of the integer key is always multiples
- * of 64 bits (8 byte word).
- */
 template <uint8_t KeySize>
 class CompactIntsHasher {
  public:
@@ -366,12 +357,6 @@ class CompactIntsHasher {
   CompactIntsHasher() { TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size."); }
   CompactIntsHasher(const CompactIntsHasher &) = default;
 
-  /*
-   * operator()() - Hashes an object into size_t
-   *
-   * This function hashes integer key using 64 bit chunks. Chunks are
-   * accumulated to the hash one by one. Since
-   */
   size_t operator()(const CompactIntsKey<KeySize> &p) const {
     const auto *const ptr = reinterpret_cast<const byte *const>(p.GetRawData());
     return common::HashUtil::HashBytes(ptr, CompactIntsKey<KeySize>::key_size_byte);

@@ -310,8 +310,7 @@ class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
 
       // just hash the attribute bytes for inlined attributes
       terrier::common::HashUtil::CombineHashes(
-          running_hash, terrier::common::HashUtil::HashBytes(
-                            attr, static_cast<uint8_t>(attr_sizes[i] & INT8_MAX)));
+          running_hash, terrier::common::HashUtil::HashBytes(attr, static_cast<uint8_t>(attr_sizes[i] & INT8_MAX)));
     }
 
     return running_hash;

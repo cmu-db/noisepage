@@ -112,18 +112,17 @@ class IndexBuilder {
                              .ProjectedRowSize();
     Index *index = nullptr;
 
-    // TODO(Matt): these sizes are wrong. Revisit tomorrow after talking to Ziqi
-    if (pr_size <= 8) {
-      index =
-          new BwTreeIndex<GenericKey<8>, GenericKeyComparator<8>, GenericKeyEqualityChecker<8>, GenericKeyHasher<8>>(
-              index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 16) {
-      index = new BwTreeIndex<GenericKey<16>, GenericKeyComparator<16>, GenericKeyEqualityChecker<16>,
-                              GenericKeyHasher<16>>(index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 64) {
+    const auto key_size =
+        (pr_size + 8) +
+        sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
+
+    if (key_size <= 64) {
       index = new BwTreeIndex<GenericKey<64>, GenericKeyComparator<64>, GenericKeyEqualityChecker<64>,
                               GenericKeyHasher<64>>(index_oid, constraint_type, std::move(metadata));
-    } else if (pr_size <= 256) {
+    } else if (key_size <= 128) {
+      index = new BwTreeIndex<GenericKey<128>, GenericKeyComparator<128>, GenericKeyEqualityChecker<128>,
+                              GenericKeyHasher<128>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= 256) {
       index = new BwTreeIndex<GenericKey<256>, GenericKeyComparator<256>, GenericKeyEqualityChecker<256>,
                               GenericKeyHasher<256>>(index_oid, constraint_type, std::move(metadata));
     }
