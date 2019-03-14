@@ -153,7 +153,7 @@ class CompactIntsKey {
   /*
    * ZeroOut() - Sets all bits to zero
    */
-  void ZeroOut() { std::memset(key_data, 0x00, key_size_byte); }
+  void ZeroOut() { std::memset(key_data, 0, key_size_byte); }
 
   /*
    * GetInteger() - Extracts an integer from the given offset
@@ -181,17 +181,6 @@ class CompactIntsKey {
     auto host_endian = ToHostEndian(*ptr);
     return static_cast<IntType>(host_endian);
   }
-
-  /*
-   * SetFromColumn() - Sets the value of a column into a given offset of
-   *                   this ints key
-   *
-   * This function returns a size_t which is the next starting offset.
-   *
-   * Note: Two column IDs are needed - one into the key schema which is used
-   * to determine the type of the column; another into the tuple to
-   * get data
-   */
 
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
                               const uint8_t attr_size, const uint8_t compact_ints_offset) {
@@ -224,56 +213,6 @@ class CompactIntsKey {
     }
   }
 
- public:
-  /*
-   * Constructor
-   */
-  CompactIntsKey() {
-    TERRIER_ASSERT(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS, "Invalid key size.");
-    ZeroOut();
-  }
-
-  /*
-   * GetRawData() - Returns the raw data array
-   */
-  const byte *GetRawData() const { return key_data; }
-
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    const auto &attr_sizes = metadata.GetAttributeSizes();
-    const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
-
-    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    ZeroOut();
-
-    for (uint8_t i = 0; i < from.NumColumns(); i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
-      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
-    }
-  }
-
-  /*
-   * Compare() - Compares two IntsType object of the same length
-   *
-   * This function has the same semantics as memcmp(). Negative result means
-   * less than, positive result means greater than, and 0 means equal
-   */
-  static int Compare(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) {
-    return std::memcmp(a.key_data, b.key_data, CompactIntsKey<KeySize>::key_size_byte);
-  }
-
-  /*
-   * LessThan() - Returns true if first is less than the second
-   */
-  static bool LessThan(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) < 0; }
-
-  /*
-   * Equals() - Returns true if first is equivalent to the second
-   */
-  static bool Equals(const CompactIntsKey<KeySize> &a, const CompactIntsKey<KeySize> &b) { return Compare(a, b) == 0; }
-
   /*
    * AddInteger() - Adds a new integer into the compact form
    *
@@ -284,13 +223,7 @@ class CompactIntsKey {
   template <typename IntType>
   void AddInteger(IntType data, size_t offset) {
     auto sign_flipped = SignFlip<IntType>(data);
-
-    // This function always returns the unsigned type
-    // so we must use automatic type inference
-    auto big_endian = ToBigEndian(sign_flipped);
-
-    // This will almost always be optimized into single move
-    std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
+    AddUnsignedInteger(sign_flipped, offset);
   }
 
   /*
@@ -308,6 +241,30 @@ class CompactIntsKey {
     // This will almost always be optimized into single move
     std::memcpy(key_data + offset, &big_endian, sizeof(IntType));
   }
+
+ public:
+  static_assert(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS);
+
+  /*
+   * GetRawData() - Returns the raw data array
+   */
+  const byte *KeyData() const { return key_data; }
+
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+    const auto &attr_sizes = metadata.GetAttributeSizes();
+    const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
+
+    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+                   "attr_sizes and attr_offsets must be equal in size.");
+    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    ZeroOut();
+
+    for (uint8_t i = 0; i < from.NumColumns(); i++) {
+      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
+      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
+    }
+  }
 };
 }  // namespace terrier::storage::index
 
@@ -315,7 +272,7 @@ namespace std {
 template <uint8_t KeySize>
 struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
-    const auto *const ptr = key.GetRawData();
+    const auto *const ptr = key.KeyData();
     return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
   }
 };
@@ -324,7 +281,8 @@ template <uint8_t KeySize>
 struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return terrier::storage::index::CompactIntsKey<KeySize>::Equals(lhs, rhs);
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) ==
+           0;
   }
 };
 
@@ -332,7 +290,8 @@ template <uint8_t KeySize>
 struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return terrier::storage::index::CompactIntsKey<KeySize>::LessThan(lhs, rhs);
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) <
+           0;
   }
 };
 }  // namespace std

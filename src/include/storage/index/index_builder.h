@@ -95,9 +95,7 @@ class IndexBuilder {
 
   Index *BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
                                IndexMetadata metadata) const {
-    const auto pr_size = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(),
-                                                                                          metadata.GetComparisonOrder())
-                             .ProjectedRowSize();
+    const auto pr_size = metadata.GetProjectedRowInitializer().ProjectedRowSize();
     Index *index = nullptr;
 
     const auto key_size =

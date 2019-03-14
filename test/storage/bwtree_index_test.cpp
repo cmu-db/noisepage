@@ -121,61 +121,62 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &
   return data;
 }
 
-template <uint8_t KeySize, typename AttrType, typename Random>
-void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
-  const uint8_t num_cols = KeySize * sizeof(AttrType);
-  TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
-
-  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(), std::numeric_limits<int8_t>::max());
-
-  // Build two random keys and compare verify that equality and comparator helpers give correct results
-  for (uint32_t i = 0; i < num_iters; i++) {
-    uint8_t offset = 0;
-
-    auto key1 = CompactIntsKey<KeySize>();
-    auto key2 = CompactIntsKey<KeySize>();
-    std::vector<int8_t> key1_ref(num_cols);
-    std::vector<int8_t> key2_ref(num_cols);
-
-    for (uint8_t j = 0; j < num_cols; j++) {
-      const int8_t val1 = val_dis(*generator);
-      const int8_t val2 = val_dis(*generator);
-      key1.AddInteger(val1, offset);
-      key2.AddInteger(val2, offset);
-      key1_ref[j] = val1;
-      key2_ref[j] = val2;
-      offset += sizeof(val1);
-    }
-
-    EXPECT_EQ(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2), key1_ref == key2_ref);
-    EXPECT_EQ(std::less<CompactIntsKey<KeySize>>()(key1, key2), key1_ref < key2_ref);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
-  const uint32_t num_iters = 100000;
-
-  CompactIntsKeyTest<1, int8_t>(num_iters, &generator_);
-  CompactIntsKeyTest<1, int16_t>(num_iters, &generator_);
-  CompactIntsKeyTest<1, int32_t>(num_iters, &generator_);
-  CompactIntsKeyTest<1, int64_t>(num_iters, &generator_);
-
-  CompactIntsKeyTest<2, int8_t>(num_iters, &generator_);
-  CompactIntsKeyTest<2, int16_t>(num_iters, &generator_);
-  CompactIntsKeyTest<2, int32_t>(num_iters, &generator_);
-  CompactIntsKeyTest<2, int64_t>(num_iters, &generator_);
-
-  CompactIntsKeyTest<3, int8_t>(num_iters, &generator_);
-  CompactIntsKeyTest<3, int16_t>(num_iters, &generator_);
-  CompactIntsKeyTest<3, int32_t>(num_iters, &generator_);
-  CompactIntsKeyTest<3, int64_t>(num_iters, &generator_);
-
-  CompactIntsKeyTest<4, int8_t>(num_iters, &generator_);   // test 32 int8_ts
-  CompactIntsKeyTest<4, int16_t>(num_iters, &generator_);  // test 16 int16_ts
-  CompactIntsKeyTest<4, int32_t>(num_iters, &generator_);  // test 8 int32_ts
-  CompactIntsKeyTest<4, int64_t>(num_iters, &generator_);  // test 4 int64_ts
-}
+// template <uint8_t KeySize, typename AttrType, typename Random>
+// void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
+//  const uint8_t num_cols = KeySize * sizeof(AttrType);
+//  TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
+//
+//  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(),
+//  std::numeric_limits<int8_t>::max());
+//
+//  // Build two random keys and compare verify that equality and comparator helpers give correct results
+//  for (uint32_t i = 0; i < num_iters; i++) {
+//    uint8_t offset = 0;
+//
+//    auto key1 = CompactIntsKey<KeySize>();
+//    auto key2 = CompactIntsKey<KeySize>();
+//    std::vector<int8_t> key1_ref(num_cols);
+//    std::vector<int8_t> key2_ref(num_cols);
+//
+//    for (uint8_t j = 0; j < num_cols; j++) {
+//      const int8_t val1 = val_dis(*generator);
+//      const int8_t val2 = val_dis(*generator);
+//      key1.AddInteger(val1, offset);
+//      key2.AddInteger(val2, offset);
+//      key1_ref[j] = val1;
+//      key2_ref[j] = val2;
+//      offset += sizeof(val1);
+//    }
+//
+//    EXPECT_EQ(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2), key1_ref == key2_ref);
+//    EXPECT_EQ(std::less<CompactIntsKey<KeySize>>()(key1, key2), key1_ref < key2_ref);
+//  }
+//}
+//
+//// NOLINTNEXTLINE
+// TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
+//  const uint32_t num_iters = 100000;
+//
+//  CompactIntsKeyTest<1, int8_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<1, int16_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<1, int32_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<1, int64_t>(num_iters, &generator_);
+//
+//  CompactIntsKeyTest<2, int8_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<2, int16_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<2, int32_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<2, int64_t>(num_iters, &generator_);
+//
+//  CompactIntsKeyTest<3, int8_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<3, int16_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<3, int32_t>(num_iters, &generator_);
+//  CompactIntsKeyTest<3, int64_t>(num_iters, &generator_);
+//
+//  CompactIntsKeyTest<4, int8_t>(num_iters, &generator_);   // test 32 int8_ts
+//  CompactIntsKeyTest<4, int16_t>(num_iters, &generator_);  // test 16 int16_ts
+//  CompactIntsKeyTest<4, int32_t>(num_iters, &generator_);  // test 8 int32_ts
+//  CompactIntsKeyTest<4, int64_t>(num_iters, &generator_);  // test 4 int64_ts
+//}
 
 template <typename Random>
 void BasicOps(Index *const index, const Random &generator) {
@@ -236,7 +237,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   // 1. generate a reference key schema
   // 2. fill two keys pr_A and pr_B with random data_A and data_B
   // 3. use pr_A and pr_B to set CompactIntsKeys key_A and key_B
-  // 5. exoect eq(key_A, key_B) == (ref_A == ref_B)
+  // 5. expect eq(key_A, key_B) == (ref_A == ref_B)
   // 6. expect cmp(key_A, key_B) == (ref_A < ref_B)
 
   for (uint32_t i = 0; i < num_iterations; i++) {
@@ -245,16 +246,6 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     IndexMetadata metadata(key_schema);
     auto initializer = metadata.GetProjectedRowInitializer();
 
-    // create our projected row buffers
-    auto *pr_buffer_A = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *pr_buffer_B = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *pr_A = initializer.InitializeRow(pr_buffer_A);
-    auto *pr_B = initializer.InitializeRow(pr_buffer_B);
-
-    // fill our buffers with random data
-    const auto data_A = FillProjectedRowWithRandomCompactInts(metadata, pr_A, &generator_);
-    const auto data_B = FillProjectedRowWithRandomCompactInts(metadata, pr_B, &generator_);
-
     // figure out which CompactIntsKey template was instantiated
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
@@ -262,34 +253,46 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
       key_size += type::TypeUtil::GetTypeSize(key.type_id);
     }
     uint8_t key_type = 0;
-    for (uint8_t i = 1; i <= 4; i++) {
-      if (key_size <= sizeof(uint64_t) * i) {
-        key_type = i;
+    for (uint8_t j = 1; j <= 4; j++) {
+      if (key_size <= sizeof(uint64_t) * j) {
+        key_type = j;
         break;
       }
     }
     TERRIER_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
 
-    // perform the relevant checks
-    switch (key_type) {
-      case 1:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B), data_A < data_B);
-        break;
-      case 2:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B), data_A < data_B);
-        break;
-      case 3:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B), data_A < data_B);
-        break;
-      case 4:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B), data_A < data_B);
-        break;
-      default:
-        throw std::runtime_error("Invalid compact ints key type.");
+    // create our projected row buffers
+    auto *pr_buffer_A = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *pr_buffer_B = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *pr_A = initializer.InitializeRow(pr_buffer_A);
+    auto *pr_B = initializer.InitializeRow(pr_buffer_B);
+
+    for (uint8_t j = 0; j < 10; j++) {
+      // fill our buffers with random data
+      const auto data_A = FillProjectedRowWithRandomCompactInts(metadata, pr_A, &generator_);
+      const auto data_B = FillProjectedRowWithRandomCompactInts(metadata, pr_B, &generator_);
+
+      // perform the relevant checks
+      switch (key_type) {
+        case 1:
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B), data_A == data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B), data_A < data_B);
+          break;
+        case 2:
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B), data_A == data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B), data_A < data_B);
+          break;
+        case 3:
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B), data_A == data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B), data_A < data_B);
+          break;
+        case 4:
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B), data_A == data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B), data_A < data_B);
+          break;
+        default:
+          throw std::runtime_error("Invalid compact ints key type.");
+      }
     }
 
     delete[] pr_buffer_A;
@@ -330,7 +333,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    //    BasicOps(index, &generator_);
+    // BasicOps(index, &generator_);
 
     delete index;
   }
