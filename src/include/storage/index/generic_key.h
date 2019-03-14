@@ -167,7 +167,7 @@ class GenericKey {
       return CompareVarlens(lhs_varlen, rhs_varlen) OP 0;                                                             \
     }                                                                                                                 \
     default:                                                                                                          \
-      throw std::runtime_error("Unknown TypeId in terrier::storage::index::TypeComparators.");                        \
+      throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKey::TypeComparators.");            \
   }
 
     /**
