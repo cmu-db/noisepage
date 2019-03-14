@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "common/macros.h"
 #include "common/performance_counter.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
@@ -21,7 +20,6 @@ namespace terrier::storage::index {
 
 class Index {
  private:
-  FRIEND_TEST(BwTreeIndexTests, RandomCompactIntsKeyTest);
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
 

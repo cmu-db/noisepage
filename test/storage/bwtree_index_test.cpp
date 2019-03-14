@@ -85,18 +85,18 @@ KeySchema RandomCompactIntsKeySchema(Random *generator) {
 }
 
 template <typename Random>
-std::vector<int64_t> FillProjectedRowWithRandomCompactInts(Index *index, storage::ProjectedRow *pr, Random *generator) {
+std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
   std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
-  const auto key_schema = index->GetKeySchema();
+  const auto &key_schema = metadata.GetKeySchema();
+  const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
 
   std::vector<int64_t> data;
   data.reserve(key_schema.size());
-  for (int i = 0; i < key_schema.size(); i++) {
-    const auto key_oid = key_schema[i].key_oid;
-    const auto type_size = type::TypeUtil::GetTypeSize(key_schema[i].type_id);
+  for (const auto &key : key_schema) {
+    const auto type_size = type::TypeUtil::GetTypeSize(key.type_id);
     int64_t rand_int;
 
-    switch (key_schema[i].type_id) {
+    switch (key.type_id) {
       case type::TypeId::TINYINT:
         rand_int = static_cast<int64_t>(static_cast<int8_t>(rng(*generator)));
         break;
@@ -112,8 +112,8 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(Index *index, storage
       default:
         throw std::runtime_error("Invalid compact ints key schema.");
     }
-    auto UNUSED_ATTRIBUTE idx = static_cast<uint16_t>(index->GetOffset(key_oid));
-    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(index->GetOffset(key_oid)));
+
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.key_oid)));
     std::memcpy(attr, &rand_int, type_size);
     data.emplace_back(rand_int);
   }
@@ -183,7 +183,6 @@ void BasicOps(Index *const index, const Random &generator) {
   auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
 
   auto *key = initializer.InitializeRow(key_buffer);
-  auto key_data = FillProjectedRowWithRandomCompactInts(index, key, generator);
 
   const auto &cmp_order = index->GetComparisonOrder();
 
@@ -230,6 +229,7 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
   return std::less<CompactIntsKey<KeySize>>()(key_A, key_B);
 }
 
+// NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   const uint32_t num_iterations = 1000;
   // 1. generate a reference key schema
@@ -241,11 +241,8 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   for (uint32_t i = 0; i < num_iterations; i++) {
     // generate random key schema
     auto key_schema = RandomCompactIntsKeySchema(&generator_);
-    // create an index
-    IndexBuilder builder;
-    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-    auto *index = builder.Build();
-    auto initializer = index->GetProjectedRowInitializer();
+    IndexMetadata metadata(key_schema);
+    auto initializer = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(), metadata.GetComparisonOrder());
 
     // create our projected row buffers
     auto *pr_buffer_A = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -254,8 +251,8 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     auto *pr_B = initializer.InitializeRow(pr_buffer_B);
 
     // fill our buffers with random data
-    const auto data_A = FillProjectedRowWithRandomCompactInts(index, pr_A, &generator_);
-    const auto data_B = FillProjectedRowWithRandomCompactInts(index, pr_B, &generator_);
+    const auto data_A = FillProjectedRowWithRandomCompactInts(metadata, pr_A, &generator_);
+    const auto data_B = FillProjectedRowWithRandomCompactInts(metadata, pr_B, &generator_);
 
     // figure out which CompactIntsKey template was instantiated
     // this is unpleasant, but seems to be the cleanest way
@@ -275,28 +272,27 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     // perform the relevant checks
     switch (key_type) {
       case 1:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(index->metadata_, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(index->metadata_, *pr_A, *pr_B), data_A < data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B), data_A == data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B), data_A < data_B);
         break;
       case 2:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(index->metadata_, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(index->metadata_, *pr_A, *pr_B), data_A < data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B), data_A == data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B), data_A < data_B);
         break;
       case 3:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(index->metadata_, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(index->metadata_, *pr_A, *pr_B), data_A < data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B), data_A == data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B), data_A < data_B);
         break;
       case 4:
-        EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(index->metadata_, *pr_A, *pr_B), data_A == data_B);
-        EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(index->metadata_, *pr_A, *pr_B), data_A < data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B), data_A == data_B);
+        EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B), data_A < data_B);
         break;
       default:
         throw std::runtime_error("Invalid compact ints key type.");
     }
 
-    delete pr_buffer_A;
-    delete pr_buffer_B;
-    delete index;
+    delete[] pr_buffer_A;
+    delete[] pr_buffer_B;
   }
 }
 

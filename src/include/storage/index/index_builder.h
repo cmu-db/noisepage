@@ -27,12 +27,7 @@ class IndexBuilder {
     TERRIER_ASSERT(!key_schema_.empty(), "Cannot build an index without a KeySchema.");
     TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
 
-    // compute attribute sizes
-    std::vector<uint8_t> attr_sizes;
-    attr_sizes.reserve(key_schema_.size());
-    for (const auto &k : key_schema_) {
-      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(k.type_id));
-    }
+    IndexMetadata metadata(key_schema_);
 
     // figure out if we can use CompactIntsKey
     bool use_compact_ints = true;
@@ -45,10 +40,7 @@ class IndexBuilder {
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 
-    IndexMetadata metadata(key_schema_, attr_sizes);
-
     if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
-
     return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
   }
 

@@ -19,18 +19,18 @@ class IndexMetadata {
 
   IndexMetadata(IndexMetadata &&other) noexcept
       : key_schema_(std::move(other.key_schema_)),
+        attr_sizes_(std::move(other.attr_sizes_)),
         pr_offsets_(std::move(other.pr_offsets_)),
         cmp_order_(std::move(other.cmp_order_)),
-        attr_sizes_(std::move(other.attr_sizes_)),
         compact_ints_offsets_(std::move(other.compact_ints_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)) {}
 
-  IndexMetadata(KeySchema key_schema, const std::vector<uint8_t> &attr_sizes)
+  explicit IndexMetadata(KeySchema key_schema)
       : key_schema_(std::move(key_schema)),
-        pr_offsets_(ComputePROffsets(attr_sizes)),
-        cmp_order_(ComputeComparisonOrder(attr_sizes)),
-        attr_sizes_(attr_sizes),
-        compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes)),
+        attr_sizes_(ComputeAttributeSizes(key_schema_)),
+        pr_offsets_(ComputePROffsets(attr_sizes_)),
+        cmp_order_(ComputeComparisonOrder(attr_sizes_)),
+        compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, pr_offsets_)) {}
 
   const std::vector<KeyData> &GetKeySchema() const { return key_schema_; }
@@ -42,12 +42,31 @@ class IndexMetadata {
 
  private:
   std::vector<KeyData> key_schema_;                            // for GenericKey
+  std::vector<uint8_t> attr_sizes_;                            // for CompactIntsKey
   std::vector<uint16_t> pr_offsets_;                           // not needed long term?
   std::vector<uint16_t> cmp_order_;                            // not needed long term?
-  std::vector<uint8_t> attr_sizes_;                            // for CompactIntsKey
   std::vector<uint8_t> compact_ints_offsets_;                  // for CompactIntsKey
   std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
 
+  /**
+   * Computes the attribute sizes as given by the key schema.
+   * e.g.   if key_schema is {BIGINT, TINYINT, INTEGER}
+   *        then attr_sizes returned is {8, 1, 4}
+   */
+  static std::vector<uint8_t> ComputeAttributeSizes(const KeySchema &key_schema) {
+    std::vector<uint8_t> attr_sizes;
+    attr_sizes.reserve(key_schema.size());
+    for (const auto &key : key_schema) {
+      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.type_id));
+    }
+    return attr_sizes;
+  }
+
+  /**
+   * Computes the projected row offsets given the attribute sizes, i.e. where they end up after reshuffling.
+   * e.g.   if attr_sizes is {1, 4, 8, 2, 1}
+   *        then returned offsets are {3, 1, 0, 2, 4}
+   */
   static std::vector<uint16_t> ComputePROffsets(const std::vector<uint8_t> &attr_sizes) {
     auto starting_offsets = StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);
 
@@ -101,18 +120,17 @@ class IndexMetadata {
    *        gives where you should write the attrs in a compact ints key
    */
   static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint8_t> &attr_sizes) {
-    // no varlens allowed
+    TERRIER_ASSERT(std::all_of(attr_sizes.begin(), attr_sizes.end(),
+                               [](uint8_t size) { return size == 1 || size == 2 || size == 4 || size == 8; }),
+                   "Can only contain CompactInts compatible sizes.");
     // exclusive scan on a copy
     std::vector<uint8_t> scan = attr_sizes;
-    // This is not necessary because we're only computing the offsets, which don't change if you mask off the MSB
-    //    std::transform(scan.begin(), scan.end(), scan.begin(),
-    //                   [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
     std::exclusive_scan(scan.begin(), scan.end(), scan.begin(), 0u);
     return scan;
   }
 
   /**
-   * Computes the mapping from key oid to projected row offset
+   * Computes the mapping from key oid to projected row offset.
    */
   static std::unordered_map<key_oid_t, uint32_t> ComputeKeyOidToOffset(const KeySchema &key_schema,
                                                                        const std::vector<uint16_t> &pr_offsets) {
