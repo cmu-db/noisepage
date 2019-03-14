@@ -44,12 +44,19 @@ class SqlTable {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
               layout_and_map.second};
+
+    DataTableVersion first_table = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)),
+                                    layout_and_map.first, layout_and_map.second};
+    tables_.emplace_back(first_table);
   }
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() { delete table_.data_table; }
+  ~SqlTable() {
+    delete table_.data_table;
+    for (auto &t : tables_) delete t.data_table;
+  }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -187,6 +194,8 @@ class SqlTable {
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
+
+  std::vector<DataTableVersion> tables_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
