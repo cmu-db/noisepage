@@ -136,6 +136,14 @@ class Catalog {
    */
   void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCols> &cols);
 
+  /**
+   * -------------
+   * Debug support
+   * -------------
+   */
+
+  void Dump(transaction::TransactionContext *txn);
+
  private:
   /**
    * Add a row into pg_database

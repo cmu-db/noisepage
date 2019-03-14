@@ -70,7 +70,8 @@ TEST_F(DatabaseHandleTests, BasicEntryTest) {
   EXPECT_NE(nullptr, test_entry_p);
 
   // delete the entry
-  test_entry_p->Delete(txn_);
+  db_handle.DeleteEntry(txn_, test_entry_p);
+  // test_entry_p->Delete(txn_);
 
   // check absence
   no_entry_p = db_handle.GetDatabaseEntry(txn_, "test_db");

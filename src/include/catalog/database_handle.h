@@ -50,13 +50,6 @@ class DatabaseHandle {
     DatabaseEntry(db_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
-     * Construct a database entry from a projected column
-     */
-    DatabaseEntry(const std::shared_ptr<DatabaseHandle> &handle_p, storage::ProjectedColumns *proj_col_p);
-
-    ~DatabaseEntry() { delete[] reinterpret_cast<byte *>(proj_col_p_); }
-
-    /**
      * Get the value for a given column
      * @param col_num the column index
      * @return the value of the column
@@ -78,10 +71,7 @@ class DatabaseHandle {
 
    private:
     db_oid_t oid_;
-    storage::ProjectedColumns *proj_col_p_ = nullptr;
-    // we don't really need to store this. GetColumn changes though...
     std::vector<type::Value> entry_;
-    std::shared_ptr<DatabaseHandle> handle_p_;
   };
 
   /**
@@ -130,24 +120,20 @@ class DatabaseHandle {
    * @param db_name the name of the database
    * @return a shared pointer to database entry; NULL if not found
    */
-  std::shared_ptr<DatabaseEntry> GetOldDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry);
 
   /**
-   * Lookup database named db_name and return an entry
-   * @param txn the transaction that initiates the read
-   * @param db_name db_name the name of the database
-   * @return a shared pointer to database entry; NULL if not found
+   * Debug methods
    */
-  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+  void Dump(transaction::TransactionContext *txn) { pg_database_rw_->Dump(txn); }
 
   static const std::vector<SchemaCols> schema_cols_;
   static const std::vector<SchemaCols> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
-
-  // temporary
- public:
   /**
    * pg_database SQL table
    */

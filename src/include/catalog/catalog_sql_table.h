@@ -361,6 +361,88 @@ class SqlTableRW {
     return ret_vec;
   }
 
+  /* -----------------
+   *Debugging support
+   * -----------------
+   */
+
+  /**
+   * @param txn transaction
+   */
+  void Dump(transaction::TransactionContext *txn) {
+    auto layout = GetLayout();
+    // setup parameters for a scan
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    // get one row at a time
+    if (col_initer_ == nullptr) {
+      col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
+    }
+    auto *buffer = common::AllocationUtil::AllocateAligned(col_initer_->ProjectedColumnsSize());
+    storage::ProjectedColumns *proj_col_bufp = col_initer_->Initialize(buffer);
+    int32_t row_num = 0;
+    // do a Scan
+    auto it = table_->begin();
+    while (it != table_->end()) {
+      table_->Scan(txn, &it, proj_col_bufp);
+      if (proj_col_bufp->NumTuples() == 0) {
+        continue;
+      }
+      // interpret as a row
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(layout, 0);
+      // convert the row into a Value vector and return
+      // auto ret_vec = ColToValueVec(row_view);
+      CATALOG_LOG_DEBUG("");
+      CATALOG_LOG_DEBUG("row {}", row_num);
+      for (int32_t i = 0; i < row_view.NumColumns(); i++) {
+        type::TypeId schema_col_type = cols_[i].GetType();
+        byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(i));
+        if (col_p == nullptr) {
+          CATALOG_LOG_DEBUG("col {}: NULL", i);
+          continue;
+        }
+
+        switch (schema_col_type) {
+          case type::TypeId::BOOLEAN: {
+            auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
+            CATALOG_LOG_DEBUG("col {}: {}", i, row_bool_val);
+            break;
+          }
+
+          case type::TypeId::INTEGER: {
+            auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
+            CATALOG_LOG_DEBUG("col {}: {}", i, row_int_val);
+            break;
+          }
+
+          case type::TypeId::BIGINT: {
+            auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
+            CATALOG_LOG_DEBUG("col {}: {}", i, row_int_val);
+            break;
+          }
+
+          case type::TypeId::VARCHAR: {
+            auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+            // TODO(pakhtar): unnecessary copy. Fix appropriately when
+            // replaced by updated Value implementation.
+            // add space for null terminator
+            uint32_t size = vc_entry->Size() + 1;
+            auto *st = new char[size + sizeof(uint32_t)];
+            std::memcpy(st, vc_entry->Content(), size - 1);
+            *(st + size - 1) = 0;
+            CATALOG_LOG_DEBUG("col {}: {}", i, st);
+            delete[] st;
+            break;
+          }
+
+          default:
+            throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in Dump");
+        }
+      }
+      row_num++;
+    }
+    delete[] buffer;
+  }
+
  private:
   static void EmptyCallback(void * /*unused*/) {}
 

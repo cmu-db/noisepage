@@ -13,6 +13,11 @@
 #include "type/type_id.h"
 
 namespace terrier::catalog {
+
+/**
+ * Handle methods
+ */
+
 DatabaseHandle::DatabaseHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_database)
     : catalog_(catalog), pg_database_rw_(std::move(pg_database)) {}
 
@@ -40,8 +45,8 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   return std::make_shared<DatabaseEntry>(oid, row_vec);
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetOldDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                   const char *db_name) {
+std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
+                                                                                const char *db_name) {
   // we don't need to do this lookup. pg_database is global
   // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
 
@@ -59,34 +64,17 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetOldDatabaseEnt
   return std::make_shared<DatabaseEntry>(oid, row_vec);
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                const char *db_name) {
+bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {
   std::vector<type::Value> search_vec;
-  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  search_vec.push_back(type::ValueFactory::GetVarcharValue(db_name));
+  // get the oid of this row
+  search_vec.emplace_back(entry->GetColumn(0));
+
+  // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_database_rw_->FindRowProjCol(txn, search_vec);
-  if (proj_col_p == nullptr) {
-    return nullptr;
-  }
-
-  return std::make_shared<DatabaseEntry>(std::make_shared<DatabaseHandle>(*this), proj_col_p);
-}
-
-DatabaseHandle::DatabaseEntry::DatabaseEntry(const std::shared_ptr<DatabaseHandle> &handle_p,
-                                             terrier::storage::ProjectedColumns *proj_col_p)
-    : proj_col_p_(proj_col_p), handle_p_(handle_p) {
-  auto layout = handle_p_->pg_database_rw_->GetLayout();
-  storage::ProjectedColumns::RowView row_view = proj_col_p->InterpretAsRow(layout, 0);
-  entry_ = handle_p->pg_database_rw_->ColToValueVec(row_view);
-  // recover the oid
-  oid_ = db_oid_t(entry_[0].GetIntValue());
-}
-
-bool DatabaseHandle::DatabaseEntry::Delete(transaction::TransactionContext *txn) {
-  // get the tuple slot.
-  auto tuple_slot_p = proj_col_p_->TupleSlots();
-  // call delete
-  bool status = handle_p_->pg_database_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  auto tuple_slot_p = proj_col_p->TupleSlots();
+  // delete
+  bool status = pg_database_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  delete[] reinterpret_cast<byte *>(proj_col_p);
   return status;
 }
 

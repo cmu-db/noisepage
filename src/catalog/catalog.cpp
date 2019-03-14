@@ -33,7 +33,7 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
   auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
   auto oid = db_entry->GetDatabaseOid();
   // remove entry from pg_database
-  db_entry->Delete(txn);
+  db_handle.DeleteEntry(txn, db_entry);
 
   // TODO(pakhtar):
   // - delete all the tables
@@ -477,6 +477,12 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
         throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in SetUnusedSchemaColumns (by vec)");
     }
   }
+}
+
+void Catalog::Dump(transaction::TransactionContext *txn) {
+  // dump pg_database
+  auto db_handle = GetDatabaseHandle();
+  db_handle.Dump(txn);
 }
 
 }  // namespace terrier::catalog

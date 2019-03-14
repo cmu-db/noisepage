@@ -47,7 +47,9 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (int32_t iter = 0; iter < num_lookups; iter++) {
-      ret_row = db_handle.pg_database_rw_->FindRow(txn_, search_vec);
+      // TODO(pakhtar): replace with GetDatabaseEntry(from name);
+      // ret_row = db_handle.pg_database_rw_->FindRow(txn_, search_vec);
+      auto entry = db_handle.GetDatabaseEntry(txn_, "terrier");
     }
   }
   state.SetItemsProcessed(state.iterations() * num_lookups);

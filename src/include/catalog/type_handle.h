@@ -72,6 +72,11 @@ class TypeHandle {
    */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
+  /**
+   * Debug methods
+   */
+  void Dump(transaction::TransactionContext *txn) { pg_type_rw_->Dump(txn); }
+
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   // Catalog *catalog_;

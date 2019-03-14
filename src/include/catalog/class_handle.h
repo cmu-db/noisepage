@@ -83,6 +83,11 @@ class ClassHandle {
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
 
+  /**
+   * Debug methods
+   */
+  void Dump(transaction::TransactionContext *txn) { pg_class_rw_->Dump(txn); }
+
   static const std::vector<SchemaCols> schema_cols_;
   static const std::vector<SchemaCols> unused_schema_cols_;
 
