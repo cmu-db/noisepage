@@ -68,9 +68,7 @@ enum class ExpressionType : uint8_t {
   PLACEHOLDER,
   COLUMN_REF,
   FUNCTION_REF,
-  TABLE_REF,
-
-  CAST
+  TABLE_REF
 };
 
 }  // namespace terrier::parser

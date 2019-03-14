@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "common/exception.h"
+#include "parser/expression/comparison_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -56,8 +57,10 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CastTest) {
   auto stmts = pgparser.BuildParseTree("SELECT CAST('100' AS INTEGER);");
-  auto copy_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
-  EXPECT_EQ(copy_stmt->GetType(), StatementType::SELECT);
+  auto cast_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
+  EXPECT_EQ(cast_stmt->GetType(), StatementType::SELECT);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetReturnValueType(), type::TypeId::INTEGER);
 }
 
 // NOLINTNEXTLINE
@@ -80,6 +83,12 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
       " BEGIN RETURN i + 1; END; $$ "
       "LANGUAGE plpgsql;";
   auto stmts = pgparser.BuildParseTree(query);
+  auto stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  auto func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "increment");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
 
   query =
       "CREATE FUNCTION increment1 ("
@@ -89,15 +98,76 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
       " BEGIN RETURN i + j; END; $$ "
       "LANGUAGE plpgsql;";
   stmts = pgparser.BuildParseTree(query);
+  stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "increment1");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::DOUBLE);
+  EXPECT_EQ(func_params[1]->GetParamName(), "j");
+  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::DOUBLE);
 
   query =
       "CREATE OR REPLACE FUNCTION increment2 ("
-      " i INTEGER, j INTEGER"
+      " i INT, j INT"
       " )"
-      " RETURNS INTEGER AS $$ "
+      " RETURNS INT AS $$ "
       "BEGIN RETURN i + 1; END; $$ "
       "LANGUAGE plpgsql;";
   stmts = pgparser.BuildParseTree(query);
+  stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "increment2");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::INT);
+  EXPECT_EQ(func_params[1]->GetParamName(), "j");
+  EXPECT_EQ(func_params[1]->GetDataType(), Parameter::DataType::INT);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_varchar ("
+      " i VARCHAR"
+      " )"
+      " RETURNS VARCHAR AS $$ "
+      "BEGIN RETURN 'foo'; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+  stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "return_varchar");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::VARCHAR);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::VARCHAR);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_text ("
+      " i TEXT"
+      " )"
+      " RETURNS TEXT AS $$ "
+      "BEGIN RETURN 'foo'; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+  stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "return_text");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::TEXT);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::TEXT);
+
+  query =
+      "CREATE OR REPLACE FUNCTION return_bool ("
+      " i BOOL"
+      " )"
+      " RETURNS BOOL AS $$ "
+      "BEGIN RETURN false; END; $$ "
+      "LANGUAGE plpgsql;";
+  stmts = pgparser.BuildParseTree(query);
+  stmt = reinterpret_cast<CreateFunctionStatement *>(stmts[0].get());
+  func_params = stmt->GetFuncParameters();
+  EXPECT_EQ(stmt->GetFuncName(), "return_bool");
+  EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), Parameter::DataType::BOOL);
+  EXPECT_EQ(func_params[0]->GetParamName(), "i");
+  EXPECT_EQ(func_params[0]->GetDataType(), Parameter::DataType::BOOL);
 }
 
 // NOLINTNEXTLINE
@@ -219,7 +289,14 @@ TEST_F(ParserTestBase, GarbageTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, InsertTest) {
   auto stmts = pgparser.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
-  EXPECT_EQ(stmts.size(), 1);
+  auto insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
+  EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
+  EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 0);
+
+  stmts = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (1, 2, 3);");
+  insert_stmt = reinterpret_cast<InsertStatement *>(stmts.at(0).get());
+  EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
+  EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
 }
 
 // NOLINTNEXTLINE
@@ -271,6 +348,12 @@ TEST_F(ParserTestBase, SelectTest) {
   EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "foo");
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
   EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+
+  stmts = pgparser.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+  select_stmt = reinterpret_cast<SelectStatement *>(stmts[0].get());
+  EXPECT_EQ(select_stmt->GetSelectLimit()->GetLimit(), 1);
+  EXPECT_EQ(select_stmt->GetSelectLimit()->GetOffset(), 1);
 }
 
 // NOLINTNEXTLINE
@@ -318,6 +401,192 @@ TEST_F(ParserTestBase, UpdateTest) {
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);
 }
 
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, OperatorTest) {
+  {
+    std::string query = "SELECT 10+10 AS Addition;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
+  }
+
+  {
+    std::string query = "SELECT 15-721 AS Subtraction;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
+  }
+
+  {
+    std::string query = "SELECT 5*7 AS Multiplication;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MULTIPLY);
+  }
+
+  {
+    std::string query = "SELECT 1/2 AS Division;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_DIVIDE);
+  }
+
+  {
+    std::string query = "SELECT 15||213 AS Concatenation;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CONCAT);
+  }
+
+  {
+    std::string query = "SELECT 4%2 AS Mod;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MOD);
+  }
+
+  {
+    std::string query = "SELECT CAST('100' AS INTEGER) AS Casting;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::INTEGER);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE NOT id = 1;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_NOT);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id IS NULL;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    // Coverage for NullNodeTransform
+    std::string query = "SELECT * FROM foo WHERE 0 IS NULL;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+    EXPECT_EQ(expr->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
+
+    query = "SELECT * FROM foo WHERE 0*1 IS NULL;";
+    stmt_list = pgparser.BuildParseTree(query);
+    select_stmt = reinterpret_cast<SelectStatement *>((stmt_list.at(0).get()));
+    expr = select_stmt->GetSelectCondition();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+
+    query = "SELECT * FROM foo WHERE ? IS NULL;";
+    stmt_list = pgparser.BuildParseTree(query);
+    select_stmt = reinterpret_cast<SelectStatement *>((stmt_list.at(0).get()));
+    expr = select_stmt->GetSelectCondition();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+    EXPECT_EQ(expr->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_PARAMETER);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE EXISTS (SELECT * from bar);";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_EXISTS);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, CompareTest) {
+  {
+    std::string query = "SELECT * FROM foo WHERE id < 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id <= 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE id >= 10;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str ~~ '%test%';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LIKE);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str !~~ '%test%';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_NOT_LIKE);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+
+  {
+    std::string query = "SELECT * FROM foo WHERE str IS DISTINCT FROM 'test';";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto &sql_stmt = stmt_list[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto expr = select_stmt->GetSelectCondition().get();
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_IS_DISTINCT_FROM);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  }
+}
+
 /*
  * All the converted old tests from postgresparser_test.cpp are below.
  * Notable differences:
@@ -344,6 +613,7 @@ TEST_F(ParserTestBase, OldAggTest) {
   queries.emplace_back("SELECT COUNT(DISTINCT id) FROM foo;");
   queries.emplace_back("SELECT MAX(*) FROM foo;");
   queries.emplace_back("SELECT MIN(*) FROM foo;");
+  queries.emplace_back("SELECT AVG(*) FROM foo;");
 
   for (const auto &query : queries) {
     auto stmt_list = pgparser.BuildParseTree(query);
@@ -474,29 +744,78 @@ TEST_F(ParserTestBase, DISABLED_OldConstTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldJoinTest) {
-  std::vector<std::string> queries;
+  std::string query;
 
-  // Select with join
-  queries.emplace_back("SELECT * FROM foo INNER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo LEFT JOIN bar ON foo.id=bar.id;");
-  queries.emplace_back("SELECT * FROM foo RIGHT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo FULL OUTER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;");
-  queries.emplace_back("SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;");
-
-  for (const auto &query : queries) {
+  {
+    query = "SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;";
     auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
 
-    // TODO(WAN): this was a pretty jank way to test, also won't scale
-    // Test for multiple table join
-    if (query == "SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;") {
-      auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
-      auto join_table = select_stmt->GetSelectTable().get();
-      EXPECT_TRUE(join_table->GetTableReferenceType() == TableReferenceType::JOIN);
-      auto l_join = join_table->GetJoin()->GetLeftTable().get();
-      auto r_table = join_table->GetJoin()->GetRightTable().get();
-      EXPECT_TRUE(l_join->GetTableReferenceType() == TableReferenceType::JOIN);
-      EXPECT_TRUE(r_table->GetTableReferenceType() == TableReferenceType::NAME);
-    }
+    auto join_cond = join_table->GetJoin()->GetJoinCondition().get();
+    EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+    auto jcl = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(0).get());
+    EXPECT_EQ(jcl->GetTableName(), "foo");
+    EXPECT_EQ(jcl->GetColumnName(), "id2");
+    auto jcr = reinterpret_cast<TupleValueExpression *>(join_cond->GetChild(1).get());
+    EXPECT_EQ(jcr->GetTableName(), "baz");
+    EXPECT_EQ(jcr->GetColumnName(), "id2");
+
+    auto l_join = join_table->GetJoin()->GetLeftTable().get();
+    EXPECT_EQ(l_join->GetTableReferenceType(), TableReferenceType::JOIN);
+    auto ll_join = l_join->GetJoin()->GetLeftTable().get();
+    EXPECT_EQ(ll_join->GetTableName(), "foo");
+    auto lr_join = l_join->GetJoin()->GetRightTable().get();
+    EXPECT_EQ(lr_join->GetTableName(), "bar");
+
+    auto r_table = join_table->GetJoin()->GetRightTable().get();
+    EXPECT_EQ(r_table->GetTableReferenceType(), TableReferenceType::NAME);
+    EXPECT_EQ(r_table->GetTableName(), "baz");
+  }
+
+  {
+    query = "SELECT * FROM foo INNER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
+  }
+
+  {
+    query = "SELECT * FROM foo LEFT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::LEFT);
+  }
+
+  {
+    query = "SELECT * FROM foo RIGHT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::RIGHT);
+  }
+
+  {
+    query = "SELECT * FROM foo FULL OUTER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    auto join_table = select_stmt->GetSelectTable().get();
+    EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
+    EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::OUTER);
+  }
+
+  {
+    // test case from SQLite
+    query = "SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;";
+    EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
   }
 }
 
@@ -1040,7 +1359,7 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
       "BEFORE UPDATE OF balance ON accounts "
       "FOR EACH ROW "
       "WHEN (OLD.balance <> NEW.balance) "
-      "EXECUTE PROCEDURE check_account_update();";
+      "EXECUTE PROCEDURE check_account_update(update_date);";
   auto stmt_list = pgparser.BuildParseTree(query);
 
   EXPECT_EQ(stmt_list[0]->GetType(), StatementType::CREATE);
@@ -1050,11 +1369,13 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
   EXPECT_EQ(create_trigger_stmt->GetTriggerName(), "check_update");
   EXPECT_EQ(create_trigger_stmt->GetTableName(), "accounts");
 
-  auto funcname = create_trigger_stmt->GetTriggerFuncNames();
-  EXPECT_EQ(funcname.size(), 1);
-  EXPECT_EQ(funcname[0], "check_account_update");
+  auto func_name = create_trigger_stmt->GetTriggerFuncNames();
+  EXPECT_EQ(func_name.size(), 1);
+  EXPECT_EQ(func_name[0], "check_account_update");
 
-  EXPECT_EQ(create_trigger_stmt->GetTriggerArgs().size(), 0);
+  auto func_args = create_trigger_stmt->GetTriggerArgs().at(0);
+  EXPECT_EQ(func_args, "update_date");
+  EXPECT_EQ(create_trigger_stmt->GetTriggerArgs().size(), 1);
 
   auto columns = create_trigger_stmt->GetTriggerColumns();
   EXPECT_EQ(columns.size(), 1);
@@ -1169,6 +1490,17 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
 TEST_F(ParserTestBase, OldCaseTest) {
   std::string query = "SELECT id, case when id=100 then 1 else 0 end from tbl;";
   auto stmt_list = pgparser.BuildParseTree(query);
+  auto select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+  auto select_args = select_stmt->GetSelectColumns();
+  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
+
+  query = "SELECT id, case id when 100 then 1 when 200 then 2 end from tbl;";
+  stmt_list = pgparser.BuildParseTree(query);
+  select_stmt = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+  select_args = select_stmt->GetSelectColumns();
+  EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
 }
 
 // NOLINTNEXTLINE

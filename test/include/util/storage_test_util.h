@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -90,8 +91,9 @@ struct StorageTestUtil {
   static void PopulateRandomRow(storage::ProjectedRow *const row, const storage::BlockLayout &layout,
                                 const double null_bias, Random *const generator) {
     std::bernoulli_distribution coin(1 - null_bias);
-    // I don't think this matters as a tunable thing?
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 10);
+    // TODO(Tianyu): I don't think this matters as a tunable thing?
+    // Make sure we have a mix of inlined and non-inlined values
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -99,11 +101,18 @@ struct StorageTestUtil {
       if (coin(*generator)) {
         if (layout.IsVarlen(col)) {
           uint32_t size = varlen_size(*generator);
-          byte *varlen = common::AllocationUtil::AllocateAligned(size);
-          FillWithRandomBytes(size, varlen, generator);
-          // varlen entries always start off not inlined
-          *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) = {varlen, size,
-                                                                                                     false};
+          if (size > storage::VarlenEntry::InlineThreshold()) {
+            byte *varlen = common::AllocationUtil::AllocateAligned(size);
+            FillWithRandomBytes(size, varlen, generator);
+            // varlen entries always start off not inlined
+            *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
+                storage::VarlenEntry::Create(varlen, size, true);
+          } else {
+            byte buf[storage::VarlenEntry::InlineThreshold()];
+            FillWithRandomBytes(size, buf, generator);
+            *reinterpret_cast<storage::VarlenEntry *>(row->AccessForceNotNull(projection_list_idx)) =
+                storage::VarlenEntry::CreateInline(buf, size);
+          }
         } else {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
         }
@@ -176,28 +185,38 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static void PrintRow(const RowType &row, const storage::BlockLayout &layout) {
-    printf("num_cols: %u\n", row.NumColumns());
+  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout) {
+    std::ostringstream os;
+    os << "num_cols: " << row.NumColumns() << std::endl;
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       storage::col_id_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
       if (attr == nullptr) {
-        printf("col_id: %u is NULL\n", !col_id);
+        os << "col_id: " << !col_id << " is NULL" << std::endl;
         continue;
       }
 
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
-        printf("col_id: %u is varlen, ptr %p, size %u, gathered %d, content ", !col_id, entry->Content(), entry->Size(),
-               entry->IsGathered());
-        for (uint8_t pos = 0; pos < entry->Size(); pos++) printf("%02x", static_cast<uint8_t>(entry->Content()[pos]));
-        printf("\n");
+        os << "col_id: " << !col_id;
+        os << " is varlen, ptr " << entry->Content();
+        os << ", size " << entry->Size();
+        os << ", reclaimable " << entry->NeedReclaim();
+        os << ", content ";
+        for (uint8_t pos = 0; pos < entry->Size(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(entry->Content()[pos]);
+        }
+        os << std::endl;
       } else {
-        printf("col_id: %u is ", !col_id);
-        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) printf("%02x", static_cast<uint8_t>(attr[pos]));
-        printf("\n");
+        os << "col_id: " << !col_id;
+        os << " is ";
+        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(attr[pos]);
+        }
+        os << std::endl;
       }
     }
+    return os.str();
   }
 
   // Write the given tuple (projected row) into a block using the given access strategy,
@@ -239,7 +258,11 @@ struct StorageTestUtil {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
     std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
-    attr_sizes[0] = 8;
+
+    for (uint16_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+      attr_sizes[i] = 8;
+    }
+
     for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
