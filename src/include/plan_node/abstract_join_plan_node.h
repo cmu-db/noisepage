@@ -33,7 +33,6 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
 
   const parser::AbstractExpression *predicate_;
 
- private:
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
 };
 
