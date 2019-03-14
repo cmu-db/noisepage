@@ -11,9 +11,6 @@
 
 namespace terrier::storage::index {
 
-template <uint8_t KeySize>
-class CompactIntsHasher;
-
 // This is the maximum number of 8-byte slots that we will pack into a single
 // CompactIntsKey template. You should not instantiate anything with more than this
 #define INTSKEY_MAX_SLOTS 4
@@ -44,8 +41,6 @@ class CompactIntsKey {
   static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
 
  private:
-  friend class CompactIntsHasher<KeySize>;
-
   // This is the array we use for storing integers
   byte key_data[key_size_byte];
 

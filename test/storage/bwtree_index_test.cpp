@@ -85,7 +85,8 @@ KeySchema RandomCompactIntsKeySchema(Random *generator) {
 }
 
 template <typename Random>
-std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
+std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr,
+                                                           Random *generator) {
   std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
   const auto &key_schema = metadata.GetKeySchema();
   const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
@@ -242,7 +243,8 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     // generate random key schema
     auto key_schema = RandomCompactIntsKeySchema(&generator_);
     IndexMetadata metadata(key_schema);
-    auto initializer = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(), metadata.GetComparisonOrder());
+    auto initializer = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(),
+                                                                                        metadata.GetComparisonOrder());
 
     // create our projected row buffers
     auto *pr_buffer_A = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -314,24 +316,24 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
 }
 
 // NOLINTNEXTLINE
-// TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
-//  const uint32_t num_iters = 100;
-//
-//  const std::vector<type::TypeId> generic_key_types{
-//      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-//      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
-//      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
-//
-//  for (uint32_t i = 0; i < num_iters; i++) {
-//    const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator_);
-//
-//    IndexBuilder builder;
-//    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
-//    auto *index = builder.Build();
-//
-//    //    BasicOps(index, &generator_);
-//
-//    delete index;
-//  }
-//}
+TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
+  const uint32_t num_iters = 100;
+
+  const std::vector<type::TypeId> generic_key_types{
+      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
+      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
+      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
+
+  for (uint32_t i = 0; i < num_iters; i++) {
+    const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator_);
+
+    IndexBuilder builder;
+    builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
+    auto *index = builder.Build();
+
+    //    BasicOps(index, &generator_);
+
+    delete index;
+  }
+}
 }  // namespace terrier::storage::index

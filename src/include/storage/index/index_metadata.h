@@ -120,9 +120,6 @@ class IndexMetadata {
    *        gives where you should write the attrs in a compact ints key
    */
   static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint8_t> &attr_sizes) {
-    TERRIER_ASSERT(std::all_of(attr_sizes.begin(), attr_sizes.end(),
-                               [](uint8_t size) { return size == 1 || size == 2 || size == 4 || size == 8; }),
-                   "Can only contain CompactInts compatible sizes.");
     // exclusive scan on a copy
     std::vector<uint8_t> scan = attr_sizes;
     std::exclusive_scan(scan.begin(), scan.end(), scan.begin(), 0u);

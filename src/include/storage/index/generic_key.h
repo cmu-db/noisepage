@@ -15,13 +15,6 @@ namespace terrier::storage::index {
 #define GENERICKEY_MAX_SIZE 256
 
 template <uint16_t KeySize>
-class GenericKeyEqualityChecker;
-template <uint16_t KeySize>
-class GenericKeyComparator;
-template <uint16_t KeySize>
-class GenericKeyHasher;
-
-template <uint16_t KeySize>
 class GenericKey {
  public:
   // This is the actual byte size of the key
@@ -63,11 +56,6 @@ class GenericKey {
     }
   }
 
- private:
-  friend class GenericKeyEqualityChecker<KeySize>;
-  friend class GenericKeyComparator<KeySize>;
-  friend class GenericKeyHasher<KeySize>;
-
   void ZeroOut() { std::memset(key_data_, 0x00, key_size_byte); }
 
   ProjectedRow *const GetProjectedRow() const {
@@ -88,11 +76,6 @@ template <uint16_t KeySize>
 class TypeComparators {
  public:
   TypeComparators() = delete;
-
- private:
-  friend class GenericKeyEqualityChecker<KeySize>;
-  friend class GenericKeyComparator<KeySize>;
-  friend class GenericKeyHasher<KeySize>;
 
   static int CompareVarlens(const VarlenEntry &lhs_varlen, const VarlenEntry &rhs_varlen) {
     const uint32_t lhs_size = lhs_varlen.Size();
@@ -168,10 +151,14 @@ class TypeComparators {
   }
 };
 
+}  // namespace terrier::storage::index
+
+namespace std {
 template <uint16_t KeySize>
-class GenericKeyComparator {
+struct less<terrier::storage::index::GenericKey<KeySize>> {
  public:
-  bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
+                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
     TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
@@ -202,10 +189,11 @@ class GenericKeyComparator {
         return false;
       }
 
-      const type::TypeId type_id = key_schema[i].type_id;
+      const terrier::type::TypeId type_id = key_schema[i].type_id;
 
-      if (TypeComparators<KeySize>::CompareLessThan(type_id, lhs_attr, rhs_attr)) return true;
-      if (TypeComparators<KeySize>::CompareGreaterThan(type_id, lhs_attr, rhs_attr)) return false;
+      if (terrier::storage::index::TypeComparators<KeySize>::CompareLessThan(type_id, lhs_attr, rhs_attr)) return true;
+      if (terrier::storage::index::TypeComparators<KeySize>::CompareGreaterThan(type_id, lhs_attr, rhs_attr))
+        return false;
 
       // attributes are equal, continue
     }
@@ -213,15 +201,12 @@ class GenericKeyComparator {
     // keys are equal
     return false;
   }
-
-  GenericKeyComparator(const GenericKeyComparator &) = default;
-  GenericKeyComparator() = default;
 };
 
 template <uint16_t KeySize>
-class GenericKeyEqualityChecker {
- public:
-  bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
+struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
+  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
+                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
     TERRIER_ASSERT(lhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(rhs.metadata_ != nullptr, "Don't think it makes sense to compare empty GenericKeys.");
     TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
@@ -252,9 +237,9 @@ class GenericKeyEqualityChecker {
         return false;
       }
 
-      const type::TypeId type_id = key_schema[i].type_id;
+      const terrier::type::TypeId type_id = key_schema[i].type_id;
 
-      if (!TypeComparators<KeySize>::CompareEquals(type_id, lhs_attr, rhs_attr)) {
+      if (!terrier::storage::index::TypeComparators<KeySize>::CompareEquals(type_id, lhs_attr, rhs_attr)) {
         // one of the attrs didn't match, return non-equal
         return false;
       }
@@ -265,21 +250,18 @@ class GenericKeyEqualityChecker {
     // keys are equal
     return true;
   }
-
-  GenericKeyEqualityChecker(const GenericKeyEqualityChecker &) = default;
-  GenericKeyEqualityChecker() = default;
 };
 
 template <uint16_t KeySize>
-class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
+struct hash<terrier::storage::index::GenericKey<KeySize>> {
  public:
-  size_t operator()(GenericKey<KeySize> const &key) const {
+  size_t operator()(terrier::storage::index::GenericKey<KeySize> const &key) const {
     TERRIER_ASSERT(key.metadata_ != nullptr, "Don't think it makes sense to hash an empty GenericKey.");
 
     const auto &key_schema = key.metadata_->GetKeySchema();
     const auto &attr_sizes = key.metadata_->GetAttributeSizes();
 
-    size_t running_hash = terrier::common::HashUtil::Hash(*(key.metadata_));
+    uint64_t running_hash = terrier::common::HashUtil::Hash(*(key.metadata_));
 
     const auto *const pr = key.GetProjectedRow();
 
@@ -297,8 +279,8 @@ class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
         continue;
       }
 
-      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY) {
-        const auto varlen = *reinterpret_cast<const VarlenEntry *const>(attr);
+      if (type_id == terrier::type::TypeId::VARCHAR || type_id == terrier::type::TypeId::VARBINARY) {
+        const auto varlen = *reinterpret_cast<const terrier::storage::VarlenEntry *const>(attr);
         if (!varlen.IsInlined()) {
           const auto *const content = varlen.Content();
           TERRIER_ASSERT(content != nullptr, "Varlen's non-inlined content cannot point to null.");
@@ -315,9 +297,5 @@ class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
 
     return running_hash;
   }
-
-  GenericKeyHasher(const GenericKeyHasher &) = default;
-  GenericKeyHasher() = default;
 };
-
-}  // namespace terrier::storage::index
+}  // namespace std

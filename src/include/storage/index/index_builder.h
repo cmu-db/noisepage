@@ -95,26 +95,22 @@ class IndexBuilder {
 
   Index *BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
                                IndexMetadata metadata) const {
-    //    const auto pr_size =
-    //    ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(),
-    //                                                                                          metadata.GetComparisonOrder())
-    //                             .ProjectedRowSize();
+    const auto pr_size = ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(metadata.GetAttributeSizes(),
+                                                                                          metadata.GetComparisonOrder())
+                             .ProjectedRowSize();
     Index *index = nullptr;
 
-    //    const auto key_size =
-    //        (pr_size + 8) +
-    //        sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
+    const auto key_size =
+        (pr_size + 8) +
+        sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
 
-    //    if (key_size <= 64) {
-    //      index = new BwTreeIndex<GenericKey<64>, GenericKeyComparator<64>, GenericKeyEqualityChecker<64>,
-    //                              GenericKeyHasher<64>>(index_oid, constraint_type, std::move(metadata));
-    //    } else if (key_size <= 128) {
-    //      index = new BwTreeIndex<GenericKey<128>, GenericKeyComparator<128>, GenericKeyEqualityChecker<128>,
-    //                              GenericKeyHasher<128>>(index_oid, constraint_type, std::move(metadata));
-    //    } else if (key_size <= 256) {
-    //      index = new BwTreeIndex<GenericKey<256>, GenericKeyComparator<256>, GenericKeyEqualityChecker<256>,
-    //                              GenericKeyHasher<256>>(index_oid, constraint_type, std::move(metadata));
-    //    }
+    if (key_size <= 64) {
+      index = new BwTreeIndex<GenericKey<64>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= 128) {
+      index = new BwTreeIndex<GenericKey<128>>(index_oid, constraint_type, std::move(metadata));
+    } else if (key_size <= 256) {
+      index = new BwTreeIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
+    }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
   }
