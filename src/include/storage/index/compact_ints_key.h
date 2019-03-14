@@ -16,7 +16,7 @@ namespace terrier::storage::index {
 // arbitrary and cannot be increased beyond 256 bits until AVX-512 is more widely available.
 #define INTSKEY_MAX_SLOTS 4
 
-/*
+/**
  * CompactIntsKey - Compact representation of multifield integers
  *
  * This class is used for storing multiple integral fields into a compact
