@@ -36,6 +36,32 @@ class GenericKey {
     std::memcpy(GetProjectedRow(), &from, from.Size());
   }
 
+  ~GenericKey() {
+    if (metadata_ == nullptr) return;
+
+    const auto &key_schema = metadata_->GetKeySchema();
+
+    for (uint16_t i = 0; i < key_schema.size(); i++) {
+      const auto type_id = key_schema[i].type_id;
+
+      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY) {
+        auto *const pr = GetProjectedRow();
+        const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
+        const byte *const attr = pr->AccessWithNullCheck(offset);
+        if (attr == nullptr) {
+          // attribute is NULL, nothing to clean up
+          continue;
+        }
+
+        const auto varlen = *reinterpret_cast<const VarlenEntry *const>(attr);
+
+        if (varlen.NeedReclaim()) {
+          delete[] varlen.Content();
+        }
+      }
+    }
+  }
+
  private:
   friend class GenericKeyEqualityChecker<KeySize>;
   friend class GenericKeyComparator<KeySize>;
@@ -54,7 +80,7 @@ class GenericKey {
 
   byte key_data_[key_size_byte];
 
-  const IndexMetadata *metadata_;
+  const IndexMetadata *metadata_ = nullptr;
 };
 
 template <uint16_t KeySize>
@@ -89,10 +115,10 @@ class GenericKeyComparator {
         return false;
       }
 
-      const type::TypeId type = key_schema[i].type_id;
+      const type::TypeId type_id = key_schema[i].type_id;
 
-      if (CompareLessThan(type, lhs_attr, rhs_attr)) return true;
-      if (CompareGreaterThan(type, lhs_attr, rhs_attr)) return false;
+      if (CompareLessThan(type_id, lhs_attr, rhs_attr)) return true;
+      if (CompareGreaterThan(type_id, lhs_attr, rhs_attr)) return false;
 
       // attributes are equal, continue
     }
@@ -105,8 +131,26 @@ class GenericKeyComparator {
   GenericKeyComparator() = default;
 
  private:
-  static bool CompareLessThan(const type::TypeId type, const byte *const lhs_attr, const byte *const rhs_attr) {
-    switch (type) {
+  static int CompareVarlens(const VarlenEntry &lhs_varlen, const VarlenEntry &rhs_varlen) {
+    const uint32_t lhs_size = lhs_varlen.Size();
+    const uint32_t rhs_size = rhs_varlen.Size();
+
+    const byte *const lhs_content = lhs_varlen.IsInlined()
+                                        ? lhs_varlen.Content()
+                                        : *reinterpret_cast<const byte *const *const>(lhs_varlen.Content());
+    const byte *const rhs_content = rhs_varlen.IsInlined()
+                                        ? rhs_varlen.Content()
+                                        : *reinterpret_cast<const byte *const *const>(rhs_varlen.Content());
+    auto result = std::memcmp(lhs_content, rhs_content, std::min(lhs_size, rhs_size));
+    if (result == 0 && lhs_size != rhs_size) {
+      // strings compared as equal, but they have different lengths. Decide based on length
+      result = lhs_size - rhs_size;
+    }
+    return result;
+  }
+
+  static bool CompareLessThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    switch (type_id) {
       case type::TypeId::BOOLEAN:
       case type::TypeId::TINYINT:
         return *reinterpret_cast<const int8_t *const>(lhs_attr) < *reinterpret_cast<const int8_t *const>(rhs_attr);
@@ -122,16 +166,19 @@ class GenericKeyComparator {
         return *reinterpret_cast<const double *const>(lhs_attr) < *reinterpret_cast<const double *const>(rhs_attr);
       case type::TypeId::TIMESTAMP:
         return *reinterpret_cast<const uint64_t *const>(lhs_attr) < *reinterpret_cast<const uint64_t *const>(rhs_attr);
-        // TODO(Matt): do this
-        //        case type::TypeId::VARCHAR:
-        //          return VARLEN_COLUMN;
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        const auto lhs_varlen = *reinterpret_cast<const VarlenEntry *const>(lhs_attr);
+        const auto rhs_varlen = *reinterpret_cast<const VarlenEntry *const>(rhs_attr);
+        return CompareVarlens(lhs_varlen, rhs_varlen) < 0;
+      }
       default:
-        throw std::runtime_error("Unknown type.");
+        throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKeyComparator().");
     }
   }
 
-  static bool CompareGreaterThan(const type::TypeId type, const byte *const lhs_attr, const byte *const rhs_attr) {
-    switch (type) {
+  static bool CompareGreaterThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    switch (type_id) {
       case type::TypeId::BOOLEAN:
       case type::TypeId::TINYINT:
         return *reinterpret_cast<const int8_t *const>(lhs_attr) > *reinterpret_cast<const int8_t *const>(rhs_attr);
@@ -147,11 +194,14 @@ class GenericKeyComparator {
         return *reinterpret_cast<const double *const>(lhs_attr) > *reinterpret_cast<const double *const>(rhs_attr);
       case type::TypeId::TIMESTAMP:
         return *reinterpret_cast<const uint64_t *const>(lhs_attr) > *reinterpret_cast<const uint64_t *const>(rhs_attr);
-        // TODO(Matt): do this
-        //        case type::TypeId::VARCHAR:
-        //          return VARLEN_COLUMN;
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        const auto lhs_varlen = *reinterpret_cast<const VarlenEntry *const>(lhs_attr);
+        const auto rhs_varlen = *reinterpret_cast<const VarlenEntry *const>(rhs_attr);
+        return CompareVarlens(lhs_varlen, rhs_varlen) > 0;
+      }
       default:
-        throw std::runtime_error("Unknown type.");
+        throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKeyComparator().");
     }
   }
 };
@@ -161,6 +211,7 @@ class GenericKeyEqualityChecker {
  public:
   bool operator()(const GenericKey<KeySize> &lhs, const GenericKey<KeySize> &rhs) const {
     TERRIER_ASSERT(lhs.metadata_ == rhs.metadata_, "Keys must have the same metadata.");
+    // TODO(Matt): fix for VARLEN
     return std::memcmp(lhs.key_data_, rhs.key_data_, GenericKey<KeySize>::key_size_byte) == 0;
   }
 
@@ -172,6 +223,7 @@ template <uint16_t KeySize>
 class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
  public:
   size_t operator()(GenericKey<KeySize> const &p) const {
+    // TODO(Matt): fix for VARLEN
     return common::HashUtil::HashBytes(p.key_data_, GenericKey<KeySize>::key_size_byte);
   }
 

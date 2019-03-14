@@ -204,9 +204,9 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
   std::default_random_engine generator;
 
   const std::vector<type::TypeId> generic_key_types{
-      type::TypeId::BOOLEAN, type::TypeId::TINYINT, type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-      type::TypeId::BIGINT,  type::TypeId::DECIMAL, type::TypeId::TIMESTAMP, type::TypeId::DATE};
-  // TODO(Matt): add these back    type::TypeId::VARCHAR};
+      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
+      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
+      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
 
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = RandomGenericKeySchema(10, generic_key_types, &generator);
