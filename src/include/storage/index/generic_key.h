@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <vector>
@@ -155,11 +156,11 @@ class TypeComparators {
   }
 
   static bool CompareLessThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
-    COMPARE_FUNC(<)
+    COMPARE_FUNC(<)  // NOLINT
   }
 
   static bool CompareGreaterThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
-    COMPARE_FUNC(>)
+    COMPARE_FUNC(>)  // NOLINT
   }
 
   static bool CompareEquals(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
@@ -269,8 +270,44 @@ template <uint16_t KeySize>
 class GenericKeyHasher : std::unary_function<GenericKey<KeySize>, std::size_t> {
  public:
   size_t operator()(GenericKey<KeySize> const &p) const {
-    // TODO(Matt): fix for VARLEN
     return common::HashUtil::HashBytes(p.key_data_, GenericKey<KeySize>::key_size_byte);
+    //
+    //
+    //    const auto &key_schema = p.metadata_->GetKeySchema();
+    //
+    //    for (uint16_t i = 0; i < key_schema.size(); i++) {
+    //      const auto *const pr = p.GetProjectedRow();
+    //
+    //      const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
+    //
+    //      const byte *const attr = pr->AccessWithNullCheck(offset);
+    //
+    //      if (attr == nullptr) {
+    //        if (rhs_attr == nullptr) {
+    //          // attributes are both NULL (equal), continue
+    //          continue;
+    //        }
+    //        // lhs is NULL, rhs is non-NULL, return non-equal
+    //        return false;
+    //      }
+    //
+    //      if (rhs_attr == nullptr) {
+    //        // lhs is non-NULL, rhs is NULL, return non-equal
+    //        return false;
+    //      }
+    //
+    //      const type::TypeId type_id = key_schema[i].type_id;
+    //
+    //      if (!TypeComparators<KeySize>::CompareEquals(type_id, lhs_attr, rhs_attr)) {
+    //        // one of the attrs didn't match, return non-equal
+    //        return false;
+    //      }
+    //
+    //      // attributes are equal, continue
+    //    }
+    //
+    //    // keys are equal
+    //    return true;
   }
 
   GenericKeyHasher(const GenericKeyHasher &) = default;

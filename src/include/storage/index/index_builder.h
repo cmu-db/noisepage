@@ -112,6 +112,7 @@ class IndexBuilder {
                              .ProjectedRowSize();
     Index *index = nullptr;
 
+    // TODO(Matt): these sizes are wrong. Revisit tomorrow after talking to Ziqi
     if (pr_size <= 8) {
       index =
           new BwTreeIndex<GenericKey<8>, GenericKeyComparator<8>, GenericKeyEqualityChecker<8>, GenericKeyHasher<8>>(
