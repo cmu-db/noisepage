@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/parameter.h"
 #include "output_schema.h"
+#include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "plan_node/abstract_plan_node.h"
 
@@ -48,25 +48,22 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const override { return "Update Plan Node"; }
+  const std::string GetInfo() const { return "Update Plan Node"; }
 
   /**
    * @return a unique pointer to a copy of this plan node
    */
-  std::unique_ptr<AbstractPlan> Copy() const override {
-    return std::unique_ptr<AbstractPlan>(
-        new UpdatePlan(target_table_, GetOutputSchema()));
+  std::unique_ptr<AbstractPlanNode> Copy() const override {
+    return std::unique_ptr<AbstractPlanNode>(new UpdatePlanNode(target_table_, GetOutputSchema()));
   }
 
   /**
    * @return the hashed value of this plan node
    */
-  hash_t Hash() const override;
+  common::hash_t Hash() const override;
 
-  bool operator==(const AbstractPlan &rhs) const override;
-  bool operator!=(const AbstractPlan &rhs) const override {
-    return !(*this == rhs);
-  }
+  bool operator==(const AbstractPlanNode &rhs) const override;
+  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   // The target table to operate on

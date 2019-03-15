@@ -1,5 +1,10 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
+#include "catalog/catalog_defs.h"
+
 namespace terrier::plan_node {
 
 //===--------------------------------------------------------------------===//
@@ -120,4 +125,5 @@ enum class DropType {
   TRIGGER = 5,                // trigger drop type
   SCHEMA = 6,                 // trigger drop type
 };
+
 }  // namespace terrier::plan_node

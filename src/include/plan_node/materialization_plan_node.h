@@ -46,8 +46,7 @@ class MaterializationPlanNode : public AbstractPlanNode {
    * @return a unique pointer to a copy of this plan node
    */
   std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(
-        new MaterializationPlanNode(GetOutputSchema(), physify_flag_));
+    return std::unique_ptr<AbstractPlanNode>(new MaterializationPlanNode(GetOutputSchema(), physify_flag_));
   }
 
  private:

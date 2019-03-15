@@ -8,7 +8,7 @@ namespace terrier {
 namespace storage {
 class SqlTable;
 class TupleSlot;
-}
+}  // namespace storage
 
 namespace parser {
 class InsertStatement;
@@ -23,25 +23,20 @@ class InsertPlanNode : public AbstractPlanNode {
    * Construct when SELECT comes in with it
    */
   InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, uint32_t bulk_insert_count = 1)
-      : target_table_(target_table), bulk_insert_count_(bulk_insert_count) {
-  }
+      : target_table_(target_table), bulk_insert_count_(bulk_insert_count) {}
 
   /**
    * Instantiate an InsertPlanNode
    * Construct with an OutputSchema
    */
-  InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table,
-             std::shared_ptr<OutputSchema> output_schema,
-             uint32_t bulk_insert_count = 1)
-      : AbstractPlanNode(output_schema),
-        target_table_(target_table),
-        bulk_insert_count_(bulk_insert_count) {
-  }
+  InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::shared_ptr<OutputSchema> output_schema,
+                 uint32_t bulk_insert_count = 1)
+      : AbstractPlanNode(output_schema), target_table_(target_table), bulk_insert_count_(bulk_insert_count) {}
 
   // Construct with a tuple
   // This can only be handled by the interpreted exeuctor
   InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::unique_ptr<storage::TupleSlot> &&tuple,
-             uint32_t bulk_insert_count = 1)
+                 uint32_t bulk_insert_count = 1)
       : target_table_(target_table), bulk_insert_count_(bulk_insert_count) {
     tuples_.push_back(std::move(tuple));
   }
@@ -54,9 +49,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param insert_values values to insert
    */
   InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::vector<std::string> columns,
-             std::vector<
-             std::vector<std::unique_ptr<parser::AbstractExpression>>> &&
-  insert_values);
+                 std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values);
 
   /**
    * @return the type of this plan node
@@ -68,9 +61,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   storage::SqlTable *GetTable() const { return target_table_; }
 
-  const planner::ProjectInfo *GetProjectInfo() const {
-    return project_info_.get();
-  }
+  const planner::ProjectInfo *GetProjectInfo() const { return project_info_.get(); }
 
   type::Value GetValue(uint32_t idx) const { return values_.at(idx); }
 
@@ -87,9 +78,7 @@ class InsertPlanNode : public AbstractPlanNode {
 
   void PerformBinding(BindingContext &binding_context) override;
 
-  const std::vector<const AttributeInfo *> &GetAttributeInfos() const {
-    return ais_;
-  }
+  const std::vector<const AttributeInfo *> &GetAttributeInfos() const { return ais_; }
 
   // WARNING - Not Implemented
   std::unique_ptr<AbstractPlan> Copy() const override {
@@ -102,14 +91,10 @@ class InsertPlanNode : public AbstractPlanNode {
   hash_t Hash() const override;
 
   bool operator==(const AbstractPlan &rhs) const override;
-  bool operator!=(const AbstractPlan &rhs) const override {
-    return !(*this == rhs);
-  }
+  bool operator!=(const AbstractPlan &rhs) const override { return !(*this == rhs); }
 
-  virtual void VisitParameters(
-      codegen::QueryParametersMap &map,
-      std::vector<peloton::type::Value> &values,
-      const std::vector<peloton::type::Value> &values_from_user) override;
+  virtual void VisitParameters(codegen::QueryParametersMap &map, std::vector<peloton::type::Value> &values,
+                               const std::vector<peloton::type::Value> &values_from_user) override;
 
  private:
   /**
@@ -121,9 +106,7 @@ class InsertPlanNode : public AbstractPlanNode {
    *
    * @return      true if column was found, false otherwise
    */
-  bool FindSchemaColIndex(std::string col_name,
-                          const std::vector<catalog::Column> &tbl_columns,
-                          uint32_t &index);
+  bool FindSchemaColIndex(std::string col_name, const std::vector<catalog::Column> &tbl_columns, uint32_t &index);
 
   /**
    * Process column specification supplied in the insert statement.
@@ -145,8 +128,7 @@ class InsertPlanNode : public AbstractPlanNode {
    *          false if all values are constants. This does not rule
    *             out the insert being a prepared statement.
    */
-  bool ProcessValueExpr(expression::AbstractExpression *expr,
-                        uint32_t schema_idx);
+  bool ProcessValueExpr(expression::AbstractExpression *expr, uint32_t schema_idx);
 
   /**
    * Set default value into a schema column
@@ -190,8 +172,7 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<storage::Tuple>> tuples_;
 
   // Parameter Information <tuple_index, tuple_column_index, parameter_index>
-  std::unique_ptr<std::vector<std::tuple<oid_t, oid_t, oid_t>>>
-  parameter_vector_;
+  std::unique_ptr<std::vector<std::tuple<oid_t, oid_t, oid_t>>> parameter_vector_;
 
   // Parameter value types
   std::unique_ptr<std::vector<type::TypeId>> params_value_type_;
@@ -201,5 +182,5 @@ class InsertPlanNode : public AbstractPlanNode {
 
   DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
-}  // namespace planner
-}  // namespace peloton
+}  // namespace plan_node
+}  // namespace terrier

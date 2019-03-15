@@ -6,6 +6,8 @@
 #include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
+#include "plan_node_defs.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
@@ -77,10 +79,49 @@ class OutputSchema {
   };
 
   /**
+   * An intermediate column produced by plan nodes
+   */
+  struct DerivedColumn {
+    Column column_;                                     // Intermediate column
+    std::shared_ptr<parser::AbstractExpression> expr_;  // The expression used to derive the intermediate column
+
+    /**
+     * Instantiate a derived column
+     * @param column an intermediate column
+     * @param expr the expression used to derive the intermediate column
+     */
+    DerivedColumn(Column column, std::shared_ptr<parser::AbstractExpression> expr)
+        : column_(std::move(column)), expr_(std::move(expr)) {}
+
+    /**
+     * Hash the current DerivedColumn.
+     */
+    common::hash_t Hash() const {
+      common::hash_t hash = common::HashUtil::Hash(column_);
+      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+      return hash;
+    }
+  };
+
+  /**
+   * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
+   * plan node
+   */
+  using DerivedTarget = std::pair<catalog::offset_oid_t, const DerivedColumn>;
+
+  /**
+   * Generic specification of a direct map between the columns of two output schema
+   *        < NEW_offset_id , <tuple_index (left or right tuple), OLD_offset_id>    >
+   */
+  using DirectMap = std::pair<catalog::offset_oid_t, std::pair<catalog::offset_oid_t, catalog::offset_oid_t>>;
+
+  /**
    * Instantiates a OutputSchema object from a vector of previously-defined Columns
    * @param collection of columns
    */
-  explicit OutputSchema(std::vector<Column> columns) : columns_(std::move(columns)) {
+  explicit OutputSchema(std::vector<Column> columns, std::vector<DerivedTarget> targets,
+                        std::vector<DirectMap> direct_map_list)
+      : columns_(std::move(columns)), targets_(std::move(targets)), direct_map_list_(std::move(direct_map_list)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and 32767.");
   }
@@ -105,12 +146,21 @@ class OutputSchema {
   const std::vector<Column> &GetColumns() const { return columns_; }
 
   /**
-   * Hashes the current OutputSchema.
+   * Hash the current OutputSchema.
    */
   common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(columns_.size());
     for (auto const &column : columns_) {
       hash = common::HashUtil::CombineHashes(hash, column.Hash());
+    }
+    for (auto const &target : targets_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(target.first));
+      hash = common::HashUtil::CombineHashes(hash, target.second.Hash());
+    }
+    for (auto const &direct_map : direct_map_list_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(direct_map.first));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(direct_map.second.first));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(direct_map.second.second));
     }
     return hash;
   }
@@ -147,5 +197,7 @@ class OutputSchema {
 
  private:
   const std::vector<Column> columns_;
+  const std::vector<DerivedTarget> targets_;
+  const std::vector<DirectMap> direct_map_list_;
 };
 }  // namespace terrier::plan_node

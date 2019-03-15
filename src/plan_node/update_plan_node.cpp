@@ -7,10 +7,8 @@ namespace terrier::plan_node {
 
 // TODO(Gus,Wen) initialize update_primary_key by checking SQL table schema
 UpdatePlanNode::UpdatePlanNode(std::shared_ptr<storage::SqlTable> target_table,
-                       std::shared_ptr<OutputSchema> output_schema)
-    : AbstractPlanNode(output_schema),
-    target_table_(std::move(target_table)),
-    update_primary_key_(false) {}
+                               std::shared_ptr<OutputSchema> output_schema)
+    : AbstractPlanNode(std::move(output_schema)), target_table_(std::move(target_table)), update_primary_key_(false) {}
 
 common::hash_t UpdatePlanNode::Hash() const {
   auto type = GetPlanNodeType();
@@ -25,8 +23,7 @@ common::hash_t UpdatePlanNode::Hash() const {
 }
 
 bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType())
-    return false;
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
   auto &other = static_cast<const plan_node::UpdatePlanNode &>(rhs);
   auto table = GetTargetTable();
@@ -35,8 +32,7 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // TODO(Gus, Wen) Compare target tables
 
   // Update primary key
-  if (GetUpdatePrimaryKey() != other.GetUpdatePrimaryKey())
-    return false;
+  if (GetUpdatePrimaryKey() != other.GetUpdatePrimaryKey()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

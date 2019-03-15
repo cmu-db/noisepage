@@ -8,9 +8,8 @@ namespace terrier::plan_node {
 
 InsertPlanNodeNode::InsertPlan(
     storage::DataTable *table, const std::vector<std::string> *columns,
-    const std::vector<std::vector<
-        std::unique_ptr<expression::AbstractExpression>>> *insert_values)
-: target_table_(table), bulk_insert_count_(insert_values->size()) {
+    const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *insert_values)
+    : target_table_(table), bulk_insert_count_(insert_values->size()) {
   LOG_TRACE("Creating an Insert Plan with multiple expressions");
   PELOTON_ASSERT(target_table_);
 
@@ -34,8 +33,7 @@ InsertPlanNodeNode::InsertPlan(
 
   if (columns->empty()) {
     // INSERT INTO table_name VALUES (val1, val2, ...), (val1, val2, ...)
-    for (uint32_t tuple_idx = 0; tuple_idx < insert_values->size();
-         tuple_idx++) {
+    for (uint32_t tuple_idx = 0; tuple_idx < insert_values->size(); tuple_idx++) {
       auto &values = (*insert_values)[tuple_idx];
       PELOTON_ASSERT(values.size() <= schema_col_count);
       // uint32_t param_idx = 0;
@@ -52,8 +50,7 @@ InsertPlanNodeNode::InsertPlan(
         }
       }
       // for remaining columns, insert defaults
-      for (uint32_t column_id = values.size(); column_id != schema_col_count;
-           ++column_id) {
+      for (uint32_t column_id = values.size(); column_id != schema_col_count; ++column_id) {
         SetDefaultValue(column_id);
       }
     }
@@ -63,8 +60,7 @@ InsertPlanNodeNode::InsertPlan(
     PELOTON_ASSERT(columns->size() <= schema_col_count);
     // construct the mapping between schema cols and insert cols
     ProcessColumnSpec(columns);
-    for (uint32_t tuple_idx = 0; tuple_idx < insert_values->size();
-         tuple_idx++) {
+    for (uint32_t tuple_idx = 0; tuple_idx < insert_values->size(); tuple_idx++) {
       auto &values = (*insert_values)[tuple_idx];
       PELOTON_ASSERT(values.size() <= schema_col_count);
 
@@ -115,9 +111,8 @@ InsertPlanNodeNode::InsertPlan(
   }
 }
 
-bool InsertPlan::FindSchemaColIndex(
-    std::string col_name, const std::vector<catalog::Column> &tbl_columns,
-    uint32_t &index) {
+bool InsertPlan::FindSchemaColIndex(std::string col_name, const std::vector<catalog::Column> &tbl_columns,
+                                    uint32_t &index) {
   for (auto tcol = tbl_columns.begin(); tcol != tbl_columns.end(); tcol++) {
     if (tcol->GetName() == col_name) {
       index = std::distance(tbl_columns.begin(), tcol);
@@ -140,8 +135,7 @@ void InsertPlan::ProcessColumnSpec(const std::vector<std::string> *columns) {
     // determine index of column in schema
     bool found_col = FindSchemaColIndex(col_name, table_columns, idx);
     if (not found_col) {
-      throw Exception("column " + col_name + " not in table " +
-          target_table_->GetName() + " columns");
+      throw Exception("column " + col_name + " not in table " + target_table_->GetName() + " columns");
     }
     // we have values for this column
     schema_to_insert_[idx].in_insert_cols = true;
@@ -152,15 +146,13 @@ void InsertPlan::ProcessColumnSpec(const std::vector<std::string> *columns) {
   }
 }
 
-bool InsertPlan::ProcessValueExpr(expression::AbstractExpression *expr,
-                                  uint32_t schema_idx) {
+bool InsertPlan::ProcessValueExpr(expression::AbstractExpression *expr, uint32_t schema_idx) {
   auto type = schema_to_insert_[schema_idx].type;
 
   if (expr == nullptr) {
     SetDefaultValue(schema_idx);
   } else if (expr->GetExpressionType() == ExpressionType::VALUE_CONSTANT) {
-    auto *const_expr =
-        dynamic_cast<expression::ConstantValueExpression *>(expr);
+    auto *const_expr = dynamic_cast<expression::ConstantValueExpression *>(expr);
     type::Value value = const_expr->GetValue().CastAs(type);
 
     schema_to_insert_[schema_idx].set_value = true;
@@ -170,8 +162,7 @@ bool InsertPlan::ProcessValueExpr(expression::AbstractExpression *expr,
 
     return false;
   } else {
-    PELOTON_ASSERT(expr->GetExpressionType() ==
-        ExpressionType::VALUE_PARAMETER);
+    PELOTON_ASSERT(expr->GetExpressionType() == ExpressionType::VALUE_PARAMETER);
     return true;
   }
   return false;
@@ -263,9 +254,8 @@ bool InsertPlan::operator==(const AbstractPlan &rhs) const {
   return AbstractPlan::operator==(rhs);
 }
 
-void InsertPlan::VisitParameters(
-    codegen::QueryParametersMap &map, std::vector<peloton::type::Value> &values,
-    const std::vector<peloton::type::Value> &values_from_user) {
+void InsertPlan::VisitParameters(codegen::QueryParametersMap &map, std::vector<peloton::type::Value> &values,
+                                 const std::vector<peloton::type::Value> &values_from_user) {
   if (GetChildren().size() == 0) {
     auto *schema = target_table_->GetSchema();
     auto columns_num = schema->GetColumnCount();
@@ -273,9 +263,7 @@ void InsertPlan::VisitParameters(
     for (uint32_t i = 0; i < values_.size(); i++) {
       auto value = values_[i];
       auto column_id = i % columns_num;
-      map.Insert(expression::Parameter::CreateConstParameter(
-          value.GetTypeId(), schema->AllowNull(column_id)),
-                 nullptr);
+      map.Insert(expression::Parameter::CreateConstParameter(value.GetTypeId(), schema->AllowNull(column_id)), nullptr);
       values.push_back(value);
     }
   } else {
@@ -285,5 +273,5 @@ void InsertPlan::VisitParameters(
   }
 }
 
-}  // namespace planner
+}  // namespace terrier::plan_node
 }  // namespace peloton
