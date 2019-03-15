@@ -133,6 +133,6 @@ class StorageUtil {
    * @return {offset_varlen, offset_8, offset_4, offset_2, offset_1}
    */
   static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
-                                                           int num_reserved_columns);
+                                                           uint16_t num_reserved_columns);
 };
 }  // namespace terrier::storage

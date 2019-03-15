@@ -41,8 +41,6 @@ struct BlockLayout {
     return static_cast<uint8_t>(INT8_MAX & attr_sizes_.at(!col_id));
   }
 
-  const std::vector<uint8_t> &AttrSizes() const { return attr_sizes_; }
-
   /**
    * @param col_id the column id to check for
    * @return if the given column id is varlen or not

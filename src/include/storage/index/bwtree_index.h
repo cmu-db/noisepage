@@ -13,6 +13,10 @@
 
 namespace terrier::storage::index {
 
+/**
+ * Wrapper around Ziqi's OpenBwTree.
+ * @tparam KeyType the type of keys stored in the BwTree
+ */
 template <typename KeyType>
 class BwTreeIndex final : public Index {
   friend class IndexBuilder;

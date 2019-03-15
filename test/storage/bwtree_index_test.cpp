@@ -28,7 +28,7 @@ IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector
   std::vector<catalog::indexkeycol_oid_t> key_oids;
   key_oids.reserve(num_cols);
 
-  for (auto i = 0; i < num_cols; i++) {
+  for (uint32_t i = 0; i < num_cols; i++) {
     key_oids.emplace_back(i);
   }
 
@@ -36,7 +36,7 @@ IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector
 
   IndexKeySchema key_schema;
 
-  for (auto i = 0; i < num_cols; i++) {
+  for (uint32_t i = 0; i < num_cols; i++) {
     auto key_oid = key_oids[i];
     auto type = *RandomTestUtil::UniformRandomElement(types, generator);
     auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
@@ -79,7 +79,7 @@ IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
     const auto type = types[type_offset];
 
     key_schema.emplace_back(key_oids[col++], type, false);
-    bytes_used += type::TypeUtil::GetTypeSize(type);
+    bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
   }
 
   return key_schema;
@@ -156,12 +156,13 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
     case type::TypeId::VARBINARY: {
       uint8_t varlen_sizes[] = {2, 10, 20};  // meant to hit the inline (prefix), inline (prefix+content), content cases
       auto varlen_size = varlen_sizes[static_cast<uint8_t>(rng(*generator)) % 3];
-      byte *varlen_content = new byte[varlen_size];
+      auto *varlen_content = new byte[varlen_size];
       auto random_content = static_cast<int64_t>(rng(*generator));
       std::memcpy(varlen_content, &random_content, varlen_size);
       VarlenEntry varlen_entry{};
       if (varlen_size <= VarlenEntry::InlineThreshold()) {
         varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
+        delete[] varlen_content;
       } else {
         varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, true);
       }
@@ -184,7 +185,7 @@ byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr,
   const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
   const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
 
-  byte *reference = new byte[key_size];
+  auto *reference = new byte[key_size];
   uint32_t offset = 0;
   for (const auto &key : key_schema) {
     auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.indexkeycol_oid)));
@@ -247,19 +248,19 @@ bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr
   if (coin(*generator)) {
     const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
     const auto &key_schema = metadata.GetKeySchema();
-    std::uniform_int_distribution<uint16_t> rng(0, key_schema.size() - 1);
+    std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.size() - 1));
     const auto column = rng(*generator);
 
     uint16_t offset = 0;
     for (uint32_t i = 0; i < column; i++) {
-      offset += type::TypeUtil::GetTypeSize(key_schema[i].type_id);
+      offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema[i].type_id));
     }
 
     const auto type = key_schema[column].type_id;
     const auto type_size = type::TypeUtil::GetTypeSize(type);
 
     auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key_schema[column].indexkeycol_oid)));
-    byte *old_value = new byte[type_size];
+    auto *old_value = new byte[type_size];
     std::memcpy(old_value, attr, type_size);
     // force the value to change
     while (std::memcmp(old_value, attr, type_size) == 0) {
@@ -344,7 +345,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
     for (const auto key : key_schema) {
-      key_size += type::TypeUtil::GetTypeSize(key.type_id);
+      key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.type_id));
     }
     uint8_t key_type = 0;
     for (uint8_t j = 1; j <= 4; j++) {
@@ -394,14 +395,14 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
       const auto data_A = FillProjectedRow(metadata, pr_A, &generator_);
       float probabilities[] = {0.0, 0.5, 1.0};
 
-      for (uint8_t pr_i = 0; pr_i < 3; pr_i++) {
+      for (float prob : probabilities) {
         // have B copy A
         std::memcpy(pr_B, pr_A, initializer.ProjectedRowSize());
-        byte *data_B = new byte[key_size];
+        auto *data_B = new byte[key_size];
         std::memcpy(data_B, data_A, key_size);
 
         // modify a column of B with some probability, this also updates the reference data_B
-        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, probabilities[pr_i], &generator_);
+        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_);
 
         // perform the relevant checks
         switch (key_type) {

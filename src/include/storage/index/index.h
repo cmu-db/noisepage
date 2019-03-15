@@ -38,23 +38,52 @@ class Index {
   const ConstraintType constraint_type_;
 
  protected:
-  const IndexMetadata metadata_;  // cached metadata
+  /**
+   * Cached metadata that allows for performance optimizations in the index keys.
+   */
+  const IndexMetadata metadata_;
 
+  /**
+   * Creates a new index wrapper.
+   * @param oid identifier for the index
+   * @param constraint_type type of index
+   * @param metadata index description
+   */
   Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
       : oid_{oid}, constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
 
  public:
   virtual ~Index() = default;
 
+  /**
+   * Inserts a new key-value pair into the index.
+   * @param tuple key
+   * @param location value
+   * @return false if the value already exists, true otherwise
+   */
   virtual bool Insert(const ProjectedRow &tuple, TupleSlot location) = 0;
 
+  /**
+   * Removes a key-value pair from the index.
+   * @param tuple key
+   * @param location value
+   * @return false if the key-value pair did not exist, true if the deletion succeeds
+   */
   virtual bool Delete(const ProjectedRow &tuple, TupleSlot location) = 0;
 
+  /**
+   * Inserts a key-value pair only if the predicate fails on all existing values.
+   * @param tuple key
+   * @param location value
+   * @param predicate predicate to check against all existing values
+   * @return true if the value was inserted, false otherwise
+   *         (either because value exists, or predicate returns true for one of the existing values)
+   */
   virtual bool ConditionalInsert(const ProjectedRow &tuple, TupleSlot location,
                                  std::function<bool(const TupleSlot)> predicate) = 0;
 
   /**
-   * Looks for all the values associated with the given key in our index.
+   * Finds all the values associated with the given key in our index.
    * @param key the key to look for
    * @param[out] value_list the values associated with the key
    */

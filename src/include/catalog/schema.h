@@ -106,7 +106,7 @@ class Schema {
     return columns_[col_offset];
   }
   /**
-   * @param col_offset offset into the schema specifying which Column to access
+   * @param col_oid identifier of a Column in the schema
    * @return description of the schema for a specific column
    */
   Column GetColumn(const col_oid_t col_oid) const {

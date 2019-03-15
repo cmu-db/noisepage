@@ -14,6 +14,9 @@
 
 namespace terrier::storage::index {
 
+/**
+ * The IndexBuilder automatically creates the best possible index for the given parameters.
+ */
 class IndexBuilder {
  private:
   catalog::index_oid_t index_oid_{0};
@@ -23,6 +26,9 @@ class IndexBuilder {
  public:
   IndexBuilder() = default;
 
+  /**
+   * @return a new best-possible index for the current parameters
+   */
   Index *Build() const {
     TERRIER_ASSERT(!key_schema_.empty(), "Cannot build an index without a KeySchema.");
     TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
@@ -33,7 +39,7 @@ class IndexBuilder {
     bool use_compact_ints = true;
     uint32_t key_size = 0;
 
-    for (auto i = 0; use_compact_ints && i < key_schema_.size(); i++) {
+    for (uint16_t i = 0; use_compact_ints && i < key_schema_.size(); i++) {
       const auto &attr = key_schema_[i];
       use_compact_ints = use_compact_ints && !attr.is_nullable && CompactIntsOk(attr.type_id);  // key type ok?
       key_size += type::TypeUtil::GetTypeSize(attr.type_id);
@@ -44,16 +50,28 @@ class IndexBuilder {
     return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
   }
 
+  /**
+   * @param index_oid the index oid
+   * @return the builder object
+   */
   IndexBuilder &SetOid(const catalog::index_oid_t index_oid) {
     index_oid_ = index_oid;
     return *this;
   }
 
+  /**
+   * @param constraint_type the type of index
+   * @return the builder object
+   */
   IndexBuilder &SetConstraintType(const ConstraintType constraint_type) {
     constraint_type_ = constraint_type;
     return *this;
   }
 
+  /**
+   * @param key_schema the index key schema
+   * @return the builder object
+   */
   IndexBuilder &SetKeySchema(const IndexKeySchema &key_schema) {
     key_schema_ = key_schema;
     return *this;

@@ -1,6 +1,5 @@
 #include "storage/storage_util.h"
 #include <cstring>
-#include <numeric>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -141,10 +140,10 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
 }
 
 std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
-                                                               int num_reserved_columns) {
+                                                               uint16_t num_reserved_columns) {
   std::vector<uint16_t> offsets;
   offsets.reserve(5);
-  for (auto i = 0; i < 5; i++) {
+  for (uint8_t i = 0; i < 5; i++) {
     offsets.emplace_back(0);
   }
 
@@ -170,12 +169,14 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   }
 
   // reserved columns appear first
-  offsets[0] += num_reserved_columns;
+  offsets[0] = static_cast<uint16_t>(offsets[0] + num_reserved_columns);
   // reserved columns are size 8
-  offsets[2] -= num_reserved_columns;
+  offsets[2] = static_cast<uint16_t>(offsets[2] - num_reserved_columns);
 
-  // compute the offsets
-  std::inclusive_scan(offsets.begin(), offsets.end(), offsets.begin());
+  // compute the offsets with an inclusive scan
+  for (uint8_t i = 1; i < 5; i++) {
+    offsets[i] = static_cast<uint16_t>(offsets[i] + offsets[i - 1]);
+  }
   return offsets;
 }
 

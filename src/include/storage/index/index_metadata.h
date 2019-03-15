@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <numeric>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,8 +18,10 @@ namespace terrier::storage::index {
  */
 class IndexMetadata {
  public:
-  DISALLOW_COPY(IndexMetadata);
-
+  /**
+   * Move-construct the index metadata object.
+   * @param other move source
+   */
   IndexMetadata(IndexMetadata &&other) noexcept
       : key_schema_(std::move(other.key_schema_)),
         attr_sizes_(std::move(other.attr_sizes_)),
@@ -68,6 +69,8 @@ class IndexMetadata {
   const ProjectedRowInitializer &GetProjectedRowInitializer() const { return initializer_; }
 
  private:
+  DISALLOW_COPY(IndexMetadata);
+
   std::vector<IndexKeyColumn> key_schema_;                                      // for GenericKey
   std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
   std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
@@ -110,9 +113,13 @@ class IndexMetadata {
    *        gives where you should write the attrs in a compact ints key
    */
   static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint8_t> &attr_sizes) {
-    // exclusive scan on a copy
-    std::vector<uint8_t> scan = attr_sizes;
-    std::exclusive_scan(scan.begin(), scan.end(), scan.begin(), 0u);
+    // exclusive scan
+    std::vector<uint8_t> scan;
+    scan.reserve(attr_sizes.size());
+    scan.emplace_back(0);
+    for (uint16_t i = 1; i < attr_sizes.size(); i++) {
+      scan.emplace_back(scan[i - 1] + attr_sizes[i - 1]);
+    }
     return scan;
   }
 
