@@ -19,7 +19,8 @@ class SetOpPlanNode : public AbstractPlanNode {
    * @param output_schema the output schema of this plan node
    * @param set_op the set operation of this node
    */
-  SetOpPlanNode(OutputSchema output_schema, SetOpType set_op) : AbstractPlanNode(output_schema), set_op_(set_op) {}
+  SetOpPlanNode(std::shared_ptr<OutputSchema> output_schema, SetOpType set_op)
+      : AbstractPlanNode(std::move(output_schema)), set_op_(set_op) {}
 
   /**
    * @return the set operation of this node
@@ -29,7 +30,7 @@ class SetOpPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::SETOP; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
 
   /**
    * @return debug info
@@ -39,8 +40,8 @@ class SetOpPlanNode : public AbstractPlanNode {
   /**
    * @return a unique pointer to this plan node
    */
-  std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(new SetOpPlanNode(set_op_));
+  std::unique_ptr<AbstractPlanNode> Copy() const override {
+    return std::unique_ptr<AbstractPlanNode>(new SetOpPlanNode(GetOutputSchema(), set_op_));
   }
 
  private:

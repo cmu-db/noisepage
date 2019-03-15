@@ -36,6 +36,7 @@ enum class PlanNodeType {
   // Join Nodes
   NESTLOOP,
   HASHJOIN,
+  MERGEJOIN,
 
   // Mutator Nodes
   UPDATE,
@@ -57,10 +58,12 @@ enum class PlanNodeType {
   LIMIT,
   DISTINCT,
   HASH,
+  SETOP,
 
   // Utility
   EXPORT_EXTERNAL_FILE,
   MATERIALIZE,
+  RESULT,
 
   // Test
   MOCK
@@ -124,6 +127,19 @@ enum class DropType {
   CONSTRAINT = 4,             // constraint drop type
   TRIGGER = 5,                // trigger drop type
   SCHEMA = 6,                 // trigger drop type
+};
+
+//===--------------------------------------------------------------------===//
+// Set Operation Types
+//===--------------------------------------------------------------------===//
+
+enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL = 2, EXCEPT = 3, EXCEPT_ALL = 4 };
+
+// TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
+// collection of TransientValues
+class Tuple {
+ public:
+  Tuple() = default;
 };
 
 }  // namespace terrier::plan_node

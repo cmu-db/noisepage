@@ -8,6 +8,8 @@
 #include "output_schema.h"
 #include "storage/storage_defs.h"
 
+// TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
+// collection of TransientValues
 namespace terrier::plan_node {
 
 /**
@@ -20,20 +22,20 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * Instantiate a Result Plan Node
    * @param outputSchema the schema of the output node
-   * @param tuple_slot the slot of the tuple in the storage layer
+   * @param tuple the tuple in the storage layer
    */
-  ResultPlanNode(OutputSchema outputSchema, storage::TupleSlot tuple_slot)
-      : AbstractPlanNode(outputSchema), tuple_slot_(tuple_slot) {}
+  ResultPlanNode(std::shared_ptr<OutputSchema> outputSchema, std::shared_ptr<Tuple> tuple)
+      : AbstractPlanNode(std::move(outputSchema)), tuple_(std::move(tuple)) {}
 
   /**
-   * @return the slot of the tuple in the storage layer
+   * @return the tuple in the storage layer
    */
-  const shared_ptr<storage::TupleSlot> GetTupleSlot() const { return tuple_slot_; }
+  const std::shared_ptr<Tuple> GetTuple() const { return tuple_; }
 
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::RESULT; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
 
   /**
    * @return debug info
@@ -43,14 +45,13 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @return a unique pointer to a copy of this plan node
    */
-  std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(
-        new ResultPlanNode(new storage::TupleSlot(tuple_slot_));
+  std::unique_ptr<AbstractPlanNode> Copy() const override {
+    return std::unique_ptr<AbstractPlanNode>(new ResultPlanNode(GetOutputSchema(), tuple_));
   }
 
  private:
-  // the slot of the tuple in the storage layer
-  std::unique_ptr<storage::TupleSlot> tuple_slot_;
+  // the tuple in the storage layer
+  std::shared_ptr<Tuple> tuple_;
 
  private:
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);

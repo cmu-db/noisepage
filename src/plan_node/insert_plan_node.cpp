@@ -1,18 +1,14 @@
 #include "plan_node/insert_plan_node.h"
-#include "expression/constant_value_expression.h"
-#include "storage/data_table.h"
-#include "type/ephemeral_pool.h"
-#include "type/value_factory.h"
+#include "parser/expression/constant_value_expression.h"
+#include "storage/sql_table.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::plan_node {
 
-InsertPlanNodeNode::InsertPlan(
-    storage::DataTable *table, const std::vector<std::string> *columns,
-    const std::vector<std::vector<std::unique_ptr<expression::AbstractExpression>>> *insert_values)
+InsertPlanNodeNode::InsertPlanNode(
+    std::shared_ptr<storage::SqlTable> table, const std::vector<std::string> *columns,
+    const std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> *insert_values)
     : target_table_(table), bulk_insert_count_(insert_values->size()) {
-  LOG_TRACE("Creating an Insert Plan with multiple expressions");
-  PELOTON_ASSERT(target_table_);
-
   // We assume we are not processing a prepared statement insert.
   // Only after we have finished processing, do we know if it is a
   // PS or not a PS.
@@ -111,8 +107,8 @@ InsertPlanNodeNode::InsertPlan(
   }
 }
 
-bool InsertPlan::FindSchemaColIndex(std::string col_name, const std::vector<catalog::Column> &tbl_columns,
-                                    uint32_t &index) {
+bool InsertPlanNode::FindSchemaColIndex(std::string col_name, const std::vector<catalog::Schema::Column> &tbl_columns,
+                                        uint32_t &index) {
   for (auto tcol = tbl_columns.begin(); tcol != tbl_columns.end(); tcol++) {
     if (tcol->GetName() == col_name) {
       index = std::distance(tbl_columns.begin(), tcol);
@@ -122,9 +118,8 @@ bool InsertPlan::FindSchemaColIndex(std::string col_name, const std::vector<cata
   return false;
 }
 
-void InsertPlan::ProcessColumnSpec(const std::vector<std::string> *columns) {
-  auto *schema = target_table_->GetSchema();
-  auto &table_columns = schema->GetColumns();
+void InsertPlanNode::ProcessColumnSpec(const std::vector<std::string> *columns) {
+  auto *schema = target_table_->auto &table_columns = schema->GetColumns();
   auto usr_col_count = columns->size();
 
   // iterate over supplied columns
@@ -203,39 +198,20 @@ void InsertPlan::SetParameterValues(std::vector<type::Value> *values) {
   }
 }
 
-void InsertPlan::PerformBinding(BindingContext &binding_context) {
-  const auto &children = GetChildren();
-
-  if (children.size() == 1) {
-    // Let child bind
-    children[0]->PerformBinding(binding_context);
-
-    // Pull out what we need
-    auto *scan = static_cast<planner::AbstractScan *>(children[0].get());
-
-    std::vector<oid_t> col_ids;
-    scan->GetOutputColumns(col_ids);
-
-    for (oid_t col_id = 0; col_id < col_ids.size(); col_id++) {
-      ais_.push_back(binding_context.Find(col_id));
-    }
-  }
-}
-
-hash_t InsertPlan::Hash() const {
+common::hash_t InsertPlanNode::Hash() const {
   auto type = GetPlanNodeType();
-  hash_t hash = HashUtil::Hash(&type);
+  common::hash_t hash = common::HashUtil::Hash(&type);
 
-  hash = HashUtil::CombineHashes(hash, GetTable()->Hash());
+  hash = common::HashUtil::CombineHashes(hash, GetTable()->Hash());
   if (GetChildren().size() == 0) {
     auto bulk_insert_count = GetBulkInsertCount();
-    hash = HashUtil::CombineHashes(hash, HashUtil::Hash(&bulk_insert_count));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&bulk_insert_count));
   }
 
-  return HashUtil::CombineHashes(hash, AbstractPlan::Hash());
+  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool InsertPlan::operator==(const AbstractPlan &rhs) const {
+bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
   auto &other = static_cast<const planner::InsertPlan &>(rhs);
@@ -251,27 +227,7 @@ bool InsertPlan::operator==(const AbstractPlan &rhs) const {
     if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
   }
 
-  return AbstractPlan::operator==(rhs);
-}
-
-void InsertPlan::VisitParameters(codegen::QueryParametersMap &map, std::vector<peloton::type::Value> &values,
-                                 const std::vector<peloton::type::Value> &values_from_user) {
-  if (GetChildren().size() == 0) {
-    auto *schema = target_table_->GetSchema();
-    auto columns_num = schema->GetColumnCount();
-
-    for (uint32_t i = 0; i < values_.size(); i++) {
-      auto value = values_[i];
-      auto column_id = i % columns_num;
-      map.Insert(expression::Parameter::CreateConstParameter(value.GetTypeId(), schema->AllowNull(column_id)), nullptr);
-      values.push_back(value);
-    }
-  } else {
-    PELOTON_ASSERT(GetChildren().size() == 1);
-    auto *plan = const_cast<planner::AbstractPlan *>(GetChild(0));
-    plan->VisitParameters(map, values, values_from_user);
-  }
+  return AbstractPlanNode::operator==(rhs);
 }
 
 }  // namespace terrier::plan_node
-}  // namespace peloton

@@ -117,7 +117,11 @@ class OutputSchema {
 
   /**
    * Instantiates a OutputSchema object from a vector of previously-defined Columns
-   * @param collection of columns
+   * @param columns collection of columns
+   * @param targets mapping of intermediate columns (DerivedColumn) to the collection of columns
+   * @param direct_map_list direct mapping of columns, in terms of offsets, from the child plan node's OutputSchema to
+   * this plan node's OutputSchema
+   *
    */
   explicit OutputSchema(std::vector<Column> columns, std::vector<DerivedTarget> targets,
                         std::vector<DirectMap> direct_map_list)
@@ -196,6 +200,25 @@ class OutputSchema {
   std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
 
  private:
+  /**
+   * The mapping of input columns to output columns is stored in two parts:
+   * 1) A target_list stores non-trivial projections that can be calculated from
+   *    expressions.
+   * 2) A direct_map_list stores projections that is simply reorder of attributes
+   *    in the input.
+   *
+   * We separate it in this way for two reasons:
+   * i)  Postgres does the same thing;
+   * ii) It makes it possible to use a more efficient executor to handle pure
+   *     direct map projections.
+   *
+   * The input columns can be either:
+   * 1) Part of the OutputSchema of a child plan node.
+   * 2) Columns provided in INSERT, UPDATE, DELETE statements.
+   *
+   * NB: in case of a constant-valued projection, it is still under the umbrella
+   * of target_list, though it sounds simple enough.
+   */
   const std::vector<Column> columns_;
   const std::vector<DerivedTarget> targets_;
   const std::vector<DirectMap> direct_map_list_;

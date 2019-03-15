@@ -56,7 +56,7 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
 
-  const std::string GetInfo() const { return "AggregatePlanNode"; }
+  const std::string GetInfo() const { return "Aggregate Plan Node"; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override;
 
