@@ -115,7 +115,7 @@ class SqlTable {
     // 3.b) Copy values over
     for (auto col_oid : col_oids) {
       // We only copy values if the attribute exists in the new version
-      if (new_pr_pair.second.count(col_oid)) {
+      if (new_pr_pair.second.count(col_oid) > 0) {
         STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
         // get the data bytes
         byte *value = pr_buffer->AccessForceNotNull(old_pr_pair.second.at(col_oid));
