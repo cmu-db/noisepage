@@ -176,6 +176,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGAttribute(txn, db_oid);
   CreatePGNameSpace(txn, db_oid);
   CreatePGClass(txn, db_oid);
+  CreatePGType(txn, db_oid);
 
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 }
@@ -318,6 +319,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::BOOLEAN)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert tinyint type
@@ -328,6 +330,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::TINYINT)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert smallint type
@@ -338,6 +341,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert integer type
@@ -348,6 +352,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::INTEGER)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert date type
@@ -358,6 +363,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::DATE)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert bigint type
@@ -368,6 +374,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::BIGINT)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert decimal type
@@ -378,6 +385,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert timestamp type
@@ -388,6 +396,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::TIMESTAMP)));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 
   // insert varchar type
@@ -398,6 +407,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
   row.emplace_back(type::ValueFactory::GetIntegerValue(-1));
   row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
+  SetUnusedColumns(&row, pg_type_unused_cols);
   pg_type->InsertRow(txn, row);
 }
 
@@ -480,9 +490,36 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
 }
 
 void Catalog::Dump(transaction::TransactionContext *txn) {
+  // TODO(pakhtar): add parameter to select database
+
   // dump pg_database
   auto db_handle = GetDatabaseHandle();
+  CATALOG_LOG_DEBUG("-- pg_database -- ");
   db_handle.Dump(txn);
+
+  CATALOG_LOG_DEBUG("");
+  CATALOG_LOG_DEBUG("-- pg_namespace -- ");
+  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, terrier_oid);
+  ns_handle.Dump(txn);
+
+  // pg_attribute
+  CATALOG_LOG_DEBUG("");
+  CATALOG_LOG_DEBUG("-- pg_attribute -- ");
+  //auto attr_handle = db_handle.GetAttributeHandle(txn, terrier_oid);
+  //attr_handle.Dump(txn);
+
+  // pg_type
+  CATALOG_LOG_DEBUG("");
+  CATALOG_LOG_DEBUG("-- pg_type -- ");
+  auto type_handle = db_handle.GetTypeHandle(txn, terrier_oid);
+  type_handle.Dump(txn);
+
+  // pg_class
+  CATALOG_LOG_DEBUG("");
+  CATALOG_LOG_DEBUG("-- pg_class -- ");
+  auto cls_handle = db_handle.GetClassHandle(txn, terrier_oid);
+  cls_handle.Dump(txn);
 }
 
 }  // namespace terrier::catalog

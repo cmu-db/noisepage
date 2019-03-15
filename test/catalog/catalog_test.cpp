@@ -38,6 +38,7 @@ struct CatalogTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, BasicTest) {
   catalog_->CreateDatabase(txn_, "test_database");
+  catalog_->Dump(txn_);
 }
 
 }  // namespace terrier

@@ -408,6 +408,12 @@ class SqlTableRW {
             break;
           }
 
+          case type::TypeId::SMALLINT: {
+            auto row_int_val = *(reinterpret_cast<int16_t *>(col_p));
+            CATALOG_LOG_DEBUG("col {}: {}", i, row_int_val);
+            break;
+          }
+
           case type::TypeId::INTEGER: {
             auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
             CATALOG_LOG_DEBUG("col {}: {}", i, row_int_val);
