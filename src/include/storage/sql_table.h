@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
+#include "loggers/storage_logger.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
@@ -40,7 +41,7 @@ class SqlTable {
    * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
-      : block_store_(store), oid_(oid) {
+      : block_store_(store), oid_(oid), schema_version_(0) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
               layout_and_map.second};
@@ -81,16 +82,18 @@ class SqlTable {
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
               layout_version_t version_num) const {
+    STORAGE_LOG_INFO("slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
+
     // The version of the current slot is the same as the version num
     if (slot.GetBlock()->layout_version_ == version_num) {
-      return tables_[static_cast<uint32_t>(version_num)].data_table->Select(txn, slot, out_buffer);
+      return tables_[!version_num].data_table->Select(txn, slot, out_buffer);
     }
 
     // The slot version is not the same as the version_num
     layout_version_t old_version_num = slot.GetBlock()->layout_version_;
 
     // 1. Get the old ProjectedRow
-    auto old_dt_version = tables_[static_cast<uint32_t>(old_version_num)];
+    auto old_dt_version = tables_[!old_version_num];
     // 1.a) Get the col oids
     std::vector<catalog::col_oid_t> col_oids;
     for (auto it = old_dt_version.column_map.begin(); it != old_dt_version.column_map.end(); it++) {
@@ -106,13 +109,14 @@ class SqlTable {
     if (!result) return false;
 
     // 3. Populate the new ProjectedRow
-    auto new_dt_version = tables_[static_cast<uint32_t>(version_num)];
+    auto new_dt_version = tables_[!version_num];
     // 3.a) Get the mapping for the new ProjectedRow
     auto new_pr_pair = InitializerForProjectedRow(col_oids, version_num);
     // 3.b) Copy values over
     for (auto col_oid : col_oids) {
       // We only copy values if the attribute exists in the new version
       if (new_pr_pair.second.count(col_oid)) {
+        STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
         // get the data bytes
         byte *value = pr_buffer->AccessForceNotNull(old_pr_pair.second.at(col_oid));
         // get the size of the attribute
@@ -130,6 +134,7 @@ class SqlTable {
     // TODO(yangjuns): fill in default values for newly added attributes
     return true;
   }
+
   /**
    * Update the tuple according to the redo buffer given.
    *
@@ -185,6 +190,17 @@ class SqlTable {
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
     return table_.data_table->Scan(txn, start_pos, out_buffer);
+  }
+
+  void ChangeSchema(transaction::TransactionContext *const txn, const catalog::Schema &schema) {
+    STORAGE_LOG_INFO("In changing schema ...");
+    schema_version_++;
+    const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
+    DataTableVersion new_dt_version = {
+        new DataTable(block_store_, layout_and_map.first, layout_version_t(schema_version_)), layout_and_map.first,
+        layout_and_map.second};
+    tables_.emplace_back(new_dt_version);
+    STORAGE_LOG_INFO("# of versions: {}", tables_.size());
   }
 
   /**
@@ -262,11 +278,12 @@ class SqlTable {
       const std::vector<catalog::col_oid_t> &col_oids, layout_version_t version_num) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
-    auto col_ids = ColIdsForOids(col_oids);
+    auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer(tables_[static_cast<uint32_t>(version_num)].layout, col_ids);
-    auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
+    STORAGE_LOG_INFO("version _num: {}", !version_num);
+    ProjectedRowInitializer initializer(tables_[!version_num].layout, col_ids);
+    auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
@@ -275,6 +292,7 @@ class SqlTable {
  private:
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
+  std::atomic<uint32_t> schema_version_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
@@ -288,6 +306,8 @@ class SqlTable {
    */
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
+  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t version) const;
+
   /**
    * Given a ProjectionInitializer, returns a map between col_oid and the offset within the projection to access that
    * column
@@ -297,5 +317,9 @@ class SqlTable {
    */
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;
+
+  template <class ProjectionInitializerType>
+  ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer,
+                                            layout_version_t version) const;
 };
 }  // namespace terrier::storage
