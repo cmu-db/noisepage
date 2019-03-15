@@ -16,4 +16,6 @@ DeletePlanNode::DeletePlanNode(parser::DeleteStatement *delete_stmt) {
   // TODO(Gus,Wen) Get table from catalog once catalog is available
 }
 
+// TODO(Gus,Wen): Add hash and == operator for target table if necessary
+
 }  // namespace terrier::plan_node
