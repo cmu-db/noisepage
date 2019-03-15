@@ -47,6 +47,9 @@ class SqlTableRW {
       LOG_INFO("{}", !c.GetOid());
     }
 
+    delete pri_;
+    delete pr_map_;
+
     // save information needed for (later) reading and writing
     auto row_pair = table_->InitializerForProjectedRow(col_oids_, version_);
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
@@ -235,6 +238,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
   EXPECT_EQ(12345, new_col);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
 }
 
 //// NOLINTNEXTLINE

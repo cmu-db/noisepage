@@ -106,7 +106,10 @@ class SqlTable {
 
     // 2. Read the ProjectedRow
     bool result = old_dt_version.data_table->Select(txn, slot, pr_buffer);
-    if (!result) return false;
+    if (!result) {
+      delete[] read_buffer;
+      return false;
+    }
 
     // 3. Populate the new ProjectedRow
     auto new_dt_version = tables_[!version_num];
@@ -132,6 +135,7 @@ class SqlTable {
     }
 
     // TODO(yangjuns): fill in default values for newly added attributes
+    delete[] read_buffer;
     return true;
   }
 
