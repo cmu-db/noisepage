@@ -32,20 +32,20 @@ void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_se
 }
 
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                    TrafficCopPtr t_cop, NetworkCallback callback) {
+                                    NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute query: {0}", query.c_str());
 
   std::function<void(traffic_cop::FakeResultSet &, PostgresPacketWriter *)> result_callback = AcceptResults;
 
-  t_cop->ExecuteQuery(query.c_str(), out, result_callback);
+  traffic_cop::TrafficCop::ExecuteQuery(query.c_str(), out, result_callback);
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
 Transition ParseCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                              TrafficCopPtr t_cop, NetworkCallback callback) {
+                              NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Parse query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -54,7 +54,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *const interpreter, Po
 }
 
 Transition BindCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                             TrafficCopPtr t_cop, NetworkCallback callback) {
+                             NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Bind query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -63,7 +63,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *const interpreter, Pos
 }
 
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                 TrafficCopPtr t_cop, NetworkCallback callback) {
+                                 NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Parse query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -72,7 +72,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *const interpreter,
 }
 
 Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                TrafficCopPtr t_cop, NetworkCallback callback) {
+                                NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Exec query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
@@ -81,7 +81,7 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *const interpreter, 
 }
 
 Transition SyncCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                             TrafficCopPtr t_cop, NetworkCallback callback) {
+                             NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
@@ -89,7 +89,7 @@ Transition SyncCommand::Exec(PostgresProtocolInterpreter *const interpreter, Pos
 }
 
 Transition CloseCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                              TrafficCopPtr t_cop, NetworkCallback callback) {
+                              NetworkCallback callback) {
   // Send close complete response
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
@@ -97,7 +97,7 @@ Transition CloseCommand::Exec(PostgresProtocolInterpreter *const interpreter, Po
 }
 
 Transition TerminateCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
-                                  TrafficCopPtr t_cop, NetworkCallback callback) {
+                                  NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }

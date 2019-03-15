@@ -8,7 +8,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
     auto ret = reusable_handles_.emplace(std::piecewise_construct, std::forward_as_tuple(conn_fd),
-                                         std::forward_as_tuple(conn_fd, task, traffic_cop_));
+                                         std::forward_as_tuple(conn_fd, task));
     TERRIER_ASSERT(ret.second, "ret.second false");
     return ret.first->second;
   }

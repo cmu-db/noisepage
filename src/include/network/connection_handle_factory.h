@@ -48,10 +48,7 @@ class ConnectionHandleFactory {
     reusable_handles_.clear();
   }
 
-  void SetTrafficCop(const TrafficCopPtr &t_cop){traffic_cop_ = t_cop;}
-
  private:
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
-  TrafficCopPtr traffic_cop_;
 };
 }  // namespace terrier::network

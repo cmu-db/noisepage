@@ -158,11 +158,10 @@ END_DEF
 }
 
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
-ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, const TrafficCopPtr &t_cop)
+ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
     : conn_handler_(handler),
       io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
-      protocol_interpreter_{new PostgresProtocolInterpreter()},
-      traffic_cop_(t_cop){}
+      protocol_interpreter_{new PostgresProtocolInterpreter()} {}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);

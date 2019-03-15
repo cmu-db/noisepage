@@ -44,7 +44,7 @@ class ConnectionHandle {
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, const TrafficCopPtr &t_cop);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler);
 
   /**
    * Disable copying and moving ConnectionHandle instances
@@ -104,7 +104,7 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
         [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
@@ -215,6 +215,5 @@ class ConnectionHandle {
   StateMachine state_machine_{};
   struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
 
-  TrafficCopPtr traffic_cop_;
 };
 }  // namespace terrier::network

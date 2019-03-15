@@ -23,10 +23,6 @@
 #include "type/type_id.h"
 #include "traffic_cop/fake_result_set.h"
 
-namespace terrier::traffic_cop {
-  class TrafficCop;
-}
-
 namespace terrier::network {
 
 // For epoch
@@ -58,8 +54,6 @@ using uchar = unsigned char;
 using ByteBuf = std::vector<uchar>;
 
 using NetworkCallback = std::function<void(void)>;
-
-using TrafficCopPtr = std::shared_ptr<traffic_cop::TrafficCop>;
 
 enum class NetworkProtocolType {
   POSTGRES_JDBC,
