@@ -67,7 +67,7 @@ class GenericKey {
         const auto varlen = *reinterpret_cast<const VarlenEntry *const>(attr);
 
         if (varlen.NeedReclaim()) {
-          delete[] varlen.Content();
+          delete[] varlen.Content();  // NOLINT spurious warning (Matt/Wan)
         }
       }
     }

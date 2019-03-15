@@ -647,17 +647,20 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   key1.SetFromProjectedRow(*pr, metadata);
   key2.SetFromProjectedRow(*pr, metadata);
 
+  const auto generic_eq64 = std::equal_to<GenericKey<64>>();  // NOLINT transparent functors can't figure out template
+  const auto generic_lt64 = std::less<GenericKey<64>>();      // NOLINT transparent functors can't figure out template
+
   // lhs: "john", rhs: "john" (same prefixes, same strings (both <= prefix))
-  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "john", rhs: "johnny" (same prefixes, different string (one <=prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   key1.SetFromProjectedRow(*pr, metadata);
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(john), static_cast<uint32_t>(std::strlen(john)));
@@ -665,24 +668,24 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny", rhs: "johnny" (same prefixes, same strings (> prefix))
-  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnathan), static_cast<uint32_t>(std::strlen(johnathan)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnathan", rhs: "johnny" (different prefixes, different strings (> prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   key2.SetFromProjectedRow(*pr, metadata);
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
@@ -690,29 +693,29 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny", rhs: "johnathan" (different prefixes, different strings (> prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   pr->SetNull(0);
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: NULL, rhs: "johnathan"
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: NULL, rhs: NULL
-  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnathan), static_cast<uint32_t>(std::strlen(johnathan)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnathan", rhs: NULL
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   delete[] pr_buffer;
 }
@@ -740,9 +743,12 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   key1.SetFromProjectedRow(*pr, metadata);
   key2.SetFromProjectedRow(*pr, metadata);
 
+  const auto generic_eq64 = std::equal_to<GenericKey<64>>();  // NOLINT transparent functors can't figure out template
+  const auto generic_lt64 = std::less<GenericKey<64>>();      // NOLINT transparent functors can't figure out template
+
   // lhs: "johnathan_johnathan", rhs: "johnathan_johnathan" (same prefixes, same strings (both non-inline))
-  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
                              false);
@@ -750,8 +756,8 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnathan_johnathan", rhs: "johnny_johnny" (same prefixes, different strings (both non-inline))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   key1.SetFromProjectedRow(*pr, metadata);
   data = VarlenEntry::Create(reinterpret_cast<byte *>(johnathan_johnathan),
@@ -760,16 +766,16 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny_johnny", rhs: "johnathan_johnathan" (same prefixes, different strings (both non-inline))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(john), static_cast<uint32_t>(std::strlen(john)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny_johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   key1.SetFromProjectedRow(*pr, metadata);
   data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
@@ -778,16 +784,16 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "john", rhs: "johnny_johnny" (same prefixes, different strings (one <=prefix))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny", rhs: "johnny_johnny" (same prefixes, different strings (one inline))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   key2.SetFromProjectedRow(*pr, metadata);
   data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
@@ -796,28 +802,28 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny_johnny", rhs: "johnny" (same prefixes, different strings (one inline))
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   pr->SetNull(0);
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny_johnny", rhs: NULL
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   key1.SetFromProjectedRow(*pr, metadata);
 
   // lhs: NULL, rhs: NULL
-  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(generic_eq64(key1, key2));
+  EXPECT_FALSE(generic_lt64(key1, key2));
 
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: NULL, rhs: "johnny_johnny"
-  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
-  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(generic_eq64(key1, key2));
+  EXPECT_TRUE(generic_lt64(key1, key2));
 
   delete[] pr_buffer;
 }
