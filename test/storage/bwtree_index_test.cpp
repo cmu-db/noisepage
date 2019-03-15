@@ -2,6 +2,7 @@
 #include <limits>
 #include <random>
 #include <vector>
+#include "portable_endian/portable_endian.h"
 #include "storage/data_table.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
@@ -84,6 +85,119 @@ KeySchema RandomCompactIntsKeySchema(Random *generator) {
   return key_schema;
 }
 
+/**
+ * Generates random data for the given type and writes it to both attr and reference.
+ */
+template <typename Random>
+void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random *generator) {
+  std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
+  const auto type_size = type::TypeUtil::GetTypeSize(type);
+  switch (type) {
+    case type::TypeId::BOOLEAN: {
+      auto boolean = static_cast<uint8_t>(rng(*generator)) % 2;
+      std::memcpy(attr, &boolean, type_size);
+      std::memcpy(reference, &boolean, type_size);
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      auto tinyint = static_cast<int8_t>(rng(*generator));
+      std::memcpy(attr, &tinyint, type_size);
+      tinyint ^= static_cast<int8_t>(static_cast<int8_t>(0x1) << (sizeof(int8_t) * 8UL - 1));
+      std::memcpy(reference, &tinyint, type_size);
+      break;
+    }
+    case type::TypeId::SMALLINT: {
+      auto smallint = static_cast<int16_t>(rng(*generator));
+      std::memcpy(attr, &smallint, type_size);
+      smallint ^= static_cast<int16_t>(static_cast<int16_t>(0x1) << (sizeof(int16_t) * 8UL - 1));
+      smallint = htobe16(smallint);
+      std::memcpy(reference, &smallint, type_size);
+      break;
+    }
+    case type::TypeId::INTEGER: {
+      auto integer = static_cast<int32_t>(rng(*generator));
+      std::memcpy(attr, &integer, type_size);
+      integer ^= static_cast<int32_t>(static_cast<int32_t>(0x1) << (sizeof(int32_t) * 8UL - 1));
+      integer = htobe32(integer);
+      std::memcpy(reference, &integer, type_size);
+      break;
+    }
+    case type::TypeId::DATE: {
+      auto date = static_cast<uint32_t>(rng(*generator));
+      std::memcpy(attr, &date, type_size);
+      date = htobe32(date);
+      std::memcpy(reference, &date, type_size);
+      break;
+    }
+    case type::TypeId::BIGINT: {
+      auto bigint = static_cast<int64_t>(rng(*generator));
+      std::memcpy(attr, &bigint, type_size);
+      bigint ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
+      bigint = htobe64(bigint);
+      std::memcpy(reference, &bigint, type_size);
+      break;
+    }
+    case type::TypeId::DECIMAL: {
+      auto decimal = static_cast<int64_t>(rng(*generator));
+      std::memcpy(attr, &decimal, type_size);
+      decimal ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
+      decimal = htobe64(decimal);
+      std::memcpy(reference, &decimal, type_size);
+      break;
+    }
+    case type::TypeId::TIMESTAMP: {
+      auto timestamp = static_cast<uint64_t>(rng(*generator));
+      std::memcpy(attr, &timestamp, type_size);
+      timestamp = htobe64(timestamp);
+      std::memcpy(reference, &timestamp, type_size);
+      break;
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      uint8_t varlen_sizes[] = {2, 10, 20};  // meant to hit the inline (prefix), inline (prefix+content), content cases
+      auto varlen_size = varlen_sizes[static_cast<uint8_t>(rng(*generator)) % 3];
+      byte *varlen_content = new byte[varlen_size];
+      auto random_content = static_cast<int64_t>(rng(*generator));
+      std::memcpy(varlen_content, &random_content, varlen_size);
+      VarlenEntry varlen_entry{};
+      if (varlen_size <= VarlenEntry::InlineThreshold()) {
+        varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
+      } else {
+        varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, true);
+      }
+      std::memcpy(attr, &varlen_entry, type_size);
+      std::memcpy(reference, &varlen_entry, type_size);
+      break;
+    }
+    default:
+      throw new std::runtime_error("Unsupported type");
+  }
+}
+
+/**
+ * This function randomly generates data per the schema to fill the projected row.
+ * It returns essentially a CompactIntsKey of all the data in one big byte array.
+ */
+template <typename Random>
+byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
+  const auto &key_schema = metadata.GetKeySchema();
+  const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
+  const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
+
+  byte *reference = new byte[key_size];
+  uint32_t offset = 0;
+  for (const auto &key : key_schema) {
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.key_oid)));
+    WriteRandomAttribute(key.type_id, attr, reference + offset, generator);
+    offset += type::TypeUtil::GetTypeSize(key.type_id);
+  }
+  return reference;
+}
+
+/**
+ * This function, strictly speaking, is a less-general version of the FillProjectedRow above.
+ * But it is easier to reason about and useful in a debugger, so we keep it around.
+ */
 template <typename Random>
 std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr,
                                                            Random *generator) {
@@ -121,62 +235,99 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &
   return data;
 }
 
-// template <uint8_t KeySize, typename AttrType, typename Random>
-// void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
-//  const uint8_t num_cols = KeySize * sizeof(AttrType);
-//  TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
-//
-//  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(),
-//  std::numeric_limits<int8_t>::max());
-//
-//  // Build two random keys and compare verify that equality and comparator helpers give correct results
-//  for (uint32_t i = 0; i < num_iters; i++) {
-//    uint8_t offset = 0;
-//
-//    auto key1 = CompactIntsKey<KeySize>();
-//    auto key2 = CompactIntsKey<KeySize>();
-//    std::vector<int8_t> key1_ref(num_cols);
-//    std::vector<int8_t> key2_ref(num_cols);
-//
-//    for (uint8_t j = 0; j < num_cols; j++) {
-//      const int8_t val1 = val_dis(*generator);
-//      const int8_t val2 = val_dis(*generator);
-//      key1.AddInteger(val1, offset);
-//      key2.AddInteger(val2, offset);
-//      key1_ref[j] = val1;
-//      key2_ref[j] = val2;
-//      offset += sizeof(val1);
-//    }
-//
-//    EXPECT_EQ(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2), key1_ref == key2_ref);
-//    EXPECT_EQ(std::less<CompactIntsKey<KeySize>>()(key1, key2), key1_ref < key2_ref);
-//  }
-//}
-//
-//// NOLINTNEXTLINE
-// TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
-//  const uint32_t num_iters = 100000;
-//
-//  CompactIntsKeyTest<1, int8_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<1, int16_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<1, int32_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<1, int64_t>(num_iters, &generator_);
-//
-//  CompactIntsKeyTest<2, int8_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<2, int16_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<2, int32_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<2, int64_t>(num_iters, &generator_);
-//
-//  CompactIntsKeyTest<3, int8_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<3, int16_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<3, int32_t>(num_iters, &generator_);
-//  CompactIntsKeyTest<3, int64_t>(num_iters, &generator_);
-//
-//  CompactIntsKeyTest<4, int8_t>(num_iters, &generator_);   // test 32 int8_ts
-//  CompactIntsKeyTest<4, int16_t>(num_iters, &generator_);  // test 16 int16_ts
-//  CompactIntsKeyTest<4, int32_t>(num_iters, &generator_);  // test 8 int32_ts
-//  CompactIntsKeyTest<4, int64_t>(num_iters, &generator_);  // test 4 int64_ts
-//}
+/**
+ * Modifies a random column of the projected row with the given probability.
+ * Returns true and updates reference if modified, false otherwise.
+ */
+template <typename Random>
+bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr, byte *reference, float probability,
+                        Random *generator) {
+  std::bernoulli_distribution coin(probability);
+
+  if (coin(*generator)) {
+    const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
+    const auto &key_schema = metadata.GetKeySchema();
+    std::uniform_int_distribution<uint16_t> rng(0, key_schema.size() - 1);
+    const auto column = rng(*generator);
+
+    uint16_t offset = 0;
+    for (uint32_t i = 0; i < column; i++) {
+      offset += type::TypeUtil::GetTypeSize(key_schema[i].type_id);
+    }
+
+    const auto type = key_schema[column].type_id;
+    const auto type_size = type::TypeUtil::GetTypeSize(type);
+
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key_schema[column].key_oid)));
+    byte *old_value = new byte[type_size];
+    std::memcpy(old_value, attr, type_size);
+    // force the value to change
+    while (std::memcmp(old_value, attr, type_size) == 0) {
+      WriteRandomAttribute(type, attr, reference + offset, generator);
+    }
+    delete[] old_value;
+    return true;
+  }
+
+  return false;
+}
+
+template <uint8_t KeySize, typename AttrType, typename Random>
+void CompactIntsKeyTest(const uint32_t num_iters, Random *generator) {
+  //  const uint8_t num_cols = KeySize * sizeof(AttrType);
+  //  TERRIER_ASSERT(num_cols <= 32, "You can't have more than 32 TINYINTs in a CompactIntsKey.");
+  //
+  //  std::uniform_int_distribution<int8_t> val_dis(std::numeric_limits<int8_t>::min(),
+  //  std::numeric_limits<int8_t>::max());
+  //
+  //  // Build two random keys and compare verify that equality and comparator helpers give correct results
+  //  for (uint32_t i = 0; i < num_iters; i++) {
+  //    uint8_t offset = 0;
+  //
+  //    auto key1 = CompactIntsKey<KeySize>();
+  //    auto key2 = CompactIntsKey<KeySize>();
+  //    std::vector<int8_t> key1_ref(num_cols);
+  //    std::vector<int8_t> key2_ref(num_cols);
+  //
+  //    for (uint8_t j = 0; j < num_cols; j++) {
+  //      const int8_t val1 = val_dis(*generator);
+  //      const int8_t val2 = val_dis(*generator);
+  //      key1.AddInteger(val1, offset);
+  //      key2.AddInteger(val2, offset);
+  //      key1_ref[j] = val1;
+  //      key2_ref[j] = val2;
+  //      offset += sizeof(val1);
+  //    }
+  //
+  //    EXPECT_EQ(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2), key1_ref == key2_ref);
+  //    EXPECT_EQ(std::less<CompactIntsKey<KeySize>>()(key1, key2), key1_ref < key2_ref);
+  //  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, CompactIntsKeyBasicTest) {
+  const uint32_t num_iters = 100000;
+
+  CompactIntsKeyTest<1, int8_t>(num_iters, &generator_);
+  CompactIntsKeyTest<1, int16_t>(num_iters, &generator_);
+  CompactIntsKeyTest<1, int32_t>(num_iters, &generator_);
+  CompactIntsKeyTest<1, int64_t>(num_iters, &generator_);
+
+  CompactIntsKeyTest<2, int8_t>(num_iters, &generator_);
+  CompactIntsKeyTest<2, int16_t>(num_iters, &generator_);
+  CompactIntsKeyTest<2, int32_t>(num_iters, &generator_);
+  CompactIntsKeyTest<2, int64_t>(num_iters, &generator_);
+
+  CompactIntsKeyTest<3, int8_t>(num_iters, &generator_);
+  CompactIntsKeyTest<3, int16_t>(num_iters, &generator_);
+  CompactIntsKeyTest<3, int32_t>(num_iters, &generator_);
+  CompactIntsKeyTest<3, int64_t>(num_iters, &generator_);
+
+  CompactIntsKeyTest<4, int8_t>(num_iters, &generator_);   // test 32 int8_ts
+  CompactIntsKeyTest<4, int16_t>(num_iters, &generator_);  // test 16 int16_ts
+  CompactIntsKeyTest<4, int32_t>(num_iters, &generator_);  // test 8 int32_ts
+  CompactIntsKeyTest<4, int64_t>(num_iters, &generator_);  // test 4 int64_ts
+}
 
 template <typename Random>
 void BasicOps(Index *const index, const Random &generator) {
@@ -244,7 +395,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     // generate random key schema
     auto key_schema = RandomCompactIntsKeySchema(&generator_);
     IndexMetadata metadata(key_schema);
-    auto initializer = metadata.GetProjectedRowInitializer();
+    const auto &initializer = metadata.GetProjectedRowInitializer();
 
     // figure out which CompactIntsKey template was instantiated
     // this is unpleasant, but seems to be the cleanest way
@@ -266,7 +417,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
     auto *pr_buffer_B = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *pr_A = initializer.InitializeRow(pr_buffer_A);
     auto *pr_B = initializer.InitializeRow(pr_buffer_B);
-
+    //
     for (uint8_t j = 0; j < 10; j++) {
       // fill our buffers with random data
       const auto data_A = FillProjectedRowWithRandomCompactInts(metadata, pr_A, &generator_);
@@ -293,6 +444,55 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
         default:
           throw std::runtime_error("Invalid compact ints key type.");
       }
+    }
+
+    for (uint8_t j = 0; j < 10; j++) {
+      // fill buffer pr_A with random data data_A
+      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_);
+      float probabilities[] = {0.0, 0.5, 1.0};
+
+      for (uint8_t pr_i = 0; pr_i < 3; pr_i++) {
+        // have B copy A
+        std::memcpy(pr_B, pr_A, initializer.ProjectedRowSize());
+        byte *data_B = new byte[key_size];
+        std::memcpy(data_B, data_A, key_size);
+
+        // modify a column of B with some probability, this also updates the reference data_B
+        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, probabilities[pr_i], &generator_);
+
+        // perform the relevant checks
+        switch (key_type) {
+          case 1:
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) < 0);
+            break;
+          case 2:
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) < 0);
+            break;
+          case 3:
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) < 0);
+            break;
+          case 4:
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B),
+                      std::memcmp(data_A, data_B, key_size) < 0);
+            break;
+          default:
+            throw std::runtime_error("Invalid compact ints key type.");
+        }
+        delete[] data_B;
+      }
+
+      delete[] data_A;
     }
 
     delete[] pr_buffer_A;
