@@ -32,7 +32,7 @@ class IndexMetadata {
    * Precomputes metadata for the given key schema.
    * @param key_schema index key schema
    */
-  explicit IndexMetadata(KeySchema key_schema)
+  explicit IndexMetadata(IndexKeySchema key_schema)
       : key_schema_(std::move(key_schema)),
         attr_sizes_(ComputeAttributeSizes(key_schema_)),
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
@@ -43,7 +43,7 @@ class IndexMetadata {
   /**
    * @return index key schema
    */
-  const std::vector<KeyData> &GetKeySchema() const { return key_schema_; }
+  const std::vector<IndexKeyColumn> &GetKeySchema() const { return key_schema_; }
 
   /**
    * @return unsorted index attribute sizes (key schema order)
@@ -58,7 +58,9 @@ class IndexMetadata {
   /**
    * @return mapping from key oid to projected row offset
    */
-  const std::unordered_map<key_oid_t, uint32_t> &GetKeyOidToOffsetMap() const { return key_oid_to_offset_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &GetKeyOidToOffsetMap() const {
+    return key_oid_to_offset_;
+  }
 
   /**
    * @return projected row initializer for the given key schema
@@ -66,10 +68,10 @@ class IndexMetadata {
   const ProjectedRowInitializer &GetProjectedRowInitializer() const { return initializer_; }
 
  private:
-  std::vector<KeyData> key_schema_;                            // for GenericKey
-  std::vector<uint8_t> attr_sizes_;                            // for CompactIntsKey
-  std::vector<uint8_t> compact_ints_offsets_;                  // for CompactIntsKey
-  std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
+  std::vector<IndexKeyColumn> key_schema_;                                      // for GenericKey
+  std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
+  std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
+  std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;
 
   /**
@@ -77,7 +79,7 @@ class IndexMetadata {
    * e.g.   if key_schema is {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
    *        then attr_sizes returned is {4, 4, 8, 1, 2}
    */
-  static std::vector<uint8_t> ComputeAttributeSizes(const KeySchema &key_schema) {
+  static std::vector<uint8_t> ComputeAttributeSizes(const IndexKeySchema &key_schema) {
     std::vector<uint8_t> attr_sizes;
     attr_sizes.reserve(key_schema.size());
     for (const auto &key : key_schema) {
@@ -153,12 +155,12 @@ class IndexMetadata {
   /**
    * Computes the mapping from key oid to projected row offset.
    */
-  static std::unordered_map<key_oid_t, uint32_t> ComputeKeyOidToOffset(const KeySchema &key_schema,
-                                                                       const std::vector<uint16_t> &pr_offsets) {
-    std::unordered_map<key_oid_t, uint32_t> key_oid_to_offset;
+  static std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> ComputeKeyOidToOffset(
+      const IndexKeySchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
+    std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> key_oid_to_offset;
     key_oid_to_offset.reserve(key_schema.size());
     for (uint16_t i = 0; i < key_schema.size(); i++) {
-      key_oid_to_offset[key_schema[i].key_oid] = pr_offsets[i];
+      key_oid_to_offset[key_schema[i].indexkeycol_oid] = pr_offsets[i];
     }
     return key_oid_to_offset;
   }

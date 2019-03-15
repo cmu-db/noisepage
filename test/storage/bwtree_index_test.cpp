@@ -21,10 +21,11 @@ class BwTreeIndexTests : public TerrierTest {
 };
 
 template <typename Random>
-KeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types, Random *generator) {
+IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+                                      Random *generator) {
   TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
 
-  std::vector<key_oid_t> key_oids;
+  std::vector<catalog::indexkeycol_oid_t> key_oids;
   key_oids.reserve(num_cols);
 
   for (auto i = 0; i < num_cols; i++) {
@@ -33,7 +34,7 @@ KeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type
 
   std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-  KeySchema key_schema;
+  IndexKeySchema key_schema;
 
   for (auto i = 0; i < num_cols; i++) {
     auto key_oid = key_oids[i];
@@ -46,7 +47,7 @@ KeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type
 }
 
 template <typename Random>
-KeySchema RandomCompactIntsKeySchema(Random *generator) {
+IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
   const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
   const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
 
@@ -54,7 +55,7 @@ KeySchema RandomCompactIntsKeySchema(Random *generator) {
                                         type::TypeId::BIGINT};  // has to be sorted in ascending type size order
 
   const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
-  std::vector<key_oid_t> key_oids;
+  std::vector<catalog::indexkeycol_oid_t> key_oids;
   key_oids.reserve(max_cols);
 
   for (auto i = 0; i < max_cols; i++) {
@@ -63,7 +64,7 @@ KeySchema RandomCompactIntsKeySchema(Random *generator) {
 
   std::shuffle(key_oids.begin(), key_oids.end(), *generator);
 
-  KeySchema key_schema;
+  IndexKeySchema key_schema;
 
   uint8_t col = 0;
 
@@ -186,7 +187,7 @@ byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr,
   byte *reference = new byte[key_size];
   uint32_t offset = 0;
   for (const auto &key : key_schema) {
-    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.key_oid)));
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.indexkeycol_oid)));
     WriteRandomAttribute(key.type_id, attr, reference + offset, generator);
     offset += type::TypeUtil::GetTypeSize(key.type_id);
   }
@@ -227,7 +228,7 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &
         throw std::runtime_error("Invalid compact ints key schema.");
     }
 
-    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.key_oid)));
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key.indexkeycol_oid)));
     std::memcpy(attr, &rand_int, type_size);
     data.emplace_back(rand_int);
   }
@@ -257,7 +258,7 @@ bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr
     const auto type = key_schema[column].type_id;
     const auto type_size = type::TypeUtil::GetTypeSize(type);
 
-    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key_schema[column].key_oid)));
+    auto attr = pr->AccessForceNotNull(static_cast<uint16_t>(oid_offset_map.at(key_schema[column].indexkeycol_oid)));
     byte *old_value = new byte[type_size];
     std::memcpy(old_value, attr, type_size);
     // force the value to change
@@ -540,8 +541,8 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
 
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
-  KeySchema key_schema;
-  key_schema.emplace_back(key_oid_t(0), type_id, true);
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type_id, true);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -622,8 +623,8 @@ TEST_F(BwTreeIndexTests, GenericKeyNumericComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
-  KeySchema key_schema;
-  key_schema.emplace_back(key_oid_t(0), type::TypeId::VARCHAR, true);
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -714,8 +715,8 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
 
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
-  KeySchema key_schema;
-  key_schema.emplace_back(key_oid_t(0), type::TypeId::VARCHAR, true);
+  IndexKeySchema key_schema;
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();

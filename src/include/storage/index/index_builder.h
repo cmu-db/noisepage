@@ -18,7 +18,7 @@ class IndexBuilder {
  private:
   catalog::index_oid_t index_oid_{0};
   ConstraintType constraint_type_ = ConstraintType::INVALID;
-  KeySchema key_schema_;
+  IndexKeySchema key_schema_;
 
  public:
   IndexBuilder() = default;
@@ -54,7 +54,7 @@ class IndexBuilder {
     return *this;
   }
 
-  IndexBuilder &SetKeySchema(const KeySchema &key_schema) {
+  IndexBuilder &SetKeySchema(const IndexKeySchema &key_schema) {
     key_schema_ = key_schema;
     return *this;
   }

@@ -1,25 +1,24 @@
 #pragma once
 
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::storage::index {
 
-STRONG_TYPEDEF(key_oid_t, uint32_t);
-
-struct KeyData {
-  key_oid_t key_oid;
+struct IndexKeyColumn {
+  catalog::indexkeycol_oid_t indexkeycol_oid;
   type::TypeId type_id;
   bool is_nullable;
 
-  KeyData(const key_oid_t oid, const type::TypeId type, const bool nullable)
-      : key_oid(oid), type_id(type), is_nullable(nullable) {}
+  IndexKeyColumn(const catalog::indexkeycol_oid_t oid, const type::TypeId type, const bool nullable)
+      : indexkeycol_oid(oid), type_id(type), is_nullable(nullable) {}
 };
 
 /**
  * @warning KeySchema is assumed to be in comparison order
  */
-using KeySchema = std::vector<KeyData>;
+using IndexKeySchema = std::vector<IndexKeyColumn>;
 
 enum class ConstraintType : uint8_t {
   // invalid index constraint type
