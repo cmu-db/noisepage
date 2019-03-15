@@ -1,13 +1,12 @@
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <random>
 #include <vector>
 #include "portable_endian/portable_endian.h"
-#include "storage/data_table.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
-#include "storage/record_buffer.h"
-#include "transaction/transaction_context.h"
+#include "storage/projected_row.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 #include "util/random_test_util.h"
@@ -511,7 +510,7 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    BasicOps(index, &generator_);
+    // BasicOps(index, &generator_);
 
     delete index;
   }
@@ -538,4 +537,296 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     delete index;
   }
 }
+
+template <typename KeyType, typename CType>
+void NumericComparisons(const type::TypeId type_id, const bool nullable) {
+  KeySchema key_schema;
+  key_schema.emplace_back(key_oid_t(0), type_id, true);
+
+  const IndexMetadata metadata(key_schema);
+  const auto &initializer = metadata.GetProjectedRowInitializer();
+
+  auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const pr = initializer.InitializeRow(pr_buffer);
+
+  CType data = 15;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  KeyType key1, key2;
+  key1.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 15, rhs: 15
+  EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_FALSE(std::less<KeyType>()(key1, key2));
+
+  data = 72;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 15, rhs: 72
+  EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_TRUE(std::less<KeyType>()(key1, key2));
+
+  data = 116;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 116, rhs: 72
+  EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_FALSE(std::less<KeyType>()(key1, key2));
+
+  if (nullable) {
+    pr->SetNull(0);
+    key1.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: NULL, rhs: 72
+    EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_TRUE(std::less<KeyType>()(key1, key2));
+
+    key2.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: NULL, rhs: NULL
+    EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_FALSE(std::less<KeyType>()(key1, key2));
+
+    data = 15;
+    *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+    key1.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: 15, rhs: NULL
+    EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_FALSE(std::less<KeyType>()(key1, key2));
+  }
+
+  delete[] pr_buffer;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, CompactIntsKeyNumericComparisons) {
+  NumericComparisons<CompactIntsKey<1>, int8_t>(type::TypeId::TINYINT, false);
+  NumericComparisons<CompactIntsKey<1>, int16_t>(type::TypeId::SMALLINT, false);
+  NumericComparisons<CompactIntsKey<1>, int32_t>(type::TypeId::INTEGER, false);
+  NumericComparisons<CompactIntsKey<1>, int64_t>(type::TypeId::BIGINT, false);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, GenericKeyNumericComparisons) {
+  NumericComparisons<GenericKey<64>, int8_t>(type::TypeId::TINYINT, true);
+  NumericComparisons<GenericKey<64>, int16_t>(type::TypeId::SMALLINT, true);
+  NumericComparisons<GenericKey<64>, int32_t>(type::TypeId::INTEGER, true);
+  NumericComparisons<GenericKey<64>, uint32_t>(type::TypeId::DATE, true);
+  NumericComparisons<GenericKey<64>, int64_t>(type::TypeId::BIGINT, true);
+  NumericComparisons<GenericKey<64>, double>(type::TypeId::DECIMAL, true);
+  NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
+  KeySchema key_schema;
+  key_schema.emplace_back(key_oid_t(0), type::TypeId::VARCHAR, true);
+
+  const IndexMetadata metadata(key_schema);
+  const auto &initializer = metadata.GetProjectedRowInitializer();
+
+  auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const pr = initializer.InitializeRow(pr_buffer);
+
+  char matt[5] = "matt";
+  char matthew[8] = "matthew";
+  char mbutrovi[9] = "mbutrovi";
+  char mbutrovich[11] = "mbutrovich";
+
+  VarlenEntry data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matt), std::strlen(matt));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  GenericKey<64> key1, key2;
+  key1.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matt", rhs: "matt" (same prefixes, same strings (<= prefix))
+  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matthew), std::strlen(matthew));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matt", rhs: "matthew" (same prefixes, different string (one <=prefix)s)
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  key1.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matt), std::strlen(matt));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthew", rhs: "matt" (same prefixes, different strings (one <=prefix))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matthew), std::strlen(matthew));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthew", rhs: "matthew" (same prefixes, same strings (> prefix))
+  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(mbutrovi), std::strlen(mbutrovi));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mbutrovi", rhs: "matthew" (different prefixes, different strings)
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  key2.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matthew), std::strlen(matthew));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthew", rhs: "mbutrovi" (different prefixes, different strings)
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(mbutrovich), std::strlen(mbutrovich));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mbutrovich", rhs: "mbutrovi" (same prefixes, different strings)
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  key2.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(mbutrovi), std::strlen(mbutrovi));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mbutrovi", rhs: "mbutrovich" (same prefixes, different strings)
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  pr->SetNull(0);
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: NULL, rhs: "mbutrovich"
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: NULL, rhs: NULL
+  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(mbutrovich), std::strlen(mbutrovich));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mbutrovich", rhs: NULL
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  delete[] pr_buffer;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
+  KeySchema key_schema;
+  key_schema.emplace_back(key_oid_t(0), type::TypeId::VARCHAR, true);
+
+  const IndexMetadata metadata(key_schema);
+  const auto &initializer = metadata.GetProjectedRowInitializer();
+
+  auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *const pr = initializer.InitializeRow(pr_buffer);
+
+  char matt[5] = "matt";
+  char matthew[8] = "matthew";
+  char mattbutrovich[14] = "mattbutrovich";
+  char matthewbutrovich[17] = "matthewbutrovich";
+
+  VarlenEntry data = VarlenEntry::Create(reinterpret_cast<byte *>(mattbutrovich), std::strlen(mattbutrovich), false);
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  GenericKey<64> key1, key2;
+  key1.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mattbutrovich", rhs: "mattbutrovich" (same prefixes, same strings (both non-inline))
+  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::Create(reinterpret_cast<byte *>(matthewbutrovich), std::strlen(matthewbutrovich), false);
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "mattbutrovich", rhs: "matthewbutrovich" (same prefixes, different strings (both non-inline))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  key1.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::Create(reinterpret_cast<byte *>(mattbutrovich), std::strlen(mattbutrovich), false);
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthewbutrovich", rhs: "mattbutrovich" (same prefixes, different strings (both non-inline))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matt), std::strlen(matt));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthewbutrovich", rhs: "matt" (same prefixes, different strings (one <=prefix))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  key1.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::Create(reinterpret_cast<byte *>(matthewbutrovich), std::strlen(matthewbutrovich), false);
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matt", rhs: "matthewbutrovich" (same prefixes, different strings (one <=prefix))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(matthew), std::strlen(matthew));
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthew", rhs: "matthewbutrovich" (same prefixes, different strings (one inline))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  key2.SetFromProjectedRow(*pr, metadata);
+  data = VarlenEntry::Create(reinterpret_cast<byte *>(matthewbutrovich), std::strlen(matthewbutrovich), false);
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthewbutrovich", rhs: "matthew" (same prefixes, different strings (one inline))
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  pr->SetNull(0);
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: "matthewbutrovich", rhs: NULL
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: NULL, rhs: NULL
+  EXPECT_TRUE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_FALSE(std::less<GenericKey<64>>()(key1, key2));
+
+  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: NULL, rhs: "matthewbutrovich"
+  EXPECT_FALSE(std::equal_to<GenericKey<64>>()(key1, key2));
+  EXPECT_TRUE(std::less<GenericKey<64>>()(key1, key2));
+
+  delete[] pr_buffer;
+}
+
 }  // namespace terrier::storage::index

@@ -126,13 +126,9 @@ class GenericKey {
         return prefix_result;
       }
 
-      // get the pointers to the content, handling if the content is inlined or not
-      const byte *const lhs_content = lhs_varlen.IsInlined()
-                                          ? lhs_varlen.Content()
-                                          : *reinterpret_cast<const byte *const *const>(lhs_varlen.Content());
-      const byte *const rhs_content = rhs_varlen.IsInlined()
-                                          ? rhs_varlen.Content()
-                                          : *reinterpret_cast<const byte *const *const>(rhs_varlen.Content());
+      // get the pointers to the content
+      const byte *const lhs_content = lhs_varlen.Content();
+      const byte *const rhs_content = rhs_varlen.Content();
       auto result = std::memcmp(lhs_content, rhs_content, smallest_size);
       if (result == 0 && lhs_size != rhs_size) {
         // strings compared as equal, but they have different lengths. Decide based on length

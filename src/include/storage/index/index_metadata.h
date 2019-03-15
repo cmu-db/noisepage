@@ -8,6 +8,7 @@
 #include <vector>
 #include "common/macros.h"
 #include "storage/index/index_defs.h"
+#include "storage/projected_row.h"
 #include "storage/storage_util.h"
 #include "type/type_util.h"
 
