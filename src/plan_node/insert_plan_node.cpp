@@ -7,7 +7,7 @@ namespace terrier::plan_node {
 
 InsertPlanNode::InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, const std::vector<std::string> &columns,
                                std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values)
-    : target_table_(std::move(target_table)), bulk_insert_count_(insert_values.size()) {
+    : target_table_(std::move(target_table)), bulk_insert_count_(static_cast<uint32_t>(insert_values.size())) {
   // TODO(Gus,Wen) Table Schema have been reworked, need to rewrite this part
 }
 
