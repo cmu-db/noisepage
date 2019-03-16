@@ -153,6 +153,67 @@ class SqlTable {
     return table_.data_table->Update(txn, slot, redo);
   }
 
+  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo,
+              layout_version_t version_num) {
+    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
+    // TODO(Matt): update indexes
+    // The version of the current slot is the same as the version num
+    if (slot.GetBlock()->layout_version_ == version_num) {
+      return tables_[!version_num].data_table->Update(txn, slot, redo);
+    }
+    layout_version_t old_version = slot.GetBlock()->layout_version_;
+    bool is_subset = true;
+    // Check if the Redo's attributes are a subset of old schema
+    std::vector<catalog::col_oid_t> col_oids;  // the set of col oids the redo touches
+    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
+      col_id_t col_id = redo.ColumnIds()[i];
+      catalog::col_oid_t col_oid(0);
+      // get the col oid for this col id
+      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); i++) {
+        if (it->second == col_id) {
+          col_oid = it->first;
+          break;
+        }
+      }
+      col_oids.emplace_back(col_oid);
+      TERRIER_ASSERT((!col_oid) != 0, "The column map should always have some oid mapped to id");
+      // check if the col_oid exists in the old schema
+      if (tables_[!old_version].column_map.count(col_oid) == 0) {
+        is_subset = false;
+      }
+    }
+    if (is_subset) {
+      // we can update in place
+      for (auto col_oid : col_oids) {
+        STORAGE_LOG_INFO("updating column {} ", !col_oid);
+        auto pr_pair = InitializerForProjectedRow(col_oids, version_num);
+
+        // get the data bytes
+        const byte *value = redo.AccessWithNullCheck(pr_pair.second.at(col_oid));
+
+        // get the size of the attribute
+        TupleAccessStrategy old_tas = tables_[!old_version].data_table->GetTupleAccessStrategy();
+        col_id_t col_id = tables_[!old_version].column_map.at(col_oid);
+        uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(col_id);
+
+        // get the address where we copy into
+        if (value == nullptr) {
+          old_tas.SetNull(slot, col_id);
+        }
+        byte *to = old_tas.AccessForceNotNull(slot, col_id);
+
+        // Copy things over
+        std::memcpy(to, value, attr_size);
+      }
+    } else {
+      // delete follow by an insert
+      Delete(txn, slot, old_version);
+      Insert(txn, redo, version_num);
+      // TODO(yangjuns): Need to update indices
+    }
+    return true;
+  }
+
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
    *
@@ -167,16 +228,30 @@ class SqlTable {
     return table_.data_table->Insert(txn, redo);
   }
 
+  TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo,
+                   layout_version_t version_num) const {
+    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
+    // TODO(Matt): update indexes
+    // always insert into the new DataTable
+    return tables_[!version_num].data_table->Insert(txn, redo);
+  }
+
   /**
    * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
     return table_.data_table->Delete(txn, slot);
+  }
+
+  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot, layout_version_t version_num) const {
+    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
+    // TODO(Matt): update indexes
+    return tables_[!version_num].data_table->Delete(txn, slot);
   }
 
   /**
