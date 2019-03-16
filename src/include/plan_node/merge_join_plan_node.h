@@ -45,7 +45,7 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MERGEJOIN; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MERGEJOIN; }
 
   /**
    * @return join clauses
