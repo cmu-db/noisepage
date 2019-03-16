@@ -176,7 +176,7 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
         uint8_t copy_amount =
             std::min(static_cast<uint8_t>(sizeof(int64_t)), static_cast<uint8_t>(varlen_size - bytes_copied));
         std::memcpy(varlen_content + bytes_copied, &random_content, copy_amount);
-        bytes_copied += copy_amount;
+        bytes_copied = static_cast<uint8_t>(bytes_copied + copy_amount);
       }
 
       // write the varlen content into a varlen entry, inlining if appropriate
