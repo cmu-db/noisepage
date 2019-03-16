@@ -33,7 +33,7 @@ class SetOpPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
 
   /**
    * @return debug info

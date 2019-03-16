@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <utility>
-#include "plan_node/abstract_plan_node.h"
 #include "parser/expression/abstract_expression.h"
+#include "plan_node/abstract_plan_node.h"
 
 namespace terrier::plan_node {
 class AbstractScanPlanNode : public AbstractPlanNode {

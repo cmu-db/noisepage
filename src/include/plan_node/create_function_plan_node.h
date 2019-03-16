@@ -2,9 +2,9 @@
 
 #include <string>
 #include <vector>
-#include "plan_node/abstract_plan_node.h"
 #include "parser/create_function_statement.h"
 #include "parser/parser_defs.h"
+#include "plan_node/abstract_plan_node.h"
 
 namespace terrier {
 
@@ -27,7 +27,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_FUNC; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_FUNC; }
 
   /**
    * @return debug info
@@ -37,42 +37,42 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * @return name of the user defined function
    */
-  inline std::string GetFunctionName() const { return function_name; }
+  std::string GetFunctionName() const { return function_name; }
 
   /**
    * @return language type of the user defined function
    */
-  inline parser::PLType GetUDFLanguage() const { return language; }
+  parser::PLType GetUDFLanguage() const { return language; }
 
   /**
    * @return body of the user defined function
    */
-  inline std::vector<std::string> GetFunctionBody() const { return function_body; }
+  std::vector<std::string> GetFunctionBody() const { return function_body; }
 
   /**
    * @return parameter names of the user defined function
    */
-  inline std::vector<std::string> GetFunctionParameterNames() const { return function_param_names; }
+  std::vector<std::string> GetFunctionParameterNames() const { return function_param_names; }
 
   /**
    * @return parameter types of the user defined function
    */
-  inline std::vector<parser::Parameter::DataType> GetFunctionParameterTypes() const { return function_param_types; }
+  std::vector<parser::Parameter::DataType> GetFunctionParameterTypes() const { return function_param_types; }
 
   /**
    * @return return type of the user defined function
    */
-  inline parser::Parameter::DataType GetReturnType() const { return return_type; }
+  parser::Parameter::DataType GetReturnType() const { return return_type; }
 
   /**
    * @return whether the definition of the user defined function needs to be replaced
    */
-  inline bool IsReplace() const { return is_replace; }
+  bool IsReplace() const { return is_replace; }
 
   /**
    * @return number of parameters of the user defined function
    */
-  inline int GetNumParams() const { return param_count; }
+  int GetNumParams() const { return param_count; }
 
  private:
   // Indicates the UDF language type

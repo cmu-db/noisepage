@@ -58,7 +58,7 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   AggregateStrategy GetAggregateStrategy() const { return aggregate_strategy_; }
 
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
 
   const std::string GetInfo() const override { return "AggregatePlanNode"; }
 

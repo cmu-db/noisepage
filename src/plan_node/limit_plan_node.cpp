@@ -4,7 +4,7 @@
 
 namespace terrier::plan_node {
 
-inline common::hash_t LimitPlanNode::Hash() const {
+common::hash_t LimitPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
@@ -15,7 +15,7 @@ inline common::hash_t LimitPlanNode::Hash() const {
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-inline bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
+bool LimitPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
     return false;
   }

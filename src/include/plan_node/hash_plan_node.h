@@ -20,11 +20,11 @@ class HashPlanNode : public AbstractPlanNode {
   HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hashkeys)
       : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hashkeys)) {}
 
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
   const std::string GetInfo() const override { return "HashPlanNode"; }
 
-  inline const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
+  const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     // TODO(Gus,Wen) The base class AbstractExpression does not have a copy function

@@ -39,7 +39,7 @@ class DropPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP; }
 
   /**
    * @return debug info

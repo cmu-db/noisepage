@@ -92,7 +92,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE; }
 
   /**
    * @return debug info
@@ -153,22 +153,22 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return true if index/table has primary key [CREATE INDEX/TABLE]
    */
-  inline bool HasPrimaryKey() const { return has_primary_key_; }
+  bool HasPrimaryKey() const { return has_primary_key_; }
 
   /**
    * @return primary key meta-data
    */
-  inline PrimaryKeyInfo GetPrimaryKey() const { return primary_key_; }
+  PrimaryKeyInfo GetPrimaryKey() const { return primary_key_; }
 
   /**
    * @return foreign keys meta-data
    */
-  inline std::vector<ForeignKeyInfo> GetForeignKeys() const { return foreign_keys_; }
+  std::vector<ForeignKeyInfo> GetForeignKeys() const { return foreign_keys_; }
 
   /**
    * @return unique constraints
    */
-  inline std::vector<UniqueInfo> GetUniques() const { return con_uniques_; }
+  std::vector<UniqueInfo> GetUniques() const { return con_uniques_; }
 
   /**
    * @return name of key attributes

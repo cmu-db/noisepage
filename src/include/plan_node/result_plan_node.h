@@ -35,12 +35,12 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
 
   /**
    * @return debug info
    */
-  inline std::string GetInfo() const { return "ResultPlanNode"; }
+  const std::string GetInfo() const { return "ResultPlanNode"; }
 
   /**
    * @return a unique pointer to a copy of this plan node

@@ -19,7 +19,7 @@ class AppendPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
 
   /**
    * @return debug info

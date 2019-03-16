@@ -30,12 +30,12 @@ class MaterializationPlanNode : public AbstractPlanNode {
   /**
    * @return physify flag
    */
-  inline bool GetPhysifyFlag() const { return physify_flag_; }
+  bool GetPhysifyFlag() const { return physify_flag_; }
 
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MATERIALIZE; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MATERIALIZE; }
 
   /**
    * @return debug info

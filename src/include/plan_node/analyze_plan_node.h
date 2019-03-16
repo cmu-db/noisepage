@@ -57,17 +57,17 @@ class AnalyzePlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ANALYZE; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ANALYZE; }
 
   /**
    * @return the target table
    */
-  inline std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
+  std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
 
   /**
    * @return the names of the columns to be analyzed
    */
-  inline std::vector<std::string> GetColumnNames() const { return column_names_; }
+  std::vector<std::string> GetColumnNames() const { return column_names_; }
 
   /**
    * @return debug info
@@ -77,7 +77,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to a copy of abstract plan
    */
-  inline std::unique_ptr<AbstractPlanNode> Copy() const override {
+  std::unique_ptr<AbstractPlanNode> Copy() const override {
     return std::unique_ptr<AbstractPlanNode>(new AnalyzePlanNode(target_table_));
   }
 

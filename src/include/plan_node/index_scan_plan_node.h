@@ -26,7 +26,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
 
   catalog::index_oid_t GetIndexOid() const { return index_oid_; }
 
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
   /**
    * @return debug info

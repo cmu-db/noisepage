@@ -33,12 +33,12 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::POPULATE_INDEX; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::POPULATE_INDEX; }
 
   /**
    * @return the column IDs to be populated into the index
    */
-  inline const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
+  const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
 
   /**
    * @return debug info
