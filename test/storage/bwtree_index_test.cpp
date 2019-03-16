@@ -185,7 +185,9 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
         varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
         delete[] varlen_content;
       } else {
-        varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, true);
+        // TODO(WAN): doesn't this leak memory? The issue is that GenericKey's destructor is called
+        // every Scan/Insert/ConditionalInsert/Delete, are we meant to only give non-reclaimable keys?
+        varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
       }
 
       // copy the varlen entry into our attribute and reference, note that it is 16 bytes and not type_size
