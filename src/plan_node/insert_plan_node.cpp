@@ -15,7 +15,7 @@ bool InsertPlanNode::FindSchemaColIndex(const std::string &col_name,
                                         const std::vector<catalog::Schema::Column> &tbl_columns, uint32_t *index) {
   for (auto tcol = tbl_columns.begin(); tcol != tbl_columns.end(); tcol++) {
     if (tcol->GetName() == col_name) {
-      *index = std::distance(tbl_columns.begin(), tcol);
+      *index = static_cast<uint32_t>(std::distance(tbl_columns.begin(), tcol));
       return true;
     }
   }
