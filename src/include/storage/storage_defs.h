@@ -236,7 +236,7 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return static_cast<bool>(!(INT32_MIN & size_)); }
+  bool NeedReclaim() const { return !static_cast<bool>(INT32_MIN & size_); }
 
   /**
    * @return pointer to the stored prefix of the varlen entry

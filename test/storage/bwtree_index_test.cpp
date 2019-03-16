@@ -335,7 +335,8 @@ void BasicOps(Index *const index, const Random &generator) {
   auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
   auto *key = initializer.InitializeRow(key_buffer);
 
-  FillProjectedRow(metadata, key, generator);
+  auto *ref = FillProjectedRow(metadata, key, generator);
+  delete[] ref;
 
   // 1. Scan -> Insert -> Scan -> Delete -> Scan
   std::vector<storage::TupleSlot> results;
