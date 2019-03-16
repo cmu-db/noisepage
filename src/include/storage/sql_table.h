@@ -248,10 +248,13 @@ class SqlTable {
     return table_.data_table->Delete(txn, slot);
   }
 
-  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot, layout_version_t version_num) const {
+  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot,
+              layout_version_t version_num UNUSED_ATTRIBUTE) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
-    return tables_[!version_num].data_table->Delete(txn, slot);
+    layout_version_t old_version = slot.GetBlock()->layout_version_;
+    // always delete the tuple in the old block
+    return tables_[!old_version].data_table->Delete(txn, slot);
   }
 
   /**
