@@ -204,7 +204,7 @@ class VarlenEntry {
   static VarlenEntry CreateInline(const byte *content, uint32_t size) {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
-    result.size_ = INT32_MIN | size;  // cannot reclaim inline values, set the sign bit
+    result.size_ = size;
     // overwrite the content field's 8 bytes for inline storage
     std::memcpy(result.prefix_, content, size);
     return result;
@@ -252,7 +252,7 @@ class VarlenEntry {
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
  private:
-  int32_t size_;                   // sign bit is 0 if buffer is reclaimable
+  int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
 };
