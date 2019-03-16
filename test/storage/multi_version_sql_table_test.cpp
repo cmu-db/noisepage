@@ -92,6 +92,19 @@ class SqlTableRW {
   }
 
   /**
+   * Check if a tuple is visible to you
+   * @param txn
+   * @param slot
+   * @return
+   */
+  bool Visible(transaction::TransactionContext *txn, storage::TupleSlot slot) {
+    insert_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    insert_ = pri_->InitializeRow(insert_buffer_);
+    bool result = table_->Select(txn, slot, insert_, version_);
+    delete[] insert_buffer_;
+    return result;
+  }
+  /**
    * Read an integer from a row
    * @param col_num column number in the schema
    * @param slot - tuple to read from
@@ -170,11 +183,11 @@ class SqlTableRW {
   // The purpose is to record the version for each transaction. In reality this information should be retrieved from
   // catalog. We just make it for the test case.
   storage::layout_version_t version_;
+  storage::SqlTable *table_ = nullptr;
 
  private:
   storage::BlockStore block_store_{100, 100};
   catalog::table_oid_t table_oid_;
-  storage::SqlTable *table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
@@ -287,6 +300,55 @@ TEST_F(SqlTableTests, InsertTest) {
   datname = table.GetIntColInRow(txn, 2, row4_slot);
   EXPECT_EQ(42, datname);
 
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
+TEST_F(SqlTableTests, DeleteTest) {
+  SqlTableRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+
+  // insert (100, 10000)
+  table.StartRow();
+  table.SetIntColInRow(0, 100);
+  table.SetIntColInRow(1, 10000);
+  storage::TupleSlot row1_slot = table.EndRowAndInsert(txn);
+
+  // insert (200, 10001)
+  table.StartRow();
+  table.SetIntColInRow(0, 100);
+  table.SetIntColInRow(1, 10001);
+  storage::TupleSlot row2_slot = table.EndRowAndInsert(txn);
+
+  // manually set the version of the transaction to be 1
+  table.version_ = storage::layout_version_t(1);
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+
+  // insert (300, 10002, null)
+  table.StartRow();
+  table.SetIntColInRow(0, 300);
+  table.SetIntColInRow(1, 10002);
+  storage::TupleSlot row3_slot = table.EndRowAndInsert(txn);
+
+  // insert (400, 10003, 42)
+  table.StartRow();
+  table.SetIntColInRow(0, 400);
+  table.SetIntColInRow(1, 10003);
+  table.SetIntColInRow(2, 42);
+  storage::TupleSlot row4_slot = table.EndRowAndInsert(txn);
+
+  // delete (100, 10000, null) and (300, 10002, null)
+  EXPECT_TRUE(table.table_->Delete(txn, row1_slot, table.version_));
+  EXPECT_TRUE(table.table_->Delete(txn, row3_slot, table.version_));
+
+  EXPECT_TRUE(table.Visible(txn, row2_slot));
+  EXPECT_TRUE(table.Visible(txn, row4_slot));
+
+  EXPECT_FALSE(table.Visible(txn, row1_slot));
+  EXPECT_FALSE(table.Visible(txn, row3_slot));
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
 }
