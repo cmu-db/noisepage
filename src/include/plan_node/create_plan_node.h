@@ -93,7 +93,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Create Plan Node"; }
+  const std::string GetInfo() const override { return "CreatePlanNode"; }
 
   /**
    * @return unique pointer to a copy of this plan node

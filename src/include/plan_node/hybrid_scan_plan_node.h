@@ -19,6 +19,11 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HYBRIDSCAN; }
 
+  /**
+   * @return debug info
+   */
+  const std::string GetInfo() const override { return "HybridScanPlanNode"; }
+
   catalog::index_oid_t GetIndexOid() const { return index_oid_; }
 
   HybridScanType GetHybridScanType() const { return hybrid_scan_type_; }

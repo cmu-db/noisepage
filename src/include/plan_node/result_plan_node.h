@@ -40,7 +40,7 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  inline std::string GetInfo() const { return "Result Plan Node"; }
+  inline std::string GetInfo() const { return "ResultPlanNode"; }
 
   /**
    * @return a unique pointer to a copy of this plan node

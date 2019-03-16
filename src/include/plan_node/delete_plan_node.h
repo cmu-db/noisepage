@@ -42,7 +42,7 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Delete Plan Node"; }
+  const std::string GetInfo() const override { return "DeletePlanNode"; }
 
   /**
    * @return pointer to a copy of delete plan
@@ -50,6 +50,14 @@ class DeletePlanNode : public AbstractPlanNode {
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     return std::unique_ptr<AbstractPlanNode>(new DeletePlanNode(target_table_));
   }
+
+  /**
+   * @return the hashed value of this plan node
+   */
+  common::hash_t Hash() const override;
+
+  bool operator==(const AbstractPlanNode &rhs) const override;
+  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   std::shared_ptr<storage::SqlTable> target_table_ = nullptr;     // the table to be deleted

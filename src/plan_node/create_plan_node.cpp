@@ -8,7 +8,7 @@ namespace terrier::plan_node {
 
 // TODO(Gus,Wen): Add hash and == operator for target table if necessary
 CreatePlanNode::CreatePlanNode(std::string database_name, CreateType c_type)
-    : database_name_(std::move(database_name)), create_type_(c_type) {}
+    : AbstractPlanNode(nullptr), database_name_(std::move(database_name)), create_type_(c_type) {}
 
 CreatePlanNode::CreatePlanNode(std::string table_name, std::string schema_name, std::string database_name,
                                std::shared_ptr<catalog::Schema> schema, CreateType c_type)

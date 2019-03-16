@@ -25,6 +25,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
+  /**
+   * @return debug info
+   */
+  const std::string GetInfo() const override { return "IndexScanPlanNode"; }
+
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     IndexScanPlanNode *new_plan = new IndexScanPlanNode(GetOutputSchema(), GetIndexOid(), GetPredicate()->Copy().get());
     return std::unique_ptr<AbstractPlanNode>(new_plan);

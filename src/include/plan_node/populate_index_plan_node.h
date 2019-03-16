@@ -40,7 +40,7 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Populate Index Plan Node"; }
+  const std::string GetInfo() const override { return "PopulateIndexPlanNode"; }
 
   /**
    * @return the target table

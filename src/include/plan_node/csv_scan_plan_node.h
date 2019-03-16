@@ -28,6 +28,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CSVSCAN; }
 
+  const std::string GetInfo() const override { return "CSVScanPlanNode"; }
+
   const std::string &GetFileName() const { return file_name_; }
   char GetDelimiterChar() const { return delimiter_; }
   char GetQuoteChar() const { return quote_; }

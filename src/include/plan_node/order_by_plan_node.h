@@ -34,6 +34,11 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ORDERBY; }
 
+  /**
+   * @return debug info
+   */
+  const std::string GetInfo() const override { return "OrderByPlanNode"; }
+
   bool HasLimit() const { return has_limit_; }
 
   size_t GetLimit() const {

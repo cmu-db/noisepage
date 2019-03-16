@@ -28,7 +28,7 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * Default destructor
    */
-  ~UpdatePlanNode() = default;
+  ~UpdatePlanNode() override;
 
   /**
    * @return the target table to operate on
@@ -48,7 +48,7 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Update Plan Node"; }
+  const std::string GetInfo() const override { return "UpdatePlanNode"; }
 
   /**
    * @return a unique pointer to a copy of this plan node

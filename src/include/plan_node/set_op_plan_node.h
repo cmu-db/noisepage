@@ -35,7 +35,7 @@ class SetOpPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Set Op Plan Node"; }
+  const std::string GetInfo() const override { return "SetOpPlanNode"; }
 
   /**
    * @return a unique pointer to this plan node

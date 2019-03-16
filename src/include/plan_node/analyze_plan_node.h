@@ -71,7 +71,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Analyze Plan Node"; }
+  const std::string GetInfo() const override { return "AnalyzePlanNode"; }
 
   /**
    * @return pointer to a copy of abstract plan

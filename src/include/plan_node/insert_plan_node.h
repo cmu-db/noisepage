@@ -24,15 +24,15 @@ class InsertPlanNode : public AbstractPlanNode {
    * Instantiate an InsertPlanNode
    * Construct when SELECT comes in with it
    */
-  InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, uint32_t bulk_insert_count = 1)
+  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, uint32_t bulk_insert_count = 1)
       : target_table_(std::move(target_table)), bulk_insert_count_(bulk_insert_count) {}
 
   /**
    * Instantiate an InsertPlanNode
    * Construct with an OutputSchema
    */
-  InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t bulk_insert_count = 1)
+  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::shared_ptr<OutputSchema> output_schema,
+                          uint32_t bulk_insert_count = 1)
       : AbstractPlanNode(std::move(output_schema)),
         target_table_(std::move(target_table)),
         bulk_insert_count_(bulk_insert_count) {}
@@ -44,8 +44,8 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param columns columns to insert into
    * @param insert_values values to insert
    */
-  InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::vector<std::string> columns,
-                 std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values);
+  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, const std::vector<std::string> &columns,
+                          std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values);
 
   /**
    * @return the type of this plan node
@@ -67,7 +67,7 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Insert Plan Node"; }
+  const std::string GetInfo() const override { return "InsertPlanNode"; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
     // TODO(Gus,Wen) Add copying mechanism
@@ -93,8 +93,8 @@ class InsertPlanNode : public AbstractPlanNode {
    *
    * @return true if column was found, false otherwise
    */
-  bool FindSchemaColIndex(std::string col_name, const std::vector<catalog::Schema::Column> &tbl_columns,
-                          uint32_t &index);
+  bool FindSchemaColIndex(const std::string &col_name, const std::vector<catalog::Schema::Column> &tbl_columns,
+                          uint32_t *index);
 
   /**
    * Process column specification supplied in the insert statement.

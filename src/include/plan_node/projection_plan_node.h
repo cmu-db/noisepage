@@ -11,6 +11,11 @@ class ProjectionPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::PROJECTION; }
 
+  /**
+   * @return debug info
+   */
+  const std::string GetInfo() const override { return "ProjectionPlanNode"; }
+
   std::unique_ptr<AbstractPlanNode> Copy() const override;
 
   common::hash_t Hash() const override;

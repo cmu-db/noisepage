@@ -17,6 +17,11 @@ class LimitPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 
+  /**
+   * @return debug info
+   */
+  const std::string GetInfo() const override { return "LimitPlanNode"; }
+
   size_t GetLimit() { return limit_; }
 
   size_t GetOffset() { return offset_; }

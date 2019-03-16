@@ -1,5 +1,5 @@
 #include "plan_node/delete_plan_node.h"
-#include "storage/data_table.h"
+#include "storage/sql_table.h"
 
 namespace terrier::plan_node {
 
@@ -16,6 +16,21 @@ DeletePlanNode::DeletePlanNode(parser::DeleteStatement *delete_stmt) {
   // TODO(Gus,Wen) Get table from catalog once catalog is available
 }
 
-// TODO(Gus,Wen): Add hash and == operator for target table if necessary
+common::hash_t DeletePlanNode::Hash() const {
+  auto type = GetPlanNodeType();
+  common::hash_t hash = common::HashUtil::Hash(&type);
+
+  // TODO(Gus,Wen) Add hash for target table
+
+  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+}
+
+bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+
+  // TODO(Gus, Wen) Compare target tables
+
+  return AbstractPlanNode::operator==(rhs);
+}
 
 }  // namespace terrier::plan_node

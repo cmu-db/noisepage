@@ -123,8 +123,8 @@ class OutputSchema {
    * this plan node's OutputSchema
    *
    */
-  explicit OutputSchema(std::vector<Column> columns, std::vector<DerivedTarget> targets,
-                        std::vector<DirectMap> direct_map_list)
+  explicit OutputSchema(std::vector<Column> columns, std::vector<DerivedTarget> targets = std::vector<DerivedTarget>(),
+                        std::vector<DirectMap> direct_map_list = std::vector<DirectMap>())
       : columns_(std::move(columns)), targets_(std::move(targets)), direct_map_list_(std::move(direct_map_list)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and 32767.");

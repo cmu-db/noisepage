@@ -42,7 +42,7 @@ class DropPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Drop Plan Node"; }
+  const std::string GetInfo() const override { return "DropPlanNode"; }
 
   /**
    * @return unique pointer to a copy of this plan node

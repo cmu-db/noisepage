@@ -22,7 +22,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
         quote_(quote),
         escape_(escape) {}
 
-  PlanNodeType GetPlanNodeType() const override;
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::EXPORT_EXTERNAL_FILE; }
+
+  const std::string GetInfo() const override { return "ExportExternalFilePlanNode"; }
 
   const std::string &GetFileName() const { return file_name_; }
   char GetDelimiterChar() const { return delimiter_; }

@@ -11,23 +11,22 @@ namespace terrier::plan_node {
 class HashPlanNode : public AbstractPlanNode {
  public:
   using HashKeyType = const parser::AbstractExpression;
-  using HashKeyPtrType = std::unique_ptr<HashKeyType>;
+  using HashKeyPtrType = std::shared_ptr<HashKeyType>;
 
   HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hashkeys)
       : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hashkeys)) {}
 
   inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
-  const std::string GetInfo() const { return "HashPlanNode"; }
+  const std::string GetInfo() const override { return "HashPlanNode"; }
 
   inline const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    std::vector<HashKeyPtrType> copied_hash_keys;
-    for (const auto &key : hash_keys_) {
-      copied_hash_keys.emplace_back(std::make_unique<HashKeyPtrType>(key->Copy()));
-    }
-    return std::make_unique<AbstractPlanNode>(new HashPlanNode(GetOutputSchema(), copied_hash_keys));
+    // TODO(Gus,Wen) The base class AbstractExpression does not have a copy function
+    // Need to implement copy mechanism
+    std::unique_ptr<AbstractPlanNode> dummy;
+    return dummy;
   }
 
   common::hash_t Hash() const override;

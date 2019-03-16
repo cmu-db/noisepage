@@ -49,6 +49,9 @@ class AbstractPlanNode {
   // This is better than having to store redundant types in all the objects
   virtual PlanNodeType GetPlanNodeType() const { return PlanNodeType::ABSTRACTPLAN; }
 
+  // Get a string representation for debugging
+  virtual const std::string GetInfo() const;
+
   // Get the output schema for the plan node. The output schema contains information on columns of the output of
   // the plan node operator
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }

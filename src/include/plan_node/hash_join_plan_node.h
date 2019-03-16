@@ -17,6 +17,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASHJOIN; }
 
+  const std::string GetInfo() const override { return "HashJoinPlanNode"; }
+
   bool IsBloomFilterEnabled() const { return build_bloomfilter_; }
 
   const std::vector<parser::AbstractExpression *> &GetLeftHashKeys() const { return left_hash_keys_; }

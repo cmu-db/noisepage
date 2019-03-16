@@ -40,7 +40,7 @@ class MaterializationPlanNode : public AbstractPlanNode {
   /**
    * @return debug info
    */
-  const std::string GetInfo() const { return "Materialize Plan Node"; }
+  const std::string GetInfo() const override { return "MaterializePlanNode"; }
 
   /**
    * @return a unique pointer to a copy of this plan node
