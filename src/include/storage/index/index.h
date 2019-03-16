@@ -98,6 +98,11 @@ class Index {
    * @return oid of this indes
    */
   catalog::index_oid_t GetOid() const { return oid_; }
+
+  /**
+   * @return metadata of this index
+   */
+  const IndexMetadata &GetMetadata() const { return metadata_; }
 };
 
 }  // namespace terrier::storage::index

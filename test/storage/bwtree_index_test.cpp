@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <limits>
@@ -20,6 +21,9 @@ class BwTreeIndexTests : public TerrierTest {
   std::default_random_engine generator_;
 };
 
+/**
+ * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
+ */
 template <typename Random>
 IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
                                       Random *generator) {
@@ -46,6 +50,9 @@ IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector
   return key_schema;
 }
 
+/**
+ * Generates a random CompactIntsKey-compatible schema.
+ */
 template <typename Random>
 IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
   const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
@@ -92,6 +99,9 @@ template <typename Random>
 void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random *generator) {
   std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
   const auto type_size = type::TypeUtil::GetTypeSize(type);
+
+  // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
+
   switch (type) {
     case type::TypeId::BOOLEAN: {
       auto boolean = static_cast<uint8_t>(rng(*generator)) % 2;
@@ -154,11 +164,22 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      uint8_t varlen_sizes[] = {2, 10, 20};  // meant to hit the inline (prefix), inline (prefix+content), content cases
+      // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
+      uint8_t varlen_sizes[] = {2, 10, 20};
       auto varlen_size = varlen_sizes[static_cast<uint8_t>(rng(*generator)) % 3];
+
+      // generate random varlen content
       auto *varlen_content = new byte[varlen_size];
-      auto random_content = static_cast<int64_t>(rng(*generator));
-      std::memcpy(varlen_content, &random_content, varlen_size);
+      uint8_t bytes_copied = 0;
+      while (bytes_copied < varlen_size) {
+        auto random_content = static_cast<int64_t>(rng(*generator));
+        uint8_t copy_amount =
+            std::min(static_cast<uint8_t>(sizeof(int64_t)), static_cast<uint8_t>(varlen_size - bytes_copied));
+        std::memcpy(varlen_content + bytes_copied, &random_content, copy_amount);
+        bytes_copied += copy_amount;
+      }
+
+      // write the varlen content into a varlen entry, inlining if appropriate
       VarlenEntry varlen_entry{};
       if (varlen_size <= VarlenEntry::InlineThreshold()) {
         varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
@@ -166,12 +187,14 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
       } else {
         varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, true);
       }
-      std::memcpy(attr, &varlen_entry, type_size);
-      std::memcpy(reference, &varlen_entry, type_size);
+
+      // copy the varlen entry into our attribute and reference, note that it is 16 bytes and not type_size
+      std::memcpy(attr, &varlen_entry, 16);
+      std::memcpy(reference, &varlen_entry, 16);
       break;
     }
     default:
-      throw new std::runtime_error("Unsupported type");
+      throw std::runtime_error("Unsupported type");
   }
 }
 
@@ -196,7 +219,7 @@ byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr,
 }
 
 /**
- * This function, strictly speaking, is a less-general version of the FillProjectedRow above.
+ * Strictly speaking, this function is a less general version of FillProjectedRow above.
  * But it is easier to reason about and useful in a debugger, so we keep it around.
  */
 template <typename Random>
@@ -273,39 +296,9 @@ bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr
   return false;
 }
 
-template <typename Random>
-void BasicOps(Index *const index, const Random &generator) {
-  //  auto initializer = index->GetProjectedRowInitializer();
-  //
-  //  auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  //
-  //  auto *key = initializer.InitializeRow(key_buffer);
-  //
-  //  const auto &cmp_order = index->GetComparisonOrder();
-  //
-  //  for (uint16_t j = 0; j < cmp_order.size(); j++) {
-  //    key->AccessForceNotNull(j);
-  //  }
-  //
-  //  std::vector<storage::TupleSlot> results;
-  //  index->ScanKey(*key, &results);
-  //  EXPECT_TRUE(results.empty());
-  //
-  //  EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
-  //
-  //  index->ScanKey(*key, &results);
-  //  EXPECT_EQ(results.size(), 1);
-  //  EXPECT_EQ(results[0], storage::TupleSlot());
-  //
-  //  EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-  //
-  //  results.clear();
-  //  index->ScanKey(*key, &results);
-  //  EXPECT_TRUE(results.empty());
-  //
-  //  delete[] key_buffer;
-}
-
+/**
+ * Calls compact ints equality for KeySize, i.e. std::equal_to<CompactIntsKey<KeySize>>()
+ */
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                    const storage::ProjectedRow &pr_B) {
@@ -316,6 +309,9 @@ bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage:
   return std::equal_to<CompactIntsKey<KeySize>>()(key_A, key_B);
 }
 
+/**
+ * Calls compact ints comparator for KeySize, i.e. std::less<CompactIntsKey<KeySize>>()
+ */
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                     const storage::ProjectedRow &pr_B) {
@@ -326,6 +322,70 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
   return std::less<CompactIntsKey<KeySize>>()(key_A, key_B);
 }
 
+/**
+ * Tests:
+ * 1. Scan -> Insert -> Scan -> Delete -> Scan
+ * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+ */
+template <typename Random>
+void BasicOps(Index *const index, const Random &generator) {
+  // instantiate projected row and key
+  const auto &metadata = index->GetMetadata();
+  const auto &initializer = metadata.GetProjectedRowInitializer();
+  auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *key = initializer.InitializeRow(key_buffer);
+
+  FillProjectedRow(metadata, key, generator);
+
+  // 1. Scan -> Insert -> Scan -> Delete -> Scan
+  std::vector<storage::TupleSlot> results;
+  index->ScanKey(*key, &results);
+  EXPECT_TRUE(results.empty());
+
+  EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
+
+  index->ScanKey(*key, &results);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results[0], storage::TupleSlot());
+
+  EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+  results.clear();
+  index->ScanKey(*key, &results);
+  EXPECT_TRUE(results.empty());
+
+  // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+  switch (index->GetConstraintType()) {
+    case ConstraintType::PRIMARY_KEY:
+    case ConstraintType::UNIQUE: {
+      EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
+      EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
+
+      results.clear();
+      index->ScanKey(*key, &results);
+      EXPECT_TRUE(results.empty());
+      EXPECT_EQ(results.size(), 2);
+
+      EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+      results.clear();
+      index->ScanKey(*key, &results);
+      EXPECT_TRUE(results.empty());
+      EXPECT_EQ(results.size(), 2);
+    }
+    default:
+      break;
+  }
+
+  delete[] key_buffer;
+}
+
+/**
+ * 1. Generate a reference key schema.
+ * 2. Fill two keys (pr_A, pr_B) with random data (data_A, data_B)
+ * 3. Set CompactIntsKeys (key_A, key_B) from (pr_A, pr_B)
+ * 4. e
+ */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   const uint32_t num_iterations = 1000;
@@ -445,7 +505,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
+TEST_F(BwTreeIndexTests, DISABLED_CompactIntsBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
@@ -454,15 +514,14 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-
-    // BasicOps(index, &generator_);
+    BasicOps(index, &generator_);
 
     delete index;
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
+TEST_F(BwTreeIndexTests, DISABLED_GenericKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   const std::vector<type::TypeId> generic_key_types{
@@ -477,7 +536,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
 
-    // BasicOps(index, &generator_);
+    BasicOps(index, &generator_);
 
     delete index;
   }
@@ -625,6 +684,66 @@ TEST_F(BwTreeIndexTests, GenericKeyNumericComparisons) {
   NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
 }
 
+/**
+ * Sets the generic key to contain the given string. If c_str is nullptr, the key is zeroed out.
+ */
+template <uint8_t KeySize>
+void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> *key, ProjectedRow *pr,
+                             const char *c_str) {
+  if (c_str != nullptr) {
+    auto len1 = static_cast<uint32_t>(std::strlen(c_str));
+
+    VarlenEntry data{};
+    if (len1 <= VarlenEntry::InlineThreshold()) {
+      data = VarlenEntry::CreateInline(reinterpret_cast<const byte *>(c_str), len1);
+    } else {
+      // let the generic key own the string
+      data = VarlenEntry::Create(reinterpret_cast<byte *>(strdup(c_str)), len1, true);
+    }
+
+    *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+    (*key).SetFromProjectedRow(*pr, metadata);
+  } else {
+    pr->SetNull(0);
+    (*key).SetFromProjectedRow(*pr, metadata);
+  }
+}
+
+/**
+ * Tests GenericKey's equality and comparison for the two null-terminated c_str's.
+ */
+template <uint8_t KeySize>
+void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2) {
+  const auto generic_eq64 = std::equal_to<GenericKey<KeySize>>();  // NOLINT transparent functors can't deduce template
+  const auto generic_lt64 = std::less<GenericKey<KeySize>>();      // NOLINT transparent functors can't deduce template
+
+  GenericKey<KeySize> key1, key2;
+  SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1);
+  SetGenericKeyFromString<KeySize>(metadata, &key2, pr, c_str2);
+
+  bool ref_eq, ref_lt;
+  if (c_str1 == nullptr && c_str2 == nullptr) {
+    // NULL and NULL
+    ref_eq = true;
+    ref_lt = false;
+  } else if (c_str1 == nullptr) {
+    // NULL and NOT NULL
+    ref_eq = false;
+    ref_lt = true;
+  } else if (c_str2 == nullptr) {
+    // NOT NULL and NULL
+    ref_eq = false;
+    ref_lt = false;
+  } else {
+    // NOT NULL and NOT NULL
+    ref_eq = strcmp(c_str1, c_str2) == 0;
+    ref_lt = strcmp(c_str1, c_str2) < 0;
+  }
+
+  EXPECT_EQ(generic_eq64(key1, key2), ref_eq);
+  EXPECT_EQ(generic_lt64(key1, key2), ref_lt);
+}
+
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   IndexKeySchema key_schema;
@@ -736,94 +855,37 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   char johnny_johnny[14] = "johnny_johnny";
   char johnathan_johnathan[20] = "johnathan_johnathan";
 
-  VarlenEntry data = VarlenEntry::Create(reinterpret_cast<byte *>(johnathan_johnathan),
-                                         static_cast<uint32_t>(std::strlen(johnathan_johnathan)), false);
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   GenericKey<64> key1, key2;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
-
-  const auto generic_eq64 = std::equal_to<GenericKey<64>>();  // NOLINT transparent functors can't figure out template
-  const auto generic_lt64 = std::less<GenericKey<64>>();      // NOLINT transparent functors can't figure out template
 
   // lhs: "johnathan_johnathan", rhs: "johnathan_johnathan" (same prefixes, same strings (both non-inline))
-  EXPECT_TRUE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
-                             false);
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan);
 
   // lhs: "johnathan_johnathan", rhs: "johnny_johnny" (same prefixes, different strings (both non-inline))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_TRUE(generic_lt64(key1, key2));
-
-  key1.SetFromProjectedRow(*pr, metadata);
-  data = VarlenEntry::Create(reinterpret_cast<byte *>(johnathan_johnathan),
-                             static_cast<uint32_t>(std::strlen(johnathan_johnathan)), false);
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnny_johnny);
 
   // lhs: "johnny_johnny", rhs: "johnathan_johnathan" (same prefixes, different strings (both non-inline))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(john), static_cast<uint32_t>(std::strlen(john)));
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnathan_johnathan);
 
   // lhs: "johnny_johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  key1.SetFromProjectedRow(*pr, metadata);
-  data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
-                             false);
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, john);
 
   // lhs: "john", rhs: "johnny_johnny" (same prefixes, different strings (one <=prefix))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_TRUE(generic_lt64(key1, key2));
-
-  data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, john, johnny_johnny);
 
   // lhs: "johnny", rhs: "johnny_johnny" (same prefixes, different strings (one inline))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_TRUE(generic_lt64(key1, key2));
-
-  key2.SetFromProjectedRow(*pr, metadata);
-  data = VarlenEntry::Create(reinterpret_cast<byte *>(johnny_johnny), static_cast<uint32_t>(std::strlen(johnny_johnny)),
-                             false);
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnny, johnny_johnny);
 
   // lhs: "johnny_johnny", rhs: "johnny" (same prefixes, different strings (one inline))
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  pr->SetNull(0);
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnny);
 
   // lhs: "johnny_johnny", rhs: NULL
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  key1.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, nullptr);
 
   // lhs: NULL, rhs: NULL
-  EXPECT_TRUE(generic_eq64(key1, key2));
-  EXPECT_FALSE(generic_lt64(key1, key2));
-
-  *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, nullptr);
 
   // lhs: NULL, rhs: "johnny_johnny"
-  EXPECT_FALSE(generic_eq64(key1, key2));
-  EXPECT_TRUE(generic_lt64(key1, key2));
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, johnny_johnny);
 
   delete[] pr_buffer;
 }

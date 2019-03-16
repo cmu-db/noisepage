@@ -194,7 +194,7 @@ class VarlenEntry {
 
   /**
    * Constructs a new varlen entry, with the associated varlen value inlined within the struct itself. This is only
-   * possible when the inlined value is smaller than InlinedThreshold() as defined. The value is copied and the given
+   * possible when the inlined value is smaller than InlineThreshold() as defined. The value is copied and the given
    * pointer can be safely deallocated regardless of the state of the system.
    * @param content pointer to the varlen content
    * @param size length of the varlen content, in bytes (no C-style nul-terminator. Must be smaller than
@@ -204,7 +204,7 @@ class VarlenEntry {
   static VarlenEntry CreateInline(const byte *content, uint32_t size) {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
-    result.size_ = size;
+    result.size_ = INT32_MIN | size;
     // overwrite the content field's 8 bytes for inline storage
     std::memcpy(result.prefix_, content, size);
     return result;
@@ -236,7 +236,7 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return size_ > static_cast<int32_t>(InlineThreshold()); }
+  bool NeedReclaim() const { return static_cast<bool>(!(INT32_MIN & size_)); }
 
   /**
    * @return pointer to the stored prefix of the varlen entry
@@ -249,7 +249,7 @@ class VarlenEntry {
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
  private:
-  int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
+  int32_t size_;                   // sign bit is 0 if buffer is reclaimable
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
 };
