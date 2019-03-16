@@ -65,7 +65,7 @@ class DeletePlanNode : public AbstractPlanNode {
   std::shared_ptr<storage::SqlTable> target_table_ = nullptr;     // the table to be deleted
   std::string table_name_;                                        // name of the table
   std::shared_ptr<parser::AbstractExpression> delete_condition_;  // expression of delete condition
- private:
+
   DISALLOW_COPY_AND_MOVE(DeletePlanNode);
 };
 

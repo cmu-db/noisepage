@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include "abstract_plan_node.h"
+#include "plan_node/abstract_plan_node.h"
 #include "parser/create_function_statement.h"
 #include "parser/parser_defs.h"
 

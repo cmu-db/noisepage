@@ -1,3 +1,5 @@
+#include <memory>
+#include <vector>
 #include "plan_node/hash_join_plan_node.h"
 
 namespace terrier::plan_node {

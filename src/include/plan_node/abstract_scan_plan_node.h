@@ -1,6 +1,8 @@
 #pragma once
 
-#include "abstract_plan_node.h"
+#include <memory>
+#include <utility>
+#include "plan_node/abstract_plan_node.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::plan_node {
