@@ -1,4 +1,5 @@
 #include <memory>
+#include "plan_node/abstract_plan_node.h"
 #include "plan_node/limit_plan_node.h"
 #include "plan_node/output_schema.h"
 #include "type/type_id.h"
