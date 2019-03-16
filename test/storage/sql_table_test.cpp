@@ -123,7 +123,7 @@ class SqlTableRW {
     // stored string has no null terminator, add space for it
     uint32_t size = entry->Size() + 1;
     // allocate return string
-    auto *ret_st = static_cast<char *>(malloc(size));
+    auto *ret_st = reinterpret_cast<char *>(common::AllocationUtil::AllocateAligned(size));
     std::memcpy(ret_st, entry->Content(), size);
     // add the null terminator
     *(ret_st + size - 1) = 0;
@@ -141,10 +141,16 @@ class SqlTableRW {
   void SetVarcharColInRow(int32_t col_num, const char *st) {
     byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     // string size, without null terminator
-    size_t size = strlen(st);
-    byte *varlen = common::AllocationUtil::AllocateAligned(size);
-    std::memcpy(varlen, st, size);
-    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
+    auto size = static_cast<uint32_t>(strlen(st));
+    if (size <= storage::VarlenEntry::InlineThreshold()) {
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(st), size);
+    } else {
+      byte *varlen = common::AllocationUtil::AllocateAligned(size);
+      std::memcpy(varlen, st, static_cast<uint32_t>(size));
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
+    }
   }
 
  private:
@@ -217,7 +223,7 @@ TEST_F(SqlTableTests, VarlenInsertTest) {
   EXPECT_EQ(100, id);
   char *table_name = table.GetVarcharColInRow(1, row_slot);
   EXPECT_STREQ("name", table_name);
-  free(table_name);
+  delete[] table_name;
 }
 
 }  // namespace terrier

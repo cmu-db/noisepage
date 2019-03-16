@@ -52,16 +52,7 @@ class DataTable {
      * pre-fix increment.
      * @return self-reference after the iterator is advanced
      */
-    SlotIterator &operator++() {
-      common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
-      if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots()) {
-        ++block_;
-        current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
-      } else {
-        current_slot_ = {*block_, current_slot_.GetOffset() + 1};
-      }
-      return *this;
-    }
+    SlotIterator &operator++();
 
     /**
      * post-fix increment.
@@ -99,6 +90,7 @@ class DataTable {
         : table_(table), block_(block) {
       current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
     }
+
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
@@ -166,12 +158,13 @@ class DataTable {
   }
 
   /**
-   * @return one past the last tuple slot contained in the data table
+   * Returns one past the last tuple slot contained in the data table. Note that this is not an accurate number when
+   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
+   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   *
+   * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const {
-    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.end(), 0};
-  }
+  SlotIterator end() const;
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
