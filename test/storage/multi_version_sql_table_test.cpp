@@ -85,7 +85,7 @@ class SqlTableRW {
    * @return slot where the row was created
    */
   storage::TupleSlot EndRowAndInsert(transaction::TransactionContext *txn) {
-    auto slot = table_->Insert(txn, *insert_);
+    auto slot = table_->Insert(txn, *insert_, version_);
     insert_ = nullptr;
     delete[] insert_buffer_;
     return storage::TupleSlot(slot.GetBlock(), slot.GetOffset());
@@ -101,7 +101,6 @@ class SqlTableRW {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read, version_);
-    LOG_INFO("before force not null ...");
     byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oids_[col_num]));
     printf("address %p \n", col_p);
     uint32_t ret_val;
@@ -199,7 +198,7 @@ struct SqlTableTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(SqlTableTests, SelectInsertTest) {
+TEST_F(SqlTableTests, SelectTest) {
   SqlTableRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
@@ -236,6 +235,57 @@ TEST_F(SqlTableTests, SelectInsertTest) {
 
   uint32_t new_col = table.GetIntColInRow(txn, 2, row1_slot);
   EXPECT_EQ(12345, new_col);
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
+TEST_F(SqlTableTests, InsertTest) {
+  SqlTableRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+  table.StartRow();
+  table.SetIntColInRow(0, 100);
+  table.SetIntColInRow(1, 10000);
+  storage::TupleSlot row1_slot = table.EndRowAndInsert(txn);
+
+  uint32_t id = table.GetIntColInRow(txn, 0, row1_slot);
+  EXPECT_EQ(100, id);
+  uint32_t datname = table.GetIntColInRow(txn, 1, row1_slot);
+  EXPECT_EQ(10000, datname);
+
+  // manually set the version of the transaction to be 1
+  table.version_ = storage::layout_version_t(1);
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+
+  // insert (300, 10002, null)
+  table.StartRow();
+  table.SetIntColInRow(0, 300);
+  table.SetIntColInRow(1, 10002);
+  storage::TupleSlot row3_slot = table.EndRowAndInsert(txn);
+
+  // insert (400, 10003, 42)
+  table.StartRow();
+  table.SetIntColInRow(0, 400);
+  table.SetIntColInRow(1, 10003);
+  table.SetIntColInRow(2, 42);
+  storage::TupleSlot row4_slot = table.EndRowAndInsert(txn);
+
+  id = table.GetIntColInRow(txn, 0, row3_slot);
+  EXPECT_EQ(300, id);
+  datname = table.GetIntColInRow(txn, 1, row3_slot);
+  EXPECT_EQ(10002, datname);
+  uint32_t new_col = table.GetIntColInRow(txn, 2, row3_slot);
+  EXPECT_EQ(12345, new_col);
+
+  id = table.GetIntColInRow(txn, 0, row4_slot);
+  EXPECT_EQ(400, id);
+  datname = table.GetIntColInRow(txn, 1, row4_slot);
+  EXPECT_EQ(10003, datname);
+  datname = table.GetIntColInRow(txn, 2, row4_slot);
+  EXPECT_EQ(42, datname);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
