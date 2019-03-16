@@ -204,7 +204,7 @@ class VarlenEntry {
   static VarlenEntry CreateInline(const byte *content, uint32_t size) {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
-    result.size_ = INT32_MIN | size;
+    result.size_ = INT32_MIN | size;  // cannot reclaim inline values, set the sign bit
     // overwrite the content field's 8 bytes for inline storage
     std::memcpy(result.prefix_, content, size);
     return result;
@@ -236,7 +236,10 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return !static_cast<bool>(INT32_MIN & size_); }
+  bool NeedReclaim() const {
+    // force a signed comparison, if our sign bit is set size_ is negative so the test returns false
+    return size_ > static_cast<int32_t>(InlineThreshold());
+  }
 
   /**
    * @return pointer to the stored prefix of the varlen entry

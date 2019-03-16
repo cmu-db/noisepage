@@ -506,7 +506,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DISABLED_CompactIntsBuilderTest) {
+TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
@@ -522,7 +522,7 @@ TEST_F(BwTreeIndexTests, DISABLED_CompactIntsBuilderTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DISABLED_GenericKeyBuilderTest) {
+TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   const std::vector<type::TypeId> generic_key_types{
