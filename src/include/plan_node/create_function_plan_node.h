@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../parser/parser_defs.h"
+#include <string>
+#include <vector>
 #include "abstract_plan_node.h"
 #include "parser/create_function_statement.h"
+#include "parser/parser_defs.h"
 
 namespace terrier {
 

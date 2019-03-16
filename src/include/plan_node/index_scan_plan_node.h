@@ -1,10 +1,13 @@
 #pragma once
 
-#include "abstract_scan_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
+#include "plan_node/abstract_scan_plan_node.h"
 
 // TODO(Gus,Wen): IndexScanDesc had a `p_runtime_key_list` that did not have a comment explaining its use. We should
 // figure that out. IndexScanDesc also had an expression type list, i dont see why this can't just be taken from the

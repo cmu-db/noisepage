@@ -1,6 +1,9 @@
 
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "plan_node/abstract_plan_node.h"
 

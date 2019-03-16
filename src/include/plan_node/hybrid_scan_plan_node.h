@@ -1,9 +1,12 @@
 #pragma once
 
-#include "abstract_scan_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
-#include "plan_node_defs.h"
+#include "plan_node/abstract_scan_plan_node.h"
+#include "plan_node/plan_node_defs.h"
 
 namespace terrier::plan_node {
 

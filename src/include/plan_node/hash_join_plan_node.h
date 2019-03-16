@@ -1,6 +1,10 @@
 #pragma once
 
-#include "abstract_join_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include "plan_node/abstract_join_plan_node.h"
 
 // TODO(Gus,Wen): Do we need left and right keys, or is this something you can figure out from the predicate?
 

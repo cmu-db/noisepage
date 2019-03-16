@@ -1,9 +1,11 @@
 #pragma once
 
-#include "output_schema.h"
+#include <memory>
+#include <string>
 #include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "plan_node/abstract_plan_node.h"
+#include "plan_node/output_schema.h"
 
 namespace terrier {
 

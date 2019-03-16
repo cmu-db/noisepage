@@ -1,4 +1,6 @@
 #include "plan_node/drop_plan_node.h"
+#include <string>
+#include <utility>
 #include "parser/drop_statement.h"
 #include "storage/data_table.h"
 

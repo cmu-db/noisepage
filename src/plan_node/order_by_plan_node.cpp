@@ -1,4 +1,5 @@
 #include "plan_node/order_by_plan_node.h"
+#include <memory>
 
 namespace terrier::plan_node {
 

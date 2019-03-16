@@ -1,4 +1,6 @@
 #include "plan_node/export_external_file_plan_node.h"
+#include <memory>
+#include <string>
 
 namespace terrier::plan_node {
 

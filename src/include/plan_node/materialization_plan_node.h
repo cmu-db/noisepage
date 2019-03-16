@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "output_schema.h"
 #include "plan_node/abstract_plan_node.h"
+#include "plan_node/output_schema.h"
 
 namespace terrier::plan_node {
 
@@ -18,14 +18,14 @@ class MaterializationPlanNode : public AbstractPlanNode {
    * @param schema  output schema
    * @param physify_flag indicate whether to create a physical tile
    */
-  MaterializationPlanNode(std::shared_ptr<OutputSchema> output_schema, bool physify_flag)
+  explicit MaterializationPlanNode(std::shared_ptr<OutputSchema> output_schema, bool physify_flag)
       : AbstractPlanNode(output_schema), physify_flag_(physify_flag) {}
 
   /**
    * Instantiate a MaterializationPlanNode
    * @param physify_flag indicate whether to create a physical tile
    */
-  MaterializationPlanNode(bool physify_flag) : AbstractPlanNode(nullptr), physify_flag_(physify_flag) {}
+  explicit MaterializationPlanNode(bool physify_flag) : AbstractPlanNode(nullptr), physify_flag_(physify_flag) {}
 
   /**
    * @return physify flag
@@ -35,7 +35,7 @@ class MaterializationPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::MATERIALIZE; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MATERIALIZE; }
 
   /**
    * @return debug info

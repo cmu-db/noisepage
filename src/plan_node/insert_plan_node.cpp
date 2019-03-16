@@ -1,4 +1,8 @@
 #include "plan_node/insert_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
 #include "type/transient_value_factory.h"

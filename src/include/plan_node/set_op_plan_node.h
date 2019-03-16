@@ -1,7 +1,10 @@
 #pragma once
 
-#include "abstract_plan_node.h"
-#include "output_schema.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include "plan_node/abstract_plan_node.h"
+#include "plan_node/output_schema.h"
 
 namespace terrier::plan_node {
 

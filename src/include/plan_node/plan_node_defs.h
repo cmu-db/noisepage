@@ -22,7 +22,6 @@ constexpr int INVALID_TYPE_ID = 0;
 //===--------------------------------------------------------------------===//
 
 enum class PlanNodeType {
-
   INVALID = INVALID_TYPE_ID,
 
   ABSTRACTPLAN,

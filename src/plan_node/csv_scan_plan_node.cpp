@@ -1,4 +1,6 @@
 #include "plan_node/csv_scan_plan_node.h"
+#include <memory>
+#include <string>
 
 namespace terrier::plan_node {
 

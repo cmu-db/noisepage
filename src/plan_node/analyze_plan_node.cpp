@@ -1,4 +1,8 @@
 #include "plan_node/analyze_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "parser/analyze_statement.h"
 #include "storage/data_table.h"

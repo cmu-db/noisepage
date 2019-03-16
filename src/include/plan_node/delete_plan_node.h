@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include "parser/delete_statement.h"
 #include "plan_node/abstract_plan_node.h"
 

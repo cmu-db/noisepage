@@ -1,4 +1,6 @@
 #include "plan_node/abstract_plan_node.h"
+#include <memory>
+#include <vector>
 #include "plan_node/limit_plan_node.h"
 #include "plan_node/seq_scan_plan_node.h"
 

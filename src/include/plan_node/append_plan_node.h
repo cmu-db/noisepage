@@ -1,7 +1,8 @@
 #pragma once
 
-#include "abstract_plan_node.h"
-#include "common/internal_types.h"
+#include <memory>
+#include <string>
+#include "plan_node/abstract_plan_node.h"
 
 namespace terrier::plan_node {
 
@@ -18,7 +19,7 @@ class AppendPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  inline PlanNodeType GetPlanNodeType() const { return PlanNodeType::APPEND; }
+  inline PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
 
   /**
    * @return debug info

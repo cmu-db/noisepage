@@ -1,4 +1,5 @@
 #include "plan_node/projection_plan_node.h"
+#include <memory>
 
 namespace terrier::plan_node {
 

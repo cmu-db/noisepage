@@ -2,12 +2,12 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
-
-#include "abstract_join_plan_node.h"
-#include "output_schema.h"
 #include "parser/expression/abstract_expression.h"
-#include "plan_node_defs.h"
+#include "plan_node/abstract_join_plan_node.h"
+#include "plan_node/output_schema.h"
+#include "plan_node/plan_node_defs.h"
 
 namespace terrier::plan_node {
 
@@ -40,8 +40,7 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
    */
   explicit MergeJoinPlanNode(std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                              parser::AbstractExpression *predicate, std::vector<JoinClause> join_clauses)
-      : AbstractJoinPlanNode(std::move(output_schema), join_type, predicate),
-        join_clauses_(std::move(join_clauses)) {}
+      : AbstractJoinPlanNode(std::move(output_schema), join_type, predicate), join_clauses_(std::move(join_clauses)) {}
 
   /**
    * @return the type of this plan node

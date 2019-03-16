@@ -2,10 +2,10 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
-
-#include "abstract_plan_node.h"
-#include "output_schema.h"
+#include "plan_node/abstract_plan_node.h"
+#include "plan_node/output_schema.h"
 #include "storage/storage_defs.h"
 
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a

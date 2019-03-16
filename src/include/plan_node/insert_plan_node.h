@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 #include "catalog/schema.h"
 #include "plan_node/abstract_plan_node.h"
 #include "plan_node/abstract_scan_plan_node.h"

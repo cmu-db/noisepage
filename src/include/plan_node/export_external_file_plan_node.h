@@ -1,6 +1,9 @@
 #pragma once
 
-#include "abstract_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include "plan_node/abstract_plan_node.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be
 // the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer, so I put

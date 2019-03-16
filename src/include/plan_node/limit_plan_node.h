@@ -1,7 +1,10 @@
 #pragma once
 
-#include "abstract_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
 #include "catalog/schema.h"
+#include "plan_node/abstract_plan_node.h"
 
 // TODO(Gus,Wen): I don't think limit really needs an output schema. I'll include it for now, but we can maybe toss it
 

@@ -1,7 +1,11 @@
 #pragma once
 
-#include "abstract_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "parser/expression/abstract_expression.h"
+#include "plan_node/abstract_plan_node.h"
 
 // TODO(Gus,Wen): Replace PerformBinding and VisitParameters
 // TODO(Gus,Wen): Does this plan really output columns? This might be a special case

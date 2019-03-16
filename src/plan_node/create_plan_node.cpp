@@ -1,4 +1,8 @@
 #include "plan_node/create_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
@@ -97,7 +101,7 @@ CreatePlanNode::CreatePlanNode(parser::CreateStatement *create_stmt) : AbstractP
         ProcessForeignKeyConstraint(table_name_, fk);
       }
 
-      // TODO (Gus,Wen) UNIQUE and CHECK constraints
+      // TODO(Gus,Wen) UNIQUE and CHECK constraints
 
       table_schema_ = std::make_shared<catalog::Schema>(columns);
       break;
@@ -158,8 +162,8 @@ CreatePlanNode::CreatePlanNode(parser::CreateStatement *create_stmt) : AbstractP
       break;
   }
 
-  // TODO (Gus,Wen) check type parser::CreateStatement::CreateType::kDatabase
-  // TODO (Gus, Wen) check type parser::CreateStatement::CreateType::kView
+  // TODO(Gus,Wen) check type parser::CreateStatement::CreateType::kDatabase
+  // TODO(Gus,Wen) check type parser::CreateStatement::CreateType::kView
 }
 
 void CreatePlanNode::ProcessForeignKeyConstraint(const std::string &table_name,

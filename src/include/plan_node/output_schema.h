@@ -1,4 +1,6 @@
 #pragma once
+
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -7,7 +9,7 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
-#include "plan_node_defs.h"
+#include "plan_node/plan_node_defs.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"

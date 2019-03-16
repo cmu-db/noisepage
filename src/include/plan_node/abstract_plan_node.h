@@ -6,8 +6,8 @@
 
 #include "common/hash_util.h"
 #include "common/json.h"
-#include "output_schema.h"
-#include "plan_node_defs.h"
+#include "plan_node/output_schema.h"
+#include "plan_node/plan_node_defs.h"
 
 // TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
 

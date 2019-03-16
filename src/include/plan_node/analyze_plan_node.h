@@ -1,8 +1,7 @@
 #pragma once
 
-#include "abstract_plan_node.h"
-
 #include <vector>
+#include "plan_node/abstract_plan_node.h"
 
 namespace terrier {
 namespace storage {

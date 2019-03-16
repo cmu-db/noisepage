@@ -1,4 +1,7 @@
 #include "plan_node/populate_index_plan_node.h"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace terrier::plan_node {
 PopulateIndexPlanNode::PopulateIndexPlanNode(std::shared_ptr<storage::SqlTable> target_table,

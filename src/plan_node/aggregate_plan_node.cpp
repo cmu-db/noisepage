@@ -1,4 +1,6 @@
 #include "plan_node/aggregate_plan_node.h"
+#include <memory>
+#include <vector>
 
 namespace terrier::plan_node {
 

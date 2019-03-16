@@ -1,4 +1,6 @@
 #include "plan_node/delete_plan_node.h"
+#include <memory>
+#include <utility>
 #include "storage/sql_table.h"
 
 namespace terrier::plan_node {

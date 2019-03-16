@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include "plan_node/abstract_plan_node.h"
 #include "transaction/transaction_context.h"
 

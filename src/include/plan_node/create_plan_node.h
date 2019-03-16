@@ -1,8 +1,12 @@
 #pragma once
 
-#include "abstract_plan_node.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "catalog/schema.h"
 #include "parser/create_statement.h"
+#include "plan_node/abstract_plan_node.h"
 
 namespace terrier {
 namespace parser {

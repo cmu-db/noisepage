@@ -1,4 +1,6 @@
 #include "plan_node/update_plan_node.h"
+#include <memory>
+#include <utility>
 #include "plan_node/abstract_scan_plan_node.h"
 #include "plan_node/output_schema.h"
 #include "storage/sql_table.h"
