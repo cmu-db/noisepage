@@ -151,6 +151,51 @@ class SqlTableTestRW {
     (*reinterpret_cast<uint32_t *>(col_p)) = value;
   }
 
+  /**
+   * Read a string from a row
+   * @param col_num column number in the schema
+   * @param slot - tuple to read from
+   * @return malloc'ed C string (with null terminator). Caller must
+   *   free.
+   */
+  char *GetVarcharColInRow(transaction::TransactionContext *txn, catalog::col_oid_t(col_oid), storage::TupleSlot slot) {
+    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
+    table_->Select(txn, slot, read, *pr_map_, version_);
+    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oid));
+
+    auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
+    // stored string has no null terminator, add space for it
+    uint32_t size = entry->Size() + 1;
+    // allocate return string
+    auto *ret_st = reinterpret_cast<char *>(common::AllocationUtil::AllocateAligned(size));
+    std::memcpy(ret_st, entry->Content(), size);
+    // add the null terminator
+    *(ret_st + size - 1) = 0;
+    delete[] read_buffer;
+    return ret_st;
+  }
+
+  /**
+   * Save a string, for insertion by EndRowAndInsert
+   * @param col_num column number in the schema
+   * @param st C string to save.
+   */
+  void SetVarcharColInRow(catalog::col_oid_t col_oid, const char *st) {
+    byte *col_p = pr_->AccessForceNotNull(pr_map_->at(col_oid));
+    // string size, without null terminator
+    auto size = static_cast<uint32_t>(strlen(st));
+    if (size <= storage::VarlenEntry::InlineThreshold()) {
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(st), size);
+    } else {
+      byte *varlen = common::AllocationUtil::AllocateAligned(size);
+      std::memcpy(varlen, st, static_cast<uint32_t>(size));
+      *reinterpret_cast<storage::VarlenEntry *>(col_p) =
+          storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
+    }
+  }
+
  public:
   // This is a public field that transactions can set and read.
   // The purpose is to record the version for each transaction. In reality this information should be retrieved from
@@ -428,24 +473,28 @@ TEST_F(SqlTableTests, UpdateTest) {
   delete txn;
 }
 
-//// NOLINTNEXTLINE
-// TEST_F(SqlTableTests, VarlenInsertTest) {
-//  SqlTableTestRW table(catalog::table_oid_t(2));
-//
-//  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
-//  table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
-//  table.Create();
-//
-//  table.StartInsertRow();
-//  table.SetIntColInRow(0, 100);
-//  table.SetVarcharColInRow(1, "name");
-//  storage::TupleSlot row_slot = table.EndInsertRow();
-//
-//  uint32_t id = table.GetIntColInRow(0, row_slot);
-//  EXPECT_EQ(100, id);
-//  char *table_name = table.GetVarcharColInRow(1, row_slot);
-//  EXPECT_STREQ("name", table_name);
-//  free(table_name);
-//}
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, VarlenInsertTest) {
+  SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
+  table.Create();
+
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetVarcharColInRow(catalog::col_oid_t(1), "name");
+  storage::TupleSlot row_slot = table.EndInsertRow(txn);
+
+  uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row_slot);
+  EXPECT_EQ(100, id);
+  char *table_name = table.GetVarcharColInRow(txn, catalog::col_oid_t(1), row_slot);
+  EXPECT_STREQ("name", table_name);
+  delete[] table_name;
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
 
 }  // namespace terrier
