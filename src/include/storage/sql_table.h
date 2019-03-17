@@ -417,7 +417,7 @@ class SqlTable {
    * @param schema the new schema
    */
   void ChangeSchema(transaction::TransactionContext *const txn, const catalog::Schema &schema) {
-    STORAGE_LOG_INFO("In changing schema ...");
+    common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
     schema_version_++;
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
     DataTableVersion new_dt_version = {
