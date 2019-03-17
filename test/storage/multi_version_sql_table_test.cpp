@@ -13,10 +13,10 @@ namespace terrier {
 /**
  * Help class to simplify operations on a SqlTable
  */
-class SqlTableRW {
+class SqlTableTestRW {
  public:
-  explicit SqlTableRW(catalog::table_oid_t table_oid) : version_(0), table_oid_(table_oid) {}
-  ~SqlTableRW() {
+  explicit SqlTableTestRW(catalog::table_oid_t table_oid) : version_(0), table_oid_(table_oid) {}
+  ~SqlTableTestRW() {
     delete pri_;
     delete pr_map_;
     delete schema_;
@@ -73,22 +73,37 @@ class SqlTableRW {
   }
 
   /**
-   * First step in writing a row.
+   * First step in inserting a row.
    */
-  void StartRow() {
-    insert_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    insert_ = pri_->InitializeRow(insert_buffer_);
-  }
+  void StartInsertRow() { ResetProjectedRow(col_oids_); }
 
   /**
    * Insert the row into the table
    * @return slot where the row was created
    */
-  storage::TupleSlot EndRowAndInsert(transaction::TransactionContext *txn) {
-    auto slot = table_->Insert(txn, *insert_, version_);
-    insert_ = nullptr;
-    delete[] insert_buffer_;
+  storage::TupleSlot EndInsertRow(transaction::TransactionContext *txn) {
+    auto slot = table_->Insert(txn, *pr_, version_);
+    pr_ = nullptr;
+    delete[] buffer_;
     return storage::TupleSlot(slot.GetBlock(), slot.GetOffset());
+  }
+
+  void StartUpdateRow(const std::vector<catalog::col_oid_t> &col_oids) {
+    auto pr_pair = table_->InitializerForProjectedRow(col_oids, version_);
+    buffer_ = common::AllocationUtil::AllocateAligned(pr_pair.first.ProjectedRowSize());
+    pr_ = pr_pair.first.InitializeRow(buffer_);
+
+    delete pri_;
+    delete pr_map_;
+    pri_ = new storage::ProjectedRowInitializer(std::get<0>(pr_pair));
+    pr_map_ = new storage::ProjectionMap(std::get<1>(pr_pair));
+  }
+
+  std::pair<bool, storage::TupleSlot> EndUpdateRow(transaction::TransactionContext *txn, storage::TupleSlot slot) {
+    auto result_pair = table_->Update(txn, slot, *pr_, version_);
+    pr_ = nullptr;
+    delete[] buffer_;
+    return result_pair;
   }
 
   /**
@@ -98,23 +113,24 @@ class SqlTableRW {
    * @return
    */
   bool Visible(transaction::TransactionContext *txn, storage::TupleSlot slot) {
-    insert_buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    insert_ = pri_->InitializeRow(insert_buffer_);
-    bool result = table_->Select(txn, slot, insert_, version_);
-    delete[] insert_buffer_;
+    buffer_ = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
+    pr_ = pri_->InitializeRow(buffer_);
+    bool result = table_->Select(txn, slot, pr_, *pr_map_, version_);
+    delete[] buffer_;
     return result;
   }
+
   /**
    * Read an integer from a row
    * @param col_num column number in the schema
    * @param slot - tuple to read from
    * @return integer value
    */
-  uint32_t GetIntColInRow(transaction::TransactionContext *txn, int32_t col_num, storage::TupleSlot slot) {
+  uint32_t GetIntColInRow(transaction::TransactionContext *txn, catalog::col_oid_t col_oid, storage::TupleSlot slot) {
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read, version_);
-    byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oids_[col_num]));
+    table_->Select(txn, slot, read, *pr_map_, version_);
+    byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oid));
     printf("address %p \n", col_p);
     uint32_t ret_val;
     if (col_p == nullptr) {
@@ -128,54 +144,13 @@ class SqlTableRW {
   }
 
   /**
-   * Save an integer, for insertion by EndRowAndInsert
+   * Save an integer, for insertion by EndInsertRow
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetIntColInRow(int32_t col_num, int32_t value) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
+  void SetIntColInRow(catalog::col_oid_t col_oid, int32_t value) {
+    byte *col_p = pr_->AccessForceNotNull(pr_map_->at(col_oid));
     (*reinterpret_cast<uint32_t *>(col_p)) = value;
-  }
-
-  /**
-   * Read a string from a row
-   * @param col_num column number in the schema
-   * @param slot - tuple to read from
-   * @return malloc'ed C string (with null terminator). Caller must
-   *   free.
-   */
-  char *GetVarcharColInRow(transaction::TransactionContext *txn, int32_t col_num, storage::TupleSlot slot) {
-    auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
-    storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read, version_);
-    byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-
-    auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-    // stored string has no null terminator, add space for it
-    uint32_t size = entry->Size() + 1;
-    // allocate return string
-    auto *ret_st = static_cast<char *>(malloc(size));
-    std::memcpy(ret_st, entry->Content(), size);
-    // add the null terminator
-    *(ret_st + size - 1) = 0;
-
-    delete txn;
-    delete[] read_buffer;
-    return ret_st;
-  }
-
-  /**
-   * Save a string, for insertion by EndRowAndInsert
-   * @param col_num column number in the schema
-   * @param st C string to save.
-   */
-  void SetVarcharColInRow(int32_t col_num, const char *st) {
-    byte *col_p = insert_->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
-    // string size, without null terminator
-    size_t size = strlen(st);
-    byte *varlen = common::AllocationUtil::AllocateAligned(size);
-    std::memcpy(varlen, st, size);
-    *reinterpret_cast<storage::VarlenEntry *>(col_p) = {varlen, static_cast<uint32_t>(size), false};
   }
 
  public:
@@ -189,16 +164,27 @@ class SqlTableRW {
   storage::BlockStore block_store_{100, 100};
   catalog::table_oid_t table_oid_;
 
+  // keep meta-data for most recent schema
   catalog::Schema *schema_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> col_oids_;
 
-  // this pri and pr_map are the initializer and map for the most recent version
   storage::ProjectedRowInitializer *pri_ = nullptr;
   storage::ProjectionMap *pr_map_ = nullptr;
 
-  byte *insert_buffer_ = nullptr;
-  storage::ProjectedRow *insert_ = nullptr;
+  byte *buffer_ = nullptr;
+  storage::ProjectedRow *pr_ = nullptr;
+
+  void ResetProjectedRow(std::vector<catalog::col_oid_t> col_oids) {
+    auto pr_pair = table_->InitializerForProjectedRow(col_oids, version_);
+    buffer_ = common::AllocationUtil::AllocateAligned(pr_pair.first.ProjectedRowSize());
+    pr_ = pr_pair.first.InitializeRow(buffer_);
+
+    delete pri_;
+    delete pr_map_;
+    pri_ = new storage::ProjectedRowInitializer(std::get<0>(pr_pair));
+    pr_map_ = new storage::ProjectionMap(std::get<1>(pr_pair));
+  }
 };
 
 struct SqlTableTests : public TerrierTest {
@@ -210,43 +196,43 @@ struct SqlTableTests : public TerrierTest {
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 };
 
-// NOLINTNEXTLINE
+//// NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectTest) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
   table.Create();
-  table.StartRow();
-  table.SetIntColInRow(0, 100);
-  table.SetIntColInRow(1, 10000);
-  storage::TupleSlot row1_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
 
-  table.StartRow();
-  table.SetIntColInRow(0, 200);
-  table.SetIntColInRow(1, 10001);
-  storage::TupleSlot row2_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 200);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10001);
+  storage::TupleSlot row2_slot = table.EndInsertRow(txn);
 
-  uint32_t id = table.GetIntColInRow(txn, 0, row1_slot);
+  uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
-  uint32_t datname = table.GetIntColInRow(txn, 1, row1_slot);
+  uint32_t datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
   EXPECT_EQ(10000, datname);
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
 
-  id = table.GetIntColInRow(txn, 0, row1_slot);
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
-  datname = table.GetIntColInRow(txn, 1, row1_slot);
+  datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
   EXPECT_EQ(10000, datname);
 
-  id = table.GetIntColInRow(txn, 0, row2_slot);
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row2_slot);
   EXPECT_EQ(200, id);
-  datname = table.GetIntColInRow(txn, 1, row2_slot);
+  datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
   EXPECT_EQ(10001, datname);
 
-  uint32_t new_col = table.GetIntColInRow(txn, 2, row1_slot);
+  uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row1_slot);
   EXPECT_EQ(12345, new_col);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
@@ -254,19 +240,19 @@ TEST_F(SqlTableTests, SelectTest) {
 }
 
 TEST_F(SqlTableTests, InsertTest) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
   table.Create();
-  table.StartRow();
-  table.SetIntColInRow(0, 100);
-  table.SetIntColInRow(1, 10000);
-  storage::TupleSlot row1_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
 
-  uint32_t id = table.GetIntColInRow(txn, 0, row1_slot);
+  uint32_t id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row1_slot);
   EXPECT_EQ(100, id);
-  uint32_t datname = table.GetIntColInRow(txn, 1, row1_slot);
+  uint32_t datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row1_slot);
   EXPECT_EQ(10000, datname);
 
   // manually set the version of the transaction to be 1
@@ -274,30 +260,30 @@ TEST_F(SqlTableTests, InsertTest) {
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
 
   // insert (300, 10002, null)
-  table.StartRow();
-  table.SetIntColInRow(0, 300);
-  table.SetIntColInRow(1, 10002);
-  storage::TupleSlot row3_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 300);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10002);
+  storage::TupleSlot row3_slot = table.EndInsertRow(txn);
 
   // insert (400, 10003, 42)
-  table.StartRow();
-  table.SetIntColInRow(0, 400);
-  table.SetIntColInRow(1, 10003);
-  table.SetIntColInRow(2, 42);
-  storage::TupleSlot row4_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 400);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10003);
+  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  storage::TupleSlot row4_slot = table.EndInsertRow(txn);
 
-  id = table.GetIntColInRow(txn, 0, row3_slot);
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row3_slot);
   EXPECT_EQ(300, id);
-  datname = table.GetIntColInRow(txn, 1, row3_slot);
+  datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row3_slot);
   EXPECT_EQ(10002, datname);
-  uint32_t new_col = table.GetIntColInRow(txn, 2, row3_slot);
+  uint32_t new_col = table.GetIntColInRow(txn, catalog::col_oid_t(2), row3_slot);
   EXPECT_EQ(12345, new_col);
 
-  id = table.GetIntColInRow(txn, 0, row4_slot);
+  id = table.GetIntColInRow(txn, catalog::col_oid_t(0), row4_slot);
   EXPECT_EQ(400, id);
-  datname = table.GetIntColInRow(txn, 1, row4_slot);
+  datname = table.GetIntColInRow(txn, catalog::col_oid_t(1), row4_slot);
   EXPECT_EQ(10003, datname);
-  datname = table.GetIntColInRow(txn, 2, row4_slot);
+  datname = table.GetIntColInRow(txn, catalog::col_oid_t(2), row4_slot);
   EXPECT_EQ(42, datname);
 
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
@@ -305,40 +291,40 @@ TEST_F(SqlTableTests, InsertTest) {
 }
 
 TEST_F(SqlTableTests, DeleteTest) {
-  SqlTableRW table(catalog::table_oid_t(2));
+  SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
   table.Create();
 
   // insert (100, 10000)
-  table.StartRow();
-  table.SetIntColInRow(0, 100);
-  table.SetIntColInRow(1, 10000);
-  storage::TupleSlot row1_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
 
   // insert (200, 10001)
-  table.StartRow();
-  table.SetIntColInRow(0, 100);
-  table.SetIntColInRow(1, 10001);
-  storage::TupleSlot row2_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10001);
+  storage::TupleSlot row2_slot = table.EndInsertRow(txn);
 
   // manually set the version of the transaction to be 1
   table.version_ = storage::layout_version_t(1);
   table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
 
   // insert (300, 10002, null)
-  table.StartRow();
-  table.SetIntColInRow(0, 300);
-  table.SetIntColInRow(1, 10002);
-  storage::TupleSlot row3_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 300);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10002);
+  storage::TupleSlot row3_slot = table.EndInsertRow(txn);
 
   // insert (400, 10003, 42)
-  table.StartRow();
-  table.SetIntColInRow(0, 400);
-  table.SetIntColInRow(1, 10003);
-  table.SetIntColInRow(2, 42);
-  storage::TupleSlot row4_slot = table.EndRowAndInsert(txn);
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 400);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10003);
+  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  storage::TupleSlot row4_slot = table.EndInsertRow(txn);
 
   // delete (100, 10000, null) and (300, 10002, null)
   EXPECT_TRUE(table.table_->Delete(txn, row1_slot, table.version_));
@@ -353,18 +339,106 @@ TEST_F(SqlTableTests, DeleteTest) {
   delete txn;
 }
 
+TEST_F(SqlTableTests, UpdateTest) {
+  SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+
+  // insert (100, 10000)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  storage::TupleSlot row1_slot = table.EndInsertRow(txn);
+
+  // insert (200, 10001)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10001);
+  storage::TupleSlot row2_slot = table.EndInsertRow(txn);
+
+  // manually set the version of the transaction to be 1
+  table.version_ = storage::layout_version_t(1);
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+
+  // insert (300, 10002, null)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 300);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10002);
+  table.EndInsertRow(txn);
+
+  // insert (400, 10003, 42)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 400);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10003);
+  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  storage::TupleSlot row4_slot = table.EndInsertRow(txn);
+
+  // update (200, 10001, null) -> (200, 11001, null)
+  std::vector<catalog::col_oid_t> update_oids;
+  update_oids.push_back(catalog::col_oid_t(1));
+  table.StartUpdateRow(update_oids);
+  table.SetIntColInRow(catalog::col_oid_t(1), 11001);
+  auto result = table.EndUpdateRow(txn, row2_slot);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second.GetBlock(), row2_slot.GetBlock());
+  EXPECT_EQ(result.second.GetOffset(), row2_slot.GetOffset());
+  uint32_t new_val = table.GetIntColInRow(txn, catalog::col_oid_t(1), row2_slot);
+  EXPECT_EQ(new_val, 11001);
+
+  // update (400, 10003, 42) -> (400, 11003, 420)
+  LOG_INFO("----------------------------")
+  update_oids.clear();
+  update_oids.push_back(catalog::col_oid_t(1));
+  update_oids.push_back(catalog::col_oid_t(2));
+  table.StartUpdateRow(update_oids);
+  table.SetIntColInRow(catalog::col_oid_t(1), 11003);
+  table.SetIntColInRow(catalog::col_oid_t(2), 420);
+  result = table.EndUpdateRow(txn, row4_slot);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second.GetBlock(), row4_slot.GetBlock());
+  EXPECT_EQ(result.second.GetOffset(), row4_slot.GetOffset());
+  new_val = table.GetIntColInRow(txn, catalog::col_oid_t(1), result.second);
+  EXPECT_EQ(new_val, 11003);
+  new_val = table.GetIntColInRow(txn, catalog::col_oid_t(2), result.second);
+  EXPECT_EQ(new_val, 420);
+
+  // update (100, 10000, null) -> (100, 11000, 420)
+  LOG_INFO("----------------------------")
+  update_oids.clear();
+  update_oids.push_back(catalog::col_oid_t(1));
+  update_oids.push_back(catalog::col_oid_t(2));
+  table.StartUpdateRow(update_oids);
+  table.SetIntColInRow(catalog::col_oid_t(1), 11000);
+  table.SetIntColInRow(catalog::col_oid_t(2), 420);
+  result = table.EndUpdateRow(txn, row1_slot);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_NE(result.second.GetBlock(), row1_slot.GetBlock());
+  new_val = table.GetIntColInRow(txn, catalog::col_oid_t(1), result.second);
+  EXPECT_EQ(new_val, 11000);
+  new_val = table.GetIntColInRow(txn, catalog::col_oid_t(2), result.second);
+  EXPECT_EQ(new_val, 420);
+
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
 //// NOLINTNEXTLINE
 // TEST_F(SqlTableTests, VarlenInsertTest) {
-//  SqlTableRW table(catalog::table_oid_t(2));
+//  SqlTableTestRW table(catalog::table_oid_t(2));
 //
 //  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
 //  table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
 //  table.Create();
 //
-//  table.StartRow();
+//  table.StartInsertRow();
 //  table.SetIntColInRow(0, 100);
 //  table.SetVarcharColInRow(1, "name");
-//  storage::TupleSlot row_slot = table.EndRowAndInsert();
+//  storage::TupleSlot row_slot = table.EndInsertRow();
 //
 //  uint32_t id = table.GetIntColInRow(0, row_slot);
 //  EXPECT_EQ(100, id);
