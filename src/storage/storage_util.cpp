@@ -63,18 +63,35 @@ template <class RowType1, class RowType2>
 void StorageUtil::CopyProjectionIntoProjection(RowType1 *const from, const ProjectionMap &from_map,
                                                TupleAccessStrategy from_tas, RowType2 *const to,
                                                const ProjectionMap &to_map) {
+  // copy values
   for (auto &it : from_map) {
     if (to_map.count(it.first) > 0) {
       // get the data bytes
-      byte *value = from->AccessForceNotNull(from_map.at(it.first));
-      // get the size of the attribute
-      uint8_t attr_size = from_tas.GetBlockLayout().AttrSize(from->ColumnIds()[it.second]);
+      byte *value = from->AccessWithNullCheck(from_map.at(it.first));
 
-      // get the address where we copy into
+      // get the offset where we copy into
       uint16_t offset = to_map.at(it.first);
-      byte *addr = to->AccessForceNotNull(offset);
-      // Copy things over
-      std::memcpy(addr, value, attr_size);
+      if (value == nullptr) {
+        to->SetNull(offset);
+      } else {
+        to->SetNotNull(offset);
+        // get the size of the attribute
+        uint8_t attr_size = from_tas.GetBlockLayout().AttrSize(from->ColumnIds()[it.second]);
+
+        // get the address where we copy into
+        uint16_t offset = to_map.at(it.first);
+
+        byte *addr = to->AccessForceNotNull(offset);
+        // Copy things over
+        std::memcpy(addr, value, attr_size);
+      }
+    }
+    // Fill with default values
+    // TODO(yangjuns): fill will default values instead of setting it to be null
+    for (auto &it : to_map) {
+      if (from_map.count(it.first) == 0) {
+        to->SetNull(it.second);
+      }
     }
   }
 }
