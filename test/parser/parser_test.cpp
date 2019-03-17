@@ -1086,9 +1086,11 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.get());
-
-  EXPECT_EQ(0, strcmp("2016-11-15 15:07:37", type::TransientValuePeeker::PeekVarChar(value_expr->GetValue())));
+  auto string_ptr = type::TransientValuePeeker::PeekVarChar(value_expr->GetValue());
+  EXPECT_EQ(0, strcmp("2016-11-15 15:07:37", string_ptr));
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
+
+  delete[] string_ptr;
 }
 
 // NOLINTNEXTLINE
@@ -1669,7 +1671,9 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
     auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
-    EXPECT_EQ(0, strcmp("2018-04-04", type::TransientValuePeeker::PeekVarChar(const_expr->GetValue())));
+    auto string_ptr = type::TransientValuePeeker::PeekVarChar(const_expr->GetValue());
+    EXPECT_EQ(0, strcmp("2018-04-04", string_ptr));
+    delete[] string_ptr;
   }
 
   {
@@ -1683,7 +1687,9 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
 
     auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0).get());
-    EXPECT_EQ(0, strcmp("12345", type::TransientValuePeeker::PeekVarChar(value_expr->GetValue())));
+    auto string_ptr = type::TransientValuePeeker::PeekVarChar(value_expr->GetValue());
+    EXPECT_EQ(0, strcmp("12345", string_ptr));
+    delete[] string_ptr;
 
     auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).get());
     EXPECT_EQ(12, type::TransientValuePeeker::PeekInteger(right_child->GetValue()));
