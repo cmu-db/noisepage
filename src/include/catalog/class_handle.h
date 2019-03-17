@@ -13,7 +13,7 @@
 namespace terrier::catalog {
 
 class Catalog;
-struct SchemaCols;
+struct SchemaCol;
 
 /**
  * Class (equiv. of pg_class) stores much of the metadata for
@@ -88,8 +88,8 @@ class ClassHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_class_rw_->Dump(txn); }
 
-  static const std::vector<SchemaCols> schema_cols_;
-  static const std::vector<SchemaCols> unused_schema_cols_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;

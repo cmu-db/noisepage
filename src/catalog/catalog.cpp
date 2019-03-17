@@ -88,7 +88,7 @@ void Catalog::Bootstrap() {
 }
 
 void Catalog::AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
-                                     const std::vector<SchemaCols> &cols) {
+                                     const std::vector<SchemaCol> &cols) {
   for (const auto &col : cols) {
     db_p->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
   }
@@ -484,7 +484,7 @@ void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_
   map_[oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
 }
 
-void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCols> &cols) {
+void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols) {
   for (const auto col : cols) {
     switch (col.type_id) {
       case type::TypeId::BOOLEAN:

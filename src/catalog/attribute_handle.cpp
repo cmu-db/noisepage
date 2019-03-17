@@ -76,7 +76,7 @@ std::shared_ptr<catalog::SqlTableRW> AttributeHandle::Create(transaction::Transa
 
 // note that this is not identical to Postgres's column sequence
 
-const std::vector<SchemaCols> AttributeHandle::schema_cols_ = {
+const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
   {0, "oid", type::TypeId::INTEGER},
   {1, "attrelid", type::TypeId::INTEGER},
   {2, "attname", type::TypeId::VARCHAR},
@@ -85,6 +85,6 @@ const std::vector<SchemaCols> AttributeHandle::schema_cols_ = {
   {5, "attnum", type::TypeId::INTEGER}};
 
   // TODO(pakhtar): add unused columns
-const std::vector<SchemaCols> AttributeHandle::unused_schema_cols_ = {};
+const std::vector<SchemaCol> AttributeHandle::unused_schema_cols_ = {};
 
 }  // namespace terrier::catalog

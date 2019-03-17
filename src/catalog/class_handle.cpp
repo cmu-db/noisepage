@@ -60,7 +60,7 @@ std::shared_ptr<catalog::SqlTableRW> ClassHandle::Create(transaction::Transactio
 }
 
 // Postgres has additional columns interspersed within these.
-const std::vector<SchemaCols> ClassHandle::schema_cols_ = {{0, "__ptr", type::TypeId::BIGINT},
+const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, "__ptr", type::TypeId::BIGINT},
                                                            {1, "oid", type::TypeId::INTEGER},
                                                            {2, "relname", type::TypeId::VARCHAR},
                                                            {3, "relnamespace", type::TypeId::INTEGER},
@@ -69,6 +69,6 @@ const std::vector<SchemaCols> ClassHandle::schema_cols_ = {{0, "__ptr", type::Ty
 // TODO(pakhtar): there are quite a number of unused columns...
 // Review and define, because some of them we'll probably use.
 
-const std::vector<SchemaCols> ClassHandle::unused_schema_cols_ = {};
+const std::vector<SchemaCol> ClassHandle::unused_schema_cols_ = {};
 
 }  // namespace terrier::catalog

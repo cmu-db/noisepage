@@ -77,8 +77,8 @@ class AttrDefHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_attrdef_rw_->Dump(txn); }
 
-  static const std::vector<SchemaCols> schema_cols_;
-  static const std::vector<SchemaCols> unused_schema_cols_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   // not sure if needed..

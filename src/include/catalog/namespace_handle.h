@@ -12,7 +12,7 @@
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
-struct SchemaCols;
+struct SchemaCol;
 
 /**
  * A namespace handle contains information about all the namespaces in a database. It is used to
@@ -115,8 +115,8 @@ class NamespaceHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_namespace_hrw_->Dump(txn); }
 
-  static const std::vector<SchemaCols> schema_cols_;
-  static const std::vector<SchemaCols> unused_schema_cols_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
