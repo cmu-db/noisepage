@@ -101,26 +101,9 @@ class SqlTable {
       return false;
     }
 
-    // 3. Populate the new ProjectedRow
-    auto new_dt_version = tables_[!version_num];
-    // 3.b) Copy values over
-    for (auto col_oid : col_oids) {
-      // We only copy values if the attribute exists in the new version
-      if (pr_map.count(col_oid) > 0) {
-        STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
-        // get the data bytes
-        byte *value = pr_buffer->AccessForceNotNull(old_pr_pair.second.at(col_oid));
-        // get the size of the attribute
-        TupleAccessStrategy old_tas = old_dt_version.data_table->GetTupleAccessStrategy();
-        uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(old_dt_version.column_map.at(col_oid));
-
-        // get the address where we copy into
-        uint16_t offset = pr_map.at(col_oid);
-        byte *to = out_buffer->AccessForceNotNull(offset);
-        // Copy things over
-        std::memcpy(to, value, attr_size);
-      }
-    }
+    // 3. Copy values over and populate the new ProjectedRow
+    TupleAccessStrategy old_tas = old_dt_version.data_table->GetTupleAccessStrategy();
+    StorageUtil::CopyProjectionIntoProjection(pr_buffer, old_pr_pair.second, old_tas, out_buffer, pr_map);
 
     // TODO(yangjuns): fill in default values for newly added attributes
     delete[] read_buffer;
@@ -290,8 +273,10 @@ class SqlTable {
    *                   always cleared of old values.
    */
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
-            ProjectedColumns *const out_buffer) const {
-    return table_.data_table->Scan(txn, start_pos, out_buffer);
+            ProjectedColumns *const out_buffer, const ProjectionMap &pr_map, layout_version_t version_num) const {
+    for (auto &dt_ver : tables_) {
+      dt_ver.data_table->Scan(txn, start_pos, out_buffer);
+    }
   }
 
   /**

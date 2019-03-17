@@ -65,6 +65,10 @@ class StorageUtil {
   static void CopyAttrFromProjection(const TupleAccessStrategy &accessor, TupleSlot to, const RowType &from,
                                      uint16_t projection_list_offset);
 
+  template <class RowType1, class RowType2>
+  static void CopyProjectionIntoProjection(RowType1 *const from, const ProjectionMap &from_map,
+                                           TupleAccessStrategy from_tas, RowType2 *const to,
+                                           const ProjectionMap &to_map);
   /**
    * Applies delta into the given buffer.
    *

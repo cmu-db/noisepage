@@ -59,6 +59,32 @@ template void StorageUtil::CopyAttrFromProjection<ProjectedColumns::RowView>(con
                                                                              const ProjectedColumns::RowView &,
                                                                              uint16_t);
 
+template <class RowType1, class RowType2>
+void StorageUtil::CopyProjectionIntoProjection(RowType1 *const from, const ProjectionMap &from_map,
+                                               TupleAccessStrategy from_tas, RowType2 *const to,
+                                               const ProjectionMap &to_map) {
+  for (auto &it : from_map) {
+    if (to_map.count(it.first) > 0) {
+      // get the data bytes
+      byte *value = from->AccessForceNotNull(from_map.at(it.first));
+      // get the size of the attribute
+      uint8_t attr_size = from_tas.GetBlockLayout().AttrSize(from->ColumnIds()[it.second]);
+
+      // get the address where we copy into
+      uint16_t offset = to_map.at(it.first);
+      byte *addr = to->AccessForceNotNull(offset);
+      // Copy things over
+      std::memcpy(addr, value, attr_size);
+    }
+  }
+}
+
+template void StorageUtil::CopyProjectionIntoProjection<ProjectedRow, ProjectedRow>(ProjectedRow *const from,
+                                                                                    const ProjectionMap &from_map,
+                                                                                    TupleAccessStrategy from_tas,
+                                                                                    ProjectedRow *const to,
+                                                                                    const ProjectionMap &to_map);
+
 template <class RowType>
 void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
   // the projection list in delta and buffer have to be sorted in the same way for this to work,
