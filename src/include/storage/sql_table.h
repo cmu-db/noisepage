@@ -292,7 +292,12 @@ class SqlTable {
       auto pr_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedColumnsSize());
       storage::ProjectedColumns *read = pair.first.Initialize(pr_buffer);
 
-      dt_ver.data_table->Scan(txn, start_pos, read);
+      if (!start_version == i) {
+        dt_ver.data_table->Scan(txn, start_pos, read);
+      } else {
+        DataTable::SlotIterator begin = dt_ver.data_table->begin();
+        dt_ver.data_table->Scan(txn, &begin, read);
+      }
 
       uint32_t filled = 0;
       while (out_buffer->NumTuples() < max_tuples) {
