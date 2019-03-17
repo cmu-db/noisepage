@@ -235,9 +235,9 @@ class SqlTable {
       // delete follow by an insert
       Delete(txn, slot, old_version);
       storage::TupleSlot new_slot = Insert(txn, *pr_buffer, version_num);
-      auto result_pair = Update(txn, new_slot, redo, version_num);
-      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
-                     "updating the current version should return the same TupleSlot");
+      Update(txn, new_slot, redo, version_num);
+      //      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
+      //                     "updating the current version should return the same TupleSlot");
       delete[] buffer;
       // TODO(yangjuns): Need to update indices
       ret_slot = new_slot;
