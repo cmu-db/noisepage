@@ -131,12 +131,10 @@ class SqlTableTestRW {
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
     table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessWithNullCheck(pr_map_->at(col_oid));
-    printf("address %p \n", col_p);
     uint32_t ret_val;
     if (col_p == nullptr) {
       ret_val = 12345;
     } else {
-      LOG_INFO("right before dereferencing ... ");
       ret_val = *(reinterpret_cast<uint32_t *>(col_p));
     }
     delete[] read_buffer;
