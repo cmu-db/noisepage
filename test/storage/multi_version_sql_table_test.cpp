@@ -175,7 +175,7 @@ class SqlTableTestRW {
   byte *buffer_ = nullptr;
   storage::ProjectedRow *pr_ = nullptr;
 
-  void ResetProjectedRow(std::vector<catalog::col_oid_t> col_oids) {
+  void ResetProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) {
     auto pr_pair = table_->InitializerForProjectedRow(col_oids, version_);
     buffer_ = common::AllocationUtil::AllocateAligned(pr_pair.first.ProjectedRowSize());
     pr_ = pr_pair.first.InitializeRow(buffer_);
@@ -196,7 +196,7 @@ struct SqlTableTests : public TerrierTest {
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 };
 
-//// NOLINTNEXTLINE
+// NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectTest) {
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
@@ -239,6 +239,7 @@ TEST_F(SqlTableTests, SelectTest) {
   delete txn;
 }
 
+// NOLINTNEXTLINE
 TEST_F(SqlTableTests, InsertTest) {
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
@@ -290,6 +291,7 @@ TEST_F(SqlTableTests, InsertTest) {
   delete txn;
 }
 
+// NOLINTNEXTLINE
 TEST_F(SqlTableTests, DeleteTest) {
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
@@ -339,6 +341,7 @@ TEST_F(SqlTableTests, DeleteTest) {
   delete txn;
 }
 
+// NOLINTNEXTLINE
 TEST_F(SqlTableTests, UpdateTest) {
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
@@ -377,7 +380,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 
   // update (200, 10001, null) -> (200, 11001, null)
   std::vector<catalog::col_oid_t> update_oids;
-  update_oids.push_back(catalog::col_oid_t(1));
+  update_oids.emplace_back(catalog::col_oid_t(1));
   table.StartUpdateRow(update_oids);
   table.SetIntColInRow(catalog::col_oid_t(1), 11001);
   auto result = table.EndUpdateRow(txn, row2_slot);
@@ -391,8 +394,8 @@ TEST_F(SqlTableTests, UpdateTest) {
   // update (400, 10003, 42) -> (400, 11003, 420)
   LOG_INFO("----------------------------")
   update_oids.clear();
-  update_oids.push_back(catalog::col_oid_t(1));
-  update_oids.push_back(catalog::col_oid_t(2));
+  update_oids.emplace_back(catalog::col_oid_t(1));
+  update_oids.emplace_back(catalog::col_oid_t(2));
   table.StartUpdateRow(update_oids);
   table.SetIntColInRow(catalog::col_oid_t(1), 11003);
   table.SetIntColInRow(catalog::col_oid_t(2), 420);
@@ -409,8 +412,8 @@ TEST_F(SqlTableTests, UpdateTest) {
   // update (100, 10000, null) -> (100, 11000, 420)
   LOG_INFO("----------------------------")
   update_oids.clear();
-  update_oids.push_back(catalog::col_oid_t(1));
-  update_oids.push_back(catalog::col_oid_t(2));
+  update_oids.emplace_back(catalog::col_oid_t(1));
+  update_oids.emplace_back(catalog::col_oid_t(2));
   table.StartUpdateRow(update_oids);
   table.SetIntColInRow(catalog::col_oid_t(1), 11000);
   table.SetIntColInRow(catalog::col_oid_t(2), 420);

@@ -78,6 +78,8 @@ class SqlTable {
    * @param txn the calling transaction
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param pr_map the ProjectionMap of the out_buffer
+   * @param version_num the schema version which the transaction sees
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
@@ -96,8 +98,8 @@ class SqlTable {
     auto old_dt_version = tables_[!old_version_num];
     // 1.a) Get the col oids
     std::vector<catalog::col_oid_t> col_oids;
-    for (auto it = old_dt_version.column_map.begin(); it != old_dt_version.column_map.end(); it++) {
-      col_oids.emplace_back(it->first);
+    for (auto &it : old_dt_version.column_map) {
+      col_oids.emplace_back(it.first);
     }
     // 1.b) Get old ProjectedRow initializer
     auto old_pr_pair = InitializerForProjectedRow(col_oids, old_version_num);
@@ -151,6 +153,16 @@ class SqlTable {
     return table_.data_table->Update(txn, slot, redo);
   }
 
+  /**
+   * Update the tuple according to the redo buffer given.
+   *
+   * @param txn txn the calling transaction
+   * @param slot the slot of the tuple to update.
+   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param version_num the schema version which the transaction sees
+   * @return true if successful, false otherwise; If the update changed the location of the TupleSlot, a new TupleSlot
+   * is returned. Otherwise, the same TupleSlot is returned.
+   */
   std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *const txn, const TupleSlot slot,
                                              const ProjectedRow &redo, layout_version_t version_num) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
@@ -171,9 +183,9 @@ class SqlTable {
       col_id_t col_id = redo.ColumnIds()[i];
       catalog::col_oid_t col_oid(0);
       // get the col oid for this col id
-      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); it++) {
-        if (it->second == col_id) {
-          col_oid = it->first;
+      for (auto &it : tables_[!version_num].column_map) {
+        if (it.second == col_id) {
+          col_oid = it.first;
           break;
         }
       }
@@ -185,14 +197,14 @@ class SqlTable {
       }
     }
     std::vector<catalog::col_oid_t> old_col_oids;  // the set of oids of the old schema
-    for (auto it = tables_[!old_version].column_map.begin(); it != tables_[!old_version].column_map.end(); it++) {
-      old_col_oids.emplace_back(it->first);
+    for (auto &it : tables_[!old_version].column_map) {
+      old_col_oids.emplace_back(it.first);
     }
 
     // meta-data for old version
     TupleAccessStrategy old_tas = tables_[!old_version].data_table->GetTupleAccessStrategy();
     auto old_pair = InitializerForProjectedRow(redo_col_oids, version_num);
-
+    storage::TupleSlot ret_slot;
     if (is_subset) {
       // we can update in place
       for (auto col_oid : redo_col_oids) {
@@ -213,7 +225,7 @@ class SqlTable {
         // Copy things over
         std::memcpy(to, value, attr_size);
       }
-      return std::make_pair(true, slot);
+      ret_slot = slot;
     } else {
       STORAGE_LOG_INFO("have to insert and delete ... ");
 
@@ -221,8 +233,8 @@ class SqlTable {
 
       // 1. Get the set of all the columns in new version
       std::vector<catalog::col_oid_t> all_col_oids;
-      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); it++) {
-        all_col_oids.emplace_back(it->first);
+      for (auto &it : tables_[!version_num].column_map) {
+        all_col_oids.emplace_back(it.first);
       }
       // 2. Get ProjectedRow buffer
       auto new_pair = InitializerForProjectedRow(all_col_oids, version_num);
@@ -254,8 +266,9 @@ class SqlTable {
                      "updating the current version should return the same TupleSlot");
       delete[] buffer;
       // TODO(yangjuns): Need to update indices
-      return std::make_pair(true, new_slot);
+      ret_slot = new_slot;
     }
+    return std::make_pair(true, ret_slot);
   }
 
   /**
@@ -272,6 +285,15 @@ class SqlTable {
     return table_.data_table->Insert(txn, redo);
   }
 
+  /**
+   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
+   *
+   * @param txn the calling transaction
+   * @param redo after-image of the inserted tuple.
+   * @param version_num the schema version which the transaction sees
+   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
+   * such.
+   */
   TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo,
                    layout_version_t version_num) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
@@ -292,8 +314,14 @@ class SqlTable {
     return table_.data_table->Delete(txn, slot);
   }
 
-  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot,
-              layout_version_t version_num UNUSED_ATTRIBUTE) const {
+  /**
+   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * @param txn the calling transaction
+   * @param slot the slot of the tuple to delete
+   * @param version_num the schema version which the transaction sees
+   * @return true if successful, false otherwise
+   */
+  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot, layout_version_t version_num) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
     layout_version_t old_version = slot.GetBlock()->layout_version_;
@@ -318,6 +346,16 @@ class SqlTable {
     return table_.data_table->Scan(txn, start_pos, out_buffer);
   }
 
+  /**
+   * Change the schema of the SqlTable
+   *
+   * Note:
+   *    1. tables_ is a vector of DataTableVersions which grows infinitely
+   *    2. version_num is used to index DataTableVersion
+   *
+   * @param txn the calling transaction
+   * @param schema the new schema
+   */
   void ChangeSchema(transaction::TransactionContext *const txn, const catalog::Schema &schema) {
     STORAGE_LOG_INFO("In changing schema ...");
     schema_version_++;
