@@ -123,5 +123,7 @@ class StorageUtil {
    * @return pair of BlockLayout and a map between col_oid_t and col_id
    */
   static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
+
+  static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
 };
 }  // namespace terrier::storage

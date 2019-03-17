@@ -274,8 +274,38 @@ class SqlTable {
    */
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer, const ProjectionMap &pr_map, layout_version_t version_num) const {
-    for (auto &dt_ver : tables_) {
-      dt_ver.data_table->Scan(txn, start_pos, out_buffer);
+    uint32_t max_tuples = out_buffer->MaxTuples();
+    layout_version_t start_version = start_pos->operator*().GetBlock()->layout_version_;
+
+    uint32_t total_filled = 0;
+    for (size_t i = 0; i < tables_.size(); i++) {
+      if ((!start_version) != i) continue;
+
+      DataTableVersion dt_ver = tables_[i];
+      // Construct a buffer to fill
+      std::vector<catalog::col_oid_t> all_col_oids;
+      for (auto &it : dt_ver.column_map) {
+        all_col_oids.emplace_back(it.first);
+      }
+      auto pair = InitializerForProjectedColumns(all_col_oids, max_tuples, version_num);
+
+      auto pr_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedColumnsSize());
+      storage::ProjectedColumns *read = pair.first.Initialize(pr_buffer);
+
+      dt_ver.data_table->Scan(txn, start_pos, read);
+
+      uint32_t filled = 0;
+      while (out_buffer->NumTuples() < max_tuples) {
+        // copy from ProjectedColumns into ProjectedColumns of the new version
+        if (i != !version_num) {
+          ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
+          ProjectedColumns::RowView to = out_buffer->InterpretAsRow(tables_[!version_num].layout, total_filled);
+          StorageUtil::CopyProjectionIntoProjection(&from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(),
+                                                    &to, pr_map);
+        }
+        filled++;
+        total_filled++;
+      }
     }
   }
 

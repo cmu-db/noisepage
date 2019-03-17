@@ -85,6 +85,10 @@ template void StorageUtil::CopyProjectionIntoProjection<ProjectedRow, ProjectedR
                                                                                     ProjectedRow *const to,
                                                                                     const ProjectionMap &to_map);
 
+template void StorageUtil::CopyProjectionIntoProjection<ProjectedColumns::RowView, ProjectedColumns::RowView>(
+    ProjectedColumns::RowView *const from, const ProjectionMap &from_map, TupleAccessStrategy from_tas,
+    ProjectedColumns::RowView *const to, const ProjectionMap &to_map);
+
 template <class RowType>
 void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
   // the projection list in delta and buffer have to be sorted in the same way for this to work,
@@ -202,4 +206,13 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
   return {storage::BlockLayout(attr_sizes), col_oid_to_id};
 }
 
+std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const storage::BlockLayout &layout) {
+  std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
+  // Add all of the column ids from the layout to the projection list
+  // 0 is version vector so we skip it
+  for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+    col_ids[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
+  }
+  return col_ids;
+}
 }  // namespace terrier::storage
