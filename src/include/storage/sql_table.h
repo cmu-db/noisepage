@@ -81,7 +81,7 @@ class SqlTable {
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
-              layout_version_t version_num) const {
+              const ProjectionMap &pr_map, layout_version_t version_num) const {
     STORAGE_LOG_INFO("slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
     // The version of the current slot is the same as the version num
@@ -113,12 +113,10 @@ class SqlTable {
 
     // 3. Populate the new ProjectedRow
     auto new_dt_version = tables_[!version_num];
-    // 3.a) Get the mapping for the new ProjectedRow
-    auto new_pr_pair = InitializerForProjectedRow(col_oids, version_num);
     // 3.b) Copy values over
     for (auto col_oid : col_oids) {
       // We only copy values if the attribute exists in the new version
-      if (new_pr_pair.second.count(col_oid) > 0) {
+      if (pr_map.count(col_oid) > 0) {
         STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
         // get the data bytes
         byte *value = pr_buffer->AccessForceNotNull(old_pr_pair.second.at(col_oid));
@@ -127,7 +125,7 @@ class SqlTable {
         uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(old_dt_version.column_map.at(col_oid));
 
         // get the address where we copy into
-        uint16_t offset = new_pr_pair.second.at(col_oid);
+        uint16_t offset = pr_map.at(col_oid);
         byte *to = out_buffer->AccessForceNotNull(offset);
         // Copy things over
         std::memcpy(to, value, attr_size);
@@ -153,46 +151,56 @@ class SqlTable {
     return table_.data_table->Update(txn, slot, redo);
   }
 
-  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo,
-              layout_version_t version_num) {
+  std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *const txn, const TupleSlot slot,
+                                             const ProjectedRow &redo, layout_version_t version_num) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
+    STORAGE_LOG_INFO("Update slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
+
     // The version of the current slot is the same as the version num
     if (slot.GetBlock()->layout_version_ == version_num) {
-      return tables_[!version_num].data_table->Update(txn, slot, redo);
+      return std::make_pair(tables_[!version_num].data_table->Update(txn, slot, redo), slot);
     }
+
     layout_version_t old_version = slot.GetBlock()->layout_version_;
+
+    // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
     bool is_subset = true;
-    // Check if the Redo's attributes are a subset of old schema
-    std::vector<catalog::col_oid_t> col_oids;  // the set of col oids the redo touches
+    std::vector<catalog::col_oid_t> redo_col_oids;  // the set of col oids the redo touches
     for (uint16_t i = 0; i < redo.NumColumns(); i++) {
       col_id_t col_id = redo.ColumnIds()[i];
       catalog::col_oid_t col_oid(0);
       // get the col oid for this col id
-      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); i++) {
+      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); it++) {
         if (it->second == col_id) {
           col_oid = it->first;
           break;
         }
       }
-      col_oids.emplace_back(col_oid);
+      redo_col_oids.emplace_back(col_oid);
       TERRIER_ASSERT((!col_oid) != 0, "The column map should always have some oid mapped to id");
       // check if the col_oid exists in the old schema
       if (tables_[!old_version].column_map.count(col_oid) == 0) {
         is_subset = false;
       }
     }
+    std::vector<catalog::col_oid_t> old_col_oids;  // the set of oids of the old schema
+    for (auto it = tables_[!old_version].column_map.begin(); it != tables_[!old_version].column_map.end(); it++) {
+      old_col_oids.emplace_back(it->first);
+    }
+
+    // meta-data for old version
+    TupleAccessStrategy old_tas = tables_[!old_version].data_table->GetTupleAccessStrategy();
+    auto old_pair = InitializerForProjectedRow(redo_col_oids, version_num);
+
     if (is_subset) {
       // we can update in place
-      for (auto col_oid : col_oids) {
-        STORAGE_LOG_INFO("updating column {} ", !col_oid);
-        auto pr_pair = InitializerForProjectedRow(col_oids, version_num);
-
+      for (auto col_oid : redo_col_oids) {
+        STORAGE_LOG_INFO("updating column in place {} ", !col_oid);
         // get the data bytes
-        const byte *value = redo.AccessWithNullCheck(pr_pair.second.at(col_oid));
+        const byte *value = redo.AccessWithNullCheck(old_pair.second.at(col_oid));
 
         // get the size of the attribute
-        TupleAccessStrategy old_tas = tables_[!old_version].data_table->GetTupleAccessStrategy();
         col_id_t col_id = tables_[!old_version].column_map.at(col_oid);
         uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(col_id);
 
@@ -205,13 +213,49 @@ class SqlTable {
         // Copy things over
         std::memcpy(to, value, attr_size);
       }
+      return std::make_pair(true, slot);
     } else {
+      STORAGE_LOG_INFO("have to insert and delete ... ");
+
+      // need to create a new ProjectedRow of all columns
+
+      // 1. Get the set of all the columns in new version
+      std::vector<catalog::col_oid_t> all_col_oids;
+      for (auto it = tables_[!version_num].column_map.begin(); it != tables_[!version_num].column_map.end(); it++) {
+        all_col_oids.emplace_back(it->first);
+      }
+      // 2. Get ProjectedRow buffer
+      auto new_pair = InitializerForProjectedRow(all_col_oids, version_num);
+      auto buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
+      ProjectedRow *pr_buffer = new_pair.first.InitializeRow(buffer);
+
+      // 3. Copy values over
+      for (auto col_oid : old_col_oids) {
+        // We only copy values if the attribute exists in the new version
+        if (new_pair.second.count(col_oid) > 0) {
+          STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
+          // get the data bytes
+          byte *value = old_tas.AccessForceNotNull(slot, tables_[!old_version].column_map.at(col_oid));
+          // get the size of the attribute
+          uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(tables_[!old_version].column_map.at(col_oid));
+
+          // get the address where we copy into
+          uint16_t offset = new_pair.second.at(col_oid);
+          byte *to = pr_buffer->AccessForceNotNull(offset);
+          // Copy things over
+          std::memcpy(to, value, attr_size);
+        }
+      }
       // delete follow by an insert
       Delete(txn, slot, old_version);
-      Insert(txn, redo, version_num);
+      storage::TupleSlot new_slot = Insert(txn, *pr_buffer, version_num);
+      auto result_pair = Update(txn, new_slot, redo, version_num);
+      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
+                     "updating the current version should return the same TupleSlot");
+      delete[] buffer;
       // TODO(yangjuns): Need to update indices
+      return std::make_pair(true, new_slot);
     }
-    return true;
   }
 
   /**
