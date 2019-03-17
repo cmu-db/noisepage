@@ -365,22 +365,13 @@ class SqlTable {
         layout_and_map.second};
     tables_.emplace_back(new_dt_version);
     STORAGE_LOG_INFO("# of versions: {}", tables_.size());
+    // TODO(yangjuns): update catalog?
   }
 
   /**
    * @return table's unique identifier
    */
   catalog::table_oid_t Oid() const { return oid_; }
-
-  /**
-   * @return the first tuple slot contained in the underlying DataTable
-   */
-  DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
-
-  /**
-   * @return one past the last tuple slot contained in the underlying DataTable
-   */
-  DataTable::SlotIterator end() const { return table_.data_table->end(); }
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
