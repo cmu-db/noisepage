@@ -15,7 +15,7 @@ namespace terrier {
  */
 class SqlTableRW {
  public:
-  explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
+  explicit SqlTableRW(catalog::table_oid_t table_oid) : version_(0), table_oid_(table_oid) {}
   ~SqlTableRW() {
     delete pri_;
     delete pr_map_;
@@ -47,7 +47,7 @@ class SqlTableRW {
     }
 
     // save information needed for (later) reading and writing
-    auto row_pair = table_->InitializerForProjectedRow(col_oids_);
+    auto row_pair = table_->InitializerForProjectedRow(col_oids_, storage::layout_version_t(0));
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
@@ -85,7 +85,7 @@ class SqlTableRW {
     auto txn = txn_manager_.BeginTransaction();
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
+    table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
     auto ret_val = *(reinterpret_cast<uint32_t *>(col_p));
@@ -116,7 +116,7 @@ class SqlTableRW {
     auto txn = txn_manager_.BeginTransaction();
     auto read_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     storage::ProjectedRow *read = pri_->InitializeRow(read_buffer);
-    table_->Select(txn, slot, read);
+    table_->Select(txn, slot, read, *pr_map_, version_);
     byte *col_p = read->AccessForceNotNull(pr_map_->at(col_oids_[col_num]));
 
     auto *entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
@@ -156,6 +156,8 @@ class SqlTableRW {
  private:
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
+
+  storage::layout_version_t version_;
 
   storage::BlockStore block_store_{100, 100};
   catalog::table_oid_t table_oid_;

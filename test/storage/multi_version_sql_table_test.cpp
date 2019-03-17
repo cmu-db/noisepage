@@ -67,7 +67,7 @@ class SqlTableTestRW {
     }
 
     // save information needed for (later) reading and writing
-    auto row_pair = table_->InitializerForProjectedRow(col_oids_);
+    auto row_pair = table_->InitializerForProjectedRow(col_oids_, version_);
     pri_ = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
