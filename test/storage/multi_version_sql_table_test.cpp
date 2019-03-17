@@ -21,6 +21,7 @@ class SqlTableTestRW {
     delete pr_map_;
     delete schema_;
     delete table_;
+    delete layout_;
   }
 
   /**
@@ -37,8 +38,14 @@ class SqlTableTestRW {
 
   void AddColumn(transaction::TransactionContext *txn, std::string name, type::TypeId type, bool nullable,
                  catalog::col_oid_t oid) {
+    // update columns, schema and layout
     cols_.emplace_back(name, type, nullable, oid);
     catalog::Schema new_schema(cols_);
+    delete schema_;
+    delete layout_;
+    schema_ = new catalog::Schema(cols_);
+    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
+
     table_->ChangeSchema(txn, new_schema);
 
     col_oids_.clear();
@@ -62,6 +69,7 @@ class SqlTableTestRW {
     schema_ = new catalog::Schema(cols_);
     table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
 
+    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
     }
@@ -176,6 +184,7 @@ class SqlTableTestRW {
     return ret_st;
   }
 
+  storage::BlockLayout *GetLayout() { return layout_; }
   /**
    * Save a string, for insertion by EndRowAndInsert
    * @param col_num column number in the schema
@@ -211,6 +220,7 @@ class SqlTableTestRW {
   catalog::Schema *schema_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> col_oids_;
+  storage::BlockLayout *layout_ = nullptr;
 
   storage::ProjectedRowInitializer *pri_ = nullptr;
   storage::ProjectionMap *pr_map_ = nullptr;
@@ -400,7 +410,7 @@ TEST_F(SqlTableTests, UpdateTest) {
 
   // insert (200, 10001)
   table.StartInsertRow();
-  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(0), 200);
   table.SetIntColInRow(catalog::col_oid_t(1), 10001);
   storage::TupleSlot row2_slot = table.EndInsertRow(txn);
 
@@ -469,6 +479,106 @@ TEST_F(SqlTableTests, UpdateTest) {
   new_val = table.GetIntColInRow(txn, catalog::col_oid_t(2), result.second);
   EXPECT_EQ(new_val, 420);
 
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+}
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, ScanTest) {
+  SqlTableTestRW table(catalog::table_oid_t(2));
+  auto txn = txn_manager_.BeginTransaction();
+  table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
+  table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+  table.Create();
+
+  // insert (100, 10000)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 100);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  table.EndInsertRow(txn);
+
+  // insert (200, 10001)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 200);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10001);
+  table.EndInsertRow(txn);
+
+  // manually set the version of the transaction to be 1
+  table.version_ = storage::layout_version_t(1);
+  table.AddColumn(txn, "new_col", type::TypeId::INTEGER, true, catalog::col_oid_t(2));
+
+  // insert (300, 10002, null)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 300);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10002);
+  table.EndInsertRow(txn);
+
+  // insert (400, 10003, 42)
+  table.StartInsertRow();
+  table.SetIntColInRow(catalog::col_oid_t(0), 400);
+  table.SetIntColInRow(catalog::col_oid_t(1), 10003);
+  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  table.EndInsertRow(txn);
+
+  // begin scan
+  std::vector<catalog::col_oid_t> all_col_oids;
+  all_col_oids.emplace_back(0);
+  all_col_oids.emplace_back(1);
+  all_col_oids.emplace_back(2);
+
+  auto pc_pair = table.table_->InitializerForProjectedColumns(all_col_oids, 10, table.version_);
+  byte *buffer = common::AllocationUtil::AllocateAligned(pc_pair.first.ProjectedColumnsSize());
+  storage::ProjectedColumns *pc = pc_pair.first.Initialize(buffer);
+
+  // scan
+  auto start_pos = table.table_->begin();
+  table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
+
+  // check the number of tuples we found
+  EXPECT_EQ(pc->NumTuples(), 4);
+
+  // check the if we get (100, 10000, null)
+  auto row1 = pc->InterpretAsRow(*table.GetLayout(), 0);
+  byte *value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
+  EXPECT_NE(value, nullptr);
+  uint32_t id = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(id, 100);
+  value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
+  EXPECT_NE(value, nullptr);
+  uint32_t datname = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(datname, 10000);
+  value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  EXPECT_EQ(value, nullptr);
+
+  // check the if we get (200, 10001, null)
+  auto row2 = pc->InterpretAsRow(*table.GetLayout(), 1);
+  value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
+  EXPECT_NE(value, nullptr);
+  id = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(id, 200);
+  value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
+  EXPECT_NE(value, nullptr);
+  datname = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(datname, 10001);
+  value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  EXPECT_EQ(value, nullptr);
+
+  // check the if we get (400, 10003, 42)
+  auto row4 = pc->InterpretAsRow(*table.GetLayout(), 3);
+  value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
+  EXPECT_NE(value, nullptr);
+  id = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(id, 400);
+  value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
+  EXPECT_NE(value, nullptr);
+  datname = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(datname, 10003);
+  value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  EXPECT_NE(value, nullptr);
+  uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(new_col, 42);
+
+  delete[] buffer;
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
   delete txn;
 }
