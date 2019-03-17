@@ -31,6 +31,74 @@ class SqlTable {
     ColumnMap column_map;
   };
 
+  /**
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
+   */
+  class SlotIterator {
+   public:
+    /**
+     * @return reference to the underlying tuple slot
+     */
+    const TupleSlot &operator*() const { return *current_it_; }
+
+    /**
+     * @return pointer to the underlying tuple slot
+     */
+    const TupleSlot *operator->() const { return &(*current_it_); }
+
+    /**
+     * pre-fix increment.
+     * @return self-reference after the iterator is advanced
+     */
+    SlotIterator &operator++() {
+      current_it_++;
+      if (current_it_ == dt_version_->data_table->end()) {
+        dt_version_++;
+        current_it_ = dt_version_->data_table->begin();
+      }
+      return *this;
+    };
+
+    /**
+     * post-fix increment.
+     * @return copy of the iterator equal to this before increment
+     */
+    const SlotIterator operator++(int) {
+      SlotIterator copy = *this;
+      operator++();
+      return copy;
+    }
+
+    /**
+     * Equality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators point to the same slot
+     */
+    bool operator==(const SlotIterator &other) const { return current_it_ == other.current_it_; }
+
+    /**
+     * Inequality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators are not equal
+     */
+    bool operator!=(const SlotIterator &other) const { return !this->operator==(other); }
+
+    DataTable::SlotIterator GetDataTableSlotIterator() { return current_it_; }
+
+   private:
+    friend class SqlTable;
+    /**
+     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+     */
+    SlotIterator(const SqlTable *sql_table, std::vector<DataTableVersion>::const_iterator dt_version,
+                 DataTable::SlotIterator dt_slot_it)
+        : sql_table_(sql_table), dt_version_(dt_version), current_it_(dt_slot_it) {}
+
+    const SqlTable *sql_table_;
+    std::vector<DataTableVersion>::const_iterator dt_version_;
+    DataTable::SlotIterator current_it_;
+  };
+
  public:
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source
@@ -272,14 +340,14 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
+  void Scan(transaction::TransactionContext *const txn, SqlTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer, const ProjectionMap &pr_map, layout_version_t version_num) const {
     uint32_t max_tuples = out_buffer->MaxTuples();
     layout_version_t start_version = start_pos->operator*().GetBlock()->layout_version_;
 
     uint32_t total_filled = 0;
     for (size_t i = 0; i < tables_.size(); i++) {
-      if ((!start_version) != i) continue;
+      if ((!start_version) > i) continue;
 
       DataTableVersion dt_ver = tables_[i];
       // Construct a buffer to fill
@@ -287,31 +355,55 @@ class SqlTable {
       for (auto &it : dt_ver.column_map) {
         all_col_oids.emplace_back(it.first);
       }
-      auto pair = InitializerForProjectedColumns(all_col_oids, max_tuples, version_num);
+      auto pair = InitializerForProjectedColumns(all_col_oids, max_tuples, layout_version_t(static_cast<uint32_t>(i)));
 
       auto pr_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedColumnsSize());
       storage::ProjectedColumns *read = pair.first.Initialize(pr_buffer);
 
-      if (!start_version == i) {
-        dt_ver.data_table->Scan(txn, start_pos, read);
+      if ((!start_version) == i) {
+        DataTable::SlotIterator dt_slot = start_pos->GetDataTableSlotIterator();
+        dt_ver.data_table->Scan(txn, &dt_slot, read);
       } else {
         DataTable::SlotIterator begin = dt_ver.data_table->begin();
         dt_ver.data_table->Scan(txn, &begin, read);
       }
 
       uint32_t filled = 0;
-      while (out_buffer->NumTuples() < max_tuples) {
+      while (filled < read->NumTuples() && total_filled < max_tuples) {
         // copy from ProjectedColumns into ProjectedColumns of the new version
-        if (i != !version_num) {
-          ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
-          ProjectedColumns::RowView to = out_buffer->InterpretAsRow(tables_[!version_num].layout, total_filled);
-          StorageUtil::CopyProjectionIntoProjection(&from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(),
-                                                    &to, pr_map);
-        }
+        // TODO(yangjuns): if it's the most current version, we don't have to copy. We can directly write into
+        // out_buffer
+        ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
+        ProjectedColumns::RowView to = out_buffer->InterpretAsRow(tables_[!version_num].layout, total_filled);
+        StorageUtil::CopyProjectionIntoProjection(&from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(), &to,
+                                                  pr_map);
         filled++;
         total_filled++;
       }
+      delete[] pr_buffer;
     }
+    out_buffer->SetNumTuples(total_filled);
+  }
+
+  /**
+   * @return the first tuple slot contained in the data table
+   */
+  SlotIterator begin() const {
+    common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
+    return {this, tables_.begin(), tables_.begin()->data_table->begin()};
+  }
+
+  /**
+   * Returns one past the last tuple slot contained in the last data table. Note that this is not an accurate number
+   * when concurrent accesses are happening, as inserts maybe in flight. However, the number given is always
+   * transactionally correct, as any inserts that might have happened is not going to be visible to the calling
+   * transaction.
+   *
+   * @return one past the last tuple slot contained in the data table.
+   */
+  SlotIterator end() const {
+    common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
+    return {this, --tables_.end(), tables_[tables_.size() - 1].data_table->end()};
   }
 
   /**
@@ -397,6 +489,7 @@ class SqlTable {
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
 
+  mutable common::SpinLatch tables_latch_;
   std::vector<DataTableVersion> tables_;
 
   /**
