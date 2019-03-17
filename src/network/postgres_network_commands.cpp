@@ -9,11 +9,6 @@
 
 namespace terrier::network {
 
-// TODO(Tianyu): This is a refactor in progress.
-// A lot of the code here should really be moved to traffic cop, and a lot of
-// the code here can honestly just be deleted. This is going to be a larger
-// project though, so I want to do the architectural refactor first.
-
 Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpreter, PostgresPacketWriter *const out,
                                     CallbackFunc callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;

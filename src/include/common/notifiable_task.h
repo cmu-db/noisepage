@@ -48,7 +48,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * @return unique id assigned to this task
    */
-  inline size_t Id() const { return task_id_; }
+  size_t Id() const { return task_id_; }
 
   /**
    * @brief Register an event with the event base associated with this
@@ -84,7 +84,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
+  struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
     return RegisterEvent(signal, EV_SIGNAL | EV_PERSIST, callback, arg);
   }
 
@@ -100,7 +100,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
+  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
   }
 
@@ -115,7 +115,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  inline struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
+  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_PERSIST, callback, arg);
   }
 
@@ -152,7 +152,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * In a loop, make this notifiable task wait and respond to incoming events
    */
-  inline void EventLoop() {
+  void EventLoop() {
     EventUtil::EventBaseDispatch(base_);
     LOG_TRACE("stop");
   }
@@ -175,7 +175,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
    */
-  inline void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
+  void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
 
  private:
   const int task_id_;

@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-#include "network/network_io_wrappers.h"
+#include "network/network_io_wrapper.h"
 #include "network/terrier_server.h"
 
 namespace terrier::network {
@@ -18,12 +18,7 @@ Transition NetworkIoWrapper::FlushAllWrites() {
   return Transition::PROCEED;
 }
 
-PosixSocketIoWrapper::PosixSocketIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out)
-    : NetworkIoWrapper(sock_fd, std::move(in), std::move(out)) {
-  RestartState();
-}
-
-Transition PosixSocketIoWrapper::FillReadBuffer() {
+Transition NetworkIoWrapper::FillReadBuffer() {
   if (!in_->HasMore()) in_->Reset();
   if (in_->HasMore() && in_->Full()) in_->MoveContentToHead();
   Transition result = Transition::NEED_READ;
@@ -34,7 +29,6 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
       result = Transition::PROCEED;
     } else {
       if (bytes_read == 0) {
-        LOG_INFO("Terminating\n");
         return Transition::TERMINATE;
       }
       switch (errno) {
@@ -52,7 +46,7 @@ Transition PosixSocketIoWrapper::FillReadBuffer() {
   return result;
 }
 
-Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
+Transition NetworkIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
   while (wbuf->HasMore()) {
     auto bytes_written = wbuf->WriteOutTo(sock_fd_);
     if (bytes_written < 0) {
@@ -71,7 +65,7 @@ Transition PosixSocketIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
   return Transition::PROCEED;
 }
 
-void PosixSocketIoWrapper::RestartState() {
+void NetworkIoWrapper::RestartState() {
   // Set Non Blocking
   auto flags = fcntl(sock_fd_, F_GETFL);
   flags |= O_NONBLOCK;
@@ -86,5 +80,5 @@ void PosixSocketIoWrapper::RestartState() {
   out_->Reset();
 }
 
-void PosixSocketIoWrapper::Restart() { RestartState(); }
+void NetworkIoWrapper::Restart() { RestartState(); }
 }  // namespace terrier::network

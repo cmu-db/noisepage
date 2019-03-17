@@ -22,7 +22,7 @@
 #include "loggers/network_logger.h"
 
 #include "network/connection_handler_task.h"
-#include "network/network_io_wrappers.h"
+#include "network/network_io_wrapper.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"

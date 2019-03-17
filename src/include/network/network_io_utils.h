@@ -32,7 +32,7 @@ class Buffer {
   /**
    * Reset the buffer pointer and clears content
    */
-  inline void Reset() {
+  void Reset() {
     size_ = 0;
     offset_ = 0;
   }
@@ -40,7 +40,7 @@ class Buffer {
   /**
    * @param bytes The number of bytes to skip for the cursor
    */
-  inline void Skip(size_t bytes) { offset_ += bytes; }
+  void Skip(size_t bytes) { offset_ += bytes; }
 
   /**
    * @param bytes The amount of bytes to check between the cursor and the end
@@ -48,29 +48,29 @@ class Buffer {
    * @return Whether there is any more bytes between the cursor and
    *         the end of the buffer
    */
-  inline bool HasMore(size_t bytes = 1) { return offset_ + bytes <= size_; }
+  bool HasMore(size_t bytes = 1) { return offset_ + bytes <= size_; }
 
   /**
    * @return Whether the buffer is at capacity. (All usable space is filled
    *          with meaningful bytes)
    */
-  inline bool Full() { return size_ == Capacity(); }
+  bool Full() { return size_ == Capacity(); }
 
   /**
    * @return Iterator to the beginning of the buffer
    */
-  inline ByteBuf::const_iterator Begin() { return std::begin(buf_); }
+  ByteBuf::const_iterator Begin() { return std::begin(buf_); }
 
   /**
    * @return Capacity of the buffer (not actual size)
    */
-  inline size_t Capacity() const { return capacity_; }
+  size_t Capacity() const { return capacity_; }
 
   /**
    * Shift contents to align the current cursor with start of the buffer,
    * remove all bytes before the cursor.
    */
-  inline void MoveContentToHead() {
+  void MoveContentToHead() {
     auto unprocessed_len = size_ - offset_;
     std::memmove(&buf_[0], &buf_[offset_], unprocessed_len);
     size_ = unprocessed_len;
@@ -104,7 +104,7 @@ class Buffer {
 };
 
 // Helper method for reading nul-terminated string for the read buffer
-inline std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_iterator end) {
+static std::string ReadCString(ByteBuf::const_iterator begin, ByteBuf::const_iterator end) {
   // search for the nul terminator
   for (auto head = begin; head != end; ++head)
     if (*head == 0) return std::string(begin, head);
@@ -130,7 +130,7 @@ class ReadBufferView {
    * @param bytes Number of bytes to read
    * @param dest Desired memory location to read into
    */
-  inline void Read(size_t bytes, void *dest) {
+  void Read(size_t bytes, void *dest) {
     std::copy(begin_ + offset_, begin_ + offset_ + bytes, reinterpret_cast<uchar *>(dest));
     offset_ += bytes;
   }
@@ -145,7 +145,7 @@ class ReadBufferView {
    * @return value of integer switched from network byte order
    */
   template <typename T>
-  inline T ReadValue() {
+  T ReadValue() {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
@@ -171,7 +171,7 @@ class ReadBufferView {
    * if no nul-terminator is found within packet range.
    * @return string at head of read buffer
    */
-  inline std::string ReadString() {
+  std::string ReadString() {
     std::string result = ReadCString(begin_ + offset_, begin_ + size_);
     // extra byte of nul-terminator
     offset_ += result.size() + 1;
@@ -182,7 +182,7 @@ class ReadBufferView {
    * Read a not nul-terminated string off the read buffer of specified length
    * @return string at head of read buffer
    */
-  inline std::string ReadString(size_t len) {
+  std::string ReadString(size_t len) {
     std::string result(begin_ + offset_, begin_ + offset_ + len);
     offset_ += len;
     return result;
@@ -196,7 +196,7 @@ class ReadBufferView {
    * @return the value of type T
    */
   template <typename T>
-  inline T ReadRawValue() {
+  T ReadRawValue() {
     T result;
     Read(sizeof(result), &result);
     return result;

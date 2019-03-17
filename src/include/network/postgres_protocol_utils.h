@@ -16,6 +16,10 @@ namespace terrier::network {
 
 // TODO(Tianyu): It looks very broken that this never changes.
 // clang-format off
+
+ /**
+  * Hardcoded server parameter values to send to the client
+  */
   const std::unordered_map<std::string, std::string>
     parameter_status_map = {
       {"application_name", "psql"},

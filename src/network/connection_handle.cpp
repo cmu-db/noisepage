@@ -160,7 +160,7 @@ END_DEF
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
 ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler)
     : conn_handler_(handler),
-      io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
+      io_wrapper_{new NetworkIoWrapper(sock_fd)},
       protocol_interpreter_{new PostgresProtocolInterpreter()} {}
 
 Transition ConnectionHandle::GetResult() {

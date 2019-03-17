@@ -94,7 +94,7 @@ TEST_F(NetworkTests, SimpleQueryTest) {
  * @param io_socket
  * @return true if reads ReadyForQuery, false for closed.
  */
-bool ReadUntilReadyOrClose(const std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
+bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   while (true) {
     Transition trans = io_socket->FillReadBuffer();
     if (trans == Transition::TERMINATE) return false;
@@ -138,7 +138,7 @@ size_t strlcpy(char *dst, const char *src, size_t siz) {
   return (s - src - 1); /* count does not include NUL */
 }
 
-std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
+std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -151,7 +151,7 @@ std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
   if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
-  auto io_socket = std::make_shared<PosixSocketIoWrapper>(socket_fd);
+  auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
   PostgresPacketWriter writer(io_socket->out_);
 
   std::unordered_map<std::string, std::string> params{
@@ -178,7 +178,7 @@ void TerminateConnection(int socket_fd) {
 TEST_F(NetworkTests, BadQueryTest) {
   try {
     TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    std::shared_ptr<PosixSocketIoWrapper> io_socket = StartConnection(port);
+    std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
     PostgresPacketWriter writer(io_socket->out_);
 
     // Build a correct query message, "SELECT A FROM B"
@@ -220,7 +220,7 @@ TEST_F(NetworkTests, NoSSLTest) {
 }
 
 void TestExtendedQuery(uint16_t port) {
-  std::shared_ptr<PosixSocketIoWrapper> io_socket = StartConnection(port);
+  std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
   io_socket->out_->Reset();
   std::string stmtName = "preparedTest";
   std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";

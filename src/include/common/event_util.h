@@ -21,16 +21,16 @@ namespace terrier {
 class EventUtil {
  private:
   template <typename T>
-  static inline bool NotNull(T *ptr) {
+  static bool NotNull(T *ptr) {
     return ptr != nullptr;
   }
 
-  static inline bool IsZero(int arg) { return arg == 0; }
+  static bool IsZero(int arg) { return arg == 0; }
 
-  static inline bool NonNegative(int arg) { return arg >= 0; }
+  static bool NonNegative(int arg) { return arg >= 0; }
 
   template <typename T>
-  static inline T Wrap(T value, bool (*check)(T), const char *error_msg) {
+  static T Wrap(T value, bool (*check)(T), const char *error_msg) {
     if (!check(value)) throw NETWORK_PROCESS_EXCEPTION(error_msg);
     return value;
   }
@@ -41,7 +41,7 @@ class EventUtil {
   /**
    * @return A new event_base
    */
-  static inline struct event_base *EventBaseNew() {
+  static struct event_base *EventBaseNew() {
     return Wrap(event_base_new(), NotNull<struct event_base>, "Can't allocate event base");
   }
 
@@ -50,7 +50,7 @@ class EventUtil {
    * @param timeout
    * @return a positive integer or an exception is thrown on failure
    */
-  static inline int EventBaseLoopExit(struct event_base *base, const struct timeval *timeout) {
+  static int EventBaseLoopExit(struct event_base *base, const struct timeval *timeout) {
     return Wrap(event_base_loopexit(base, timeout), IsZero, "Error when exiting loop");
   }
 
@@ -58,16 +58,14 @@ class EventUtil {
    * @param event The event to delete
    * @return a positive integer or an exception is thrown on failure
    */
-  static inline int EventDel(struct event *event) {
-    return Wrap(event_del(event), IsZero, "Error when deleting event");
-  }
+  static int EventDel(struct event *event) { return Wrap(event_del(event), IsZero, "Error when deleting event"); }
 
   /**
    * @param event The event to add
    * @param timeout
    * @return a positive integer or an exception is thrown on failure
    */
-  static inline int EventAdd(struct event *event, const struct timeval *timeout) {
+  static int EventAdd(struct event *event, const struct timeval *timeout) {
     return Wrap(event_add(event, timeout), IsZero, "Error when adding event");
   }
 
@@ -81,8 +79,8 @@ class EventUtil {
    * @param arg Argument to pass to the callback function
    * @return a positive integer or an exception is thrown on failure
    */
-  static inline int EventAssign(struct event *event, struct event_base *base, int fd, int16_t flags,
-                                event_callback_fn callback, void *arg) {
+  static int EventAssign(struct event *event, struct event_base *base, int fd, int16_t flags,
+                         event_callback_fn callback, void *arg) {
     return Wrap(event_assign(event, base, fd, flags, callback, arg), IsZero, "Error when assigning event");
   }
 
@@ -91,7 +89,7 @@ class EventUtil {
    * @param base The event_base to dispatch on
    * @return a positive integer or an exception is thrown on failure
    */
-  static inline int EventBaseDispatch(struct event_base *base) {
+  static int EventBaseDispatch(struct event_base *base) {
     return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
   }
 };
