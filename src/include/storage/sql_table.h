@@ -57,7 +57,7 @@ class SqlTable {
         current_it_ = dt_version_->data_table->begin();
       }
       return *this;
-    };
+    }
 
     /**
      * post-fix increment.
@@ -90,11 +90,9 @@ class SqlTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const SqlTable *sql_table, std::vector<DataTableVersion>::const_iterator dt_version,
-                 DataTable::SlotIterator dt_slot_it)
-        : sql_table_(sql_table), dt_version_(dt_version), current_it_(dt_slot_it) {}
+    SlotIterator(std::vector<DataTableVersion>::const_iterator dt_version, DataTable::SlotIterator dt_slot_it)
+        : dt_version_(dt_version), current_it_(dt_slot_it) {}
 
-    const SqlTable *sql_table_;
     std::vector<DataTableVersion>::const_iterator dt_version_;
     DataTable::SlotIterator current_it_;
   };
@@ -171,7 +169,7 @@ class SqlTable {
 
     // 3. Copy values over and populate the new ProjectedRow
     TupleAccessStrategy old_tas = old_dt_version.data_table->GetTupleAccessStrategy();
-    StorageUtil::CopyProjectionIntoProjection(pr_buffer, old_pr_pair.second, old_tas, out_buffer, pr_map);
+    StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_tas, out_buffer, pr_map);
 
     // TODO(yangjuns): fill in default values for newly added attributes
     delete[] read_buffer;
@@ -339,6 +337,8 @@ class SqlTable {
    * @param start_pos iterator to the starting location for the sequential scan
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
+   * @param pr_map the ProjectionMap for the Projected Columns
+   * @param version_num the schema version which the transaction sees
    */
   void Scan(transaction::TransactionContext *const txn, SqlTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer, const ProjectionMap &pr_map, layout_version_t version_num) const {
@@ -375,7 +375,7 @@ class SqlTable {
         // out_buffer
         ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
         ProjectedColumns::RowView to = out_buffer->InterpretAsRow(tables_[!version_num].layout, total_filled);
-        StorageUtil::CopyProjectionIntoProjection(&from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(), &to,
+        StorageUtil::CopyProjectionIntoProjection(from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(), &to,
                                                   pr_map);
         filled++;
         total_filled++;
@@ -390,7 +390,7 @@ class SqlTable {
    */
   SlotIterator begin() const {
     common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return {this, tables_.begin(), tables_.begin()->data_table->begin()};
+    return {tables_.begin(), tables_.begin()->data_table->begin()};
   }
 
   /**
@@ -403,7 +403,7 @@ class SqlTable {
    */
   SlotIterator end() const {
     common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return {this, --tables_.end(), tables_[tables_.size() - 1].data_table->end()};
+    return {--tables_.end(), tables_[tables_.size() - 1].data_table->end()};
   }
 
   /**
@@ -438,6 +438,7 @@ class SqlTable {
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
    * @param max_tuples the maximum number of tuples to store in the ProjectedColumn
+   * @param version_num the schema version
    * @return pair of: initializer to create ProjectedColumns, and a mapping between col_oid and the offset within the
    * ProjectedColumn
    * @warning col_oids must be a set (no repeats)

@@ -60,14 +60,14 @@ template void StorageUtil::CopyAttrFromProjection<ProjectedColumns::RowView>(con
                                                                              uint16_t);
 
 template <class RowType1, class RowType2>
-void StorageUtil::CopyProjectionIntoProjection(RowType1 *const from, const ProjectionMap &from_map,
-                                               TupleAccessStrategy from_tas, RowType2 *const to,
+void StorageUtil::CopyProjectionIntoProjection(const RowType1 &from, const ProjectionMap &from_map,
+                                               const TupleAccessStrategy &from_tas, RowType2 *const to,
                                                const ProjectionMap &to_map) {
   // copy values
   for (auto &it : from_map) {
     if (to_map.count(it.first) > 0) {
       // get the data bytes
-      byte *value = from->AccessWithNullCheck(from_map.at(it.first));
+      const byte *value = from.AccessWithNullCheck(from_map.at(it.first));
 
       // get the offset where we copy into
       uint16_t offset = to_map.at(it.first);
@@ -76,7 +76,7 @@ void StorageUtil::CopyProjectionIntoProjection(RowType1 *const from, const Proje
       } else {
         to->SetNotNull(offset);
         // get the size of the attribute
-        uint8_t attr_size = from_tas.GetBlockLayout().AttrSize(from->ColumnIds()[it.second]);
+        uint8_t attr_size = from_tas.GetBlockLayout().AttrSize(from.ColumnIds()[it.second]);
 
         // get the address where we copy into
         uint16_t offset = to_map.at(it.first);
@@ -96,14 +96,14 @@ void StorageUtil::CopyProjectionIntoProjection(RowType1 *const from, const Proje
   }
 }
 
-template void StorageUtil::CopyProjectionIntoProjection<ProjectedRow, ProjectedRow>(ProjectedRow *const from,
+template void StorageUtil::CopyProjectionIntoProjection<ProjectedRow, ProjectedRow>(const ProjectedRow &from,
                                                                                     const ProjectionMap &from_map,
-                                                                                    TupleAccessStrategy from_tas,
+                                                                                    const TupleAccessStrategy &from_tas,
                                                                                     ProjectedRow *const to,
                                                                                     const ProjectionMap &to_map);
 
 template void StorageUtil::CopyProjectionIntoProjection<ProjectedColumns::RowView, ProjectedColumns::RowView>(
-    ProjectedColumns::RowView *const from, const ProjectionMap &from_map, TupleAccessStrategy from_tas,
+    const ProjectedColumns::RowView &from, const ProjectionMap &from_map, const TupleAccessStrategy &from_tas,
     ProjectedColumns::RowView *const to, const ProjectionMap &to_map);
 
 template <class RowType>
