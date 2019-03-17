@@ -130,20 +130,6 @@ class SqlTable {
   /**
    * Update the tuple according to the redo buffer given.
    *
-   * @param txn the calling transaction
-   * @param slot the slot of the tuple to update.
-   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
-   * @return true if successful, false otherwise
-   */
-  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
-    return table_.data_table->Update(txn, slot, redo);
-  }
-
-  /**
-   * Update the tuple according to the redo buffer given.
-   *
    * @param txn txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
@@ -264,20 +250,6 @@ class SqlTable {
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
-   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
-   * such.
-   */
-  TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
-    return table_.data_table->Insert(txn, redo);
-  }
-
-  /**
-   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
-   *
-   * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple.
    * @param version_num the schema version which the transaction sees
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
@@ -288,18 +260,6 @@ class SqlTable {
     // TODO(Matt): update indexes
     // always insert into the new DataTable
     return tables_[!version_num].data_table->Insert(txn, redo);
-  }
-
-  /**
-   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
-   * @param txn the calling transaction
-   * @param slot the slot of the tuple to delete
-   * @return true if successful, false otherwise
-   */
-  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) const {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
-    return table_.data_table->Delete(txn, slot);
   }
 
   /**

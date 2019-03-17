@@ -66,7 +66,7 @@ class SqlTableRW {
    */
   storage::TupleSlot EndRowAndInsert() {
     auto txn = txn_manager_.BeginTransaction();
-    auto slot = table_->Insert(txn, *insert_);
+    auto slot = table_->Insert(txn, *insert_, version_);
     insert_ = nullptr;
     txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
