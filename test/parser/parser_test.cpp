@@ -663,6 +663,17 @@ TEST_F(ParserTestBase, OldAggTest) {
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_MIN, statement->GetSelectColumns()[0]->GetExpressionType());
   }
+
+  {
+    query = "SELECT AVG(*) FROM foo;";
+    auto stmt_list = pgparser.BuildParseTree(query);
+    EXPECT_EQ(1, stmt_list.size());
+    EXPECT_EQ(StatementType::SELECT, stmt_list[0]->GetType());
+
+    auto statement = reinterpret_cast<SelectStatement *>(stmt_list[0].get());
+    EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
+    EXPECT_EQ(ExpressionType::AGGREGATE_AVG, statement->GetSelectColumns()[0]->GetExpressionType());
+  }
 }
 
 // NOLINTNEXTLINE
@@ -1297,11 +1308,17 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
   EXPECT_NE(view_query->GetSelectCondition(), nullptr);
   EXPECT_EQ(view_query->GetSelectCondition()->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
+
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
   EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::VALUE_TUPLE);
   EXPECT_EQ(reinterpret_cast<TupleValueExpression *>(left_child.get())->GetColumnName(), "kind");
+
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
+  auto right_value = reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue();
+  auto string_ptr = type::TransientValuePeeker::PeekVarChar(right_value);
+  EXPECT_EQ(0, strcmp("Comedy", string_ptr));
+  delete[] string_ptr;
 }
 
 // NOLINTNEXTLINE
@@ -1620,9 +1637,10 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2].get());
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
-    // TODO(Weichen): add back strcmp when mem leak is solved
-    // auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
-    // EXPECT_EQ(0, strcmp("2017-01-01", const_expr->GetValue().GetStringValue()));
+    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
+    auto string_ptr = type::TransientValuePeeker::PeekVarChar(const_expr->GetValue());
+    EXPECT_EQ(0, strcmp("2017-01-01", string_ptr));
+    delete[] string_ptr;
   }
 
   {
