@@ -13,6 +13,8 @@
 namespace terrier::catalog {
 
 class Catalog;
+struct SchemaCols;
+
 /**
  * A attribute handle contains information about all the attributes in a table. It is used to
  * retrieve attribute related information. It presents a part of pg_attribute.
@@ -52,10 +54,14 @@ class AttributeHandle {
     std::vector<type::Value> entry_;
   };
 
+  explicit AttributeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
+      : pg_attribute_hrw_(std::move(pg_attribute)) {}
+
   /**
    * Construct an attribute handle. It keeps a pointer to the pg_attribute sql table.
    * @param table a pointer to SqlTableRW
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
+   * Deprecate
    */
   explicit AttributeHandle(SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
       : table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
@@ -90,8 +96,31 @@ class AttributeHandle {
    */
   std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, const std::string &name);
 
+  /**
+   * Create the storage table
+   */
+  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                     db_oid_t db_oid, const std::string &name);
+
+  /**
+   * Add a row
+   */
+  // void AddEntry(transaction::TransactionContext *txn, int32_t oid, int32_t table_oid, const std::string &name);
+
+  // start Debug methods
+
+  /**
+   * Dump the contents of the table
+   * @param txn
+   */
+  void Dump(transaction::TransactionContext *txn) { pg_attribute_hrw_->Dump(txn); }
+  // end Debug methods
+
+  static const std::vector<SchemaCols> schema_cols_;
+  static const std::vector<SchemaCols> unused_schema_cols_;
+
  private:
-  //  Catalog *catalog_;
+  // Catalog *catalog_;
   SqlTableRW *table_;
   std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
 };

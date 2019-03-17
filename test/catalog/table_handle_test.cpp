@@ -150,5 +150,7 @@ TEST_F(TableHandleTests, CreateTest) {
   row = ptr->FindRow(txn_, search_vec);
   EXPECT_EQ(row[0].GetIntValue(), 123);
   EXPECT_STREQ(row[1].GetVarcharValue(), "test_name");
+
+  delete table;
 }
 }  // namespace terrier

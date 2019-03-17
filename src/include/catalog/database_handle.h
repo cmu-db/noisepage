@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/attribute_handle.h"
 #include "catalog/class_handle.h"
 #include "catalog/namespace_handle.h"
 #include "catalog/type_handle.h"
@@ -15,6 +16,7 @@
 namespace terrier::catalog {
 
 class Catalog;
+class AttributeHandle;
 class NamespaceHandle;
 class TypeHandle;
 struct SchemaCols;
@@ -99,6 +101,8 @@ class DatabaseHandle {
    */
   TypeHandle GetTypeHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
+  AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
    * row from pg_database. It has to be executed in a transaction context.
@@ -124,10 +128,14 @@ class DatabaseHandle {
 
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry);
 
+  // start Debug methods
+
   /**
-   * Debug methods
+   * Dump the contents of the table
+   * @param txn
    */
   void Dump(transaction::TransactionContext *txn) { pg_database_rw_->Dump(txn); }
+  // end Debug methods
 
   static const std::vector<SchemaCols> schema_cols_;
   static const std::vector<SchemaCols> unused_schema_cols_;

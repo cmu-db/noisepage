@@ -36,8 +36,21 @@ struct CatalogTests : public TerrierTest {
 
 // Tests for higher level catalog API
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, BasicTest) {
+TEST_F(CatalogTests, CreateDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
+  catalog_->Dump(txn_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, CreateUserTableTest) {
+  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
+  catalog::Schema schema(cols);
+
+  catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
   catalog_->Dump(txn_);
 }
 

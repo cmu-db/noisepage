@@ -41,7 +41,7 @@ std::shared_ptr<catalog::SqlTableRW> AttrDefHandle::Create(transaction::Transact
   // now actually create, with the provided schema
   pg_attrdef->Create();
   catalog->AddToMaps(db_oid, pg_attrdef_oid, name, pg_attrdef);
-  catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attrdef->GetSqlTable());
+  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attrdef->GetSqlTable());
   return pg_attrdef;
 }
 

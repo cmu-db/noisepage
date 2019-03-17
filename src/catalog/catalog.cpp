@@ -43,6 +43,21 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
   name_map_.erase(oid);
 }
 
+void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name, catalog::Schema schema) {
+  auto db_handle = GetDatabaseHandle();
+  auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
+
+  // creates the storage table and adds to pg_class
+  auto tbl_rw = std::shared_ptr<catalog::SqlTableRW>(table_handle.CreateTable(txn, schema, table_name));
+  // auto tbl_rw = std::shared_ptr<catalog::SqlTableRW>(raw_tbl_rw);
+
+  // add to maps
+  AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
+
+  // enter attribute information
+  // AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+}
+
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
@@ -84,15 +99,30 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
   Schema schema = table->GetSchema();
   std::vector<Schema::Column> cols = schema.GetColumns();
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
+  int32_t col_num = 0;
   for (auto &c : cols) {
     std::vector<type::Value> row;
     row.emplace_back(type::ValueFactory::GetIntegerValue(!c.GetOid()));
     row.emplace_back(type::ValueFactory::GetIntegerValue(!table->Oid()));
     row.emplace_back(type::ValueFactory::GetVarcharValue(c.GetName().c_str()));
-    // the following 3 attributes are just placeholders, so I just use 0.
-    row.emplace_back(type::ValueFactory::GetIntegerValue(0));
-    row.emplace_back(type::ValueFactory::GetIntegerValue(0));
-    row.emplace_back(type::ValueFactory::GetIntegerValue(0));
+
+    // pg_type.oid
+    // get a type handle
+      auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
+      auto s_type = ValueTypeIdToSchemaType(c.GetType());
+      auto type_entry = type_handle.GetTypeEntry(txn, s_type);
+
+      row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
+//     row.emplace_back(type::ValueFactory::GetIntegerValue(0));
+
+    // length of column type. Varlen columns have the sign bit set.
+    // TODO(pakhtar): resolve what to store for varlens.
+    auto attr_size = c.GetAttrSize();
+    row.emplace_back(type::ValueFactory::GetIntegerValue(attr_size));
+
+    // column number, starting from 1 for "real" columns.
+    // The first column, 0, is terrier's row oid.
+    row.emplace_back(type::ValueFactory::GetIntegerValue(col_num++));
     pg_attribute->InsertRow(txn, row);
   }
 }
@@ -179,40 +209,26 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGType(txn, db_oid);
 
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
+
+  // add columnn information into pg_attribute, for the catalog tables just created
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_attribute"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_namespace"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_class"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_type"]]->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_attrdef"]]->GetSqlTable());
 }
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  // oid for pg_attribute table
-  table_oid_t pg_attribute_oid(GetNextOid());
-  std::shared_ptr<catalog::SqlTableRW> pg_attribute;
-  CATALOG_LOG_TRACE("pg_attribute oid (table_oid) {}", !pg_attribute_oid);
-  pg_attribute = std::make_shared<catalog::SqlTableRW>(pg_attribute_oid);
 
-  // add the schema
-  std::vector<col_oid_t> next_col_oids(6);
-  for (auto &oid : next_col_oids) {
-    oid = col_oid_t(GetNextOid());
-  }
-  pg_attribute->DefineColumn("oid", type::TypeId::INTEGER, false, next_col_oids[0]);
-  pg_attribute->DefineColumn("attrelid", type::TypeId::INTEGER, false, next_col_oids[1]);
-  pg_attribute->DefineColumn("attname", type::TypeId::VARCHAR, false, next_col_oids[2]);
-  pg_attribute->DefineColumn("atttypid", type::TypeId::INTEGER, true, next_col_oids[3]);
-  pg_attribute->DefineColumn("attlen", type::TypeId::INTEGER, true, next_col_oids[4]);
-  pg_attribute->DefineColumn("attnum", type::TypeId::INTEGER, true, next_col_oids[5]);
-  pg_attribute->Create();
-
-  map_[db_oid][pg_attribute_oid] = pg_attribute;
-  name_map_[db_oid]["pg_attribute"] = pg_attribute_oid;
-
-  // Insert columns of pg_attribute
-  CATALOG_LOG_TRACE("Inserting columns of pg_attribute into pg_attribute ...");
-  AddColumnsToPGAttribute(txn, db_oid, pg_attribute->GetSqlTable());
+  std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
 
   // Insert columns of global catalogs
   // PA: this is probably the wrong place. If we want to use this function for any database,
   // we want to add the global table columns only once.
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
+  // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
+  // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
 }
 
 void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
@@ -489,6 +505,40 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
   }
 }
 
+type::Value Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
+  switch (type_id) {
+    case type::TypeId::BOOLEAN:
+      return  type::ValueFactory::GetVarcharValue("boolean");
+
+    case type::TypeId::TINYINT:
+      return  type::ValueFactory::GetVarcharValue("tinyint");
+
+    case type::TypeId::SMALLINT:
+      return  type::ValueFactory::GetVarcharValue("smallint");
+
+    case type::TypeId::INTEGER:
+      return  type::ValueFactory::GetVarcharValue("integer");
+
+    case type::TypeId::BIGINT:
+      return  type::ValueFactory::GetVarcharValue("bigint");
+
+    case type::TypeId::DATE:
+      return  type::ValueFactory::GetVarcharValue("date");
+
+    case type::TypeId::DECIMAL:
+      return  type::ValueFactory::GetVarcharValue("decimal");
+
+    case type::TypeId::TIMESTAMP:
+      return  type::ValueFactory::GetVarcharValue("timestamp");
+
+    case type::TypeId::VARCHAR:
+      return  type::ValueFactory::GetVarcharValue("varchar");
+
+    default:
+      throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");
+  }
+}
+
 void Catalog::Dump(transaction::TransactionContext *txn) {
   // TODO(pakhtar): add parameter to select database
 
@@ -506,8 +556,8 @@ void Catalog::Dump(transaction::TransactionContext *txn) {
   // pg_attribute
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_attribute -- ");
-  //auto attr_handle = db_handle.GetAttributeHandle(txn, terrier_oid);
-  //attr_handle.Dump(txn);
+  auto attr_handle = db_handle.GetAttributeHandle(txn, terrier_oid);
+  attr_handle.Dump(txn);
 
   // pg_type
   CATALOG_LOG_DEBUG("");

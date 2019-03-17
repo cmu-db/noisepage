@@ -76,7 +76,7 @@ std::shared_ptr<catalog::SqlTableRW> NamespaceHandle::Create(transaction::Transa
   // now actually create, with the provided schema
   storage_table->Create();
   catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
-  catalog->AddColumnsToPGAttribute(txn, db_oid, storage_table->GetSqlTable());
+  // catalog->AddColumnsToPGAttribute(txn, db_oid, storage_table->GetSqlTable());
   return storage_table;
 }
 

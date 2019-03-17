@@ -328,7 +328,11 @@ class SqlTableRW {
           ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
           break;
         }
-
+        case type::TypeId::SMALLINT: {
+          auto row_int_val = *(reinterpret_cast<int16_t *>(col_p));
+          ret_vec.emplace_back(type::ValueFactory::GetSmallIntValue(row_int_val));
+          break;
+        }
         case type::TypeId::INTEGER: {
           auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
           ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
@@ -516,7 +520,9 @@ class SqlTableRW {
   bool ColEqualsValue(int32_t index, storage::ProjectedColumns::RowView row_view,
                       const std::vector<type::Value> &search_vec) {
     type::TypeId col_type = cols_[index].GetType();
-    TERRIER_ASSERT(col_type == search_vec[index].Type(), "schema <-> column type mismatch");
+    if (col_type != search_vec[index].Type()) {
+      TERRIER_ASSERT(col_type == search_vec[index].Type(), "schema <-> column type mismatch");
+    }
     TERRIER_ASSERT(search_vec[index].Null() == false, "search_vec[index] is null");
     byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(index));
     if (col_p == nullptr) {

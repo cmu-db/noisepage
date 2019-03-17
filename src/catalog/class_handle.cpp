@@ -55,7 +55,7 @@ std::shared_ptr<catalog::SqlTableRW> ClassHandle::Create(transaction::Transactio
   // now actually create, with the provided schema
   pg_class->Create();
   catalog->AddToMaps(db_oid, pg_class_oid, name, pg_class);
-  catalog->AddColumnsToPGAttribute(txn, db_oid, pg_class->GetSqlTable());
+  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_class->GetSqlTable());
   return pg_class;
 }
 

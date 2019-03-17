@@ -35,6 +35,10 @@ TypeHandle DatabaseHandle::GetTypeHandle(transaction::TransactionContext *txn, d
   return TypeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_type"));
 }
 
+AttributeHandle DatabaseHandle::GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid) {
+  return AttributeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_attribute"));
+}
+
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
                                                                                 db_oid_t oid) {
   auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");

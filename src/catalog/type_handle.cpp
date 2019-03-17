@@ -30,4 +30,19 @@ std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::Tra
   return std::make_shared<TypeHandle::TypeEntry>(oid, ret_row);
 }
 
+/*
+ * Lookup a type and return the entry, e.g. "boolean"
+ */
+std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
+                                                                type::Value type) {
+  std::vector<type::Value> search_vec, ret_row;
+  for (int32_t i = 0; i < 1; i++) {
+    search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+  }
+  search_vec.push_back(type);
+  ret_row = pg_type_rw_->FindRow(txn, search_vec);
+  type_oid_t oid(ret_row[0].GetIntValue());
+  return std::make_shared<TypeHandle::TypeEntry>(oid, ret_row);
+}
+
 }  // namespace terrier::catalog

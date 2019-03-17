@@ -47,4 +47,44 @@ col_oid_t AttributeHandle::NameToOid(transaction::TransactionContext *txn, const
   throw CATALOG_EXCEPTION("column doesn't exist");
   return col_oid_t(0);
 }
+
+std::shared_ptr<catalog::SqlTableRW> AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                             db_oid_t db_oid, const std::string &name) {
+  std::shared_ptr<catalog::SqlTableRW> pg_attr;
+
+  // get an oid
+  table_oid_t pg_attr_oid(catalog->GetNextOid());
+
+  // uninitialized storage
+  pg_attr = std::make_shared<catalog::SqlTableRW>(pg_attr_oid);
+
+  // columns we use
+  for (auto col : AttributeHandle::schema_cols_) {
+    pg_attr->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
+  }
+
+  // columns we don't use
+  for (auto col : AttributeHandle::unused_schema_cols_) {
+    pg_attr->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
+  }
+  // now actually create, with the provided schema
+  pg_attr->Create();
+  catalog->AddToMaps(db_oid, pg_attr_oid, name, pg_attr);
+  // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attr->GetSqlTable());
+  return pg_attr;
+}
+
+// note that this is not identical to Postgres's column sequence
+
+const std::vector<SchemaCols> AttributeHandle::schema_cols_ = {
+  {0, "oid", type::TypeId::INTEGER},
+  {1, "attrelid", type::TypeId::INTEGER},
+  {2, "attname", type::TypeId::VARCHAR},
+  {3, "atttypid", type::TypeId::INTEGER},
+  {4, "attlen", type::TypeId::INTEGER},
+  {5, "attnum", type::TypeId::INTEGER}};
+
+  // TODO(pakhtar): add unused columns
+const std::vector<SchemaCols> AttributeHandle::unused_schema_cols_ = {};
+
 }  // namespace terrier::catalog
