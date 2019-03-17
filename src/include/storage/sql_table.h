@@ -331,14 +331,14 @@ class SqlTable {
    * @warning col_oids must be a set (no repeats)
    */
   std::pair<ProjectedColumnsInitializer, ProjectionMap> InitializerForProjectedColumns(
-      const std::vector<catalog::col_oid_t> &col_oids, const uint32_t max_tuples) const {
+      const std::vector<catalog::col_oid_t> &col_oids, const uint32_t max_tuples, layout_version_t version_num) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
-    auto col_ids = ColIdsForOids(col_oids);
+    auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedColumnsInitializer initializer(table_.layout, col_ids, max_tuples);
-    auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer);
+    ProjectedColumnsInitializer initializer(tables_[!version_num].layout, col_ids, max_tuples);
+    auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
@@ -384,8 +384,6 @@ class SqlTable {
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @return vector of col_ids for these col_oids
    */
-  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
-
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t version) const;
 
   /**
@@ -395,9 +393,6 @@ class SqlTable {
    * @param initializer the initializer to generate a map for
    * @return the projection map for this initializer
    */
-  template <class ProjectionInitializerType>
-  ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;
-
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer,
                                             layout_version_t version) const;
