@@ -694,14 +694,16 @@ template <uint8_t KeySize>
 void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> *key, ProjectedRow *pr,
                              const char *c_str) {
   if (c_str != nullptr) {
-    auto len1 = static_cast<uint32_t>(std::strlen(c_str));
+    auto len = static_cast<uint32_t>(std::strlen(c_str));
 
     VarlenEntry data{};
-    if (len1 <= VarlenEntry::InlineThreshold()) {
-      data = VarlenEntry::CreateInline(reinterpret_cast<const byte *>(c_str), len1);
+    if (len <= VarlenEntry::InlineThreshold()) {
+      data = VarlenEntry::CreateInline(reinterpret_cast<const byte *>(c_str), len);
     } else {
+      auto *c_str_dup = new byte[len];
+      std::memcpy(c_str_dup, c_str, len);
       // let the generic key own the string
-      data = VarlenEntry::Create(reinterpret_cast<byte *>(strdup(c_str)), len1, true);
+      data = VarlenEntry::Create(c_str_dup, len, true);
     }
 
     *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
