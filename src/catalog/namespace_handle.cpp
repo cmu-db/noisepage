@@ -80,10 +80,10 @@ std::shared_ptr<catalog::SqlTableRW> NamespaceHandle::Create(transaction::Transa
   return storage_table;
 }
 
-const std::vector<SchemaCols> NamespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+const std::vector<SchemaCol> NamespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
                                                                {1, "nspname", type::TypeId::VARCHAR}};
 
-const std::vector<SchemaCols> NamespaceHandle::unused_schema_cols_ = {
+const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
     {2, "nspowner", type::TypeId::INTEGER},
     {3, "nspacl", type::TypeId::VARCHAR},
 };

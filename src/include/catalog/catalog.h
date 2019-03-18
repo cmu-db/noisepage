@@ -17,7 +17,7 @@ namespace terrier::catalog {
 class DatabaseHandle;
 class TablespaceHandle;
 
-struct SchemaCols {
+struct SchemaCol {
   int32_t col_num;
   const char *col_name;
   type::TypeId type_id;
@@ -139,7 +139,7 @@ class Catalog {
    * @param vec append to this vector of values
    * @param cols vector of column types
    */
-  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCols> &cols);
+  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols);
 
   type::Value ValueTypeIdToSchemaType(type::TypeId type_id);
 
@@ -163,7 +163,7 @@ class Catalog {
    * @param cols - vector specifying the columns
    *
    */
-  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p, const std::vector<SchemaCols> &cols);
+  void AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p, const std::vector<SchemaCol> &cols);
 
   /**
    * Bootstrap all the catalog tables so that new coming transactions can
@@ -256,11 +256,11 @@ class Catalog {
    * pg_database specific items. Should be in a pg_database util class
    */
 
-  std::vector<SchemaCols> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
+  std::vector<SchemaCol> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
                                                         {3, "spcacl", type::TypeId::VARCHAR},
                                                         {4, "spcoptions", type::TypeId::VARCHAR}};
 
-  std::vector<SchemaCols> pg_type_unused_cols = {
+  std::vector<SchemaCol> pg_type_unused_cols = {
       {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
       {7, "typcatagory", type::TypeId::VARCHAR},   {8, "typispreferred", type::TypeId::BOOLEAN},
       {9, "typisdefined", type::TypeId::BOOLEAN},  {10, "typdelim", type::TypeId::VARCHAR},
@@ -275,8 +275,6 @@ class Catalog {
       {27, "typcollation", type::TypeId::INTEGER}, {28, "typdefaultbin", type::TypeId::VARCHAR},
       {29, "typdefault", type::TypeId::VARCHAR},   {30, "typacl", type::TypeId::VARCHAR},
   };
-  // TODO(yeshengm): unused column for pg_class. Not implemented now due to __ptr in our pg_class,
-  //                 which breaks the numbering of columns as in postgres.
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;

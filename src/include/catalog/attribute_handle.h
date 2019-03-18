@@ -13,7 +13,7 @@
 namespace terrier::catalog {
 
 class Catalog;
-struct SchemaCols;
+struct SchemaCol;
 
 /**
  * A attribute handle contains information about all the attributes in a table. It is used to
@@ -116,8 +116,8 @@ class AttributeHandle {
   void Dump(transaction::TransactionContext *txn) { pg_attribute_hrw_->Dump(txn); }
   // end Debug methods
 
-  static const std::vector<SchemaCols> schema_cols_;
-  static const std::vector<SchemaCols> unused_schema_cols_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   // Catalog *catalog_;

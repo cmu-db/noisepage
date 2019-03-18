@@ -45,11 +45,11 @@ std::shared_ptr<catalog::SqlTableRW> AttrDefHandle::Create(transaction::Transact
   return pg_attrdef;
 }
 
-const std::vector<SchemaCols> AttrDefHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
                                                              {1, "adrelid", type::TypeId::INTEGER},
                                                              {2, "adnum", type::TypeId::INTEGER},
                                                              {3, "adbin", type::TypeId::VARCHAR}};
 
-const std::vector<SchemaCols> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
+const std::vector<SchemaCol> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
 
 }  // namespace terrier::catalog

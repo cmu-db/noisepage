@@ -19,7 +19,7 @@ class Catalog;
 class AttributeHandle;
 class NamespaceHandle;
 class TypeHandle;
-struct SchemaCols;
+struct SchemaCol;
 
 /**
  * A DatabaseHandle provides access to the (global) system pg_database
@@ -137,8 +137,8 @@ class DatabaseHandle {
   void Dump(transaction::TransactionContext *txn) { pg_database_rw_->Dump(txn); }
   // end Debug methods
 
-  static const std::vector<SchemaCols> schema_cols_;
-  static const std::vector<SchemaCols> unused_schema_cols_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
