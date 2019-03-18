@@ -14,8 +14,7 @@ RUN apt-get -y update && \
       doxygen \
       git \
       g++-7 \
-      libboost-filesystem-dev \
       libjemalloc-dev \
       libtbb-dev \
-      libz-dev \
+      zlib1g-dev \
       llvm-6.0
