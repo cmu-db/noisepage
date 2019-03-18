@@ -148,6 +148,7 @@ class SqlTable {
     // 1. Get the old ProjectedRow
     auto old_dt_version = tables_[!old_version_num];
     // 1.a) Get the col oids
+    // TODO(yangjuns): we can only read the columns that exist in the new projection
     std::vector<catalog::col_oid_t> col_oids;
     for (auto &it : old_dt_version.column_map) {
       col_oids.emplace_back(it.first);
@@ -165,8 +166,8 @@ class SqlTable {
     }
 
     // 3. Copy values over and populate the new ProjectedRow
-    TupleAccessStrategy old_tas = old_dt_version.data_table->GetTupleAccessStrategy();
-    StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_tas, out_buffer, pr_map);
+    StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_dt_version.layout, out_buffer,
+                                              pr_map);
 
     // TODO(yangjuns): fill in default values for newly added attributes
     delete[] read_buffer;
@@ -220,6 +221,8 @@ class SqlTable {
     storage::TupleSlot ret_slot;
     if (is_subset) {
       // we can update in place
+      // TODO(yangjuns): Alternatively, we can create a buffer of old Projected Row and update in place, but this is
+      // potentially slower
       for (auto col_oid : redo_col_oids) {
         STORAGE_LOG_INFO("updating column in place {} ", !col_oid);
         // get the data bytes
@@ -365,8 +368,7 @@ class SqlTable {
         // out_buffer
         ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
         ProjectedColumns::RowView to = out_buffer->InterpretAsRow(tables_[!version_num].layout, total_filled);
-        StorageUtil::CopyProjectionIntoProjection(from, pair.second, dt_ver.data_table->GetTupleAccessStrategy(), &to,
-                                                  pr_map);
+        StorageUtil::CopyProjectionIntoProjection(from, pair.second, dt_ver.layout, &to, pr_map);
         filled++;
         total_filled++;
       }
@@ -415,7 +417,7 @@ class SqlTable {
         layout_and_map.second};
     tables_.emplace_back(new_dt_version);
     STORAGE_LOG_INFO("# of versions: {}", tables_.size());
-    // TODO(yangjuns): update catalog?
+    // TODO(yangjuns): update catalog
   }
 
   /**

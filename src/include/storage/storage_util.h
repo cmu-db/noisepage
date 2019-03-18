@@ -84,8 +84,7 @@ class StorageUtil {
    */
   template <class RowType1, class RowType2>
   static void CopyProjectionIntoProjection(const RowType1 &from, const ProjectionMap &from_map,
-                                           const TupleAccessStrategy &from_tas, RowType2 *to,
-                                           const ProjectionMap &to_map);
+                                           const BlockLayout &from_tas, RowType2 *to, const ProjectionMap &to_map);
   /**
    * Applies delta into the given buffer.
    *
