@@ -261,7 +261,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
 # LLVM 6.0+
-find_package(LLVM REQUIRED CONFIG)
+find_package(LLVM 6.0 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 if (${LLVM_PACKAGE_VERSION} VERSION_LESS "6.0")
   message(FATAL_ERROR "LLVM 6.0 or newer is required.")
