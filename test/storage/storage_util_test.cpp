@@ -82,7 +82,7 @@ TEST_F(StorageUtilTests, CopyToTupleSlot) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(common::Constants::MAX_COL, &generator_);
     storage::TupleAccessStrategy tested(layout);
-    std::memset(raw_block_, 0, sizeof(storage::RawBlock));
+    std::memset(reinterpret_cast<void *>(raw_block_), 0, sizeof(storage::RawBlock));
     tested.InitializeRawBlock(raw_block_, storage::layout_version_t(0));
 
     storage::TupleSlot slot;
@@ -130,7 +130,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // store the values as a reference
     auto *copy_bufffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *copy = reinterpret_cast<storage::ProjectedRow *>(copy_bufffer);
-    std::memcpy(copy, old, initializer.ProjectedRowSize());
+    std::memcpy(reinterpret_cast<void *>(copy), old, initializer.ProjectedRowSize());
 
     // the delta change to apply
     std::vector<storage::col_id_t> rand_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, &generator_);
