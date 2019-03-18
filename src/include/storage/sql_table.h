@@ -404,7 +404,7 @@ class SqlTable {
   }
 
   /**
-   * Change the schema of the SqlTable
+   * Change the schema of the SqlTable. Only one transaction is allowed to change schema at a time.
    *
    * Note:
    *    1. tables_ is a vector of DataTableVersions which grows infinitely

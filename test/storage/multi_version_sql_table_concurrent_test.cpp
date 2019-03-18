@@ -84,4 +84,39 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsert) {
     }
   }
 }
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableConcurrentTests, ConcurrentChangeSchema) {
+  const uint32_t num_iterations = 5;
+  const uint32_t num_changes = 1000;
+  const uint16_t max_columns = 20;
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool(num_threads, {});
+
+  for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
+    LOG_INFO("iteration {}", iteration);
+    catalog::Schema schema = CatalogTestUtil::RandomSchemaNoVarchar(max_columns, &generator_);
+    storage::SqlTable test(&block_store_, schema, catalog::table_oid_t(12345));
+    std::vector<transaction::TransactionContext *> txns;
+
+    for (uint32_t thread = 0; thread < num_threads; thread++) {
+      txns.emplace_back(txn_manager_.BeginTransaction());
+    }
+
+    // generate workload
+    auto workload = [&](uint32_t id) {
+      // Get random schema
+      for (uint32_t i = 0; i < num_changes / num_threads; i++) {
+        catalog::Schema schema = CatalogTestUtil::RandomSchemaNoVarchar(max_columns, &generator_);
+        test.ChangeSchema(txns[id], schema);
+      }
+      txn_manager_.Commit(txns[id], TestCallbacks::EmptyCallback, nullptr);
+    };
+
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+
+    // clean up memoery
+    for (auto txn : txns) delete txn;
+  }
+}
 }  // namespace terrier
