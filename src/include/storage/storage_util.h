@@ -78,13 +78,13 @@ class StorageUtil {
    * @tparam RowType2 ProjectedRow or ProjectedColumns::RowView
    * @param from the source row
    * @param from_map the source ProjectionMap
-   * @param from_tas the source TupleAccessStrategy
+   * @param layout the block layout of the source row
    * @param to the destination row
    * @param to_map the destination ProjectionMap
    */
   template <class RowType1, class RowType2>
   static void CopyProjectionIntoProjection(const RowType1 &from, const ProjectionMap &from_map,
-                                           const BlockLayout &from_tas, RowType2 *to, const ProjectionMap &to_map);
+                                           const BlockLayout &layout, RowType2 *to, const ProjectionMap &to_map);
   /**
    * Applies delta into the given buffer.
    *
