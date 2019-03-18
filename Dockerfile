@@ -16,5 +16,5 @@ RUN apt-get -y update && \
       g++-7 \
       libjemalloc-dev \
       libtbb-dev \
-      libz-dev \
+      zlib1g-dev \
       llvm-6.0
