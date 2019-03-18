@@ -83,7 +83,7 @@ bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std
 }
 
 const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                              {1, "datname", type::TypeId::VARCHAR}};
+                                                             {1, "datname", type::TypeId::VARCHAR}};
 
 const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
     {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},

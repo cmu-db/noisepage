@@ -14,7 +14,7 @@
 
 namespace terrier::catalog {
 
-//class AttributeHandle;
+// class AttributeHandle;
 class DatabaseHandle;
 class TablespaceHandle;
 
@@ -65,7 +65,8 @@ class Catalog {
    */
   void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
 
-  void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name, catalog::Schema schema);
+  void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                   catalog::Schema schema);
 
   /**
    * Lookup a database oid and return a database handle.
@@ -255,24 +256,8 @@ class Catalog {
    */
 
   std::vector<SchemaCol> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                        {3, "spcacl", type::TypeId::VARCHAR},
-                                                        {4, "spcoptions", type::TypeId::VARCHAR}};
-
-  std::vector<SchemaCol> pg_type_unused_cols = {
-      {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
-      {7, "typcatagory", type::TypeId::VARCHAR},   {8, "typispreferred", type::TypeId::BOOLEAN},
-      {9, "typisdefined", type::TypeId::BOOLEAN},  {10, "typdelim", type::TypeId::VARCHAR},
-      {11, "typrelid", type::TypeId::INTEGER},     {12, "typelem", type::TypeId::INTEGER},
-      {13, "typarray", type::TypeId::INTEGER},     {14, "typinput", type::TypeId::INTEGER},
-      {15, "typoutput", type::TypeId::INTEGER},    {16, "typreceive", type::TypeId::INTEGER},
-      {17, "typsend", type::TypeId::INTEGER},      {18, "typmodin", type::TypeId::INTEGER},
-      {19, "typmodout", type::TypeId::INTEGER},    {20, "typanalyze", type::TypeId::INTEGER},
-      {21, "typalign", type::TypeId::VARCHAR},     {22, "typstorage", type::TypeId::VARCHAR},
-      {23, "typnotnull", type::TypeId::BOOLEAN},   {24, "typbasetype", type::TypeId::INTEGER},
-      {25, "typtypmod", type::TypeId::INTEGER},    {26, "typndims", type::TypeId::INTEGER},
-      {27, "typcollation", type::TypeId::INTEGER}, {28, "typdefaultbin", type::TypeId::VARCHAR},
-      {29, "typdefault", type::TypeId::VARCHAR},   {30, "typacl", type::TypeId::VARCHAR},
-  };
+                                                       {3, "spcacl", type::TypeId::VARCHAR},
+                                                       {4, "spcoptions", type::TypeId::VARCHAR}};
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;

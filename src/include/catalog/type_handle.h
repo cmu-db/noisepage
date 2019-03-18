@@ -64,6 +64,12 @@ class TypeHandle {
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid);
 
   /**
+   * Add a type entry into pg_type handle.
+   */
+  void AddEntry(transaction::TransactionContext *txn, type_oid_t oid, const std::string &typname,
+                namespace_oid_t typnamespace, int32_t typlen, const std::string &typtype);
+
+  /**
    * Get a type entry from pg_type handle
    *
    * @param txn the transaction to run
@@ -72,13 +78,20 @@ class TypeHandle {
    */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
-  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn,
-                                                                  type::Value type);
+  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::Value &type);
+  /**
+   * Create storage table
+   */
+  static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
+                                                     db_oid_t db_oid, const std::string &name);
 
   /**
    * Debug methods
    */
   void Dump(transaction::TransactionContext *txn) { pg_type_rw_->Dump(txn); }
+
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols;
 
   // TODO(yeshengm): we have to add support for UDF in the future
  private:

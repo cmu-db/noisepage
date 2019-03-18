@@ -43,7 +43,8 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
   name_map_.erase(oid);
 }
 
-void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name, catalog::Schema schema) {
+void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                          catalog::Schema schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 
@@ -108,12 +109,12 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
 
     // pg_type.oid
     // get a type handle
-      auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
-      auto s_type = ValueTypeIdToSchemaType(c.GetType());
-      auto type_entry = type_handle.GetTypeEntry(txn, s_type);
+    auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
+    auto s_type = ValueTypeIdToSchemaType(c.GetType());
+    auto type_entry = type_handle.GetTypeEntry(txn, s_type);
 
-      row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
-//     row.emplace_back(type::ValueFactory::GetIntegerValue(0));
+    row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
+    //     row.emplace_back(type::ValueFactory::GetIntegerValue(0));
 
     // length of column type. Varlen columns have the sign bit set.
     // TODO(pakhtar): resolve what to store for varlens.
@@ -221,7 +222,6 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 }
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
 
   // Insert columns of global catalogs
@@ -303,128 +303,33 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 }
 
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  table_oid_t pg_type_oid(GetNextOid());
-  std::shared_ptr<catalog::SqlTableRW> pg_type;
-  pg_type = std::make_shared<catalog::SqlTableRW>(pg_type_oid);
+  std::shared_ptr<SqlTableRW> pg_type = TypeHandle::Create(txn, this, db_oid, "pg_type");
 
-  // define pg_type schema
-  pg_type->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  pg_type->DefineColumn("typname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
-  pg_type->DefineColumn("typnamespace", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  pg_type->DefineColumn("typlen", type::TypeId::SMALLINT, false, col_oid_t(GetNextOid()));
-  pg_type->DefineColumn("typtype", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
-  AddUnusedSchemaColumns(pg_type, pg_type_unused_cols);
-  pg_type->Create();
-
-  // add to the catalog map
-  map_[db_oid][pg_type_oid] = pg_type;
-  name_map_[db_oid]["pg_type"] = pg_type_oid;
-
-  CATALOG_LOG_TRACE("Inserting built-in types to pg_type ...", !pg_type_oid);
   std::vector<type::Value> row;
+  // TODO(Yesheng): get rid of this strange calling chain
+  auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
   auto catalog_ns_oid =
       GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
-  type_oid_t oid;
 
-  // TODO(yeshengm): separate the generation of built-in types to another method
-  // insert boolean type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("boolean"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::BOOLEAN)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert tinyint type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("tinyint"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::TINYINT)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert smallint type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("smallint"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert integer type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("integer"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::INTEGER)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert date type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("date"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::DATE)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert bigint type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("bigint"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::BIGINT)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert decimal type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("decimal"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert timestamp type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("timestamp"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(type::TypeUtil::GetTypeSize(type::TypeId::TIMESTAMP)));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
-
-  // insert varchar type
-  oid = type_oid_t(GetNextOid());
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("varchar"));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!catalog_ns_oid));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(-1));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("b"));
-  SetUnusedColumns(&row, pg_type_unused_cols);
-  pg_type->InsertRow(txn, row);
+  // TODO(Yesheng): port over to TransientValue
+  // built-in types as in type/type_id.h
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::BOOLEAN), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "tinyint", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::TINYINT), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "smallint", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "integer", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::INTEGER), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "date", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::DATE), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "bigint", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::BIGINT), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "decimal", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "timestamp", catalog_ns_oid,
+                          type::TypeUtil::GetTypeSize(type::TypeId::TIMESTAMP), "b");
+  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "varchar", catalog_ns_oid, -1, "b");
 }
 
 void Catalog::DestroyDB(db_oid_t oid) {
@@ -508,31 +413,31 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
 type::Value Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN:
-      return  type::ValueFactory::GetVarcharValue("boolean");
+      return type::ValueFactory::GetVarcharValue("boolean");
 
     case type::TypeId::TINYINT:
-      return  type::ValueFactory::GetVarcharValue("tinyint");
+      return type::ValueFactory::GetVarcharValue("tinyint");
 
     case type::TypeId::SMALLINT:
-      return  type::ValueFactory::GetVarcharValue("smallint");
+      return type::ValueFactory::GetVarcharValue("smallint");
 
     case type::TypeId::INTEGER:
-      return  type::ValueFactory::GetVarcharValue("integer");
+      return type::ValueFactory::GetVarcharValue("integer");
 
     case type::TypeId::BIGINT:
-      return  type::ValueFactory::GetVarcharValue("bigint");
+      return type::ValueFactory::GetVarcharValue("bigint");
 
     case type::TypeId::DATE:
-      return  type::ValueFactory::GetVarcharValue("date");
+      return type::ValueFactory::GetVarcharValue("date");
 
     case type::TypeId::DECIMAL:
-      return  type::ValueFactory::GetVarcharValue("decimal");
+      return type::ValueFactory::GetVarcharValue("decimal");
 
     case type::TypeId::TIMESTAMP:
-      return  type::ValueFactory::GetVarcharValue("timestamp");
+      return type::ValueFactory::GetVarcharValue("timestamp");
 
     case type::TypeId::VARCHAR:
-      return  type::ValueFactory::GetVarcharValue("varchar");
+      return type::ValueFactory::GetVarcharValue("varchar");
 
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");
