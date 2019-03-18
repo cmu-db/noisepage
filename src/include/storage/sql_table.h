@@ -109,8 +109,6 @@ class SqlTable {
   SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
       : block_store_(store), oid_(oid), schema_version_(0) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
-              layout_and_map.second};
 
     DataTableVersion first_table = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)),
                                     layout_and_map.first, layout_and_map.second};
@@ -121,7 +119,6 @@ class SqlTable {
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() {
-    delete table_.data_table;
     for (auto &t : tables_) delete t.data_table;
   }
 
@@ -485,9 +482,6 @@ class SqlTable {
   BlockStore *const block_store_;
   const catalog::table_oid_t oid_;
   std::atomic<uint32_t> schema_version_;
-
-  // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
-  DataTableVersion table_;
 
   mutable common::SpinLatch tables_latch_;
   std::vector<DataTableVersion> tables_;
