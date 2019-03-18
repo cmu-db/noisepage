@@ -474,7 +474,6 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    STORAGE_LOG_INFO("version _num: {}", !version_num);
     ProjectedRowInitializer initializer(tables_[!version_num].layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
