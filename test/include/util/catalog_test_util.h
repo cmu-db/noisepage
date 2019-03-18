@@ -99,5 +99,33 @@ struct CatalogTestUtil {
       StorageTestUtil::FillWithRandomBytes(size, addr, generator);
     }
   }
+
+  // Check if two rows have the same content. It assumes they have the same ProjectionMap.
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqual(const catalog::Schema &schema, const RowType1 *const one, const RowType2 *const other,
+                                  const storage::ProjectionMap &map) {
+    if (one->NumColumns() != other->NumColumns()) return false;
+    for (auto &it : map) {
+      catalog::col_oid_t col_oid = it.first;
+      uint8_t attr_size = 0;
+      for (auto &col : schema.GetColumns()) {
+        if (col.GetOid() == col_oid) {
+          attr_size = col.GetAttrSize();
+          break;
+        }
+      }
+
+      const byte *one_content = one->AccessWithNullCheck(it.second);
+      const byte *other_content = other->AccessWithNullCheck(it.second);
+      // Either both are null or neither is null.
+      if (one_content == nullptr || other_content == nullptr) {
+        if (one_content == other_content) continue;
+        return false;
+      }
+      // Otherwise, they should be bit-wise identical.
+      if (memcmp(one_content, other_content, attr_size) != 0) return false;
+    }
+    return true;
+  }
 };
 }  // namespace terrier

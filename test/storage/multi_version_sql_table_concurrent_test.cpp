@@ -2,6 +2,7 @@
 #include <cstring>
 #include <random>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "storage/sql_table.h"
@@ -37,28 +38,49 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsert) {
     catalog::Schema schema = CatalogTestUtil::RandomSchemaNoVarchar(max_columns, &generator_);
     storage::SqlTable test(&block_store_, schema, catalog::table_oid_t(12345));
     std::vector<transaction::TransactionContext *> txns;
+    std::vector<std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>> reference(num_threads);
     for (uint32_t thread = 0; thread < num_threads; thread++) {
       txns.emplace_back(txn_manager_.BeginTransaction());
     }
 
+    // get version number
+    storage::layout_version_t version(0);
+
+    // get all columns
+    std::vector<catalog::col_oid_t> all_col_oids;
+    for (auto &col : schema.GetColumns()) all_col_oids.emplace_back(col.GetOid());
+
     // generate workload
     auto workload = [&](uint32_t id) {
-      // get version number
-      storage::layout_version_t version(0);
-      // Generate random tuples
+      // Insert Random Tuples
       for (uint32_t i = 0; i < num_inserts / num_threads; i++) {
         storage::ProjectedRow *pr = CatalogTestUtil::RandomInsertRow(&test, schema, version, &generator_);
         // Insert tuples
-        test.Insert(txns[id], *pr, version);
-        // release memory
-        delete[] reinterpret_cast<byte *>(pr);
+        storage::TupleSlot slot = test.Insert(txns[id], *pr, version);
+        reference[id][slot] = pr;
       }
+      EXPECT_EQ(reference[id].size(), num_inserts / num_threads);
+      // Read tuples
+      auto pr_pair = test.InitializerForProjectedRow(all_col_oids, version);
+      auto *select_buffer = common::AllocationUtil::AllocateAligned(pr_pair.first.ProjectedRowSize());
+      storage::ProjectedRow *pr = pr_pair.first.InitializeRow(select_buffer);
+      EXPECT_NE(pr, nullptr);
+      for (auto &it : reference[id]) {
+        EXPECT_TRUE(test.Select(txns[id], it.first, pr, pr_pair.second, version));
+        EXPECT_TRUE(CatalogTestUtil::ProjectionListEqual(schema, pr, it.second, pr_pair.second));
+      }
+      delete[] select_buffer;
       txn_manager_.Commit(txns[id], TestCallbacks::EmptyCallback, nullptr);
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (auto txn : txns) {
-      delete txn;
+
+    // clean up memoery
+    for (auto txn : txns) delete txn;
+    for (auto &map : reference) {
+      for (auto &p : map) {
+        delete[] reinterpret_cast<byte *>(p.second);
+      }
     }
   }
 }
