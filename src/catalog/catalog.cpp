@@ -209,23 +209,16 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 
   // add columnn information into pg_attribute, for the catalog tables just created
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_attribute"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_namespace"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_class"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_type"]]->GetSqlTable());
-  AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_attrdef"]]->GetSqlTable());
+  std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
+                                       "pg_class",    "pg_type",       "pg_attrdef"};
+  auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
+    AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
+  };
+  std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
 }
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
-
-  // Insert columns of global catalogs
-  // PA: this is probably the wrong place. If we want to use this function for any database,
-  // we want to add the global table columns only once.
-  // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_database"]]->GetSqlTable());
-  // AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid]["pg_tablespace"]]->GetSqlTable());
 }
 
 void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {

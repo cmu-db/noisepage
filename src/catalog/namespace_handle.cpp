@@ -81,7 +81,7 @@ std::shared_ptr<catalog::SqlTableRW> NamespaceHandle::Create(transaction::Transa
 }
 
 const std::vector<SchemaCol> NamespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                               {1, "nspname", type::TypeId::VARCHAR}};
+                                                              {1, "nspname", type::TypeId::VARCHAR}};
 
 const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
     {2, "nspowner", type::TypeId::INTEGER},

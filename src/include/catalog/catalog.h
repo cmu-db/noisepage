@@ -257,8 +257,8 @@ class Catalog {
    */
 
   std::vector<SchemaCol> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                        {3, "spcacl", type::TypeId::VARCHAR},
-                                                        {4, "spcoptions", type::TypeId::VARCHAR}};
+                                                       {3, "spcacl", type::TypeId::VARCHAR},
+                                                       {4, "spcoptions", type::TypeId::VARCHAR}};
 
   std::vector<SchemaCol> pg_type_unused_cols = {
       {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
