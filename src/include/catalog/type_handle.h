@@ -72,8 +72,7 @@ class TypeHandle {
    */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
-  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn,
-                                                                  type::Value type);
+  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::Value &type);
 
   /**
    * Debug methods

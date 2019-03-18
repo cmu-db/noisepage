@@ -43,7 +43,8 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
   name_map_.erase(oid);
 }
 
-void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name, catalog::Schema schema) {
+void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                          const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 
@@ -107,13 +108,10 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     row.emplace_back(type::ValueFactory::GetVarcharValue(c.GetName().c_str()));
 
     // pg_type.oid
-    // get a type handle
-      auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
-      auto s_type = ValueTypeIdToSchemaType(c.GetType());
-      auto type_entry = type_handle.GetTypeEntry(txn, s_type);
-
-      row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
-//     row.emplace_back(type::ValueFactory::GetIntegerValue(0));
+    auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
+    auto s_type = ValueTypeIdToSchemaType(c.GetType());
+    auto type_entry = type_handle.GetTypeEntry(txn, s_type);
+    row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
 
     // length of column type. Varlen columns have the sign bit set.
     // TODO(pakhtar): resolve what to store for varlens.
@@ -221,7 +219,6 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 }
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
 
   // Insert columns of global catalogs
@@ -508,31 +505,31 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
 type::Value Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN:
-      return  type::ValueFactory::GetVarcharValue("boolean");
+      return type::ValueFactory::GetVarcharValue("boolean");
 
     case type::TypeId::TINYINT:
-      return  type::ValueFactory::GetVarcharValue("tinyint");
+      return type::ValueFactory::GetVarcharValue("tinyint");
 
     case type::TypeId::SMALLINT:
-      return  type::ValueFactory::GetVarcharValue("smallint");
+      return type::ValueFactory::GetVarcharValue("smallint");
 
     case type::TypeId::INTEGER:
-      return  type::ValueFactory::GetVarcharValue("integer");
+      return type::ValueFactory::GetVarcharValue("integer");
 
     case type::TypeId::BIGINT:
-      return  type::ValueFactory::GetVarcharValue("bigint");
+      return type::ValueFactory::GetVarcharValue("bigint");
 
     case type::TypeId::DATE:
-      return  type::ValueFactory::GetVarcharValue("date");
+      return type::ValueFactory::GetVarcharValue("date");
 
     case type::TypeId::DECIMAL:
-      return  type::ValueFactory::GetVarcharValue("decimal");
+      return type::ValueFactory::GetVarcharValue("decimal");
 
     case type::TypeId::TIMESTAMP:
-      return  type::ValueFactory::GetVarcharValue("timestamp");
+      return type::ValueFactory::GetVarcharValue("timestamp");
 
     case type::TypeId::VARCHAR:
-      return  type::ValueFactory::GetVarcharValue("varchar");
+      return type::ValueFactory::GetVarcharValue("varchar");
 
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");

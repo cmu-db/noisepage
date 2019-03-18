@@ -34,7 +34,7 @@ std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::Tra
  * Lookup a type and return the entry, e.g. "boolean"
  */
 std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
-                                                                type::Value type) {
+                                                                const type::Value &type) {
   std::vector<type::Value> search_vec, ret_row;
   for (int32_t i = 0; i < 1; i++) {
     search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));

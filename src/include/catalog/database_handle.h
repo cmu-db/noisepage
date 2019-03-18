@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
 #include "catalog/attribute_handle.h"
+#include "catalog/catalog.h"
 #include "catalog/class_handle.h"
 #include "catalog/namespace_handle.h"
 #include "catalog/type_handle.h"
