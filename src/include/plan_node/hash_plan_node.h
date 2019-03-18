@@ -17,8 +17,8 @@ class HashPlanNode : public AbstractPlanNode {
   using HashKeyType = const parser::AbstractExpression;
   using HashKeyPtrType = std::shared_ptr<HashKeyType>;
 
-  HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hashkeys)
-      : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hashkeys)) {}
+  HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hash_keys)
+      : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
@@ -27,10 +27,15 @@ class HashPlanNode : public AbstractPlanNode {
   const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    // TODO(Gus,Wen) The base class AbstractExpression does not have a copy function
-    // Need to implement copy mechanism
-    std::unique_ptr<AbstractPlanNode> dummy;
-    return dummy;
+    // Copy Hash keys
+    std::vector<HashKeyPtrType> hash_keys;
+
+    for (auto &key : GetHashKeys()) {
+      hash_keys.push_back(key->Copy());
+    }
+
+    HashPlanNode *new_plan = new HashPlanNode(GetOutputSchema()->Copy(), hash_keys);
+    return std::unique_ptr<AbstractPlanNode>(new_plan);
   }
 
   common::hash_t Hash() const override;

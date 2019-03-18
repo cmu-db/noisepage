@@ -11,7 +11,7 @@ std::unique_ptr<AbstractPlanNode> AggregatePlanNode::Copy() const {
   }
 
   AggregatePlanNode *new_plan = new AggregatePlanNode(
-      GetOutputSchema(), std::unique_ptr<const parser::AbstractExpression>(having_clause_predicate_->Copy()),
+      GetOutputSchema()->Copy(), std::unique_ptr<const parser::AbstractExpression>(having_clause_predicate_->Copy()),
       copied_aggregate_terms, GetAggregateStrategy());
   return std::unique_ptr<AbstractPlanNode>(new_plan);
 }
@@ -40,8 +40,6 @@ common::hash_t AggregatePlanNode::Hash() const {
   }
 
   hash = common::HashUtil::CombineHashes(hash, HashAggregateTerms(GetAggregateTerms()));
-
-  // TODO(Gus, Wen): Hash output_schema as well
 
   auto agg_strategy = GetAggregateStrategy();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_strategy));
@@ -79,8 +77,6 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AreEqual(GetAggregateTerms(), other.GetAggregateTerms())) return false;
 
   if (GetAggregateStrategy() != other.GetAggregateStrategy()) return false;
-
-  if (*GetOutputSchema() != *other.GetOutputSchema()) return false;
 
   return (AbstractPlanNode::operator==(rhs));
 }

@@ -27,8 +27,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    auto *new_plan = new SeqScanPlanNode(GetOutputSchema(), GetPredicate()->Copy().get(), GetTableOid(), IsForUpdate(),
-                                         IsParallel());
+    auto *new_plan = new SeqScanPlanNode(GetOutputSchema()->Copy(), GetPredicate()->Copy().get(), GetTableOid(),
+                                         IsForUpdate(), IsParallel());
     return std::unique_ptr<AbstractPlanNode>(new_plan);
   }
 

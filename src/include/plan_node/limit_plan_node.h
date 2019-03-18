@@ -30,7 +30,7 @@ class LimitPlanNode : public AbstractPlanNode {
   size_t GetOffset() { return offset_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new LimitPlanNode(GetOutputSchema(), limit_, offset_));
+    return std::unique_ptr<AbstractPlanNode>(new LimitPlanNode(GetOutputSchema()->Copy(), limit_, offset_));
   }
 
   common::hash_t Hash() const override;

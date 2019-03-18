@@ -39,8 +39,8 @@ std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
   switch (plan_type) {
     case PlanNodeType::LIMIT: {
       // Not sure if this is the best way to do this
-      // plan_node = std::make_unique<LimitPlanNode>(new LimitPlanNode());
-      // plan_node->FromJson(json);
+       plan_node = std::make_unique<LimitPlanNode>();
+       plan_node->FromJson(json);
       break;
     }
 

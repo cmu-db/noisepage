@@ -20,8 +20,8 @@ std::unique_ptr<AbstractPlanNode> HashJoinPlanNode::Copy() const {
   }
 
   // Create plan copy
-  auto *new_plan = new HashJoinPlanNode(GetOutputSchema(), GetLogicalJoinType(), predicate_copy, left_hash_keys_copy,
-                                        right_hash_keys_copy, IsBloomFilterEnabled());
+  auto *new_plan = new HashJoinPlanNode(GetOutputSchema()->Copy(), GetLogicalJoinType(), predicate_copy,
+                                        left_hash_keys_copy, right_hash_keys_copy, IsBloomFilterEnabled());
   return std::unique_ptr<AbstractPlanNode>(new_plan);
 }
 
@@ -48,8 +48,6 @@ common::hash_t HashJoinPlanNode::Hash() const {
   // Hash bloom filter enabled
   auto build_bloomfilter = IsBloomFilterEnabled();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&build_bloomfilter));
-
-  // TODO(Gus,Wen): hash output schema
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }

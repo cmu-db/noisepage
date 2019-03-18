@@ -32,8 +32,8 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
   HybridScanType GetHybridScanType() const { return hybrid_scan_type_; }
 
   std::unique_ptr<AbstractPlanNode> Copy() const override {
-    HybridScanPlanNode *new_plan =
-        new HybridScanPlanNode(GetOutputSchema(), GetIndexOid(), GetPredicate()->Copy().get(), GetHybridScanType());
+    HybridScanPlanNode *new_plan = new HybridScanPlanNode(GetOutputSchema()->Copy(), GetIndexOid(),
+                                                          GetPredicate()->Copy().get(), GetHybridScanType());
     return std::unique_ptr<AbstractPlanNode>(new_plan);
   }
 

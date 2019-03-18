@@ -12,8 +12,6 @@ common::hash_t HybridScanPlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
   }
 
-  // TODO(Gus,Wen): Hash output_schema
-
   // Hash is_for_update
   auto is_for_update = IsForUpdate();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_for_update));
