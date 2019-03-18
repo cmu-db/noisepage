@@ -221,27 +221,22 @@ class SqlTable {
     storage::TupleSlot ret_slot;
     if (is_subset) {
       // we can update in place
-      // TODO(yangjuns): Alternatively, we can create a buffer of old Projected Row and update in place, but this is
-      // potentially slower
-      for (auto col_oid : redo_col_oids) {
-        STORAGE_LOG_INFO("updating column in place {} ", !col_oid);
-        // get the data bytes
-        const byte *value = redo.AccessWithNullCheck(old_pair.second.at(col_oid));
 
-        // get the size of the attribute
-        col_id_t col_id = tables_[!old_version].column_map.at(col_oid);
-        uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(col_id);
+      // We should create a buffer of old Projected Row and update in place. We can't just
+      // directly erase the data without creating a redo and update the chain.
 
-        // get the address where we copy into
-        if (value == nullptr) {
-          old_tas.SetNull(slot, col_id);
-        }
-        byte *to = old_tas.AccessForceNotNull(slot, col_id);
+      // 1. Create a ProjectedRow Buffer for the old version
+      byte *buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
+      storage::ProjectedRow *pr = old_pair.first.InitializeRow(buffer);
 
-        // Copy things over
-        std::memcpy(to, value, attr_size);
-      }
-      ret_slot = slot;
+      // 2. Copy from new ProjectedRow to old ProjectedRow
+      StorageUtil::CopyProjectionIntoProjection(redo, map, tables_[!version_num].layout, pr, old_pair.second);
+
+      // 3. Update the old data-table
+      auto result = Update(txn, slot, *pr, old_pair.second, old_version);
+
+      delete[] buffer;
+      ret_slot = result.second;
     } else {
       STORAGE_LOG_INFO("have to insert and delete ... ");
 
