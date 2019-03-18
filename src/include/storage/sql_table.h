@@ -179,12 +179,14 @@ class SqlTable {
    * @param txn txn the calling transaction
    * @param slot the slot of the tuple to update.
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param map the ProjectionMap of the ProjectedRow
    * @param version_num the schema version which the transaction sees
    * @return true if successful, false otherwise; If the update changed the location of the TupleSlot, a new TupleSlot
    * is returned. Otherwise, the same TupleSlot is returned.
    */
   std::pair<bool, storage::TupleSlot> Update(transaction::TransactionContext *const txn, const TupleSlot slot,
-                                             const ProjectedRow &redo, layout_version_t version_num) {
+                                             const ProjectedRow &redo, const ProjectionMap &map,
+                                             layout_version_t version_num) {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
     STORAGE_LOG_INFO("Update slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
@@ -199,24 +201,15 @@ class SqlTable {
     // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
     bool is_subset = true;
     std::vector<catalog::col_oid_t> redo_col_oids;  // the set of col oids the redo touches
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-      col_id_t col_id = redo.ColumnIds()[i];
-      catalog::col_oid_t col_oid(0);
-      // get the col oid for this col id
-      for (auto &it : tables_[!version_num].column_map) {
-        if (it.second == col_id) {
-          col_oid = it.first;
-          break;
-        }
-      }
-      redo_col_oids.emplace_back(col_oid);
-      TERRIER_ASSERT((!col_oid) != 0, "The column map should always have some oid mapped to id");
+    for (auto &it : map) {
+      redo_col_oids.emplace_back(it.first);
       // check if the col_oid exists in the old schema
-      if (tables_[!old_version].column_map.count(col_oid) == 0) {
+      if (tables_[!old_version].column_map.count(it.first) == 0) {
         is_subset = false;
       }
     }
-    std::vector<catalog::col_oid_t> old_col_oids;  // the set of oids of the old schema
+
+    std::vector<catalog::col_oid_t> old_col_oids;  // the set of col oids of the old schema
     for (auto &it : tables_[!old_version].column_map) {
       old_col_oids.emplace_back(it.first);
     }
@@ -281,7 +274,7 @@ class SqlTable {
       // delete follow by an insert
       Delete(txn, slot, old_version);
       storage::TupleSlot new_slot = Insert(txn, *pr_buffer, version_num);
-      Update(txn, new_slot, redo, version_num);
+      Update(txn, new_slot, redo, new_pair.second, version_num);
       //      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
       //                     "updating the current version should return the same TupleSlot");
       delete[] buffer;
