@@ -10,7 +10,7 @@ namespace terrier::optimizer {
 
 enum class OpType {
   Undefined = 0,
-  DummyScan, /* Dummy Op for SELECT without FROM*/
+  TableFreeScan, /* Scan Op for SELECT without FROM*/
   SeqScan,
   IndexScan,
   ExternalFileScan,

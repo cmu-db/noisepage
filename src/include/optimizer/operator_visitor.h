@@ -13,7 +13,7 @@ class OperatorVisitor {
   virtual ~OperatorVisitor() = default;
 
   // Physical operator
-  virtual void Visit(const DummyScan *dummy_scan) {}
+  virtual void Visit(const TableFreeScan *table_free_scan) {}
   virtual void Visit(const SeqScan *seq_scan) {}
   virtual void Visit(const IndexScan *index_scan) {}
   virtual void Visit(const ExternalFileScan *ext_file_scan) {}

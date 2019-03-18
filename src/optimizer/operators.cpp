@@ -11,11 +11,11 @@
 namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
-// DummyScan
+// TableFreeScan
 //===--------------------------------------------------------------------===//
-Operator DummyScan::make() {
-  auto *dummy = new DummyScan;
-  return Operator(dummy);
+Operator TableFreeScan::make() {
+  auto *table_free_scan = new TableFreeScan;
+  return Operator(table_free_scan);
 }
 
 //===--------------------------------------------------------------------===//
@@ -469,7 +469,7 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-const char *OperatorNode<DummyScan>::name_ = "DummyScan";
+const char *OperatorNode<TableFreeScan>::name_ = "TableFreeScan";
 template <>
 const char *OperatorNode<SeqScan>::name_ = "SeqScan";
 template <>
@@ -519,7 +519,7 @@ const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
-OpType OperatorNode<DummyScan>::type_ = OpType::DummyScan;
+OpType OperatorNode<TableFreeScan>::type_ = OpType::TableFreeScan;
 template <>
 OpType OperatorNode<SeqScan>::type_ = OpType::SeqScan;
 template <>

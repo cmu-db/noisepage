@@ -26,9 +26,9 @@ class TableHandle;
 namespace optimizer {
 class PropertySort;
 //===--------------------------------------------------------------------===//
-// DummyScan
+// TableFreeScan
 //===--------------------------------------------------------------------===//
-class DummyScan : public OperatorNode<DummyScan> {
+class TableFreeScan : public OperatorNode<TableFreeScan> {
  public:
   static Operator make();
 };
