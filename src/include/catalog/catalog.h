@@ -14,7 +14,6 @@
 
 namespace terrier::catalog {
 
-// class AttributeHandle;
 class DatabaseHandle;
 class TablespaceHandle;
 
@@ -66,7 +65,7 @@ class Catalog {
   void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
 
   void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                   catalog::Schema schema);
+                   const Schema &schema);
 
   /**
    * Lookup a database oid and return a database handle.
@@ -112,10 +111,12 @@ class Catalog {
   /*
    * Destructor
    */
-  ~Catalog() {
-    // destroy all DB
-    // DestroyDB(DEFAULT_DATABASE_OID);
-  }
+  ~Catalog() = default;
+
+  //  ~Catalog() {
+  //    // destroy all DB
+  //    // DestroyDB(DEFAULT_DATABASE_OID);
+  //  }
 
   // methods for catalog initializations
   void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name,
