@@ -102,7 +102,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
     auto allocate = [&] {
       try {
         ptrs.push_back(tested.Get()->Use(tid));
-      } catch (common::NoMoreObjectException) {
+      } catch (common::NoMoreObjectException &) {
         // Since threads are alloc and free in random order, object pool could possibly have no object to hand out.
         // When this occurs, we just do nothing. The purpose of this test is to test object pool concurrently and
         // check correctness. We just skip and do nothing. The object pool will eventually have objects when other
