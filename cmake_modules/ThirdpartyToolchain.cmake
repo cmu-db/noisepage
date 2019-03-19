@@ -255,11 +255,6 @@ find_package(TBB REQUIRED)
 include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${TBB_LIBRARIES})
 
-# Boost filesystem
-find_package(Boost COMPONENTS filesystem REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-
 # LLVM 6.0+
 find_package(LLVM 6.0 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
