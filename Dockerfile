@@ -19,7 +19,7 @@ RUN apt-get -y update && \
       libpq-dev \
       libtbb-dev \
       zlib1g-dev \
-      llvm-6.0
+      llvm-6.0 \
       pkg-config \
       postgresql-client && \
       apt-get -y install wget && \

@@ -37,7 +37,7 @@ class NetworkIoWrapper {
    * @param out The WriteQueue this NetworkIOWrapper uses for writes
    */
   explicit NetworkIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in = std::make_shared<ReadBuffer>(),
-                                std::shared_ptr<WriteQueue> out = std::make_shared<WriteQueue>())
+                            std::shared_ptr<WriteQueue> out = std::make_shared<WriteQueue>())
       : sock_fd_(sock_fd), in_(std::move(in)), out_(std::move(out)) {
     in_->Reset();
     out_->Reset();
