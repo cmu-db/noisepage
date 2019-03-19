@@ -346,17 +346,18 @@ class SqlTable {
     layout_version_t start_version = start_pos->operator*().GetBlock()->layout_version_;
 
     uint32_t total_filled = 0;
+    // For each DataTable
     for (size_t i = 0; i < tables_.size(); i++) {
       if ((!start_version) > i) continue;
 
       DataTableVersion dt_ver = tables_[i];
-      // Construct a buffer to fill
+
+      // Scan the DataTable
       std::vector<catalog::col_oid_t> all_col_oids;
       for (auto &it : dt_ver.column_map) {
         all_col_oids.emplace_back(it.first);
       }
       auto pair = InitializerForProjectedColumns(all_col_oids, max_tuples, layout_version_t(static_cast<uint32_t>(i)));
-
       auto pr_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedColumnsSize());
       storage::ProjectedColumns *read = pair.first.Initialize(pr_buffer);
 
@@ -369,8 +370,8 @@ class SqlTable {
       }
 
       uint32_t filled = 0;
+      // Copy from ProjectedColumns into ProjectedColumns of the new version
       while (filled < read->NumTuples() && total_filled < max_tuples) {
-        // copy from ProjectedColumns into ProjectedColumns of the new version
         // TODO(yangjuns): if it's the most current version, we don't have to copy. We can directly write into
         // out_buffer
         ProjectedColumns::RowView from = read->InterpretAsRow(dt_ver.layout, filled);
