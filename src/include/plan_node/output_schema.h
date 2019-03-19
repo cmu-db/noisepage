@@ -109,13 +109,13 @@ class OutputSchema {
    * Define a mapping of an offset into a vector of columns of an OutputSchema to an intermediate column produced by a
    * plan node
    */
-  using DerivedTarget = std::pair<catalog::offset_oid_t, const DerivedColumn>;
+  using DerivedTarget = std::pair<uint32_t, const DerivedColumn>;
 
   /**
    * Generic specification of a direct map between the columns of two output schema
-   *        < NEW_offset_id , <tuple_index (left or right tuple), OLD_offset_id>    >
+   *        < NEW_offset , <tuple_index (left or right tuple), OLD_offset>    >
    */
-  using DirectMap = std::pair<catalog::offset_oid_t, std::pair<catalog::offset_oid_t, catalog::offset_oid_t>>;
+  using DirectMap = std::pair<uint32_t, std::pair<uint32_t, uint32_t>>;
 
   /**
    * Instantiates a OutputSchema object from a vector of previously-defined Columns

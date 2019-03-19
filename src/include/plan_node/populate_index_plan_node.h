@@ -8,11 +8,6 @@
 #include "plan_node/abstract_plan_node.h"
 
 namespace terrier {
-
-namespace storage {
-class SqlTable;
-}
-
 namespace plan_node {
 
 /**
@@ -24,11 +19,10 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
  public:
   /**
    * Instantiate a PopulateIndexPlanNode
-   * @param target_table the table the index is created for
+   * @param target_table_oid the table the index is created for
    * @param column_ids the column IDs to be populated into the index
    */
-  explicit PopulateIndexPlanNode(std::shared_ptr<storage::SqlTable> target_table,
-                                 std::vector<catalog::col_oid_t> column_ids);
+  explicit PopulateIndexPlanNode(catalog::table_oid_t target_table_oid, std::vector<catalog::col_oid_t> column_ids);
 
   /**
    * @return the type of this plan node
@@ -41,13 +35,13 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
 
   /**
-   * @return the target table
+   * @return the OID of the Ftarget table
    */
-  std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
+  catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }
 
  private:
-  // Target table
-  std::shared_ptr<storage::SqlTable> target_table_ = nullptr;
+  // Target table OID
+  catalog::table_oid_t target_table_oid_;
   // Column Ids
   std::vector<catalog::col_oid_t> column_ids_;
 

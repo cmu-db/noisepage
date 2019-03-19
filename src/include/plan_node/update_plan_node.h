@@ -22,10 +22,10 @@ class UpdatePlanNode : public AbstractPlanNode {
 
   /**
    * Instantiate an UpdatePlanNode
-   * @param target_table the target table to operate on
+   * @param target_table_oid the OID of the target table to operate on
    * @param output_schema the output columns and mapping information
    */
-  UpdatePlanNode(std::shared_ptr<storage::SqlTable> target_table, std::shared_ptr<OutputSchema> output_schema);
+  UpdatePlanNode(catalog::table_oid_t target_table_oid, std::shared_ptr<OutputSchema> output_schema);
 
   /**
    * Default destructor
@@ -33,9 +33,9 @@ class UpdatePlanNode : public AbstractPlanNode {
   ~UpdatePlanNode() override;
 
   /**
-   * @return the target table to operate on
+   * @return the OID of the target table to operate on
    */
-  std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
+  catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }
 
   /**
    * @return whether to update primary key
@@ -56,8 +56,8 @@ class UpdatePlanNode : public AbstractPlanNode {
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
-  // The target table to operate on
-  std::shared_ptr<storage::SqlTable> target_table_;
+  // The OID of the target table to operate on
+  catalog::table_oid_t target_table_oid_;
 
   // Whether to update primary key
   bool update_primary_key_;

@@ -37,13 +37,6 @@ class MaterializationPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MATERIALIZE; }
 
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(new MaterializationPlanNode(GetOutputSchema(), physify_flag_));
-  }
-
  private:
   /**
    * Whether to create a physical tile or just pass through underlying

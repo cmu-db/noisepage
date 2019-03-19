@@ -29,17 +29,17 @@ class InsertPlanNode : public AbstractPlanNode {
    * Instantiate an InsertPlanNode
    * Construct when SELECT comes in with it
    */
-  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, uint32_t bulk_insert_count = 1)
-      : target_table_(std::move(target_table)), bulk_insert_count_(bulk_insert_count) {}
+  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, uint32_t bulk_insert_count = 1)
+      : target_table_oid_(target_table_oid), bulk_insert_count_(bulk_insert_count) {}
 
   /**
    * Instantiate an InsertPlanNode
    * Construct with an OutputSchema
    */
-  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, std::shared_ptr<OutputSchema> output_schema,
+  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, std::shared_ptr<OutputSchema> output_schema,
                           uint32_t bulk_insert_count = 1)
       : AbstractPlanNode(std::move(output_schema)),
-        target_table_(std::move(target_table)),
+        target_table_oid_(target_table_oid),
         bulk_insert_count_(bulk_insert_count) {}
 
   /**
@@ -49,7 +49,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param columns columns to insert into
    * @param insert_values values to insert
    */
-  explicit InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, const std::vector<std::string> &columns,
+  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, const std::vector<std::string> &columns,
                           std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values);
 
   /**
@@ -58,9 +58,9 @@ class InsertPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INSERT; };
 
   /**
-   * @return the table to insert into
+   * @return the OID of the table to insert into
    */
-  std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
+  catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }
 
   // TODO(Gus,Wen) use transient value peeker to peek values
 
@@ -120,15 +120,14 @@ class InsertPlanNode : public AbstractPlanNode {
   void SetDefaultValue(uint32_t idx);
 
  private:
-  // Target table
-  std::shared_ptr<storage::SqlTable> target_table_ = nullptr;
+  // OID of the target table
+  catalog::table_oid_t target_table_oid_;
 
   // Values
   std::vector<type::TransientValue> values_;
 
   // Parameter Information <tuple_index, column oid, parameter_index>
-  std::unique_ptr<std::vector<std::tuple<catalog::offset_oid_t, catalog::col_oid_t, catalog::offset_oid_t>>>
-      parameter_vector_;
+  std::unique_ptr<std::vector<std::tuple<uint32_t, catalog::col_oid_t, uint32_t>>> parameter_vector_;
 
   // Parameter value types
   std::unique_ptr<std::vector<type::TypeId>> params_value_type_;

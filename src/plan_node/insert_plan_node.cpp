@@ -9,9 +9,9 @@
 
 namespace terrier::plan_node {
 
-InsertPlanNode::InsertPlanNode(std::shared_ptr<storage::SqlTable> target_table, const std::vector<std::string> &columns,
+InsertPlanNode::InsertPlanNode(catalog::table_oid_t target_table_oid, const std::vector<std::string> &columns,
                                std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values)
-    : target_table_(std::move(target_table)), bulk_insert_count_(static_cast<uint32_t>(insert_values.size())) {
+    : target_table_oid_(target_table_oid), bulk_insert_count_(static_cast<uint32_t>(insert_values.size())) {
   // TODO(Gus,Wen) Table Schema have been reworked, need to rewrite this part
 }
 
@@ -43,7 +43,7 @@ common::hash_t InsertPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // TODO(Gus,Wen) Add hash for target table
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid_));
 
   if (GetChildren().empty()) {
     auto bulk_insert_count = GetBulkInsertCount();
@@ -58,7 +58,7 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = static_cast<const plan_node::InsertPlanNode &>(rhs);
 
-  // TODO(Gus, Wen) Compare target tables
+  if (GetTargetTableOid() != other.GetTargetTableOid()) return false;
 
   if (GetChildren().empty()) {
     if (!other.GetChildren().empty()) return false;
