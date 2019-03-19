@@ -12,8 +12,8 @@
 
 namespace terrier::storage::index {
 
-// This is the maximum number of bytes to pack into a single GenericKey template. This contraint is arbitrary and can be
-// increased if 256-bytes is too small for future workloads.
+// This is the maximum number of bytes to pack into a single GenericKey template. This constraint is arbitrary and can
+// be increased if 256-bytes is too small for future workloads.
 #define GENERICKEY_MAX_SIZE 256
 
 /**
@@ -331,7 +331,6 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
 template <uint16_t KeySize>
 struct less<terrier::storage::index::GenericKey<KeySize>> {
   /**
-   * Due to the KeySize constraints, this should be optimized to a single SIMD instruction.
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is less than the second key

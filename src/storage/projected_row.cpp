@@ -16,7 +16,6 @@ ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRo
   return result;
 }
 
-// TODO(Tianyu): I don't think we can reasonably fit these into a cache line?
 ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<uint8_t> &attr_sizes, std::vector<col_id_t> col_ids)
     : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   TERRIER_ASSERT(!col_ids_.empty(), "Cannot initialize an empty ProjectedRow.");
