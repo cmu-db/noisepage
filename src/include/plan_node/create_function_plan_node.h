@@ -93,7 +93,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
 
   int param_count = 0;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
 };
 }  // namespace plan_node

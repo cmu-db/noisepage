@@ -96,7 +96,7 @@ class DropPlanNode : public AbstractPlanNode {
 
   bool if_exists_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(DropPlanNode);
 };
 

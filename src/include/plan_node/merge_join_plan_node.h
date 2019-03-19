@@ -56,7 +56,7 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
   // the SQL join clauses
   std::vector<JoinClause> join_clauses_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(MergeJoinPlanNode);
 };
 

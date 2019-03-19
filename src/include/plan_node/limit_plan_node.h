@@ -10,20 +10,42 @@
 
 namespace terrier::plan_node {
 
+/**
+ * Plan node for a limit operator
+ */
 class LimitPlanNode : public AbstractPlanNode {
  public:
+  /**
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param limit number of tuples to limit to
+   * @param offset offset at which to limit from
+   */
   LimitPlanNode(std::shared_ptr<OutputSchema> output_schema, size_t limit, size_t offset)
       : AbstractPlanNode(std::move(output_schema)), limit_(limit), offset_(offset) {}
 
-  // For Deserialization
+  /**
+   * Constructor used for JSON serialization
+   */
   LimitPlanNode() = default;
 
+  /**
+   * @return the type of this plan node
+   */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 
+  /**
+   * @return number to limit to
+   */
   size_t GetLimit() { return limit_; }
 
+  /**
+   * @return offset for where to limit from
+   */
   size_t GetOffset() { return offset_; }
 
+  /**
+   * @return the hashed value of this plan node
+   */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
@@ -39,6 +61,7 @@ class LimitPlanNode : public AbstractPlanNode {
   // The offset
   size_t offset_;
 
+ public:
   DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
 

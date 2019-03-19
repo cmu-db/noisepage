@@ -39,7 +39,7 @@ class SetOpPlanNode : public AbstractPlanNode {
   // Set Operation of this node
   SetOpType set_op_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(SetOpPlanNode);
 };
 

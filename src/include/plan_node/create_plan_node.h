@@ -256,7 +256,7 @@ class CreatePlanNode : public AbstractPlanNode {
   std::shared_ptr<parser::AbstractExpression> trigger_when_;
   int16_t trigger_type_ = 0;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(CreatePlanNode);
 };
 

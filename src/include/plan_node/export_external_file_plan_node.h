@@ -18,6 +18,12 @@ namespace terrier::plan_node {
  */
 class ExportExternalFilePlanNode : public AbstractPlanNode {
  public:
+  /**
+   * @param file_name string representation of file name
+   * @param delimiter delimiter character
+   * @param quote quote character
+   * @param escape escape character
+   */
   explicit ExportExternalFilePlanNode(std::string file_name, char delimiter = ',', char quote = '"', char escape = '\"')
       : AbstractPlanNode(nullptr),
         file_name_(std::move(file_name)),
@@ -25,13 +31,34 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
         quote_(quote),
         escape_(escape) {}
 
+  /**
+   * @return the type of this plan node
+   */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::EXPORT_EXTERNAL_FILE; }
 
+  /**
+   * @return string representation of file name
+   */
   const std::string &GetFileName() const { return file_name_; }
+
+  /**
+   * @return delimiter character
+   */
   char GetDelimiterChar() const { return delimiter_; }
+
+  /**
+   * @return quote character
+   */
   char GetQuoteChar() const { return quote_; }
+
+  /**
+   * @return escape character
+   */
   char GetEscapeChar() const { return escape_; }
 
+  /**
+   * @return the hashed value of this plan node
+   */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
@@ -43,6 +70,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char quote_;
   char escape_;
 
+ public:
   DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
 };
 

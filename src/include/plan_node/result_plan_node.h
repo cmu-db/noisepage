@@ -48,7 +48,7 @@ class ResultPlanNode : public AbstractPlanNode {
   // the tuple in the storage layer
   std::shared_ptr<Tuple> tuple_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };
 

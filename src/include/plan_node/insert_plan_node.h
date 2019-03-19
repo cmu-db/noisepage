@@ -136,6 +136,7 @@ class InsertPlanNode : public AbstractPlanNode {
   // Number of times to insert
   uint32_t bulk_insert_count_;
 
+ public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
 }  // namespace plan_node

@@ -62,7 +62,7 @@ class UpdatePlanNode : public AbstractPlanNode {
   // Whether to update primary key
   bool update_primary_key_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode);
 };
 

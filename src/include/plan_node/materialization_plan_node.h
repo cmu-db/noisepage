@@ -51,7 +51,7 @@ class MaterializationPlanNode : public AbstractPlanNode {
    */
   bool physify_flag_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(MaterializationPlanNode);
 };
 

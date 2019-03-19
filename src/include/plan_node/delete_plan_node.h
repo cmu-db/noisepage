@@ -54,6 +54,7 @@ class DeletePlanNode : public AbstractPlanNode {
   std::string table_name_;                                        // name of the table
   std::shared_ptr<parser::AbstractExpression> delete_condition_;  // expression of delete condition
 
+ public:
   DISALLOW_COPY_AND_MOVE(DeletePlanNode);
 };
 

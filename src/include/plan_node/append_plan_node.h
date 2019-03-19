@@ -21,7 +21,7 @@ class AppendPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(AppendPlanNode);
 };
 

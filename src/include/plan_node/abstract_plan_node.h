@@ -121,6 +121,10 @@ class AbstractPlanNode {
     return hash;
   }
 
+  /**
+   * @param rhs other node to compare against
+   * @return true if plan node and its children are equal
+   */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
     if (*GetOutputSchema() != *rhs.GetOutputSchema()) return false;
     auto num = GetChildren().size();
@@ -134,14 +138,13 @@ class AbstractPlanNode {
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
-  // A plan node can have multiple children
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
 
   int estimated_cardinality_ = 500000;
 
   std::shared_ptr<OutputSchema> output_schema_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 

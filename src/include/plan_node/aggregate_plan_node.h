@@ -17,20 +17,36 @@
 
 namespace terrier::plan_node {
 
+/**
+ * Plan node for aggregates
+ */
 class AggregatePlanNode : public AbstractPlanNode {
  public:
+  /**
+   * Information for each term being aggregated on
+   */
   class AggregateTerm {
    public:
+    /**
+     *
+     * @param aggregate_type Aggregate expression type
+     * @param expr pointer to aggregate expression
+     * @param distinct distinct flag
+     */
+    AggregateTerm(parser::ExpressionType aggregate_type, parser::AbstractExpression *expr, bool distinct)
+        : aggregate_type_(aggregate_type), expression_(expr), distinct_(distinct) {}
+
     parser::ExpressionType aggregate_type_;  // Count, Sum, Min, Max, etc
     const parser::AbstractExpression *expression_;
     bool distinct_;  // Distinct flag for aggragate term (example COUNT(distinct order))
-
-    AggregateTerm(parser::ExpressionType aggregate_type, parser::AbstractExpression *expr, bool distinct = false)
-        : aggregate_type_(aggregate_type), expression_(expr), distinct_(distinct) {}
-
-    AggregateTerm Copy() const { return AggregateTerm(aggregate_type_, expression_->Copy().get(), distinct_); }
   };
 
+  /**
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param having_clause_predicate unique pointer to possible having clause predicate
+   * @param aggregate_terms vector of aggregate terms for the aggregation
+   * @param aggregate_strategy aggregation strategy to be used
+   */
   AggregatePlanNode(std::shared_ptr<OutputSchema> output_schema,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategy aggregate_strategy)
@@ -50,38 +66,59 @@ class AggregatePlanNode : public AbstractPlanNode {
   //===--------------------------------------------------------------------===//
 
   // TODO(Gus,Wen): Figure out how to represent global aggregates (example: count(*))
+  /**
+   * A global aggregate does not aggregate over specific columns, example: count(*)
+   * @return true if aggregation is global
+   */
   bool IsGlobal() const { return false; }
 
+  /**
+   * @return pointer to predicate for having clause
+   */
   const parser::AbstractExpression *GetHavingClausePredicate() const { return having_clause_predicate_.get(); }
 
+  /**
+   * @return vector of aggregate terms
+   */
   const std::vector<AggregateTerm> &GetAggregateTerms() const { return aggregate_terms_; }
 
+  /**
+   * @return aggregation strategy
+   */
   AggregateStrategy GetAggregateStrategy() const { return aggregate_strategy_; }
 
+  /**
+   * @return the type of this plan node
+   */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
 
+  /**
+   * @return the hashed value of this plan node
+   */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
+  /**
+   * @return true of two vectors of aggregate terms are equal
+   */
   bool AreEqual(const std::vector<AggregatePlanNode::AggregateTerm> &A,
                 const std::vector<AggregatePlanNode::AggregateTerm> &B) const;
 
+  /**
+   * @param agg_terms aggregate terms to be hashed
+   * @return hash of agregate terms
+   */
   common::hash_t HashAggregateTerms(const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const;
 
  private:
-  /* For HAVING clause */
   std::unique_ptr<const parser::AbstractExpression> having_clause_predicate_;
-
-  /* Aggregate terms */
   const std::vector<AggregateTerm> aggregate_terms_;
-
-  /* Aggregate Strategy */
   const AggregateStrategy aggregate_strategy_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };
 

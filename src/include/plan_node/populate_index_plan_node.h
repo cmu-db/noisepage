@@ -51,6 +51,7 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   // Column Ids
   std::vector<catalog::col_oid_t> column_ids_;
 
+ public:
   DISALLOW_COPY_AND_MOVE(PopulateIndexPlanNode);
 };
 

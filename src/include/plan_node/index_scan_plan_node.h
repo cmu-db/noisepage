@@ -20,14 +20,28 @@ namespace terrier::plan_node {
 
 class IndexScanPlanNode : public AbstractScanPlanNode {
  public:
+  /**
+   * @param output_schema Schema representing the structure of the output of this plan nod
+   * @param index_oid OID of index to be used in hybrid scan
+   * @param predicate scan predicate
+   */
   IndexScanPlanNode(std::shared_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
                     parser::AbstractExpression *predicate)
       : AbstractScanPlanNode(std::move(output_schema), predicate), index_oid_(index_oid) {}
 
+  /**
+   * @return index OID to be used for scan
+   */
   catalog::index_oid_t GetIndexOid() const { return index_oid_; }
 
+  /**
+   * @return the type of this plan node
+   */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
+  /**
+   * @return the hashed value of this plan node
+   */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
@@ -37,7 +51,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   // Index oid associated with index scan
   catalog::index_oid_t index_oid_;
 
- private:
+ public:
   DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 

@@ -73,6 +73,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
   std::shared_ptr<storage::SqlTable> target_table_;  // pointer to the target table
   std::string table_name_;                           // name of the target table
   std::vector<std::string> column_names_;            // names of the columns to be analyzed
+
+ public:
+  DISALLOW_COPY_AND_MOVE(AnalyzePlanNode);
 };
 
 }  // namespace plan_node
