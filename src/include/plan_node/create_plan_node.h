@@ -231,6 +231,8 @@ class CreatePlanNode : public AbstractPlanNode {
    */
   void ProcessCheckConstraint(const std::shared_ptr<parser::ColumnDefinition> &col);
 
+  DISALLOW_COPY_AND_MOVE(CreatePlanNode);
+
  private:
   // Table Name
   std::string table_name_;
@@ -268,9 +270,6 @@ class CreatePlanNode : public AbstractPlanNode {
   std::vector<std::string> trigger_columns_;
   std::shared_ptr<parser::AbstractExpression> trigger_when_;
   int16_t trigger_type_ = 0;
-
- private:
-  DISALLOW_COPY_AND_MOVE(CreatePlanNode);
 };
 
 }  // namespace plan_node

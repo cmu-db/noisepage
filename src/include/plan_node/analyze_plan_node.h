@@ -6,9 +6,6 @@
 #include "plan_node/abstract_plan_node.h"
 
 namespace terrier {
-namespace storage {
-class SqlTable;
-}
 namespace parser {
 class AnalyzeStatement;
 }
@@ -27,9 +24,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
  public:
   /**
    * Instantiate a new AnalyzePlanNode
-   * @param target_table_ pointer to the target SQL table
+   * @param target_table_oid the OID of the target SQL table
    */
-  explicit AnalyzePlanNode(std::shared_ptr<storage::SqlTable> target_table);
+  explicit AnalyzePlanNode(catalog::table_oid_t target_table_oid);
 
   /**
    * Instantiate a new AnalyzePlanNode
@@ -60,9 +57,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ANALYZE; }
 
   /**
-   * @return the target table
+   * @return the OID of the target table
    */
-  std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
+  catalog::table_oid_t GetTargetTable() const { return target_table_oid_; }
 
   /**
    * @return the names of the columns to be analyzed
@@ -74,17 +71,10 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   const std::string GetInfo() const override { return "AnalyzePlanNode"; }
 
-  /**
-   * @return pointer to a copy of abstract plan
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new AnalyzePlanNode(target_table_));
-  }
-
  private:
-  std::shared_ptr<storage::SqlTable> target_table_;  // pointer to the target table
-  std::string table_name_;                           // name of the target table
-  std::vector<std::string> column_names_;            // names of the columns to be analyzed
+  catalog::table_oid_t target_table_oid_;  // OID of the target table
+  std::string table_name_;                 // name of the target table
+  std::vector<std::string> column_names_;  // names of the columns to be analyzed
 };
 
 }  // namespace plan_node

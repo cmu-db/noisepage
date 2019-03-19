@@ -46,14 +46,14 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
+  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
+
  private:
   const std::string file_name_;
   char delimiter_;
   char quote_;
   char escape_;
   const std::string null_string_;
-
-  DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 
 }  // namespace terrier::plan_node

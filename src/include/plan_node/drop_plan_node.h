@@ -47,13 +47,6 @@ class DropPlanNode : public AbstractPlanNode {
   const std::string GetInfo() const override { return "DropPlanNode"; }
 
   /**
-   * @return unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new DropPlanNode(table_name_));
-  }
-
-  /**
    * @return database name [DROP DATABASE]
    */
   std::string GetDatabaseName() const { return database_name_; }
@@ -88,6 +81,8 @@ class DropPlanNode : public AbstractPlanNode {
    */
   bool IsIfExists() const { return if_exists_; }
 
+  DISALLOW_COPY_AND_MOVE(DropPlanNode);
+
  private:
   DropType drop_type_ = DropType::TABLE;
 
@@ -107,9 +102,6 @@ class DropPlanNode : public AbstractPlanNode {
   std::string index_name_;
 
   bool if_exists_;
-
- private:
-  DISALLOW_COPY_AND_MOVE(DropPlanNode);
 };
 
 }  // namespace plan_node

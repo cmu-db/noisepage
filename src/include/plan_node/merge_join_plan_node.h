@@ -57,17 +57,11 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
    */
   const std::string GetInfo() const override { return "MergeJoinPlan"; }
 
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
+  DISALLOW_COPY_AND_MOVE(MergeJoinPlanNode);
 
  private:
   // the SQL join clauses
   std::vector<JoinClause> join_clauses_;
-
- private:
-  DISALLOW_COPY_AND_MOVE(MergeJoinPlanNode);
 };
 
 }  // namespace terrier::plan_node

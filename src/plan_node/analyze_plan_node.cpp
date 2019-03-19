@@ -11,8 +11,8 @@ namespace terrier::plan_node {
 
 // TODO(Gus,Wen): Do catalog lookups once catalog is available
 
-AnalyzePlanNode::AnalyzePlanNode(std::shared_ptr<storage::SqlTable> target_table)
-    : AbstractPlanNode(nullptr), target_table_(std::move(target_table)) {}
+AnalyzePlanNode::AnalyzePlanNode(catalog::table_oid_t target_table_oid)
+    : AbstractPlanNode(nullptr), target_table_oid_(target_table_oid) {}
 
 AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
                                  const std::string &database_name, transaction::TransactionContext *txn)

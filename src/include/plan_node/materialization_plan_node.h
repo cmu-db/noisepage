@@ -42,12 +42,7 @@ class MaterializationPlanNode : public AbstractPlanNode {
    */
   const std::string GetInfo() const override { return "MaterializePlanNode"; }
 
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const {
-    return std::unique_ptr<AbstractPlanNode>(new MaterializationPlanNode(GetOutputSchema(), physify_flag_));
-  }
+  DISALLOW_COPY_AND_MOVE(MaterializationPlanNode);
 
  private:
   /**
@@ -55,9 +50,6 @@ class MaterializationPlanNode : public AbstractPlanNode {
    * logical tile
    */
   bool physify_flag_;
-
- private:
-  DISALLOW_COPY_AND_MOVE(MaterializationPlanNode);
 };
 
 }  // namespace terrier::plan_node

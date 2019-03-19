@@ -43,12 +43,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
+  DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
+
  private:
   // Index oid associated with index scan
   catalog::index_oid_t index_oid_;
-
- private:
-  DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 
 }  // namespace terrier::plan_node

@@ -74,6 +74,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    */
   int GetNumParams() const { return param_count; }
 
+  DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
+
  private:
   // Indicates the UDF language type
   parser::PLType language;
@@ -97,9 +99,6 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   parser::Parameter::DataType return_type;
 
   int param_count = 0;
-
- private:
-  DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
 };
 }  // namespace plan_node
 }  // namespace terrier

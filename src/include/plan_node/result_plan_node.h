@@ -42,13 +42,6 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   const std::string GetInfo() const { return "ResultPlanNode"; }
 
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new ResultPlanNode(GetOutputSchema(), tuple_));
-  }
-
  private:
   // the tuple in the storage layer
   std::shared_ptr<Tuple> tuple_;

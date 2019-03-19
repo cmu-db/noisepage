@@ -8,21 +8,21 @@ namespace terrier::plan_node {
 // TODO(Gus,Wen) Add SetParameters
 // TODO(Gus,Wen) Do catalog lookups once catalog is available
 
-DeletePlanNode::DeletePlanNode(std::shared_ptr<storage::SqlTable> target_table)
-    : AbstractPlanNode(nullptr), target_table_(std::move(target_table)) {}
+DeletePlanNode::DeletePlanNode(catalog::table_oid_t target_table_oid)
+    : AbstractPlanNode(nullptr), target_table_oid_(target_table_oid) {}
 
 DeletePlanNode::DeletePlanNode(parser::DeleteStatement *delete_stmt) {
   table_name_ = delete_stmt->GetDeletionTable()->GetTableName();
   delete_condition_ = delete_stmt->GetDeleteCondition();
 
-  // TODO(Gus,Wen) Get table from catalog once catalog is available
+  // TODO(Gus,Wen) Get table OID from catalog once catalog is available
 }
 
 common::hash_t DeletePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // TODO(Gus,Wen) Add hash for target table
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid_));
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
@@ -30,7 +30,9 @@ common::hash_t DeletePlanNode::Hash() const {
 bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  // TODO(Gus, Wen) Compare target tables
+  auto &other = static_cast<const plan_node::DeletePlanNode &>(rhs);
+
+  if (GetTargetTableOid() != other.GetTargetTableOid()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

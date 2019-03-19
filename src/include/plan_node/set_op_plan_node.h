@@ -40,13 +40,6 @@ class SetOpPlanNode : public AbstractPlanNode {
    */
   const std::string GetInfo() const override { return "SetOpPlanNode"; }
 
-  /**
-   * @return a unique pointer to this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new SetOpPlanNode(GetOutputSchema(), set_op_));
-  }
-
  private:
   // Set Operation of this node
   SetOpType set_op_;

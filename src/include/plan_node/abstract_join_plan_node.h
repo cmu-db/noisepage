@@ -30,12 +30,12 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
 
   const parser::AbstractExpression *GetPredicate() const { return predicate_; }
 
+  DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
+
  private:
   LogicalJoinType join_type_;
 
   const parser::AbstractExpression *predicate_;
-
-  DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
 };
 
 }  // namespace terrier::plan_node
