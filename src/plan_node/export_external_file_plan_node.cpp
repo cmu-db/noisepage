@@ -9,14 +9,14 @@ common::hash_t ExportExternalFilePlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&quote_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&escape_));
-  return hash;
+  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
 bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (rhs.GetPlanNodeType() != PlanNodeType::EXPORT_EXTERNAL_FILE) return false;
   const auto &other = static_cast<const ExportExternalFilePlanNode &>(rhs);
   return (file_name_ == other.file_name_ && delimiter_ == other.delimiter_ && quote_ == other.quote_ &&
-          escape_ == other.escape_);
+          escape_ == other.escape_ && AbstractPlanNode::operator==(rhs));
 }
 
 std::unique_ptr<AbstractPlanNode> ExportExternalFilePlanNode::Copy() const {

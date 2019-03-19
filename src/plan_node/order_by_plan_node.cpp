@@ -6,7 +6,7 @@ namespace terrier::plan_node {
 std::unique_ptr<AbstractPlanNode> OrderByPlanNode::Copy() const {
   if (HasLimit()) {
     return std::unique_ptr<AbstractPlanNode>(
-        new OrderByPlanNode(GetOutputSchema(), sort_keys_, sort_key_orderings_, limit_, offset_));
+        new OrderByPlanNode(GetOutputSchema()->Copy(), sort_keys_, sort_key_orderings_, limit_, offset_));
   }
   return std::unique_ptr<AbstractPlanNode>(new OrderByPlanNode(GetOutputSchema(), sort_keys_, sort_key_orderings_));
 }
