@@ -21,11 +21,6 @@ class AppendPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::APPEND; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "AppendPlanNode"; }
-
   DISALLOW_COPY_AND_MOVE(AppendPlanNode);
 };
 

@@ -95,19 +95,6 @@ class CreatePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "CreatePlanNode"; }
-
-  /**
-   * @return unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(
-        new CreatePlanNode(table_name_, schema_name_, database_name_, table_schema_, create_type_));
-  }
-
-  /**
    * @return name of the index for [CREATE INDEX]
    */
   std::string GetIndexName() const { return index_name_; }

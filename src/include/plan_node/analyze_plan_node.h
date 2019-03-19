@@ -66,11 +66,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   std::vector<std::string> GetColumnNames() const { return column_names_; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "AnalyzePlanNode"; }
-
  private:
   catalog::table_oid_t target_table_oid_;  // OID of the target table
   std::string table_name_;                 // name of the target table

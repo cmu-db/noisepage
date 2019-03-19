@@ -42,11 +42,6 @@ class DropPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "DropPlanNode"; }
-
-  /**
    * @return database name [DROP DATABASE]
    */
   std::string GetDatabaseName() const { return database_name_; }

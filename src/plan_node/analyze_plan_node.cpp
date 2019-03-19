@@ -9,30 +9,20 @@
 
 namespace terrier::plan_node {
 
-// TODO(Gus,Wen): Do catalog lookups once catalog is available
-
 AnalyzePlanNode::AnalyzePlanNode(catalog::table_oid_t target_table_oid)
     : AbstractPlanNode(nullptr), target_table_oid_(target_table_oid) {}
 
 AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
                                  const std::string &database_name, transaction::TransactionContext *txn)
     : AbstractPlanNode(nullptr), table_name_(std::move(table_name)) {
-  /*target_table_ = catalog::Catalog::GetInstance()->GetTableWithName(txn,
-                                                                    database_name,
-                                                                    schema_name,
-                                                                    table_name);
-  */
+  // TODO(Gus,Wen): Do catalog lookups once catalog is available
 }
 
 AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
                                  const std::string &database_name, std::vector<std::string> &&column_names,
                                  transaction::TransactionContext *txn)
     : AbstractPlanNode(nullptr), table_name_(std::move(table_name)), column_names_(std::move(column_names)) {
-  /*target_table_ = catalog::Catalog::GetInstance()->GetTableWithName(txn,
-                                                                    database_name,
-                                                                    schema_name,
-                                                                    table_name);
-  */
+  // TODO(Gus,Wen): Do catalog lookups once catalog is available
 }
 
 AnalyzePlanNode::AnalyzePlanNode(parser::AnalyzeStatement *analyze_stmt, transaction::TransactionContext *txn)
@@ -40,11 +30,6 @@ AnalyzePlanNode::AnalyzePlanNode(parser::AnalyzeStatement *analyze_stmt, transac
   table_name_ = analyze_stmt->GetAnalyzeTable()->GetTableName();
   column_names_ = *analyze_stmt->GetAnalyzeColumns();
 
-  /*if (!table_name_.empty()) {
-    target_table_ = catalog::Catalog::GetInstance()->GetTableWithName(txn,
-                                                                      analyze_stmt->GetDatabaseName(),
-                                                                      analyze_stmt->GetSchemaName(),
-                                                                      table_name_);
-  */
+  // TODO(Gus,Wen): Do catalog lookups once catalog is available
 }
 }  // namespace terrier::plan_node

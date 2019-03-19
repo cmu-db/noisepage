@@ -52,11 +52,6 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
    */
   const std::vector<JoinClause> &GetJoinClauses() const { return join_clauses_; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "MergeJoinPlan"; }
-
   DISALLOW_COPY_AND_MOVE(MergeJoinPlanNode);
 
  private:

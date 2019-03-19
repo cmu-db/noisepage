@@ -35,11 +35,6 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "PopulateIndexPlanNode"; }
-
-  /**
    * @return the OID of the Ftarget table
    */
   catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }

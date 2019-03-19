@@ -37,11 +37,6 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const { return "ResultPlanNode"; }
-
  private:
   // the tuple in the storage layer
   std::shared_ptr<Tuple> tuple_;

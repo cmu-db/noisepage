@@ -48,11 +48,6 @@ class UpdatePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::UPDATE; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "UpdatePlanNode"; }
-
-  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;

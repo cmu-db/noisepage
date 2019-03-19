@@ -6,7 +6,6 @@
 namespace terrier::plan_node {
 
 // TODO(Gus,Wen) Add SetParameters
-// TODO(Gus,Wen) Do catalog lookups once catalog is available
 
 DeletePlanNode::DeletePlanNode(catalog::table_oid_t target_table_oid)
     : AbstractPlanNode(nullptr), target_table_oid_(target_table_oid) {}

@@ -37,11 +37,6 @@ class MaterializationPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::MATERIALIZE; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "MaterializePlanNode"; }
-
   DISALLOW_COPY_AND_MOVE(MaterializationPlanNode);
 
  private:

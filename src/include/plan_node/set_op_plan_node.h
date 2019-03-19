@@ -35,11 +35,6 @@ class SetOpPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "SetOpPlanNode"; }
-
  private:
   // Set Operation of this node
   SetOpType set_op_;
