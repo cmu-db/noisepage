@@ -28,11 +28,6 @@ class UpdatePlanNode : public AbstractPlanNode {
   UpdatePlanNode(catalog::table_oid_t target_table_oid, std::shared_ptr<OutputSchema> output_schema);
 
   /**
-   * Default destructor
-   */
-  ~UpdatePlanNode() override;
-
-  /**
    * @return the OID of the target table to operate on
    */
   catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }
