@@ -207,12 +207,6 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
-  /**
-   * Get TupleAccessStrategy
-   * @return TupleAccessStrategy
-   */
-  TupleAccessStrategy GetTupleAccessStrategy() { return accessor_; }
-
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
