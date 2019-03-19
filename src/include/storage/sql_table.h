@@ -137,39 +137,39 @@ class SqlTable {
               const ProjectionMap &pr_map, layout_version_t version_num) const {
     STORAGE_LOG_INFO("slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
+    layout_version_t old_version_num = slot.GetBlock()->layout_version_;
+
     // The version of the current slot is the same as the version num
-    if (slot.GetBlock()->layout_version_ == version_num) {
+    if (old_version_num == version_num) {
       return tables_[!version_num].data_table->Select(txn, slot, out_buffer);
     }
 
     // The slot version is not the same as the version_num
-    layout_version_t old_version_num = slot.GetBlock()->layout_version_;
-
     // 1. Get the old ProjectedRow
+    // 2. Convert it into new ProjectedRow
+
+    // Create buffer for old ProjectedRow
     auto old_dt_version = tables_[!old_version_num];
-    // 1.a) Get the col oids
-    // TODO(yangjuns): we can only read the columns that exist in the new projection
     std::vector<catalog::col_oid_t> col_oids;
     for (auto &it : old_dt_version.column_map) {
-      col_oids.emplace_back(it.first);
+      if (pr_map.count(it.first) > 0) col_oids.emplace_back(it.first);
     }
-    // 1.b) Get old ProjectedRow initializer
     auto old_pr_pair = InitializerForProjectedRow(col_oids, old_version_num);
     auto read_buffer = common::AllocationUtil::AllocateAligned(old_pr_pair.first.ProjectedRowSize());
     ProjectedRow *pr_buffer = old_pr_pair.first.InitializeRow(read_buffer);
 
-    // 2. Read the ProjectedRow
+    // 1. Get the old ProjectedRow
     bool result = old_dt_version.data_table->Select(txn, slot, pr_buffer);
     if (!result) {
       delete[] read_buffer;
       return false;
     }
 
-    // 3. Copy values over and populate the new ProjectedRow
+    // 2. Convert it into new ProjectedRow
+    // TODO(yangjuns): fill in default values for newly added attributes
     StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_dt_version.layout, out_buffer,
                                               pr_map);
 
-    // TODO(yangjuns): fill in default values for newly added attributes
     delete[] read_buffer;
     return true;
   }
@@ -192,27 +192,36 @@ class SqlTable {
     // TODO(Matt): update indexes
     STORAGE_LOG_INFO("Update slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
+    layout_version_t old_version = slot.GetBlock()->layout_version_;
+
     // The version of the current slot is the same as the version num
-    if (slot.GetBlock()->layout_version_ == version_num) {
+    if (old_version == version_num) {
       return std::make_pair(tables_[!version_num].data_table->Update(txn, slot, redo), slot);
     }
 
-    layout_version_t old_version = slot.GetBlock()->layout_version_;
+    // The versions are different
+    // 1. Check if we can just update the old version
+    // 2. If Yes:
+    //    2.a) Convert ProjectedRow into old ProjectedRow
+    //    2.b) Update the old DataTable using the old ProjectedRow
+    // 3. Else:
+    //    3.a) Get the old row
+    //    3.b) Convert it into new row
+    //    3.c) Insert new row into new table
+    //    3.d) Delete old row
+    //    3.e) Update the new row in the new table
 
     // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
     bool is_subset = true;
+
     std::vector<catalog::col_oid_t> redo_col_oids;  // the set of col oids the redo touches
     for (auto &it : map) {
       redo_col_oids.emplace_back(it.first);
       // check if the col_oid exists in the old schema
       if (tables_[!old_version].column_map.count(it.first) == 0) {
         is_subset = false;
+        break;
       }
-    }
-
-    std::vector<catalog::col_oid_t> old_col_oids;  // the set of col oids of the old schema
-    for (auto &it : tables_[!old_version].column_map) {
-      old_col_oids.emplace_back(it.first);
     }
 
     storage::TupleSlot ret_slot;
@@ -247,6 +256,10 @@ class SqlTable {
       // 5. Update the new row in the new table
 
       // 1. Get old row
+      std::vector<catalog::col_oid_t> old_col_oids;  // the set of col oids of the old schema
+      for (auto &it : tables_[!old_version].column_map) {
+        old_col_oids.emplace_back(it.first);
+      }
       auto old_pair = InitializerForProjectedRow(old_col_oids, old_version);
       auto old_buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
       ProjectedRow *old_pr = old_pair.first.InitializeRow(old_buffer);
