@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/algorithm/string.hpp>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,7 +9,6 @@
 #include "network/network_defs.h"
 #include "network/network_io_utils.h"
 
-#define NULL_CONTENT_SIZE (-1)
 namespace terrier::network {
 
 // TODO(Tianyu): It looks very broken that this never changes.
