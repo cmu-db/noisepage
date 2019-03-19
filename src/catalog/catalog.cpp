@@ -301,7 +301,6 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   auto catalog_ns_oid =
       GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
 
-  // TODO(Yesheng): port over to TransientValue
   // built-in types as in type/type_id.h
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,
                           type::TypeUtil::GetTypeSize(type::TypeId::BOOLEAN), "b");

@@ -299,6 +299,9 @@ class SqlTableRW {
     return nullptr;
   }
 
+  /**
+   * Get the layout of the SQL table.
+   */
   storage::BlockLayout GetLayout() {
     if (layout_and_map_ == nullptr) {
       layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(

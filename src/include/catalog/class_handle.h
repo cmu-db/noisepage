@@ -63,6 +63,12 @@ class ClassHandle {
 
   /**
    * Add row into the Class table.
+   * @param txn transaction to run
+   * @param tbl_ptr ptr to the table
+   * @param entry_oid entry oid
+   * @param name class name
+   * @param ns_oid namespace oid
+   * @param ts_oid tablespace oid
    */
   void AddEntry(transaction::TransactionContext *txn, int64_t tbl_ptr, int32_t entry_oid, const std::string &name,
                 int32_t ns_oid, int32_t ts_oid);
@@ -70,15 +76,18 @@ class ClassHandle {
   /**
    * Constructor
    * @param catalog the global catalog object
-   * @param db_oid parent database oid
-   * @param table a pointer to SqlTableRW
-   * @param pg_attrdef a pointer to pg_attrdef sql table rw helper instance
+   * @param pg_class the pg_class sql table rw helper instance
    */
   explicit ClassHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_class)
       : catalog_(catalog), pg_class_rw_(std::move(pg_class)) {}
 
   /**
    * Create the storage table
+   * @param txn the txn that creates this table
+   * @param catalog ptr to the catalog
+   * @param db_oid db_oid of this handle
+   * @param name catalog name
+   * @return a shared pointer to the catalog table
    */
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
@@ -88,8 +97,17 @@ class ClassHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_class_rw_->Dump(txn); }
 
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
+  /**
+   * Get used schema columns.
+   * @return a vector of used schema columns.
+   */
+  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
+
+  /**
+   * Get unused schema columns.
+   * @return a vector of unused schema columns.
+   */
+  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
 
  private:
   Catalog *catalog_;
@@ -97,5 +115,7 @@ class ClassHandle {
   // db_oid_t db_oid_;
   // storage for this table
   std::shared_ptr<catalog::SqlTableRW> pg_class_rw_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 }  // namespace terrier::catalog

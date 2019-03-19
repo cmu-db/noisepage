@@ -52,6 +52,9 @@ class TypeHandle {
    */
   TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type);
 
+  /**
+   * Get the oid of a type given its name.
+   */
   type_oid_t TypeToOid(transaction::TransactionContext *txn, const std::string &type);
 
   /**
@@ -70,15 +73,15 @@ class TypeHandle {
                 namespace_oid_t typnamespace, int32_t typlen, const std::string &typtype);
 
   /**
-   * Get a type entry from pg_type handle
-   *
-   * @param txn the transaction to run
-   * @param oid type entry oid
-   * @return a shared pointer to the type entry
+   * Get a type entry from pg_type handle by name.
    */
   std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const std::string &type);
 
+  /**
+   * Get a type entry from pg_type handle by name.
+   */
   std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::Value &type);
+
   /**
    * Create storage table
    */
@@ -90,13 +93,24 @@ class TypeHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_type_rw_->Dump(txn); }
 
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols;
+  /**
+   * Get used schema columns.
+   * @return a vector of used schema columns.
+   */
+  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
+
+  /**
+   * Get unused schema columns.
+   * @return a vector of unused schema columns.
+   */
+  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
 
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   // Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog

@@ -68,6 +68,11 @@ class AttrDefHandle {
 
   /**
    * Create the storage table
+   * @param txn the txn that creates this table
+   * @param catalog ptr to the catalog
+   * @param db_oid db_oid of this handle
+   * @param name catalog name
+   * @return a shared pointer to the catalog table
    */
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
@@ -77,8 +82,17 @@ class AttrDefHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_attrdef_rw_->Dump(txn); }
 
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
+  /**
+   * Get used schema columns.
+   * @return a vector of used schema columns.
+   */
+  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
+
+  /**
+   * Get unused schema columns.
+   * @return a vector of unused schema columns.
+   */
+  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
 
  private:
   // not sure if needed..
@@ -87,5 +101,8 @@ class AttrDefHandle {
   // db_oid_t db_oid_;
   // storage for this table
   std::shared_ptr<catalog::SqlTableRW> pg_attrdef_rw_;
+
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 }  // namespace terrier::catalog

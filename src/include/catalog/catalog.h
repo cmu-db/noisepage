@@ -17,9 +17,15 @@ namespace terrier::catalog {
 class DatabaseHandle;
 class TablespaceHandle;
 
+/**
+ * Schema column for used/unused schema rows.
+ */
 struct SchemaCol {
+  /** column no */
   int32_t col_num;
+  /** column name */
   const char *col_name;
+  /** column type id */
   type::TypeId type_id;
 };
 
@@ -37,6 +43,7 @@ struct SchemaCol {
  * values of oids should never be the same.
  *
  * TODO(yangjuns): Each database should have its own global counter
+ * TODO(Yesheng): Port over to TransientValue
  */
 class Catalog {
  public:
@@ -64,6 +71,13 @@ class Catalog {
    */
   void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
 
+  /**
+   * Create a table with schema
+   * @param txn transaction to use
+   * @param db_oid oid of the database
+   * @param table_name table name
+   * @param schema schema to use
+   */
   void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
                    const Schema &schema);
 
@@ -119,6 +133,13 @@ class Catalog {
   //  }
 
   // methods for catalog initializations
+  /**
+   * Add a catalog to the catalog mapping
+   * @param db_oid database oid
+   * @param table_oid table oid
+   * @param name name of the catalog
+   * @param table_rw_p catalog storage table
+   */
   void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name,
                  std::shared_ptr<SqlTableRW> table_rw_p) {
     map_[db_oid][table_oid] = std::move(table_rw_p);
@@ -141,6 +162,11 @@ class Catalog {
    */
   void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols);
 
+  /**
+   * Convert type id to schema type
+   * @param type_id type id
+   * @return schema type
+   */
   type::Value ValueTypeIdToSchemaType(type::TypeId type_id);
 
   /**

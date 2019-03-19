@@ -101,6 +101,10 @@ class DatabaseHandle {
    */
   TypeHandle GetTypeHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
+  /**
+   * Get a attribute handle for the database.
+   * @return an attribute handle
+   */
   AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
@@ -126,6 +130,10 @@ class DatabaseHandle {
    */
   std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
 
+  /**
+   * Delete an entry in database handle.
+   * @return true on success
+   */
   bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry);
 
   // start Debug methods
@@ -137,8 +145,17 @@ class DatabaseHandle {
   void Dump(transaction::TransactionContext *txn) { pg_database_rw_->Dump(txn); }
   // end Debug methods
 
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
+  /**
+   * Get used schema columns.
+   * @return a vector of used schema columns.
+   */
+  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
+
+  /**
+   * Get unused schema columns.
+   * @return a vector of unused schema columns.
+   */
+  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
 
  private:
   Catalog *catalog_;
@@ -146,6 +163,9 @@ class DatabaseHandle {
    * pg_database SQL table
    */
   std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
+
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog

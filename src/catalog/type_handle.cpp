@@ -12,7 +12,7 @@ namespace terrier::catalog {
 const std::vector<SchemaCol> TypeHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
                                                          {1, "typname", type::TypeId::VARCHAR},
                                                          {2, "typnamespace", type::TypeId::INTEGER},
-                                                         {4, "typlen", type::TypeId::SMALLINT},
+                                                         {4, "typlen", type::TypeId::INTEGER},
                                                          {6, "typtype", type::TypeId::VARCHAR}};
 
 const std::vector<SchemaCol> TypeHandle::unused_schema_cols = {
@@ -73,7 +73,13 @@ std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::Tra
 
 void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, const std::string &typname,
                           namespace_oid_t typnamespace, int32_t typlen, const std::string &typtype) {
-  // TODO(Yesheng)
+  std::vector<type::Value> row;
+  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
+  row.emplace_back(type::ValueFactory::GetVarcharValue(typname.c_str()));
+  row.emplace_back(type::ValueFactory::GetIntegerValue(!typnamespace));
+  row.emplace_back(type::ValueFactory::GetIntegerValue(typlen));
+  row.emplace_back(type::ValueFactory::GetVarcharValue(typtype.c_str()));
+  pg_type_rw_->InsertRow(txn, row);
 }
 
 std::shared_ptr<catalog::SqlTableRW> TypeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,

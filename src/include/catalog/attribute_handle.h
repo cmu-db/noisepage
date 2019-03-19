@@ -54,6 +54,11 @@ class AttributeHandle {
     std::vector<type::Value> entry_;
   };
 
+  /**
+   * Construct an attribute handle
+   * @param catalog catalog ptr
+   * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
+   */
   explicit AttributeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
       : pg_attribute_hrw_(std::move(pg_attribute)) {}
 
@@ -116,13 +121,24 @@ class AttributeHandle {
   void Dump(transaction::TransactionContext *txn) { pg_attribute_hrw_->Dump(txn); }
   // end Debug methods
 
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
+  /**
+   * Get used schema columns.
+   * @return a vector of used schema columns.
+   */
+  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
+
+  /**
+   * Get unused schema columns.
+   * @return a vector of unused schema columns.
+   */
+  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
 
  private:
   // Catalog *catalog_;
   SqlTableRW *table_;
   std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
+  static const std::vector<SchemaCol> schema_cols_;
+  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog
