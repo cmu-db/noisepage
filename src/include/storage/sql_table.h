@@ -215,15 +215,14 @@ class SqlTable {
       old_col_oids.emplace_back(it.first);
     }
 
-    // meta-data for old version
-    TupleAccessStrategy old_tas = tables_[!old_version].data_table->GetTupleAccessStrategy();
-    auto old_pair = InitializerForProjectedRow(redo_col_oids, version_num);
     storage::TupleSlot ret_slot;
     if (is_subset) {
       // we can update in place
 
       // We should create a buffer of old Projected Row and update in place. We can't just
       // directly erase the data without creating a redo and update the chain.
+
+      auto old_pair = InitializerForProjectedRow(redo_col_oids, version_num);
 
       // 1. Create a ProjectedRow Buffer for the old version
       byte *buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
@@ -241,41 +240,41 @@ class SqlTable {
       STORAGE_LOG_INFO("have to insert and delete ... ");
 
       // need to create a new ProjectedRow of all columns
+      // 1. Get the old row
+      // 2. Convert it into new row
+      // 3. Insert new row into new table
+      // 4. Delete old row
+      // 5. Update the new row in the new table
 
-      // 1. Get the set of all the columns in new version
-      std::vector<catalog::col_oid_t> all_col_oids;
-      for (auto &it : tables_[!version_num].column_map) {
-        all_col_oids.emplace_back(it.first);
+      // 1. Get old row
+      auto old_pair = InitializerForProjectedRow(old_col_oids, old_version);
+      auto old_buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
+      ProjectedRow *old_pr = old_pair.first.InitializeRow(old_buffer);
+      bool valid = Select(txn, slot, old_pr, old_pair.second, old_version);
+      if (!valid) {
+        return {false, slot};
       }
-      // 2. Get ProjectedRow buffer
-      auto new_pair = InitializerForProjectedRow(all_col_oids, version_num);
-      auto buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
-      ProjectedRow *pr_buffer = new_pair.first.InitializeRow(buffer);
 
-      // 3. Copy values over
-      for (auto col_oid : old_col_oids) {
-        // We only copy values if the attribute exists in the new version
-        if (new_pair.second.count(col_oid) > 0) {
-          STORAGE_LOG_INFO("copying column {} into new projected row", !col_oid);
-          // get the data bytes
-          byte *value = old_tas.AccessForceNotNull(slot, tables_[!old_version].column_map.at(col_oid));
-          // get the size of the attribute
-          uint8_t attr_size = old_tas.GetBlockLayout().AttrSize(tables_[!old_version].column_map.at(col_oid));
+      // 2. Convert it into new row
+      std::vector<catalog::col_oid_t> new_col_oids;  // the set of col oids which the new schema has
+      for (auto &it : tables_[!version_num].column_map) new_col_oids.emplace_back(it.first);
+      auto new_pair = InitializerForProjectedRow(new_col_oids, version_num);
+      auto new_buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
+      ProjectedRow *new_pr = new_pair.first.InitializeRow(new_buffer);
+      StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_[!old_version].layout, new_pr,
+                                                new_pair.second);
+      // 3. Insert the row into new table
+      storage::TupleSlot new_slot = Insert(txn, *new_pr, version_num);
 
-          // get the address where we copy into
-          uint16_t offset = new_pair.second.at(col_oid);
-          byte *to = pr_buffer->AccessForceNotNull(offset);
-          // Copy things over
-          std::memcpy(to, value, attr_size);
-        }
-      }
-      // delete follow by an insert
+      // 4. Delete the old row
       Delete(txn, slot, old_version);
-      storage::TupleSlot new_slot = Insert(txn, *pr_buffer, version_num);
+
+      // 5. Update the new row
       Update(txn, new_slot, redo, new_pair.second, version_num);
       //      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
       //                     "updating the current version should return the same TupleSlot");
-      delete[] buffer;
+      delete[] old_buffer;
+      delete[] new_buffer;
       // TODO(yangjuns): Need to update indices
       ret_slot = new_slot;
     }
