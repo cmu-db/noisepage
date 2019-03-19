@@ -41,7 +41,7 @@ struct ArrowColumnInfo {
  * @param varlen the string to be located
  * @return the code of the smallest element >= to varlen.
  */
-uint32_t Locate(ArrowColumnInfo *column_info, VarlenEntry *varlen) {
+inline uint32_t Locate(ArrowColumnInfo *column_info, VarlenEntry *varlen) {
   TERRIER_ASSERT(column_info->type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                  "Can only call Locate on dictionary compressed column");
   uint32_t lo = 0;
