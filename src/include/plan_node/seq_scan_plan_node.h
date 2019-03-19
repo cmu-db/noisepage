@@ -19,18 +19,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SEQSCAN; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "SeqScanPlanNode"; }
-
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    auto *new_plan = new SeqScanPlanNode(GetOutputSchema()->Copy(), GetPredicate()->Copy().get(), GetTableOid(),
-                                         IsForUpdate(), IsParallel());
-    return std::unique_ptr<AbstractPlanNode>(new_plan);
-  }
 
   common::hash_t Hash() const override;
 

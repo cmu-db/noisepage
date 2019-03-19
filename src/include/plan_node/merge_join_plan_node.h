@@ -52,16 +52,6 @@ class MergeJoinPlanNode : public AbstractJoinPlanNode {
    */
   const std::vector<JoinClause> &GetJoinClauses() const { return join_clauses_; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "MergeJoinPlan"; }
-
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
-
  private:
   // the SQL join clauses
   std::vector<JoinClause> join_clauses_;

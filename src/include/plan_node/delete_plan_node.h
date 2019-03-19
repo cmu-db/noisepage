@@ -42,18 +42,6 @@ class DeletePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DELETE; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "DeletePlanNode"; }
-
-  /**
-   * @return pointer to a copy of delete plan
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new DeletePlanNode(target_table_));
-  }
-
-  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;

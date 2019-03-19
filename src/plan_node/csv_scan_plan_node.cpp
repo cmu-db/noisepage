@@ -4,11 +4,6 @@
 
 namespace terrier::plan_node {
 
-std::unique_ptr<AbstractPlanNode> CSVScanPlanNode::Copy() const {
-  return std::unique_ptr<AbstractPlanNode>(
-      new CSVScanPlanNode(GetOutputSchema()->Copy(), file_name_, delimiter_, quote_, escape_, null_string_));
-}
-
 common::hash_t CSVScanPlanNode::Hash() const {
   common::hash_t hash = std::hash<std::string>{}(file_name_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&delimiter_));

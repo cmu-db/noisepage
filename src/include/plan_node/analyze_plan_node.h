@@ -69,18 +69,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   std::vector<std::string> GetColumnNames() const { return column_names_; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "AnalyzePlanNode"; }
-
-  /**
-   * @return pointer to a copy of abstract plan
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new AnalyzePlanNode(target_table_));
-  }
-
  private:
   std::shared_ptr<storage::SqlTable> target_table_;  // pointer to the target table
   std::string table_name_;                           // name of the target table

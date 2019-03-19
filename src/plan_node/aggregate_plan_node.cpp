@@ -4,18 +4,6 @@
 
 namespace terrier::plan_node {
 
-std::unique_ptr<AbstractPlanNode> AggregatePlanNode::Copy() const {
-  std::vector<AggregateTerm> copied_aggregate_terms;
-  for (const AggregateTerm &term : GetAggregateTerms()) {
-    copied_aggregate_terms.push_back(term.Copy());
-  }
-
-  AggregatePlanNode *new_plan = new AggregatePlanNode(
-      GetOutputSchema()->Copy(), std::unique_ptr<const parser::AbstractExpression>(having_clause_predicate_->Copy()),
-      copied_aggregate_terms, GetAggregateStrategy());
-  return std::unique_ptr<AbstractPlanNode>(new_plan);
-}
-
 common::hash_t AggregatePlanNode::HashAggregateTerms(
     const std::vector<AggregatePlanNode::AggregateTerm> &agg_terms) const {
   common::hash_t hash = 0;

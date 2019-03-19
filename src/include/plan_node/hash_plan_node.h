@@ -22,21 +22,7 @@ class HashPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
-  const std::string GetInfo() const override { return "HashPlanNode"; }
-
   const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    // Copy Hash keys
-    std::vector<HashKeyPtrType> hash_keys;
-
-    for (auto &key : GetHashKeys()) {
-      hash_keys.push_back(key->Copy());
-    }
-
-    HashPlanNode *new_plan = new HashPlanNode(GetOutputSchema()->Copy(), hash_keys);
-    return std::unique_ptr<AbstractPlanNode>(new_plan);
-  }
 
   common::hash_t Hash() const override;
 

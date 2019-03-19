@@ -41,21 +41,9 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_ids_; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "PopulateIndexPlanNode"; }
-
-  /**
    * @return the target table
    */
   std::shared_ptr<storage::SqlTable> GetTargetTable() const { return target_table_; }
-
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new PopulateIndexPlanNode(target_table_, column_ids_));
-  }
 
  private:
   // Target table

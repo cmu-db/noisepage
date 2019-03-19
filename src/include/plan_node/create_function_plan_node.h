@@ -30,11 +30,6 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_FUNC; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "CreateFunctionPlanNode"; }
-
-  /**
    * @return name of the user defined function
    */
   std::string GetFunctionName() const { return function_name; }

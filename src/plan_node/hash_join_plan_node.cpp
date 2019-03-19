@@ -4,27 +4,6 @@
 
 namespace terrier::plan_node {
 
-std::unique_ptr<AbstractPlanNode> HashJoinPlanNode::Copy() const {
-  // Copy predicate
-  parser::AbstractExpression *predicate_copy(GetPredicate() != nullptr ? GetPredicate()->Copy().get() : nullptr);
-
-  // TODO(Gus,Wen): Copy output schema
-
-  // Left and right hash keys
-  std::vector<parser::AbstractExpression *> left_hash_keys_copy, right_hash_keys_copy;
-  for (const auto &left_hash_key : left_hash_keys_) {
-    left_hash_keys_copy.emplace_back(left_hash_key->Copy().get());
-  }
-  for (const auto &right_hash_key : right_hash_keys_) {
-    right_hash_keys_copy.emplace_back(right_hash_key->Copy().get());
-  }
-
-  // Create plan copy
-  auto *new_plan = new HashJoinPlanNode(GetOutputSchema()->Copy(), GetLogicalJoinType(), predicate_copy,
-                                        left_hash_keys_copy, right_hash_keys_copy, IsBloomFilterEnabled());
-  return std::unique_ptr<AbstractPlanNode>(new_plan);
-}
-
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 

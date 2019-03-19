@@ -19,13 +19,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::NESTLOOP; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "NestedLoopJoinPlanNode"; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
-
  private:
   DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);
 };

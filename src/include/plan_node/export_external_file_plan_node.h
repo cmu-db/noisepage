@@ -27,8 +27,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::EXPORT_EXTERNAL_FILE; }
 
-  const std::string GetInfo() const override { return "ExportExternalFilePlanNode"; }
-
   const std::string &GetFileName() const { return file_name_; }
   char GetDelimiterChar() const { return delimiter_; }
   char GetQuoteChar() const { return quote_; }
@@ -38,8 +36,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
 
  private:
   std::string file_name_;

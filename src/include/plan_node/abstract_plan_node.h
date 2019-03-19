@@ -11,18 +11,22 @@
 #include "plan_node/output_schema.h"
 #include "plan_node/plan_node_defs.h"
 
-// TODO(Gus,Wen): Add equaility operator and hash function support for output_schema
-
 namespace terrier::plan_node {
-//===--------------------------------------------------------------------===//
-// Abstract Plan Node
-//===--------------------------------------------------------------------===//
 
+/**
+ * An abstract plan node should be the base class for (almost) all plan nodes
+ */
 class AbstractPlanNode {
  public:
+  /**
+   * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
+   * @param output_schema Schema representing the structure of the output of this plan node
+   */
   explicit AbstractPlanNode(std::shared_ptr<OutputSchema> output_schema) : output_schema_(std::move(output_schema)) {}
 
-  // For Deserialization and DDL statements
+  /**
+   * Constructor for Deserialization and DDL statements
+   */
   AbstractPlanNode() = default;
 
   virtual ~AbstractPlanNode() = default;
@@ -31,12 +35,27 @@ class AbstractPlanNode {
   // Children Helpers
   //===--------------------------------------------------------------------===//
 
+  /**
+   * Add a child plan node. Plan nodes are immutable, so this method should only be called during initialization of the
+   * plan node
+   * @param child child to be added
+   */
   void AddChild(std::unique_ptr<AbstractPlanNode> &&child) { children_.emplace_back(std::move(child)); }
 
+  /**
+   * @return child plan nodes
+   */
   const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
 
+  /**
+   * @return number of children
+   */
   size_t GetChildrenSize() const { return children_.size(); }
 
+  /**
+   * @param child_index index of child
+   * @return child at provided index
+   */
   const AbstractPlanNode *GetChild(uint32_t child_index) const {
     TERRIER_ASSERT(child_index < children_.size(),
                    "index into children of plan node should be less than number of children");
@@ -47,22 +66,26 @@ class AbstractPlanNode {
   // Accessors
   //===--------------------------------------------------------------------===//
 
-  // Each sub-class will have to implement this function to return their type
-  // This is better than having to store redundant types in all the objects
+  /**
+   * Returns plan type, each derived plan class should override this method to return their specific type
+   * @return plan type
+   */
   virtual PlanNodeType GetPlanNodeType() const { return PlanNodeType::ABSTRACTPLAN; }
 
-  // Get a string representation for debugging
-  virtual const std::string GetInfo() const;
-
-  // Get the output schema for the plan node. The output schema contains information on columns of the output of
-  // the plan node operator
+  /**
+   * @return output schema for the node. The output schema contains information on columns of the output of the plan
+   * node operator
+   */
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
 
-  // Get the estimated cardinality of this plan
+  /**
+   * @return estimated cardinality of the output tuple set from this plan node
+   */
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
 
-  // FOR TESTING ONLY. This function should only be called during construction of plan (ConvertOpExpression) or
-  // for tests.
+  /**
+   * @param cardinality estimated cardinality to be set
+   */
   void SetEstimatedCardinality(int cardinality) { estimated_cardinality_ = cardinality; }
 
   //===--------------------------------------------------------------------===//
@@ -84,6 +107,11 @@ class AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
+
+  /**
+   * Derived plan nodes should call this method from their override of Hash() to hash data belonging to the base class
+   * @return hash of the plan node
+   */
   virtual common::hash_t Hash() const {
     common::hash_t hash = GetOutputSchema()->Hash();
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetPlanNodeType()));
@@ -104,8 +132,6 @@ class AbstractPlanNode {
   }
 
   virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
-
-  virtual std::unique_ptr<AbstractPlanNode> Copy() const = 0;
 
  private:
   // A plan node can have multiple children

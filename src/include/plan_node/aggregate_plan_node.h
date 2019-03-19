@@ -60,10 +60,6 @@ class AggregatePlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
 
-  const std::string GetInfo() const override { return "AggregatePlanNode"; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
-
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;

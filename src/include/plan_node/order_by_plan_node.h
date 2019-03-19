@@ -38,11 +38,6 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ORDERBY; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "OrderByPlanNode"; }
-
   bool HasLimit() const { return has_limit_; }
 
   size_t GetLimit() const {
@@ -59,8 +54,6 @@ class OrderByPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
   bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
 
  private:
   /* Column Ids used (in order) to sort input tuples */

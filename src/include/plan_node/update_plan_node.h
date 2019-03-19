@@ -48,18 +48,6 @@ class UpdatePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::UPDATE; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "UpdatePlanNode"; }
-
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new UpdatePlanNode(target_table_, GetOutputSchema()));
-  }
-
-  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;

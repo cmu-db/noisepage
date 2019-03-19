@@ -3,12 +3,6 @@
 
 namespace terrier::plan_node {
 
-std::unique_ptr<AbstractPlanNode> ProjectionPlanNode::Copy() const {
-  // TODO(Gus,Wen): copy schema
-  ProjectionPlanNode *new_plan = new ProjectionPlanNode(GetOutputSchema());
-  return std::unique_ptr<AbstractPlanNode>(new_plan);
-}
-
 common::hash_t ProjectionPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);

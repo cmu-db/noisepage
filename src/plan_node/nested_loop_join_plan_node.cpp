@@ -3,15 +3,6 @@
 
 namespace terrier::plan_node {
 
-std::unique_ptr<AbstractPlanNode> NestedLoopJoinPlanNode::Copy() const {
-  parser::AbstractExpression *predicate_copy(GetPredicate() != nullptr ? GetPredicate()->Copy().get() : nullptr);
-
-  NestedLoopJoinPlanNode *new_plan =
-      new NestedLoopJoinPlanNode(GetOutputSchema()->Copy(), GetLogicalJoinType(), predicate_copy);
-
-  return std::unique_ptr<AbstractPlanNode>(new_plan);
-}
-
 common::hash_t NestedLoopJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 

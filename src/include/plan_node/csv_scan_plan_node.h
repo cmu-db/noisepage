@@ -31,15 +31,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CSVSCAN; }
 
-  const std::string GetInfo() const override { return "CSVScanPlanNode"; }
-
   const std::string &GetFileName() const { return file_name_; }
   char GetDelimiterChar() const { return delimiter_; }
   char GetQuoteChar() const { return quote_; }
   char GetEscapeChar() const { return escape_; }
   const std::string &GetNullString() const { return null_string_; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override;
 
   common::hash_t Hash() const override;
 

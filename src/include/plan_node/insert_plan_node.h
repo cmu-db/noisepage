@@ -70,17 +70,6 @@ class InsertPlanNode : public AbstractPlanNode {
   uint32_t GetBulkInsertCount() const { return bulk_insert_count_; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "InsertPlanNode"; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    // TODO(Gus,Wen) Add copying mechanism
-    std::unique_ptr<AbstractPlanNode> dummy;
-    return dummy;
-  }
-
-  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;

@@ -20,18 +20,9 @@ class LimitPlanNode : public AbstractPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::LIMIT; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "LimitPlanNode"; }
-
   size_t GetLimit() { return limit_; }
 
   size_t GetOffset() { return offset_; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new LimitPlanNode(GetOutputSchema()->Copy(), limit_, offset_));
-  }
 
   common::hash_t Hash() const override;
 

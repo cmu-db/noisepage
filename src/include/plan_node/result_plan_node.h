@@ -38,11 +38,6 @@ class ResultPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
 
   /**
-   * @return debug info
-   */
-  const std::string GetInfo() const { return "ResultPlanNode"; }
-
-  /**
    * @return a unique pointer to a copy of this plan node
    */
   std::unique_ptr<AbstractPlanNode> Copy() const override {

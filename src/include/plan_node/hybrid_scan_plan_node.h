@@ -22,20 +22,9 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
 
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HYBRIDSCAN; }
 
-  /**
-   * @return debug info
-   */
-  const std::string GetInfo() const override { return "HybridScanPlanNode"; }
-
   catalog::index_oid_t GetIndexOid() const { return index_oid_; }
 
   HybridScanType GetHybridScanType() const { return hybrid_scan_type_; }
-
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    HybridScanPlanNode *new_plan = new HybridScanPlanNode(GetOutputSchema()->Copy(), GetIndexOid(),
-                                                          GetPredicate()->Copy().get(), GetHybridScanType());
-    return std::unique_ptr<AbstractPlanNode>(new_plan);
-  }
 
   common::hash_t Hash() const override;
 
