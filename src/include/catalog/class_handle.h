@@ -97,17 +97,10 @@ class ClassHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_class_rw_->Dump(txn); }
 
-  /**
-   * Get used schema columns.
-   * @return a vector of used schema columns.
-   */
-  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
-
-  /**
-   * Get unused schema columns.
-   * @return a vector of unused schema columns.
-   */
-  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
@@ -115,7 +108,5 @@ class ClassHandle {
   // db_oid_t db_oid_;
   // storage for this table
   std::shared_ptr<catalog::SqlTableRW> pg_class_rw_;
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 }  // namespace terrier::catalog

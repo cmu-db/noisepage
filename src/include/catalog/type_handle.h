@@ -93,24 +93,14 @@ class TypeHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_type_rw_->Dump(txn); }
 
-  /**
-   * Get used schema columns.
-   * @return a vector of used schema columns.
-   */
-  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
-
-  /**
-   * Get unused schema columns.
-   * @return a vector of unused schema columns.
-   */
-  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
-
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
   // Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog

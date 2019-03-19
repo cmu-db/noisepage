@@ -82,17 +82,10 @@ class AttrDefHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_attrdef_rw_->Dump(txn); }
 
-  /**
-   * Get used schema columns.
-   * @return a vector of used schema columns.
-   */
-  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
-
-  /**
-   * Get unused schema columns.
-   * @return a vector of unused schema columns.
-   */
-  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   // not sure if needed..
@@ -101,8 +94,5 @@ class AttrDefHandle {
   // db_oid_t db_oid_;
   // storage for this table
   std::shared_ptr<catalog::SqlTableRW> pg_attrdef_rw_;
-
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 }  // namespace terrier::catalog

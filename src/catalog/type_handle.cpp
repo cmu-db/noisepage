@@ -15,7 +15,7 @@ const std::vector<SchemaCol> TypeHandle::schema_cols_ = {{0, "oid", type::TypeId
                                                          {4, "typlen", type::TypeId::INTEGER},
                                                          {6, "typtype", type::TypeId::VARCHAR}};
 
-const std::vector<SchemaCol> TypeHandle::unused_schema_cols = {
+const std::vector<SchemaCol> TypeHandle::unused_schema_cols_ = {
     {3, "typowner", type::TypeId::INTEGER},      {5, "typbyval", type::TypeId::BOOLEAN},
     {7, "typcatagory", type::TypeId::VARCHAR},   {8, "typispreferred", type::TypeId::BOOLEAN},
     {9, "typisdefined", type::TypeId::BOOLEAN},  {10, "typdelim", type::TypeId::VARCHAR},
@@ -92,7 +92,7 @@ std::shared_ptr<catalog::SqlTableRW> TypeHandle::Create(transaction::Transaction
     pg_type->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
   // unused columns
-  for (auto col : unused_schema_cols) {
+  for (auto col : unused_schema_cols_) {
     pg_type->DefineColumn(col.col_name, col.type_id, false, col_oid_t(catalog->GetNextOid()));
   }
   pg_type->Create();

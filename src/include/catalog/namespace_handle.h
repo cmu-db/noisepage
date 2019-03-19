@@ -115,25 +115,16 @@ class NamespaceHandle {
    */
   void Dump(transaction::TransactionContext *txn) { pg_namespace_hrw_->Dump(txn); }
 
-  /**
-   * Get used schema columns.
-   * @return a vector of used schema columns.
-   */
-  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
-
-  /**
-   * Get unused schema columns.
-   * @return a vector of unused schema columns.
-   */
-  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
   // database parent of this namespace
   db_oid_t db_oid_;
   std::shared_ptr<catalog::SqlTableRW> pg_namespace_hrw_;
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog

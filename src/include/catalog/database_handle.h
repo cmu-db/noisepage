@@ -145,17 +145,10 @@ class DatabaseHandle {
   void Dump(transaction::TransactionContext *txn) { pg_database_rw_->Dump(txn); }
   // end Debug methods
 
-  /**
-   * Get used schema columns.
-   * @return a vector of used schema columns.
-   */
-  const std::vector<SchemaCol> &GetSchemaColumns() { return schema_cols_; }
-
-  /**
-   * Get unused schema columns.
-   * @return a vector of unused schema columns.
-   */
-  const std::vector<SchemaCol> &GetUnusedSchemaColumns() { return unused_schema_cols_; }
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
   Catalog *catalog_;
@@ -163,9 +156,6 @@ class DatabaseHandle {
    * pg_database SQL table
    */
   std::shared_ptr<catalog::SqlTableRW> pg_database_rw_;
-
-  static const std::vector<SchemaCol> schema_cols_;
-  static const std::vector<SchemaCol> unused_schema_cols_;
 };
 
 }  // namespace terrier::catalog
