@@ -32,7 +32,7 @@ const std::vector<SchemaCol> TypeHandle::unused_schema_cols_ = {
 };
 
 TypeHandle::TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_type)
-    : pg_type_rw_(std::move(pg_type)) {}
+    : catalog_(catalog), pg_type_rw_(std::move(pg_type)) {}
 
 type_oid_t TypeHandle::TypeToOid(transaction::TransactionContext *txn, const std::string &type) {
   auto te = GetTypeEntry(txn, type);
@@ -79,6 +79,7 @@ void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, 
   row.emplace_back(type::ValueFactory::GetIntegerValue(!typnamespace));
   row.emplace_back(type::ValueFactory::GetIntegerValue(typlen));
   row.emplace_back(type::ValueFactory::GetVarcharValue(typtype.c_str()));
+  catalog_->SetUnusedColumns(&row, TypeHandle::unused_schema_cols_);
   pg_type_rw_->InsertRow(txn, row);
 }
 

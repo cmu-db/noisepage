@@ -29,7 +29,7 @@ class SettingsHandle {
      * @param oid
      * @param entry: the row as a vector of values
      */
-    SettingsEntry(col_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    SettingsEntry(settings_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column
@@ -39,14 +39,14 @@ class SettingsHandle {
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
-     * Return the col_oid of the attribute
-     * @return col_oid of the attribute
+     * Return the settings_oid of the attribute
+     * @return settings_oid of the attribute
      */
-    col_oid_t GetSettingsOid() { return oid_; }
+    settings_oid_t GetSettingsOid() { return oid_; }
 
    private:
     // the row
-    col_oid_t oid_;
+    settings_oid_t oid_;
     std::vector<type::Value> entry_;
   };
 
@@ -57,7 +57,7 @@ class SettingsHandle {
    * @return a shared pointer to Settings entry;
    *         NULL if the entry doesn't exist.
    */
-  std::shared_ptr<SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn, col_oid_t oid);
+  std::shared_ptr<SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn, settings_oid_t oid);
 
   /**
    * Constructor
@@ -75,6 +75,21 @@ class SettingsHandle {
    */
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
+
+  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+    pg_settings_->InsertRow(txn, row);
+  }
+
+  std::shared_ptr<SettingsHandle::SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn,
+                                                                  const std::string &name) {
+    std::vector<type::Value> search_vec, ret_row;
+    search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+    search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+    ret_row = pg_settings_->FindRow(txn, search_vec);
+
+    settings_oid_t oid(ret_row[0].GetIntValue());
+    return std::make_shared<SettingsEntry>(oid, ret_row);
+  }
 
   /**
    * Debug methods

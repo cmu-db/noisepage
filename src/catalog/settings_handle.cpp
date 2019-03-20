@@ -12,7 +12,7 @@ namespace terrier::catalog {
 
 // Find entry with (row) oid and return it
 std::shared_ptr<SettingsHandle::SettingsEntry> SettingsHandle::GetSettingsEntry(transaction::TransactionContext *txn,
-                                                                                col_oid_t oid) {
+                                                                                settings_oid_t oid) {
   std::vector<type::Value> search_vec, ret_row;
   search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
   ret_row = pg_settings_->FindRow(txn, search_vec);
@@ -40,7 +40,7 @@ std::shared_ptr<catalog::SqlTableRW> SettingsHandle::Create(transaction::Transac
   }
   // now actually create, with the provided schema
   pg_settings->Create();
-  catalog->AddToMaps(db_oid, pg_settings_oid, name, pg_settings);
+  // catalog->AddToMaps(db_oid, pg_settings_oid, name, pg_settings);
   return pg_settings;
 }
 
@@ -61,9 +61,9 @@ const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
     {8, "vartype", type::TypeId::VARCHAR},     {9, "source", type::TypeId::VARCHAR},
     {10, "min_val", type::TypeId::VARCHAR},    {11, "max_val", type::TypeId::VARCHAR},
     {12, "enumvals", type::TypeId::VARCHAR},   {13, "unit", type::TypeId::VARCHAR},
-    {13, "boot_val", type::TypeId::VARCHAR},   {14, "reset_val", type::TypeId::VARCHAR},
-    {15, "sourcefile", type::TypeId::VARCHAR}, {16, "sourceline", type::TypeId::VARCHAR},
-    {17, "sourceline", type::TypeId::INTEGER}, {18, "pending_restart", type::TypeId::BOOLEAN}};
+    {14, "boot_val", type::TypeId::VARCHAR},   {15, "reset_val", type::TypeId::VARCHAR},
+    {16, "sourcefile", type::TypeId::VARCHAR}, {17, "sourceline", type::TypeId::VARCHAR},
+    {18, "sourceline", type::TypeId::INTEGER}, {19, "pending_restart", type::TypeId::BOOLEAN}};
 
 const std::vector<SchemaCol> SettingsHandle::unused_schema_cols_ = {};
 

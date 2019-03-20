@@ -99,7 +99,7 @@ class TypeHandle {
   static const std::vector<SchemaCol> unused_schema_cols_;
   // TODO(yeshengm): we have to add support for UDF in the future
  private:
-  // Catalog *catalog_;
+  Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_type_rw_;
 };
 

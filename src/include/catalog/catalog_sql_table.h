@@ -201,6 +201,7 @@ class SqlTableRW {
    * @param row - vector of values to insert
    */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+    TERRIER_ASSERT(pri_->NumColumns() == row.size(), "InsertRow: inserted row size != number of columns");
     // get buffer for insertion and use as a row
     auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     auto proj_row = pri_->InitializeRow(insert_buffer);

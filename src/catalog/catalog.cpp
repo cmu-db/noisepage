@@ -64,6 +64,8 @@ DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_dat
 
 TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
 
+SettingsHandle Catalog::GetSettingsHandle() { return SettingsHandle(pg_settings_); }
+
 std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid) {
   return map_.at(db_oid).at(table_oid);
 }
@@ -83,6 +85,8 @@ void Catalog::Bootstrap() {
 
   CreatePGTablespace(table_oid_t(GetNextOid()));
   PopulatePGTablespace(txn);
+
+  pg_settings_ = SettingsHandle::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
   txn_manager_->Commit(txn, BootstrapCallback, nullptr);
@@ -198,8 +202,10 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CATALOG_LOG_TRACE("Bootstrapping database oid (db_oid) {}", !db_oid);
   map_[db_oid][pg_database_->Oid()] = pg_database_;
   map_[db_oid][pg_tablespace_->Oid()] = pg_tablespace_;
+  map_[db_oid][pg_settings_->Oid()] = pg_settings_;
   name_map_[db_oid]["pg_database"] = pg_database_->Oid();
   name_map_[db_oid]["pg_tablespace"] = pg_tablespace_->Oid();
+  name_map_[db_oid]["pg_settings"] = pg_settings_->Oid();
 
   // Order: pg_attribute -> pg_namespace -> pg_class
   CreatePGAttribute(txn, db_oid);
@@ -207,9 +213,10 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
-  SettingsHandle::Create(txn, this, db_oid, "pg_settings");
 
   // add columnn information into pg_attribute, for the catalog tables just created
+  // pg_database, pg_tablespace and pg_settings are global, but
+  // pg_attribute is local, so add them too.
   std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
                                        "pg_class",    "pg_type",       "pg_attrdef",   "pg_settings"};
   auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
@@ -386,9 +393,27 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
         vec->emplace_back(type::ValueFactory::GetBooleanValue(false));
         break;
 
+      case type::TypeId::TINYINT:
+        vec->emplace_back(type::ValueFactory::GetTinyIntValue(0));
+
+      case type::TypeId::SMALLINT:
+        vec->emplace_back(type::ValueFactory::GetSmallIntValue(0));
+
       case type::TypeId::INTEGER:
         vec->emplace_back(type::ValueFactory::GetIntegerValue(0));
         break;
+
+      case type::TypeId::BIGINT:
+        vec->emplace_back(type::ValueFactory::GetBigIntValue(0));
+
+      case type::TypeId::DATE:
+        vec->emplace_back(type::ValueFactory::GetDateValue(type::date_t(0)));
+
+      case type::TypeId::DECIMAL:
+        vec->emplace_back(type::ValueFactory::GetDecimalValue(0));
+
+      case type::TypeId::TIMESTAMP:
+        vec->emplace_back(type::ValueFactory::GetTimeStampValue(type::timestamp_t(0)));
 
       case type::TypeId::VARCHAR:
         vec->emplace_back(type::ValueFactory::GetNullValue(type::TypeId::VARCHAR));

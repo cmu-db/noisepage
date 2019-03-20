@@ -16,6 +16,7 @@ namespace terrier::catalog {
 
 class DatabaseHandle;
 class TablespaceHandle;
+class SettingsHandle;
 
 /**
  * Schema column for used/unused schema rows.
@@ -92,6 +93,12 @@ class Catalog {
    * @return the tablespace handle
    */
   TablespaceHandle GetTablespaceHandle();
+
+  /**
+   * Return a tablespace handle.
+   * @return the tablespace handle
+   */
+  SettingsHandle GetSettingsHandle();
 
   /**
    * Get the pointer to a catalog in a database by db_oid, including global catalogs.
@@ -270,6 +277,7 @@ class Catalog {
   // global catalogs
   std::shared_ptr<catalog::SqlTableRW> pg_database_;
   std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
+  std::shared_ptr<catalog::SqlTableRW> pg_settings_;
 
   // map from (db_oid, catalog table_oid_t) to sql table rw wrapper
   std::unordered_map<db_oid_t, std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>> map_;
