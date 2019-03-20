@@ -72,7 +72,7 @@ class SqlTable {
     /**
      * Equality check.
      * @param other other iterator to compare to
-     * @return if the two iterators point to the same slot
+     * @return if the two iterators point to the same slotcolumn_ids
      */
     bool operator==(const SlotIterator &other) const { return current_it_ == other.current_it_; }
 
@@ -144,34 +144,34 @@ class SqlTable {
       return tables_[!version_num].data_table->Select(txn, slot, out_buffer);
     }
 
-    // The slot version is not the same as the version_num
-    // 1. Get the old ProjectedRow
-    // 2. Convert it into new ProjectedRow
 
-    // Create buffer for old ProjectedRow
     auto old_dt_version = tables_[!old_version_num];
-    std::vector<catalog::col_oid_t> col_oids;
+    // The slot version is not the same as the version_num
+    // 1. Get header of requested ProjectedRow
+    // 2. Modify header to expected ProjectedRow
+    // 3. Reset Header
+
+    ProjectedRowHeader requestedHeader(out_buffer);
+    ProjectedRowHeader expectedHeader(out_buffer);
+
+    uint16_t num_attrs_expected = 0;
     for (auto &it : old_dt_version.column_map) {
-      if (pr_map.count(it.first) > 0) col_oids.emplace_back(it.first);
-    }
-    auto old_pr_pair = InitializerForProjectedRow(col_oids, old_version_num);
-    auto read_buffer = common::AllocationUtil::AllocateAligned(old_pr_pair.first.ProjectedRowSize());
-    ProjectedRow *pr_buffer = old_pr_pair.first.InitializeRow(read_buffer);
-
-    // 1. Get the old ProjectedRow
-    bool result = old_dt_version.data_table->Select(txn, slot, pr_buffer);
-    if (!result) {
-      delete[] read_buffer;
-      return false;
+      if (pr_map.count(it.first) > 0){
+        expectedHeader.column_ids[num_attrs_expected] = tables_[!version_num].column_map.at(it.first);
+        expectedHeader.attr_value_offsets[num_attrs_expected] = out_buffer->GetAttrValueOffset(pr_map.at(it.first));
+        num_attrs_expected++;
+      }
     }
 
-    // 2. Convert it into new ProjectedRow
-    // TODO(yangjuns): fill in default values for newly added attributes
-    StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_dt_version.layout, out_buffer,
-                                              pr_map);
+    expectedHeader.num_columns_ = num_attrs_expected;
 
-    delete[] read_buffer;
-    return true;
+    expectedHeader.setAsHeaderOf(out_buffer);
+    bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
+    requestedHeader.setAsHeaderOf(out_buffer);
+
+    return result;
+
+    //TODO(yangjuns): fill in default values for newly added attributes
   }
 
   /**
@@ -491,7 +491,9 @@ class SqlTable {
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
+   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
+   * @param version the version of DataTable
    * @return vector of col_ids for these col_oids
    */
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t version) const;

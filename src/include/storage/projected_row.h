@@ -46,6 +46,7 @@ class PACKED ProjectedRow {
    */
   static ProjectedRow *CopyProjectedRowLayout(void *head, const ProjectedRow &other);
 
+
   /**
    * @return the size of this ProjectedRow in memory, in bytes
    */
@@ -131,8 +132,19 @@ class PACKED ProjectedRow {
     return !Bitmap().Test(offset);
   }
 
+  /**
+   * Retrieves the offset inside of projected row to access a specific attribute
+   * @param offset The 0-indexed element to access in this ProjectedRow
+   * @return offset inside of projected row to access a specific attribute
+   */
+  uint32_t GetAttrValueOffset(const uint16_t offset){
+    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    return AttrValueOffsets()[offset];
+  }
+
  private:
   friend class ProjectedRowInitializer;
+  friend class ProjectedRowHeader;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
@@ -146,6 +158,44 @@ class PACKED ProjectedRow {
   const common::RawBitmap &Bitmap() const {
     return *reinterpret_cast<const common::RawBitmap *>(AttrValueOffsets() + num_cols_);
   }
+};
+
+/**
+ * An object to represent the header of a ProjectedRow
+ * Used within sql_table select and scan to store the header of a projected row when transforming it
+ */
+class ProjectedRowHeader{
+  public:
+    ProjectedRowHeader(ProjectedRow *const row){
+      size_ = row->Size();
+      num_columns_ = row->NumColumns();
+      for(int i = 0; i < num_columns_; i++){
+        column_ids.emplace_back(row->ColumnIds()[i]);
+        attr_value_offsets.emplace_back(row->AttrValueOffsets()[i]);
+      }
+    }
+
+    /**
+     * Sets the header of the passed in projected row to contain the same values as this
+     * @param row  projected row whose header to modify
+     */
+    void setAsHeaderOf(ProjectedRow *const row){
+      row->size_ = size_;
+
+      TERRIER_ASSERT(num_columns_ <= row->num_cols_, "Can't set header to contain more columns than what row initially had");
+      //Important the num_columns_ is set before changeing other values because ColumnId() and AttrValueOffsets() pointers are based off of it
+      row->num_cols_ = num_columns_;
+
+      for(int i = 0; i < num_columns_; i++){
+        row->ColumnIds()[i] = column_ids[i];
+        row->AttrValueOffsets()[i] = attr_value_offsets[i];
+      }
+    }
+
+    uint32_t size_;
+    uint16_t num_columns_;
+    std::vector<col_id_t> column_ids;
+    std::vector<uint32_t> attr_value_offsets;
 };
 
 /**
