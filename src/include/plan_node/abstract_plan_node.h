@@ -17,30 +17,67 @@ namespace terrier::plan_node {
  * An abstract plan node should be the base class for (almost) all plan nodes
  */
 class AbstractPlanNode {
- public:
+ protected:
+  /**
+   * Base builder class for plan nodes
+   * @tparam ConcreteType
+   */
+  template <class ConcreteType>
+  class Builder {
+   public:
+    virtual ~Builder() = default;
+
+    /**
+     * @param child child to be added
+     * @return builder object
+     */
+    ConcreteType &AddChild(std::unique_ptr<AbstractPlanNode> child) {
+      children_.emplace_back(std::move(child));
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    /**
+     * @param output_schema output schema for plan node
+     * @return builder object
+     */
+    ConcreteType &SetOutputSchema(std::shared_ptr<OutputSchema> output_schema) {
+      output_schema_ = output_schema;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    /**
+     * @param cardinality estimated cardinality of output for the plan node
+     * @return builder object
+     */
+    ConcreteType &SetEstimatedCardinality(int cardinality) {
+      estimated_cardinality_ = cardinality;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+   protected:
+    std::vector<std::shared_ptr<AbstractPlanNode>> children_;
+    std::shared_ptr<OutputSchema> output_schema_;
+    int estimated_cardinality_ = 0;
+  };
+
   /**
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  explicit AbstractPlanNode(std::shared_ptr<OutputSchema> output_schema) : output_schema_(std::move(output_schema)) {}
+  explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  int estimated_cardinality) : children_(std::move(children)), output_schema_(std::move(output_schema)), estimated_cardinality_(estimated_cardinality) {}
 
   /**
    * Constructor for Deserialization and DDL statements
    */
   AbstractPlanNode() = default;
 
+ public:
   virtual ~AbstractPlanNode() = default;
 
   //===--------------------------------------------------------------------===//
   // Children Helpers
   //===--------------------------------------------------------------------===//
-
-  /**
-   * Add a child plan node. Plan nodes are immutable, so this method should only be called during initialization of the
-   * plan node
-   * @param child child to be added
-   */
-  void AddChild(std::unique_ptr<AbstractPlanNode> &&child) { children_.emplace_back(std::move(child)); }
 
   /**
    * @return child plan nodes
@@ -83,26 +120,21 @@ class AbstractPlanNode {
    */
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
 
-  /**
-   * @param cardinality estimated cardinality to be set
-   */
-  void SetEstimatedCardinality(int cardinality) { estimated_cardinality_ = cardinality; }
-
-  //===--------------------------------------------------------------------===//
-  // JSON Serialization/Deserialization
-  //===--------------------------------------------------------------------===//
-
-  /**
-   * Return the current plan node in JSON format.
-   * @return JSON representation of plan node
-   */
-  virtual nlohmann::json ToJson() const;
-
-  /**
-   * Populates the plan node with the information in the given JSON.
-   * Undefined behavior occurs if the JSON has a different PlanNodeType.
-   */
-  virtual void FromJson(const nlohmann::json &json);
+//  //===--------------------------------------------------------------------===//
+//  // JSON Serialization/Deserialization
+//  //===--------------------------------------------------------------------===//
+//
+//  /**
+//   * Return the current plan node in JSON format.
+//   * @return JSON representation of plan node
+//   */
+//  virtual nlohmann::json ToJson() const;
+//
+//  /**
+//   * Populates the plan node with the information in the given JSON.
+//   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+//   */
+//  virtual void FromJson(const nlohmann::json &json);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -139,10 +171,8 @@ class AbstractPlanNode {
 
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
-
-  int estimated_cardinality_ = 500000;
-
   std::shared_ptr<OutputSchema> output_schema_;
+  int estimated_cardinality_;
 
  public:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
