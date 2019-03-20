@@ -1,9 +1,6 @@
 #pragma once
-#include <algorithm>
-#include <forward_list>
-#include <iostream>
+
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "storage/arrow_block_metadata.h"
@@ -103,22 +100,18 @@ class BlockCompactor {
   // not any of the calculated metadata.
   bool CheckForActiveVersionsAndGaps(CompactionGroup *cg);
 
+  // When a tuple is present, read the tuple and update associated metadata we need for later stages of the
+  // transformation
+  void InspectTuple(CompactionGroup *cg, BlockCompactionTask *bct, TupleSlot slot);
+
   // Given the identified deleted tuples and assuming that no conflict was detected in the previous scan,
   // move around tuples to make all the gaps disappear. The transaction could get aborted and end the compaction
   // process prematurely. Metadata on varlen columns is also updated to help with the following step.
   bool EliminateGaps(CompactionGroup *cg);
 
-  // Allocates the buffer in according to the column types
-  void AllocateBuffers(RawBlock *block, const BlockLayout &layout, BlockCompactionTask *bct);
-
-  // Initialize the accumulator and index maps.
-  void InitializeMappings(RawBlock *block, const BlockLayout &layout, BlockCompactionTask *bct,
-                          std::unordered_map<col_id_t, uint32_t> *acc,
-                          std::unordered_map<col_id_t, VarlenEntryMap<uint32_t>> *index_map);
-
-  bool UpdateVarlens(RawBlock *block, const BlockLayout &layout, BlockCompactionTask *bct, CompactionGroup *cg,
-                     std::unordered_map<col_id_t, uint32_t> *acc,
-                     std::unordered_map<col_id_t, VarlenEntryMap<uint32_t>> *index_map);
+  // Move a tuple and updated associated information in their respective blocks
+  bool MoveTuple(CompactionGroup *cg, BlockCompactionTask *giver, BlockCompactionTask *taker, TupleSlot from,
+                 TupleSlot to);
 
   // After all the tuples are logically contiguous within a group, we can scan through the blocks individually
   // and update all the varlens to point to an offset within our new, arrow-compatible varlen buffer. This process
@@ -128,6 +121,16 @@ class BlockCompactor {
   // has no varlen column.
   // TODO(Tianyu): If we ever write bulk-updates, this will benefit from that greatly
   bool GatherVarlens(CompactionGroup *cg);
+
+  // Initialize each block's buffer for storing varlens as well as metadata associated with the gathering phase
+  void InitializeGatherWorkspace(BlockCompactionTask *bct, const BlockLayout &layout,
+                                 std::unordered_map<col_id_t, uint32_t> *acc,
+                                 std::unordered_map<col_id_t, VarlenEntryMap<uint32_t>> *index_map);
+
+  // Update varlen columns in the block with updated locations in Arrow buffers
+  bool UpdateVarlensForBlock(RawBlock *block, const BlockLayout &layout, BlockCompactionTask *bct, CompactionGroup *cg,
+                             std::unordered_map<col_id_t, uint32_t> *acc,
+                             std::unordered_map<col_id_t, VarlenEntryMap<uint32_t>> *index_map);
 
   // When the compaction process is done (i.e. all transactional operations are done, which guaratees successful
   // commit under SI), we need to cleanup some metadata and free up some memory
