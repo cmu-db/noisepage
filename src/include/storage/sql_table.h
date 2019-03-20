@@ -492,6 +492,7 @@ class SqlTable {
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
+   * @param version the version of DataTable
    * @return vector of col_ids for these col_oids
    */
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t version) const;
