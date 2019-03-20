@@ -38,38 +38,39 @@ class GenericKey {
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     TERRIER_ASSERT(from.NumColumns() == metadata.GetKeySchema().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
-
     metadata_ = &metadata;
     std::memset(key_data_, 0, key_size_byte);
-    std::memcpy(GetProjectedRow(), &from, from.Size());
-  }
 
-  /**
-   * GenericKey needs a destructor since it owns the memory of any VARLEN entries it points to.
-   */
-  ~GenericKey() {
-    if (metadata_ == nullptr) return;
+    if (metadata.MustInlineAttributes()) {
+      const auto &key_schema = metadata.GetKeySchema();
+      const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
-    const auto &key_schema = metadata_->GetKeySchema();
+      const ProjectedRowInitializer &generic_key_initializer = metadata.GetGenericKeyPRInitializer();
 
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
-      const auto type_id = key_schema[i].type_id;
+      auto *const pr = GetProjectedRow();
+      generic_key_initializer.InitializeRow(pr);
 
-      if (type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY) {
-        const auto *const pr = GetProjectedRow();
-        const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
-        const byte *const attr = pr->AccessWithNullCheck(offset);
-        if (attr == nullptr) {
-          // attribute is NULL, nothing to clean up
-          continue;
-        }
-
-        const auto varlen = *reinterpret_cast<const VarlenEntry *const>(attr);
-
-        if (varlen.NeedReclaim()) {
-          delete[] varlen.Content();  // NOLINT spurious warning (Matt/Wan)
+      for (uint16_t i = 0; i < key_schema.size(); i++) {
+        const auto offset = static_cast<uint16_t>(from.ColumnIds()[i]);
+        TERRIER_ASSERT(offset == static_cast<uint16_t>(pr->ColumnIds()[i]), "PRs must have the same comparison order!");
+        const byte *const from_attr = from.AccessWithNullCheck(offset);
+        if (from_attr == nullptr) {
+          pr->SetNull(offset);
+        } else {
+          const auto inline_attr_size = inlined_attr_sizes[i];
+          if (inlined_attr_size <= 16) {
+            std::memcpy(pr->AccessForceNotNull(offset), from_attr, inlined_attr_sizes[i]);
+          } else {
+            // Convert the VarlenEntry to be inlined
+            const auto varlen = *reinterpret_cast<const VarlenEntry *const>(from_attr);
+            byte *const to_attr = pr->AccessForceNotNull(offset);
+            *reinterpret_cast<uint32_t *const>(to_attr) = varlen.Size();
+            std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen.Size());
+          }
         }
       }
+    } else {
+      std::memcpy(GetProjectedRow(), &from, from.Size());
     }
   }
 
@@ -104,31 +105,19 @@ class GenericKey {
     TypeComparators() = delete;
 
     /**
-     * @param lhs_varlen first VarlenEntry to be compared
-     * @param rhs_varlen second VarlenEntry to be compared
+     * @param lhs_attr first VarlenEntry to be compared
+     * @param rhs_attr second VarlenEntry to be compared
      * @return std::memcmp semantics: < 0 means first is less than second, 0 means equal, > 0 means first is greater
      * than second
      */
-    static int CompareVarlens(const VarlenEntry &lhs_varlen, const VarlenEntry &rhs_varlen) {
-      const uint32_t lhs_size = lhs_varlen.Size();
-      const uint32_t rhs_size = rhs_varlen.Size();
+    static int CompareVarlens(const byte *const lhs_attr, const byte *const rhs_attr) {
+      const uint32_t lhs_size = *reinterpret_cast<const uint32_t *const>(lhs_attr);
+      const uint32_t rhs_size = *reinterpret_cast<const uint32_t *const>(rhs_attr);
       const auto smallest_size = std::min(lhs_size, rhs_size);
 
-      auto prefix_result =
-          std::memcmp(lhs_varlen.Prefix(), rhs_varlen.Prefix(), std::min(smallest_size, VarlenEntry::PrefixSize()));
-
-      if (prefix_result == 0 && smallest_size <= VarlenEntry::PrefixSize()) {
-        // strings compared as equal, but they have different lengths and one fit within prefix, decide based on length
-        return lhs_size - rhs_size;
-      }
-      if (prefix_result != 0) {
-        // strings compared as non-equal with the prefix, we can use that result without inspecting any more
-        return prefix_result;
-      }
-
       // get the pointers to the content
-      const byte *const lhs_content = lhs_varlen.Content();
-      const byte *const rhs_content = rhs_varlen.Content();
+      const byte *const lhs_content = lhs_attr + sizeof(uint32_t);
+      const byte *const rhs_content = rhs_attr + sizeof(uint32_t);
       auto result = std::memcmp(lhs_content, rhs_content, smallest_size);
       if (result == 0 && lhs_size != rhs_size) {
         // strings compared as equal, but they have different lengths. Decide based on length
@@ -158,9 +147,7 @@ class GenericKey {
              reinterpret_cast<const uint64_t *const>(rhs_attr);                                                       \
     case type::TypeId::VARCHAR:                                                                                       \
     case type::TypeId::VARBINARY: {                                                                                   \
-      const auto lhs_varlen = *reinterpret_cast<const VarlenEntry *const>(lhs_attr);                                  \
-      const auto rhs_varlen = *reinterpret_cast<const VarlenEntry *const>(rhs_attr);                                  \
-      return CompareVarlens(lhs_varlen, rhs_varlen) OP 0;                                                             \
+      return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
       throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKey::TypeComparators.");            \
@@ -230,7 +217,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     const auto &metadata = key.GetIndexMetadata();
 
     const auto &key_schema = metadata.GetKeySchema();
-    const auto &attr_sizes = metadata.GetAttributeSizes();
+    const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
     uint64_t running_hash = terrier::common::HashUtil::Hash(metadata);
 
@@ -250,20 +237,9 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
         continue;
       }
 
-      if (type_id == terrier::type::TypeId::VARCHAR || type_id == terrier::type::TypeId::VARBINARY) {
-        const auto varlen = *reinterpret_cast<const terrier::storage::VarlenEntry *const>(attr);
-        if (!varlen.IsInlined()) {
-          const auto *const content = varlen.Content();
-          TERRIER_ASSERT(content != nullptr, "Varlen's non-inlined content cannot point to null.");
-          terrier::common::HashUtil::CombineHashes(running_hash,
-                                                   terrier::common::HashUtil::HashBytes(content, varlen.Size()));
-          continue;
-        }
-      }
-
       // just hash the attribute bytes for inlined attributes
-      terrier::common::HashUtil::CombineHashes(
-          running_hash, terrier::common::HashUtil::HashBytes(attr, static_cast<uint8_t>(attr_sizes[i] & INT8_MAX)));
+      running_hash = terrier::common::HashUtil::CombineHashes(
+          running_hash, terrier::common::HashUtil::HashBytes(attr, inlined_attr_sizes[i]));
     }
 
     return running_hash;
