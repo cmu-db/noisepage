@@ -142,16 +142,29 @@ class PACKED ProjectedRow {
     return AttrValueOffsets()[offset];
   }
 
+  /**
+   * Retrieves the size of the header
+   * @return size of header
+   */
+  uint64_t GetHeaderSize(){
+      //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
+      return sizeof(size_) + sizeof(num_cols_) + num_cols_ + (sizeof(uint32_t) * num_cols_);
+  }
+
+  uint32_t *AttrValueOffsets() { return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_); }
+
+  const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
+
+  void SetNumCols(uint16_t num_cols){
+    num_cols_ = num_cols;
+  }
+
  private:
   friend class ProjectedRowInitializer;
   friend class ProjectedRowHeader;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
-
-  uint32_t *AttrValueOffsets() { return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_); }
-
-  const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
 
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_); }
 

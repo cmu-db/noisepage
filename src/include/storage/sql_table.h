@@ -149,23 +149,46 @@ class SqlTable {
     // 2. Modify header to expected ProjectedRow
     // 3. Reset Header
 
-    ProjectedRowHeader requestedHeader(out_buffer);
-    ProjectedRowHeader expectedHeader(out_buffer);
+    //Header size of a projected row = sizeof(uint16 +
 
+    //Allocate space for storing headers
+    uint64_t initial_header_size = out_buffer->GetHeaderSize();
+    byte * requestedHeaderBuffer = common::AllocationUtil::AllocateAligned(initial_header_size);
+    byte * modifiedHeaderBuffer = common::AllocationUtil::AllocateAligned(initial_header_size);
+
+    //copy header to the buffers
+    memcpy(requestedHeaderBuffer, out_buffer, out_buffer->GetHeaderSize());
+    memcpy(modifiedHeaderBuffer, out_buffer, out_buffer->GetHeaderSize());
+
+    //This doesn't contain the entire row, just the header
+    auto requestedHeader = reinterpret_cast<ProjectedRow *>(requestedHeaderBuffer);
+    auto modifiedHeader = reinterpret_cast<ProjectedRow *>(modifiedHeaderBuffer);
+
+    //Have to use two separate loops, since need to populate the header num_cols_ before referring to the column_ids or attr_value_offsets
     uint16_t num_attrs_expected = 0;
     for (auto &it : old_dt_version.column_map) {
       if (pr_map.count(it.first) > 0){
-        expectedHeader.column_ids[num_attrs_expected] = tables_[!version_num].column_map.at(it.first);
-        expectedHeader.attr_value_offsets[num_attrs_expected] = out_buffer->GetAttrValueOffset(pr_map.at(it.first));
         num_attrs_expected++;
       }
     }
 
-    expectedHeader.num_columns_ = num_attrs_expected;
+    modifiedHeader->SetNumCols(num_attrs_expected);
 
-    expectedHeader.setAsHeaderOf(out_buffer);
+    int i = 0;
+    for (auto &it : old_dt_version.column_map) {
+      if (pr_map.count(it.first) > 0){
+        modifiedHeader->ColumnIds()[i] = tables_[!version_num].column_map.at(it.first);
+        modifiedHeader->AttrValueOffsets()[i] = out_buffer->GetAttrValueOffset(pr_map.at(it.first));
+      }
+      i++;
+    }
+
+    memcpy(out_buffer, modifiedHeader, initial_header_size);
     bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
-    requestedHeader.setAsHeaderOf(out_buffer);
+    memcpy(out_buffer, requestedHeader, initial_header_size);
+
+    delete[] modifiedHeaderBuffer;
+    delete[] requestedHeaderBuffer;
 
     return result;
 
