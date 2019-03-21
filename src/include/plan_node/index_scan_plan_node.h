@@ -13,22 +13,61 @@
 // figure that out. IndexScanDesc also had an expression type list, i dont see why this can't just be taken from the
 // predicate
 
-// TODO(Gus,Wen): plan node contianed info on whether the scan was left or right open. This should be computed at
+// TODO(Gus,Wen): plan node contained info on whether the scan was left or right open. This should be computed at
 // exection time
 
 namespace terrier::plan_node {
 
 class IndexScanPlanNode : public AbstractScanPlanNode {
- public:
+ protected:
   /**
-   * @param output_schema Schema representing the structure of the output of this plan nod
-   * @param index_oid OID of index to be used in hybrid scan
-   * @param predicate scan predicate
+   * Builder for an index scan plan node
    */
-  IndexScanPlanNode(std::shared_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
-                    parser::AbstractExpression *predicate)
-      : AbstractScanPlanNode(std::move(output_schema), predicate), index_oid_(index_oid) {}
+  class Builder : public AbstractScanPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
 
+    /**
+     * @param oid oid for index to use for scan
+     * @return builder object
+     */
+    Builder &SetIndexOID(catalog::index_oid_t oid) {
+      index_oid_ = oid;
+      return *this;
+    }
+
+    /**
+     * Build the Index scan plan node
+     * @return plan node
+     */
+    std::shared_ptr<IndexScanPlanNode> Build() {
+      return std::shared_ptr<IndexScanPlanNode>(new IndexScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      estimated_cardinality_, std::move(predicate_),
+                                                                      is_for_update_, is_parallel_, index_oid_));
+    }
+
+   protected:
+    catalog::index_oid_t index_oid_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
+   * @param predicate predicate used for performing scan
+   * @param is_for_update scan is used for an update
+   * @param parallel parallel scan flag
+   * @param index_oid OID of index to be used in index scan
+   */
+  IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                    std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                    std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
+                    catalog::index_oid_t index_oid)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),
+                             is_for_update, is_parallel),
+        index_oid_(index_oid) {}
+
+ public:
   /**
    * @return index OID to be used for scan
    */

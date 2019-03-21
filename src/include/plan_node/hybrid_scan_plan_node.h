@@ -14,19 +14,67 @@ namespace terrier::plan_node {
  * Plan node for a hybryd scan
  */
 class HybridScanPlanNode : public AbstractScanPlanNode {
- public:
+ protected:
   /**
-   * @param output_schema Schema representing the structure of the output of this plan nod
+   * Builder for a hybrid scan plan node
+   */
+  class Builder : public AbstractScanPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param oid oid for index to use for scan
+     * @return
+     */
+    Builder &SetIndexOID(catalog::index_oid_t oid) {
+      index_oid_ = oid;
+      return *this;
+    }
+
+    /**
+     * @param type hybrid scan type to use
+     * @return builder object
+     */
+    Builder &SetHybridScanType(HybridScanType type) {
+      hybrid_scan_type_ = type;
+      return *this;
+    }
+
+    /**
+     * Build the Hybrid scan plan node
+     * @return plan node
+     */
+    std::shared_ptr<HybridScanPlanNode> Build() {
+      return std::shared_ptr<HybridScanPlanNode>(
+          new HybridScanPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_,
+                                 std::move(predicate_), is_for_update_, is_parallel_, index_oid_, hybrid_scan_type_));
+    }
+
+   protected:
+    catalog::index_oid_t index_oid_;
+    HybridScanType hybrid_scan_type_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
+   * @param predicate predicate used for performing scan
+   * @param is_for_update scan is used for an update
+   * @param parallel parallel scan flag
    * @param index_oid OID of index to be used in hybrid scan
-   * @param predicate scan predicate
    * @param hybrid_scan_type hybrid scan type to be used
    */
-  HybridScanPlanNode(std::shared_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
-                     parser::AbstractExpression *predicate, HybridScanType hybrid_scan_type)
-      : AbstractScanPlanNode(std::move(output_schema), predicate),
+  HybridScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                     std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                     std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update,
+                     bool is_parallel, catalog::index_oid_t index_oid, HybridScanType hybrid_scan_type)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),
+                             is_for_update, is_parallel),
         index_oid_(index_oid),
         hybrid_scan_type_(hybrid_scan_type) {}
 
+ public:
   ~HybridScanPlanNode() override;
 
   /**

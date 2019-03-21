@@ -11,26 +11,83 @@
 namespace terrier::plan_node {
 
 /**
- * Plan node for hash join. Hash joins are constructed so that the left is the probe table, and the right is the hashed
+ * Plan node for hash join. Hash joins are constructed so that the left is the probe table, and the right is the
+ hashed
  * table
  */
 class HashJoinPlanNode : public AbstractJoinPlanNode {
- public:
+ protected:
   /**
+   * Builder for hash join plan node
+   */
+  class Builder : public AbstractJoinPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param key key to add to left hash keys
+     * @return builder object
+     */
+    Builder &AddLeftHashKey(parser::AbstractExpression *key) {
+      left_hash_keys_.push_back(key);
+      return *this;
+    }
+
+    /**
+     * @param key key to add to right hash keys
+     * @return builder object
+     */
+    Builder &AddRightHashKey(parser::AbstractExpression *key) {
+      right_hash_keys_.push_back(key);
+      return *this;
+    }
+
+    /**
+     * @param flag build bloom filter flag
+     * @return builder object
+     */
+    Builder &SetBuildBloomFilterFlag(bool flag) {
+      build_bloomfilter_ = flag;
+      return *this;
+    }
+
+    /**
+     * Build the hash join plan node
+     * @return plan node
+     */
+    std::shared_ptr<HashJoinPlanNode> Build() {
+      return std::shared_ptr<HashJoinPlanNode>(
+          new HashJoinPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, join_type_,
+                               std::move(predicate_), left_hash_keys_, right_hash_keys_, build_bloomfilter_));
+    }
+
+   protected:
+    std::vector<parser::AbstractExpression *> left_hash_keys_;
+    std::vector<parser::AbstractExpression *> right_hash_keys_;
+    bool build_bloomfilter_ = false;
+  };
+
+  /**
+   * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
    * @param join_type logical join type
    * @param predicate join predicate
    * @param left_hash_keys left side keys to be hashed on
    * @param right_hash_keys right side keys to be hashed on
    * @param build_bloomfilter flag whether to build a bloom filter
    */
-  HashJoinPlanNode(std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                   parser::AbstractExpression *predicate, std::vector<parser::AbstractExpression *> left_hash_keys,
-                   std::vector<parser::AbstractExpression *> right_hash_keys, bool build_bloomfilter = false)
-      : AbstractJoinPlanNode(std::move(output_schema), join_type, predicate),
+  HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality, LogicalJoinType join_type,
+                   std::unique_ptr<const parser::AbstractExpression> &&predicate,
+                   std::vector<parser::AbstractExpression *> left_hash_keys,
+                   std::vector<parser::AbstractExpression *> right_hash_keys, bool build_bloomfilter)
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, join_type,
+                             std::move(predicate)),
         left_hash_keys_(std::move(left_hash_keys)),
         right_hash_keys_(std::move(right_hash_keys)) {}
 
+ public:
   /**
    * @return the type of this plan node
    */

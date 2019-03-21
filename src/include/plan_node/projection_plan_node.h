@@ -11,13 +11,34 @@ namespace terrier::plan_node {
  * Plan node for projection
  */
 class ProjectionPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * @param output_schema Schema representing the structure of the output of this plan node
+   * Builder for projection plan node
    */
-  explicit ProjectionPlanNode(std::shared_ptr<OutputSchema> output_schema)
-      : AbstractPlanNode(std::move(output_schema)) {}
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
 
+    /**
+     * Build the projection plan node
+     * @return plan node
+     */
+    std::shared_ptr<ProjectionPlanNode> Build() {
+      return std::shared_ptr<ProjectionPlanNode>(
+          new ProjectionPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_));
+    }
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
+   */
+  explicit ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                              std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality) {}
+
+ public:
   /**
    * @return the type of this plan node
    */

@@ -14,39 +14,83 @@ namespace terrier::plan_node {
  * Plan node for order by operator
  */
 class OrderByPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Constructor for SORT without LIMIT
-   * @param output_schema Schema representing the structure of the output of this plan node
-   * @param sort_keys col_oid_t for keys on which to sort on
-   * @param sort_key_orderings orderings for each sort key (ASC or DESC). Same size as sort_keys
+   * Builder for order by plan node
    */
-  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
-                  std::vector<OrderByOrdering> sort_key_orderings)
-      : AbstractPlanNode(std::move(output_schema)),
-        sort_keys_(std::move(sort_keys)),
-        sort_key_orderings_(std::move(sort_key_orderings)),
-        has_limit_(false),
-        limit_(0),
-        offset_(0) {}
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param key column id for key to sort
+     * @param ordering ordering (ASC or DESC) for key
+     * @return builder object
+     */
+    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrdering ordering) {
+      sort_keys_.push_back(key);
+      sort_key_orderings_.push_back(ordering);
+      return *this;
+    }
+
+    /**
+     * @param limit number of tuples to limit to
+     * @return builder object
+     */
+    Builder &SetLimit(size_t limit) {
+      limit_ = limit;
+      has_limit_ = true;
+      return *this;
+    }
+
+    /**
+     * @param offset offset for where to limit from
+     * @return builder object
+     */
+    Builder &SetOffset(size_t offset) {
+      offset_ = offset;
+      return *this;
+    }
+
+    /**
+     * Build the order by plan node
+     * @return plan node
+     */
+    std::shared_ptr<OrderByPlanNode> Build() {
+      return std::shared_ptr<OrderByPlanNode>(
+          new OrderByPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_,
+                              std::move(sort_keys_), std::move(sort_key_orderings_), has_limit_, limit_, offset_));
+    }
+
+   protected:
+    std::vector<catalog::col_oid_t> sort_keys_;
+    std::vector<OrderByOrdering> sort_key_orderings_;
+    bool has_limit_ = false;
+    size_t limit_ = 0;
+    size_t offset_ = 0;
+  };
 
   /**
-   * Constructor for SORT with LIMIT
+   * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
    * @param sort_keys keys on which to sort on
    * @param sort_key_orderings orderings for each sort key (ASC or DESC). Same size as sort_keys
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
    */
-  OrderByPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
-                  std::vector<OrderByOrdering> sort_key_orderings, size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(output_schema)),
+  OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                  std::vector<catalog::col_oid_t> sort_keys, std::vector<OrderByOrdering> sort_key_orderings,
+                  bool has_limit, size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         sort_keys_(std::move(sort_keys)),
         sort_key_orderings_(std::move(sort_key_orderings)),
-        has_limit_(true),
+        has_limit_(has_limit),
         limit_(limit),
         offset_(offset) {}
 
+ public:
   /**
    * @return vector of col_oid_t of keys to sort on
    */

@@ -20,13 +20,48 @@ class HashPlanNode : public AbstractPlanNode {
   using HashKeyType = const parser::AbstractExpression;
   using HashKeyPtrType = std::shared_ptr<HashKeyType>;
 
+ protected:
   /**
+   * Builder for hash plan node
+   */
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param term Hash key to be added
+     * @return builder object
+     */
+    Builder &AddHashKey(HashKeyPtrType key) {
+      hash_keys_.push_back(key);
+      return *this;
+    }
+
+    /**
+     * Build the Hash plan node
+     * @return plan node
+     */
+    std::shared_ptr<HashPlanNode> Build() {
+      return std::shared_ptr<HashPlanNode>(new HashPlanNode(std::move(children_), std::move(output_schema_),
+                                                            estimated_cardinality_, std::move(hash_keys_)));
+    }
+
+   protected:
+    std::vector<HashKeyPtrType> hash_keys_;
+  };
+
+  /**
+   * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
    * @param hash_keys keys to be hashed on
    */
-  HashPlanNode(std::shared_ptr<OutputSchema> output_schema, std::vector<HashKeyPtrType> hash_keys)
-      : AbstractPlanNode(std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
+  HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+               int estimated_cardinality, std::vector<HashKeyPtrType> hash_keys)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+        hash_keys_(std::move(hash_keys)) {}
 
+ public:
   /**
    * @return the type of this plan node
    */

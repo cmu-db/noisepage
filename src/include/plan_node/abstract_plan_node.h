@@ -55,17 +55,22 @@ class AbstractPlanNode {
     }
 
    protected:
-    std::vector<std::shared_ptr<AbstractPlanNode>> children_;
+    std::vector<std::unique_ptr<AbstractPlanNode>> children_;
     std::shared_ptr<OutputSchema> output_schema_;
     int estimated_cardinality_ = 0;
   };
 
   /**
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
+   * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
    */
-  explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-  int estimated_cardinality) : children_(std::move(children)), output_schema_(std::move(output_schema)), estimated_cardinality_(estimated_cardinality) {}
+  explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                            std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality)
+      : children_(std::move(children)),
+        output_schema_(std::move(output_schema)),
+        estimated_cardinality_(estimated_cardinality) {}
 
   /**
    * Constructor for Deserialization and DDL statements
@@ -120,21 +125,21 @@ class AbstractPlanNode {
    */
   int GetEstimatedCardinality() const { return estimated_cardinality_; }
 
-//  //===--------------------------------------------------------------------===//
-//  // JSON Serialization/Deserialization
-//  //===--------------------------------------------------------------------===//
-//
-//  /**
-//   * Return the current plan node in JSON format.
-//   * @return JSON representation of plan node
-//   */
-//  virtual nlohmann::json ToJson() const;
-//
-//  /**
-//   * Populates the plan node with the information in the given JSON.
-//   * Undefined behavior occurs if the JSON has a different PlanNodeType.
-//   */
-//  virtual void FromJson(const nlohmann::json &json);
+  //  //===--------------------------------------------------------------------===//
+  //  // JSON Serialization/Deserialization
+  //  //===--------------------------------------------------------------------===//
+  //
+  //  /**
+  //   * Return the current plan node in JSON format.
+  //   * @return JSON representation of plan node
+  //   */
+  //  virtual nlohmann::json ToJson() const;
+  //
+  //  /**
+  //   * Populates the plan node with the information in the given JSON.
+  //   * Undefined behavior occurs if the JSON has a different PlanNodeType.
+  //   */
+  //  virtual void FromJson(const nlohmann::json &json);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -193,8 +198,8 @@ class Hash {
   }
 };
 
-// JSON library interface. Do not modify.
-DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
-std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+//// JSON library interface. Do not modify.
+// DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+// std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::plan_node
