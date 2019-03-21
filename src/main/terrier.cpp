@@ -36,10 +36,6 @@ int main() {
     std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
     return 1;
   }
-
-  terrier::network::TerrierServer terrier_server;
-  terrier_server.SetupServer().ServerLoop();
-
   // log init now complete
   LOG_TRACE("Logger initialization complete");
 
@@ -47,6 +43,9 @@ int main() {
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
 
   LOG_INFO("Initialization complete");
+
+  terrier::network::TerrierServer terrier_server;
+  terrier_server.SetupServer().ServerLoop();
 
   // shutdown loggers
   spdlog::shutdown();
