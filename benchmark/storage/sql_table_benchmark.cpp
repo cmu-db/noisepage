@@ -39,17 +39,23 @@ class SqlTableBenchmark : public benchmark::Fixture {
     auto pair = table_->InitializerForProjectedRow(all_col_oids, storage::layout_version_t(0));
 
     initializer_ = new storage::ProjectedRowInitializer(std::get<0>(pair));
-
+    map_ = new storage::ProjectionMap(std::get<1>(pair));
     // generate a random redo ProjectedRow to Insert
     redo_buffer_ = common::AllocationUtil::AllocateAligned(initializer_->ProjectedRowSize());
     redo_ = initializer_->InitializeRow(redo_buffer_);
     CatalogTestUtil::PopulateRandomRow(redo_, *schema_, pair.second, &generator_);
+
+    // generate a ProjectedRow buffer to Read
+    read_buffer_ = common::AllocationUtil::AllocateAligned(initializer_->ProjectedRowSize());
+    read_ = initializer_->InitializeRow(read_buffer_);
   }
 
   void TearDown(const benchmark::State &state) final {
     delete[] redo_buffer_;
+    delete[] read_buffer_;
     delete schema_;
     delete initializer_;
+    delete map_;
     delete table_;
   }
 
@@ -58,9 +64,11 @@ class SqlTableBenchmark : public benchmark::Fixture {
 
   // Tuple properties
   const storage::ProjectedRowInitializer *initializer_ = nullptr;
+  const storage::ProjectionMap *map_;
 
   // Workload
   const uint32_t num_inserts_ = 10000000;
+  const uint32_t num_reads_ = 10000000;
   const uint32_t num_threads_ = 4;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
@@ -77,6 +85,10 @@ class SqlTableBenchmark : public benchmark::Fixture {
   // Insert buffer pointers
   byte *redo_buffer_;
   storage::ProjectedRow *redo_;
+
+  // Read buffer pointers;
+  byte *read_buffer_;
+  storage::ProjectedRow *read_;
 };
 
 // Insert the num_inserts_ of tuples into a DataTable in a single thread
@@ -95,6 +107,31 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SimpleInsert)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
+// Insert the num_inserts_ of tuples into a DataTable in a single thread
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SqlTableBenchmark, SimpleRandomRead)(benchmark::State &state) {
+  // Populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      LOGGING_DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(table_->Insert(&txn, *redo_, storage::layout_version_t(0)));
+  }
+  // Create random reads
+  std::shuffle(read_order.begin(), read_order.end(), generator_);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_inserts_; ++i) {
+      table_->Select(&txn, read_order[i], read_, *map_, storage::layout_version_t(0));
+    }
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_inserts_);
+}
+
 BENCHMARK_REGISTER_F(SqlTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
+BENCHMARK_REGISTER_F(SqlTableBenchmark, SimpleRandomRead)->Unit(benchmark::kMillisecond);
 }  // namespace terrier

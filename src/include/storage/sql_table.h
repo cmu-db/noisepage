@@ -135,8 +135,6 @@ class SqlTable {
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
               const ProjectionMap &pr_map, layout_version_t version_num) const {
-    STORAGE_LOG_INFO("slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
-
     layout_version_t old_version_num = slot.GetBlock()->layout_version_;
 
     // The version of the current slot is the same as the version num
