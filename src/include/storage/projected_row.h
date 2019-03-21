@@ -142,29 +142,18 @@ class PACKED ProjectedRow {
     return AttrValueOffsets()[offset];
   }
 
-  /**
-   * Retrieves the size of the header
-   * @return size of header
-   */
-  uint64_t GetHeaderSize(){
-      //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
-      return sizeof(size_) + sizeof(num_cols_) + num_cols_ + (sizeof(uint32_t) * num_cols_);
-  }
+
+
+ private:
+  friend class ProjectedRowInitializer;
+  friend class SqlTable;
+  uint32_t size_;
+  uint16_t num_cols_;
+  byte varlen_contents_[0];
 
   uint32_t *AttrValueOffsets() { return StorageUtil::AlignedPtr<uint32_t>(ColumnIds() + num_cols_); }
 
   const uint32_t *AttrValueOffsets() const { return StorageUtil::AlignedPtr<const uint32_t>(ColumnIds() + num_cols_); }
-
-  void SetNumCols(uint16_t num_cols){
-    num_cols_ = num_cols;
-  }
-
- private:
-  friend class ProjectedRowInitializer;
-  friend class ProjectedRowHeader;
-  uint32_t size_;
-  uint16_t num_cols_;
-  byte varlen_contents_[0];
 
   common::RawBitmap &Bitmap() { return *reinterpret_cast<common::RawBitmap *>(AttrValueOffsets() + num_cols_); }
 
@@ -173,43 +162,6 @@ class PACKED ProjectedRow {
   }
 };
 
-/**
- * An object to represent the header of a ProjectedRow
- * Used within sql_table select and scan to store the header of a projected row when transforming it
- */
-class ProjectedRowHeader{
-  public:
-    ProjectedRowHeader(ProjectedRow *const row){
-      size_ = row->Size();
-      num_columns_ = row->NumColumns();
-      for(int i = 0; i < num_columns_; i++){
-        column_ids.emplace_back(row->ColumnIds()[i]);
-        attr_value_offsets.emplace_back(row->AttrValueOffsets()[i]);
-      }
-    }
-
-    /**
-     * Sets the header of the passed in projected row to contain the same values as this
-     * @param row  projected row whose header to modify
-     */
-    void setAsHeaderOf(ProjectedRow *const row){
-      row->size_ = size_;
-
-      TERRIER_ASSERT(num_columns_ <= row->num_cols_, "Can't set header to contain more columns than what row initially had");
-      //Important the num_columns_ is set before changeing other values because ColumnId() and AttrValueOffsets() pointers are based off of it
-      row->num_cols_ = num_columns_;
-
-      for(int i = 0; i < num_columns_; i++){
-        row->ColumnIds()[i] = column_ids[i];
-        row->AttrValueOffsets()[i] = attr_value_offsets[i];
-      }
-    }
-
-    uint32_t size_;
-    uint16_t num_columns_;
-    std::vector<col_id_t> column_ids;
-    std::vector<uint32_t> attr_value_offsets;
-};
 
 /**
  * A ProjectedRowInitializer calculates and stores information on how to initialize ProjectedRows
@@ -249,6 +201,23 @@ class ProjectedRowInitializer {
    * @return size of the ProjectedRow in memory, in bytes, that this initializer constructs.
    */
   uint32_t ProjectedRowSize() const { return size_; }
+
+   /**
+    * Retrieves the size of the header
+    * @return size of header
+    */
+  uint32_t ProjectedRowHeaderSize() const {
+    //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
+    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t ) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
+  }
+
+  /**
+   * Populates the ProjectedRow's members but with only the header, doesn't clear space for data
+   * @param head pointer to the byte buffer to populate for header
+   * @return pointer to the populated ProjectedRow header
+   */
+  ProjectedRow * InitializeHeader(void * head) const;
+
 
   /**
    * @return number of columns in the projection list

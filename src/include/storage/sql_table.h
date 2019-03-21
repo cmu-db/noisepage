@@ -137,58 +137,74 @@ class SqlTable {
               const ProjectionMap &pr_map, layout_version_t version_num) const {
     layout_version_t old_version_num = slot.GetBlock()->layout_version_;
 
+    STORAGE_LOG_INFO("Initial num_cols: {},  first_col_id {}, first_offset {}", out_buffer->NumColumns(),
+                       (uint16_t) (out_buffer->ColumnIds())[0], (uint16_t) (out_buffer->GetAttrValueOffset(0)));
+    STORAGE_LOG_INFO("Initial num_cols: {},  second_col_id {}, second_offset {}", out_buffer->NumColumns(),
+                       (uint16_t) (out_buffer->ColumnIds())[1], (uint16_t) (out_buffer->GetAttrValueOffset(1)));
+
     // The version of the current slot is the same as the version num
     if (old_version_num == version_num) {
       return tables_[!version_num].data_table->Select(txn, slot, out_buffer);
     }
 
+    STORAGE_LOG_INFO("Trying to select from older version");
+
 
     auto old_dt_version = tables_[!old_version_num];
     // The slot version is not the same as the version_num
-    // 1. Get header of requested ProjectedRow
-    // 2. Modify header to expected ProjectedRow
-    // 3. Reset Header
+    // 1. Modify header of projected row to be what the data table of the slot version expects
+    // 2. Reset Header
 
-    //Header size of a projected row = sizeof(uint16 +
 
-    //Allocate space for storing headers
-    uint64_t initial_header_size = out_buffer->GetHeaderSize();
-    byte * requestedHeaderBuffer = common::AllocationUtil::AllocateAligned(initial_header_size);
-    byte * modifiedHeaderBuffer = common::AllocationUtil::AllocateAligned(initial_header_size);
-
-    //copy header to the buffers
-    memcpy(requestedHeaderBuffer, out_buffer, out_buffer->GetHeaderSize());
-    memcpy(modifiedHeaderBuffer, out_buffer, out_buffer->GetHeaderSize());
-
-    //This doesn't contain the entire row, just the header
-    auto requestedHeader = reinterpret_cast<ProjectedRow *>(requestedHeaderBuffer);
-    auto modifiedHeader = reinterpret_cast<ProjectedRow *>(modifiedHeaderBuffer);
-
-    //Have to use two separate loops, since need to populate the header num_cols_ before referring to the column_ids or attr_value_offsets
-    uint16_t num_attrs_expected = 0;
+    //Acquire the column_oids that are being requested by the user and are available in the older version
+    std::unordered_map<col_id_t, uint32_t> modified_col_id_to_offset_in_initial_pr;
+    std::vector<catalog::col_oid_t> col_oids;
     for (auto &it : old_dt_version.column_map) {
       if (pr_map.count(it.first) > 0){
-        num_attrs_expected++;
+        col_oids.emplace_back(it.first);
+        modified_col_id_to_offset_in_initial_pr.emplace(tables_[!old_version_num].column_map.at(it.first),
+                out_buffer->AttrValueOffsets()[pr_map.at(it.first)]);
       }
     }
 
-    modifiedHeader->SetNumCols(num_attrs_expected);
-
-    int i = 0;
-    for (auto &it : old_dt_version.column_map) {
-      if (pr_map.count(it.first) > 0){
-        modifiedHeader->ColumnIds()[i] = tables_[!version_num].column_map.at(it.first);
-        modifiedHeader->AttrValueOffsets()[i] = out_buffer->GetAttrValueOffset(pr_map.at(it.first));
-      }
-      i++;
+    //Create the modified header
+    auto old_pr_pair = InitializerForProjectedRow(col_oids, old_version_num);
+    auto read_buffer = common::AllocationUtil::AllocateAligned(old_pr_pair.first.ProjectedRowHeaderSize());
+    //This is only the header, no memory allocated for the data
+    ProjectedRow * modified_header = old_pr_pair.first.InitializeHeader(read_buffer);
+    for(int i = 0; i < modified_header->NumColumns(); i++){
+      modified_header->AttrValueOffsets()[i] =
+              modified_col_id_to_offset_in_initial_pr.at(modified_header->ColumnIds()[i]);
     }
+    //TODO(Yashwanth) Need to set the offsets to match the initial header, need a map from col_id to col_oid
 
-    memcpy(out_buffer, modifiedHeader, initial_header_size);
+
+    // Store the initial header, only storing the size of modified header because that is all that will be overwritten,
+    // rest of header will be untouched and modified header will always be <= to size of initial header
+    auto initial_header = common::AllocationUtil::AllocateAligned(old_pr_pair.first.ProjectedRowHeaderSize());
+    memcpy(initial_header, out_buffer, old_pr_pair.first.ProjectedRowHeaderSize());
+
+    //Copy over the modified header
+    /*
+    STORAGE_LOG_INFO("Initial num_cols: {},  first_col_id {}, first_offset {}", out_buffer->NumColumns(),
+                      (uint16_t) (out_buffer->ColumnIds())[0], (uint16_t) (out_buffer->GetAttrValueOffset(0)));
+                      */
+    memcpy(out_buffer, modified_header, old_pr_pair.first.ProjectedRowHeaderSize());
+      STORAGE_LOG_INFO("Modifiecd d num_cols: {},  first_col_id {}, first_offset {}", out_buffer->NumColumns(),
+            (uint16_t) (out_buffer->ColumnIds())[0], (uint16_t) (out_buffer->GetAttrValueOffset(0)));
+    STORAGE_LOG_INFO("Modifiecd num_cols: {},  second_col_id {}, second_offset {}", out_buffer->NumColumns(),
+                     (uint16_t) (out_buffer->ColumnIds())[1], (uint16_t) (out_buffer->GetAttrValueOffset(1)));
     bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
-    memcpy(out_buffer, requestedHeader, initial_header_size);
 
-    delete[] modifiedHeaderBuffer;
-    delete[] requestedHeaderBuffer;
+    //Reset to the initial header
+    memcpy(out_buffer, initial_header, old_pr_pair.first.ProjectedRowHeaderSize());
+    STORAGE_LOG_INFO("Reset num_cols: {},  first_col_id {}, first_offset {}", out_buffer->NumColumns(),
+                      (uint16_t) (out_buffer->ColumnIds())[0], (uint16_t) (out_buffer->GetAttrValueOffset(0)));
+    STORAGE_LOG_INFO("Reset num_cols: {},  second_col_id {}, second_offset {}", out_buffer->NumColumns(),
+                     (uint16_t) (out_buffer->ColumnIds())[1], (uint16_t) (out_buffer->GetAttrValueOffset(1)));
+
+    delete[] read_buffer;
+    delete[] initial_header;
 
     return result;
 
