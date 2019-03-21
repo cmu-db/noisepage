@@ -1,10 +1,10 @@
+#include "storage/sql_table.h"
 #include <algorithm>
 #include <cstring>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
