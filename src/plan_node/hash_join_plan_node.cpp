@@ -70,8 +70,6 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     }
   }
 
-  // TODO(Gus,Wen): Compare equality of schema
-
   return GetLeftHashKeys() == other.GetLeftHashKeys() && GetRightHashKeys() == other.GetRightHashKeys() &&
          AbstractPlanNode::operator==(rhs);
 }

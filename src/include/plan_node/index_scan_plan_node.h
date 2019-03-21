@@ -60,7 +60,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param index_oid OID of index to be used in index scan
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                    std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
                     std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
                     catalog::index_oid_t index_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),

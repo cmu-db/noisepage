@@ -57,7 +57,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               int estimated_cardinality, std::vector<HashKeyPtrType> hash_keys)
+               uint32_t estimated_cardinality, std::vector<HashKeyPtrType> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         hash_keys_(std::move(hash_keys)) {}
 

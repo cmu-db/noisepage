@@ -62,7 +62,7 @@ class LimitPlanNode : public AbstractPlanNode {
    * @param offset offset at which to limit from
    */
   LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                int estimated_cardinality, size_t limit, size_t offset)
+                uint32_t estimated_cardinality, size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         limit_(limit),
         offset_(offset) {}

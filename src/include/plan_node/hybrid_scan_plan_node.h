@@ -66,7 +66,7 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
    * @param hybrid_scan_type hybrid scan type to be used
    */
   HybridScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                     std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                     std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
                      std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update,
                      bool is_parallel, catalog::index_oid_t index_oid, HybridScanType hybrid_scan_type)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),

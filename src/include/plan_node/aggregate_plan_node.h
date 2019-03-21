@@ -102,7 +102,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param aggregate_strategy aggregation strategy to be used
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality,
+                    std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategy aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),

@@ -57,7 +57,7 @@ class AbstractPlanNode {
    protected:
     std::vector<std::unique_ptr<AbstractPlanNode>> children_;
     std::shared_ptr<OutputSchema> output_schema_;
-    int estimated_cardinality_ = 0;
+    uint32_t estimated_cardinality_ = 0;
   };
 
   /**
@@ -67,7 +67,7 @@ class AbstractPlanNode {
    * @param estimated_cardinality estimated cardinality of output of node
    */
   explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                            std::shared_ptr<OutputSchema> output_schema, int estimated_cardinality)
+                            std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality)
       : children_(std::move(children)),
         output_schema_(std::move(output_schema)),
         estimated_cardinality_(estimated_cardinality) {}
@@ -112,7 +112,7 @@ class AbstractPlanNode {
    * Returns plan type, each derived plan class should override this method to return their specific type
    * @return plan type
    */
-  virtual PlanNodeType GetPlanNodeType() const { return PlanNodeType::ABSTRACTPLAN; }
+  virtual PlanNodeType GetPlanNodeType() const;
 
   /**
    * @return output schema for the node. The output schema contains information on columns of the output of the plan
@@ -177,7 +177,7 @@ class AbstractPlanNode {
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::shared_ptr<OutputSchema> output_schema_;
-  int estimated_cardinality_;
+  uint32_t estimated_cardinality_;
 
  public:
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
