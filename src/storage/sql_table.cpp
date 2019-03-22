@@ -23,8 +23,14 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   STORAGE_LOG_INFO("Update schema version: {}", uint32_t(schema.GetVersion()));
   TERRIER_ASSERT(tables_.find(schema.GetVersion()) == tables_.end(), "schema versions for an SQL table must be unique");
   const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
+
+  InverseColumnMap inv_col_map;
+  for (auto iter : layout_and_map.second) {
+    inv_col_map[iter.second] = iter.first;
+  }
+
   tables_[schema.GetVersion()] = {new DataTable(block_store_, layout_and_map.first, schema.GetVersion()),
-                                  layout_and_map.first, layout_and_map.second};
+                                  layout_and_map.first, layout_and_map.second, inv_col_map};
   STORAGE_LOG_INFO("# of versions: {}", tables_.size());
 }
 
