@@ -183,23 +183,35 @@ class AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 
-class Equal {
- public:
-  bool operator()(const std::shared_ptr<plan_node::AbstractPlanNode> &a,
-                  const std::shared_ptr<plan_node::AbstractPlanNode> &b) const {
-    return *a == *b;
-  }
-};
-
-class Hash {
- public:
-  size_t operator()(const std::shared_ptr<plan_node::AbstractPlanNode> &plan) const {
-    return static_cast<size_t>(plan->Hash());
-  }
-};
-
 //// JSON library interface. Do not modify.
 // DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
 // std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::plan_node
+
+namespace std {
+
+template <>
+struct hash<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
+  /**
+   * Hashes the given plan node
+   * @param plan the plan to hash
+   * @return hash code of the given plan node
+   */
+  size_t operator()(const std::shared_ptr<terrier::plan_node::AbstractPlanNode> &plan) const { return plan->Hash(); }
+};
+
+template <>
+struct equal_to<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
+  /**
+   * @param lhs left hand side plan node
+   * @param rhs right hand side plan node
+   * @return true if plan nodes are equivalent
+   */
+  bool operator()(const std::shared_ptr<terrier::plan_node::AbstractPlanNode> &lhs,
+                  const std::shared_ptr<terrier::plan_node::AbstractPlanNode> &rhs) const {
+    return *lhs == *rhs;
+  }
+};
+
+}  // namespace std
