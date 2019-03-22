@@ -46,9 +46,9 @@ class IndexMetadata {
         pr_offsets_(ComputePROffsets(inlined_attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, pr_offsets_)),
         initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            attr_sizes_, ComputeComparisonOrder(inlined_attr_sizes_))),
+            attr_sizes_, pr_offsets_)),
         inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            inlined_attr_sizes_, ComputeComparisonOrder(inlined_attr_sizes_)))
+            inlined_attr_sizes_, pr_offsets_))
             {}
 
   /**
@@ -173,7 +173,7 @@ class IndexMetadata {
   }
 
   /**
-   * Computes the final comparison order for the given vector of attribute sizes.
+   * Computes the comparison order for the given vector of attribute sizes, assuming that they do not get sorted.
    * e.g.   if attr_sizes {4, 4, 8, 1, 2},
    *        begin cmp_order is always assumed to be {0, 1, 2, 3, 4},
    *        final cmp_order is then {2, 0, 1, 4, 3}

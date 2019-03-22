@@ -19,6 +19,7 @@ namespace terrier::storage::index {
 class BwTreeIndexTests : public TerrierTest {
  public:
   std::default_random_engine generator_;
+  std::vector<byte *> loose_pointers_;
 };
 
 /**
@@ -27,7 +28,7 @@ class BwTreeIndexTests : public TerrierTest {
 template <typename Random>
 IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
                                       Random *generator) {
-  uint32_t max_varlen_size = 100;
+  uint32_t max_varlen_size = 20;
   TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
 
   std::vector<catalog::indexkeycol_oid_t> key_oids;
@@ -108,8 +109,9 @@ IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
  * Generates random data for the given type and writes it to both attr and reference.
  */
 template <typename Random>
-void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random *generator) {
+void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator, std::vector<byte *> &loose_pointers) {
   std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
+  const auto type = col.GetType();
   const auto type_size = type::TypeUtil::GetTypeSize(type);
 
   // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
@@ -177,8 +179,7 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
-      uint8_t varlen_sizes[] = {2, 10, 20};
-      auto varlen_size = varlen_sizes[static_cast<uint8_t>(rng(*generator)) % 3];
+      auto varlen_size = col.GetMaxVarlenSize();
 
       // generate random varlen content
       auto *varlen_content = new byte[varlen_size];
@@ -195,16 +196,14 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
       VarlenEntry varlen_entry{};
       if (varlen_size <= VarlenEntry::InlineThreshold()) {
         varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
-        delete[] varlen_content;
       } else {
-        // TODO(WAN): doesn't this leak memory? The issue is that GenericKey's destructor is called
-        // every Scan/Insert/ConditionalInsert/Delete, are we meant to only give non-reclaimable keys?
         varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
+        loose_pointers.emplace_back(varlen_content);
       }
 
-      // copy the varlen entry into our attribute and reference, note that it is 16 bytes and not type_size
-      std::memcpy(attr, &varlen_entry, 16);
-      std::memcpy(reference, &varlen_entry, 16);
+      // copy the varlen entry into our attribute and reference
+      std::memcpy(attr, &varlen_entry, sizeof(VarlenEntry));
+      std::memcpy(reference, &varlen_entry, sizeof(VarlenEntry));
       break;
     }
     default:
@@ -217,7 +216,7 @@ void WriteRandomAttribute(type::TypeId type, void *attr, void *reference, Random
  * It returns essentially a CompactIntsKey of all the data in one big byte array.
  */
 template <typename Random>
-byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
+byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator, std::vector<byte *> loose_pointers) {
   const auto &key_schema = metadata.GetKeySchema();
   const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
   const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
@@ -229,7 +228,7 @@ byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr,
     auto key_type = key.GetType();
     auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
     auto attr = pr->AccessForceNotNull(pr_offset);
-    WriteRandomAttribute(key_type, attr, reference + offset, generator);
+    WriteRandomAttribute(key, attr, reference + offset, generator, loose_pointers);
     offset += type::TypeUtil::GetTypeSize(key_type);
   }
   return reference;
@@ -284,7 +283,7 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &
  */
 template <typename Random>
 bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr, byte *reference, float probability,
-                        Random *generator) {
+                        Random *generator, std::vector<byte*> loose_pointers) {
   std::bernoulli_distribution coin(probability);
 
   if (coin(*generator)) {
@@ -307,7 +306,7 @@ bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr
     std::memcpy(old_value, attr, type_size);
     // force the value to change
     while (std::memcmp(old_value, attr, type_size) == 0) {
-      WriteRandomAttribute(type, attr, reference + offset, generator);
+      WriteRandomAttribute(key_schema[column], attr, reference + offset, generator, loose_pointers);
     }
     delete[] old_value;
     return true;
@@ -348,14 +347,14 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
  * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
  */
 template <typename Random>
-void BasicOps(Index *const index, const Random &generator) {
+void BasicOps(Index *const index, const Random &generator, std::vector<byte *> loose_pointers) {
   // instantiate projected row and key
   const auto &metadata = index->GetMetadata();
   const auto &initializer = metadata.GetProjectedRowInitializer();
   auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
   auto *key = initializer.InitializeRow(key_buffer);
 
-  auto *ref = FillProjectedRow(metadata, key, generator);
+  auto *ref = FillProjectedRow(metadata, key, generator, loose_pointers);
   delete[] ref;
 
   // 1. Scan -> Insert -> Scan -> Delete -> Scan
@@ -602,7 +601,7 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
  * 4. e
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DISABLED_RandomCompactIntsKeyTest) {
+TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   const uint32_t num_iterations = 1000;
   // 1. generate a reference key schema
   // 2. fill two keys pr_A and pr_B with random data_A and data_B
@@ -667,7 +666,7 @@ TEST_F(BwTreeIndexTests, DISABLED_RandomCompactIntsKeyTest) {
 
     for (uint8_t j = 0; j < 10; j++) {
       // fill buffer pr_A with random data data_A
-      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_);
+      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_, loose_pointers_);
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
@@ -677,7 +676,7 @@ TEST_F(BwTreeIndexTests, DISABLED_RandomCompactIntsKeyTest) {
         std::memcpy(data_B, data_A, key_size);
 
         // modify a column of B with some probability, this also updates the reference data_B
-        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_);
+        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_, loose_pointers_);
 
         // perform the relevant checks
         switch (key_type) {
@@ -720,7 +719,7 @@ TEST_F(BwTreeIndexTests, DISABLED_RandomCompactIntsKeyTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DISABLED_CompactIntsBuilderTest) {
+TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
@@ -729,7 +728,7 @@ TEST_F(BwTreeIndexTests, DISABLED_CompactIntsBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_);
+    BasicOps(index, &generator_, loose_pointers_);
 
     delete index;
   }
@@ -750,7 +749,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_);
+    BasicOps(index, &generator_, loose_pointers_);
 
     delete index;
   }
