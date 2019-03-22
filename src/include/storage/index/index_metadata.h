@@ -173,22 +173,6 @@ class IndexMetadata {
   }
 
   /**
-   * Computes the comparison order for the given vector of attribute sizes, assuming that they do not get sorted.
-   * e.g.   if attr_sizes {4, 4, 8, 1, 2},
-   *        begin cmp_order is always assumed to be {0, 1, 2, 3, 4},
-   *        final cmp_order is then {2, 0, 1, 4, 3}
-   *        since cmp_order[i] = original index of that attribute
-   */
-  static std::vector<uint16_t> ComputeComparisonOrder(const std::vector<uint16_t> &attr_sizes) {
-    // note: at most uint16_t num_columns in ProjectedRow
-    std::vector<uint16_t> cmp_order(attr_sizes.size());
-    std::iota(cmp_order.begin(), cmp_order.end(), 0);
-    std::stable_sort(cmp_order.begin(), cmp_order.end(),
-                     [&](const auto &i, const auto &j) -> bool { return attr_sizes[i] > attr_sizes[j]; });
-    return cmp_order;
-  }
-
-  /**
    * Computes the compact int offsets for the given vector of attribute sizes.
    * e.g.   if attr_sizes {4, 4, 8, 1, 2}
    *        exclusive scan {0, 4, 8, 16, 17}

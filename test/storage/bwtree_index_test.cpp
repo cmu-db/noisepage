@@ -413,7 +413,6 @@ TEST_F(BwTreeIndexTests, IndexMetadataCompactIntsKeyTest) {
   //    must_inline_varlens   false
   //    compact_ints_offsets  { 0,  4,  8, 16, 17}
   //    key_oid_to_offset     {20:1, 21:2, 22:0, 23:4, 24:3}
-  //    comparison_order      { 2,  0,  1,  4,  3}
   //    pr_offsets            { 1,  2,  0,  4,  3}
 
   catalog::indexkeycol_oid_t oid(20);
@@ -483,16 +482,8 @@ TEST_F(BwTreeIndexTests, IndexMetadataCompactIntsKeyTest) {
   EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(23)), 4);
   EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(24)), 3);
 
-  // comparison_order      { 2,  0,  1,  4,  3}
-  const auto &cmp_order = metadata.ComputeComparisonOrder(metadata.inlined_attr_sizes_);
-  EXPECT_EQ(cmp_order[0], 2);
-  EXPECT_EQ(cmp_order[1], 0);
-  EXPECT_EQ(cmp_order[2], 1);
-  EXPECT_EQ(cmp_order[3], 4);
-  EXPECT_EQ(cmp_order[4], 3);
-
   // pr_offsets            { 1,  2,  0,  4,  3}
-  const auto &pr_offsets = metadata.ComputePROffsets(metadata.inlined_attr_sizes_);
+  const auto &pr_offsets = IndexMetadata::ComputePROffsets(metadata.inlined_attr_sizes_);
   EXPECT_EQ(pr_offsets[0], 1);
   EXPECT_EQ(pr_offsets[1], 2);
   EXPECT_EQ(pr_offsets[2], 0);
@@ -512,7 +503,6 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   //    inlined_attr_sizes    { 4, 16, 16,  1, 16}
   //    must_inline_varlens   false
   //    key_oid_to_offset     {20:3, 21:0, 22:1, 23:4, 24:2}
-  //    comparison_order      { 1,  2,  4,  0,  3}
   //    pr_offsets            { 3,  0,  1,  4,  2}
 
   catalog::indexkeycol_oid_t oid(20);
@@ -577,16 +567,8 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(23)), 4);
   EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(24)), 2);
 
-  // comparison_order      { 1,  2,  4,  0,  3}
-  const auto &cmp_order = metadata.ComputeComparisonOrder(metadata.inlined_attr_sizes_);
-  EXPECT_EQ(cmp_order[0], 1);
-  EXPECT_EQ(cmp_order[1], 2);
-  EXPECT_EQ(cmp_order[2], 4);
-  EXPECT_EQ(cmp_order[3], 0);
-  EXPECT_EQ(cmp_order[4], 3);
-
   // pr_offsets            { 3,  0,  1,  4,  2}
-  const auto &pr_offsets = metadata.ComputePROffsets(metadata.inlined_attr_sizes_);
+  const auto &pr_offsets = IndexMetadata::ComputePROffsets(metadata.inlined_attr_sizes_);
   EXPECT_EQ(pr_offsets[0], 3);
   EXPECT_EQ(pr_offsets[1], 0);
   EXPECT_EQ(pr_offsets[2], 1);
@@ -962,7 +944,7 @@ void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   IndexKeySchema key_schema;
-  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true);
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 12);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -1057,7 +1039,7 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   IndexKeySchema key_schema;
-  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true);
+  key_schema.emplace_back(catalog::indexkeycol_oid_t(0), type::TypeId::VARCHAR, true, 20);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
