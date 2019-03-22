@@ -41,8 +41,8 @@ class IndexBuilder {
 
     for (uint16_t i = 0; use_compact_ints && i < key_schema_.size(); i++) {
       const auto &attr = key_schema_[i];
-      use_compact_ints = use_compact_ints && !attr.is_nullable && CompactIntsOk(attr.type_id);  // key type ok?
-      key_size += type::TypeUtil::GetTypeSize(attr.type_id);
+      use_compact_ints = use_compact_ints && !attr.IsNullable() && CompactIntsOk(attr.GetType());  // key type ok?
+      key_size += type::TypeUtil::GetTypeSize(attr.GetType());
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 

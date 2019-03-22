@@ -41,11 +41,11 @@ class GenericKey {
     metadata_ = &metadata;
     std::memset(key_data_, 0, key_size_byte);
 
-    if (metadata.MustInlineAttributes()) {
+    if (metadata.MustInlineVarlen()) {
       const auto &key_schema = metadata.GetKeySchema();
       const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
-      const ProjectedRowInitializer &generic_key_initializer = metadata.GetGenericKeyPRInitializer();
+      const ProjectedRowInitializer &generic_key_initializer = metadata.GetInlinedPRInitializer();
 
       auto *const pr = GetProjectedRow();
       generic_key_initializer.InitializeRow(pr);
@@ -57,7 +57,7 @@ class GenericKey {
         if (from_attr == nullptr) {
           pr->SetNull(offset);
         } else {
-          const auto inline_attr_size = inlined_attr_sizes[i];
+          const auto inlined_attr_size = inlined_attr_sizes[i];
           if (inlined_attr_size <= 16) {
             std::memcpy(pr->AccessForceNotNull(offset), from_attr, inlined_attr_sizes[i]);
           } else {
@@ -228,7 +228,6 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
         terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
 
     for (uint16_t i = 0; i < key_schema.size(); i++) {
-      const auto type_id = key_schema[i].type_id;
       const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
       const byte *const attr = pr->AccessWithNullCheck(offset);
       if (attr == nullptr) {
@@ -285,7 +284,7 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema[i].type_id;
+      const terrier::type::TypeId type_id = key_schema[i].GetType();
 
       if (!terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
         // one of the attrs didn't match, return non-equal
@@ -339,7 +338,7 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema[i].type_id;
+      const terrier::type::TypeId type_id = key_schema[i].GetType();
 
       if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;

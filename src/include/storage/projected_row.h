@@ -203,11 +203,13 @@ class ProjectedRowInitializer {
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
    *
+   * @tparam AttrType datatype of attribute sizes
    * @param attr_sizes unsorted attribute sizes
-   * @param cmp_order comparison order for the sorted attribute sizes
+   * @param col_ids whatever you want the column IDs to be
    */
-  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<uint8_t> attr_sizes,
-                                                                         const std::vector<uint16_t> &cmp_order);
+  template <typename AttrSize>
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrSize> attr_sizes,
+                                                                         const std::vector<uint16_t> &col_ids);
 
  private:
   /**
@@ -215,10 +217,12 @@ class ProjectedRowInitializer {
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
    *
-   * @param attr_sizes
-   * @param col_ids
+   * @tparam AttrType datatype of attribute sizes
+   * @param attr_sizes sorted attribute sizes
+   * @param col_ids column ids
    */
-  ProjectedRowInitializer(const std::vector<uint8_t> &attr_sizes, std::vector<col_id_t> col_ids);
+  template <typename AttrType>
+  ProjectedRowInitializer(const std::vector<AttrType> &attr_sizes, std::vector<col_id_t> col_ids);
 
   uint32_t size_ = 0;
   /**
