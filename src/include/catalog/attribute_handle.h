@@ -16,12 +16,19 @@ class Catalog;
 struct SchemaCol;
 
 /**
- * A attribute handle contains information about all the attributes in a table. It is used to
- * retrieve attribute related information. It presents a part of pg_attribute.
+ * An attribute handle provides accessors to the pg_attribute catalog.
+ * Each database has it's own pg_attribute catalog.
  *
- * pg_attribute:
- *      oid | attrelid | attname | atttypid | attlen | attnum
+ * Following description verbatim from the Postgres documentation:
+ * The catalog pg_attribute stores information about table columns.
+ * There will be exactly one pg_attribute row for every column in every
+ * table in the database. (There will also be attribute entries for indexes,
+ * and indeed all objects that have pg_class entries.)
+ *
+ * The term attribute is equivalent to column and is used for historical
+ * reasons.
  */
+
 class AttributeHandle {
  public:
   /**
@@ -107,18 +114,15 @@ class AttributeHandle {
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
 
-  /**
-   * Add a row
-   */
-  // void AddEntry(transaction::TransactionContext *txn, int32_t oid, int32_t table_oid, const std::string &name);
-
   // start Debug methods
-
   /**
    * Dump the contents of the table
    * @param txn
    */
-  void Dump(transaction::TransactionContext *txn) { pg_attribute_hrw_->Dump(txn); }
+  void Dump(transaction::TransactionContext *txn) {
+    auto limit = static_cast<int32_t>(AttributeHandle::schema_cols_.size());
+    pg_attribute_hrw_->Dump(txn, limit);
+  }
   // end Debug methods
 
   /** Used schema columns */

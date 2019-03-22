@@ -376,8 +376,10 @@ class SqlTableRW {
 
   /**
    * @param txn transaction
+   * @param max_col - print only max_col columns
+   *          0 => all
    */
-  void Dump(transaction::TransactionContext *txn) {
+  void Dump(transaction::TransactionContext *txn, int32_t max_col = 0) {
     auto layout = GetLayout();
     // setup parameters for a scan
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
@@ -402,6 +404,10 @@ class SqlTableRW {
       CATALOG_LOG_DEBUG("");
       CATALOG_LOG_DEBUG("row {}", row_num);
       for (int32_t i = 0; i < row_view.NumColumns(); i++) {
+        // if requested, don't print all the columns
+        if ((max_col != 0) && (i > max_col - 1)) {
+          break;
+        }
         type::TypeId schema_col_type = cols_[i].GetType();
         byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(i));
         if (col_p == nullptr) {
