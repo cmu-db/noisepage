@@ -88,6 +88,15 @@ class Catalog {
                    const Schema &schema);
 
   /**
+   * Delete a table
+   * @param txn transaction to use
+   * @param db_oid oid of the database
+   * @param table_oid table to delete
+   */
+
+  void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid);
+
+  /**
    * Return a database handle.
    * @return the database handle
    */

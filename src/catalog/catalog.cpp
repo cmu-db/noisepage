@@ -39,7 +39,13 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
 
   // TODO(pakhtar):
   // - delete all the tables
-  // - remove references from other catalog tables (pg_class)
+
+  // drop database local tables
+  // - pg_attribute
+  // - pg_namespace
+  // - pg_class
+  // - pg_type
+  // - pg_attrdef
 
   map_.erase(oid);
   name_map_.erase(oid);
@@ -58,7 +64,16 @@ void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
 
   // enter attribute information
-  // AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+}
+
+void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid) {
+  auto db_handle = GetDatabaseHandle();
+  // remove entries from pg_attribute
+  // remove entries from pg_attrdef
+  // remove entry from pg_class
+
+  // TODO(pakhtar): drop table
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
@@ -195,7 +210,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGType(txn, db_oid);
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 
-  // add columnn information into pg_attribute, for the catalog tables just created
+  // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
   // pg_attribute is local, so add them too.
   std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",

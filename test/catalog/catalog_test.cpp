@@ -57,4 +57,16 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   catalog_->Dump(txn_, terrier_oid);
 }
 
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, DeleteDatabaseTest) {
+  catalog_->CreateDatabase(txn_, "test_database");
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
+  auto oid = entry->GetDatabaseOid();
+  catalog_->Dump(txn_, oid);
+
+  // delete it
+  catalog_->DeleteDatabase(txn_, "test_database");
+}
+
 }  // namespace terrier
