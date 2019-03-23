@@ -41,8 +41,9 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<AttrType> &at
     offsets_[i] = size_;
     // Pad up to either the next value's size, or 8 bytes at the end of the ProjectedRow, or 8 byte if the value
     // is larger than 8
-    auto next_alignment = static_cast<uint8_t>(i == col_ids_.size() - 1 ? sizeof(uint64_t) :
-                                               std::min(attr_sizes[i+1], static_cast<AttrType>(sizeof(uint64_t))));
+    auto next_alignment = static_cast<uint8_t>(
+        i == col_ids_.size() - 1 ? sizeof(uint64_t)
+                                 : std::min(attr_sizes[i + 1], static_cast<AttrType>(sizeof(uint64_t))));
     size_ = StorageUtil::PadUpToSize(next_alignment, size_ + attr_sizes[i]);
   }
 }

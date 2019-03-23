@@ -31,7 +31,7 @@ class IndexMetadata {
         pr_offsets_(std::move(other.pr_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
-        inlined_initializer_(std::move(other.inlined_initializer_)){}
+        inlined_initializer_(std::move(other.inlined_initializer_)) {}
 
   /**
    * Precomputes metadata for the given key schema.
@@ -45,11 +45,9 @@ class IndexMetadata {
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
         pr_offsets_(ComputePROffsets(inlined_attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, pr_offsets_)),
-        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            attr_sizes_, pr_offsets_)),
-        inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            inlined_attr_sizes_, pr_offsets_))
-            {}
+        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(attr_sizes_, pr_offsets_)),
+        inlined_initializer_(
+            ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(inlined_attr_sizes_, pr_offsets_)) {}
 
   /**
    * @return index key schema
@@ -62,8 +60,8 @@ class IndexMetadata {
   const std::vector<uint8_t> &GetAttributeSizes() const { return attr_sizes_; }
 
   /**
- * @return actual inlined index attribute sizes
- */
+   * @return actual inlined index attribute sizes
+   */
   const std::vector<uint16_t> &GetInlinedAttributeSizes() const { return inlined_attr_sizes_; }
 
   /**
@@ -143,7 +141,8 @@ class IndexMetadata {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
-          auto varlen_size = std::max(static_cast<uint16_t>(key.GetMaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
+          auto varlen_size =
+              std::max(static_cast<uint16_t>(key.GetMaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
           inlined_attr_sizes.emplace_back(varlen_size);
           break;
         }
@@ -159,8 +158,7 @@ class IndexMetadata {
    * Computes whether we need to manually inline varlen attributes, i.e. too big for VarlenEntry::CreateInline.
    */
   static bool ComputeMustInlineVarlen(const IndexKeySchema &key_schema) {
-    return std::any_of(key_schema.begin(), key_schema.end(),
-        [](const auto &key) -> bool {
+    return std::any_of(key_schema.begin(), key_schema.end(), [](const auto &key) -> bool {
       switch (key.GetType()) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR:
@@ -204,7 +202,7 @@ class IndexMetadata {
     }
     // sort by the sizes
     std::stable_sort(size_idx.begin(), size_idx.end(),
-        [](const auto &u, const auto &v) -> bool { return u.first > v.first; });
+                     [](const auto &u, const auto &v) -> bool { return u.first > v.first; });
     // read off the pr_offsets
     std::vector<uint16_t> pr_offsets(attr_sizes.size());
     for (uint16_t i = 0; i < size_idx.size(); i++) {

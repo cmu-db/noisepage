@@ -205,11 +205,11 @@ class ProjectedRowInitializer {
    *
    * @tparam AttrType datatype of attribute sizes
    * @param attr_sizes unsorted attribute sizes
-   * @param col_ids whatever you want the column IDs to be
+   * @param column_ids whatever you want the projected row's column IDs to be
    */
-  template <typename AttrSize>
-  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrSize> attr_sizes,
-                                                                         const std::vector<uint16_t> &col_ids);
+  template <typename AttrType>
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> attr_sizes,
+                                                                         const std::vector<uint16_t> &column_ids);
 
  private:
   /**

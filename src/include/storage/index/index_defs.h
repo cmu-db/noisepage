@@ -11,16 +11,15 @@ namespace terrier::storage::index {
  */
 class IndexKeyColumn {
  public:
-
   /**
    * Non-varlen constructor for index key columns.
    * @param oid key column oid
    * @param nullable whether the column is nullable
    * @param type_id the non-varlen type of the column
    */
-  IndexKeyColumn(catalog::indexkeycol_oid_t oid, type::TypeId type_id, bool nullable)
-      : oid_(oid) {
-    TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY), "Non-varlen constructor.");
+  IndexKeyColumn(catalog::indexkeycol_oid_t oid, type::TypeId type_id, bool nullable) : oid_(oid) {
+    TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
+                   "Non-varlen constructor.");
     SetTypeId(type_id);
     SetNullable(nullable);
   }
@@ -33,7 +32,7 @@ class IndexKeyColumn {
    * @param max_varlen_size the maximum varlen size
    */
   IndexKeyColumn(catalog::indexkeycol_oid_t oid, type::TypeId type_id, bool nullable, uint16_t max_varlen_size)
-  : oid_(oid) {
+      : oid_(oid) {
     TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
     SetTypeId(type_id);
     SetNullable(nullable);

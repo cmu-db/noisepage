@@ -20,6 +20,14 @@ class BwTreeIndexTests : public TerrierTest {
  public:
   std::default_random_engine generator_;
   std::vector<byte *> loose_pointers_;
+
+ protected:
+  void TearDown() override {
+    for (byte *ptr : loose_pointers_) {
+      delete[] ptr;
+    }
+    TerrierTest::TearDown();
+  }
 };
 
 /**
@@ -109,7 +117,8 @@ IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
  * Generates random data for the given type and writes it to both attr and reference.
  */
 template <typename Random>
-void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator, std::vector<byte *> &loose_pointers) {
+void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator,
+                          std::vector<byte *> *loose_pointers) {
   std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
   const auto type = col.GetType();
   const auto type_size = type::TypeUtil::GetTypeSize(type);
@@ -198,8 +207,8 @@ void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference
         varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
       } else {
         varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
-        loose_pointers.emplace_back(varlen_content);
       }
+      loose_pointers->emplace_back(varlen_content);
 
       // copy the varlen entry into our attribute and reference
       std::memcpy(attr, &varlen_entry, sizeof(VarlenEntry));
@@ -216,7 +225,8 @@ void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference
  * It returns essentially a CompactIntsKey of all the data in one big byte array.
  */
 template <typename Random>
-byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator, std::vector<byte *> loose_pointers) {
+byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator,
+                       std::vector<byte *> *loose_pointers) {
   const auto &key_schema = metadata.GetKeySchema();
   const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
   const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
@@ -283,7 +293,7 @@ std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &
  */
 template <typename Random>
 bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr, byte *reference, float probability,
-                        Random *generator, std::vector<byte*> loose_pointers) {
+                        Random *generator, std::vector<byte *> *loose_pointers) {
   std::bernoulli_distribution coin(probability);
 
   if (coin(*generator)) {
@@ -347,7 +357,7 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
  * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
  */
 template <typename Random>
-void BasicOps(Index *const index, const Random &generator, std::vector<byte *> loose_pointers) {
+void BasicOps(Index *const index, const Random &generator, std::vector<byte *> *loose_pointers) {
   // instantiate projected row and key
   const auto &metadata = index->GetMetadata();
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -556,7 +566,7 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_EQ(inlined_attr_sizes[3], 1);
   EXPECT_EQ(inlined_attr_sizes[4], 16);
 
-  // must_inline_varlen   false
+  // must_inline_varlen    false
   EXPECT_FALSE(metadata.MustInlineVarlen());
 
   // key_oid_to_offset     {20:3, 21:0, 22:1, 23:4, 24:2}
@@ -574,6 +584,91 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_EQ(pr_offsets[2], 1);
   EXPECT_EQ(pr_offsets[3], 4);
   EXPECT_EQ(pr_offsets[4], 2);
+}
+
+// Test that we generate the right metadata for GenericKey schemas that need to manually inline varlens
+// NOLINTNEXTLINE
+TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
+  // INPUT:
+  //    key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
+  //    oids                  {20, 21, 22, 23, 24}
+  // EXPECT:
+  //    identical key schema
+  //    attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
+  //    inlined_attr_sizes    { 4, 54, 16,  1, 94}
+  //    must_inline_varlens   true
+  //    key_oid_to_offset     {20:3, 21:1, 22:2, 23:4, 24:0}
+  //    pr_offsets            { 3,  1,  2,  4,  0}
+
+  catalog::indexkeycol_oid_t oid(20);
+  IndexKeySchema key_schema;
+
+  // key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
+  // oids                  {20, 21, 22, 23, 24}
+  key_schema.emplace_back(oid++, type::TypeId::INTEGER, false);
+  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 50);
+  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 8);
+  key_schema.emplace_back(oid++, type::TypeId::TINYINT, false);
+  key_schema.emplace_back(oid++, type::TypeId::VARCHAR, false, 90);
+
+  IndexMetadata metadata(key_schema);
+
+  // identical key schema
+  const auto &metadata_key_schema = metadata.GetKeySchema();
+  EXPECT_EQ(metadata_key_schema.size(), 5);
+  EXPECT_EQ(metadata_key_schema[0].GetType(), type::TypeId::INTEGER);
+  EXPECT_EQ(metadata_key_schema[1].GetType(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[2].GetType(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[3].GetType(), type::TypeId::TINYINT);
+  EXPECT_EQ(metadata_key_schema[4].GetType(), type::TypeId::VARCHAR);
+  EXPECT_EQ(!metadata_key_schema[0].GetOid(), 20);
+  EXPECT_EQ(!metadata_key_schema[1].GetOid(), 21);
+  EXPECT_EQ(!metadata_key_schema[2].GetOid(), 22);
+  EXPECT_EQ(!metadata_key_schema[3].GetOid(), 23);
+  EXPECT_EQ(!metadata_key_schema[4].GetOid(), 24);
+  EXPECT_FALSE(metadata_key_schema[0].IsNullable());
+  EXPECT_FALSE(metadata_key_schema[1].IsNullable());
+  EXPECT_FALSE(metadata_key_schema[2].IsNullable());
+  EXPECT_FALSE(metadata_key_schema[3].IsNullable());
+  EXPECT_FALSE(metadata_key_schema[4].IsNullable());
+  EXPECT_EQ(metadata_key_schema[1].GetMaxVarlenSize(), 50);
+  EXPECT_EQ(metadata_key_schema[2].GetMaxVarlenSize(), 8);
+  EXPECT_EQ(metadata_key_schema[4].GetMaxVarlenSize(), 90);
+
+  // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
+  const auto &attr_sizes = metadata.GetAttributeSizes();
+  EXPECT_EQ(attr_sizes[0], 4);
+  EXPECT_EQ(attr_sizes[1], VARLEN_COLUMN);
+  EXPECT_EQ(attr_sizes[2], VARLEN_COLUMN);
+  EXPECT_EQ(attr_sizes[3], 1);
+  EXPECT_EQ(attr_sizes[4], VARLEN_COLUMN);
+
+  // inlined_attr_sizes    { 4, 54, 16,  1, 94}
+  const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
+  EXPECT_EQ(inlined_attr_sizes[0], 4);
+  EXPECT_EQ(inlined_attr_sizes[1], 54);
+  EXPECT_EQ(inlined_attr_sizes[2], 16);
+  EXPECT_EQ(inlined_attr_sizes[3], 1);
+  EXPECT_EQ(inlined_attr_sizes[4], 94);
+
+  // must_inline_varlen    true
+  EXPECT_TRUE(metadata.MustInlineVarlen());
+
+  // key_oid_to_offset     {20:3, 21:1, 22:2, 23:4, 24:0}
+  const auto &key_oid_to_offset = metadata.GetKeyOidToOffsetMap();
+  EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(20)), 3);
+  EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(21)), 1);
+  EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(22)), 2);
+  EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(23)), 4);
+  EXPECT_EQ(key_oid_to_offset.at(catalog::indexkeycol_oid_t(24)), 0);
+
+  // pr_offsets            { 3,  1,  2,  4,  0}
+  const auto &pr_offsets = IndexMetadata::ComputePROffsets(metadata.inlined_attr_sizes_);
+  EXPECT_EQ(pr_offsets[0], 3);
+  EXPECT_EQ(pr_offsets[1], 1);
+  EXPECT_EQ(pr_offsets[2], 2);
+  EXPECT_EQ(pr_offsets[3], 4);
+  EXPECT_EQ(pr_offsets[4], 0);
 }
 
 /**
@@ -648,7 +743,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
 
     for (uint8_t j = 0; j < 10; j++) {
       // fill buffer pr_A with random data data_A
-      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_, loose_pointers_);
+      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_, &loose_pointers_);
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
@@ -658,7 +753,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
         std::memcpy(data_B, data_A, key_size);
 
         // modify a column of B with some probability, this also updates the reference data_B
-        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_, loose_pointers_);
+        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_, &loose_pointers_);
 
         // perform the relevant checks
         switch (key_type) {
@@ -710,7 +805,7 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_, loose_pointers_);
+    BasicOps(index, &generator_, &loose_pointers_);
 
     delete index;
   }
@@ -731,7 +826,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_, loose_pointers_);
+    BasicOps(index, &generator_, &loose_pointers_);
 
     delete index;
   }
