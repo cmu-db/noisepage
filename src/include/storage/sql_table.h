@@ -162,7 +162,7 @@ class SqlTable {
     for (auto &it : old_dt_version.column_map) {
       if (pr_map.count(it.first) > 0){
         col_oids.emplace_back(it.first);
-        modified_col_id_to_offset_in_initial_pr.emplace(tables_[!old_version_num].column_map.at(it.first),
+        modified_col_id_to_offset_in_initial_pr.emplace(it.second,
                 out_buffer->AttrValueOffsets()[pr_map.at(it.first)]);
       }
     }
@@ -176,7 +176,12 @@ class SqlTable {
       modified_header->AttrValueOffsets()[i] =
               modified_col_id_to_offset_in_initial_pr.at(modified_header->ColumnIds()[i]);
     }
-    //TODO(Yashwanth) Need to set the offsets to match the initial header, need a map from col_id to col_oid
+
+
+    //TODO (Yashwanth) the bitmap in the modified header is in a different order than the initial header so bitmap is off
+    //Need to have a sentinel columnid to skip a column, therefore the bitmap order is maintained. So don't move columns/change offsets just change column ids and mark as sentinel bits
+    //Use 0 as sentinel value, no projected row should ask for it which would mean we have to remove the assert in datatable, move the assert that 0 isn't in the projected row header to sql table
+    //assert on line 208 data_table.cpp, remove the assert that asserts that num cols in projected row < num cols in datatable
 
 
     // Store the initial header, only storing the size of modified header because that is all that will be overwritten,
