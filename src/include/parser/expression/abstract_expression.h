@@ -7,8 +7,8 @@
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression_defs.h"
+#include "type/transient_value.h"
 #include "type/type_id.h"
-#include "type/value.h"
 
 namespace terrier::parser {
 /**
