@@ -205,7 +205,7 @@ class ProjectedRowInitializer {
    *
    * @tparam AttrType datatype of attribute sizes
    * @param attr_sizes unsorted attribute sizes
-   * @param pr_offsets pr_offsets[i] = projection list offset of SORTED attr_sizes[i]
+   * @param pr_offsets pr_offsets[i] = projection list offset of attr_sizes[i] after it gets sorted
    */
   template <typename AttrType>
   static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> attr_sizes,

@@ -141,6 +141,8 @@ std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catal
 
 std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
                                                                uint16_t num_reserved_columns) {
+  // First compute {count_varlen, count_8, count_4, count_2, count_1}
+  // Then {offset_varlen, offset_8, offset_4, offset_2, offset_1} is the inclusive scan of the counts
   std::vector<uint16_t> offsets;
   offsets.reserve(5);
   for (uint8_t i = 0; i < 5; i++) {
