@@ -33,39 +33,46 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   STORAGE_LOG_INFO("slot version: {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
   layout_version_t old_version_num = slot.GetBlock()->layout_version_;
+  auto curr_dt_version = tables_.at(version_num);
+
+  TERRIER_ASSERT(out_buffer->NumColumns() <= curr_dt_version.data_table->accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                 "The output buffer never returns the version pointer columns, so it should have "
+                 "fewer attributes.");
 
   // The version of the current slot is the same as the version num
   if (old_version_num == version_num) {
     return tables_.at(version_num).data_table->Select(txn, slot, out_buffer);
   }
 
-  // The slot version is not the same as the version_num
-  // 1. Get the old ProjectedRow
-  // 2. Convert it into new ProjectedRow
+  //The slot version is not the same as the version_num
+  // 1. Copy the old header (excluding bitmap)
+  auto initial_header_buffer = common::AllocationUtil::AllocateAligned(out_buffer->HeaderWithoutBitmapSize());
+  std::memcpy(initial_header_buffer, out_buffer, out_buffer->HeaderWithoutBitmapSize());
 
-  // Create buffer for old ProjectedRow
+  // 2. For each column present in the old version, change the column id to the col id of that version
+  //    For each column not present in the old version, change the column id to the sentinel value VERSION_POINTER_COLUMN_ID
   auto old_dt_version = tables_.at(old_version_num);
   std::vector<catalog::col_oid_t> col_oids;
-  for (auto &it : old_dt_version.column_map) {
-    if (pr_map.count(it.first) > 0) col_oids.emplace_back(it.first);
-  }
-  auto old_pr_pair = InitializerForProjectedRow(col_oids, old_version_num);
-  auto read_buffer = common::AllocationUtil::AllocateAligned(old_pr_pair.first.ProjectedRowSize());
-  ProjectedRow *pr_buffer = old_pr_pair.first.InitializeRow(read_buffer);
-
-  // 1. Get the old ProjectedRow
-  bool result = old_dt_version.data_table->Select(txn, slot, pr_buffer);
-  if (!result) {
-    delete[] read_buffer;
-    return false;
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                   "Output buffer should not read the version pointer column.");
+    catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
+    if(old_dt_version.column_map.count(col_oid) > 0){
+      out_buffer->ColumnIds()[i] = old_dt_version.column_map.at(col_oid);
+    } else {
+      //TODO (Yashwanth) consider renaming VERSION_POINTER_COLUMN_ID, since we're using it for more than just that now
+      out_buffer->ColumnIds()[i] = VERSION_POINTER_COLUMN_ID;
+    }
   }
 
-  // 2. Convert it into new ProjectedRow
-  // TODO(yangjuns): fill in default values for newly added attributes
-  StorageUtil::CopyProjectionIntoProjection(*pr_buffer, old_pr_pair.second, old_dt_version.layout, out_buffer, pr_map);
+  //3. Get the result and copy back the old header
+  bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
+  std::memcpy(out_buffer, initial_header_buffer, out_buffer->HeaderWithoutBitmapSize());
 
-  delete[] read_buffer;
-  return true;
+  delete[] initial_header_buffer;
+
+  //TODO (Yashwanth) handle default values
+  return result;
 }
 
 /**

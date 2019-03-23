@@ -142,6 +142,15 @@ class PACKED ProjectedRow {
     return AttrValueOffsets()[offset];
   }
 
+  /**
+   * Retrieves the size of the header excluding the bitmap
+   * @return size of header
+   */
+  uint32_t HeaderWithoutBitmapSize() const {
+    //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
+    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t ) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
+  }
+
 
 
  private:
