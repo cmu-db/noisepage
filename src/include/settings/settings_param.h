@@ -2,7 +2,7 @@
 
 namespace terrier::settings {
 
-enum class SettingsParam {
+enum class Param {
 #define __SETTING_ENUM__
 #include "settings/settings_macro.h"
 #include "settings/settings.h"

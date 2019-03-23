@@ -1,5 +1,5 @@
 // This allows the settings defined once to be used in different contexts.
-// When __SETTING_GFLAGS_DEFILE__ is set,
+// When __SETTING_GFLAGS_DEFINE__ is set,
 //    setting definitions will be exposed through glfags definitions.
 // When __SETTING_GFLAGS_DECLARE__ is set,
 //    setting definitions will be exposed through glfags declarations.
@@ -21,6 +21,7 @@
   #ifdef SETTING_string
     #undef SETTING_string
   #endif
+
   #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, is_persistent)        \
     DEFINE_int32(name, default_value, description);
 

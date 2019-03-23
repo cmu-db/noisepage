@@ -16,14 +16,14 @@ namespace terrier::settings {
 
 class SettingsManager {
  public:
-  static int32_t GetInt(SettingsParam id);
-  static double GetDouble(SettingsParam id);
-  static bool GetBool(SettingsParam id);
-  static std::string GetString(SettingsParam id);
+  static int32_t GetInt(Param param);
+  static double GetDouble(Param param);
+  static bool GetBool(Param param);
+  static std::string GetString(Param param);
 
-  static void SetInt(SettingsParam id, int32_t value);
-  static void SetBool(SettingsParam id, bool value);
-  static void SetString(SettingsParam id, const std::string &value);
+  static void SetInt(Param param, int32_t value);
+  static void SetBool(Param param, bool value);
+  static void SetString(Param param, const std::string &value);
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings
@@ -40,7 +40,7 @@ class SettingsManager {
 
   bool catalog_initialized_;
 
-  void DefineSetting(SettingsParam id, const std::string &name,
+  void DefineSetting(Param param, const std::string &name,
                      const type::Value &value,
                      const std::string &description,
                      const type::Value &default_value,
@@ -48,7 +48,8 @@ class SettingsManager {
                      const type::Value &max_value,
                      bool is_mutable, bool is_persistent);
 
-  static type::Value GetValue(SettingsParam id);
+  static type::Value GetValue(Param param);
+  static void SetValue(Param param, const type::Value &value);
 
 };
 
