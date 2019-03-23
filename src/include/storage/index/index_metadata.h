@@ -28,7 +28,6 @@ class IndexMetadata {
         inlined_attr_sizes_(std::move(other.inlined_attr_sizes_)),
         must_inline_varlen_(other.must_inline_varlen_),
         compact_ints_offsets_(std::move(other.compact_ints_offsets_)),
-        pr_offsets_(std::move(other.pr_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
         inlined_initializer_(std::move(other.inlined_initializer_)) {}
@@ -43,11 +42,11 @@ class IndexMetadata {
         inlined_attr_sizes_(ComputeInlinedAttributeSizes(key_schema_)),
         must_inline_varlen_(ComputeMustInlineVarlen(key_schema_)),
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
-        pr_offsets_(ComputePROffsets(inlined_attr_sizes_)),
-        key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, pr_offsets_)),
-        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(attr_sizes_, pr_offsets_)),
-        inlined_initializer_(
-            ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(inlined_attr_sizes_, pr_offsets_)) {}
+        key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, ComputePROffsets(inlined_attr_sizes_))),
+        initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
+            attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
+        inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
+            inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
 
   /**
    * @return index key schema
@@ -73,11 +72,6 @@ class IndexMetadata {
    * @return offsets to write into for compact ints (key schema order)
    */
   const std::vector<uint8_t> &GetCompactIntsOffsets() const { return compact_ints_offsets_; }
-
-  /**
-   * @return projected row offsets
-   */
-  const std::vector<uint16_t> &GetProjectedRowOffsets() const { return pr_offsets_; }
 
   /**
    * @return mapping from key oid to projected row offset
@@ -107,7 +101,6 @@ class IndexMetadata {
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
   std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
-  std::vector<uint16_t> pr_offsets_;                                            // for CompactIntsKey
   std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only

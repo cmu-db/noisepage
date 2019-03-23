@@ -61,7 +61,6 @@ class CompactIntsKey {
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
-    const auto &pr_offsets = metadata.GetProjectedRowOffsets();
 
     TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
@@ -72,7 +71,7 @@ class CompactIntsKey {
 
     for (uint8_t i = 0; i < from.NumColumns(); i++) {
       TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
-      CopyAttrFromProjection(from, pr_offsets[i], attr_sizes[i], compact_ints_offsets[i]);
+      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
 

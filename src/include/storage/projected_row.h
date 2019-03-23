@@ -205,11 +205,11 @@ class ProjectedRowInitializer {
    *
    * @tparam AttrType datatype of attribute sizes
    * @param attr_sizes unsorted attribute sizes
-   * @param column_ids whatever you want the projected row's column IDs to be
+   * @param pr_offsets pr_offsets[i] = projection list offset of SORTED attr_sizes[i]
    */
   template <typename AttrType>
   static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> attr_sizes,
-                                                                         const std::vector<uint16_t> &column_ids);
+                                                                         const std::vector<uint16_t> &pr_offsets);
 
  private:
   /**
@@ -225,9 +225,6 @@ class ProjectedRowInitializer {
   ProjectedRowInitializer(const std::vector<AttrType> &attr_sizes, std::vector<col_id_t> col_ids);
 
   uint32_t size_ = 0;
-  /**
-   * col_ids is overloaded to mean comparison order for indexes.
-   */
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };

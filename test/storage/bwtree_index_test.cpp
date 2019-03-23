@@ -21,6 +21,422 @@ class BwTreeIndexTests : public TerrierTest {
   std::default_random_engine generator_;
   std::vector<byte *> loose_pointers_;
 
+  /**
+   * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
+   */
+  template <typename Random>
+  IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+                                        Random *generator) {
+    uint32_t max_varlen_size = 20;
+    TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
+
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(num_cols);
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    IndexKeySchema key_schema;
+
+    for (uint32_t i = 0; i < num_cols; i++) {
+      auto key_oid = key_oids[i];
+      auto type = *RandomTestUtil::UniformRandomElement(types, generator);
+      auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
+
+      switch (type) {
+        case type::TypeId::VARBINARY:
+        case type::TypeId::VARCHAR: {
+          auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
+          key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
+          break;
+        }
+        default:
+          key_schema.emplace_back(key_oid, type, is_nullable);
+          break;
+      }
+    }
+
+    return key_schema;
+  }
+
+  /**
+   * Generates a random CompactIntsKey-compatible schema.
+   */
+  template <typename Random>
+  IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
+    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+    const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
+
+    const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                          type::TypeId::BIGINT};  // has to be sorted in ascending type size order
+
+    const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
+    std::vector<catalog::indexkeycol_oid_t> key_oids;
+    key_oids.reserve(max_cols);
+
+    for (auto i = 0; i < max_cols; i++) {
+      key_oids.emplace_back(i);
+    }
+
+    std::shuffle(key_oids.begin(), key_oids.end(), *generator);
+
+    IndexKeySchema key_schema;
+
+    uint8_t col = 0;
+
+    for (uint16_t bytes_used = 0; bytes_used != key_size;) {
+      auto max_offset = static_cast<uint8_t>(types.size() - 1);
+      for (const auto &type : types) {
+        if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
+          max_offset--;
+        }
+      }
+      const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
+      const auto type = types[type_offset];
+
+      key_schema.emplace_back(key_oids[col++], type, false);
+      bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
+    }
+
+    return key_schema;
+  }
+
+  /**
+   * Generates random data for the given type and writes it to both attr and reference.
+   */
+  template <typename Random>
+  void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator) {
+    std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
+                                               std::numeric_limits<int64_t>::max());
+    const auto type = col.GetType();
+    const auto type_size = type::TypeUtil::GetTypeSize(type);
+
+    // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
+
+    switch (type) {
+      case type::TypeId::BOOLEAN: {
+        auto boolean = static_cast<uint8_t>(rng(*generator)) % 2;
+        std::memcpy(attr, &boolean, type_size);
+        std::memcpy(reference, &boolean, type_size);
+        break;
+      }
+      case type::TypeId::TINYINT: {
+        auto tinyint = static_cast<int8_t>(rng(*generator));
+        std::memcpy(attr, &tinyint, type_size);
+        tinyint ^= static_cast<int8_t>(static_cast<int8_t>(0x1) << (sizeof(int8_t) * 8UL - 1));
+        std::memcpy(reference, &tinyint, type_size);
+        break;
+      }
+      case type::TypeId::SMALLINT: {
+        auto smallint = static_cast<int16_t>(rng(*generator));
+        std::memcpy(attr, &smallint, type_size);
+        smallint ^= static_cast<int16_t>(static_cast<int16_t>(0x1) << (sizeof(int16_t) * 8UL - 1));
+        smallint = htobe16(smallint);
+        std::memcpy(reference, &smallint, type_size);
+        break;
+      }
+      case type::TypeId::INTEGER: {
+        auto integer = static_cast<int32_t>(rng(*generator));
+        std::memcpy(attr, &integer, type_size);
+        integer ^= static_cast<int32_t>(static_cast<int32_t>(0x1) << (sizeof(int32_t) * 8UL - 1));
+        integer = htobe32(integer);
+        std::memcpy(reference, &integer, type_size);
+        break;
+      }
+      case type::TypeId::DATE: {
+        auto date = static_cast<uint32_t>(rng(*generator));
+        std::memcpy(attr, &date, type_size);
+        date = htobe32(date);
+        std::memcpy(reference, &date, type_size);
+        break;
+      }
+      case type::TypeId::BIGINT: {
+        auto bigint = static_cast<int64_t>(rng(*generator));
+        std::memcpy(attr, &bigint, type_size);
+        bigint ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
+        bigint = htobe64(bigint);
+        std::memcpy(reference, &bigint, type_size);
+        break;
+      }
+      case type::TypeId::DECIMAL: {
+        auto decimal = static_cast<int64_t>(rng(*generator));
+        std::memcpy(attr, &decimal, type_size);
+        decimal ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
+        decimal = htobe64(decimal);
+        std::memcpy(reference, &decimal, type_size);
+        break;
+      }
+      case type::TypeId::TIMESTAMP: {
+        auto timestamp = static_cast<uint64_t>(rng(*generator));
+        std::memcpy(attr, &timestamp, type_size);
+        timestamp = htobe64(timestamp);
+        std::memcpy(reference, &timestamp, type_size);
+        break;
+      }
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
+        auto varlen_size = col.GetMaxVarlenSize();
+
+        // generate random varlen content
+        auto *varlen_content = new byte[varlen_size];
+        uint8_t bytes_copied = 0;
+        while (bytes_copied < varlen_size) {
+          auto random_content = static_cast<int64_t>(rng(*generator));
+          uint8_t copy_amount =
+              std::min(static_cast<uint8_t>(sizeof(int64_t)), static_cast<uint8_t>(varlen_size - bytes_copied));
+          std::memcpy(varlen_content + bytes_copied, &random_content, copy_amount);
+          bytes_copied = static_cast<uint8_t>(bytes_copied + copy_amount);
+        }
+
+        // write the varlen content into a varlen entry, inlining if appropriate
+        VarlenEntry varlen_entry{};
+        if (varlen_size <= VarlenEntry::InlineThreshold()) {
+          varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
+        } else {
+          varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
+        }
+        loose_pointers_.emplace_back(varlen_content);
+
+        // copy the varlen entry into our attribute and reference
+        std::memcpy(attr, &varlen_entry, sizeof(VarlenEntry));
+        std::memcpy(reference, &varlen_entry, sizeof(VarlenEntry));
+        break;
+      }
+      default:
+        throw std::runtime_error("Unsupported type");
+    }
+  }
+
+  /**
+   * This function randomly generates data per the schema to fill the projected row.
+   * It returns essentially a CompactIntsKey of all the data in one big byte array.
+   */
+  template <typename Random>
+  byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
+    const auto &key_schema = metadata.GetKeySchema();
+    const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
+    const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
+
+    auto *reference = new byte[key_size];
+    uint32_t offset = 0;
+    for (const auto &key : key_schema) {
+      auto key_oid = key.GetOid();
+      auto key_type = key.GetType();
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
+      auto attr = pr->AccessForceNotNull(pr_offset);
+      WriteRandomAttribute(key, attr, reference + offset, generator);
+      offset += type::TypeUtil::GetTypeSize(key_type);
+    }
+    return reference;
+  }
+
+  /**
+   * Strictly speaking, this function is a less general version of FillProjectedRow above.
+   * But it is easier to reason about and useful in a debugger, so we keep it around.
+   */
+  template <typename Random>
+  std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr,
+                                                             Random *generator) {
+    std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
+                                               std::numeric_limits<int64_t>::max());
+    const auto &key_schema = metadata.GetKeySchema();
+    const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
+
+    std::vector<int64_t> data;
+    data.reserve(key_schema.size());
+    for (const auto &key : key_schema) {
+      auto key_type = key.GetType();
+      const auto type_size = type::TypeUtil::GetTypeSize(key_type);
+      int64_t rand_int;
+
+      switch (key_type) {
+        case type::TypeId::TINYINT:
+          rand_int = static_cast<int64_t>(static_cast<int8_t>(rng(*generator)));
+          break;
+        case type::TypeId::SMALLINT:
+          rand_int = static_cast<int64_t>(static_cast<int16_t>(rng(*generator)));
+          break;
+        case type::TypeId::INTEGER:
+          rand_int = static_cast<int64_t>(static_cast<int32_t>(rng(*generator)));
+          break;
+        case type::TypeId::BIGINT:
+          rand_int = static_cast<int64_t>(static_cast<int64_t>(rng(*generator)));
+          break;
+        default:
+          throw std::runtime_error("Invalid compact ints key schema.");
+      }
+
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key.GetOid()));
+      auto attr = pr->AccessForceNotNull(pr_offset);
+      std::memcpy(attr, &rand_int, type_size);
+      data.emplace_back(rand_int);
+    }
+    return data;
+  }
+
+  /**
+   * Modifies a random column of the projected row with the given probability.
+   * Returns true and updates reference if modified, false otherwise.
+   */
+  template <typename Random>
+  bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr, byte *reference, float probability,
+                          Random *generator) {
+    std::bernoulli_distribution coin(probability);
+
+    if (coin(*generator)) {
+      const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
+      const auto &key_schema = metadata.GetKeySchema();
+      std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.size() - 1));
+      const auto column = rng(*generator);
+
+      uint16_t offset = 0;
+      for (uint32_t i = 0; i < column; i++) {
+        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema[i].GetType()));
+      }
+
+      const auto type = key_schema[column].GetType();
+      const auto type_size = type::TypeUtil::GetTypeSize(type);
+
+      auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema[column].GetOid()));
+      auto attr = pr->AccessForceNotNull(pr_offset);
+      auto *old_value = new byte[type_size];
+      std::memcpy(old_value, attr, type_size);
+      // force the value to change
+      while (std::memcmp(old_value, attr, type_size) == 0) {
+        WriteRandomAttribute(key_schema[column], attr, reference + offset, generator);
+      }
+      delete[] old_value;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Tests:
+   * 1. Scan -> Insert -> Scan -> Delete -> Scan
+   * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+   */
+  void BasicOps(Index *const index) {
+    // instantiate projected row and key
+    const auto &metadata = index->GetMetadata();
+    const auto &initializer = metadata.GetProjectedRowInitializer();
+    auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *key = initializer.InitializeRow(key_buffer);
+
+    auto *ref = FillProjectedRow(metadata, key, &generator_);
+    delete[] ref;
+
+    // 1. Scan -> Insert -> Scan -> Delete -> Scan
+    std::vector<storage::TupleSlot> results;
+    index->ScanKey(*key, &results);
+    EXPECT_TRUE(results.empty());
+
+    EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
+
+    index->ScanKey(*key, &results);
+    EXPECT_EQ(results.size(), 1);
+    EXPECT_EQ(results[0], storage::TupleSlot());
+
+    EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+    results.clear();
+    index->ScanKey(*key, &results);
+    EXPECT_TRUE(results.empty());
+
+    // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
+    switch (index->GetConstraintType()) {
+      case ConstraintType::PRIMARY_KEY:
+      case ConstraintType::UNIQUE: {
+        EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
+        EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
+
+        results.clear();
+        index->ScanKey(*key, &results);
+        EXPECT_TRUE(results.empty());
+        EXPECT_EQ(results.size(), 2);
+
+        EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
+
+        results.clear();
+        index->ScanKey(*key, &results);
+        EXPECT_TRUE(results.empty());
+        EXPECT_EQ(results.size(), 2);
+      }
+      default:
+        break;
+    }
+
+    delete[] key_buffer;
+  }
+
+  /**
+   * Sets the generic key to contain the given string. If c_str is nullptr, the key is zeroed out.
+   */
+  template <uint8_t KeySize>
+  void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> *key, ProjectedRow *pr,
+                               const char *c_str) {
+    if (c_str != nullptr) {
+      auto len = static_cast<uint32_t>(std::strlen(c_str));
+
+      VarlenEntry data{};
+      if (len <= VarlenEntry::InlineThreshold()) {
+        data = VarlenEntry::CreateInline(reinterpret_cast<const byte *>(c_str), len);
+      } else {
+        auto *c_str_dup = new byte[len];
+        std::memcpy(c_str_dup, c_str, len);
+        data = VarlenEntry::Create(c_str_dup, len, false);
+        loose_pointers_.emplace_back(c_str_dup);
+      }
+
+      *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+      (*key).SetFromProjectedRow(*pr, metadata);
+    } else {
+      pr->SetNull(0);
+      (*key).SetFromProjectedRow(*pr, metadata);
+    }
+  }
+
+  /**
+   * Tests GenericKey's equality and comparison for the two null-terminated c_str's.
+   */
+  template <uint8_t KeySize>
+  void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2) {
+    const auto generic_eq64 =
+        std::equal_to<GenericKey<KeySize>>();                    // NOLINT transparent functors can't deduce template
+    const auto generic_lt64 = std::less<GenericKey<KeySize>>();  // NOLINT transparent functors can't deduce template
+
+    GenericKey<KeySize> key1, key2;
+    SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1);
+    SetGenericKeyFromString<KeySize>(metadata, &key2, pr, c_str2);
+
+    bool ref_eq, ref_lt;
+    if (c_str1 == nullptr && c_str2 == nullptr) {
+      // NULL and NULL
+      ref_eq = true;
+      ref_lt = false;
+    } else if (c_str1 == nullptr) {
+      // NULL and NOT NULL
+      ref_eq = false;
+      ref_lt = true;
+    } else if (c_str2 == nullptr) {
+      // NOT NULL and NULL
+      ref_eq = false;
+      ref_lt = false;
+    } else {
+      // NOT NULL and NOT NULL
+      ref_eq = strcmp(c_str1, c_str2) == 0;
+      ref_lt = strcmp(c_str1, c_str2) < 0;
+    }
+
+    EXPECT_EQ(generic_eq64(key1, key2), ref_eq);
+    EXPECT_EQ(generic_lt64(key1, key2), ref_lt);
+  }
+
  protected:
   void TearDown() override {
     for (byte *ptr : loose_pointers_) {
@@ -29,301 +445,6 @@ class BwTreeIndexTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 };
-
-/**
- * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
- */
-template <typename Random>
-IndexKeySchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
-                                      Random *generator) {
-  uint32_t max_varlen_size = 20;
-  TERRIER_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
-
-  std::vector<catalog::indexkeycol_oid_t> key_oids;
-  key_oids.reserve(num_cols);
-
-  for (uint32_t i = 0; i < num_cols; i++) {
-    key_oids.emplace_back(i);
-  }
-
-  std::shuffle(key_oids.begin(), key_oids.end(), *generator);
-
-  IndexKeySchema key_schema;
-
-  for (uint32_t i = 0; i < num_cols; i++) {
-    auto key_oid = key_oids[i];
-    auto type = *RandomTestUtil::UniformRandomElement(types, generator);
-    auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
-
-    switch (type) {
-      case type::TypeId::VARBINARY:
-      case type::TypeId::VARCHAR: {
-        auto varlen_size = std::uniform_int_distribution(0u, max_varlen_size)(*generator);
-        key_schema.emplace_back(key_oid, type, is_nullable, varlen_size);
-        break;
-      }
-      default:
-        key_schema.emplace_back(key_oid, type, is_nullable);
-        break;
-    }
-  }
-
-  return key_schema;
-}
-
-/**
- * Generates a random CompactIntsKey-compatible schema.
- */
-template <typename Random>
-IndexKeySchema RandomCompactIntsKeySchema(Random *generator) {
-  const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
-  const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
-
-  const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                        type::TypeId::BIGINT};  // has to be sorted in ascending type size order
-
-  const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
-  std::vector<catalog::indexkeycol_oid_t> key_oids;
-  key_oids.reserve(max_cols);
-
-  for (auto i = 0; i < max_cols; i++) {
-    key_oids.emplace_back(i);
-  }
-
-  std::shuffle(key_oids.begin(), key_oids.end(), *generator);
-
-  IndexKeySchema key_schema;
-
-  uint8_t col = 0;
-
-  for (uint16_t bytes_used = 0; bytes_used != key_size;) {
-    auto max_offset = static_cast<uint8_t>(types.size() - 1);
-    for (const auto &type : types) {
-      if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
-        max_offset--;
-      }
-    }
-    const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
-    const auto type = types[type_offset];
-
-    key_schema.emplace_back(key_oids[col++], type, false);
-    bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
-  }
-
-  return key_schema;
-}
-
-/**
- * Generates random data for the given type and writes it to both attr and reference.
- */
-template <typename Random>
-void WriteRandomAttribute(const IndexKeyColumn &col, void *attr, void *reference, Random *generator,
-                          std::vector<byte *> *loose_pointers) {
-  std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
-  const auto type = col.GetType();
-  const auto type_size = type::TypeUtil::GetTypeSize(type);
-
-  // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
-
-  switch (type) {
-    case type::TypeId::BOOLEAN: {
-      auto boolean = static_cast<uint8_t>(rng(*generator)) % 2;
-      std::memcpy(attr, &boolean, type_size);
-      std::memcpy(reference, &boolean, type_size);
-      break;
-    }
-    case type::TypeId::TINYINT: {
-      auto tinyint = static_cast<int8_t>(rng(*generator));
-      std::memcpy(attr, &tinyint, type_size);
-      tinyint ^= static_cast<int8_t>(static_cast<int8_t>(0x1) << (sizeof(int8_t) * 8UL - 1));
-      std::memcpy(reference, &tinyint, type_size);
-      break;
-    }
-    case type::TypeId::SMALLINT: {
-      auto smallint = static_cast<int16_t>(rng(*generator));
-      std::memcpy(attr, &smallint, type_size);
-      smallint ^= static_cast<int16_t>(static_cast<int16_t>(0x1) << (sizeof(int16_t) * 8UL - 1));
-      smallint = htobe16(smallint);
-      std::memcpy(reference, &smallint, type_size);
-      break;
-    }
-    case type::TypeId::INTEGER: {
-      auto integer = static_cast<int32_t>(rng(*generator));
-      std::memcpy(attr, &integer, type_size);
-      integer ^= static_cast<int32_t>(static_cast<int32_t>(0x1) << (sizeof(int32_t) * 8UL - 1));
-      integer = htobe32(integer);
-      std::memcpy(reference, &integer, type_size);
-      break;
-    }
-    case type::TypeId::DATE: {
-      auto date = static_cast<uint32_t>(rng(*generator));
-      std::memcpy(attr, &date, type_size);
-      date = htobe32(date);
-      std::memcpy(reference, &date, type_size);
-      break;
-    }
-    case type::TypeId::BIGINT: {
-      auto bigint = static_cast<int64_t>(rng(*generator));
-      std::memcpy(attr, &bigint, type_size);
-      bigint ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
-      bigint = htobe64(bigint);
-      std::memcpy(reference, &bigint, type_size);
-      break;
-    }
-    case type::TypeId::DECIMAL: {
-      auto decimal = static_cast<int64_t>(rng(*generator));
-      std::memcpy(attr, &decimal, type_size);
-      decimal ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
-      decimal = htobe64(decimal);
-      std::memcpy(reference, &decimal, type_size);
-      break;
-    }
-    case type::TypeId::TIMESTAMP: {
-      auto timestamp = static_cast<uint64_t>(rng(*generator));
-      std::memcpy(attr, &timestamp, type_size);
-      timestamp = htobe64(timestamp);
-      std::memcpy(reference, &timestamp, type_size);
-      break;
-    }
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
-      // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
-      auto varlen_size = col.GetMaxVarlenSize();
-
-      // generate random varlen content
-      auto *varlen_content = new byte[varlen_size];
-      uint8_t bytes_copied = 0;
-      while (bytes_copied < varlen_size) {
-        auto random_content = static_cast<int64_t>(rng(*generator));
-        uint8_t copy_amount =
-            std::min(static_cast<uint8_t>(sizeof(int64_t)), static_cast<uint8_t>(varlen_size - bytes_copied));
-        std::memcpy(varlen_content + bytes_copied, &random_content, copy_amount);
-        bytes_copied = static_cast<uint8_t>(bytes_copied + copy_amount);
-      }
-
-      // write the varlen content into a varlen entry, inlining if appropriate
-      VarlenEntry varlen_entry{};
-      if (varlen_size <= VarlenEntry::InlineThreshold()) {
-        varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
-      } else {
-        varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
-      }
-      loose_pointers->emplace_back(varlen_content);
-
-      // copy the varlen entry into our attribute and reference
-      std::memcpy(attr, &varlen_entry, sizeof(VarlenEntry));
-      std::memcpy(reference, &varlen_entry, sizeof(VarlenEntry));
-      break;
-    }
-    default:
-      throw std::runtime_error("Unsupported type");
-  }
-}
-
-/**
- * This function randomly generates data per the schema to fill the projected row.
- * It returns essentially a CompactIntsKey of all the data in one big byte array.
- */
-template <typename Random>
-byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator,
-                       std::vector<byte *> *loose_pointers) {
-  const auto &key_schema = metadata.GetKeySchema();
-  const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
-  const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
-
-  auto *reference = new byte[key_size];
-  uint32_t offset = 0;
-  for (const auto &key : key_schema) {
-    auto key_oid = key.GetOid();
-    auto key_type = key.GetType();
-    auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
-    auto attr = pr->AccessForceNotNull(pr_offset);
-    WriteRandomAttribute(key, attr, reference + offset, generator, loose_pointers);
-    offset += type::TypeUtil::GetTypeSize(key_type);
-  }
-  return reference;
-}
-
-/**
- * Strictly speaking, this function is a less general version of FillProjectedRow above.
- * But it is easier to reason about and useful in a debugger, so we keep it around.
- */
-template <typename Random>
-std::vector<int64_t> FillProjectedRowWithRandomCompactInts(const IndexMetadata &metadata, storage::ProjectedRow *pr,
-                                                           Random *generator) {
-  std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
-  const auto &key_schema = metadata.GetKeySchema();
-  const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
-
-  std::vector<int64_t> data;
-  data.reserve(key_schema.size());
-  for (const auto &key : key_schema) {
-    auto key_type = key.GetType();
-    const auto type_size = type::TypeUtil::GetTypeSize(key_type);
-    int64_t rand_int;
-
-    switch (key_type) {
-      case type::TypeId::TINYINT:
-        rand_int = static_cast<int64_t>(static_cast<int8_t>(rng(*generator)));
-        break;
-      case type::TypeId::SMALLINT:
-        rand_int = static_cast<int64_t>(static_cast<int16_t>(rng(*generator)));
-        break;
-      case type::TypeId::INTEGER:
-        rand_int = static_cast<int64_t>(static_cast<int32_t>(rng(*generator)));
-        break;
-      case type::TypeId::BIGINT:
-        rand_int = static_cast<int64_t>(static_cast<int64_t>(rng(*generator)));
-        break;
-      default:
-        throw std::runtime_error("Invalid compact ints key schema.");
-    }
-
-    auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key.GetOid()));
-    auto attr = pr->AccessForceNotNull(pr_offset);
-    std::memcpy(attr, &rand_int, type_size);
-    data.emplace_back(rand_int);
-  }
-  return data;
-}
-
-/**
- * Modifies a random column of the projected row with the given probability.
- * Returns true and updates reference if modified, false otherwise.
- */
-template <typename Random>
-bool ModifyRandomColumn(const IndexMetadata &metadata, storage::ProjectedRow *pr, byte *reference, float probability,
-                        Random *generator, std::vector<byte *> *loose_pointers) {
-  std::bernoulli_distribution coin(probability);
-
-  if (coin(*generator)) {
-    const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
-    const auto &key_schema = metadata.GetKeySchema();
-    std::uniform_int_distribution<uint16_t> rng(0, static_cast<uint16_t>(key_schema.size() - 1));
-    const auto column = rng(*generator);
-
-    uint16_t offset = 0;
-    for (uint32_t i = 0; i < column; i++) {
-      offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema[i].GetType()));
-    }
-
-    const auto type = key_schema[column].GetType();
-    const auto type_size = type::TypeUtil::GetTypeSize(type);
-
-    auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema[column].GetOid()));
-    auto attr = pr->AccessForceNotNull(pr_offset);
-    auto *old_value = new byte[type_size];
-    std::memcpy(old_value, attr, type_size);
-    // force the value to change
-    while (std::memcmp(old_value, attr, type_size) == 0) {
-      WriteRandomAttribute(key_schema[column], attr, reference + offset, generator, loose_pointers);
-    }
-    delete[] old_value;
-    return true;
-  }
-
-  return false;
-}
 
 /**
  * Calls compact ints equality for KeySize, i.e. std::equal_to<CompactIntsKey<KeySize>>()
@@ -349,65 +470,6 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
   key_A.SetFromProjectedRow(pr_A, metadata);
   key_B.SetFromProjectedRow(pr_B, metadata);
   return std::less<CompactIntsKey<KeySize>>()(key_A, key_B);
-}
-
-/**
- * Tests:
- * 1. Scan -> Insert -> Scan -> Delete -> Scan
- * 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
- */
-template <typename Random>
-void BasicOps(Index *const index, const Random &generator, std::vector<byte *> *loose_pointers) {
-  // instantiate projected row and key
-  const auto &metadata = index->GetMetadata();
-  const auto &initializer = metadata.GetProjectedRowInitializer();
-  auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  auto *key = initializer.InitializeRow(key_buffer);
-
-  auto *ref = FillProjectedRow(metadata, key, generator, loose_pointers);
-  delete[] ref;
-
-  // 1. Scan -> Insert -> Scan -> Delete -> Scan
-  std::vector<storage::TupleSlot> results;
-  index->ScanKey(*key, &results);
-  EXPECT_TRUE(results.empty());
-
-  EXPECT_TRUE(index->Insert(*key, storage::TupleSlot()));
-
-  index->ScanKey(*key, &results);
-  EXPECT_EQ(results.size(), 1);
-  EXPECT_EQ(results[0], storage::TupleSlot());
-
-  EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-
-  results.clear();
-  index->ScanKey(*key, &results);
-  EXPECT_TRUE(results.empty());
-
-  // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
-  switch (index->GetConstraintType()) {
-    case ConstraintType::PRIMARY_KEY:
-    case ConstraintType::UNIQUE: {
-      EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
-      EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
-
-      results.clear();
-      index->ScanKey(*key, &results);
-      EXPECT_TRUE(results.empty());
-      EXPECT_EQ(results.size(), 2);
-
-      EXPECT_TRUE(index->Delete(*key, storage::TupleSlot()));
-
-      results.clear();
-      index->ScanKey(*key, &results);
-      EXPECT_TRUE(results.empty());
-      EXPECT_EQ(results.size(), 2);
-    }
-    default:
-      break;
-  }
-
-  delete[] key_buffer;
 }
 
 // Test that we generate the right metadata for CompactIntsKey compatible schemas
@@ -743,7 +805,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
 
     for (uint8_t j = 0; j < 10; j++) {
       // fill buffer pr_A with random data data_A
-      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_, &loose_pointers_);
+      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_);
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
@@ -753,7 +815,7 @@ TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
         std::memcpy(data_B, data_A, key_size);
 
         // modify a column of B with some probability, this also updates the reference data_B
-        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_, &loose_pointers_);
+        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_);
 
         // perform the relevant checks
         switch (key_type) {
@@ -805,7 +867,7 @@ TEST_F(BwTreeIndexTests, CompactIntsBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_, &loose_pointers_);
+    BasicOps(index);
 
     delete index;
   }
@@ -826,7 +888,7 @@ TEST_F(BwTreeIndexTests, GenericKeyBuilderTest) {
     IndexBuilder builder;
     builder.SetConstraintType(ConstraintType::DEFAULT).SetKeySchema(key_schema).SetOid(catalog::index_oid_t(i));
     auto *index = builder.Build();
-    BasicOps(index, &generator_, &loose_pointers_);
+    BasicOps(index);
 
     delete index;
   }
@@ -974,69 +1036,6 @@ TEST_F(BwTreeIndexTests, GenericKeyNumericComparisons) {
   NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
 }
 
-/**
- * Sets the generic key to contain the given string. If c_str is nullptr, the key is zeroed out.
- */
-template <uint8_t KeySize>
-void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> *key, ProjectedRow *pr,
-                             const char *c_str, std::vector<byte *> *loose_pointers) {
-  if (c_str != nullptr) {
-    auto len = static_cast<uint32_t>(std::strlen(c_str));
-
-    VarlenEntry data{};
-    if (len <= VarlenEntry::InlineThreshold()) {
-      data = VarlenEntry::CreateInline(reinterpret_cast<const byte *>(c_str), len);
-    } else {
-      auto *c_str_dup = new byte[len];
-      std::memcpy(c_str_dup, c_str, len);
-      data = VarlenEntry::Create(c_str_dup, len, false);
-      loose_pointers->emplace_back(c_str_dup);
-    }
-
-    *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-    (*key).SetFromProjectedRow(*pr, metadata);
-  } else {
-    pr->SetNull(0);
-    (*key).SetFromProjectedRow(*pr, metadata);
-  }
-}
-
-/**
- * Tests GenericKey's equality and comparison for the two null-terminated c_str's.
- */
-template <uint8_t KeySize>
-void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2,
-                           std::vector<byte *> *loose_pointers) {
-  const auto generic_eq64 = std::equal_to<GenericKey<KeySize>>();  // NOLINT transparent functors can't deduce template
-  const auto generic_lt64 = std::less<GenericKey<KeySize>>();      // NOLINT transparent functors can't deduce template
-
-  GenericKey<KeySize> key1, key2;
-  SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1, loose_pointers);
-  SetGenericKeyFromString<KeySize>(metadata, &key2, pr, c_str2, loose_pointers);
-
-  bool ref_eq, ref_lt;
-  if (c_str1 == nullptr && c_str2 == nullptr) {
-    // NULL and NULL
-    ref_eq = true;
-    ref_lt = false;
-  } else if (c_str1 == nullptr) {
-    // NULL and NOT NULL
-    ref_eq = false;
-    ref_lt = true;
-  } else if (c_str2 == nullptr) {
-    // NOT NULL and NULL
-    ref_eq = false;
-    ref_lt = false;
-  } else {
-    // NOT NULL and NOT NULL
-    ref_eq = strcmp(c_str1, c_str2) == 0;
-    ref_lt = strcmp(c_str1, c_str2) < 0;
-  }
-
-  EXPECT_EQ(generic_eq64(key1, key2), ref_eq);
-  EXPECT_EQ(generic_lt64(key1, key2), ref_lt);
-}
-
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   IndexKeySchema key_schema;
@@ -1151,34 +1150,34 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   GenericKey<64> key1, key2;
 
   // lhs: "johnathan_johnathan", rhs: "johnathan_johnathan" (same prefixes, same strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan);
 
   // lhs: "johnathan_johnathan", rhs: "johnny_johnny" (same prefixes, different strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnny_johnny, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnny_johnny);
 
   // lhs: "johnny_johnny", rhs: "johnathan_johnathan" (same prefixes, different strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnathan_johnathan, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnathan_johnathan);
 
   // lhs: "johnny_johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, john, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, john);
 
   // lhs: "john", rhs: "johnny_johnny" (same prefixes, different strings (one <=prefix))
-  TestGenericKeyStrings<64>(metadata, pr, john, johnny_johnny, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, john, johnny_johnny);
 
   // lhs: "johnny", rhs: "johnny_johnny" (same prefixes, different strings (one inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny, johnny_johnny, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnny, johnny_johnny);
 
   // lhs: "johnny_johnny", rhs: "johnny" (same prefixes, different strings (one inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnny, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnny);
 
   // lhs: "johnny_johnny", rhs: NULL
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, nullptr, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, nullptr);
 
   // lhs: NULL, rhs: NULL
-  TestGenericKeyStrings<64>(metadata, pr, nullptr, nullptr, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, nullptr);
 
   // lhs: NULL, rhs: "johnny_johnny"
-  TestGenericKeyStrings<64>(metadata, pr, nullptr, johnny_johnny, &loose_pointers_);
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, johnny_johnny);
 
   delete[] pr_buffer;
 }

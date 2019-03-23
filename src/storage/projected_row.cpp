@@ -79,7 +79,7 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializer(c
 
 template <typename AttrType>
 ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-    std::vector<AttrType> attr_sizes, const std::vector<uint16_t> &column_ids) {
+    std::vector<AttrType> attr_sizes, const std::vector<uint16_t> &pr_offsets) {
   // uint8 requires masking off the MSB varlen flag, uint16 are actual sizes
   if constexpr (sizeof(AttrType) == 1) {
     // This is necessary because we're computing the byte offsets, so we need to mask off the (possibly) negative MSB
@@ -88,9 +88,9 @@ ProjectedRowInitializer ProjectedRowInitializer::CreateProjectedRowInitializerFo
   }
   std::sort(attr_sizes.begin(), attr_sizes.end(), std::greater<>());
   std::vector<col_id_t> col_ids;
-  col_ids.reserve(column_ids.size());
-  for (const auto col_id : column_ids) {
-    col_ids.emplace_back(col_id);
+  col_ids.reserve(pr_offsets.size());
+  for (const auto pr_offset : pr_offsets) {
+    col_ids.emplace_back(pr_offset);
   }
   return ProjectedRowInitializer(attr_sizes, col_ids);
 }
