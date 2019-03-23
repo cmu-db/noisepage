@@ -979,7 +979,7 @@ TEST_F(BwTreeIndexTests, GenericKeyNumericComparisons) {
  */
 template <uint8_t KeySize>
 void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> *key, ProjectedRow *pr,
-                             const char *c_str) {
+                             const char *c_str, std::vector<byte *> *loose_pointers) {
   if (c_str != nullptr) {
     auto len = static_cast<uint32_t>(std::strlen(c_str));
 
@@ -989,8 +989,8 @@ void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> 
     } else {
       auto *c_str_dup = new byte[len];
       std::memcpy(c_str_dup, c_str, len);
-      // let the generic key own the string
-      data = VarlenEntry::Create(c_str_dup, len, true);
+      data = VarlenEntry::Create(c_str_dup, len, false);
+      loose_pointers->emplace_back(c_str_dup);
     }
 
     *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
@@ -1005,13 +1005,14 @@ void SetGenericKeyFromString(const IndexMetadata &metadata, GenericKey<KeySize> 
  * Tests GenericKey's equality and comparison for the two null-terminated c_str's.
  */
 template <uint8_t KeySize>
-void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2) {
+void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2,
+                           std::vector<byte *> *loose_pointers) {
   const auto generic_eq64 = std::equal_to<GenericKey<KeySize>>();  // NOLINT transparent functors can't deduce template
   const auto generic_lt64 = std::less<GenericKey<KeySize>>();      // NOLINT transparent functors can't deduce template
 
   GenericKey<KeySize> key1, key2;
-  SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1);
-  SetGenericKeyFromString<KeySize>(metadata, &key2, pr, c_str2);
+  SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1, loose_pointers);
+  SetGenericKeyFromString<KeySize>(metadata, &key2, pr, c_str2, loose_pointers);
 
   bool ref_eq, ref_lt;
   if (c_str1 == nullptr && c_str2 == nullptr) {
@@ -1150,34 +1151,34 @@ TEST_F(BwTreeIndexTests, GenericKeyNonInlineVarlenComparisons) {
   GenericKey<64> key1, key2;
 
   // lhs: "johnathan_johnathan", rhs: "johnathan_johnathan" (same prefixes, same strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan, &loose_pointers_);
 
   // lhs: "johnathan_johnathan", rhs: "johnny_johnny" (same prefixes, different strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnny_johnny);
+  TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnny_johnny, &loose_pointers_);
 
   // lhs: "johnny_johnny", rhs: "johnathan_johnathan" (same prefixes, different strings (both non-inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnathan_johnathan);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnathan_johnathan, &loose_pointers_);
 
   // lhs: "johnny_johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, john);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, john, &loose_pointers_);
 
   // lhs: "john", rhs: "johnny_johnny" (same prefixes, different strings (one <=prefix))
-  TestGenericKeyStrings<64>(metadata, pr, john, johnny_johnny);
+  TestGenericKeyStrings<64>(metadata, pr, john, johnny_johnny, &loose_pointers_);
 
   // lhs: "johnny", rhs: "johnny_johnny" (same prefixes, different strings (one inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny, johnny_johnny);
+  TestGenericKeyStrings<64>(metadata, pr, johnny, johnny_johnny, &loose_pointers_);
 
   // lhs: "johnny_johnny", rhs: "johnny" (same prefixes, different strings (one inline))
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnny);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, johnny, &loose_pointers_);
 
   // lhs: "johnny_johnny", rhs: NULL
-  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, nullptr);
+  TestGenericKeyStrings<64>(metadata, pr, johnny_johnny, nullptr, &loose_pointers_);
 
   // lhs: NULL, rhs: NULL
-  TestGenericKeyStrings<64>(metadata, pr, nullptr, nullptr);
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, nullptr, &loose_pointers_);
 
   // lhs: NULL, rhs: "johnny_johnny"
-  TestGenericKeyStrings<64>(metadata, pr, nullptr, johnny_johnny);
+  TestGenericKeyStrings<64>(metadata, pr, nullptr, johnny_johnny, &loose_pointers_);
 
   delete[] pr_buffer;
 }
