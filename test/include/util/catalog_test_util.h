@@ -34,7 +34,8 @@ struct CatalogTestUtil {
 
   // The same as RandomSchem but it won't generate Varchar Column
   template <typename Random>
-  static catalog::Schema RandomSchemaNoVarchar(const uint16_t max_cols, Random *const generator) {
+  static catalog::Schema RandomSchemaNoVarchar(const uint16_t max_cols, Random *const generator,
+                                               storage::layout_version_t version = storage::layout_version_t(0)) {
     TERRIER_ASSERT(max_cols > 0, "There should be at least 1 columm.");
     catalog::col_oid_t col_oid(0);
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
@@ -48,7 +49,7 @@ struct CatalogTestUtil {
       bool attr_nullable = *RandomTestUtil::UniformRandomElement(&possible_attr_nullable, generator);
       columns.emplace_back("col_name", attr_type, attr_nullable, col_oid++);
     }
-    return catalog::Schema(columns);
+    return catalog::Schema(columns, version);
   }
 
   // Return a random ProjectedRow for the given schema. It always include all columns.
