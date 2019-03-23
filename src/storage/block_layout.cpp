@@ -48,7 +48,7 @@ uint32_t BlockLayout::ComputeNumSlots() const {
   bytes_available -= static_cast<uint32_t>(sizeof(uint64_t)) * 2 * NumColumns();
   // Every column needs a bit for bitmap, plus a global presence bit for the whole tuple
   uint32_t bits_per_tuple = BYTE_SIZE * tuple_size_ + NumColumns() + 1;
-  return BYTE_SIZE * bytes_available / bits_per_tuple;
+  return BYTE_SIZE * bytes_available / bits_per_tuple - 2;
 }
 
 uint32_t BlockLayout::ComputeHeaderSize() const {
