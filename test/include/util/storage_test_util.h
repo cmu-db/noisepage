@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -257,28 +258,38 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static void PrintRow(const RowType &row, const storage::BlockLayout &layout) {
-    printf("num_cols: %u\n", row.NumColumns());
+  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout) {
+    std::ostringstream os;
+    os << "num_cols: " << row.NumColumns() << std::endl;
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
       storage::col_id_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
       if (attr == nullptr) {
-        printf("col_id: %u is NULL\n", !col_id);
+        os << "col_id: " << !col_id << " is NULL" << std::endl;
         continue;
       }
 
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
-        printf("col_id: %u is varlen, ptr %p, size %u, reclaimable %d, content ", !col_id, entry->Content(),
-               entry->Size(), entry->NeedReclaim());
-        for (uint8_t pos = 0; pos < entry->Size(); pos++) printf("%02x", static_cast<uint8_t>(entry->Content()[pos]));
-        printf("\n");
+        os << "col_id: " << !col_id;
+        os << " is varlen, ptr " << entry->Content();
+        os << ", size " << entry->Size();
+        os << ", reclaimable " << entry->NeedReclaim();
+        os << ", content ";
+        for (uint8_t pos = 0; pos < entry->Size(); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(entry->Content()[pos]);
+        }
+        os << std::endl;
       } else {
-        printf("col_id: %u is ", !col_id);
-        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) printf("%02x", static_cast<uint8_t>(attr[pos]));
-        printf("\n");
+        os << "col_id: " << !col_id;
+        os << " is ";
+        for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) {
+          os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(attr[pos]);
+        }
+        os << std::endl;
       }
     }
+    return os.str();
   }
 
   // Write the given tuple (projected row) into a block using the given access strategy,

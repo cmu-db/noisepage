@@ -14,8 +14,16 @@ RUN apt-get -y update && \
       doxygen \
       git \
       g++-7 \
-      libboost-filesystem-dev \
       libjemalloc-dev \
+      libevent-dev \
+      libpq-dev \
       libtbb-dev \
-      libz-dev \
-      llvm-6.0
+      zlib1g-dev \
+      llvm-6.0 \
+      pkg-config \
+      postgresql-client && \
+      apt-get -y install wget && \
+      wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb && \
+      wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb &&\
+      dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb &&\
+      dpkg -i libpqxx-dev_6.2.4-4_amd64.deb \

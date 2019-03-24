@@ -70,29 +70,21 @@ install_mac() {
   # Update Homebrew.
   brew update
   # Install packages.
-  brew ls --versions boost || brew install boost
   brew ls --versions cmake || brew install cmake
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
+  brew ls --versions libevent || brew install libevent
+  brew ls --versions libpqxx || brew install libpqxx
   (brew ls --versions llvm | grep 6) || brew install llvm@6
+  brew ls --versions openssl || brew install openssl
+  brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
-  # brew ls --versions apache-arrow || brew install apache-arrow
 }
 
 install_linux() {
   # Update apt-get.
   apt-get -y update
-  # Arrow crap
-  # apt-get install -y -V apt-transport-https lsb-release
-  # apt-get install -y -V wget
-  # wget -O /usr/share/keyrings/apache-arrow-keyring.gpg https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-keyring.gpg
-  # tee /etc/apt/sources.list.d/apache-arrow.list
-  # deb [arch=amd64 signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
-  # deb-src [signed-by=/usr/share/keyrings/apache-arrow-keyring.gpg] https://dl.bintray.com/apache/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/ $(lsb_release --codename --short) main
-
-  # apt-get -y update
-  # end of Arrrow crap
   # Install packages.
   apt-get -y install \
       build-essential \
@@ -103,13 +95,21 @@ install_linux() {
       doxygen \
       git \
       g++-7 \
-      libboost-filesystem-dev \
+      libevent-dev \
       libjemalloc-dev \
+      libpq-dev \
+      libssl-dev \
       libtbb-dev \
-      libz-dev \
-   #  libarrow-dev \
-      llvm-6.0
-
+      zlib1g-dev \
+      llvm-6.0 \
+      pkg-config \
+      postgresql-client
+   #install libpqxx-6.2 manually
+   apt-get -y install wget
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb
+   dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb
+   dpkg -i libpqxx-dev_6.2.4-4_amd64.deb
 }
 
 main "$@"

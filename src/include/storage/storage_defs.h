@@ -192,7 +192,7 @@ class VarlenEntry {
    *                    be freed by the GC, which simply calls delete.
    * @return constructed VarlenEntry object
    */
-  static VarlenEntry Create(const byte *content, uint32_t size, bool reclaim) {
+  static VarlenEntry Create(byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
     TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
     result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
@@ -309,6 +309,7 @@ struct VarlenContentCompare {
     return res < 0;
   }
 };
+
 }  // namespace terrier::storage
 
 namespace std {
