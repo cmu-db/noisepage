@@ -56,6 +56,8 @@ class SettingsManager {
   static type::Value GetValue(Param param);
   static void SetValue(Param param, const type::Value &value);
 
+  static std::unordered_map<Param, ParamInfo> param_map_;
+
 };
 
 }  // namespace terrier::settings

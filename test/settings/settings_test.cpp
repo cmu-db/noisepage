@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <pqxx/pqxx>
 #include "settings/settings_manager.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
@@ -14,11 +15,11 @@
 
 namespace terrier{
 
-class NetworkTests : public TerrierTest {
+class SettingsTests : public TerrierTest {
 
  protected:
   network::TerrierServer server;
-  uint16_t port = static_cast<uint16_t>(settings::SettingsManager::GetSmallInt(settings::Param::port)) ;
+  uint16_t port = static_cast<uint16_t>(settings::SettingsManager::GetSmallInt(settings::Param::port));
   std::thread server_thread;
 
   /**
@@ -50,6 +51,26 @@ class NetworkTests : public TerrierTest {
   }
 };
 
+// NOLINTNEXTLINE
+TEST_F(SettingsTests, SimpleQueryTest) {
+  try {
+    pqxx::connection C(
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+
+    pqxx::work txn1(C);
+    txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
+    txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
+    txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
+
+    pqxx::result R = txn1.exec("SELECT name FROM employee where id=1;");
+    txn1.commit();
+    EXPECT_EQ(R.size(), 0);
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+  TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+}
 
 
 } //

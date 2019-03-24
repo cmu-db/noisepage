@@ -34,6 +34,7 @@ SETTING_bool(rpc_enabled,
 "Enable rpc, this should be turned off when testing",
 false, false, false)
 
+/*
 // Socket family
 SETTING_string(socket_family,
 "Socket family (default: AF_INET)",
@@ -65,6 +66,7 @@ SETTING_string(root_cert_file,
 "path to root certificate file",
 "root.crt",
 false, false)
+*/
 
 //===----------------------------------------------------------------------===//
 // RESOURCE USAGE
@@ -128,11 +130,13 @@ true, true)
 //===----------------------------------------------------------------------===//
 
 // Enable or disable statistics collection
+/*
 SETTING_int(stats_mode,
 "Enable statistics collection (default: 0)",
 static_cast<int>(peloton::StatsType::INVALID),
 0, 16,
 true, true)
+*/
 
 //===----------------------------------------------------------------------===//
 // AI
@@ -160,10 +164,12 @@ SETTING_bool(brain,
 false,
 true, true)
 
+/*
 SETTING_string(peloton_address,
 "ip and port of the peloton rpc service, address:port",
 "127.0.0.1:15445",
 false, false)
+*/
 
 // Size of the brain task queue
 SETTING_int(brain_task_queue_size,

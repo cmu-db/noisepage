@@ -1,6 +1,4 @@
 #include <gflags/gflags.h>
-#include <settings/settings_manager.h>
-
 #include "settings/settings_manager.h"
 #include "type/value_factory.h"
 
@@ -13,9 +11,82 @@
 
 namespace terrier::settings {
 
+// Used for building temporary transactions
+void EmptyCallback(void * /*unused*/) {}
+
+catalog::SettingsHandle SettingsManager::settings_handle_ = catalog::SettingsHandle(nullptr);
+transaction::TransactionManager *SettingsManager::txn_manager_ = nullptr;
+std::unordered_map<Param, ParamInfo> SettingsManager::param_map_ = std::unordered_map<Param, ParamInfo>();
+
 void SettingsManager::Init(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager) {
   settings_handle_ = catalog->GetSettingsHandle();
   txn_manager_ = txn_manager;
+
+  InitParams();
+
+}
+
+void SettingsManager::InitParams() {
+  // This will expand to invoke settings_manager::DefineSetting on
+  // all of the settings defined in settings.h. See settings_macro.h.
+  #define __SETTING_DEFINE__
+  #include "settings/settings_macro.h"
+  #include "settings/settings.h"
+  #undef __SETTING_DEFINE__
+}
+
+void SettingsManager::DefineSetting(Param param, const std::string &name,
+                                    const type::Value &value,
+                                    const std::string &description,
+                                    const type::Value &default_value,
+                                    const type::Value &min_value,
+                                    const type::Value &max_value,
+                                    bool is_mutable, bool is_persistent) {
+  /*
+  if (settings_.find(param) != settings_.end()) {
+    throw SettingsException("settings " + name + " already exists");
+  }
+
+  // Only below types support min-max bound checking
+  if (value.GetTypeId() == type::TypeId::INTEGER ||
+      value.GetTypeId() == type::TypeId::SMALLINT ||
+      value.GetTypeId() == type::TypeId::TINYINT ||
+      value.GetTypeId() == type::TypeId::DECIMAL) {
+    if (!value.CompareBetweenInclusive(min_value, max_value))
+      throw SettingsException("Value given for \"" + name +
+          "\" is not in its min-max bounds (" +
+          min_value.ToString() + "-" +
+          max_value.ToString() + ")");
+  }
+   */
+  param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable, is_persistent));
+
+}
+
+void SettingsManager::InitializeCatalog() {
+
+  auto txn = txn_manager_->BeginTransaction();
+  auto column_num = catalog::SettingsHandle::schema_cols_.size();
+
+  using Index = catalog::SettingsTableColumn;
+  using ValueFactory = type::ValueFactory;
+
+  for(auto pair : param_map_)
+  {
+    Param param = pair.first;
+    ParamInfo info = pair.second;
+
+    catalog::settings_oid_t oid(static_cast<uint32_t>(param));
+    std::vector<type::Value> entry(column_num, type::ValueFactory::GetNullValue(type::TypeId::VARCHAR));
+
+    entry[static_cast<int>(Index::OID)] = ValueFactory::GetIntegerValue(!oid);
+    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarcharValue(info.name.c_str());
+    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarcharValue(info.desc.c_str());
+
+    settings_handle_.InsertRow(txn, entry);
+  }
+
+  txn_manager_->Commit(txn, EmptyCallback, nullptr);
 }
 
 int32_t SettingsManager::GetInt(Param param) {
@@ -54,37 +125,7 @@ std::string SettingsManager::GetString(Param param) {
   return "";
 }
 
-void SettingsManager::InitializeCatalog() {
-  /*
-  auto &settings_catalog = peloton::catalog::SettingsCatalog::GetInstance();
 
-  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-  auto txn = txn_manager.BeginTransaction();
-  type::AbstractPool *pool = pool_.get();
-
-  for (auto s : settings_) {
-    // TODO: Use Update instead Delete & Insert
-    settings_catalog.DeleteSetting(txn, s.second.name);
-    if (!settings_catalog.InsertSetting(txn,
-                                        s.second.name,
-                                        s.second.value.ToString(),
-                                        s.second.value.GetTypeId(),
-                                        s.second.desc,
-                                        "",
-                                        "",
-                                        s.second.default_value.ToString(),
-                                        s.second.is_mutable,
-                                        s.second.is_persistent,
-                                        pool)) {
-      txn_manager.AbortTransaction(txn);
-      throw SettingsException("failed to initialize catalog pg_settings on " +
-          s.second.name);
-    }
-  }
-  txn_manager.CommitTransaction(txn);
-  catalog_initialized_ = true;
-   */
-}
 
 const std::string SettingsManager::GetInfo() {
   /*
@@ -120,35 +161,6 @@ const std::string SettingsManager::GetInfo() {
 
 void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/ }
 
-void SettingsManager::DefineSetting(Param param, const std::string &name,
-                                    const type::Value &value,
-                                    const std::string &description,
-                                    const type::Value &default_value,
-                                    const type::Value &min_value,
-                                    const type::Value &max_value,
-                                    bool is_mutable, bool is_persistent) {
-  /*
-  if (settings_.find(param) != settings_.end()) {
-    throw SettingsException("settings " + name + " already exists");
-  }
-
-  // Only below types support min-max bound checking
-  if (value.GetTypeId() == type::TypeId::INTEGER ||
-      value.GetTypeId() == type::TypeId::SMALLINT ||
-      value.GetTypeId() == type::TypeId::TINYINT ||
-      value.GetTypeId() == type::TypeId::DECIMAL) {
-    if (!value.CompareBetweenInclusive(min_value, max_value))
-      throw SettingsException("Value given for \"" + name +
-          "\" is not in its min-max bounds (" +
-          min_value.ToString() + "-" +
-          max_value.ToString() + ")");
-  }
-
-  settings_.emplace(param, Param(name, value, description, default_value,
-                              is_mutable, is_persistent));
-                              */
-}
-
 type::Value SettingsManager::GetValue(Param param) {
   /*
   // TODO: Look up the value from catalog
@@ -159,21 +171,15 @@ type::Value SettingsManager::GetValue(Param param) {
   auto param = settings_.find(param);
   return param->second.value;
    */
+
+  return type::ValueFactory::GetNullValue(type::TypeId::VARCHAR);
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
 
 }
 
-void SettingsManager::InitParams() {
 
-  // This will expand to invoke settings_manager::DefineSetting on
-  // all of the settings defined in settings.h. See settings_macro.h.
-  #define __SETTING_DEFINE__
-  #include "settings/settings_macro.h"
-  #include "settings/settings.h"
-  #undef __SETTING_DEFINE__
-}
 
 
 }  // namespace terrier::settings
