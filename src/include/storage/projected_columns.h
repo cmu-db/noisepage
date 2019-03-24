@@ -117,6 +117,14 @@ class PACKED ProjectedColumns {
       return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
     }
 
+     /**
+     * Retrieves the size of the header excluding the bitmap
+     * @return size of header
+     */
+      uint32_t HeaderWithoutBitmapSize() const {
+       return underlying_->HeaderWithoutBitmapSize();
+      }
+
    private:
     friend class ProjectedColumns;
     RowView(ProjectedColumns *underlying, const BlockLayout &layout, uint32_t row_offset)
@@ -202,6 +210,15 @@ class PACKED ProjectedColumns {
     // since I don't think replicating the block layout here sounds right.
     return StorageUtil::AlignedPtr(sizeof(uint64_t), reinterpret_cast<byte *>(ColumnNullBitmap(projection_list_index)) +
                                                          common::RawBitmap::SizeInBytes(max_tuples_));
+  }
+
+  /**
+   * Retrieves the size of the header excluding the bitmap
+   * @return size of header
+  */
+  uint32_t HeaderWithoutBitmapSize() const {
+    return sizeof(size_) + sizeof(max_tuples_) + sizeof(num_tuples_) + sizeof(num_cols_) +
+           (sizeof(col_id_t ) * sizeof(num_cols_)) + (sizeof(uint32_t) * NumColumns());
   }
 
  private:

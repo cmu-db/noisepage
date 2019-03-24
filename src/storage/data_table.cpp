@@ -29,7 +29,7 @@ bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::s
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
-void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
+uint32_t DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
                      ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
@@ -46,6 +46,7 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
     ++(*start_pos);
   }
   out_buffer->SetNumTuples(filled);
+  return filled;
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {

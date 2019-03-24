@@ -146,8 +146,9 @@ class DataTable {
    * @param start_pos iterator to the starting location for the sequential scan
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
+   * @return Number of tuple slots filled
    */
-  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
+  uint32_t Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
