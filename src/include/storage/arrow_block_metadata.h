@@ -21,11 +21,11 @@ enum class ArrowColumnType : uint8_t { FIXED_LENGTH = 0, GATHERED_VARLEN, DICTIO
 struct ArrowColumnInfo {
   ArrowColumnType type_;
   /* the block is only meaningful for gathered varlen and dictionary. */
-  uint32_t varlen_size_;  // total size of varlen values
-  byte *values_ = nullptr;  // pointer to the values array
+  uint32_t varlen_size_;         // total size of varlen values
+  byte *values_ = nullptr;       // pointer to the values array
   uint32_t *offsets_ = nullptr;  // pointer to the offsets array
   /* end block */
-  uint32_t *indices_ = nullptr;      // only meaningful for dictionary, pointer to the indices array
+  uint32_t *indices_ = nullptr;  // only meaningful for dictionary, pointer to the indices array
 };
 
 /**

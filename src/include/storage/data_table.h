@@ -14,6 +14,7 @@ class TransactionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
+
 // clang-format off
 #define DataTableCounterMembers(f) \
   f(uint64_t, NumSelect) \
@@ -221,8 +222,6 @@ class DataTable {
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
-  friend class AccessObserver;
-  friend class BlockCompactor;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -265,8 +264,6 @@ class DataTable {
   // The criteria for visibility of a slot are presence (slot is occupied) and not deleted
   // (logical delete bitmap is non-NULL).
   bool Visible(TupleSlot slot, const TupleAccessStrategy &accessor) const;
-
-  bool Lock(transaction::TransactionContext *txn, TupleSlot slot);
 
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,

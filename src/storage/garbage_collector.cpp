@@ -120,8 +120,6 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   if (table == nullptr) return true;
   // no point in trying to reclaim slots or do any further operation if cannot safely unlink
   if (!UnlinkUndoRecord(txn, undo_record)) return false;
-  // TODO(Tianyu): Potentially this will get the access information to the observer late, but that
-  // should be fine since the transformation is transactional and light-weight.
   // This is guaranteed to succeed
   ReclaimSlotIfDeleted(undo_record);
   ReclaimBufferIfVarlen(txn, undo_record);
@@ -187,7 +185,6 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
     case DeltaRecordType::INSERT:
-    case DeltaRecordType::LOCK:
       return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
       // TODO(Tianyu): Potentially need to be more efficient than linear in column size?

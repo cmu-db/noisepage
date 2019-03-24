@@ -48,7 +48,6 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
   out_buffer->SetNumTuples(filled);
 }
 
-
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
@@ -102,7 +101,6 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
     // TransactionManager's Rollback() and GC's Unlink logic
@@ -124,38 +122,11 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
-bool DataTable::Lock(transaction::TransactionContext *txn, TupleSlot slot) {
-  UndoRecord *const undo = txn->UndoRecordAsLock(this, slot);
-  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-
-  // Since we disallow write-write conflicts, the version vector pointer is essentially an implicit
-  // write lock on the tuple.
-  if (HasConflict(version_ptr, txn) || !Visible(slot, accessor_)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
-
-  // Update the next pointer of the new head of the version chain
-  undo->Next() = version_ptr;
-
-
-  if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
-    // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
-    // TransactionManager's Rollback() and GC's Unlink logic
-    undo->Table() = nullptr;
-    return false;
-  }
-
-  return true;
-}
-
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
-  // TODO(Tianyu): Should we assume that we are inserting into a hot block by default?
+
   // Attempt to allocate a new tuple from the block we are working on right now.
   // If that block is full, try to request a new block. Because other concurrent
   // inserts could have already created a new block, we need to use compare and swap
@@ -262,9 +233,6 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // TODO(Matt): It's possible that if we make some guarantees about where in the version chain INSERTs (last position
     // in version chain) and DELETEs (first position in version chain) can appear that we can optimize this check
     switch (version_ptr->Type()) {
-      case DeltaRecordType::LOCK:
-        // Nothing to do when reading
-        break;
       case DeltaRecordType::UPDATE:
         // Normal delta to be applied. Does not modify the logical delete column.
         StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);

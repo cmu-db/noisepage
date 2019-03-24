@@ -20,11 +20,7 @@ class GarbageCollector {
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
-   * @param observer the access observer attached to the garbage collector, which could be nullptr.
    */
-  // TODO(Tianyu): Remove nullptr default argument
-  // TODO(Tianyu): Is it worth it to make this polymorphic so we have an access observer interface? I can't think of a
-  // real use case for this though.
   explicit GarbageCollector(transaction::TransactionManager *txn_manager)
       : txn_manager_(txn_manager), last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),

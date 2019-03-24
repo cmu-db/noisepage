@@ -1,6 +1,5 @@
 #pragma once
 
-#include <common/hash_util.h>
 #include <algorithm>
 #include <functional>
 #include <ostream>
@@ -10,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
@@ -172,10 +172,6 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE, LOCK };
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
 
-// TODO(Tianyu): This is pretty wasteful. While in theory 4 bytes of size suffices, we pad it to 8 bytes for
-// performance and ease of implementation with the rest of the system. (It is always assumed that one SQL level column
-// is mapped to one data table column). In the long run though, we might want to investigate solutions where the varlen
-// pointer and the size columns are stored in separate columns, so the size column can be 4 bytes.
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
  * with exactly size many bytes (no extra nul in the end).
