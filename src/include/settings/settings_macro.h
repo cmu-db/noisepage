@@ -6,7 +6,7 @@
 // When __SETTING_DEFINE__ is set,
 //    setting definitions will be exposed through defitions in settings_manager.
 // When __SETTING_ENUM__ is set,
-//    setting definitions will be exposed through SettingId.
+//    setting definitions will be exposed through Param.
 
 #ifdef __SETTING_GFLAGS_DEFINE__
 #ifdef SETTING_int
@@ -76,7 +76,7 @@
   #endif
   #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, is_persistent)      \
       DefineSetting(                                                                                          \
-        peloton::settings::SettingId::name,                                                                   \
+        terrier::settings::Param::name,                                                                   \
         #name, type::ValueFactory::GetIntegerValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetIntegerValue(default_value),                                      \
         type::ValueFactory::GetIntegerValue(min_value),                                                       \
@@ -85,7 +85,7 @@
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, is_persistent)   \
       DefineSetting(                                                                                          \
-        peloton::settings::SettingId::name,                                                                   \
+        terrier::settings::Param::name,                                                                   \
         #name, type::ValueFactory::GetDecimalValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetDecimalValue(default_value),                                      \
         type::ValueFactory::GetDecimalValue(min_value),                                                       \
@@ -94,7 +94,7 @@
 
   #define SETTING_bool(name, description, default_value, is_mutable, is_persistent)                           \
       DefineSetting(                                                                                          \
-        peloton::settings::SettingId::name,                                                                   \
+        terrier::settings::Param::name,                                                                   \
         #name, type::ValueFactory::GetBooleanValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetBooleanValue(default_value),                                      \
         type::ValueFactory::GetBooleanValue(default_value),                                                   \
@@ -103,7 +103,7 @@
 
   #define SETTING_string(name, description, default_value, is_mutable, is_persistent)                         \
       DefineSetting(                                                                                          \
-        peloton::settings::SettingId::name,                                                                   \
+        terrier::settings::Param::name,                                                                   \
         #name, type::ValueFactory::GetVarcharValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetVarcharValue(default_value),                                      \
         type::ValueFactory::GetVarcharValue(default_value),                                                   \

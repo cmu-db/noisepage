@@ -75,7 +75,7 @@ void SettingsManager::InitializeCatalog() {
    */
 }
 
-const std::string SettingsManager::GetInfo() const {
+const std::string SettingsManager::GetInfo() {
   /*
   const uint32_t box_width = 72;
   const std::string title = "PELOTON SETTINGS";
@@ -151,45 +151,10 @@ type::Value SettingsManager::GetValue(Param param) {
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
-  auto param = settings_.find(param);
-  Param new_param = param->second;
-  new_param.value = value;
-  if (catalog_initialized_) {
-    if (!InsertIntoCatalog(new_param)) {
-      throw SettingsException("failed to set value " + param->second.name);
-    }
-  }
-  param->second.value = value;
+
 }
 
-bool SettingsManager::InsertIntoCatalog(const Param &param) {
-  auto &settings_catalog = catalog::SettingsCatalog::GetInstance();
-  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-  auto txn = txn_manager.BeginTransaction();
-  type::AbstractPool *pool = pool_.get();
-  // TODO: Use Update instead Delete & Insert
-  settings_catalog.DeleteSetting(txn, param.name);
-  if (!settings_catalog.InsertSetting(txn,
-                                      param.name,
-                                      param.value.ToString(),
-                                      param.value.GetTypeId(),
-                                      param.desc,
-                                      "",
-                                      "",
-                                      param.default_value.ToString(),
-                                      param.is_mutable,
-                                      param.is_persistent,
-                                      pool)) {
-    txn_manager.AbortTransaction(txn);
-    return false;
-  }
-  txn_manager.CommitTransaction(txn);
-  return true;
-}
-
-SettingsManager::SettingsManager() {
-  catalog_initialized_ = false;
-  pool_.reset(new type::EphemeralPool());
+void SettingsManager::InitParams() {
 
   // This will expand to invoke settings_manager::DefineSetting on
   // all of the settings defined in settings.h. See settings_macro.h.

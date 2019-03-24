@@ -27,11 +27,13 @@ class SettingsManager {
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings
-  void InitializeCatalog();
+  static void InitializeCatalog();
 
-  const std::string GetInfo() const;
+  static const std::string GetInfo();
 
-  void ShowInfo();
+  static void ShowInfo();
+
+  static void InitParams();
 
  private:
 
@@ -40,7 +42,7 @@ class SettingsManager {
 
   bool catalog_initialized_;
 
-  void DefineSetting(Param param, const std::string &name,
+  static void DefineSetting(Param param, const std::string &name,
                      const type::Value &value,
                      const std::string &description,
                      const type::Value &default_value,
