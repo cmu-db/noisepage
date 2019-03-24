@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "settings/settings_manager.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"

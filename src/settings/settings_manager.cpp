@@ -1,4 +1,6 @@
 #include <gflags/gflags.h>
+#include <settings/settings_manager.h>
+
 #include "settings/settings_manager.h"
 #include "type/value_factory.h"
 
@@ -11,8 +13,17 @@
 
 namespace terrier::settings {
 
+void SettingsManager::Init(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager) {
+  settings_handle_ = catalog->GetSettingsHandle();
+  txn_manager_ = txn_manager;
+}
+
 int32_t SettingsManager::GetInt(Param param) {
-  // TODO
+  return 0;
+}
+
+int16_t SettingsManager::GetSmallInt(Param param)
+{
   return 0;
 }
 
@@ -163,5 +174,6 @@ void SettingsManager::InitParams() {
   #include "settings/settings.h"
   #undef __SETTING_DEFINE__
 }
+
 
 }  // namespace terrier::settings

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <catalog/settings_handle.h>
 #include "type/value.h"
 #include "common/exception.h"
 #include "settings/settings_param.h"
@@ -16,7 +17,11 @@ namespace terrier::settings {
 
 class SettingsManager {
  public:
+
+  static void Init(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
+
   static int32_t GetInt(Param param);
+  static int16_t GetSmallInt(Param param);
   static double GetDouble(Param param);
   static bool GetBool(Param param);
   static std::string GetString(Param param);
@@ -37,10 +42,8 @@ class SettingsManager {
 
  private:
 
-  // local information storage
-  // name, value, description, default_value, is_mutable, is_persistent
-
-  bool catalog_initialized_;
+  static catalog::SettingsHandle settings_handle_;
+  static transaction::TransactionManager *txn_manager_;
 
   static void DefineSetting(Param param, const std::string &name,
                      const type::Value &value,
