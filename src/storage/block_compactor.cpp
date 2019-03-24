@@ -189,6 +189,21 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, BlockCompactionTask *giver, 
   RedoRecord *record = cg->txn_->StageWrite(cg->table_, to, cg->all_cols_initializer_);
   bool valid UNUSED_ATTRIBUTE = cg->table_->Select(cg->txn_, from, record->Delta());
   TERRIER_ASSERT(valid, "this read should not return an invisible tuple");
+  // Because the GC will assume all varlen pointers are unique and deallocate the same underlying
+  // varlen for every update record, we need to mark subsequent records that reference the same
+  // varlen value as not reclaimable so as to not double-free
+  for (col_id_t varlen_col_id : layout.Varlens()) {
+    // We know this to be true because the projection list has all columns
+    auto offset = static_cast<uint16_t>(!varlen_col_id - NUM_RESERVED_COLUMNS);
+    auto *entry = reinterpret_cast<VarlenEntry *>(record->Delta()->AccessWithNullCheck(offset));
+    if (entry == nullptr) continue;
+    *entry = entry->Size() > VarlenEntry::InlineThreshold()
+            ? VarlenEntry::Create(entry->Content(), entry->Size(), false)
+            : VarlenEntry::CreateInline(entry->Content(), entry->Size());
+
+  }
+
+
 
   // Copy the tuple into the empty slot
   // This operation cannot fail since a logically deleted slot can only be reclaimed by the compaction thread
@@ -385,9 +400,9 @@ void BlockCompactor::Cleanup(CompactionGroup *cg, bool successful) {
       // deallocate the old, or throw away the new one if compaction failed.
       ArrowColumnInfo &col = (successful ? accessor.GetArrowBlockMetadata(block) : *bct.new_block_metadata_)
                                  .GetColumnInfo(layout, varlen_col_id);
-      cg->txn_->loose_ptrs_.emplace(reinterpret_cast<byte *>(col.indices_));
-      cg->txn_->loose_ptrs_.emplace(reinterpret_cast<byte *>(col.varlen_column_.offsets_));
-      cg->txn_->loose_ptrs_.emplace(col.varlen_column_.values_);
+      cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.indices_));
+      cg->txn_->loose_ptrs_.push_back(reinterpret_cast<byte *>(col.varlen_column_.offsets_));
+      cg->txn_->loose_ptrs_.push_back(col.varlen_column_.values_);
     }
     if (successful)
       memcpy(&accessor.GetArrowBlockMetadata(block), bct.new_block_metadata_,

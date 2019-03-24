@@ -26,7 +26,7 @@ class TupleAccessStrategy {
     MEM_REINTERPRETATION_ONLY(MiniBlock)
     // return a pointer to the start of the column. (use as an array)
     byte *ColumnStart(const BlockLayout &layout, const col_id_t col_id) {
-      return StorageUtil::AlignedPtr(layout.AttrSize(col_id),
+      return StorageUtil::AlignedPtr(sizeof(uint64_t),  // always padded up to 8 bytes
                                      varlen_contents_ + common::RawBitmap::SizeInBytes(layout.NumSlots()));
     }
 
