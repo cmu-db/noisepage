@@ -72,7 +72,6 @@ bool DataTable::Update(transaction::TransactionContext *txn, TupleSlot slot, con
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-  slot.GetBlock()->controller_.WaitUntilHot();
 
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
@@ -111,7 +110,6 @@ bool DataTable::Lock(transaction::TransactionContext *txn, TupleSlot slot) {
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-  slot.GetBlock()->controller_.WaitUntilHot();
 
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
@@ -182,7 +180,6 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   // Update the next pointer of the new head of the version chain
   undo->Next() = version_ptr;
 
-  slot.GetBlock()->controller_.WaitUntilHot();
   if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, undo)) {
     // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
     // TransactionManager's Rollback() and GC's Unlink logic

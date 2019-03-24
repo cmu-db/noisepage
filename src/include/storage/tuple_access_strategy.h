@@ -18,7 +18,7 @@ class TupleAccessStrategy {
   /*
    * A mini block stores individual columns. Mini block layout:
    * ----------------------------------------------------
-   * | null-bitmap (pad up to size of attr) | val1 | val2 | ... |
+   * | null-bitmap (pad up to 8 bytes) | val1 | val2 | ... |
    * ----------------------------------------------------
    * Warning, 0 means null
    */

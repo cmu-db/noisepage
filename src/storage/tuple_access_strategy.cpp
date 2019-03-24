@@ -25,7 +25,6 @@ void TupleAccessStrategy::InitializeRawBlock(RawBlock *const raw, const layout_v
   // Intentional unsafe cast
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
-  raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets()[i] = column_offsets_[i];
   result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
