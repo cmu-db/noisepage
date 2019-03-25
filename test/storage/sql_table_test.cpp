@@ -536,7 +536,7 @@ TEST_F(SqlTableTests, ScanTest) {
   table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
 
   // check the number of tuples we found
-  EXPECT_EQ(pc->NumTuples(), 4);
+  EXPECT_EQ(pc->NumTuples(), 2);
 
   // check the if we get (100, 10000, null)
   auto row1 = pc->InterpretAsRow(*table.GetLayout(), 0);
@@ -548,8 +548,6 @@ TEST_F(SqlTableTests, ScanTest) {
   EXPECT_NE(value, nullptr);
   uint32_t datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, 10000);
-  value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
-  EXPECT_EQ(value, nullptr);
 
   // check the if we get (200, 10001, null)
   auto row2 = pc->InterpretAsRow(*table.GetLayout(), 1);
@@ -561,11 +559,12 @@ TEST_F(SqlTableTests, ScanTest) {
   EXPECT_NE(value, nullptr);
   datname = *reinterpret_cast<uint32_t *>(value);
   EXPECT_EQ(datname, 10001);
-  value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
-  EXPECT_EQ(value, nullptr);
 
+  pc = pc_pair.first.Initialize(buffer);
+  //Need to scan again to get the rest of the data
+  table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
   // check the if we get (400, 10003, 42)
-  auto row4 = pc->InterpretAsRow(*table.GetLayout(), 3);
+  auto row4 = pc->InterpretAsRow(*table.GetLayout(), 1);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
