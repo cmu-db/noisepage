@@ -16,11 +16,12 @@ namespace terrier {
 #define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
+#define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
  */
-enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, NETWORK = 2, PARSER = 3, CATALOG = 4 };
+enum class ExceptionType { RESERVED = 0, NOT_IMPLEMENTED = 1, NETWORK = 2, PARSER = 3, CATALOG = 4, SETTINGS=5 };
 
 /**
  * Exception base class.
@@ -107,5 +108,6 @@ DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
 DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
+DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 
 }  // namespace terrier

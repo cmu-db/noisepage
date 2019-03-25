@@ -32,47 +32,12 @@ class SettingsTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, PortTest) {
+TEST_F(SettingsTests, BasicTest) {
 
-  network::TerrierServer server;
   auto port = static_cast<uint16_t>(settings_manager->GetInt(Param::port));
-  std::thread server_thread;
+  EXPECT_EQ(port, 15721);
 
-  network::network_logger->set_level(spdlog::level::debug);
-  spdlog::flush_every(std::chrono::seconds(1));
-
-  try {
-    server.SetPort(port);
-    server.SetupServer();
-  } catch (NetworkProcessException &exception) {
-    TEST_LOG_ERROR("[LaunchServer] exception when launching server");
-    throw;
-  }
-  TEST_LOG_DEBUG("Server initialized");
-  server_thread = std::thread([&]() { server.ServerLoop(); });
-
-
-  try {
-    pqxx::connection C(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
-
-    pqxx::work txn1(C);
-    txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
-    txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
-    txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
-
-    pqxx::result R = txn1.exec("SELECT name FROM employee where id=1;");
-    txn1.commit();
-    EXPECT_EQ(R.size(), 0);
-  } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
-    EXPECT_TRUE(false);
-  }
-  TEST_LOG_DEBUG("[PortTest] Client has closed");
-
-  server.Close();
-  server_thread.join();
-  TEST_LOG_DEBUG("Terrier has shut down");
+  EXPECT_THROW(settings_manager->SetInt(Param::port, 23333), SettingsException);
 }
 
 
