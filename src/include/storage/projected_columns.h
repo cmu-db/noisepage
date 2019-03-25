@@ -207,10 +207,10 @@ class PACKED ProjectedColumns {
   /**
    * Retrieves the size of the header excluding the bitmap
    * @return size of header
-  */
+   */
   uint32_t HeaderWithoutBitmapSize() const {
     return sizeof(size_) + sizeof(max_tuples_) + sizeof(num_tuples_) + sizeof(num_cols_) +
-           (sizeof(col_id_t ) * sizeof(num_cols_)) + (sizeof(uint32_t) * NumColumns());
+           (sizeof(col_id_t) * sizeof(num_cols_)) + (sizeof(uint32_t) * NumColumns());
   }
 
  private:

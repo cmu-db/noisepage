@@ -38,8 +38,8 @@ class SqlTable {
    * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
    */
   class SlotIterator {
-
-   //TODO (Yashwanth) Slot iterator currently flawed, for a scan on a certain version, it MUST begin on the latest version it sees
+    // TODO (Yashwanth) Slot iterator currently flawed, for a scan on a certain version, it MUST begin on the latest
+    // version it sees
    public:
     /**
      * @return reference to the underlying tuple slot
@@ -311,8 +311,8 @@ class SqlTable {
    * @param old_dt_version - schema version that is desired
    * @return a copy of the old header that is on the heap, needs to be freed once done with
    */
-  template<class RowType>
-  byte * ModifyProjectionHeaderForVersion(RowType * out_buffer, const DataTableVersion& curr_dt_version,
-          const DataTableVersion& old_dt_version) const;
+  template <class RowType>
+  byte *ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
+                                         const DataTableVersion &old_dt_version) const;
 };
 }  // namespace terrier::storage

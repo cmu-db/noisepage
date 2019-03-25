@@ -8,7 +8,7 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
-    :accessor_(layout), block_store_(store), layout_version_(layout_version) {
+    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
@@ -30,7 +30,7 @@ bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::s
 }
 
 uint32_t DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
-                     ProjectedColumns *const out_buffer) const {
+                         ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
   // safe
@@ -43,7 +43,6 @@ uint32_t DataTable::Scan(transaction::TransactionContext *const txn, SlotIterato
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
-
 
     ++(*start_pos);
   }
@@ -205,7 +204,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      if(out_buffer->ColumnIds()[i] == VERSION_POINTER_COLUMN_ID){
+      if (out_buffer->ColumnIds()[i] == VERSION_POINTER_COLUMN_ID) {
         continue;
       }
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);

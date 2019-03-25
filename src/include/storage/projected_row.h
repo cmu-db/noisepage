@@ -46,7 +46,6 @@ class PACKED ProjectedRow {
    */
   static ProjectedRow *CopyProjectedRowLayout(void *head, const ProjectedRow &other);
 
-
   /**
    * @return the size of this ProjectedRow in memory, in bytes
    */
@@ -137,7 +136,7 @@ class PACKED ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    * @return offset inside of projected row to access a specific attribute
    */
-  uint32_t GetAttrValueOffset(const uint16_t offset){
+  uint32_t GetAttrValueOffset(const uint16_t offset) {
     TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     return AttrValueOffsets()[offset];
   }
@@ -147,11 +146,10 @@ class PACKED ProjectedRow {
    * @return size of header
    */
   uint32_t HeaderWithoutBitmapSize() const {
-    //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
-    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t ) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
+    // Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_
+    // uint32_t)
+    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
   }
-
-
 
  private:
   friend class ProjectedRowInitializer;
@@ -170,7 +168,6 @@ class PACKED ProjectedRow {
     return *reinterpret_cast<const common::RawBitmap *>(AttrValueOffsets() + num_cols_);
   }
 };
-
 
 /**
  * A ProjectedRowInitializer calculates and stores information on how to initialize ProjectedRows
@@ -211,13 +208,14 @@ class ProjectedRowInitializer {
    */
   uint32_t ProjectedRowSize() const { return size_; }
 
-   /**
-    * Retrieves the size of the header
-    * @return size of header
-    */
+  /**
+   * Retrieves the size of the header
+   * @return size of header
+   */
   uint32_t ProjectedRowHeaderSize() const {
-    //Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_ uint32_t)
-    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t ) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
+    // Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_
+    // uint32_t)
+    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
   }
 
   /**
@@ -225,8 +223,7 @@ class ProjectedRowInitializer {
    * @param head pointer to the byte buffer to populate for header
    * @return pointer to the populated ProjectedRow header
    */
-  ProjectedRow * InitializeHeader(void * head) const;
-
+  ProjectedRow *InitializeHeader(void *head) const;
 
   /**
    * @return number of columns in the projection list
