@@ -22,17 +22,102 @@ SqlTable::~SqlTable() {
 }
 
 void SqlTable::UpdateSchema(const catalog::Schema &schema) {
-  STORAGE_LOG_INFO("Update schema version: {}", uint32_t(schema.GetVersion()));
+  STORAGE_LOG_DEBUG("Update schema version: {}", uint32_t(schema.GetVersion()));
   TERRIER_ASSERT(tables_.find(schema.GetVersion()) == tables_.end(), "schema versions for an SQL table must be unique");
-  const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-  tables_[schema.GetVersion()] = {new DataTable(block_store_, layout_and_map.first, schema.GetVersion()),
-                                  layout_and_map.first, layout_and_map.second};
-  STORAGE_LOG_INFO("# of versions: {}", tables_.size());
+
+  // Calculate the BlockLayout for the schema based off attribute sizes
+  uint16_t num_8_byte_attrs = 0;
+  uint16_t num_4_byte_attrs = 0;
+  uint16_t num_2_byte_attrs = 0;
+  uint16_t num_1_byte_attrs = 0;
+  uint16_t num_varlen_byte_attrs = 0;
+
+  // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
+  std::vector<uint8_t> attr_sizes;
+  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
+
+  for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+    attr_sizes.emplace_back(8);
+    num_8_byte_attrs++;
+  }
+
+  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
+                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+
+  // First pass through to accumulate the counts of each attr_size
+  for (const auto &column : schema.GetColumns()) {
+    attr_sizes.push_back(column.GetAttrSize());
+    switch (column.GetAttrSize()) {
+      case 8:
+        num_8_byte_attrs++;
+        break;
+      case 4:
+        num_4_byte_attrs++;
+        break;
+      case 2:
+        num_2_byte_attrs++;
+        break;
+      case 1:
+        num_1_byte_attrs++;
+        break;
+      case VARLEN_COLUMN:
+        num_varlen_byte_attrs++;
+      default:
+        break;
+    }
+  }
+
+  TERRIER_ASSERT(static_cast<uint16_t>(attr_sizes.size()) ==
+                     num_8_byte_attrs + num_4_byte_attrs + num_2_byte_attrs + num_1_byte_attrs + num_varlen_byte_attrs,
+                 "Number of attr_sizes does not match the sum of attr counts.");
+
+  // Initialize the offsets for each attr_size
+  auto offset_varlen_byte_attrs = static_cast<uint16_t>(NUM_RESERVED_COLUMNS);
+  auto offset_8_byte_attrs = static_cast<uint16_t>(offset_varlen_byte_attrs + num_varlen_byte_attrs);
+  auto offset_4_byte_attrs = static_cast<uint16_t>(offset_8_byte_attrs + (num_8_byte_attrs - NUM_RESERVED_COLUMNS));
+  auto offset_2_byte_attrs = static_cast<uint16_t>(offset_4_byte_attrs + num_4_byte_attrs);
+  auto offset_1_byte_attrs = static_cast<uint16_t>(offset_2_byte_attrs + num_2_byte_attrs);
+
+  ColumnMap col_map;
+  InverseColumnMap inv_col_map;
+
+  // Build the maps between Schema column OIDs and underlying column IDs
+  for (const auto &column : schema.GetColumns()) {
+    switch (column.GetAttrSize()) {
+      case 8:
+        inv_col_map[col_id_t(offset_8_byte_attrs)] = column.GetOid();
+        col_map[column.GetOid()] = col_id_t(offset_8_byte_attrs++);
+        break;
+      case 4:
+        inv_col_map[col_id_t(offset_4_byte_attrs)] = column.GetOid();
+        col_map[column.GetOid()] = col_id_t(offset_4_byte_attrs++);
+        break;
+      case 2:
+        inv_col_map[col_id_t(offset_2_byte_attrs)] = column.GetOid();
+        col_map[column.GetOid()] = col_id_t(offset_2_byte_attrs++);
+        break;
+      case 1:
+        inv_col_map[col_id_t(offset_1_byte_attrs)] = column.GetOid();
+        col_map[column.GetOid()] = col_id_t(offset_1_byte_attrs++);
+        break;
+      case VARLEN_COLUMN:
+        inv_col_map[col_id_t(offset_varlen_byte_attrs)] = column.GetOid();
+        col_map[column.GetOid()] = col_id_t(offset_varlen_byte_attrs++);
+        break;
+      default:
+        throw std::runtime_error("unexpected switch case value");
+    }
+  }
+
+  BlockLayout layout = storage::BlockLayout(attr_sizes);
+  tables_[schema.GetVersion()] = {new DataTable(block_store_, layout, schema.GetVersion()), layout, col_map,
+                                  inv_col_map};
+  STORAGE_LOG_DEBUG("# of versions: {}", tables_.size());
 }
 
 bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
                       const ProjectionMap &pr_map, layout_version_t version_num) const {
-  STORAGE_LOG_INFO("slot version: {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
+  STORAGE_LOG_DEBUG("slot version: {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
   layout_version_t old_version_num = slot.GetBlock()->layout_version_;
   auto curr_dt_version = tables_.at(version_num);
@@ -77,7 +162,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
                                                      layout_version_t version_num) {
   // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
   // TODO(Matt): update indexes
-  STORAGE_LOG_INFO("Update slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
+  STORAGE_LOG_DEBUG("Update slot version : {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
   layout_version_t old_version = slot.GetBlock()->layout_version_;
 
@@ -133,7 +218,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     delete[] buffer;
     ret_slot = result.second;
   } else {
-    STORAGE_LOG_INFO("have to insert and delete ... ");
+    STORAGE_LOG_DEBUG("have to insert and delete ... ");
 
     // need to create a new ProjectedRow of all columns
     // 1. Get the old row
