@@ -38,6 +38,8 @@ class SettingsHandle {
      */
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
+    void SetColumn(int32_t col_num, const type::Value &value){entry_[col_num] = value;}
+
     /**
      * Return the settings_oid of the attribute
      * @return settings_oid of the attribute

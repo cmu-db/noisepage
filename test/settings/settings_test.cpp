@@ -13,50 +13,45 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 
-namespace terrier{
+namespace terrier::settings{
 
 class SettingsTests : public TerrierTest {
 
  protected:
-  network::TerrierServer server;
-  uint16_t port; //= static_cast<uint16_t>(settings::SettingsManager::GetSmallInt(settings::Param::port));
-  std::thread server_thread;
+  std::shared_ptr<SettingsManager> settings_manager;
 
-  /**
-   * Initialization
-   */
   void SetUp() override {
     TerrierTest::SetUp();
 
-    network::network_logger->set_level(spdlog::level::debug);
-    spdlog::flush_every(std::chrono::seconds(1));
-    terrier::storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
-    terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
-    terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
-    terrier::settings::SettingsManager settings_manager(terrier::catalog::terrier_catalog, &txn_manager_);
-    port = settings_manager.GetSmallInt(settings::Param::port);
-    try {
-      server.SetPort(port);
-      server.SetupServer();
-    } catch (NetworkProcessException &exception) {
-      TEST_LOG_ERROR("[LaunchServer] exception when launching server");
-      throw;
-    }
-    TEST_LOG_DEBUG("Server initialized");
-    server_thread = std::thread([&]() { server.ServerLoop(); });
+    storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
+    transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+    catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
+    settings_manager = std::make_shared<SettingsManager>(terrier::catalog::terrier_catalog, &txn_manager_);
   }
 
-  void TearDown() override {
-    server.Close();
-    server_thread.join();
-    TEST_LOG_DEBUG("Terrier has shut down");
-
-    TerrierTest::TearDown();
-  }
 };
 
 // NOLINTNEXTLINE
-TEST_F(SettingsTests, SimpleQueryTest) {
+TEST_F(SettingsTests, PortTest) {
+
+  network::TerrierServer server;
+  auto port = static_cast<uint16_t>(settings_manager->GetInt(Param::port));
+  std::thread server_thread;
+
+  network::network_logger->set_level(spdlog::level::debug);
+  spdlog::flush_every(std::chrono::seconds(1));
+
+  try {
+    server.SetPort(port);
+    server.SetupServer();
+  } catch (NetworkProcessException &exception) {
+    TEST_LOG_ERROR("[LaunchServer] exception when launching server");
+    throw;
+  }
+  TEST_LOG_DEBUG("Server initialized");
+  server_thread = std::thread([&]() { server.ServerLoop(); });
+
+
   try {
     pqxx::connection C(
         fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
@@ -73,7 +68,11 @@ TEST_F(SettingsTests, SimpleQueryTest) {
     TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+  TEST_LOG_DEBUG("[PortTest] Client has closed");
+
+  server.Close();
+  server_thread.join();
+  TEST_LOG_DEBUG("Terrier has shut down");
 }
 
 

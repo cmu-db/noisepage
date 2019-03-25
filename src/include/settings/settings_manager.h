@@ -22,7 +22,6 @@ class SettingsManager {
   SettingsManager(std::shared_ptr<catalog::Catalog> catalog, transaction::TransactionManager *txn_manager);
 
   int32_t GetInt(Param param);
-  int16_t GetSmallInt(Param param);
   double GetDouble(Param param);
   bool GetBool(Param param);
   std::string GetString(Param param);

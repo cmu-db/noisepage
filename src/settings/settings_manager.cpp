@@ -11,16 +11,18 @@
 
 namespace terrier::settings {
 
+using Index = catalog::SettingsTableColumn;
+using ValueFactory = type::ValueFactory;
+
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
 
 SettingsManager::SettingsManager(std::shared_ptr<catalog::Catalog> catalog,
                                  transaction::TransactionManager *txn_manager) :
   settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
-  static int instance_number = 0;
-  instance_number++;
 
   InitParams();
+  InitializeCatalog();
 }
 
 void SettingsManager::InitParams() {
@@ -65,8 +67,7 @@ void SettingsManager::InitializeCatalog() {
   auto txn = txn_manager_->BeginTransaction();
   auto column_num = catalog::SettingsHandle::schema_cols_.size();
 
-  using Index = catalog::SettingsTableColumn;
-  using ValueFactory = type::ValueFactory;
+
 
   for(auto pair : param_map_)
   {
@@ -87,22 +88,19 @@ void SettingsManager::InitializeCatalog() {
 }
 
 int32_t SettingsManager::GetInt(Param param) {
-  return 0;
-}
-
-int16_t SettingsManager::GetSmallInt(Param param)
-{
-  return 0;
+  return GetValue(param).GetIntValue();
 }
 
 double SettingsManager::GetDouble(Param param) {
-  //TODO
-  return 0.0;
+  return GetValue(param).GetDecimalValue();
 }
 
 bool SettingsManager::GetBool(Param param) {
-  //TODO
-  return false;
+  return GetValue(param).GetBooleanValue();
+}
+
+std::string SettingsManager::GetString(Param param) {
+  return GetValue(param).GetVarcharValue();
 }
 
 void SettingsManager::SetInt(Param param, int32_t value) {
@@ -116,12 +114,6 @@ void SettingsManager::SetBool(Param param, bool value) {
 void SettingsManager::SetString(Param param, const std::string &value) {
   SetValue(param, type::ValueFactory::GetVarcharValue(value.c_str()));
 }
-
-std::string SettingsManager::GetString(Param param) {
-  //TODO
-  return "";
-}
-
 
 
 const std::string SettingsManager::GetInfo() {
@@ -159,24 +151,20 @@ const std::string SettingsManager::GetInfo() {
 void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/ }
 
 type::Value SettingsManager::GetValue(Param param) {
-  /*
-  // TODO: Look up the value from catalog
-  // Because querying a catalog table needs to create a new transaction and
-  // creating transaction needs to get setting values,
-  // it will be a infinite recursion here.
+  auto param_info = param_map_.find(param);
+  return param_info->second.value;
 
-  auto param = settings_.find(param);
-  return param->second.value;
-   */
-
-  return type::ValueFactory::GetNullValue(type::TypeId::VARCHAR);
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
-  // TODO: Need update API in settings handle; otherwise we need to use delete + insert
+
+  auto param_info = param_map_.find(param)->second;
+  param_info.value = value;
+
+  auto txn = txn_manager_->BeginTransaction();
+  auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
+  entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
+  txn_manager_->Commit(txn, EmptyCallback, nullptr);
 }
-
-
-
 
 }  // namespace terrier::settings
