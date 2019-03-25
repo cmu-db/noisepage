@@ -33,6 +33,7 @@ class Index {
   friend class GenericKey<64>;
   friend class GenericKey<128>;
   friend class GenericKey<256>;
+  friend class BwTreeIndexTests;
 
   const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
@@ -98,11 +99,6 @@ class Index {
    * @return oid of this indes
    */
   catalog::index_oid_t GetOid() const { return oid_; }
-
-  /**
-   * @return metadata of this index
-   */
-  const IndexMetadata &GetMetadata() const { return metadata_; }
 };
 
 }  // namespace terrier::storage::index

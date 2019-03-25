@@ -323,7 +323,7 @@ class BwTreeIndexTests : public TerrierTest {
    */
   void BasicOps(Index *const index) {
     // instantiate projected row and key
-    const auto &metadata = index->GetMetadata();
+    const auto &metadata = index->metadata_;
     const auto &initializer = metadata.GetProjectedRowInitializer();
     auto *key_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *key = initializer.InitializeRow(key_buffer);
