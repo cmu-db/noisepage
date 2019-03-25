@@ -11,6 +11,9 @@
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
 
+class Catalog;
+struct SchemaCol;
+
 /**
  * A TablespaceHandle provides access to the (global) system pg_tablespace
  * catalog.
@@ -63,8 +66,8 @@ class TablespaceHandle {
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  explicit TablespaceHandle(std::shared_ptr<catalog::SqlTableRW> pg_tablespace)
-      : pg_tablespace_(std::move(pg_tablespace)) {}
+  explicit TablespaceHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_tablespace)
+      : catalog_(catalog), pg_tablespace_(std::move(pg_tablespace)) {}
 
   /**
    * Get a tablespace entry for a given tablespace_oid. It's essentially equivalent to reading a
@@ -88,7 +91,24 @@ class TablespaceHandle {
    */
   std::shared_ptr<TablespaceEntry> GetTablespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
+  /* Add a tablespace
+   * @param txn
+   * @param name tablespace to add
+   */
+  void AddEntry(transaction::TransactionContext *txn, const std::string &name);
+
+  /**
+   * Create the storage table
+   */
+  static std::shared_ptr<catalog::SqlTableRW> Create(Catalog *catalog, db_oid_t db_oid, const std::string &name);
+
+  /** Used schema columns */
+  static const std::vector<SchemaCol> schema_cols_;
+  /** Unused schema columns */
+  static const std::vector<SchemaCol> unused_schema_cols_;
+
  private:
+  Catalog *catalog_;
   std::shared_ptr<catalog::SqlTableRW> pg_tablespace_;
 };
 

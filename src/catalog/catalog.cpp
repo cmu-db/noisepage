@@ -26,6 +26,7 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
 void Catalog::CreateDatabase(transaction::TransactionContext *txn, const char *name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
   Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
+  BootstrapDatabase(txn, new_db_oid);
 }
 
 void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *db_name) {
@@ -38,7 +39,13 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
 
   // TODO(pakhtar):
   // - delete all the tables
-  // - remove references from other catalog tables (pg_class)
+
+  // drop database local tables
+  // - pg_attribute
+  // - pg_namespace
+  // - pg_class
+  // - pg_type
+  // - pg_attrdef
 
   map_.erase(oid);
   name_map_.erase(oid);
@@ -57,12 +64,21 @@ void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid,
   AddToMaps(db_oid, tbl_rw->Oid(), table_name, tbl_rw);
 
   // enter attribute information
-  // AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+  AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+}
+
+void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid) {
+  auto db_handle = GetDatabaseHandle();
+  // remove entries from pg_attribute
+  // remove entries from pg_attrdef
+  // remove entry from pg_class
+
+  // TODO(pakhtar): drop table
 }
 
 DatabaseHandle Catalog::GetDatabaseHandle() { return DatabaseHandle(this, pg_database_); }
 
-TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(pg_tablespace_); }
+TablespaceHandle Catalog::GetTablespaceHandle() { return TablespaceHandle(this, pg_tablespace_); }
 
 SettingsHandle Catalog::GetSettingsHandle() { return SettingsHandle(pg_settings_); }
 
@@ -83,7 +99,7 @@ void Catalog::Bootstrap() {
   CreatePGDatabase(table_oid_t(GetNextOid()));
   PopulatePGDatabase(txn);
 
-  CreatePGTablespace(table_oid_t(GetNextOid()));
+  CreatePGTablespace(DEFAULT_DATABASE_OID, table_oid_t(GetNextOid()));
   PopulatePGTablespace(txn);
 
   pg_settings_ = SettingsHandle::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
@@ -164,38 +180,18 @@ void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
   pg_database_->InsertRow(txn, row);
 }
 
-void Catalog::CreatePGTablespace(table_oid_t table_oid) {
+void Catalog::CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid) {
   CATALOG_LOG_TRACE("Creating pg_tablespace table");
-  // set the oid
-  pg_tablespace_ = std::make_shared<catalog::SqlTableRW>(table_oid);
-
-  // add the schema
-  pg_tablespace_->DefineColumn("oid", type::TypeId::INTEGER, false, col_oid_t(GetNextOid()));
-  pg_tablespace_->DefineColumn("spcname", type::TypeId::VARCHAR, false, col_oid_t(GetNextOid()));
-  AddUnusedSchemaColumns(pg_tablespace_, pg_tablespace_unused_cols_);
-  // create the table
-  pg_tablespace_->Create();
+  pg_tablespace_ = TablespaceHandle::Create(this, db_oid, "pg_tablespace");
 }
 
 void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
   std::vector<type::Value> row;
   CATALOG_LOG_TRACE("Populate pg_tablespace table");
+  auto ts_handle = GetTablespaceHandle();
 
-  tablespace_oid_t pg_global_oid = tablespace_oid_t(GetNextOid());
-  tablespace_oid_t pg_default_oid = tablespace_oid_t(GetNextOid());
-
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!pg_global_oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("pg_global"));
-  SetUnusedColumns(&row, pg_tablespace_unused_cols_);
-  pg_tablespace_->InsertRow(txn, row);
-
-  row.clear();
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!pg_default_oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("pg_default"));
-  SetUnusedColumns(&row, pg_tablespace_unused_cols_);
-  pg_tablespace_->InsertRow(txn, row);
-
-  // TODO(yeshengm): do we have to add it to the global map?
+  ts_handle.AddEntry(txn, "pg_global");
+  ts_handle.AddEntry(txn, "pg_default");
 }
 
 void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
@@ -214,7 +210,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGType(txn, db_oid);
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 
-  // add columnn information into pg_attribute, for the catalog tables just created
+  // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
   // pg_attribute is local, so add them too.
   std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
@@ -459,36 +455,36 @@ type::Value Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   }
 }
 
-void Catalog::Dump(transaction::TransactionContext *txn) {
+void Catalog::Dump(transaction::TransactionContext *txn, const db_oid_t db_oid) {
   // TODO(pakhtar): add parameter to select database
 
   // dump pg_database
   auto db_handle = GetDatabaseHandle();
+  CATALOG_LOG_DEBUG("Dumping: {}", !db_oid);
   CATALOG_LOG_DEBUG("-- pg_database -- ");
   db_handle.Dump(txn);
 
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_namespace -- ");
-  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
-  auto ns_handle = db_handle.GetNamespaceHandle(txn, terrier_oid);
+  auto ns_handle = db_handle.GetNamespaceHandle(txn, db_oid);
   ns_handle.Dump(txn);
 
   // pg_attribute
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_attribute -- ");
-  auto attr_handle = db_handle.GetAttributeHandle(txn, terrier_oid);
+  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
   attr_handle.Dump(txn);
 
   // pg_type
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_type -- ");
-  auto type_handle = db_handle.GetTypeHandle(txn, terrier_oid);
+  auto type_handle = db_handle.GetTypeHandle(txn, db_oid);
   type_handle.Dump(txn);
 
   // pg_class
   CATALOG_LOG_DEBUG("");
   CATALOG_LOG_DEBUG("-- pg_class -- ");
-  auto cls_handle = db_handle.GetClassHandle(txn, terrier_oid);
+  auto cls_handle = db_handle.GetClassHandle(txn, db_oid);
   cls_handle.Dump(txn);
 }
 

@@ -31,33 +31,38 @@ struct SchemaCol {
 };
 
 /**
- * The global catalog object. It contains all the information about global catalog tables. It's also
- * the entry point for transactions to access any data in any sql table.
+ * The global catalog object.
+ *
+ * The catalog is modelled upon the Postgres catalog, modified for terrier.
+ *
+ * pg_database, pg_tablespace and pg_settings are global catalogs
+ * (only a single instance). Other catalogs are "local" to each database.
+ * For example, a pg_class catalog exists for each database.
  *
  * OID assignment:
- * Note that we do not have a concept of oid_t anymore. Instead, we have
- *  db_oid_t, namespace_oid_t, table_oid_t, col_oid_t
- * In addition, for namespace_oid_t, table_oid_t, and col_oid_t, we only guarantee uniqueness inside a database,
- * which means that the table_oid for pg_attribute in database A could be the same as pg_attribute in database B.
+ * In terrier, each table row is identified by an oid. Further, as strong
+ * typing is used in terrier, each (catalog) table has it's own oid type,
+ * e.g. db_oid_t, namespace_oid_t etc.
  *
- * db_oid_t, namespace_oid_t, table_oid_t, col_oid_t come from the same global counter, so, inside a database, the
- * values of oids should never be the same.
+ * The values for all oid types are generated from a single value space
+ * i.e. every oid regardless of type, is unique.
  *
- * TODO(yangjuns): Each database should have its own global counter
  * TODO(Yesheng): Port over to TransientValue
  */
 class Catalog {
  public:
   /**
-   * Creates the (global) catalog object, and bootstraps, i.e. creates
-   * all the default and system databases and tables.
+   * Creates the (global) catalog object, and bootstraps.
+   * A default database is created. Its tables are created and populated.
+   *
    * @param txn_manager the global transaction manager
    */
   explicit Catalog(transaction::TransactionManager *txn_manager);
 
   /**
-   * Create a database (no tables are created). Insert the name into
-   * the catalogs and setup everything related.
+   * Create a database, and all its tables. Set initial content
+   * for the tables, and update the catalogs to reflect the new
+   * database (and its tables).
    *
    * @param txn transaction to use
    * @param name of the database
@@ -83,8 +88,17 @@ class Catalog {
                    const Schema &schema);
 
   /**
-   * Lookup a database oid and return a database handle.
-   * @return the corresponding database handle
+   * Delete a table
+   * @param txn transaction to use
+   * @param db_oid oid of the database
+   * @param table_oid table to delete
+   */
+
+  void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid);
+
+  /**
+   * Return a database handle.
+   * @return the database handle
    */
   DatabaseHandle GetDatabaseHandle();
 
@@ -95,26 +109,28 @@ class Catalog {
   TablespaceHandle GetTablespaceHandle();
 
   /**
-   * Return a tablespace handle.
-   * @return the tablespace handle
+   * Return a settings handle.
+   * @return the settings handle
    */
   SettingsHandle GetSettingsHandle();
 
   /**
-   * Get the pointer to a catalog in a database by db_oid, including global catalogs.
+   * Get a pointer to the storage table.
+   * Supports both catalog tables, and user created tables.
    *
-   * @param db_oid the database the catalog belongs to
-   * @param table_oid the table oid of the catalog
+   * @param db_oid database that owns the table
+   * @param table_oid returns the storage table pointer for this table_oid
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
   std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
-   * Get the pointer to a catalog in a database by name, including global catalogs.
+   * Get a pointer to the storage table, by table_name.
+   * Supports both catalog tables, and user created tables.
    *
-   * @param db_oid the database the catalog belongs to
-   * @param table_name the name of the catalog
+   * @param db_oid database that owns the table
+   * @param table_name returns the storage table point for this table
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
@@ -128,6 +144,10 @@ class Catalog {
    * @return uint32_t the next oid available
    */
   uint32_t GetNextOid();
+
+  /**
+   * TODO(pakhtar): Implement shutdown.
+   */
 
   /*
    * Destructor
@@ -144,7 +164,7 @@ class Catalog {
    * Add a catalog to the catalog mapping
    * @param db_oid database oid
    * @param table_oid table oid
-   * @param name name of the catalog
+   * @param name of the catalog
    * @param table_rw_p catalog storage table
    */
   void AddToMaps(db_oid_t db_oid, table_oid_t table_oid, const std::string &name,
@@ -182,7 +202,7 @@ class Catalog {
    * -------------
    */
 
-  void Dump(transaction::TransactionContext *txn);
+  void Dump(transaction::TransactionContext *txn, db_oid_t db_oid);
 
  private:
   /**
@@ -209,18 +229,18 @@ class Catalog {
 
   void CreatePGDatabase(table_oid_t table_oid);
 
-  void CreatePGTablespace(table_oid_t table_oid);
+  void CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
-   * Bootstrap a database, i.e create all the catalogs local to this database, and do all other initialization.
-   * 1) Create pg_namespace (catalog)
-   * 2) Create pg_class (catalog)
-   * 3) TODO(pakhtar) -  other catalogs for Postgres compatibility
-   * 4) populates these catalogs
-   * @param db_oid the oid of the database you are trying to bootstrap
+   * Initialize a database. This:
+   * 1) Creates all the catalogs "local" to this database, e.g. pg_namespace
+   * 2) Initializes their contents
+   * 3) Adds them to the catalog maps
+   * @param db_oid the oid of the database to be initialized
    *
    * Notes:
-   * 1) Caller must add the database to pg_database.
+   * - Caller is responsible for adding the database to pg_database,
+   *   and for adding it to the catalog maps.
    */
   void BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid);
 
@@ -238,6 +258,8 @@ class Catalog {
   /**
    * Add initial contents to pg_tablespace, during startup.
    * @param txn_manager the global transaction manager
+   * Note:
+   * - pg_tablespace is currently not used in terrier
    */
   void PopulatePGTablespace(transaction::TransactionContext *txn);
 
@@ -266,6 +288,7 @@ class Catalog {
   void CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
+   * TODO(pakhtar): needs changes.
    * For catalog shutdown.
    * Delete all user created tables.
    * @param oid - database from which tables are to be deleted.
@@ -285,14 +308,6 @@ class Catalog {
   std::unordered_map<db_oid_t, std::unordered_map<std::string, table_oid_t>> name_map_;
   // this oid serves as a global counter for different strong types of oid
   std::atomic<uint32_t> oid_;
-
-  /**
-   * pg_database specific items. Should be in a pg_database util class
-   */
-
-  std::vector<SchemaCol> pg_tablespace_unused_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                       {3, "spcacl", type::TypeId::VARCHAR},
-                                                       {4, "spcoptions", type::TypeId::VARCHAR}};
 };
 
 extern std::shared_ptr<Catalog> terrier_catalog;

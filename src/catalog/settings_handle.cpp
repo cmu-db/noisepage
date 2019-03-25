@@ -60,10 +60,9 @@ const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
     {6, "extra_desc", type::TypeId::VARCHAR},  {7, "context", type::TypeId::VARCHAR},
     {8, "vartype", type::TypeId::VARCHAR},     {9, "source", type::TypeId::VARCHAR},
     {10, "min_val", type::TypeId::VARCHAR},    {11, "max_val", type::TypeId::VARCHAR},
-    {12, "enumvals", type::TypeId::VARCHAR},   {13, "unit", type::TypeId::VARCHAR},
-    {14, "boot_val", type::TypeId::VARCHAR},   {15, "reset_val", type::TypeId::VARCHAR},
-    {16, "sourcefile", type::TypeId::VARCHAR}, {17, "sourceline", type::TypeId::VARCHAR},
-    {18, "sourceline", type::TypeId::INTEGER}, {19, "pending_restart", type::TypeId::BOOLEAN}};
+    {12, "enumvals", type::TypeId::VARCHAR},   {13, "boot_val", type::TypeId::VARCHAR},
+    {14, "reset_val", type::TypeId::VARCHAR},  {15, "sourcefile", type::TypeId::VARCHAR},
+    {16, "sourceline", type::TypeId::VARCHAR}, {17, "pending_restart", type::TypeId::BOOLEAN}};
 
 const std::vector<SchemaCol> SettingsHandle::unused_schema_cols_ = {};
 

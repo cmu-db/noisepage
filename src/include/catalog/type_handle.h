@@ -91,7 +91,10 @@ class TypeHandle {
   /**
    * Debug methods
    */
-  void Dump(transaction::TransactionContext *txn) { pg_type_rw_->Dump(txn); }
+  void Dump(transaction::TransactionContext *txn) {
+    auto limit = static_cast<int32_t>(TypeHandle::schema_cols_.size());
+    pg_type_rw_->Dump(txn, limit);
+  }
 
   /** Used schema columns */
   static const std::vector<SchemaCol> schema_cols_;

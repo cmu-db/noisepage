@@ -38,7 +38,10 @@ struct CatalogTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CreateDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
-  catalog_->Dump(txn_);
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
+  auto oid = entry->GetDatabaseOid();
+  catalog_->Dump(txn_, oid);
 }
 
 // NOLINTNEXTLINE
@@ -51,7 +54,19 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   catalog::Schema schema(cols);
 
   catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
-  catalog_->Dump(txn_);
+  catalog_->Dump(txn_, terrier_oid);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, DeleteDatabaseTest) {
+  catalog_->CreateDatabase(txn_, "test_database");
+  auto db_handle = catalog_->GetDatabaseHandle();
+  auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
+  auto oid = entry->GetDatabaseOid();
+  catalog_->Dump(txn_, oid);
+
+  // delete it
+  catalog_->DeleteDatabase(txn_, "test_database");
 }
 
 }  // namespace terrier
