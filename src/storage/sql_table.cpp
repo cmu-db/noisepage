@@ -269,17 +269,9 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
 void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIterator * start_pos,
                     ProjectedColumns *const out_buffer, const ProjectionMap &pr_map,
                     layout_version_t version_num) const {
-  uint32_t max_tuples = out_buffer->MaxTuples();
   layout_version_t dt_version_num = start_pos->operator*().GetBlock()->layout_version_;
 
-  uint32_t total_filled = 0;
   // For each DataTable
-  /* TODO (Yashwanth) change tables_ to a map rather than a vector, also when done with a single versions table
-   * don't have to iterate through the tables can just return what is there and move the slot iterator up
-   * therefore can get rid of the below loop and do just one iteration
-   *
-   * When a projected column is full, or a datatable is finished just return. The caller will call again after processing that
-   */
   DataTableVersion dt_ver = tables_.at(dt_version_num);
   DataTableVersion curr_ver = tables_.at(version_num);
 
@@ -287,8 +279,10 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
 
   DataTable::SlotIterator dt_slot = start_pos->GetDataTableSlotIterator();
   uint32_t filled = dt_ver.data_table->Scan(txn, &dt_slot, out_buffer);
-  if(start_pos->GetDataTableSlotIterator() == dt_ver.data_table->end()){
-    start_pos++;
+  if(dt_slot == dt_ver.data_table->end()){
+    if((start_pos->dt_version_)->first != version_num) {
+      ++(*start_pos);
+    }
   }
 
   std::memcpy(out_buffer, initial_header, out_buffer->HeaderWithoutBitmapSize());
@@ -337,35 +331,37 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitial
     const ProjectedRowInitializer &initializer, layout_version_t version) const;
 
 
+// TODO (Yashwanth)  don't copy the entire header, no need for template only take in ColumnIds() and then just modify that
+// when resetting header only have memc py ColumnIds()
 template<class RowType>
 byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *const out_buffer, DataTableVersion& curr_dt_version,
-                                                       DataTableVersion& old_dt_version) {
-  //The slot version is not the same as the version_num
-  // 1. Copy the old header (excluding bitmap)
-  auto initial_header_buffer = common::AllocationUtil::AllocateAligned(out_buffer->HeaderWithoutBitmapSize());
-  std::memcpy(initial_header_buffer, out_buffer, out_buffer->HeaderWithoutBitmapSize());
+                                                     DataTableVersion& old_dt_version) const {
+//The slot version is not the same as the version_num
+// 1. Copy the old header (excluding bitmap)
+auto initial_header_buffer = common::AllocationUtil::AllocateAligned(out_buffer->HeaderWithoutBitmapSize());
+std::memcpy(initial_header_buffer, out_buffer, out_buffer->HeaderWithoutBitmapSize());
 
-  // 2. For each column present in the old version, change the column id to the col id of that version
-  //    For each column not present in the old version, change the column id to the sentinel value VERSION_POINTER_COLUMN_ID
-  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Output buffer should not read the version pointer column.");
-    catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
-    if(old_dt_version.column_map.count(col_oid) > 0){
-      out_buffer->ColumnIds()[i] = old_dt_version.column_map.at(col_oid);
-    } else {
-      //TODO (Yashwanth) consider renaming VERSION_POINTER_COLUMN_ID, since we're using it for more than just that now
-      out_buffer->ColumnIds()[i] = VERSION_POINTER_COLUMN_ID;
-    }
+// 2. For each column present in the old version, change the column id to the col id of that version
+//    For each column not present in the old version, change the column id to the sentinel value VERSION_POINTER_COLUMN_ID
+for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+  TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                 "Output buffer should not read the version pointer column.");
+  catalog::col_oid_t col_oid = curr_dt_version.inverse_column_map.at(out_buffer->ColumnIds()[i]);
+  if(old_dt_version.column_map.count(col_oid) > 0){
+    out_buffer->ColumnIds()[i] = old_dt_version.column_map.at(col_oid);
+  } else {
+    //TODO (Yashwanth) consider renaming VERSION_POINTER_COLUMN_ID, since we're using it for more than just that now
+    out_buffer->ColumnIds()[i] = VERSION_POINTER_COLUMN_ID;
   }
+}
 
-  return initial_header_buffer;
+return initial_header_buffer;
 }
 
 template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *const out_buffer, DataTableVersion& curr_dt_version,
-                                                            DataTableVersion& old_dt_version);
-template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns::RowView>(ProjectedColumns::RowView *const out_buffer, DataTableVersion& curr_dt_version,
-                                                                              DataTableVersion& old_dt_version);
+                                                          DataTableVersion& old_dt_version) const;
+template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns *const out_buffer, DataTableVersion& curr_dt_version,
+                                                                            DataTableVersion& old_dt_version) const;
 
 
 }  // namespace terrier::storage

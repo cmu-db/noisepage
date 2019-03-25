@@ -117,14 +117,6 @@ class PACKED ProjectedColumns {
       return underlying_->ColumnStart(projection_list_index) + layout_.AttrSize(col_id) * row_offset_;
     }
 
-     /**
-     * Retrieves the size of the header excluding the bitmap
-     * @return size of header
-     */
-      uint32_t HeaderWithoutBitmapSize() const {
-       return underlying_->HeaderWithoutBitmapSize();
-      }
-
    private:
     friend class ProjectedColumns;
     RowView(ProjectedColumns *underlying, const BlockLayout &layout, uint32_t row_offset)
