@@ -19,7 +19,7 @@ class ProtocolInterpreter {
    * @return The next transition for the client's associated state machine
    */
   virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                             NetworkCallback callback) = 0;
+                             TrafficCopPtr t_cop, NetworkCallback callback) = 0;
   //
   // TODO(Tianyu): Do we really need this crap?
 

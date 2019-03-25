@@ -27,7 +27,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @return
    */
   Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                      NetworkCallback callback) override;
+                      TrafficCopPtr t_cop, NetworkCallback callback) override;
 
   /**
    *
