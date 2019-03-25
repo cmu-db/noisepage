@@ -312,7 +312,7 @@ class SqlTable {
    * @return a copy of the old header that is on the heap, needs to be freed once done with
    */
   template<class RowType>
-  byte * ModifyProjectionHeaderForVersion(RowType * const out_buffer, DataTableVersion& curr_dt_version,
-          DataTableVersion& old_dt_version) const;
+  byte * ModifyProjectionHeaderForVersion(RowType * out_buffer, const DataTableVersion& curr_dt_version,
+          const DataTableVersion& old_dt_version) const;
 };
 }  // namespace terrier::storage

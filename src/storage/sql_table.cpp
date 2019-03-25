@@ -334,8 +334,8 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitial
 // TODO (Yashwanth)  don't copy the entire header, no need for template only take in ColumnIds() and then just modify that
 // when resetting header only have memc py ColumnIds()
 template<class RowType>
-byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *const out_buffer, DataTableVersion& curr_dt_version,
-                                                     DataTableVersion& old_dt_version) const {
+byte *SqlTable::ModifyProjectionHeaderForVersion(RowType * out_buffer, const DataTableVersion& curr_dt_version,
+                                                     const DataTableVersion& old_dt_version) const {
 //The slot version is not the same as the version_num
 // 1. Copy the old header (excluding bitmap)
 auto initial_header_buffer = common::AllocationUtil::AllocateAligned(out_buffer->HeaderWithoutBitmapSize());
@@ -358,10 +358,10 @@ for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
 return initial_header_buffer;
 }
 
-template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *const out_buffer, DataTableVersion& curr_dt_version,
-                                                          DataTableVersion& old_dt_version) const;
-template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns *const out_buffer, DataTableVersion& curr_dt_version,
-                                                                            DataTableVersion& old_dt_version) const;
+template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow * out_buffer, const DataTableVersion& curr_dt_version,
+                                                          const DataTableVersion& old_dt_version) const;
+template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns * out_buffer, const DataTableVersion& curr_dt_version,
+                                                                            const DataTableVersion& old_dt_version) const;
 
 
 }  // namespace terrier::storage
