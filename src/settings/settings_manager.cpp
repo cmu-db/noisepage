@@ -14,16 +14,13 @@ namespace terrier::settings {
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
 
-catalog::SettingsHandle SettingsManager::settings_handle_ = catalog::SettingsHandle(nullptr);
-transaction::TransactionManager *SettingsManager::txn_manager_ = nullptr;
-std::unordered_map<Param, ParamInfo> SettingsManager::param_map_ = std::unordered_map<Param, ParamInfo>();
-
-void SettingsManager::Init(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager) {
-  settings_handle_ = catalog->GetSettingsHandle();
-  txn_manager_ = txn_manager;
+SettingsManager::SettingsManager(std::shared_ptr<catalog::Catalog> catalog,
+                                 transaction::TransactionManager *txn_manager) :
+  settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
+  static int instance_number = 0;
+  instance_number++;
 
   InitParams();
-
 }
 
 void SettingsManager::InitParams() {
@@ -176,7 +173,7 @@ type::Value SettingsManager::GetValue(Param param) {
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
-
+  // TODO: Need update API in settings handle; otherwise we need to use delete + insert
 }
 
 

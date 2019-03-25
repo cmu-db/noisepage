@@ -19,7 +19,7 @@ class SettingsTests : public TerrierTest {
 
  protected:
   network::TerrierServer server;
-  uint16_t port = static_cast<uint16_t>(settings::SettingsManager::GetSmallInt(settings::Param::port));
+  uint16_t port; //= static_cast<uint16_t>(settings::SettingsManager::GetSmallInt(settings::Param::port));
   std::thread server_thread;
 
   /**
@@ -30,7 +30,11 @@ class SettingsTests : public TerrierTest {
 
     network::network_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
-
+    terrier::storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
+    terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+    terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
+    terrier::settings::SettingsManager settings_manager(terrier::catalog::terrier_catalog, &txn_manager_);
+    port = settings_manager.GetSmallInt(settings::Param::port);
     try {
       server.SetPort(port);
       server.SetupServer();

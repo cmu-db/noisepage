@@ -17,35 +17,36 @@ namespace terrier::settings {
 
 class SettingsManager {
  public:
+  SettingsManager() = delete;
+  SettingsManager(SettingsManager&) = delete;
+  SettingsManager(std::shared_ptr<catalog::Catalog> catalog, transaction::TransactionManager *txn_manager);
 
-  static void Init(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager);
+  int32_t GetInt(Param param);
+  int16_t GetSmallInt(Param param);
+  double GetDouble(Param param);
+  bool GetBool(Param param);
+  std::string GetString(Param param);
 
-  static int32_t GetInt(Param param);
-  static int16_t GetSmallInt(Param param);
-  static double GetDouble(Param param);
-  static bool GetBool(Param param);
-  static std::string GetString(Param param);
-
-  static void SetInt(Param param, int32_t value);
-  static void SetBool(Param param, bool value);
-  static void SetString(Param param, const std::string &value);
+  void SetInt(Param param, int32_t value);
+  void SetBool(Param param, bool value);
+  void SetString(Param param, const std::string &value);
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings
-  static void InitializeCatalog();
+  void InitializeCatalog();
 
-  static const std::string GetInfo();
+  const std::string GetInfo();
 
-  static void ShowInfo();
+  void ShowInfo();
 
-  static void InitParams();
+  void InitParams();
 
  private:
+  catalog::SettingsHandle settings_handle_;
+  transaction::TransactionManager *txn_manager_;
+  std::unordered_map<Param, ParamInfo> param_map_;
 
-  static catalog::SettingsHandle settings_handle_;
-  static transaction::TransactionManager *txn_manager_;
-
-  static void DefineSetting(Param param, const std::string &name,
+  void DefineSetting(Param param, const std::string &name,
                      const type::Value &value,
                      const std::string &description,
                      const type::Value &default_value,
@@ -53,10 +54,9 @@ class SettingsManager {
                      const type::Value &max_value,
                      bool is_mutable, bool is_persistent);
 
-  static type::Value GetValue(Param param);
-  static void SetValue(Param param, const type::Value &value);
+  type::Value GetValue(Param param);
+  void SetValue(Param param, const type::Value &value);
 
-  static std::unordered_map<Param, ParamInfo> param_map_;
 
 };
 
