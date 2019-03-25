@@ -149,6 +149,7 @@ class BlockAllocator {
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 
 using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using InverseColumnMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
