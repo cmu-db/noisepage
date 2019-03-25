@@ -13,23 +13,20 @@ namespace terrier::storage {
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
- * concepts like Schema. This layer will also possibly perform constraint checking (confirm when we bring in execution
- * layer). The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level. The SqlTable API should
- * only refer to storage concepts via things like Schema and col_oid_t, and then perform the translation to BlockLayout
- * and col_id_t to talk to the DataTable and other areas of the storage layer.
+ * concepts like Schema. The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level.
+ * The SqlTable API should only refer to storage concepts via things like Schema and col_oid_t, and then perform the
+ * translation to BlockLayout and col_id_t to talk to the DataTable and other areas of the storage layer.
  */
 class SqlTable {
- private:
   /**
    * Contains all of the metadata the SqlTable needs to reference a DataTable. We shouldn't ever have to expose these
    * concepts to anyone above the SqlTable level. If you find yourself wanting to return BlockLayout or col_id_t above
    * this layer, consider alternatives.
    */
   struct DataTableVersion {
-    DataTable *const data_table;
-    const BlockLayout layout;
-    const catalog::Schema schema;
-    const ColumnMap column_map;
+    DataTable *data_table;
+    BlockLayout layout;
+    ColumnMap column_map;
   };
 
  public:
@@ -41,20 +38,17 @@ class SqlTable {
    * @param schema the initial Schema of this SqlTable
    * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::sqltable_oid_t oid)
+  SqlTable(BlockStore *const store, const catalog::Schema &schema, const catalog::table_oid_t oid)
       : block_store_(store), oid_(oid) {
     const auto layout_and_map = StorageUtil::BlockLayoutFromSchema(schema);
-    table_ = new DataTableVersion{new DataTable(block_store_, layout_and_map.first, layout_version_t(0)),
-                                  layout_and_map.first, schema, layout_and_map.second};
+    table_ = {new DataTable(block_store_, layout_and_map.first, layout_version_t(0)), layout_and_map.first,
+              layout_and_map.second};
   }
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() {
-    delete table_->data_table;
-    delete table_;
-  }
+  ~SqlTable() { delete table_.data_table; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -65,7 +59,7 @@ class SqlTable {
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer) const {
-    return table_->data_table->Select(txn, slot, out_buffer);
+    return table_.data_table->Select(txn, slot, out_buffer);
   }
 
   /**
@@ -77,8 +71,7 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    return table_->data_table->Update(txn, slot, redo);
+    return table_.data_table->Update(txn, slot, redo);
   }
 
   /**
@@ -90,8 +83,7 @@ class SqlTable {
    * such.
    */
   TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    return table_->data_table->Insert(txn, redo);
+    return table_.data_table->Insert(txn, redo);
   }
 
   /**
@@ -101,8 +93,7 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-    // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    return table_->data_table->Delete(txn, slot);
+    return table_.data_table->Delete(txn, slot);
   }
 
   /**
@@ -119,23 +110,23 @@ class SqlTable {
    */
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
-    return table_->data_table->Scan(txn, start_pos, out_buffer);
+    return table_.data_table->Scan(txn, start_pos, out_buffer);
   }
 
   /**
    * @return table's unique identifier
    */
-  catalog::sqltable_oid_t Oid() const { return oid_; }
+  catalog::table_oid_t Oid() const { return oid_; }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator begin() const { return table_->data_table->begin(); }
+  DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return table_->data_table->end(); }
+  DataTable::SlotIterator end() const { return table_.data_table->end(); }
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
@@ -153,7 +144,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedColumnsInitializer initializer(table_->layout, col_ids, max_tuples);
+    ProjectedColumnsInitializer initializer(table_.layout, col_ids, max_tuples);
     auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -172,24 +163,24 @@ class SqlTable {
   std::pair<ProjectedRowInitializer, ProjectionMap> InitializerForProjectedRow(
       const std::vector<catalog::col_oid_t> &col_oids) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicates in the col_ids!");
+                   "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
     ProjectedRowInitializer initializer =
-        ProjectedRowInitializer::CreateProjectedRowInitializer(table_->layout, col_ids);
+        ProjectedRowInitializer::CreateProjectedRowInitializer(table_.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
-                   "ProjectionMap should be the same number of columns as requested col_oids.");
+                   "ProjectionMap be the same number of columns as requested col_oids.");
     return {initializer, projection_map};
   }
 
  private:
   BlockStore *const block_store_;
-  const catalog::sqltable_oid_t oid_;
+  const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
-  DataTableVersion *table_;
+  DataTableVersion table_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization

@@ -15,7 +15,7 @@ namespace terrier {
  */
 class SqlTableRW {
  public:
-  explicit SqlTableRW(catalog::sqltable_oid_t table_oid) : table_oid_(table_oid) {}
+  explicit SqlTableRW(catalog::table_oid_t table_oid) : table_oid_(table_oid) {}
   ~SqlTableRW() {
     delete pri_;
     delete pr_map_;
@@ -158,7 +158,7 @@ class SqlTableRW {
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   storage::BlockStore block_store_{100, 100};
-  catalog::sqltable_oid_t table_oid_;
+  catalog::table_oid_t table_oid_;
   storage::SqlTable *table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
@@ -180,7 +180,7 @@ struct SqlTableTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, SelectInsertTest) {
-  SqlTableRW table(catalog::sqltable_oid_t(2));
+  SqlTableRW table(catalog::table_oid_t(2));
 
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
@@ -208,7 +208,7 @@ TEST_F(SqlTableTests, SelectInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, VarlenInsertTest) {
-  SqlTableRW table(catalog::sqltable_oid_t(2));
+  SqlTableRW table(catalog::table_oid_t(2));
 
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
   table.DefineColumn("datname", type::TypeId::VARCHAR, false, catalog::col_oid_t(1));
