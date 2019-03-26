@@ -78,8 +78,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    * @param build_bloomfilter flag whether to build a bloom filter
    */
   HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                   std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality, LogicalJoinType join_type,
-                   std::unique_ptr<const parser::AbstractExpression> &&predicate,
+                   std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
+                   LogicalJoinType join_type, std::unique_ptr<const parser::AbstractExpression> &&predicate,
                    std::vector<parser::AbstractExpression *> left_hash_keys,
                    std::vector<parser::AbstractExpression *> right_hash_keys, bool build_bloomfilter)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, join_type,

@@ -51,7 +51,6 @@ bool AggregatePlanNode::AreEqual(const std::vector<AggregatePlanNode::AggregateT
   return true;
 }
 
-// TODO(Gus,Wen): include == for schema
 bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 

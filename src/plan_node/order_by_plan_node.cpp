@@ -41,8 +41,6 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
 
-  // TODO(Gus,Wen): Check equaility of output schema
-
   // Limit/Offset
   if (HasLimit() != other.HasLimit() || GetOffset() != other.GetOffset() || GetLimit() != other.GetLimit()) {
     return false;

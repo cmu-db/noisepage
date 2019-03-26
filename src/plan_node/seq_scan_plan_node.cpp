@@ -37,8 +37,6 @@ bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   if (pred != nullptr && *pred != *rhs_plan_node_pred) return false;
 
-  if (*GetOutputSchema() != *rhs_plan_node.GetOutputSchema()) return false;
-
   if (IsParallel() != rhs_plan_node.IsParallel()) return false;
 
   if (IsForUpdate() != rhs_plan_node.IsForUpdate()) return false;

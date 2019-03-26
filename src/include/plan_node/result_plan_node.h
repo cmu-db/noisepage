@@ -18,15 +18,47 @@ namespace terrier::plan_node {
  * that returns a single constant tuple.
  */
 class ResultPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Instantiate a Result Plan Node
-   * @param outputSchema the schema of the output node
+   * Builder for an delete plan node
+   */
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param tuple the tuple in the storage layer
+     * @return builder object
+     */
+    Builder &SetTuple(std::shared_ptr<Tuple> tuple) {
+      tuple_ = std::move(tuple);
+      return *this;
+    }
+
+    /**
+     * Build the setop plan node
+     * @return plan node
+     */
+    std::shared_ptr<SetOpPlanNode> Build() {
+      return std::shared_ptr<SetOpPlanNode>(
+          new SetOpPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, tuple_));
+    }
+
+   protected:
+    std::shared_ptr<Tuple> tuple_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
    * @param tuple the tuple in the storage layer
    */
-  ResultPlanNode(std::shared_ptr<OutputSchema> outputSchema, std::shared_ptr<Tuple> tuple)
-      : AbstractPlanNode(std::move(outputSchema)), tuple_(std::move(tuple)) {}
+  ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+                 uint32_t estimated_cardinality, std::shared_ptr<Tuple> tuple_)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality), set_op_(set_op) {}
 
+ public:
   /**
    * @return the tuple in the storage layer
    */
@@ -36,13 +68,6 @@ class ResultPlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
-
-  /**
-   * @return a unique pointer to a copy of this plan node
-   */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new ResultPlanNode(GetOutputSchema(), tuple_));
-  }
 
  private:
   // the tuple in the storage layer

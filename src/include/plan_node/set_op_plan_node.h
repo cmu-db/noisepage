@@ -16,15 +16,47 @@ namespace terrier::plan_node {
  * IMPORTANT: Both children must have the same physical schema.
  */
 class SetOpPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Instantiate a SetOpPlanNode
-   * @param output_schema the output schema of this plan node
-   * @param set_op the set operation of this node
+   * Builder for an delete plan node
    */
-  SetOpPlanNode(std::shared_ptr<OutputSchema> output_schema, SetOpType set_op)
-      : AbstractPlanNode(std::move(output_schema)), set_op_(set_op) {}
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    DISALLOW_COPY_AND_MOVE(Builder);
 
+    /**
+     * @param set_op set operation of this plan node
+     * @return builder object
+     */
+    Builder &SetSetOp(SetOpType set_op) {
+      set_op_ = set_op;
+      return *this;
+    }
+
+    /**
+     * Build the setop plan node
+     * @return plan node
+     */
+    std::shared_ptr<SetOpPlanNode> Build() {
+      return std::shared_ptr<SetOpPlanNode>(
+          new SetOpPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, set_op_));
+    }
+
+   protected:
+    SetOpType set_op_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param estimated_cardinality estimated cardinality of output of node
+   * @param set_op the set pperation of this node
+   */
+  SetOpPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+                uint32_t estimated_cardinality, SetOpType set_op)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality), set_op_(set_op) {}
+
+ public:
   /**
    * @return the set operation of this node
    */

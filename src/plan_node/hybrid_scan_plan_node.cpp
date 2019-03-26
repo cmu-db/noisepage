@@ -26,20 +26,17 @@ common::hash_t HybridScanPlanNode::Hash() const {
 bool HybridScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &rhs_plan_node = static_cast<const HybridScanPlanNode &>(rhs);
+  auto &other = dynamic_cast<const HybridScanPlanNode &>(rhs);
 
   // Predicate
   auto *pred = GetPredicate();
-  auto *rhs_plan_node_pred = rhs_plan_node.GetPredicate();
-  if ((pred == nullptr && rhs_plan_node_pred != nullptr) || (pred != nullptr && rhs_plan_node_pred == nullptr))
-    return false;
-  if (pred != nullptr && *pred != *rhs_plan_node_pred) return false;
+  auto *other_pred = other.GetPredicate();
+  if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
+  if (pred != nullptr && *pred != *other_pred) return false;
 
-  if (*GetOutputSchema() != *rhs_plan_node.GetOutputSchema()) return false;
+  if (GetHybridScanType() != other.GetHybridScanType()) return false;
 
-  if (GetHybridScanType() != rhs_plan_node.GetHybridScanType()) return false;
-
-  if (IsForUpdate() != rhs_plan_node.IsForUpdate()) return false;
+  if (IsForUpdate() != other.IsForUpdate()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }
