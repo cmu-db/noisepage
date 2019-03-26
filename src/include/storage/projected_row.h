@@ -209,16 +209,6 @@ class ProjectedRowInitializer {
   uint32_t ProjectedRowSize() const { return size_; }
 
   /**
-   * Retrieves the size of the header
-   * @return size of header
-   */
-  uint32_t ProjectedRowHeaderSize() const {
-    // Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_
-    // uint32_t)
-    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
-  }
-
-  /**
    * Populates the ProjectedRow's members but with only the header, doesn't clear space for data
    * @param head pointer to the byte buffer to populate for header
    * @return pointer to the populated ProjectedRow header
