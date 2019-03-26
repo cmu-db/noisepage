@@ -30,7 +30,7 @@ class SqlTable {
     DataTable *data_table;
     BlockLayout layout;
     ColumnMap column_map;
-    // TODO(John): Add 'inverse_column_map' and populate during create
+    InverseColumnMap inverse_column_map;
     // TODO(John): Add 'default_value_map' (dynamic) for col_oid->default_val
   };
 
