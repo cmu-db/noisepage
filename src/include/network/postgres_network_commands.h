@@ -5,12 +5,12 @@
 #include "network/network_types.h"
 #include "network/postgres_protocol_utils.h"
 
-#define DEFINE_COMMAND(name, flush)                                                      \
-  class name : public PostgresNetworkCommand {                                           \
-   public:                                                                               \
-    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}        \
-    Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, \
-                    TrafficCopPtr t_cop, NetworkCallback callback) override;                \
+#define DEFINE_COMMAND(name, flush)                                                                           \
+  class name : public PostgresNetworkCommand {                                                                \
+   public:                                                                                                    \
+    explicit name(PostgresInputPacket *in) : PostgresNetworkCommand(in, flush) {}                             \
+    Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop, \
+                    NetworkCallback callback) override;                                                       \
   }
 
 namespace terrier::network {
@@ -29,8 +29,8 @@ class PostgresNetworkCommand {
    * @param callback The callback function to trigger after
    * @return The next transition for the client's state machine
    */
-  virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                          TrafficCopPtr t_cop, NetworkCallback callback) = 0;
+  virtual Transition Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
+                          NetworkCallback callback) = 0;
 
   /**
    * @return Whether or not to flush the output network packets from this on completion
@@ -56,11 +56,10 @@ class PostgresNetworkCommand {
    */
   ReadBufferView in_;
 
-  static void AcceptResults(traffic_cop::FakeResultSet &result_set, PostgresPacketWriter *out);
+  static void AcceptResults(const traffic_cop::FakeResultSet &result_set, PostgresPacketWriter *out);
 
  private:
   bool flush_on_complete_;
-
 };
 
 // Set all to force flush for now

@@ -253,7 +253,7 @@ class PostgresPacketWriter {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
     for (auto p : config) AppendString(p.first).AppendString(p.second);
-    AppendRawValue<uchar>(0);// Startup message should have (byte+1) length
+    AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }
 
@@ -269,34 +269,31 @@ class PostgresPacketWriter {
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
-  void WriteRowDescription(std::vector<std::string> &columns)
-  {
+  void WriteRowDescription(const std::vector<std::string> &columns) {
     // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
     BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
-    for(auto &col_name : columns) {
+    for (auto &col_name : columns) {
       AppendString(col_name)
-          .AppendValue<int32_t>(0) // table oid, 0 for now
-          .AppendValue<int16_t>(0) // column oid, 0 for now
-          .AppendValue<int32_t>(25) // type oid, 25 for varchar, perhaps not unique?
-          .AppendValue<int16_t>(-1) // Variable Length
-          .AppendValue<int32_t>(-1) // pg_attribute.attrmod, generally -1
-          .AppendValue<int16_t>(0); // text=0
+          .AppendValue<int32_t>(0)   // table oid, 0 for now
+          .AppendValue<int16_t>(0)   // column oid, 0 for now
+          .AppendValue<int32_t>(25)  // type oid, 25 for varchar in Postgres
+          .AppendValue<int16_t>(-1)  // Variable Length
+          .AppendValue<int32_t>(-1)  // pg_attribute.attrmod, generally -1
+          .AppendValue<int16_t>(0);  // text=0
     }
 
     EndPacket();
   }
 
-  void WriteDataRow(std::vector<std::string> &values){
+  void WriteDataRow(const std::vector<std::string> &values) {
     BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
-    for(auto &value : values)
-    {
+    for (auto &value : values) {
       AppendValue<int32_t>(static_cast<int32_t>(value.length())).AppendString(value, false);
     }
     EndPacket();
   }
 
-  void WriteCommandComplete(const std::string &tag)
-  {
+  void WriteCommandComplete(const std::string &tag) {
     BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
   }
 

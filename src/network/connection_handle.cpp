@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <cstring>
+#include <utility>
 
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle.h"
@@ -158,11 +159,11 @@ END_DEF
 }
 
 // TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
-ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, const TrafficCopPtr &t_cop)
+ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop)
     : conn_handler_(handler),
       io_wrapper_{new PosixSocketIoWrapper(sock_fd)},
       protocol_interpreter_{new PostgresProtocolInterpreter()},
-      traffic_cop_(t_cop){}
+      traffic_cop_(std::move(t_cop)) {}
 
 Transition ConnectionHandle::GetResult() {
   EventUtil::EventAdd(network_event_, nullptr);

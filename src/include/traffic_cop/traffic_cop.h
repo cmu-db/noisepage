@@ -1,6 +1,6 @@
 #pragma once
-#include "sqlite.h"
 #include "network/postgres_protocol_utils.h"
+#include "traffic_cop/sqlite.h"
 
 namespace terrier::traffic_cop {
 
@@ -12,16 +12,12 @@ namespace terrier::traffic_cop {
  * */
 
 class TrafficCop {
-
  public:
-  void ExecuteQuery(const char *query,
-                      network::PostgresPacketWriter *out,
-                      std::function<void(FakeResultSet & , network::PostgresPacketWriter * )> &callback);
+  void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
+                    const network::SimpleQueryCallback &callback);
 
  private:
   SqliteEngine sqlite_engine;
-
 };
 
-}
-
+}  // namespace terrier::traffic_cop

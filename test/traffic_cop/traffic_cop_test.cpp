@@ -1,26 +1,24 @@
+#include "traffic_cop/traffic_cop.h"
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include "common/settings.h"
 #include "gtest/gtest.h"
-#include "util/test_harness.h"
-#include "traffic_cop/traffic_cop.h"
-#include "network/terrier_server.h"
-#include "network/connection_handle_factory.h"
 #include "loggers/main_logger.h"
+#include "network/connection_handle_factory.h"
 #include "network/network_defs.h"
-#include "network/postgres_protocol_utils.h"
 #include "network/network_io_utils.h"
+#include "network/postgres_protocol_utils.h"
+#include "network/terrier_server.h"
 #include "util/manual_packet_helpers.h"
+#include "util/test_harness.h"
 
-namespace terrier::traffic_cop{
-class TrafficCopTests : public TerrierTest
-{
+namespace terrier::traffic_cop {
+class TrafficCopTests : public TerrierTest {
  protected:
   network::TerrierServer server;
   uint16_t port = common::Settings::SERVER_PORT;
   std::thread server_thread;
 
-  void StartServer()
-  {
+  void StartServer() {
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
 
@@ -39,8 +37,7 @@ class TrafficCopTests : public TerrierTest
     network::ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
   }
 
-  void StopServer()
-  {
+  void StopServer() {
     server.Close();
     server_thread.join();
     TEST_LOG_DEBUG("Terrier has shut down");
@@ -49,9 +46,8 @@ class TrafficCopTests : public TerrierTest
   }
 };
 
-//NOLINTNEXTLINE
-TEST_F(TrafficCopTests, RoundTripTest)
-{
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, RoundTripTest) {
   StartServer();
   try {
     pqxx::connection connection(
@@ -63,13 +59,11 @@ TEST_F(TrafficCopTests, RoundTripTest)
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 
     pqxx::result R = txn1.exec("SELECT * FROM TableA");
-    for(const pqxx::row &row : R)
-    {
-      for(const auto &col : row)
-      {
-        std::cout<<col<<'\t';
+    for (const pqxx::row &row : R) {
+      for (const auto &col : row) {
+        std::cout << col << '\t';
       }
-      std::cout<<std::endl;
+      std::cout << std::endl;
     }
     txn1.commit();
   } catch (const std::exception &e) {
@@ -78,16 +72,14 @@ TEST_F(TrafficCopTests, RoundTripTest)
   }
 
   StopServer();
-
 }
 
 /*
  * This test is for debugging tests. It can be disabled when testing other components.
  * You can compare packets from terrier and from Postgres to find if you have created correct packets.
  * */
-//NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ManualRoundTripTest)
-{
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, ManualRoundTripTest) {
   StartServer();
   try {
     auto io_socket = network::StartConnection(port);
@@ -112,7 +104,6 @@ TEST_F(TrafficCopTests, ManualRoundTripTest)
   }
 
   StopServer();
-
 }
 
-} // namespace terrier
+}  // namespace terrier::traffic_cop

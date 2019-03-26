@@ -4,11 +4,14 @@
 
 #pragma once
 
-#include "network/connection_handle_factory.h"
-#include "loggers/test_logger.h"
+#include <memory>
+#include <string>
+#include <unordered_map>
 
-namespace terrier::network
-{
+#include "loggers/test_logger.h"
+#include "network/connection_handle_factory.h"
+
+namespace terrier::network {
 
 /**
  * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
@@ -55,4 +58,4 @@ std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   return io_socket;
 }
 
-}
+}  // namespace terrier::network

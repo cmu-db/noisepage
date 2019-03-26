@@ -20,14 +20,15 @@
 #include "common/macros.h"
 #include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
-#include "type/type_id.h"
 #include "traffic_cop/fake_result_set.h"
+#include "type/type_id.h"
 
 namespace terrier::traffic_cop {
-  class TrafficCop;
+class TrafficCop;
 }
 
 namespace terrier::network {
+class PostgresPacketWriter;
 
 // For epoch
 // static const size_t EPOCH_LENGTH = 40;
@@ -60,6 +61,8 @@ using ByteBuf = std::vector<uchar>;
 using NetworkCallback = std::function<void(void)>;
 
 using TrafficCopPtr = std::shared_ptr<traffic_cop::TrafficCop>;
+
+using SimpleQueryCallback = std::function<void(const traffic_cop::FakeResultSet &, network::PostgresPacketWriter *)>;
 
 enum class NetworkProtocolType {
   POSTGRES_JDBC,

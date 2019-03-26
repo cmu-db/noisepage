@@ -15,19 +15,19 @@ namespace terrier::network {
 // the code here can honestly just be deleted. This is going to be a larger
 // project though, so I want to do the architectural refactor first.
 
-void PostgresNetworkCommand::AcceptResults(traffic_cop::FakeResultSet &result_set, PostgresPacketWriter *const out) {
-  if(result_set.column_names_.empty())
-  {
+void PostgresNetworkCommand::AcceptResults(const traffic_cop::FakeResultSet &result_set,
+                                           PostgresPacketWriter *const out) {
+  if (result_set.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
     return;
   }
 
   out->WriteRowDescription(result_set.column_names_);
-  for(auto &row:result_set.rows_)
-    out->WriteDataRow(row);
+  for (auto &row : result_set.rows_) out->WriteDataRow(row);
 
   // TODO(Weichen): We need somehow to know which kind of query it is. (INSERT? DELETE? SELECT?)
-  // and the number of rows. This is needed in the tag. Now just use an empty string.
+  // and the number of rows. This is needed in the tag. Now we just use an empty string.
+
   out->WriteCommandComplete("");
 }
 
@@ -37,7 +37,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *const interpret
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute query: {0}", query.c_str());
 
-  std::function<void(traffic_cop::FakeResultSet &, PostgresPacketWriter *)> result_callback = AcceptResults;
+  SimpleQueryCallback result_callback = AcceptResults;
 
   t_cop->ExecuteQuery(query.c_str(), out, result_callback);
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);

@@ -44,7 +44,7 @@ class ConnectionHandle {
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
    */
-  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, const TrafficCopPtr &t_cop);
+  ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop);
 
   /**
    * Disable copying and moving ConnectionHandle instances
@@ -105,7 +105,7 @@ class ConnectionHandle {
    */
   Transition Process() {
     return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
-        [=] { event_active(workpool_event_, EV_WRITE, 0); });
+                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
   /**
