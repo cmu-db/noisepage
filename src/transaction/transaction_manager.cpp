@@ -153,6 +153,12 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   }
 }
 
+std::unordered_set<timestamp_t> TransactionManager::GetActiveTxns() {
+  common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
+  std::unordered_set<timestamp_t> active_txns(curr_running_txns_);
+  return active_txns;
+}
+
 timestamp_t TransactionManager::OldestTransactionStartTime() const {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());

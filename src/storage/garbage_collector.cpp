@@ -54,7 +54,6 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue() {
-  const transaction::timestamp_t oldest_txn = txn_manager_->OldestTransactionStartTime();
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
@@ -66,11 +65,18 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
   uint32_t txns_processed = 0;
   transaction::TransactionQueue requeue;
+
+  // Get active_txns in descending sorted order
+  std::unordered_set<transaction::timestamp_t> unordered_active_txns = txn_manager_->GetActiveTxns();
+  std::vector<transaction::timestamp_t> active_txns(unordered_active_txns.begin(), unordered_active_txns.end());
+  std::sort(active_txns.begin(), active_txns.end(), std::greater<transaction::timestamp_t>());
+
   // Process every transaction in the unlink queue
 
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
+    // TODO(Pulkit): Is the comment below out of sync?
     // TODO(Tianyu): It is possible to immediately deallocate read-only transactions here. However, doing so
     // complicates logic as the GC cannot delete the transaction before logging has had a chance to process it.
     // It is unlikely to be a major performance issue so I am leaving it unoptimized.
@@ -83,11 +89,12 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // to safely free the txn
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
-    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
-      // This is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
+    } else {
+      // This is a txn that may or may not be visible to any running txns. Proceed with unlinking its UndoRecords
+      // with an Interval GC approach
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
-        all_unlinked = all_unlinked && ProcessUndoRecord(txn, &undo_record);
+        all_unlinked = all_unlinked && ProcessUndoRecord(txn, &undo_record, &active_txns);
       }
       if (all_unlinked) {
         // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
@@ -99,9 +106,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
         // table pointer of an UndoRecord as the internal marker of being unlinked or not
         requeue.push_front(txn);
       }
-    } else {
-      // This is a committed txn that is still visible, requeue for next GC run
-      requeue.push_front(txn);
     }
   }
 
@@ -114,22 +118,20 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 }
 
 bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn,
-                                         UndoRecord *const undo_record) const {
+                                         UndoRecord *const undo_record,
+                                         std::vector<transaction::timestamp_t> *const active_txns) const {
   DataTable *&table = undo_record->Table();
   // if this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
   // no point in trying to reclaim slots or do any further operation if cannot safely unlink
-  if (!UnlinkUndoRecord(txn, undo_record)) return false;
-  // This is guaranteed to succeed
-  ReclaimSlotIfDeleted(undo_record);
-  ReclaimBufferIfVarlen(txn, undo_record);
-  // mark the record as fully processed
-  table = nullptr;
+  if (!UnlinkUndoRecord(txn, undo_record, active_txns)) return false;
   return true;
 }
 
+// TODO(pulkit): rename this function to UnlinkUndoRecordTuple
 bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
-                                        UndoRecord *const undo_record) const {
+                                        UndoRecord *const undo_record,
+                                        std::vector<transaction::timestamp_t> *const active_txns) const {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
                  "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
@@ -150,30 +152,83 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
     // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   }
+
+  // Perform interval gc for the entire version chain excluding the head of the chain
+  bool collected = UnlinkUndoRecordRestOfChain(txn, version_ptr->Next(), active_txns);
+
+  // Perform gc for head of the chain
+  // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
+  transaction::timestamp_t version_ptr_timestamp = version_ptr->Timestamp().load();
+  if (version_ptr_timestamp > active_txns->back()) {
+    UndoRecord *to_be_unlinked = version_ptr;
+    // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
+      UnlinkUndoRecordVersion(txn, to_be_unlinked);
+      if (version_ptr_timestamp == txn->TxnId().load()) {
+        // If I was the header, make collected true, because I was collected
+        collected = true;
+      }
+    }
+    // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+  }
+  return collected;
+}
+
+bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
+                                                   UndoRecord *const version_chain_head,
+                                                   std::vector<transaction::timestamp_t> *const active_txns) const {
+  // If no chain is passed, nothing is collected
+  if (version_chain_head == nullptr) {
+    return false;
+  }
+
+  // Otherwise collect as much as possible and return true if version belonging to txn was collected
+  // Don't collect version_chain_head though
+  bool collected = false;
+  UndoRecord *curr = version_chain_head;
+  UndoRecord *next = curr->Next();
+  auto active_txns_iter = active_txns->begin();
+
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
-  UndoRecord *curr = version_ptr;
-  UndoRecord *next;
+  while (next != nullptr && active_txns_iter != active_txns->end()) {
+    if (*active_txns_iter >= curr->Timestamp().load()) {
+      // curr is the version that *active_txns_iter would be reading
+      active_txns_iter++;
+    } else if (next->Timestamp().load() > *active_txns_iter) {
+      // Since *active_txns_iter is not reading next, that means no one is reading this
+      // And so we can reclaim next
+      if (next->Timestamp().load() == txn->TxnId().load()) {
+        // Was my undo record reclaimed?
+        collected = true;
+      }
 
-  // Traverse until we find the UndoRecord that we want to unlink
-  while (true) {
+      // Unlink next
+      curr->Next().store(next->Next().load());
+      UnlinkUndoRecordVersion(txn, next);
+
+      // Move curr pointer ahead
+      curr = curr->Next();
+    } else {
+      // curr was not claimed in the previous iteration, so possibly someone might use it
+      curr = curr->Next();
+    }
     next = curr->Next();
-    TERRIER_ASSERT(next != nullptr, "record to unlink is not found");
-    if (next->Timestamp().load() == txn->TxnId().load()) break;
-    curr = next;
   }
 
-  // We're in position with next being the UndoRecord to be unlinked, check if curr is committed to avoid contending
-  // with interleaved aborts. This is essentially applying first writer wins to the GC's logic.
-  if (transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
-    // Update the next pointer to unlink the UndoRecord
-    curr->Next().store(next->Next().load());
-    return true;
-  }
+  // TODO(pulkit): What happens if active_trans_iter ends but there are still elements in the version chain
+  // Does that mean that they have to be gc'd?
+  return collected;
+}
 
-  // We did not successfully unlink this UndoRecord (due to the curr UndoRecord that we wanted to update to unlink our
-  // target UndoRecord not yet being committed)
-  return false;
+void GarbageCollector::UnlinkUndoRecordVersion(transaction::TransactionContext *const txn,
+                                               UndoRecord *const undo_record) const {
+  DataTable *&table = undo_record->Table();
+  ReclaimSlotIfDeleted(undo_record);
+  // TODO(pulkit): This should not require a specific txn to unlink, check how to do this => important
+  ReclaimBufferIfVarlen(txn, undo_record);
+  // mark the record as fully processed
+  table = nullptr;
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
