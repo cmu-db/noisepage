@@ -186,7 +186,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
-  while (next != nullptr && active_txns_iter != active_txns->end()) {
+  while (curr != nullptr && (next = curr->Next()) != nullptr && active_txns_iter != active_txns->end()) {
     if (*active_txns_iter >= curr->Timestamp().load()) {
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
@@ -208,12 +208,11 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // curr was not claimed in the previous iteration, so possibly someone might use it
       curr = curr->Next();
     }
-    next = curr->Next();
   }
 
   // TODO(pulkit): What happens if active_trans_iter ends but there are still elements in the version chain
   // Collect them all? (This is what I am doing here)
-  while (next != nullptr) {
+  while (curr != nullptr && (next = curr->Next()) != nullptr) {
     if (next->Timestamp().load() == txn->TxnId().load()) {
       // Was my undo record reclaimed?
       collected = true;
@@ -225,7 +224,6 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
     // Move curr pointer ahead
     curr = curr->Next();
-    next = curr->Next();
   }
 
   // Does that mean that they have to be gc'd?
