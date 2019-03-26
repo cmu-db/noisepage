@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 #include "parser/delete_statement.h"
 #include "plan_node/abstract_plan_node.h"
 

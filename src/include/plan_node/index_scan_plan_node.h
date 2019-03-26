@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/hash_util.h"

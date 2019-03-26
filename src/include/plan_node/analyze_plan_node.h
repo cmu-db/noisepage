@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "parser/analyze_statement.h"
 #include "plan_node/abstract_plan_node.h"
@@ -9,9 +10,6 @@
 namespace terrier {
 namespace catalog {
 class Schema;
-}
-namespace transaction {
-class TransactionContext;
 }
 
 namespace plan_node {

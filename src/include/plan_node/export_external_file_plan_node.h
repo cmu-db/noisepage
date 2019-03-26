@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "plan_node/abstract_plan_node.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be

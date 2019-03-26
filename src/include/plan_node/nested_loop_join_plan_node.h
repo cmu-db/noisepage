@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "plan_node/abstract_join_plan_node.h"
 
 namespace terrier::plan_node {

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "catalog/schema.h"
 #include "plan_node/abstract_plan_node.h"
 

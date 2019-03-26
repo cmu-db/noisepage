@@ -19,7 +19,7 @@ common::hash_t InsertPlanNode::Hash() const {
   // Hash table_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
 
-  // TODO (Gus,Wen) hash values
+  // TODO(Gus,Wen) hash values
 
   // Hash parameter_info
   for (const auto parameter : parameter_info_) {
