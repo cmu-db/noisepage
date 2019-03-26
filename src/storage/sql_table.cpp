@@ -143,7 +143,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
 
   delete[] initial_header_buffer;
 
-  // TODO (Yashwanth) handle default values
+  // TODO(Yashwanth): handle default values
   return result;
 }
 
@@ -330,7 +330,7 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedColumnsIni
 template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitializer>(
     const ProjectedRowInitializer &initializer, layout_version_t version) const;
 
-// TODO (Yashwanth)  don't copy the entire header, no need for template only take in ColumnIds() and then just modify
+// TODO(Yashwanth): don't copy the entire header, no need for template only take in ColumnIds() and then just modify
 // that when resetting header only have memc py ColumnIds()
 template <class RowType>
 byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
@@ -350,7 +350,7 @@ byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const Data
     if (old_dt_version.column_map.count(col_oid) > 0) {
       out_buffer->ColumnIds()[i] = old_dt_version.column_map.at(col_oid);
     } else {
-      // TODO (Yashwanth) consider renaming VERSION_POINTER_COLUMN_ID, since we're using it for more than just that now
+      // TODO(Yashwanth): consider renaming VERSION_POINTER_COLUMN_ID, since we're using it for more than just that now
       out_buffer->ColumnIds()[i] = VERSION_POINTER_COLUMN_ID;
     }
   }

@@ -38,7 +38,7 @@ class SqlTable {
    * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
    */
   class SlotIterator {
-    // TODO (Yashwanth) Slot iterator currently flawed, for a scan on a certain version, it MUST begin on the latest
+    // TODO(Yashwanth): Slot iterator currently flawed, for a scan on a certain version, it MUST begin on the latest
     // version it sees
    public:
     /**
