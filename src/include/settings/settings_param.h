@@ -16,12 +16,12 @@ struct ParamInfo {
   type::Value value;
   std::string desc;
   type::Value default_value;
-  bool is_mutable, is_persistent;
+  bool is_mutable;
 
   ParamInfo(const std::string &name, const type::Value &value, const std::string &desc, const type::Value &default_value,
-        bool is_mutable, bool is_persistent)
+        bool is_mutable)
       : name(name), value(value), desc(desc), default_value(default_value),
-        is_mutable(is_mutable), is_persistent(is_persistent) {}
+        is_mutable(is_mutable) {}
 };
 
 }  // namespace terrier::settings

@@ -51,7 +51,7 @@ class SettingsManager {
                      const type::Value &default_value,
                      const type::Value &min_value,
                      const type::Value &max_value,
-                     bool is_mutable, bool is_persistent);
+                     bool is_mutable);
 
   type::Value GetValue(Param param);
   void SetValue(Param param, const type::Value &value);

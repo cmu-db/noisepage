@@ -10,20 +10,20 @@ SETTING_int(port,
 "Peloton port (default: 15721)",
 15721,
 1024, 65535,
-false, false)
+false)
 
 // Maximum number of connections
 SETTING_int(max_connections,
 "Maximum number of connections (default: 64)",
 64,
 1, 512,
-true, true)
+true)
 
 SETTING_int(rpc_port,
 "Peloton rpc port (default: 15445)",
 15445,
 1024, 65535,
-false, false)
+false)
 
 // TODO(tianyu): Remove when we change to a different rpc framework
 // This is here only because capnp cannot exit gracefully and thus causes
@@ -32,7 +32,7 @@ false, false)
 // See: https://groups.google.com/forum/#!topic/capnproto/bgxCdqGD6oE
 SETTING_bool(rpc_enabled,
 "Enable rpc, this should be turned off when testing",
-false, false, false)
+false, false)
 
 /*
 // Socket family
@@ -77,45 +77,45 @@ SETTING_double(bnlj_buffer_size,
 1.0 * 1024.0 * 1024.0,
 1.0 * 1024,
 1.0 * 1024.0 * 1024.0 * 1024,
-true, true)
+true)
 
 // Size of the MonoQueue task queue
 SETTING_int(monoqueue_task_queue_size,
 "MonoQueue Task Queue Size (default: 32)",
 32,
 8, 128,
-false, false)
+false)
 
 // Size of the MonoQueue worker pool
 SETTING_int(monoqueue_worker_pool_size,
 "MonoQueue Worker Pool Size (default: 4)",
 4,
 1, 32,
-false, false)
+false)
 
 // Number of connection threads used by peloton
 SETTING_int(connection_thread_count,
 "Number of connection threads (default: std::hardware_concurrency())",
 std::thread::hardware_concurrency(),
 1, 64,
-false, false)
+false)
 
 SETTING_int(gc_num_threads,
 "The number of Garbage collection threads to run",
 1,
 1, 128,
-true, true)
+true)
 
 SETTING_bool(parallel_execution,
 "Enable parallel execution of queries (default: true)",
 true,
-true, true)
+true)
 
 SETTING_int(min_parallel_table_scan_size,
 "Minimum number of tuples a table must have before we consider performing parallel scans (default: 10K)",
 10 * 1000,
 1, std::numeric_limits<int32_t>::max(),
-true, true)
+true)
 
 //===----------------------------------------------------------------------===//
 // WRITE AHEAD LOG
@@ -146,13 +146,13 @@ true, true)
 SETTING_bool(index_tuner,
 "Enable index tuner (default: false)",
 false,
-true, true)
+true)
 
 // Enable or disable layout tuner
 SETTING_bool(layout_tuner,
 "Enable layout tuner (default: false)",
 false,
-true, true)
+true)
 
 //===----------------------------------------------------------------------===//
 // BRAIN
@@ -162,7 +162,7 @@ true, true)
 SETTING_bool(brain,
 "Enable brain (default: false)",
 false,
-true, true)
+true)
 
 /*
 SETTING_string(peloton_address,
@@ -176,14 +176,14 @@ SETTING_int(brain_task_queue_size,
 "Brain Task Queue Size (default: 32)",
 32,
 1, 128,
-false, false)
+false)
 
 // Size of the brain worker pool
 SETTING_int(brain_worker_pool_size,
 "Brain Worker Pool Size (default: 1)",
 1,
 1, 16,
-false, false)
+false)
 
 //===----------------------------------------------------------------------===//
 // CODEGEN
@@ -192,21 +192,21 @@ false, false)
 SETTING_bool(codegen,
 "Enable code-generation for query execution (default: true)",
 true,
-true, true)
+true)
 
 SETTING_bool(codegen_interpreter,
 "Force interpretation of generated llvm code (default: false)",
-false, true, true)
+false, true)
 
 SETTING_bool(print_ir_stats,
 "Print statistics on generated IR (default: false)",
 false,
-true, true)
+true)
 
 SETTING_bool(dump_ir,
 "Enable logging of all generated IR (default: false)",
 false,
-true, true)
+true)
 
 //===----------------------------------------------------------------------===//
 // Optimizer
@@ -214,12 +214,12 @@ true, true)
 SETTING_bool(predicate_push_down,
 "Enable predicate push-down optimization (default: true)",
 true,
-true, true)
+true)
 
 SETTING_bool(hash_join_bloom_filter,
 "Enable bloom filter for hash join in codegen (default: false)",
 false,
-true, true)
+true)
 
 SETTING_int(task_execution_timeout,
 "Maximum allowed length of time (in ms) for task "
@@ -227,7 +227,7 @@ SETTING_int(task_execution_timeout,
 "assuming one plan has been found (default 5000)",
 5000,
 1000, 60000,
-true, true)
+true)
 
 //===----------------------------------------------------------------------===//
 // GENERAL
@@ -237,4 +237,4 @@ true, true)
 SETTING_bool(display_settings,
 "Display settings (default: false)",
 false,
-true, true)
+true)
