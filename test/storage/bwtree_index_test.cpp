@@ -1096,6 +1096,7 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: "johnny", rhs: "johnny" (same prefixes, same strings (> prefix))
@@ -1129,6 +1130,7 @@ TEST_F(BwTreeIndexTests, GenericKeyInlineVarlenComparisons) {
   EXPECT_FALSE(generic_eq64(key1, key2));
   EXPECT_TRUE(generic_lt64(key1, key2));
 
+  key1.SetFromProjectedRow(*pr, metadata);
   key2.SetFromProjectedRow(*pr, metadata);
 
   // lhs: NULL, rhs: NULL
