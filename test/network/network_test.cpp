@@ -94,7 +94,7 @@ TEST_F(NetworkTests, SimpleQueryTest) {
  * @param io_socket
  * @return true if reads ReadyForQuery, false for closed.
  */
-bool ReadUntilReadyOrClose(const std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
+bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   while (true) {
     Transition trans = io_socket->FillReadBuffer();
     if (trans == Transition::TERMINATE) return false;
@@ -138,7 +138,7 @@ size_t strlcpy(char *dst, const char *src, size_t siz) {
   return (s - src - 1); /* count does not include NUL */
 }
 
-std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
+std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -151,7 +151,7 @@ std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
   if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
-  auto io_socket = std::make_shared<PosixSocketIoWrapper>(socket_fd);
+  auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
   PostgresPacketWriter writer(io_socket->out_);
 
   std::unordered_map<std::string, std::string> params{
@@ -178,12 +178,12 @@ void TerminateConnection(int socket_fd) {
 TEST_F(NetworkTests, BadQueryTest) {
   try {
     TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    std::shared_ptr<PosixSocketIoWrapper> io_socket = StartConnection(port);
+    std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
     PostgresPacketWriter writer(io_socket->out_);
 
     // Build a correct query message, "SELECT A FROM B"
     std::string query = "SELECT A FROM B;";
-    writer.WriteQuery(query);
+    writer.WriteSimpleQuery(query);
     io_socket->FlushAllWrites();
     bool is_ready = ReadUntilReadyOrClose(io_socket);
     EXPECT_TRUE(is_ready);  // should be okay
@@ -219,138 +219,43 @@ TEST_F(NetworkTests, NoSSLTest) {
   }
 }
 
-/*
-// TODO(tanujnay112): Change to use a struct instead of this
 void TestExtendedQuery(uint16_t port) {
-  int socket_fd = StartConnection(port);
-  char out_buffer[TEST_BUF_SIZE] = {};
-  char in_buffer[TEST_BUF_SIZE] = {};
-  // Build a correct query message, "SELECT A FROM B"
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'P';
-  std::string query = "PREPARE fooplan (int, text, bool, numeric)\0INSERT INTO foo VALUES($1, $2, $3, $4);";
+  std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
+  io_socket->out_->Reset();
+  std::string stmtName = "preparedTest";
+  std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
 
-  strlcpy(out_buffer + sizeof(char) + sizeof(int32_t), query.c_str(), query.length());
-  size_t len = sizeof(char) + sizeof(int32_t) + sizeof(int16_t) + sizeof(int32_t) + query.length();
+  PostgresPacketWriter writer(io_socket->out_);
+  writer.WriteParseCommand(stmtName, query, {});
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  // make conversion safe
-  assert(len < UINT32_MAX);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ssize_t ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-
-  TerminateConnection(socket_fd);
-  EXPECT_GT(ret, 0);  // should be okay
-
-  socket_fd = StartConnection(port);
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'B';
   std::string dest;
   std::string source;
-  int16_t numFormatCodes = 0;
-  int32_t paramLength = 0;
-  int16_t numResultFormatCodes = 0;
+  writer.WriteBindCommand(dest, source, {}, {}, {});
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  size_t offset = sizeof(char) + sizeof(int32_t);
-
-  strlcpy(out_buffer + offset, dest.c_str(), dest.length());
-
-  offset += dest.length() + 1;
-  strlcpy(out_buffer + offset, source.c_str(), source.length());
-
-  offset += source.length() + 1;
-  reinterpret_cast<int16_t *>(out_buffer + offset)[0] = htons(numFormatCodes);
-  offset += sizeof(int16_t);
-  reinterpret_cast<int32_t *>(out_buffer + offset)[0] = htonl(paramLength);
-  offset += sizeof(int32_t);
-  reinterpret_cast<int16_t *>(out_buffer + offset)[0] = htons(numResultFormatCodes);
-  offset += sizeof(int16_t);
-
-  len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  EXPECT_GT(ret, 0);  // should be okay
-
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'E';
-  std::string portal;
-  int32_t maxRows = 0;
-
-  offset = sizeof(char) + sizeof(int32_t);
-
-  strlcpy(out_buffer + offset, portal.c_str(), portal.length());
-
-  offset += portal.length() + 1;
-  reinterpret_cast<int32_t *>(out_buffer + offset)[0] = htonl(maxRows);
-  offset += sizeof(int32_t);
-
-  len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  EXPECT_GT(ret, 0);  // should be okay
-
-  // SyncCommand
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'S';
-  offset = sizeof(char) + sizeof(int32_t);
-
-  len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  EXPECT_GT(ret, 0);
+  writer.WriteExecuteCommand(stmtName, 0);
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // DescribeCommand
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'D';
-  char option = 'S';
-  std::string prepared;
+  writer.WriteDescribeCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  offset = sizeof(char) + sizeof(int32_t);
+  // SyncCommand
+  writer.WriteSyncCommand();
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  out_buffer[offset] = option;
-  offset += sizeof(char);
-  strlcpy(out_buffer + offset, prepared.c_str(), prepared.length());
-  offset += prepared.length();
+  // CloseCommand
+  writer.WriteCloseCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  io_socket->FlushAllWrites();
+  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
-  len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  EXPECT_GT(ret, 0);
-
-  // closeCommand
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'C';
-  option = 'S';
-  prepared = "";
-
-  offset = sizeof(char) + sizeof(int32_t);
-
-  out_buffer[offset] = option;
-  offset += sizeof(char);
-  strlcpy(out_buffer + offset, prepared.c_str(), prepared.length());
-  offset += prepared.length();
-
-  len = static_cast<int32_t>(offset);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(static_cast<int32_t>(len));
-
-  // Beware the buffer length should be message length + 1 for query messages
-  write(socket_fd, out_buffer, len + 1);
-  ret = ReadUntilReadyOrClose(in_buffer, TEST_BUF_SIZE, socket_fd);
-  EXPECT_GT(ret, 0);
+  TerminateConnection(io_socket->sock_fd_);
 }
 
 // NOLINTNEXTLINE
@@ -379,6 +284,5 @@ TEST_F(NetworkTests, LargePacketsTest) {
     EXPECT_TRUE(false);
   }
 }
- */
 
 }  // namespace terrier::network

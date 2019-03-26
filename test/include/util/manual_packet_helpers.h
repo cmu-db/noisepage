@@ -18,7 +18,7 @@ namespace terrier::network {
  * @param io_socket
  * @return true if reads ReadyForQuery, false for closed.
  */
-bool ReadUntilReadyOrClose(const std::shared_ptr<PosixSocketIoWrapper> &io_socket) {
+bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   while (true) {
     Transition trans = io_socket->FillReadBuffer();
     if (trans == Transition::TERMINATE) return false;
@@ -32,7 +32,7 @@ bool ReadUntilReadyOrClose(const std::shared_ptr<PosixSocketIoWrapper> &io_socke
   }
 }
 
-std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
+std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -45,7 +45,7 @@ std::shared_ptr<PosixSocketIoWrapper> StartConnection(uint16_t port) {
   int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
   if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
-  auto io_socket = std::make_shared<PosixSocketIoWrapper>(socket_fd);
+  auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
   PostgresPacketWriter writer(io_socket->out_);
 
   std::unordered_map<std::string, std::string> params{

@@ -69,6 +69,11 @@ class TerrierServer : public DedicatedThreadOwner {
   void ServerLoop();
 
   /**
+   * @brief Gracefully shuts down this server instance
+   */
+  void ShutDown();
+
+  /**
    * Break from the server loop and exit all network handling threads.
    */
   void Close();

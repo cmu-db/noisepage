@@ -60,12 +60,16 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 
     pqxx::result R = txn1.exec("SELECT * FROM TableA");
     for (const pqxx::row &row : R) {
-      for (const auto &col : row) {
-        std::cout << col << '\t';
+      std::string row_str;
+      for (const pqxx::field &col : row) {
+        row_str += col.c_str();
+        row_str += '\t';
       }
-      std::cout << std::endl;
+      TEST_LOG_INFO(row_str);
     }
     txn1.commit();
+
+    EXPECT_EQ(R.size(), 1);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -85,17 +89,17 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     auto io_socket = network::StartConnection(port);
     network::PostgresPacketWriter writer(io_socket->out_);
 
-    writer.WriteQuery("DROP TABLE IF EXISTS TableA");
+    writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
-    writer.WriteQuery("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+    writer.WriteSimpleQuery("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
-    writer.WriteQuery("INSERT INTO TableA VALUES (1, 'abc');");
+    writer.WriteSimpleQuery("INSERT INTO TableA VALUES (1, 'abc');");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    writer.WriteQuery("SELECT * FROM TableA");
+    writer.WriteSimpleQuery("SELECT * FROM TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
   } catch (const std::exception &e) {

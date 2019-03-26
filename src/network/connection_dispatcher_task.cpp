@@ -16,16 +16,6 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(int num_handlers, int listen_
                 this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 
-  // TODO(tianyu) Figure out what this initialization logic is doing and
-  // potentially rewrite
-  // register thread to epoch manager.
-  /*if (concurrency::EpochManagerFactory::GetEpochType() ==
-      EpochType::DECENTRALIZED_EPOCH) {
-    for (size_t task_id = 0; task_id < (size_t)num_handlers; task_id++) {
-      concurrency::EpochManagerFactory::GetInstance().RegisterThread(task_id);
-    }
-  }*/
-
   // create worker threads.
   for (int task_id = 0; task_id < num_handlers; task_id++) {
     auto handler = std::make_shared<ConnectionHandlerTask>(task_id);

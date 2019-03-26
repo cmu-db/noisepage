@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/algorithm/string.hpp>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,11 +9,14 @@
 #include "network/network_defs.h"
 #include "network/network_io_utils.h"
 
-#define NULL_CONTENT_SIZE (-1)
 namespace terrier::network {
 
 // TODO(Tianyu): It looks very broken that this never changes.
 // clang-format off
+
+ /**
+  * Hardcoded server parameter values to send to the client
+  */
   const std::unordered_map<std::string, std::string>
     parameter_status_map = {
       {"application_name", "psql"},
@@ -88,7 +89,7 @@ struct PostgresInputPacket {
 };
 
 /**
- * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
+ * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
  * helper methods.
  */
 class PostgresPacketWriter {
@@ -258,9 +259,10 @@ class PostgresPacketWriter {
   }
 
   /**
-   * Writes a query message, used by clients
+   * Writes a simple query
+   * @param query string to execute
    */
-  void WriteQuery(const std::string &query) {
+  void WriteSimpleQuery(const std::string &query) {
     BeginPacket(NetworkMessageType::SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
   }
 
@@ -295,6 +297,99 @@ class PostgresPacketWriter {
 
   void WriteCommandComplete(const std::string &tag) {
     BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
+  }
+
+  /**
+   * Writes a parse message packet
+   * @param destinationStmt The name of the destination statement to parse
+   * @param query The query string to be parsed
+   * @param params Supplied parameter object types in the query
+   */
+
+  void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
+                         std::initializer_list<int32_t> params) {
+    PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
+                                       .AppendString(destinationStmt)
+                                       .AppendString(query)
+                                       .AppendValue(static_cast<int16_t>(params.size()));
+    for (auto param : params) {
+      writer.AppendValue(param);
+    }
+    writer.EndPacket();
+  }
+
+  /**
+   * Writes a Bind message packet
+   * @param destinationPortal The portal to bind to
+   * @param sourcePreparedStmt The name of the source prepared statement
+   * @param paramFormatCodes Binary values format codes describing whether or not the parameters ins paramVals are in
+   * text or binary form
+   * @param paramVals The parameter values
+   * @param resultFormatCodes The format codes to request the results to be formatted to. Same conventions as in
+   * paramFormatCodes
+   */
+  void WriteBindCommand(const std::string &destinationPortal, const std::string &sourcePreparedStmt,
+                        std::initializer_list<int16_t> paramFormatCodes,
+                        std::initializer_list<std::vector<char> *> paramVals,
+                        std::initializer_list<int16_t> resultFormatCodes) {
+    PostgresPacketWriter &writer =
+        BeginPacket(NetworkMessageType::BIND_COMMAND).AppendString(destinationPortal).AppendString(sourcePreparedStmt);
+    writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
+
+    for (auto code : paramFormatCodes) {
+      writer.AppendValue(code);
+    }
+    writer.AppendValue(static_cast<int16_t>(paramVals.size()));
+
+    for (auto paramVal : paramVals) {
+      if (paramVal == nullptr) {
+        // NULL value
+        writer.AppendValue(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      auto size = static_cast<int32_t>(paramVal->size());
+      writer.AppendValue(size);
+      writer.AppendRaw(paramVal->data(), size);
+    }
+
+    writer.AppendValue(static_cast<int16_t>(resultFormatCodes.size()));
+    for (auto code : resultFormatCodes) {
+      writer.AppendValue(code);
+    }
+    writer.EndPacket();
+  }
+
+  /**
+   * Writes an Execute message packet
+   * @param portal The name of the portal to execute
+   * @param rowLimit Maximum number of rows to return to the client
+   */
+  void WriteExecuteCommand(const std::string &portal, int32_t rowLimit) {
+    BeginPacket(NetworkMessageType::EXECUTE_COMMAND).AppendString(portal).AppendValue(rowLimit).EndPacket();
+  }
+
+  /**
+   * Writes a Sync message packet
+   */
+  void WriteSyncCommand() { BeginPacket(NetworkMessageType::SYNC_COMMAND).EndPacket(); }
+
+  /**
+   * Writes a Describe message packet
+   * @param type The type of object to describe
+   * @param objectName The name of the object to describe8
+   */
+  void WriteDescribeCommand(ExtendedQueryObjectType type, const std::string &objectName) {
+    BeginPacket(NetworkMessageType::DESCRIBE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+  }
+
+  /**
+   * Writes a Close command on an object
+   * @param type The type of object to close
+   * @param objectName The name of the object to close
+   */
+  void WriteCloseCommand(ExtendedQueryObjectType type, const std::string &objectName) {
+    BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
   /**

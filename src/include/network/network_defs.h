@@ -112,6 +112,12 @@ enum class NetworkMessageType : unsigned char {
 };
 
 //===--------------------------------------------------------------------===//
+// Describe Message Types
+//===--------------------------------------------------------------------===//
+
+enum class ExtendedQueryObjectType : unsigned char { PORTAL = 'P', PREPARED = 'S' };
+
+//===--------------------------------------------------------------------===//
 // Query Types
 //===--------------------------------------------------------------------===//
 
@@ -151,11 +157,11 @@ enum class ResultType {
   INVALID = INVALID_TYPE_ID,  // invalid result type
   SUCCESS = 1,
   FAILURE = 2,
-  ABORTED = 3,   // aborted
-  NOOP = 4,      // no op  // TODO(tanujnay112) Remove this type
-  UNKNOWN = 5,   // TODO(tanujnay112) Remove this type
-  QUEUING = 6,   // TODO(tanujnay112) Remove this type
-  TO_ABORT = 7,  // TODO(tanujnay112) Remove this type
+  ABORTED = 3,  // aborted
+  NOOP = 4,     // no op
+  UNKNOWN = 5,
+  QUEUING = 6,
+  TO_ABORT = 7,
 };
 
 enum class NetworkTransactionStateType : unsigned char {

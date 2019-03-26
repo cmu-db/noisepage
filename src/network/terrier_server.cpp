@@ -11,8 +11,6 @@
 #include "common/dedicated_thread_registry.h"
 #include "network/terrier_server.h"
 
-#include "terrier_config.h"  // NOLINT
-
 namespace terrier::network {
 
 TerrierServer::TerrierServer() {
@@ -30,7 +28,6 @@ TerrierServer::TerrierServer() {
   // When we upgrade this should be uncommented
   //  event_enable_debug_logging(EVENT_DBG_ALL);
 
-  // TODO(tanuj): review where the write failures are handled.
   // Ignore the broken pipe signal, return EPIPE on pipe write failures.
   // We don't want to exit on write when the client disconnects
   signal(SIGPIPE, SIG_IGN);
@@ -39,9 +36,6 @@ TerrierServer::TerrierServer() {
 TerrierServer &TerrierServer::SetupServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
-  /*if (settings::SettingsManager::GetString(
-          settings::SettingId::socket_family) != "AF_INET")
-    throw ConnectionException("Unsupported socket family");*/
 
   int conn_backlog = common::Settings::CONNECTION_BACKLOG;
 
@@ -65,25 +59,19 @@ TerrierServer &TerrierServer::SetupServer() {
 
   dispatcher_task_ = std::make_shared<ConnectionDispatcherTask>(CONNECTION_THREAD_COUNT, listen_fd_, this);
 
-  LOG_INFO("Listening on port {0}", port_);
+  NETWORK_LOG_INFO("Listening on port {0}", port_);
   return *this;
 }
 
 void TerrierServer::ServerLoop() {
-  /*if (settings::SettingsManager::GetBool(settings::SettingId::rpc_enabled)) {
-    int rpc_port =
-        settings::SettingsManager::GetInt(settings::SettingId::rpc_port);
-    std::string address = "127.0.0.1:" + std::to_string(rpc_port);
-    auto rpc_task = std::make_shared<PelotonRpcHandlerTask>(address.c_str());
-    DedicatedThreadRegistry::GetInstance()
-        .RegisterDedicatedThread<PelotonRpcHandlerTask>(this, rpc_task);
-  }*/
   dispatcher_task_->EventLoop();
+  ShutDown();
+}
 
+void TerrierServer::ShutDown() {
   terrier_close(listen_fd_);
-
   ConnectionHandleFactory::GetInstance().TearDown();
-  LOG_INFO("Server Closed");
+  NETWORK_LOG_INFO("Server Closed");
 }
 
 void TerrierServer::Close() {

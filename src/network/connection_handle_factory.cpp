@@ -17,9 +17,6 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   reused_handle.conn_handler_ = task;
   reused_handle.network_event_ = nullptr;
   reused_handle.workpool_event_ = nullptr;
-  // reused_handle.io_wrapper_.reset();
-  // reused_handle.io_wrapper_ =
-  // std::make_unique<PosixSocketIoWrapper>(std::move(*reused_handle.io_wrapper_.release()));
   reused_handle.io_wrapper_->Restart();
   reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>();
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();

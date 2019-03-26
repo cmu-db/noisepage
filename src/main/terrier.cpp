@@ -29,18 +29,13 @@ int main() {
     terrier::transaction::init_transaction_logger();
     terrier::parser::init_parser_logger();
     terrier::network::init_network_logger();
-
-    terrier::network::TerrierServer terrier_server;
-
-    terrier_server.SetupServer().ServerLoop();
     // Flush all *registered* loggers using a worker thread.
     // Registered loggers must be thread safe for this to work correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
   } catch (const spdlog::spdlog_ex &ex) {
-    std::cout << "debug log init failed " << ex.what() << std::endl;
+    std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
     return 1;
   }
-
   // log init now complete
   LOG_TRACE("Logger initialization complete");
 
@@ -48,6 +43,9 @@ int main() {
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
 
   LOG_INFO("Initialization complete");
+
+  terrier::network::TerrierServer terrier_server;
+  terrier_server.SetupServer().ServerLoop();
 
   // shutdown loggers
   spdlog::shutdown();
