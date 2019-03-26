@@ -115,7 +115,9 @@ void GarbageCollector::TruncateVersionChain(DataTable *table, TupleSlot slot, tr
   const TupleAccessStrategy &accessor = table->accessor_;
   UndoRecord *version_ptr;
   version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  TERRIER_ASSERT(version_ptr != nullptr, "Should not be invoked on an empty version chain");
+  // This is a legitimate case where we truncated the version chain but had to restart because the previous head
+  // was aborted.
+  if (version_ptr == nullptr) return;
 
   // We need to special case the head of the version chain because contention with running transactions can happen
   // here. Instead of a blind update we will need to CAS and prune the entire version chain if the head of the version
@@ -135,7 +137,9 @@ void GarbageCollector::TruncateVersionChain(DataTable *table, TupleSlot slot, tr
   // Traverse until we find the earliest UndoRecord that can be unlinked.
   while (true) {
     next = curr->Next();
-    TERRIER_ASSERT(next != nullptr, "There is nothing to truncate here, this function should not have been called");
+    // This is a legitimate case where we truncated the version chain but had to restart because the previous head
+    // was aborted.
+    if (next == nullptr) return;
     if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) break;
     curr = next;
   }
