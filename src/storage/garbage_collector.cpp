@@ -1,5 +1,6 @@
 #include "storage/garbage_collector.h"
 #include <utility>
+#include <unordered_set>
 #include "common/container/concurrent_queue.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
@@ -65,15 +66,17 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   }
 
   uint32_t txns_processed = 0;
+  // Certain transactions might not be yet safe to gc. Need to requeue them
   transaction::TransactionQueue requeue;
-  // Process every transaction in the unlink queue
+  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
+  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
+  // wasteful traversals of the version chain.
+  std::unordered_set<TupleSlot> slots;
 
+  // Process every transaction in the unlink queue
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    // TODO(Tianyu): It is possible to immediately deallocate read-only transactions here. However, doing so
-    // complicates logic as the GC cannot delete the transaction before logging has had a chance to process it.
-    // It is unlikely to be a major performance issue so I am leaving it unoptimized.
     if (txn->undo_buffer_.Empty()) {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
@@ -84,21 +87,18 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->TxnId().load())) {
-      // This is a committed txn that is not visible to any running txns. Proceed with unlinking its UndoRecords
-      bool all_unlinked = true;
+      // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
-        all_unlinked = all_unlinked && ProcessUndoRecord(txn, &undo_record);
+        DataTable *&table = undo_record.Table();
+        // Each version chain needs to be traversed and truncated at most once every GC period. Check
+        // if we have already visited this tuple slot; if not, proceed to prune the version chain.
+        if (slots.insert(undo_record.Slot()).second) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens.
+        ReclaimSlotIfDeleted(&undo_record);
+        ReclaimBufferIfVarlen(txn, &undo_record);
       }
-      if (all_unlinked) {
-        // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
-        txns_to_deallocate_.push_front(txn);
-        txns_processed++;
-      } else {
-        // We didn't unlink all of the UndoRecords (UnlinkUndoRecord returned false due to a write-write conflict),
-        // requeue txn for next GC run. Unlinked UndoRecords will be skipped on the next time around since we use the
-        // table pointer of an UndoRecord as the internal marker of being unlinked or not
-        requeue.push_front(txn);
-      }
+      txns_to_deallocate_.push_front(txn);
+      txns_processed++;
     } else {
       // This is a committed txn that is still visible, requeue for next GC run
       requeue.push_front(txn);
@@ -106,74 +106,47 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   }
 
   // Requeue any txns that we were still visible to running transactions
-  if (!requeue.empty()) {
-    txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
-  }
+  txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
 
   return txns_processed;
 }
 
-bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn,
-                                         UndoRecord *const undo_record) const {
-  DataTable *&table = undo_record->Table();
-  // if this UndoRecord has already been processed, we can skip it
-  if (table == nullptr) return true;
-  // no point in trying to reclaim slots or do any further operation if cannot safely unlink
-  if (!UnlinkUndoRecord(txn, undo_record)) return false;
-  // This is guaranteed to succeed
-  ReclaimSlotIfDeleted(undo_record);
-  ReclaimBufferIfVarlen(txn, undo_record);
-  // mark the record as fully processed
-  table = nullptr;
-  return true;
-}
-
-bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
-                                        UndoRecord *const undo_record) const {
-  TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
-                 "This undo_record does not belong to this txn.");
-  DataTable *table = undo_record->Table();
-  if (table == nullptr) {
-    // This UndoRecord has already been unlinked, so we can skip it
-    return true;
-  }
-  const TupleSlot slot = undo_record->Slot();
+void GarbageCollector::TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const {
   const TupleAccessStrategy &accessor = table->accessor_;
-
   UndoRecord *version_ptr;
   version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
+  TERRIER_ASSERT(version_ptr != nullptr, "Should not be invoked on an empty version chain");
 
-  if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
-    // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) return true;
-    // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
-    version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
+  // We need to special case the head of the version chain because contention with running transactions can happen
+  // here. Instead of a blind update we will need to CAS and prune the entire version chain if the head of the version
+  // chain can be GCed.
+  if (transaction::TransactionUtil::NewerThan(oldest, version_ptr->Timestamp().load())) {
+    if (!table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, nullptr))
+      // Keep retrying while there are conflicts, since we only invoke truncate once per GC period for every
+      // version chain.
+      TruncateVersionChain(table, slot, oldest);
+    return;
   }
+
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
   UndoRecord *curr = version_ptr;
   UndoRecord *next;
-
-  // Traverse until we find the UndoRecord that we want to unlink
+  // Traverse until we find the earliest UndoRecord that can be unlinked.
   while (true) {
     next = curr->Next();
-    TERRIER_ASSERT(next != nullptr, "record to unlink is not found");
-    if (next->Timestamp().load() == txn->TxnId().load()) break;
+    TERRIER_ASSERT(next != nullptr, "There is nothing to truncate here, this function should not have been called");
+    if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) break;
     curr = next;
   }
+  // The rest of the version chain must also be invisible to any running transactions since our version
+  // is newest-to-oldest sorted.
+  curr->Next().store(nullptr);
 
-  // We're in position with next being the UndoRecord to be unlinked, check if curr is committed to avoid contending
-  // with interleaved aborts. This is essentially applying first writer wins to the GC's logic.
-  if (transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
-    // Update the next pointer to unlink the UndoRecord
-    curr->Next().store(next->Next().load());
-    return true;
-  }
-
-  // We did not successfully unlink this UndoRecord (due to the curr UndoRecord that we wanted to update to unlink our
-  // target UndoRecord not yet being committed)
-  return false;
+  // If the head of the version chain was not committed, it could have been aborted and requires a retry.
+  if (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
+      table->AtomicallyReadVersionPtr(slot, accessor) != version_ptr)
+    TruncateVersionChain(table, slot, oldest);
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
