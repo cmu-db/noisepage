@@ -8,47 +8,27 @@
 #include "type/transient_value_factory.h"
 
 namespace terrier::plan_node {
-
-InsertPlanNode::InsertPlanNode(catalog::table_oid_t target_table_oid, const std::vector<std::string> &columns,
-                               std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values)
-    : target_table_oid_(target_table_oid), bulk_insert_count_(static_cast<uint32_t>(insert_values.size())) {
-  // TODO(Gus,Wen) Table Schema have been reworked, need to rewrite this part
-}
-
-bool InsertPlanNode::FindSchemaColIndex(const std::string &col_name,
-                                        const std::vector<catalog::Schema::Column> &tbl_columns, uint32_t *index) {
-  for (auto tcol = tbl_columns.begin(); tcol != tbl_columns.end(); tcol++) {
-    if (tcol->GetName() == col_name) {
-      *index = static_cast<uint32_t>(std::distance(tbl_columns.begin(), tcol));
-      return true;
-    }
-  }
-  return false;
-}  // namespace terrier::plan_node
-
-void InsertPlanNode::ProcessColumnSpec(const std::vector<std::string> &columns) {
-  // TODO(Gus,Wen) Table Schema have been reworked, need to rewrite this part
-}
-
-bool InsertPlanNode::ProcessValueExpr(parser::AbstractExpression *expr, uint32_t schema_idx) {
-  // TODO(Gus,Wen) Table Schema have been reworked, need to rewrite this part
-  return false;
-}
-
-void InsertPlanNode::SetDefaultValue(uint32_t idx) {
-  // TODO(Gus,Wen) Table Schema and default values have been reworked, need to rewrite this part
-}
-
 common::hash_t InsertPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid_));
+  // Hash target_table_oid
+  auto target_table_oid = GetTargetTableOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid));
 
-  if (GetChildren().empty()) {
-    auto bulk_insert_count = GetBulkInsertCount();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&bulk_insert_count));
+  // Hash table_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
+
+  // TODO hash values
+
+  // Hash parameter_info
+  for (const auto parameter : parameter_info_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter));
   }
+
+  // Hash bulk_insert_count
+  auto bulk_insert_count = GetBulkInsertCount();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&bulk_insert_count));
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
@@ -56,15 +36,28 @@ common::hash_t InsertPlanNode::Hash() const {
 bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &other = static_cast<const plan_node::InsertPlanNode &>(rhs);
+  auto &other = dynamic_cast<const plan_node::InsertPlanNode &>(rhs);
 
+  // Target table OID
   if (GetTargetTableOid() != other.GetTargetTableOid()) return false;
 
-  if (GetChildren().empty()) {
-    if (!other.GetChildren().empty()) return false;
+  // Table name
+  if (GetTableName() != other.GetTableName()) return false;
 
-    if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
+  // TODO(Gus,Wen) compare values
+
+  // Parameter info
+  const auto &parameter_info = GetParameterInfo();
+  const auto &other_parameter_info = other.GetParameterInfo();
+  if (parameter_info.size() != other_parameter_info.size()) return false;
+
+  for (size_t i = 0; i < parameter_info.size(); i++) {
+    if (parameter_info[i] != other_parameter_info[i]) {
+      return false;
+    }
   }
+
+  if (GetBulkInsertCount() != other.GetBulkInsertCount()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

@@ -10,7 +10,7 @@ common::hash_t SetOpPlanNode::Hash() const {
 
   // Hash set_op
   auto set_op = GetSetOp();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&set_op_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&set_op));
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }

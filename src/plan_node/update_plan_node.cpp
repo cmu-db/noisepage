@@ -14,7 +14,7 @@ common::hash_t UpdatePlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid));
 
   // Hash table_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
 
   // Hash update_primary_key
   auto is_update_primary_key = GetUpdatePrimaryKey();

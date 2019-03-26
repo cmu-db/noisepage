@@ -62,7 +62,7 @@ struct CheckInfo {
 class CreatePlanNode : public AbstractPlanNode {
  protected:
   /**
-   * Builder for an create function plan node
+   * Builder for a create plan node
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
@@ -72,7 +72,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @param create_type type of object to create
      * @return builder object
      */
-    Builder &SetTableName(CreateType create_type) {
+    Builder &SetCreateType(CreateType create_type) {
       create_type_ = create_type;
       return *this;
     }
@@ -412,6 +412,7 @@ class CreatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * Extract foreign key constraints from column definition
      * @param table_name name of the table to get foreign key constraints
      * @param col multi-column constraint definition
      * @return builder object
@@ -445,6 +446,7 @@ class CreatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * Extract unique constraints
      * @param col multi-column constraint definition
      * @return builder object
      */
@@ -459,6 +461,7 @@ class CreatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * Extract check constraints
      * @param col multi-column constraint definition
      * @return builder object
      */
@@ -614,7 +617,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return name of the database for [CREATE DATABASE]
    */
-  std::string GetDatabaseName() const { return database_name_; }
+  const std::string &GetDatabaseName() const { return database_name_; }
 
   /**
    * @return pointer to the schema for [CREATE TABLE]
@@ -639,7 +642,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return index attributes for [CREATE INDEX]
    */
-  std::vector<std::string> GetIndexAttributes() const { return index_attrs_; }
+  const std::vector<std::string> &GetIndexAttributes() const { return index_attrs_; }
 
   /**
    * @return true if index/table has primary key [CREATE INDEX/TABLE]
@@ -654,22 +657,22 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return foreign keys meta-data
    */
-  std::vector<ForeignKeyInfo> GetForeignKeys() const { return foreign_keys_; }
+  const std::vector<ForeignKeyInfo> &GetForeignKeys() const { return foreign_keys_; }
 
   /**
    * @return unique constraints
    */
-  std::vector<UniqueInfo> GetUniques() const { return con_uniques_; }
+  const std::vector<UniqueInfo> &GetUniques() const { return con_uniques_; }
 
   /**
    * @return check constraints
    */
-  std::vector<CheckInfo> GetChecks() const { return con_checks_; }
+  const std::vector<CheckInfo> &GetChecks() const { return con_checks_; }
 
   /**
    * @return name of key attributes
    */
-  std::vector<std::string> GetKeyAttrs() const { return key_attrs_; }
+  const std::vector<std::string> &GetKeyAttrs() const { return key_attrs_; }
 
   /**
    * @return trigger name for [CREATE TRIGGER]
@@ -711,25 +714,13 @@ class CreatePlanNode : public AbstractPlanNode {
    */
   std::shared_ptr<parser::SelectStatement> GetViewQuery() { return view_query_; }
 
- protected:
   /**
-   * Extract foreign key constraints from column definition
-   * @param table_name table to be created
-   * @param col column definitions
+   * @return the hashed value of this plan node
    */
-  void ProcessForeignKeyConstraint(const std::string &table_name, const std::shared_ptr<parser::ColumnDefinition> &col);
+  common::hash_t Hash() const override;
 
-  /**
-   * Extract unique constraints
-   * @param col column definition
-   */
-  void ProcessUniqueConstraint(const std::shared_ptr<parser::ColumnDefinition> &col);
-
-  /**
-   * Extract check constraints
-   * @param col column definition
-   */
-  void ProcessCheckConstraint(const std::shared_ptr<parser::ColumnDefinition> &col);
+  bool operator==(const AbstractPlanNode &rhs) const override;
+  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   // Type of object to create

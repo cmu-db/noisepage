@@ -14,7 +14,7 @@ namespace plan_node {
 class DeletePlanNode : public AbstractPlanNode {
  protected:
   /**
-   * Builder for an delete plan node
+   * Builder for a delete plan node
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
