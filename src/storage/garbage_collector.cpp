@@ -67,8 +67,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   transaction::TransactionQueue requeue;
 
   // Get active_txns in descending sorted order
-  std::unordered_set<transaction::timestamp_t> unordered_active_txns = txn_manager_->GetActiveTxns();
-  std::vector<transaction::timestamp_t> active_txns(unordered_active_txns.begin(), unordered_active_txns.end());
+  std::vector<transaction::timestamp_t> active_txns = txn_manager_->GetActiveTxns();;
   std::sort(active_txns.begin(), active_txns.end(), std::greater<transaction::timestamp_t>());
 
   // Process every transaction in the unlink queue
@@ -146,20 +145,16 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
-  if (version_ptr->Timestamp().load() == txn->TxnId().load()) {
-    // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) return true;
-    // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
-    version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  }
-
   // Perform interval gc for the entire version chain excluding the head of the chain
   bool collected = UnlinkUndoRecordRestOfChain(txn, version_ptr->Next(), active_txns);
 
   // Perform gc for head of the chain
   // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
   transaction::timestamp_t version_ptr_timestamp = version_ptr->Timestamp().load();
-  if (version_ptr_timestamp > active_txns->back()) {
+  // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
+  // Collect the head of the chain using compare and swap
+  // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
+  if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
     UndoRecord *to_be_unlinked = version_ptr;
     // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
     if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
@@ -217,6 +212,22 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   }
 
   // TODO(pulkit): What happens if active_trans_iter ends but there are still elements in the version chain
+  // Collect them all? (This is what I am doing here)
+  while (next != nullptr) {
+    if (next->Timestamp().load() == txn->TxnId().load()) {
+      // Was my undo record reclaimed?
+      collected = true;
+    }
+
+    // Unlink next
+    curr->Next().store(next->Next().load());
+    UnlinkUndoRecordVersion(txn, next);
+
+    // Move curr pointer ahead
+    curr = curr->Next();
+    next = curr->Next();
+  }
+
   // Does that mean that they have to be gc'd?
   return collected;
 }

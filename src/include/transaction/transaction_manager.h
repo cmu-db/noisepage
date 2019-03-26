@@ -54,7 +54,7 @@ class TransactionManager {
   /**
    * @return unordered_set of all active txns
    */
-  std::unordered_set<timestamp_t> GetActiveTxns();
+  std::vector<timestamp_t> GetActiveTxns();
 
   /**
    * Get the oldest transaction alive in the system at this time. Because of concurrent operations, it

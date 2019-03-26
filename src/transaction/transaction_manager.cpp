@@ -153,9 +153,9 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   }
 }
 
-std::unordered_set<timestamp_t> TransactionManager::GetActiveTxns() {
+std::vector<timestamp_t> TransactionManager::GetActiveTxns() {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-  std::unordered_set<timestamp_t> active_txns(curr_running_txns_);
+  std::vector<timestamp_t> active_txns(curr_running_txns_.begin(), curr_running_txns_.end());
   return active_txns;
 }
 

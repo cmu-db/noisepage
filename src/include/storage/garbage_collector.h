@@ -78,15 +78,15 @@ class GarbageCollector {
    * @param active_txns vector containing all active transactions
    * @return true if an UndoRecord created by txn was unlinked
    */
-  bool UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn, UndoRecord *const version_chain_head,
-                                   std::vector<transaction::timestamp_t> *const active_txns) const;
+  bool UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
+                                   std::vector<transaction::timestamp_t> *active_txns) const;
 
   /**
    * Straight up unlink the undo_record and reclaim its space
    * @param txn
    * @param undo_record
    */
-  void UnlinkUndoRecordVersion(transaction::TransactionContext *const txn, UndoRecord *const undo_record) const;
+  void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
