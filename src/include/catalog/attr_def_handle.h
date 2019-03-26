@@ -13,6 +13,7 @@
 namespace terrier::catalog {
 
 class Catalog;
+struct SchemaCol;
 
 /**
  * AttrDef (attribute default) contains the default value for attributes

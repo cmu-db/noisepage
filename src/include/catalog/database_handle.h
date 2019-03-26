@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/attr_def_handle.h"
 #include "catalog/attribute_handle.h"
 #include "catalog/catalog.h"
 #include "catalog/class_handle.h"
@@ -17,6 +18,7 @@ namespace terrier::catalog {
 
 class Catalog;
 class AttributeHandle;
+class AttrDefHandle;
 class NamespaceHandle;
 class TypeHandle;
 struct SchemaCol;
@@ -106,6 +108,12 @@ class DatabaseHandle {
    * @return an attribute handle
    */
   AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
+   * Get a attribute handle for the database.
+   * @return an attribute handle
+   */
+  AttrDefHandle GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a

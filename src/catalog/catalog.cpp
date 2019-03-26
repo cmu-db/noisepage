@@ -51,8 +51,8 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *d
   name_map_.erase(oid);
 }
 
-void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                          const Schema &schema) {
+table_oid_t Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                                 const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 
@@ -65,13 +65,78 @@ void Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid,
 
   // enter attribute information
   AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
+  return tbl_rw->Oid();
 }
 
 void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid) {
   auto db_handle = GetDatabaseHandle();
-  // remove entries from pg_attribute
+
+  // remove entries from pg_attribute, if attrelid == table_oid
+  auto attr_handle = db_handle.GetAttributeHandle(txn, db_oid);
+  auto attr_table = GetDatabaseCatalog(db_oid, "pg_attribute");
+  int32_t col_index = attr_table->ColNameToIndex("attrelid");
+  auto it = attr_table->begin(txn);
+  while (it != attr_table->end(txn)) {
+    auto layout = attr_table->GetLayout();
+    storage::ProjectedColumns::RowView row_view = it->InterpretAsRow(layout, 0);
+    // check if a matching row, delete if it is
+    byte *col_p = row_view.AccessWithNullCheck(attr_table->ColNumToOffset(col_index));
+    if (col_p == nullptr) {
+      continue;
+    }
+    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
+    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
+      // delete the entry
+      attr_table->GetSqlTable()->Delete(txn, *(it->TupleSlots()));
+    }
+    ++it;
+  }
+
   // remove entries from pg_attrdef
-  // remove entry from pg_class
+  // adrelid == table oid (i.e. pg_class.oid).
+  auto attrdef_handle = db_handle.GetAttrDefHandle(txn, db_oid);
+  auto attrdef_table = GetDatabaseCatalog(db_oid, "pg_attrdef");
+  col_index = attrdef_table->ColNameToIndex("adrelid");
+  auto attrdef_it = attrdef_table->begin(txn);
+  while (attrdef_it != attrdef_table->end(txn)) {
+    auto layout = attrdef_table->GetLayout();
+    storage::ProjectedColumns::RowView row_view = attrdef_it->InterpretAsRow(layout, 0);
+    // check if a matching row, delete if it is
+    byte *col_p = row_view.AccessWithNullCheck(attrdef_table->ColNumToOffset(col_index));
+    if (col_p == nullptr) {
+      continue;
+    }
+    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
+    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
+      // delete the entry
+      attrdef_table->GetSqlTable()->Delete(txn, *(attrdef_it->TupleSlots()));
+    }
+    ++attrdef_it;
+  }
+
+  // remove entries from pg_class
+  // oid is col 0
+  auto class_handle = db_handle.GetClassHandle(txn, db_oid);
+  auto class_table = GetDatabaseCatalog(db_oid, "pg_class");
+  col_index = class_table->ColNameToIndex("oid");
+  auto class_it = class_table->begin(txn);
+  while (class_it != class_table->end(txn)) {
+    auto layout = class_table->GetLayout();
+    storage::ProjectedColumns::RowView row_view = class_it->InterpretAsRow(layout, 0);
+    // check if a matching row, delete if it is
+    byte *col_p = row_view.AccessWithNullCheck(class_table->ColNumToOffset(col_index));
+    if (col_p == nullptr) {
+      continue;
+    }
+    auto col_int_value = *(reinterpret_cast<int32_t *>(col_p));
+    if (static_cast<uint32_t>(col_int_value) == !table_oid) {
+      // delete the entry
+      class_table->GetSqlTable()->Delete(txn, *(class_it->TupleSlots()));
+      // there is just the one, stop
+      break;
+    }
+    ++class_it;
+  }
 
   // TODO(pakhtar): drop table
 }

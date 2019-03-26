@@ -84,8 +84,8 @@ class Catalog {
    * @param table_name table name
    * @param schema schema to use
    */
-  void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                   const Schema &schema);
+  table_oid_t CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                          const Schema &schema);
 
   /**
    * Delete a table

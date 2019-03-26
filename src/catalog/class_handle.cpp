@@ -59,6 +59,20 @@ std::shared_ptr<catalog::SqlTableRW> ClassHandle::Create(transaction::Transactio
   return pg_class;
 }
 
+bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry) {
+  std::vector<type::Value> search_vec;
+  // get the oid of this row
+  search_vec.emplace_back(entry->GetColumn(0));
+
+  // lookup and get back the projected column. Recover the tuple_slot
+  auto proj_col_p = pg_class_rw_->FindRowProjCol(txn, search_vec);
+  auto tuple_slot_p = proj_col_p->TupleSlots();
+  // delete
+  bool status = pg_class_rw_->GetSqlTable()->Delete(txn, *tuple_slot_p);
+  delete[] reinterpret_cast<byte *>(proj_col_p);
+  return status;
+}
+
 // Postgres has additional columns interspersed within these.
 const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, "__ptr", type::TypeId::BIGINT},
                                                           {1, "oid", type::TypeId::INTEGER},

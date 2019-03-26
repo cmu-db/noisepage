@@ -93,6 +93,12 @@ class ClassHandle {
                                                      db_oid_t db_oid, const std::string &name);
 
   /**
+   * Delete an entry in ClassHandle
+   * @return true on success
+   */
+  bool DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry);
+
+  /**
    * Debug methods
    */
   void Dump(transaction::TransactionContext *txn) { pg_class_rw_->Dump(txn); }

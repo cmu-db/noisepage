@@ -53,7 +53,10 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
-  catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
+  auto tbl_oid = catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
+  catalog_->Dump(txn_, terrier_oid);
+
+  catalog_->DeleteTable(txn_, terrier_oid, tbl_oid);
   catalog_->Dump(txn_, terrier_oid);
 }
 
