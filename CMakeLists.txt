@@ -158,8 +158,6 @@ endif ()
 # data directory for SSL
 set(DATA_DIR "${PROJECT_SOURCE_DIR}/data")
 
-# ---[ Config generation
-#configure_file(cmake/Templates/terrier_config.h.in "${PROJECT_BINARY_DIR}/terrier_config.h")
 
 ############################################################
 # Compiler flags
