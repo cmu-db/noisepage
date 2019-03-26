@@ -155,16 +155,18 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   // Collect the head of the chain using compare and swap
   // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
   if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
-    UndoRecord *to_be_unlinked = version_ptr;
-    // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-    if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
-      UnlinkUndoRecordVersion(txn, to_be_unlinked);
-      if (version_ptr_timestamp == txn->TxnId().load()) {
-        // If I was the header, make collected true, because I was collected
-        collected = true;
+    if (transaction::TransactionUtil::Committed(version_ptr->Timestamp().load())) {
+      UndoRecord *to_be_unlinked = version_ptr;
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+      if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
+        UnlinkUndoRecordVersion(txn, to_be_unlinked);
+        if (version_ptr_timestamp == txn->TxnId().load()) {
+          // If I was the header, make collected true, because I was collected
+          collected = true;
+        }
       }
+      // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     }
-    // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
   }
   return collected;
 }
@@ -191,17 +193,18 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
     } else if (next->Timestamp().load() > *active_txns_iter) {
-      // Since *active_txns_iter is not reading next, that means no one is reading this
-      // And so we can reclaim next
-      if (next->Timestamp().load() == txn->TxnId().load()) {
-        // Was my undo record reclaimed?
-        collected = true;
+      if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
+        // Since *active_txns_iter is not reading next, that means no one is reading this
+        // And so we can reclaim next
+        if (next->Timestamp().load() == txn->TxnId().load()) {
+          // Was my undo record reclaimed?
+          collected = true;
+        }
+
+        // Unlink next
+        curr->Next().store(next->Next().load());
+        UnlinkUndoRecordVersion(txn, next);
       }
-
-      // Unlink next
-      curr->Next().store(next->Next().load());
-      UnlinkUndoRecordVersion(txn, next);
-
       // Move curr pointer ahead
       curr = curr->Next();
     } else {
