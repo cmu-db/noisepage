@@ -37,6 +37,16 @@ class TableHandle {
  public:
   /**
    * A table entry represent a row in pg_tables catalog.
+   *
+   * A row in pg_tables needs information from pg_class, pg_namespace, pg_tablespace
+   *    1) it needs schemaname from pg_namespace
+   *    2) it needs tablename from pg_class
+   *    3) it needs tablespace from pg_tablespace
+   *
+   * The class uses a vector of size 3 to stores 3 rows in these three tables.
+   *    rows_[0] stores a row in pg_namespace which contains namespace information for this TableEntry
+   *    rows_[1] stores a row in pg_class which contains table information for this TableEntry
+   *    rows_[2] stores a row in pg_tablespace which contains table information for this TableEntry
    */
   class TableEntry {
    public:
