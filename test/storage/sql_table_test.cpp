@@ -561,7 +561,7 @@ TEST_F(SqlTableTests, ScanTest) {
   EXPECT_EQ(datname, 10001);
 
   pc = pc_pair.first.Initialize(buffer);
-  //Need to scan again to get the rest of the data
+  // Need to scan again to get the rest of the data
   table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
   // check the if we get (400, 10003, 42)
   auto row4 = pc->InterpretAsRow(*table.GetLayout(), 1);

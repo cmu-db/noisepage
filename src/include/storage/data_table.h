@@ -208,6 +208,9 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
+  /**
+   * The tuple access strategy to access inside blocks in this datatable
+   */
   const TupleAccessStrategy accessor_;
 
  private:
