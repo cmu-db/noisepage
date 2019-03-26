@@ -5,7 +5,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "../../../../../../../../usr/local/Cellar/llvm@6/6.0.1/include/c++/v1/algorithm"
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
