@@ -34,6 +34,92 @@ class SqlTableRW {
     delete col_initer_;
   }
 
+  class RowIterator;
+  RowIterator begin(transaction::TransactionContext *txn) {
+    // initialize all the internal state of the iterator, via constructor
+    // return the first row pointer (if there is one)
+    return RowIterator(txn, this, true);
+  }
+
+  RowIterator end(transaction::TransactionContext *txn) { return RowIterator(txn, this, false); }
+
+  class RowIterator {
+   public:
+    // return values
+    storage::ProjectedColumns &operator*() { return *proj_col_bufp; }
+    storage::ProjectedColumns *operator->() { return proj_col_bufp; }
+
+    // pre-fix increment only.
+    RowIterator &operator++() {
+      if (dtsi_ == tblrw_->GetSqlTable()->end()) {
+        // no more tuples. Return end()
+        proj_col_bufp = nullptr;
+        return *this;
+      }
+      while (dtsi_ != tblrw_->GetSqlTable()->end()) {
+        tblrw_->GetSqlTable()->Scan(txn_, &dtsi_, proj_col_bufp);
+        if (proj_col_bufp->NumTuples() != 0) {
+          break;
+        }
+      }
+      if ((dtsi_ == tblrw_->GetSqlTable()->end()) && (proj_col_bufp->NumTuples() == 0)) {
+        // no more tuples
+        proj_col_bufp = nullptr;
+        return *this;
+      }
+      auto layout = tblrw_->GetLayoutP();
+      storage::ProjectedColumns::RowView row_view = proj_col_bufp->InterpretAsRow(*layout, 0);
+      auto ret_vec = tblrw_->ColToValueVec(row_view);
+      return *this;
+    }
+
+    bool operator==(const RowIterator &other) const { return proj_col_bufp == other.proj_col_bufp; }
+
+    bool operator!=(const RowIterator &other) const { return !this->operator==(other); }
+
+    RowIterator(transaction::TransactionContext *txn, SqlTableRW *tblrw, bool begin)
+        : txn_(txn), tblrw_(tblrw), buffer_(nullptr), dtsi_(tblrw->GetSqlTable()->begin()), layout_(nullptr) {
+      if (!begin) {
+        // constructing end
+        proj_col_bufp = nullptr;
+        return;
+      }
+      layout_ = tblrw_->GetLayoutP();
+      all_cols = StorageTestUtil::ProjectionListAllColumns(*layout_);
+      auto col_initer = new storage::ProjectedColumnsInitializer(*layout_, all_cols, 1);
+      buffer_ = common::AllocationUtil::AllocateAligned(col_initer->ProjectedColumnsSize());
+      proj_col_bufp = col_initer->Initialize(buffer_);
+
+      while (dtsi_ != tblrw_->GetSqlTable()->end()) {
+        tblrw_->GetSqlTable()->Scan(txn, &dtsi_, proj_col_bufp);
+        if (proj_col_bufp->NumTuples() == 0) {
+          continue;
+        }
+        break;
+      }
+      if (dtsi_ == tblrw_->GetSqlTable()->end()) {
+        proj_col_bufp = nullptr;
+      }
+
+      delete col_initer;
+      all_cols.clear();
+    }
+
+    ~RowIterator() { delete[] buffer_; }
+
+   private:
+    transaction::TransactionContext *txn_;
+    SqlTableRW *tblrw_;
+    std::vector<storage::col_id_t> all_cols;
+
+    byte *buffer_;
+    storage::ProjectedColumns *proj_col_bufp;
+
+    storage::DataTable::SlotIterator dtsi_;
+    // the storage table's cached layout
+    const storage::BlockLayout *layout_;
+  };
+
   /**
    * Append a column definition to the internal list. The list will be
    * used when creating the SqlTable.
@@ -126,6 +212,22 @@ class SqlTableRW {
    * @return col_oid of the column
    */
   catalog::col_oid_t ColNumToOid(int32_t col_num) { return col_oids_[col_num]; }
+
+  /*
+   * Return the index of column with name
+   * @param name column desired
+   * @return index of the column
+   */
+  int32_t ColNameToIndex(const std::string &name) {
+    int32_t index = 0;
+    for (auto &c : cols_) {
+      if (c.GetName() == name) {
+        return index;
+      }
+      index++;
+    }
+    throw CATALOG_EXCEPTION("ColNameToIndex: Column name doesn't exist");
+  }
 
   /**
    * Return the number of rows in the table.
@@ -309,6 +411,17 @@ class SqlTableRW {
           storage::StorageUtil::BlockLayoutFromSchema(*schema_));
     }
     return layout_and_map_->first;
+  }
+
+  /**
+   * Get ptr to the layout of the SQL table.
+   */
+  const storage::BlockLayout *GetLayoutP() {
+    if (layout_and_map_ == nullptr) {
+      layout_and_map_ = new std::pair<storage::BlockLayout, storage::ColumnMap>(
+          storage::StorageUtil::BlockLayoutFromSchema(*schema_));
+    }
+    return &layout_and_map_->first;
   }
 
   /**
