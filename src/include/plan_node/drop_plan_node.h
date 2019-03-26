@@ -7,9 +7,6 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier {
-namespace storage {
-class SqlTable;
-}
 namespace catalog {
 class Schema;
 }
@@ -41,7 +38,7 @@ class DropPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTableName(std::string table_name) {
-      table_name_ = table_name;
+      table_name_ = std::move(table_name);
       return *this;
     }
 
@@ -50,7 +47,7 @@ class DropPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetDatabaseName(std::string database_name) {
-      database_name_ = database_name;
+      database_name_ = std::move(database_name);
       return *this;
     }
 
@@ -59,7 +56,7 @@ class DropPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetSchemaName(std::string schema_name) {
-      schema_name_ = schema_name;
+      schema_name_ = std::move(schema_name);
       return *this;
     }
 

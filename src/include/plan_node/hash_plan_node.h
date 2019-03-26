@@ -33,7 +33,7 @@ class HashPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddHashKey(HashKeyPtrType key) {
-      hash_keys_.push_back(key);
+      hash_keys_.emplace_back(key);
       return *this;
     }
 

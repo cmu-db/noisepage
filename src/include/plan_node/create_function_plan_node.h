@@ -160,7 +160,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
         function_param_types_(std::move(function_param_types)),
         function_body_(std::move(function_body)),
         is_replace_(is_replace),
-        function_name_(function_name),
+        function_name_(std::move(function_name)),
         return_type_(return_type),
         param_count_(param_count) {}
 

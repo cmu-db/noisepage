@@ -29,7 +29,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * @param file_name file path for external file file
      * @return builder object
      */
-    Builder &SetFileName(std::string &file_name) {
+    Builder &SetFileName(std::string file_name) {
       file_name_ = std::move(file_name);
       return *this;
     }

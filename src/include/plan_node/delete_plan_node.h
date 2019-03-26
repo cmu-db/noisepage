@@ -101,7 +101,7 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @return the names of the target table
    */
-  std::string GetTableName() const { return table_name_; }
+  const std::string &GetTableName() const { return table_name_; }
 
   /**
    * @return the expression of delete condition

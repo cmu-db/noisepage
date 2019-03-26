@@ -20,6 +20,9 @@ bool CreatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const CreatePlanNode &>(rhs);
 
+  // Create type
+  if (GetCreateType() != other.GetCreateType()) return false;
+
   return AbstractPlanNode::operator==(rhs);
 }
 }  // namespace terrier::plan_node

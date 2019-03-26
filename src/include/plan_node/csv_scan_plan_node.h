@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include "../../../../../../../../usr/local/Cellar/llvm@6/6.0.1/include/c++/v1/algorithm"
 #include "abstract_scan_plan_node.h"
 #include "plan_node/abstract_scan_plan_node.h"
 #include "plan_node/output_schema.h"
@@ -22,7 +21,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @param file_name file path for CSV file
      * @return builder object
      */
-    Builder &SetFileName(std::string &file_name) {
+    Builder &SetFileName(std::string file_name) {
       file_name_ = std::move(file_name);
       return *this;
     }
@@ -58,7 +57,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @param null_string null string for CSV
      * @return builder object
      */
-    Builder &SetNullString(std::string &null_string) {
+    Builder &SetNullString(std::string null_string) {
       null_string_ = std::move(null_string);
       return *this;
     }

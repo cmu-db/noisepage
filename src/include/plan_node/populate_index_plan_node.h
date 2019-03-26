@@ -79,7 +79,7 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
                         std::vector<catalog::col_oid_t> &&column_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
                          target_table_oid_(target_table_oid), table_name_(std::move(table_name)),
-                         column_oids_(std::move(column_oids))) {}
+                         column_oids_(std::move(column_oids)) {}
 
  public:
   /**
@@ -100,7 +100,7 @@ class PopulateIndexPlanNode : public AbstractPlanNode {
   /**
    * @return the target table name
    */
-  std::string GetTableName() const { return table_name_; }
+  const std::string &GetTableName() const { return table_name_; }
 
   /**
    * @return the hashed value of this plan node

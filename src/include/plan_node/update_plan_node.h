@@ -48,7 +48,7 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetUpdatePrimaryKey(bool update_primary_key) {
-      update_primary_key_ = std::move(update_primary_key);
+      update_primary_key_ = update_primary_key;
       return *this;
     }
 
@@ -59,7 +59,7 @@ class UpdatePlanNode : public AbstractPlanNode {
     std::shared_ptr<UpdatePlanNode> Build() {
       return std::shared_ptr<UpdatePlanNode>(
           new UpdatePlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, target_table_oid_,
-                             std::move(table_name_), std::move(update_primary_key_)));
+                             std::move(table_name_), update_primary_key_));
     }
 
    protected:
@@ -78,7 +78,7 @@ class UpdatePlanNode : public AbstractPlanNode {
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  uint32_t estimated_cardinality, catalog::table_oid_t target_table_oid, std::string table_name,
-                 bool has_primary_key)
+                 bool update_primary_key)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         target_table_oid_(target_table_oid),
         table_name_(std::move(table_name)),
@@ -95,7 +95,7 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @return the name of the target table
    */
-  std::string GetTableName() const { return table_name_; }
+  const std::string &GetTableName() const { return table_name_; }
 
   /**
    * @return whether to update primary key

@@ -39,9 +39,9 @@ class ResultPlanNode : public AbstractPlanNode {
      * Build the setop plan node
      * @return plan node
      */
-    std::shared_ptr<SetOpPlanNode> Build() {
-      return std::shared_ptr<SetOpPlanNode>(
-          new SetOpPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, tuple_));
+    std::shared_ptr<ResultPlanNode> Build() {
+      return std::shared_ptr<ResultPlanNode>(
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, std::move(tuple_)));
     }
 
    protected:
@@ -55,8 +55,8 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, std::shared_ptr<Tuple> tuple_)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality), set_op_(set_op) {}
+                 uint32_t estimated_cardinality, std::shared_ptr<Tuple> tuple)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality), tuple_(std::move(tuple)) {}
 
  public:
   /**
@@ -68,6 +68,14 @@ class ResultPlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
+
+  /**
+   * @return the hashed value of this plan node
+   */
+  common::hash_t Hash() const override;
+
+  bool operator==(const AbstractPlanNode &rhs) const override;
+  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   // the tuple in the storage layer

@@ -82,7 +82,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTableName(std::string table_name) {
-      table_name_ = table_name;
+      table_name_ = std::move(table_name);
       return *this;
     }
 
@@ -91,7 +91,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetSchemaName(std::string schema_name) {
-      schema_name_ = schema_name;
+      schema_name_ = std::move(schema_name);
       return *this;
     }
 
@@ -100,7 +100,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetDatabaseName(std::string database_name) {
-      database_name_ = database_name;
+      database_name_ = std::move(database_name);
       return *this;
     }
 
@@ -109,7 +109,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTableSchema(std::shared_ptr<catalog::Schema> table_schema) {
-      table_schema_ = table_schema;
+      table_schema_ = std::move(table_schema);
       return *this;
     }
 
@@ -118,7 +118,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetIndexName(std::string index_name) {
-      index_name_ = index_name;
+      index_name_ = std::move(index_name);
       return *this;
     }
 
@@ -199,7 +199,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTriggerName(std::string trigger_name) {
-      trigger_name_ = trigger_name;
+      trigger_name_ = std::move(trigger_name);
       return *this;
     }
 
@@ -208,7 +208,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTriggerFuncnames(std::vector<std::string> &&trigger_funcnames) {
-      trigger_funcnames_ = trigger_funcnames;
+      trigger_funcnames_ = std::move(trigger_funcnames);
       return *this;
     }
 
@@ -226,7 +226,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTriggerColumns(std::vector<std::string> &&trigger_columns) {
-      trigger_columns_ = trigger_columns;
+      trigger_columns_ = std::move(trigger_columns);
       return *this;
     }
 
@@ -235,7 +235,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetTriggerWhen(std::shared_ptr<parser::AbstractExpression> trigger_when) {
-      trigger_when_ = trigger_when;
+      trigger_when_ = std::move(trigger_when);
       return *this;
     }
 
@@ -262,7 +262,7 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetViewQuery(std::shared_ptr<parser::SelectStatement> view_query) {
-      view_query_ = view_query;
+      view_query_ = std::move(view_query);
       return *this;
     }
 
@@ -604,15 +604,15 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return name of the index for [CREATE INDEX]
    */
-  std::string GetIndexName() const { return index_name_; }
+  const std::string &GetIndexName() const { return index_name_; }
   /**
    * @return name of the table for [CREATE TABLE]
    */
-  std::string GetTableName() const { return table_name_; }
+  const std::string &GetTableName() const { return table_name_; }
   /**
    * @return name of the schema for [CREATE SCHEMA]
    */
-  std::string GetSchemaName() const { return schema_name_; }
+  const std::string &GetSchemaName() const { return schema_name_; }
 
   /**
    * @return name of the database for [CREATE DATABASE]
@@ -622,7 +622,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to the schema for [CREATE TABLE]
    */
-  std::shared_ptr<catalog::Schema> GetSchema() const { return table_schema_; }
+  const catalog::Schema *GetSchema() const { return table_schema_.get(); }
 
   /**
    * @return type of object to be created

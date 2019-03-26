@@ -16,7 +16,7 @@ common::hash_t ResultPlanNode::Hash() const {
 bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
+  // auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
 
   // TODO(Gus,Wen) compare tuple
 
