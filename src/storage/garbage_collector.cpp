@@ -146,7 +146,7 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
   // Perform interval gc for the entire version chain excluding the head of the chain
-  bool collected = UnlinkUndoRecordRestOfChain(txn, version_ptr->Next(), active_txns);
+  bool collected = UnlinkUndoRecordRestOfChain(txn, version_ptr, active_txns);
 
   // Perform gc for head of the chain
   // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
@@ -193,6 +193,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
     } else if (next->Timestamp().load() > *active_txns_iter) {
+      // Collect next only if it was committed, this prevents collection of partial rollback versions
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
@@ -204,9 +205,10 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         // Unlink next
         curr->Next().store(next->Next().load());
         UnlinkUndoRecordVersion(txn, next);
+      } else {
+        // If next wasn't committed, don't collect it
+        curr = curr->Next();
       }
-      // Move curr pointer ahead
-      curr = curr->Next();
     } else {
       // curr was not claimed in the previous iteration, so possibly someone might use it
       curr = curr->Next();
