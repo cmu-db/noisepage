@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 #include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "plan_node/abstract_plan_node.h"

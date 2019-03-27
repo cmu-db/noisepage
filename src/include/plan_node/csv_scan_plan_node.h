@@ -4,9 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "abstract_scan_plan_node.h"
 #include "plan_node/abstract_scan_plan_node.h"
-#include "plan_node/output_schema.h"
 
 namespace terrier::plan_node {
 class CSVScanPlanNode : public AbstractScanPlanNode {
