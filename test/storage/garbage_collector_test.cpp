@@ -743,7 +743,7 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
         tested.table_.Update(txn4, slot, *update);
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
 
-        EXPECT_EQ(std::make_pair(0u, 3u), gc.PerformGarbageCollection());
+        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
     }
@@ -794,7 +794,7 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
         update = tested.GenerateRandomUpdate(&generator_);
         tested.table_.Update(txn7, slot, *update);
         txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
-        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
+        EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
         EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
@@ -848,7 +848,7 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
         update = tested.GenerateRandomUpdate(&generator_);
         tested.table_.Update(txn7, slot, *update);
         txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
-        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
+        EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
         EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
