@@ -24,6 +24,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -72,9 +75,21 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * string representation of file name
+     */
     std::string file_name_;
+    /**
+     * delimiter character
+     */
     char delimiter_ = ',';
+    /**
+     * quote character
+     */
     char quote_ = '"';
+    /**
+     * escape character
+     */
     char escape_ = '"';
   };
 
@@ -133,6 +148,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char escape_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
 };
 

@@ -20,6 +20,9 @@ class OrderByPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -153,6 +156,9 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(OrderByPlanNode);
 };
 

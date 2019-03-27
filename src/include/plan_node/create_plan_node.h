@@ -245,6 +245,9 @@ class CreatePlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -722,6 +725,7 @@ class CreatePlanNode : public AbstractPlanNode {
    * @param table_schema schema of the table to create [CREATE TABLE]
    * @param index_type type of index to create [CREATE INDEX]
    * @param unique_index true if index should be unique for [CREATE INDEX]
+   * @param index_name name of index to be created [CREATE INDEX]
    * @param index_attrs index attributes for [CREATE INDEX]
    * @param key_attrs key attributes for [CREATE INDEX]
    * @param has_primary_key true if index/table has primary key [CREATE INDEX/TABLE]
@@ -943,6 +947,9 @@ class CreatePlanNode : public AbstractPlanNode {
   std::shared_ptr<parser::SelectStatement> view_query_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(CreatePlanNode);
 };
 

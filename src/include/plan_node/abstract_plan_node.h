@@ -56,8 +56,17 @@ class AbstractPlanNode {
     }
 
    protected:
+    /**
+     * child plans
+     */
     std::vector<std::unique_ptr<AbstractPlanNode>> children_;
+    /**
+     * schema describing output of the node
+     */
     std::shared_ptr<OutputSchema> output_schema_;
+    /**
+     * estimated cardinality of output for node
+     */
     uint32_t estimated_cardinality_ = 0;
   };
 
@@ -191,6 +200,9 @@ class AbstractPlanNode {
   uint32_t estimated_cardinality_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 

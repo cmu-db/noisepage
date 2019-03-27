@@ -21,6 +21,9 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -105,6 +108,9 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
   HybridScanType hybrid_scan_type_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(HybridScanPlanNode);
 };
 

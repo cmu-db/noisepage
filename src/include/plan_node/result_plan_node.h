@@ -24,6 +24,9 @@ class ResultPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -82,6 +85,9 @@ class ResultPlanNode : public AbstractPlanNode {
   std::shared_ptr<Tuple> tuple_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };
 

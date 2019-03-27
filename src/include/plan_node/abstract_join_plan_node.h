@@ -39,7 +39,13 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Logical join type
+     */
     LogicalJoinType join_type_;
+    /**
+     * Join predicate
+     */
     std::unique_ptr<const parser::AbstractExpression> predicate_;
   };
 
@@ -84,6 +90,9 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   const std::unique_ptr<const parser::AbstractExpression> predicate_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode);
 };
 

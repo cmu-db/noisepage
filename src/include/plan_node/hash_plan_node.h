@@ -26,6 +26,9 @@ class HashPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -83,6 +86,9 @@ class HashPlanNode : public AbstractPlanNode {
   std::vector<HashKeyPtrType> hash_keys_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(HashPlanNode);
 };
 

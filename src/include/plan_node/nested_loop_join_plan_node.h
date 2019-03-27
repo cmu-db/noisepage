@@ -18,6 +18,9 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   class Builder : public AbstractJoinPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -57,6 +60,9 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);
 };
 

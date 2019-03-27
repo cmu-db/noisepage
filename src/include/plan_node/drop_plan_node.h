@@ -24,6 +24,9 @@ class DropPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -249,6 +252,9 @@ class DropPlanNode : public AbstractPlanNode {
   bool if_exists_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(DropPlanNode);
 };
 

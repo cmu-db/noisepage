@@ -20,6 +20,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -245,6 +248,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   int param_count_ = 0;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(CreateFunctionPlanNode);
 };
 }  // namespace plan_node

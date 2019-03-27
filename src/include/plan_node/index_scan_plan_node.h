@@ -29,6 +29,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -93,7 +96,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   catalog::index_oid_t index_oid_;
 
  public:
-  // Don't allow this plan node to be copied or movied
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 

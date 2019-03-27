@@ -48,9 +48,17 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Scan predicate
+     */
     std::unique_ptr<const parser::AbstractExpression> predicate_;
-    // flags defaulted to false
+    /**
+     * Is scan for update
+     */
     bool is_for_update_ = false;
+    /**
+     * Is this a parallel scan
+     */
     bool is_parallel_ = false;
   };
 
@@ -105,6 +113,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   bool is_parallel_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
 };
 

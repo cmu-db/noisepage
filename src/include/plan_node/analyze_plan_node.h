@@ -130,6 +130,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
   std::vector<std::string> column_names_;  // names of the columns to be analyzed
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AnalyzePlanNode);
 };
 

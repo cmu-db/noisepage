@@ -22,6 +22,9 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    */
   class Builder : public AbstractJoinPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -62,8 +65,17 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
     }
 
    protected:
+    /**
+     * left side hash keys
+     */
     std::vector<parser::AbstractExpression *> left_hash_keys_;
+    /**
+     * right side hash keys
+     */
     std::vector<parser::AbstractExpression *> right_hash_keys_;
+    /**
+     * if bloom filter should be built
+     */
     bool build_bloomfilter_ = false;
   };
 
@@ -124,6 +136,9 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   bool build_bloomfilter_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(HashJoinPlanNode);
 };
 

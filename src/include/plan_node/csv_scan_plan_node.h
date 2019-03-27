@@ -17,6 +17,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -75,10 +78,25 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     }
 
    protected:
+    /**
+     * string representation of file name
+     */
     std::string file_name_;
+    /**
+     * delimiter character for CSV
+     */
     char delimiter_ = ',';
+    /**
+     * quote character for CSV
+     */
     char quote_ = '"';
+    /**
+     * escape character for CSV
+     */
     char escape_ = '"';
+    /**
+     * null string for CSV
+     */
     std::string null_string_ = "";
   };
 
@@ -154,6 +172,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   const std::string null_string_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 

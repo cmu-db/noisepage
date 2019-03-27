@@ -36,9 +36,18 @@ class AggregatePlanNode : public AbstractPlanNode {
     AggregateTerm(parser::ExpressionType aggregate_type, parser::AbstractExpression *expr, bool distinct)
         : aggregate_type_(aggregate_type), expression_(expr), distinct_(distinct) {}
 
-    parser::ExpressionType aggregate_type_;  // Count, Sum, Min, Max, etc
+    /**
+     * Count, Sum, Min, Max, etc
+     */
+    parser::ExpressionType aggregate_type_;
+    /**
+     * Aggregate expression
+     */
     const parser::AbstractExpression *expression_;
-    bool distinct_;  // Distinct flag for aggragate term (example COUNT(distinct order))
+    /**
+     * Distinct flag for aggragate term (example COUNT(distinct order))
+     */
+    bool distinct_;
   };
 
  protected:
@@ -47,6 +56,9 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -87,8 +99,17 @@ class AggregatePlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Predicate for having clause if it exists
+     */
     std::unique_ptr<const parser::AbstractExpression> having_clause_predicate_;
+    /**
+     * List of aggregate terms for aggregation
+     */
     std::vector<AggregateTerm> aggregate_terms_;
+    /**
+     * Strategy to use for aggregation
+     */
     AggregateStrategy aggregate_strategy_;
   };
 
@@ -173,6 +194,9 @@ class AggregatePlanNode : public AbstractPlanNode {
   const AggregateStrategy aggregate_strategy_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };
 

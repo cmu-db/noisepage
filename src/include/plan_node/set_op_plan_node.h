@@ -23,6 +23,9 @@ class SetOpPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -80,6 +83,9 @@ class SetOpPlanNode : public AbstractPlanNode {
   SetOpType set_op_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(SetOpPlanNode);
 };
 

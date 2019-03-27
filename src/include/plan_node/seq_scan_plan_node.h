@@ -22,6 +22,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Dont allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -87,6 +90,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   catalog::table_oid_t table_oid_;
 
  public:
+  /**
+   * Dont allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(SeqScanPlanNode);
 };
 
