@@ -210,10 +210,10 @@ struct CheckInfo {
   }
 
   /**
- * Logical equality check.
- * @param rhs other
- * @return true if the two check info are logically equal
- */
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two check info are logically equal
+   */
   bool operator==(const CheckInfo &rhs) const {
     if (constraint_name_ != rhs.constraint_name_) return false;
 

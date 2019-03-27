@@ -81,8 +81,7 @@ common::hash_t CreatePlanNode::Hash() const {
 
   // Hash trigger_type
   auto trigger_type = GetTriggerType();
-  hash =
-      common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_type));
 
   // Hash view_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
