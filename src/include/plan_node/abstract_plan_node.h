@@ -179,7 +179,11 @@ class AbstractPlanNode {
     return true;
   }
 
-  virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
+  /**
+   * @param rhs other node to compare against
+   * @return true if two plan nodes are not equivalent
+   */
+  bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
@@ -198,6 +202,9 @@ class AbstractPlanNode {
 
 namespace std {
 
+/**
+ * template for std::hash of plan nodes
+ */
 template <>
 struct hash<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   /**
@@ -208,6 +215,9 @@ struct hash<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   size_t operator()(const std::shared_ptr<terrier::plan_node::AbstractPlanNode> &plan) const { return plan->Hash(); }
 };
 
+/**
+ * std template for equality predicate
+ */
 template <>
 struct equal_to<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   /**

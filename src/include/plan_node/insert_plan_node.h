@@ -158,7 +158,6 @@ class InsertPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   // OID of the target table

@@ -123,7 +123,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   catalog::table_oid_t target_table_oid_;  // OID of the target table

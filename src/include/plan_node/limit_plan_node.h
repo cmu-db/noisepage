@@ -95,7 +95,6 @@ class LimitPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
   //  nlohmann::json ToJson() const override;
   //  void FromJson(const nlohmann::json &json) override;

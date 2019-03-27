@@ -19,6 +19,9 @@
 
 namespace terrier::plan_node {
 
+/**
+ * Plan node for an index scan
+ */
 class IndexScanPlanNode : public AbstractScanPlanNode {
  protected:
   /**
@@ -83,15 +86,14 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
-
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   // Index oid associated with index scan
   catalog::index_oid_t index_oid_;
 
  public:
+  // Don't allow this plan node to be copied or movied
   DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 

@@ -55,7 +55,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  public:
   DISALLOW_COPY_AND_MOVE(NestedLoopJoinPlanNode);

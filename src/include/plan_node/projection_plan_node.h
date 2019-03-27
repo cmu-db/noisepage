@@ -51,7 +51,6 @@ class ProjectionPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  public:
   DISALLOW_COPY_AND_MOVE(ProjectionPlanNode);

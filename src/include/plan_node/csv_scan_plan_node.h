@@ -7,6 +7,9 @@
 #include "plan_node/abstract_scan_plan_node.h"
 
 namespace terrier::plan_node {
+/**
+ * Plan node for a CSV scan
+ */
 class CSVScanPlanNode : public AbstractScanPlanNode {
  protected:
   /**
@@ -142,7 +145,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   const std::string file_name_;

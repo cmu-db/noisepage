@@ -99,7 +99,6 @@ class HybridScanPlanNode : public AbstractScanPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   catalog::index_oid_t index_oid_;
