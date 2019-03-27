@@ -1,5 +1,6 @@
-#include "traffic_cop/traffic_cop.h"
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include <string>
+
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
@@ -8,6 +9,7 @@
 #include "network/network_io_utils.h"
 #include "network/postgres_protocol_utils.h"
 #include "network/terrier_server.h"
+#include "traffic_cop/traffic_cop.h"
 #include "util/manual_packet_helpers.h"
 #include "util/test_harness.h"
 
