@@ -1,6 +1,6 @@
 #include "storage/garbage_collector.h"
-#include <utility>
 #include <unordered_set>
+#include <utility>
 #include "common/container/concurrent_queue.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
@@ -71,7 +71,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
-  std::unordered_set<TupleSlot> slots;
+  std::unordered_set<TupleSlot> visited_slots;
 
   // Process every transaction in the unlink queue
   while (!txns_to_unlink_.empty()) {
@@ -92,7 +92,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
         DataTable *&table = undo_record.Table();
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
-        if (slots.insert(undo_record.Slot()).second) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+        if (visited_slots.insert(undo_record.Slot()).second)
+          TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens.
         ReclaimSlotIfDeleted(&undo_record);
         ReclaimBufferIfVarlen(txn, &undo_record);
@@ -111,10 +112,10 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   return txns_processed;
 }
 
-void GarbageCollector::TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const {
+void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,
+                                            const transaction::timestamp_t oldest) const {
   const TupleAccessStrategy &accessor = table->accessor_;
-  UndoRecord *version_ptr;
-  version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
+  UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   // This is a legitimate case where we truncated the version chain but had to restart because the previous head
   // was aborted.
   if (version_ptr == nullptr) return;
@@ -153,11 +154,12 @@ void GarbageCollector::TruncateVersionChain(DataTable *table, TupleSlot slot, tr
     TruncateVersionChain(table, slot, oldest);
 }
 
-void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
+void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *const undo_record) const {
   if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
-void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const {
+void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *const txn,
+                                             UndoRecord *const undo_record) const {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
