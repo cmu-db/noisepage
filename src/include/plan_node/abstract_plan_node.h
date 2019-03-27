@@ -164,7 +164,13 @@ class AbstractPlanNode {
    * @return true if plan node and its children are equal
    */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
-    if (*GetOutputSchema() != *rhs.GetOutputSchema()) return false;
+    auto output_schema = GetOutputSchema();
+    auto other_output_schema = rhs.GetOutputSchema();
+    if ((output_schema == nullptr && other_output_schema != nullptr) ||
+        (output_schema != nullptr && other_output_schema == nullptr))
+      return false;
+    if (output_schema != nullptr && *output_schema != *other_output_schema) return false;
+
     auto num = GetChildren().size();
     if (num != rhs.GetChildren().size()) return false;
     for (unsigned int i = 0; i < num; i++) {

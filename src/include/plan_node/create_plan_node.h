@@ -20,29 +20,162 @@ namespace terrier::plan_node {
  * the catalog only wants OIDs.
  */
 struct PrimaryKeyInfo {
-  std::vector<std::string> primary_key_cols;
-  std::string constraint_name;
+  std::vector<std::string> primary_key_cols_;
+  std::string constraint_name_;
+
+  /**
+   * @return the hashed value of this primary key info
+   */
+  common::hash_t Hash() const {
+    // Hash constraint_name
+    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+    // Hash primary_key_cols
+    hash = common::HashUtil::CombineHashInRange(hash, primary_key_cols_.begin(), primary_key_cols_.end());
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two primary key info are logically equal
+   */
+  bool operator==(const PrimaryKeyInfo &rhs) const {
+    if (constraint_name_ != rhs.constraint_name_) return false;
+
+    if (primary_key_cols_.size() != rhs.primary_key_cols_.size()) return false;
+    for (size_t i = 0; i < primary_key_cols_.size(); i++) {
+      if (primary_key_cols_[i] != rhs.primary_key_cols_[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two primary key info are not logically equal
+   */
+  bool operator!=(const PrimaryKeyInfo &rhs) const { return !(*this == rhs); }
 };
 
 struct ForeignKeyInfo {
-  std::vector<std::string> foreign_key_sources;
-  std::vector<std::string> foreign_key_sinks;
-  std::string sink_table_name;
-  std::string constraint_name;
-  parser::FKConstrActionType upd_action;
-  parser::FKConstrActionType del_action;
+  std::vector<std::string> foreign_key_sources_;
+  std::vector<std::string> foreign_key_sinks_;
+  std::string sink_table_name_;
+  std::string constraint_name_;
+  parser::FKConstrActionType upd_action_;
+  parser::FKConstrActionType del_action_;
+
+  /**
+   * @return the hashed value of this foreign key info
+   */
+  common::hash_t Hash() const {
+    // Hash constraint_name
+    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+    // Hash sink_table_name
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sink_table_name_));
+
+    // Hash foreign_key_sources
+    hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sources_.begin(), foreign_key_sources_.end());
+
+    // Hash foreign_key_sinks
+    hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sinks_.begin(), foreign_key_sinks_.end());
+
+    // Hash upd_action
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&upd_action_));
+
+    // Hash del_action
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&del_action_));
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two check info are logically equal
+   */
+  bool operator==(const ForeignKeyInfo &rhs) const {
+    if (constraint_name_ != rhs.constraint_name_) return false;
+
+    if (sink_table_name_ != rhs.sink_table_name_) return false;
+
+    if (upd_action_ != rhs.upd_action_) return false;
+
+    if (del_action_ != rhs.del_action_) return false;
+
+    if (foreign_key_sources_.size() != rhs.foreign_key_sources_.size()) return false;
+    for (size_t i = 0; i < foreign_key_sources_.size(); i++) {
+      if (foreign_key_sources_[i] != rhs.foreign_key_sources_[i]) {
+        return false;
+      }
+    }
+
+    if (foreign_key_sinks_.size() != rhs.foreign_key_sinks_.size()) return false;
+    for (size_t i = 0; i < foreign_key_sinks_.size(); i++) {
+      if (foreign_key_sinks_[i] != rhs.foreign_key_sinks_[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two primary key info are not logically equal
+   */
+  bool operator!=(const ForeignKeyInfo &rhs) const { return !(*this == rhs); }
 };
 
 struct UniqueInfo {
-  std::vector<std::string> unique_cols;
-  std::string constraint_name;
+  std::vector<std::string> unique_cols_;
+  std::string constraint_name_;
+
+  /**
+   * @return the hashed value of this unique info
+   */
+  common::hash_t Hash() const {
+    // Hash constraint_name
+    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+    // Hash unique_cols
+    hash = common::HashUtil::CombineHashInRange(hash, unique_cols_.begin(), unique_cols_.end());
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two unique info are logically equal
+   */
+  bool operator==(const UniqueInfo &rhs) const {
+    if (constraint_name_ != rhs.constraint_name_) return false;
+
+    if (unique_cols_.size() != rhs.unique_cols_.size()) return false;
+    for (size_t i = 0; i < unique_cols_.size(); i++) {
+      if (unique_cols_[i] != rhs.unique_cols_[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two primary key info are not logically equal
+   */
+  bool operator!=(const UniqueInfo &rhs) const { return !(*this == rhs); }
 };
 
 struct CheckInfo {
-  std::vector<std::string> check_cols;
-  std::string constraint_name;
-  parser::ExpressionType expr_type;
-  type::TransientValue expr_value;
+  std::vector<std::string> check_cols_;
+  std::string constraint_name_;
+  parser::ExpressionType expr_type_;
+  type::TransientValue expr_value_;
 
   /**
    * CheckInfo constructor
@@ -53,10 +186,56 @@ struct CheckInfo {
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
             type::TransientValue expr_value)
-      : check_cols(std::move(check_cols)),
-        constraint_name(std::move(constraint_name)),
-        expr_type(expr_type),
-        expr_value(std::move(expr_value)) {}
+      : check_cols_(std::move(check_cols)),
+        constraint_name_(std::move(constraint_name)),
+        expr_type_(expr_type),
+        expr_value_(std::move(expr_value)) {}
+
+  /**
+   * @return the hashed value of this check info
+   */
+  common::hash_t Hash() const {
+    // Hash constraint_name
+    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+    // Hash check_cols
+    hash = common::HashUtil::CombineHashInRange(hash, check_cols_.begin(), check_cols_.end());
+
+    // Hash expr_type
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type_));
+
+    // Hash expr_value
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
+    return hash;
+  }
+
+  /**
+ * Logical equality check.
+ * @param rhs other
+ * @return true if the two check info are logically equal
+ */
+  bool operator==(const CheckInfo &rhs) const {
+    if (constraint_name_ != rhs.constraint_name_) return false;
+
+    if (expr_type_ != rhs.expr_type_) return false;
+
+    if (expr_value_ != rhs.expr_value_) return false;
+
+    if (check_cols_.size() != rhs.check_cols_.size()) return false;
+    for (size_t i = 0; i < check_cols_.size(); i++) {
+      if (check_cols_[i] != rhs.check_cols_[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two primary key info are not logically equal
+   */
+  bool operator!=(const CheckInfo &rhs) const { return !(*this == rhs); }
 };
 
 class CreatePlanNode : public AbstractPlanNode {
@@ -338,8 +517,8 @@ class CreatePlanNode : public AbstractPlanNode {
           // into an artificial ColumnDefinition.
           // primary key constraint
           if (!pri_cols.empty()) {
-            primary_key_.primary_key_cols = pri_cols;
-            primary_key_.constraint_name = "con_primary";
+            primary_key_.primary_key_cols_ = pri_cols;
+            primary_key_.constraint_name_ = "con_primary";
             has_primary_key_ = true;
           }
 
@@ -421,25 +600,25 @@ class CreatePlanNode : public AbstractPlanNode {
                                          const std::shared_ptr<parser::ColumnDefinition> &col) {
       ForeignKeyInfo fkey_info;
 
-      fkey_info.foreign_key_sources = std::vector<std::string>();
-      fkey_info.foreign_key_sinks = std::vector<std::string>();
+      fkey_info.foreign_key_sources_ = std::vector<std::string>();
+      fkey_info.foreign_key_sinks_ = std::vector<std::string>();
 
       // Extract source and sink column names
       for (auto &key : col->GetForeignKeySources()) {
-        fkey_info.foreign_key_sources.push_back(key);
+        fkey_info.foreign_key_sources_.push_back(key);
       }
       for (auto &key : col->GetForeignKeySinks()) {
-        fkey_info.foreign_key_sinks.push_back(key);
+        fkey_info.foreign_key_sinks_.push_back(key);
       }
 
       // Extract table names
-      fkey_info.sink_table_name = col->GetForeignKeySinkTableName();
+      fkey_info.sink_table_name_ = col->GetForeignKeySinkTableName();
 
       // Extract delete and update actions
-      fkey_info.upd_action = col->GetForeignKeyUpdateAction();
-      fkey_info.del_action = col->GetForeignKeyDeleteAction();
+      fkey_info.upd_action_ = col->GetForeignKeyUpdateAction();
+      fkey_info.del_action_ = col->GetForeignKeyDeleteAction();
 
-      fkey_info.constraint_name = "FK_" + table_name + "->" + fkey_info.sink_table_name;
+      fkey_info.constraint_name_ = "FK_" + table_name + "->" + fkey_info.sink_table_name_;
 
       foreign_keys_.push_back(fkey_info);
       return *this;
@@ -453,8 +632,8 @@ class CreatePlanNode : public AbstractPlanNode {
     Builder &ProcessUniqueConstraint(const std::shared_ptr<parser::ColumnDefinition> &col) {
       UniqueInfo unique_info;
 
-      unique_info.unique_cols = {col->GetColumnName()};
-      unique_info.constraint_name = "con_unique";
+      unique_info.unique_cols_ = {col->GetColumnName()};
+      unique_info.constraint_name_ = "con_unique";
 
       con_uniques_.push_back(unique_info);
       return *this;
@@ -622,7 +801,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to the schema for [CREATE TABLE]
    */
-  const catalog::Schema *GetSchema() const { return table_schema_.get(); }
+  std::shared_ptr<catalog::Schema> GetTableSchema() const { return table_schema_; }
 
   /**
    * @return type of object to be created
@@ -662,12 +841,12 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return unique constraints
    */
-  const std::vector<UniqueInfo> &GetUniques() const { return con_uniques_; }
+  const std::vector<UniqueInfo> &GetUniqueConstraintss() const { return con_uniques_; }
 
   /**
    * @return check constraints
    */
-  const std::vector<CheckInfo> &GetChecks() const { return con_checks_; }
+  const std::vector<CheckInfo> &GetCheckConstrinats() const { return con_checks_; }
 
   /**
    * @return name of key attributes
@@ -707,7 +886,7 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @return view name for [CREATE VIEW]
    */
-  std::string GetViewName() { return view_name_; }
+  std::string GetViewName() const { return view_name_; }
 
   /**
    * @return view query for [CREATE VIEW]
