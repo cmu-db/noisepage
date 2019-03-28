@@ -2,14 +2,15 @@
 
 #include <utility>
 #include <vector>
+#include "statistic_defs.h"
 
-namespace terrier::metric {
+namespace terrier::stats {
 /**
  * Metric types
  */
 enum class MetricType {
   // Metric type is invalid
-  INVALID = INVALID_TYPE_ID,
+  INVALID = 0,
   // Metric to count a number
   COUNTER = 1,
   // Access information, e.g., # tuples read, inserted, updated, deleted
@@ -32,4 +33,30 @@ enum class MetricType {
   PROCESSOR = 10,
 };
 
-}  // namespace terrier::metric
+/**
+ * Triggering events for stats collection
+ */
+enum class StatsEventType {
+  TXN_BEGIN,
+  TXN_COMMIT,
+  TXN_ABORT,
+  TUPLE_READ,
+  TUPLE_UPDATE,
+  TUPLE_INSERT,
+  TUPLE_DELETE,
+  INDEX_READ,
+  INDEX_UPDATE,
+  INDEX_INSERT,
+  INDEX_DELETE,
+  TABLE_MEMORY_ALLOC,
+  TABLE_MEMORY_FREE,
+  INDEX_MEMORY_ALLOC,
+  INDEX_MEMORY_FREE,
+  INDEX_MEMORY_USAGE,
+  INDEX_MEMORY_RECLAIM,
+  QUERY_BEGIN,
+  QUERY_END,
+  TEST  // Testing event
+};
+
+}  // namespace terrier::stats

@@ -20,33 +20,23 @@
 namespace peloton {
 namespace stats {
 using CollectorsMap =
-tbb::concurrent_unordered_map<std::thread::id, ThreadLevelStatsCollector,
-                              std::hash<std::thread::id>>;
+    tbb::concurrent_unordered_map<std::thread::id, ThreadLevelStatsCollector, std::hash<std::thread::id>>;
 
 CollectorsMap ThreadLevelStatsCollector::collector_map_ = CollectorsMap();
 
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
   // TODO(tianyu): Write stats to register here
-  auto
-      stats_mode = static_cast<StatsModeType>(settings::SettingsManager::GetInt(
-      settings::SettingId::stats_mode));
+  auto stats_mode = static_cast<StatsModeType>(settings::SettingsManager::GetInt(settings::SettingId::stats_mode));
   if (stats_mode == StatsModeType::ENABLE) {
-    RegisterMetric<TableMetric>(
-        {StatsEventType::TUPLE_READ, StatsEventType::TUPLE_UPDATE,
-         StatsEventType::TUPLE_INSERT, StatsEventType::TUPLE_DELETE,
-         StatsEventType::TABLE_MEMORY_ALLOC,
-         StatsEventType::TABLE_MEMORY_FREE});
-    RegisterMetric<IndexMetric>(
-        {StatsEventType::INDEX_READ, StatsEventType::INDEX_UPDATE,
-         StatsEventType::INDEX_INSERT, StatsEventType::INDEX_DELETE});
+    RegisterMetric<TableMetric>({StatsEventType::TUPLE_READ, StatsEventType::TUPLE_UPDATE, StatsEventType::TUPLE_INSERT,
+                                 StatsEventType::TUPLE_DELETE, StatsEventType::TABLE_MEMORY_ALLOC,
+                                 StatsEventType::TABLE_MEMORY_FREE});
+    RegisterMetric<IndexMetric>({StatsEventType::INDEX_READ, StatsEventType::INDEX_UPDATE, StatsEventType::INDEX_INSERT,
+                                 StatsEventType::INDEX_DELETE});
 
-    RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN,
-                                    StatsEventType::TXN_COMMIT,
-                                    StatsEventType::TXN_ABORT});
-    RegisterMetric<TupleAccessMetric>({StatsEventType::TXN_BEGIN,
-                                       StatsEventType::TXN_ABORT,
-                                       StatsEventType::TXN_COMMIT,
-                                       StatsEventType::TUPLE_READ});
+    RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
+    RegisterMetric<TupleAccessMetric>(
+        {StatsEventType::TXN_BEGIN, StatsEventType::TXN_ABORT, StatsEventType::TXN_COMMIT, StatsEventType::TUPLE_READ});
   } else if (stats_mode == StatsModeType::TEST)
     RegisterMetric<TestMetric>({StatsEventType::TEST});
 }

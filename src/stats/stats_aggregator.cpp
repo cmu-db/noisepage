@@ -1,19 +1,6 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// stats_aggregator.cpp
-//
-// Identification: src/statistics/stats_aggregator.cpp
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
+#include "stats/stats_aggregator.h"
 
-#include "statistics/stats_aggregator.h"
-#include <cinttypes>
-namespace peloton {
-namespace stats {
+namespace terrier::stats {
 
 void StatsAggregator::Terminate() {
   std::unique_lock<std::mutex> lock(mutex_);
@@ -22,21 +9,18 @@ void StatsAggregator::Terminate() {
 }
 
 void StatsAggregator::RunTask() {
-  LOG_INFO("Aggregator is now running.");
   std::unique_lock<std::mutex> lock(mutex_);
-  while (exec_finished_.wait_for(
-             lock, std::chrono::milliseconds(aggregation_interval_ms_)) ==
+  while (exec_finished_.wait_for(lock, std::chrono::milliseconds(aggregation_interval_ms_)) ==
              std::cv_status::timeout &&
          !exiting_)
     Aggregate();
   exiting_ = false;
   exec_finished_.notify_all();
-  LOG_INFO("Aggregator done!");
 }
 
 using RawDataCollect = std::vector<std::shared_ptr<AbstractRawData>>;
 RawDataCollect StatsAggregator::AggregateRawData() {
-  RawDataCollect acc;
+  RawDataCollect acc = std::vector<std::shared_ptr<AbstractRawData>>();
   for (auto &entry : ThreadLevelStatsCollector::GetAllCollectors()) {
     auto data_block = entry.second.GetDataToAggregate();
     if (acc.empty())
@@ -56,5 +40,4 @@ void StatsAggregator::Aggregate() {
   }
 }
 
-}  // namespace stats
-}  // namespace peloton
+}  // namespace terrier::stats

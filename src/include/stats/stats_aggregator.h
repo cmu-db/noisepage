@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// stats_aggregator.h
-//
-// Identification: src/include/statistics/stats_aggregator.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <condition_variable>
@@ -20,28 +8,23 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/logger.h"
-#include "common/macros.h"
-#include "storage/database.h"
-#include "storage/data_table.h"
-#include "concurrency/transaction_context.h"
 #include "common/dedicated_thread_task.h"
-#include "thread_level_stats_collector.h"
-#include "type/ephemeral_pool.h"
+#include "common/macros.h"
+#include "stats/abstract_raw_data.h"
+#include "stats/thread_level_stats_collector.h"
 
-//===--------------------------------------------------------------------===//
-// GUC Variables
-//===--------------------------------------------------------------------===//
-
-#define STATS_AGGREGATION_INTERVAL_MS 1000
-
-namespace peloton {
-namespace stats {
+namespace terrier::stats {
 
 class StatsAggregator : public DedicatedThreadTask {
+  /**
+   * Per-thread stats aggregator
+   */
  public:
-  StatsAggregator(int64_t aggregation_interval)
-      : aggregation_interval_ms_(aggregation_interval) {}
+  /**
+   * Instantiate a new stats collector
+   * @param aggregation_interval time interval in ms between successive stats collection
+   */
+  explicit StatsAggregator(int64_t aggregation_interval) : aggregation_interval_ms_(aggregation_interval) {}
 
   void Terminate() override;
 
@@ -57,12 +40,22 @@ class StatsAggregator : public DedicatedThreadTask {
   std::vector<std::shared_ptr<AbstractRawData>> AggregateRawData();
 
  private:
+  /**
+   * Interval for stats collcection
+   */
   int64_t aggregation_interval_ms_;
-  // mutex for aggregate task scheduling. No conflict generally
+  /**
+   * mutex for aggregate task scheduling. No conflict generally
+   */
   std::mutex mutex_;
+  /**
+   * Condition variable for notifying a finished execution
+   */
   std::condition_variable exec_finished_;
+  /**
+   * True if this thread is terminatin
+   */
   bool exiting_ = false;
 };
 
-}  // namespace stats
-}  // namespace peloton
+}  // namespace terrier::stats

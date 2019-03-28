@@ -1,31 +1,18 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// abstract_metric.h
-//
-// Identification: src/include/statistics/abstract_metric.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <atomic>
 #include <memory>
 #include <string>
 
-#include "common/internal_types.h"
-#include "common/platform.h"
-#include "statistics/abstract_raw_data.h"
-#include "statistics/stats_event_type.h"
+#include "catalog/catalog_defs.h"
+#include "stats/abstract_raw_data.h"
+#include "stats/statistic_defs.h"
 
-namespace peloton {
+namespace terrier {
 
 namespace concurrency {
 class TransactionContext;
-} // namespace concurrency
+}  // namespace concurrency
 
 namespace stats {
 /**
@@ -56,109 +43,126 @@ class Metric {
   /**
    * @param Context of the transaction beginning
    */
-  virtual void OnTransactionBegin(const concurrency::TransactionContext *) {};
+  virtual void OnTransactionBegin(const concurrency::TransactionContext *){};
 
   /**
    * @param Context of the transaction committing
    * @param Tile Group ID that used to track database where the txn happens.
    */
-  virtual void OnTransactionCommit(const concurrency::TransactionContext *,
-                                   oid_t) {};
+  virtual void OnTransactionCommit(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Context of the transaction aborting
    * @param Tile Group ID that used to track database where the txn happens.
    */
-  virtual void OnTransactionAbort(const concurrency::TransactionContext *,
-                                  oid_t) {};
+  virtual void OnTransactionAbort(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Context of the transaction performing read
    * @param Tile Group ID that used to track database and table
    *        where the read happens.
    */
-  virtual void OnTupleRead(const concurrency::TransactionContext *, oid_t) {};
+  virtual void OnTupleRead(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Context of the transaction performing update
    * @param Tile Group ID that used to track database and table
    *        where the update happens.
    */
-  virtual void OnTupleUpdate(const concurrency::TransactionContext *, oid_t) {};
+  virtual void OnTupleUpdate(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Context of the transaction performing insert
    * @param Tile Group ID that used to track database and table
    *        where the insert happens.
    */
-  virtual void OnTupleInsert(const concurrency::TransactionContext *, oid_t) {};
+  virtual void OnTupleInsert(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Context of the transaction performing delete
    * @param Tile Group ID that used to track database and table
    *        where the delete happens.
-  */
-  virtual void OnTupleDelete(const concurrency::TransactionContext *, oid_t) {};
+   */
+  virtual void OnTupleDelete(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
 
   /**
    * @param Database and index id pair that the index read happens
    * @param Number of read happening
    */
-  virtual void OnIndexRead(std::pair<oid_t, oid_t>, size_t) {};
+  virtual void OnIndexRead(std::pair<catalog::db_oid_t, catalog::index_oid_t>, size_t databse_oid){};
 
   /**
    * @param Database and index id pair that the index update happens
    */
-  virtual void OnIndexUpdate(std::pair<oid_t, oid_t>) {};
+  virtual void OnIndexUpdate(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
    * @param Database and index id pair that the index insert happens
    */
-  virtual void OnIndexInsert(std::pair<oid_t, oid_t>) {};
+  virtual void OnIndexInsert(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
    * @param Database and index id pair that the index delete happens
    */
-  virtual void OnIndexDelete(std::pair<oid_t, oid_t>) {};
+  virtual void OnIndexDelete(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
-   * @param Database and index/table id pair that the memory allocation happens
+   * @param Database and table id pair that the memory allocation happens
    * @param Number of bytes being allocated
    */
-  virtual void OnMemoryAlloc(std::pair<oid_t, oid_t>, size_t) {};
+  virtual void OnMemoryAllocTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index/table id pair that the memory free happens
+   * @param Database and index id pair that the memory allocation happens
+   * @param Number of bytes being allocated
+   */
+  virtual void OnMemoryAllocIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+
+  /**
+   * @param Database and table id pair that the memory free happens
    * @param Number of bytes being freed
    */
-  virtual void OnMemoryFree(std::pair<oid_t, oid_t>, size_t) {};
+  virtual void OnMemoryFreeTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index/table id pair that the memory usage happens
+   * @param Database and index id pair that the memory free happens
+   * @param Number of bytes being freed
+   */
+  virtual void ONMemoryFreeIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+
+  /**
+   * @param Database and table id pair that the memory usage happens
    * @param Number of bytes being used
    */
-  virtual void OnMemoryUsage(std::pair<oid_t, oid_t>, size_t) {};
+  virtual void OnMemoryUsageTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index/table id pair that the memory reclaim happens
+   * @param Database and index id pair that the memory usage happens
+   * @param Number of bytes being used
+   */
+  virtual void OnMemoryUsageIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+
+  /**
+   * @param Database and table id pair that the memory reclaim happens
    * @param Number of bytes being reclaim
    */
-  virtual void OnMemoryReclaim(std::pair<oid_t, oid_t>, size_t) {};
+  virtual void OnMemoryReclaimTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
+
+  /**
+   * @param Database and index id pair that the memory reclaim happens
+   * @param Number of bytes being reclaim
+   */
+  virtual void OnMemoryReclaimIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
 
   /**
    * @brief collect the signal of query begin
    */
-  virtual void OnQueryBegin() {};
+  virtual void OnQueryBegin(){};
 
   /**
    * @brief collect the signal of query end
    */
-  virtual void OnQueryEnd() {};
-
-  /**
-   * @brief Event used to test the framework
-   */
-  virtual void OnTest(int) {};
+  virtual void OnQueryEnd(){};
 
   /**
    * @brief Replace RawData with an empty one and return the old one.
@@ -186,7 +190,7 @@ class Metric {
 };
 
 /* Forward Declaration */
-template<typename DataType>
+template <typename DataType>
 class AbstractMetric;
 
 /**
@@ -199,21 +203,21 @@ class AbstractMetric;
  *
  * @tparam DataType the type of AbstractRawData this Wrapper holds
  */
-template<typename DataType>
+template <typename DataType>
 class RawDataWrapper {
   friend class AbstractMetric<DataType>;
 
  public:
-  inline RawDataWrapper(RawDataWrapper &&other) = default;
+  RawDataWrapper(RawDataWrapper &&other) = default;
 
-  inline ~RawDataWrapper() { safe_ = true; }  // Unblock aggregator
+  ~RawDataWrapper() { safe_ = true; }  // Unblock aggregator
 
   DISALLOW_COPY(RawDataWrapper);
 
   /**
    * @return the underlying pointer
    */
-  inline DataType *operator->() const { return ptr_; }
+  DataType *operator->() const { return ptr_; }
 
  private:
   /**
@@ -221,8 +225,7 @@ class RawDataWrapper {
    * @param ptr the pointer it wraps around
    * @param safe the boolean variable it uses to signal its lifetime
    */
-  inline RawDataWrapper(DataType *ptr, std::atomic<bool> &safe)
-      : ptr_(ptr), safe_(safe) {}
+  inline RawDataWrapper(DataType *ptr, std::atomic<bool> &safe) : ptr_(ptr), safe_(safe) {}
   DataType *ptr_;
   std::atomic<bool> &safe_;
 };
@@ -235,7 +238,7 @@ class RawDataWrapper {
  *
  * @tparam DataType the type of AbstractRawData this Metric holds
  */
-template<typename DataType>
+template <typename DataType>
 class AbstractMetric : public Metric {
  public:
   AbstractMetric() : raw_data_(new DataType()), safe_{true} {}
@@ -282,4 +285,4 @@ class AbstractMetric : public Metric {
   std::atomic<bool> safe_;
 };
 }  // namespace stats
-}  // namespace peloton
+}  // namespace terrier
