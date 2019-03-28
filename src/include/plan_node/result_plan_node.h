@@ -33,8 +33,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * @param tuple the tuple in the storage layer
      * @return builder object
      */
-    Builder &SetTuple(std::shared_ptr<Tuple> tuple) {
-      tuple_ = std::move(tuple);
+    Builder &SetTuple(std::shared_ptr<parser::AbstractExpression> expr) {
+      expr_ = std::move(expr);
       return *this;
     }
 
@@ -44,11 +44,11 @@ class ResultPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<ResultPlanNode> Build() {
       return std::shared_ptr<ResultPlanNode>(new ResultPlanNode(std::move(children_), std::move(output_schema_),
-                                                                estimated_cardinality_, std::move(tuple_)));
+                                                                estimated_cardinality_, std::move(expr_)));
     }
 
    protected:
-    std::shared_ptr<Tuple> tuple_;
+    std::shared_ptr<parser::AbstractExpression> expr_;
   };
 
   /**
@@ -58,15 +58,15 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, std::shared_ptr<Tuple> tuple)
+                 uint32_t estimated_cardinality, std::shared_ptr<parser::AbstractExpression> expr)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        tuple_(std::move(tuple)) {}
+        expr_(std::move(expr)) {}
 
  public:
   /**
    * @return the tuple in the storage layer
    */
-  const std::shared_ptr<Tuple> GetTuple() const { return tuple_; }
+  const std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
 
   /**
    * @return the type of this plan node
@@ -81,12 +81,14 @@ class ResultPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // the tuple in the storage layer
-  std::shared_ptr<Tuple> tuple_;
+  /**
+   * The expression used to derived the output tuple
+   */
+  std::shared_ptr<parser::AbstractExpression> expr_;
 
  public:
   /**
-   * Dont allow plan to be copied or moved
+   * Don't allow plan to be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };

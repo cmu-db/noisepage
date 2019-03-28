@@ -129,7 +129,7 @@ enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL =
 
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
 /**
- * i hate u doxygen
+ * Temporary definition of a tuple in the storage layer
  */
 class Tuple {
  public:

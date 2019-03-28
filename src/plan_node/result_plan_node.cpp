@@ -8,7 +8,8 @@ common::hash_t ResultPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // TODO(Gus,Wen) hash tuple
+  // Hash expr
+  hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
@@ -16,9 +17,14 @@ common::hash_t ResultPlanNode::Hash() const {
 bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  // auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
+  auto &other = dynamic_cast<const ResultPlanNode &>(rhs);
 
-  // TODO(Gus,Wen) compare tuple
+  // expr
+  auto expr = GetExpression();
+  auto other_expr = other.GetExpression();
+  if ((expr != nullptr && other_expr == nullptr) || (expr == nullptr && other_expr != nullptr)) return false;
+
+  if (expr != nullptr && expr != other_expr) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

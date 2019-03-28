@@ -530,8 +530,6 @@ class CreatePlanNode : public AbstractPlanNode {
             ProcessForeignKeyConstraint(table_name_, fk);
           }
 
-          // TODO(Gus,Wen) UNIQUE and CHECK constraints
-
           table_schema_ = std::make_shared<catalog::Schema>(columns);
           break;
         }

@@ -223,28 +223,44 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // Indicates the UDF language type
+  /**
+   * Indicates the UDF language type
+   */
   parser::PLType language_;
 
-  // Function parameters names passed to the UDF
+  /**
+   * Function parameters names passed to the UDF
+   */
   std::vector<std::string> function_param_names_;
 
-  // Function parameter types passed to the UDF
+  /**
+   * Function parameter types passed to the UDF
+   */
   std::vector<parser::Parameter::DataType> function_param_types_;
 
-  // Query string/ function body of the UDF
+  /**
+   * Query string/ function body of the UDF
+   */
   std::vector<std::string> function_body_;
 
-  // Indicates if the function definition needs to be replaced
+  /**
+   * Indicates if the function definition needs to be replaced
+   */
   bool is_replace_;
 
-  // Function name of the UDF
+  /**
+   * Function name of the UDF
+   */
   std::string function_name_;
 
-  // Return type of the UDF
+  /**
+   * Return type of the UDF
+   */
   parser::Parameter::DataType return_type_;
 
-  // Number of parameters
+  /**
+   * Number of parameters
+   */
   int param_count_ = 0;
 
  public:
