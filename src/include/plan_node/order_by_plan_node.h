@@ -6,7 +6,6 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "plan_node/abstract_plan_node.h"
-#include "plan_node/plan_node_defs.h"
 
 namespace terrier::plan_node {
 
@@ -20,6 +19,9 @@ class OrderByPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -27,7 +29,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrdering ordering) {
+    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
       sort_keys_.push_back(key);
       sort_key_orderings_.push_back(ordering);
       return *this;
@@ -57,33 +59,47 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(
-          new OrderByPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_,
-                              std::move(sort_keys_), std::move(sort_key_orderings_), has_limit_, limit_, offset_));
+      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  std::move(sort_keys_), std::move(sort_key_orderings_),
+                                                                  has_limit_, limit_, offset_));
     }
 
    protected:
+    /**
+     * col_oid_t of keys to sort on
+     */
     std::vector<catalog::col_oid_t> sort_keys_;
-    std::vector<OrderByOrdering> sort_key_orderings_;
+    /**
+     * type of ordering for each sort key (ASC or DESC)
+     */
+    std::vector<OrderByOrderingType> sort_key_orderings_;
+    /**
+     * true if sort has a defined limit. False by default
+     */
     bool has_limit_ = false;
+    /**
+     * limit for sort
+     */
     size_t limit_ = 0;
+    /**
+     * offset for sort
+     */
     size_t offset_ = 0;
   };
 
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param sort_keys keys on which to sort on
    * @param sort_key_orderings orderings for each sort key (ASC or DESC). Same size as sort_keys
+   * @param has_limit true if operator should perform a limit
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
    */
   OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                  std::vector<catalog::col_oid_t> sort_keys, std::vector<OrderByOrdering> sort_key_orderings,
-                  bool has_limit, size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+                  std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
+                  std::vector<OrderByOrderingType> sort_key_orderings, bool has_limit, size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
         sort_key_orderings_(std::move(sort_key_orderings)),
         has_limit_(has_limit),
@@ -92,14 +108,14 @@ class OrderByPlanNode : public AbstractPlanNode {
 
  public:
   /**
-   * @return vector of col_oid_t of keys to sort on
+   * @return col_oid_t of keys to sort on
    */
   const std::vector<catalog::col_oid_t> &GetSortKeys() const { return sort_keys_; }
 
   /**
-   * @return vector of type of ordering for each sort key (ASC or DESC)
+   * @return type of ordering for each sort key (ASC or DESC)
    */
-  const std::vector<OrderByOrdering> &GetSortKeyOrderings() const { return sort_key_orderings_; }
+  const std::vector<OrderByOrderingType> &GetSortKeyOrderings() const { return sort_key_orderings_; }
 
   /**
    * @return the type of this plan node
@@ -135,14 +151,13 @@ class OrderByPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   /* Column Ids used (in order) to sort input tuples */
   const std::vector<catalog::col_oid_t> sort_keys_;
 
   /* Sort order flag. descend_flags_[i] */
-  const std::vector<OrderByOrdering> sort_key_orderings_;
+  const std::vector<OrderByOrderingType> sort_key_orderings_;
 
   /* Whether there is limit clause */
   bool has_limit_;
@@ -154,6 +169,9 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(OrderByPlanNode);
 };
 

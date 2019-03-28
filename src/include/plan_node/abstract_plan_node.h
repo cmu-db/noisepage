@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -45,32 +46,25 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
-    /**
-     * @param cardinality estimated cardinality of output for the plan node
-     * @return builder object
-     */
-    ConcreteType &SetEstimatedCardinality(int cardinality) {
-      estimated_cardinality_ = cardinality;
-      return *dynamic_cast<ConcreteType *>(this);
-    }
-
    protected:
+    /**
+     * child plans
+     */
     std::vector<std::unique_ptr<AbstractPlanNode>> children_;
+    /**
+     * schema describing output of the node
+     */
     std::shared_ptr<OutputSchema> output_schema_;
-    uint32_t estimated_cardinality_ = 0;
   };
 
   /**
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    */
   explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                            std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality)
-      : children_(std::move(children)),
-        output_schema_(std::move(output_schema)),
-        estimated_cardinality_(estimated_cardinality) {}
+                            std::shared_ptr<OutputSchema> output_schema)
+      : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
   /**
    * Constructor for Deserialization and DDL statements
@@ -112,18 +106,13 @@ class AbstractPlanNode {
    * Returns plan type, each derived plan class should override this method to return their specific type
    * @return plan type
    */
-  virtual PlanNodeType GetPlanNodeType() const;
+  virtual PlanNodeType GetPlanNodeType() const = 0;
 
   /**
    * @return output schema for the node. The output schema contains information on columns of the output of the plan
    * node operator
    */
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
-
-  /**
-   * @return estimated cardinality of the output tuple set from this plan node
-   */
-  int GetEstimatedCardinality() const { return estimated_cardinality_; }
 
   //  //===--------------------------------------------------------------------===//
   //  // JSON Serialization/Deserialization
@@ -163,7 +152,13 @@ class AbstractPlanNode {
    * @return true if plan node and its children are equal
    */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
-    if (*GetOutputSchema() != *rhs.GetOutputSchema()) return false;
+    auto output_schema = GetOutputSchema();
+    auto other_output_schema = rhs.GetOutputSchema();
+    if ((output_schema == nullptr && other_output_schema != nullptr) ||
+        (output_schema != nullptr && other_output_schema == nullptr))
+      return false;
+    if (output_schema != nullptr && *output_schema != *other_output_schema) return false;
+
     auto num = GetChildren().size();
     if (num != rhs.GetChildren().size()) return false;
     for (unsigned int i = 0; i < num; i++) {
@@ -172,14 +167,20 @@ class AbstractPlanNode {
     return true;
   }
 
-  virtual bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
+  /**
+   * @param rhs other node to compare against
+   * @return true if two plan nodes are not equivalent
+   */
+  bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::shared_ptr<OutputSchema> output_schema_;
-  uint32_t estimated_cardinality_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode);
 };
 
@@ -191,6 +192,9 @@ class AbstractPlanNode {
 
 namespace std {
 
+/**
+ * template for std::hash of plan nodes
+ */
 template <>
 struct hash<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   /**
@@ -201,6 +205,9 @@ struct hash<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   size_t operator()(const std::shared_ptr<terrier::plan_node::AbstractPlanNode> &plan) const { return plan->Hash(); }
 };
 
+/**
+ * std template for equality predicate
+ */
 template <>
 struct equal_to<std::shared_ptr<terrier::plan_node::AbstractPlanNode>> {
   /**

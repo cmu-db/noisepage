@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/hash_util.h"
@@ -18,6 +19,9 @@
 
 namespace terrier::plan_node {
 
+/**
+ * Plan node for an index scan
+ */
 class IndexScanPlanNode : public AbstractScanPlanNode {
  protected:
   /**
@@ -25,6 +29,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -42,29 +49,31 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      */
     std::shared_ptr<IndexScanPlanNode> Build() {
       return std::shared_ptr<IndexScanPlanNode>(new IndexScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      estimated_cardinality_, std::move(predicate_),
-                                                                      is_for_update_, is_parallel_, index_oid_));
+                                                                      std::move(predicate_), is_for_update_,
+                                                                      is_parallel_, index_oid_));
     }
 
    protected:
+    /**
+     * index OID to be used for scan
+     */
     catalog::index_oid_t index_oid_;
   };
 
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
-   * @param parallel parallel scan flag
+   * @param is_parallel parallel scan flag
    * @param index_oid OID of index to be used in index scan
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                    std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
+                    std::shared_ptr<OutputSchema> output_schema,
+                    std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                     catalog::index_oid_t index_oid)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),
-                             is_for_update, is_parallel),
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
+                             is_parallel),
         index_oid_(index_oid) {}
 
  public:
@@ -82,15 +91,18 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
-
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
-  // Index oid associated with index scan
+  /**
+   * Index oid associated with index scan
+   */
   catalog::index_oid_t index_oid_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(IndexScanPlanNode);
 };
 

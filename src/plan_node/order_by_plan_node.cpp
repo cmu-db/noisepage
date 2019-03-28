@@ -11,7 +11,7 @@ common::hash_t OrderByPlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&sort_key));
   }
 
-  for (const OrderByOrdering flag : GetSortKeyOrderings()) {
+  for (const OrderByOrderingType flag : GetSortKeyOrderings()) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&flag));
   }
 
@@ -40,8 +40,6 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetSortKeyOrderings() != other.GetSortKeyOrderings()) {
     return false;
   }
-
-  // TODO(Gus,Wen): Check equaility of output schema
 
   // Limit/Offset
   if (HasLimit() != other.HasLimit() || GetOffset() != other.GetOffset() || GetLimit() != other.GetLimit()) {

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "plan_node/abstract_plan_node.h"
 
 namespace terrier::plan_node {
@@ -17,6 +18,9 @@ class ProjectionPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -25,18 +29,17 @@ class ProjectionPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<ProjectionPlanNode> Build() {
       return std::shared_ptr<ProjectionPlanNode>(
-          new ProjectionPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_));
+          new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
     }
   };
 
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    */
   explicit ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                              std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality) {}
+                              std::shared_ptr<OutputSchema> output_schema)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
 
  public:
   /**
@@ -50,9 +53,11 @@ class ProjectionPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ProjectionPlanNode);
 };
 

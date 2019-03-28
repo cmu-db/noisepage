@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 #include "parser/expression/abstract_expression.h"
 #include "plan_node/abstract_plan_node.h"
 
@@ -23,7 +24,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> &&predicate) {
+    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
       predicate_ = std::move(predicate);
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -47,9 +48,17 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Scan predicate
+     */
     std::unique_ptr<const parser::AbstractExpression> predicate_;
-    // flags defaulted to false
+    /**
+     * Is scan for update
+     */
     bool is_for_update_ = false;
+    /**
+     * Is this a parallel scan
+     */
     bool is_parallel_ = false;
   };
 
@@ -57,16 +66,15 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Base constructor for scans. Derived scan plans should call this constructor
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
    * @param is_parallel parallel scan flag
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                       std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update,
+                       std::shared_ptr<OutputSchema> output_schema,
+                       std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update,
                        bool is_parallel)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         predicate_(std::move(predicate)),
         is_for_update_(is_for_update),
         is_parallel_(is_parallel) {}
@@ -104,6 +112,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   bool is_parallel_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
 };
 

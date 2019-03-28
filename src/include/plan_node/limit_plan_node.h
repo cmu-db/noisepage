@@ -3,10 +3,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "catalog/schema.h"
 #include "plan_node/abstract_plan_node.h"
-
-// TODO(Gus,Wen): I don't think limit really needs an output schema. I'll include it for now, but we can maybe toss it
 
 namespace terrier::plan_node {
 
@@ -20,6 +19,9 @@ class LimitPlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
@@ -46,26 +48,29 @@ class LimitPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<LimitPlanNode> Build() {
       return std::shared_ptr<LimitPlanNode>(
-          new LimitPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, limit_, offset_));
+          new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_));
     }
 
    protected:
+    /**
+     * Limit for plan
+     */
     size_t limit_;
+    /**
+     * offset for plan
+     */
     size_t offset_;
   };
 
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param limit number of tuples to limit to
    * @param offset offset at which to limit from
    */
   LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                uint32_t estimated_cardinality, size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        limit_(limit),
-        offset_(offset) {}
+                size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), limit_(limit), offset_(offset) {}
 
   /**
    * Constructor used for JSON serialization
@@ -94,19 +99,25 @@ class LimitPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
   //  nlohmann::json ToJson() const override;
   //  void FromJson(const nlohmann::json &json) override;
 
  private:
-  // The limit
+  /**
+   * The limit
+   */
   size_t limit_;
 
-  // The offset
+  /**
+   * The offset
+   */
   size_t offset_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(LimitPlanNode);
 };
 }  // namespace terrier::plan_node

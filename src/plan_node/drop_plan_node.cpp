@@ -1,55 +1,64 @@
 #include "plan_node/drop_plan_node.h"
 #include <string>
 #include <utility>
-#include "parser/drop_statement.h"
-#include "storage/data_table.h"
 
 namespace terrier::plan_node {
+common::hash_t DropPlanNode::Hash() const {
+  auto type = GetPlanNodeType();
+  common::hash_t hash = common::HashUtil::Hash(&type);
 
-DropPlanNode::DropPlanNode(std::string table_name) : AbstractPlanNode(nullptr) {
-  table_name_ = std::move(table_name);
-  if_exists_ = false;
+  // Hash drop_type
+  auto drop_type = GetDropType();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&drop_type));
+
+  // Hash table_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
+
+  // Hash databse_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetDatabaseName()));
+
+  // Hash schema_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetSchemaName()));
+
+  // Hash trigger_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTriggerName()));
+
+  // Hash index_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetIndexName()));
+
+  // Hash if_exists_
+  auto if_exist = IsIfExists();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+
+  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-DropPlanNode::DropPlanNode(parser::DropStatement *drop_stmt) : AbstractPlanNode(nullptr) {
-  switch (drop_stmt->GetDropType()) {
-    case parser::DropStatement::DropType::kDatabase:
-      database_name_ = drop_stmt->GetDatabaseName();
-      if_exists_ = drop_stmt->IsIfExists();
-      drop_type_ = DropType::DB;
-      break;
-    case parser::DropStatement::DropType::kSchema:
-      database_name_ = drop_stmt->GetDatabaseName();
-      schema_name_ = drop_stmt->GetSchemaName();
-      if_exists_ = drop_stmt->IsIfExists();
-      drop_type_ = DropType::SCHEMA;
-      break;
-    case parser::DropStatement::DropType::kTable:
-      database_name_ = drop_stmt->GetDatabaseName();
-      schema_name_ = drop_stmt->GetSchemaName();
-      table_name_ = drop_stmt->GetTableName();
-      if_exists_ = drop_stmt->IsIfExists();
-      drop_type_ = DropType::TABLE;
-      break;
-    case parser::DropStatement::DropType::kTrigger:
-      // TODO(Gus,Wen) it used to be in Peloton that drop statement can have two
-      // different table names, but now drop statement only has one, need to
-      // check correctness
-      database_name_ = drop_stmt->GetDatabaseName();
-      schema_name_ = drop_stmt->GetSchemaName();
-      table_name_ = drop_stmt->GetTableName();
-      trigger_name_ = drop_stmt->GetTriggerName();
-      drop_type_ = DropType::TRIGGER;
-      break;
-    case parser::DropStatement::DropType::kIndex:
-      database_name_ = drop_stmt->GetDatabaseName();
-      schema_name_ = drop_stmt->GetSchemaName();
-      index_name_ = drop_stmt->GetIndexName();
-      drop_type_ = DropType::INDEX;
-      break;
-    default:
-      break;
-  }
-}
+bool DropPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
+  auto &other = dynamic_cast<const DropPlanNode &>(rhs);
+
+  // Drop type
+  if (GetDropType() != other.GetDropType()) return false;
+
+  // Table name
+  if (GetTableName() != other.GetTableName()) return false;
+
+  // Database name
+  if (GetDatabaseName() != other.GetDatabaseName()) return false;
+
+  // Schema name
+  if (GetSchemaName() != other.GetSchemaName()) return false;
+
+  // Trigger name
+  if (GetTriggerName() != other.GetTriggerName()) return false;
+
+  // Index name
+  if (GetIndexName() != other.GetIndexName()) return false;
+
+  // If exists
+  if (IsIfExists() != other.IsIfExists()) return false;
+
+  return AbstractPlanNode::operator==(rhs);
+}
 }  // namespace terrier::plan_node

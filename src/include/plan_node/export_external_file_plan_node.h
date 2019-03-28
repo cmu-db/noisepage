@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "plan_node/abstract_plan_node.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be
@@ -23,13 +24,16 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
      * @param file_name file path for external file file
      * @return builder object
      */
-    Builder &SetFileName(std::string &file_name) {
+    Builder &SetFileName(std::string file_name) {
       file_name_ = std::move(file_name);
       return *this;
     }
@@ -71,9 +75,21 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * string representation of file name
+     */
     std::string file_name_;
+    /**
+     * delimiter character
+     */
     char delimiter_ = ',';
+    /**
+     * quote character
+     */
     char quote_ = '"';
+    /**
+     * escape character
+     */
     char escape_ = '"';
   };
 
@@ -85,8 +101,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * @param escape escape character
    */
   explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::string file_name,
-                                      char delimiter = ',', char quote = '"', char escape = '\"')
-      : AbstractPlanNode(std::move(children), nullptr, 0),
+                                      char delimiter, char quote, char escape)
+      : AbstractPlanNode(std::move(children), nullptr),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -124,7 +140,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   std::string file_name_;
@@ -133,6 +148,9 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char escape_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ExportExternalFilePlanNode);
 };
 

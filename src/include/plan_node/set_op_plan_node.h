@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "plan_node/abstract_plan_node.h"
 #include "plan_node/output_schema.h"
 
@@ -16,15 +17,49 @@ namespace terrier::plan_node {
  * IMPORTANT: Both children must have the same physical schema.
  */
 class SetOpPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Instantiate a SetOpPlanNode
-   * @param output_schema the output schema of this plan node
-   * @param set_op the set operation of this node
+   * Builder for an delete plan node
    */
-  SetOpPlanNode(std::shared_ptr<OutputSchema> output_schema, SetOpType set_op)
-      : AbstractPlanNode(std::move(output_schema)), set_op_(set_op) {}
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
+    DISALLOW_COPY_AND_MOVE(Builder);
 
+    /**
+     * @param set_op set operation of this plan node
+     * @return builder object
+     */
+    Builder &SetSetOp(SetOpType set_op) {
+      set_op_ = set_op;
+      return *this;
+    }
+
+    /**
+     * Build the setop plan node
+     * @return plan node
+     */
+    std::shared_ptr<SetOpPlanNode> Build() {
+      return std::shared_ptr<SetOpPlanNode>(
+          new SetOpPlanNode(std::move(children_), std::move(output_schema_), set_op_));
+    }
+
+   protected:
+    SetOpType set_op_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param set_op the set pperation of this node
+   */
+  SetOpPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+                SetOpType set_op)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), set_op_(set_op) {}
+
+ public:
   /**
    * @return the set operation of this node
    */
@@ -35,11 +70,23 @@ class SetOpPlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::SETOP; }
 
+  /**
+   * @return the hashed value of this plan node
+   */
+  common::hash_t Hash() const override;
+
+  bool operator==(const AbstractPlanNode &rhs) const override;
+
  private:
-  // Set Operation of this node
+  /**
+   * Set Operation of this node
+   */
   SetOpType set_op_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(SetOpPlanNode);
 };
 

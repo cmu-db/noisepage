@@ -18,19 +18,53 @@ namespace terrier::plan_node {
  * that returns a single constant tuple.
  */
 class ResultPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Instantiate a Result Plan Node
-   * @param outputSchema the schema of the output node
+   * Builder for an delete plan node
+   */
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param tuple the tuple in the storage layer
+     * @return builder object
+     */
+    Builder &SetTuple(std::shared_ptr<parser::AbstractExpression> expr) {
+      expr_ = std::move(expr);
+      return *this;
+    }
+
+    /**
+     * Build the setop plan node
+     * @return plan node
+     */
+    std::shared_ptr<ResultPlanNode> Build() {
+      return std::shared_ptr<ResultPlanNode>(
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
+    }
+
+   protected:
+    std::shared_ptr<parser::AbstractExpression> expr_;
+  };
+
+  /**
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
    * @param tuple the tuple in the storage layer
    */
-  ResultPlanNode(std::shared_ptr<OutputSchema> outputSchema, std::shared_ptr<Tuple> tuple)
-      : AbstractPlanNode(std::move(outputSchema)), tuple_(std::move(tuple)) {}
+  ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+                 std::shared_ptr<parser::AbstractExpression> expr)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
 
+ public:
   /**
    * @return the tuple in the storage layer
    */
-  const std::shared_ptr<Tuple> GetTuple() const { return tuple_; }
+  const std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
 
   /**
    * @return the type of this plan node
@@ -38,17 +72,22 @@ class ResultPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::RESULT; }
 
   /**
-   * @return a unique pointer to a copy of this plan node
+   * @return the hashed value of this plan node
    */
-  std::unique_ptr<AbstractPlanNode> Copy() const override {
-    return std::unique_ptr<AbstractPlanNode>(new ResultPlanNode(GetOutputSchema(), tuple_));
-  }
+  common::hash_t Hash() const override;
+
+  bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // the tuple in the storage layer
-  std::shared_ptr<Tuple> tuple_;
+  /**
+   * The expression used to derived the output tuple
+   */
+  std::shared_ptr<parser::AbstractExpression> expr_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(ResultPlanNode);
 };
 

@@ -3,12 +3,13 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include "../../../../../../../../usr/local/Cellar/llvm@6/6.0.1/include/c++/v1/algorithm"
-#include "abstract_scan_plan_node.h"
+#include <vector>
 #include "plan_node/abstract_scan_plan_node.h"
-#include "plan_node/output_schema.h"
 
 namespace terrier::plan_node {
+/**
+ * Plan node for a CSV scan
+ */
 class CSVScanPlanNode : public AbstractScanPlanNode {
  protected:
   /**
@@ -16,13 +17,16 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
      * @param file_name file path for CSV file
      * @return builder object
      */
-    Builder &SetFileName(std::string &file_name) {
+    Builder &SetFileName(std::string file_name) {
       file_name_ = std::move(file_name);
       return *this;
     }
@@ -58,7 +62,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @param null_string null string for CSV
      * @return builder object
      */
-    Builder &SetNullString(std::string &null_string) {
+    Builder &SetNullString(std::string null_string) {
       null_string_ = std::move(null_string);
       return *this;
     }
@@ -68,16 +72,31 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::shared_ptr<CSVScanPlanNode> Build() {
-      return std::shared_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
-          std::move(children_), std::move(output_schema_), estimated_cardinality_, nullptr /* predicate */,
-          is_for_update_, is_parallel_, file_name_, delimiter_, quote_, escape_, null_string_));
+      return std::shared_ptr<CSVScanPlanNode>(
+          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
+                              is_parallel_, file_name_, delimiter_, quote_, escape_, null_string_));
     }
 
    protected:
+    /**
+     * string representation of file name
+     */
     std::string file_name_;
+    /**
+     * delimiter character for CSV
+     */
     char delimiter_ = ',';
+    /**
+     * quote character for CSV
+     */
     char quote_ = '"';
+    /**
+     * escape character for CSV
+     */
     char escape_ = '"';
+    /**
+     * null string for CSV
+     */
     std::string null_string_ = "";
   };
 
@@ -85,7 +104,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * Constructs a sequential scan over a CSV file
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate nullptr for csv scans
    * @param is_for_update false for csv scans
    * @param is_parallel false for csv scans
@@ -96,11 +114,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param null_string the null string for the file
    */
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                  std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
+                  std::shared_ptr<OutputSchema> output_schema,
+                  std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                   std::string file_name, char delimiter, char quote, char escape, std::string null_string)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),
-                             is_for_update, is_parallel),
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
+                             is_parallel),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -144,7 +162,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   const std::string file_name_;
@@ -154,6 +171,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   const std::string null_string_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
 

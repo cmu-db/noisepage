@@ -69,7 +69,7 @@ enum class PlanNodeType {
 //===--------------------------------------------------------------------===//
 // Aggregate Stragegies
 //===--------------------------------------------------------------------===//
-enum class AggregateStrategy {
+enum class AggregateStrategyType {
   INVALID = INVALID_TYPE_ID,
   SORTED = 1,
   HASH = 2,
@@ -77,15 +77,10 @@ enum class AggregateStrategy {
 };
 
 //===--------------------------------------------------------------------===//
-// Hybrid Scan Types
-//===--------------------------------------------------------------------===//
-enum class HybridScanType { INVALID = INVALID_TYPE_ID, SEQUENTIAL = 1, INDEX = 2, HYBRID = 3 };
-
-//===--------------------------------------------------------------------===//
 // Order by Orderings
 //===--------------------------------------------------------------------===//
 
-enum class OrderByOrdering { ASC, DESC };
+enum class OrderByOrderingType { ASC, DESC };
 
 //===--------------------------------------------------------------------===//
 // Logical Join Types
@@ -133,7 +128,9 @@ enum class DropType {
 enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL = 2, EXCEPT = 3, EXCEPT_ALL = 4 };
 
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
-// collection of TransientValues
+/**
+ * Temporary definition of a tuple in the storage layer
+ */
 class Tuple {
  public:
   Tuple() = default;

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
+#include "parser/insert_statement.h"
 #include "plan_node/abstract_plan_node.h"
 #include "plan_node/abstract_scan_plan_node.h"
 #include "type/transient_value.h"
@@ -13,45 +14,114 @@
 
 namespace terrier {
 
-namespace storage {
-class SqlTable;
-}  // namespace storage
-
-namespace parser {
-class InsertStatement;
-}
-
 namespace plan_node {
 
 class InsertPlanNode : public AbstractPlanNode {
- public:
+ protected:
   /**
-   * Instantiate an InsertPlanNode
-   * Construct when SELECT comes in with it
+   * Builder for an insert plan node
    */
-  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, uint32_t bulk_insert_count = 1)
-      : target_table_oid_(target_table_oid), bulk_insert_count_(bulk_insert_count) {}
+  class Builder : public AbstractPlanNode::Builder<Builder> {
+   public:
+    /**
+     * Don't allow builder to be copied or moved
+     */
+    DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param target_table_oid the OID of the target SQL table
+     * @return builder object
+     */
+    Builder &SetTargetTableOid(catalog::table_oid_t target_table_oid) {
+      target_table_oid_ = target_table_oid;
+      return *this;
+    }
+
+    /**
+     * @param table_name name of the target table
+     * @return builder object
+     */
+    Builder &SetTableName(std::string table_name) {
+      table_name_ = std::move(table_name);
+      return *this;
+    }
+
+    /**
+     * @param values values to insert
+     * @return builder object
+     */
+    Builder &SetValues(std::vector<type::TransientValue> &&values) {
+      values_ = std::move(values);
+      return *this;
+    }
+
+    /**
+     * @param parameter_info parameter information
+     * @return builder object
+     */
+    Builder &SetParameterInfo(std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info) {
+      parameter_info_ = std::move(parameter_info);
+      return *this;
+    }
+
+    /**
+     * @param parameter_vector parameters information
+     * @return builder object
+     */
+    Builder &SetBulkInsertCOunt(uint32_t bulk_insert_count) {
+      bulk_insert_count_ = bulk_insert_count;
+      return *this;
+    }
+
+    /**
+     * @param delete_stmt the SQL DELETE statement
+     * @return builder object
+     */
+    Builder &SetFromInsertStatement(parser::InsertStatement *insert_stmt) {
+      table_name_ = insert_stmt->GetInsertionTable()->GetTableName();
+      // TODO(Gus,Wen) fill in parameters
+      return *this;
+    }
+
+    /**
+     * Build the delete plan node
+     * @return plan node
+     */
+    std::shared_ptr<InsertPlanNode> Build() {
+      return std::shared_ptr<InsertPlanNode>(
+          new InsertPlanNode(std::move(children_), std::move(output_schema_), target_table_oid_, std::move(table_name_),
+                             std::move(values_), std::move(parameter_info_), bulk_insert_count_));
+    }
+
+   protected:
+    catalog::table_oid_t target_table_oid_;
+    std::string table_name_;
+    std::vector<type::TransientValue> values_;
+    std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
+    uint32_t bulk_insert_count_;
+  };
 
   /**
-   * Instantiate an InsertPlanNode
-   * Construct with an OutputSchema
+   * @param children child plan nodes
+   * @param output_schema Schema representing the structure of the output of this plan node
+   * @param target_table_oid the OID of the target SQL table
+   * @param table_name name of the target table
+   * @param values values to insert
+   * @param parameter_info parameters information
+   * @param bulk_insert_count the number of times to insert
    */
-  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, std::shared_ptr<OutputSchema> output_schema,
-                          uint32_t bulk_insert_count = 1)
-      : AbstractPlanNode(std::move(output_schema)),
+  InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+                 catalog::table_oid_t target_table_oid, std::string table_name,
+                 std::vector<type::TransientValue> &&values,
+                 std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info, uint32_t bulk_insert_count)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         target_table_oid_(target_table_oid),
+        table_name_(std::move(table_name)),
+        values_(std::move(values)),
+        parameter_info_(std::move(parameter_info)),
         bulk_insert_count_(bulk_insert_count) {}
 
-  /**
-   * Create an insert plan with specific values
-   *
-   * @param table table to insert into
-   * @param columns columns to insert into
-   * @param insert_values values to insert
-   */
-  explicit InsertPlanNode(catalog::table_oid_t target_table_oid, const std::vector<std::string> &columns,
-                          std::vector<std::vector<std::unique_ptr<parser::AbstractExpression>>> &&insert_values);
-
+ public:
   /**
    * @return the type of this plan node
    */
@@ -62,7 +132,17 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   catalog::table_oid_t GetTargetTableOid() const { return target_table_oid_; }
 
+  /**
+   * @return the name of the table to insert into
+   */
+  const std::string &GetTableName() const { return table_name_; }
+
   // TODO(Gus,Wen) use transient value peeker to peek values
+
+  /**
+   * @return the information of insert parameters
+   */
+  const std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &GetParameterInfo() const { return parameter_info_; }
 
   /**
    * @return number of times to insert
@@ -75,67 +155,30 @@ class InsertPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
-  bool operator!=(const AbstractPlanNode &rhs) const override { return !(*this == rhs); }
 
  private:
   /**
-   * Lookup a column name in the schema columns
-   *
-   * @param  col_name    column name, from insert statement
-   * @param  tbl_columns table columns from the schema
-   * @param  index       index into schema columns, only if found
-   *
-   * @return true if column was found, false otherwise
+   * OID of the target table
    */
-  bool FindSchemaColIndex(const std::string &col_name, const std::vector<catalog::Schema::Column> &tbl_columns,
-                          uint32_t *index);
-
-  /**
-   * Process column specification supplied in the insert statement.
-   * Construct a map from insert columns to schema columns. Once
-   * we know which columns will receive constant inserts, further
-   * adjustment of the map will be needed.
-   *
-   * @param columns        Column specification
-   */
-  void ProcessColumnSpec(const std::vector<std::string> &columns);
-
-  /**
-   * Process a single expression to be inserted.
-   *
-   * @param expr       insert expression
-   * @param schema_idx index into schema columns, where the expr
-   *                       will be inserted.
-   * @return  true if values imply a prepared statement
-   *          false if all values are constants. This does not rule
-   *             out the insert being a prepared statement.
-   */
-  bool ProcessValueExpr(parser::AbstractExpression *expr, uint32_t schema_idx);
-
-  /**
-   * Set default value into a schema column
-   *
-   * @param idx  schema column index
-   */
-  void SetDefaultValue(uint32_t idx);
-
- private:
-  // OID of the target table
   catalog::table_oid_t target_table_oid_;
 
-  // Values
+  // Table name
+  std::string table_name_;
+
+  // Values to insert
   std::vector<type::TransientValue> values_;
 
-  // Parameter Information <tuple_index, column oid, parameter_index>
-  std::unique_ptr<std::vector<std::tuple<uint32_t, catalog::col_oid_t, uint32_t>>> parameter_vector_;
-
-  // Parameter value types
-  std::unique_ptr<std::vector<type::TypeId>> params_value_type_;
+  // TODO(Gus,Wen) the storage layer is different now, need to whether reconsider this mapping approach is still valid
+  // Parameter Information <tuple_index,  tuple_column_index, value_index>
+  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
 
   // Number of times to insert
   uint32_t bulk_insert_count_;
 
  public:
+  /**
+   * Don't allow plan to be copied or moved
+   */
   DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
 }  // namespace plan_node

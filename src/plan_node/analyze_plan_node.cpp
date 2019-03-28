@@ -4,32 +4,50 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "parser/analyze_statement.h"
-#include "storage/data_table.h"
 
 namespace terrier::plan_node {
 
-AnalyzePlanNode::AnalyzePlanNode(catalog::table_oid_t target_table_oid)
-    : AbstractPlanNode(nullptr), target_table_oid_(target_table_oid) {}
+common::hash_t AnalyzePlanNode::Hash() const {
+  auto type = GetPlanNodeType();
+  common::hash_t hash = common::HashUtil::Hash(&type);
 
-AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
-                                 const std::string &database_name, transaction::TransactionContext *txn)
-    : AbstractPlanNode(nullptr), table_name_(std::move(table_name)) {
-  // TODO(Gus,Wen): Do catalog lookups once catalog is available
+  // Hash target_table_oid
+  auto target_table_oid = GetTargetTableOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid));
+
+  // Hash table_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
+
+  // Hash column_names
+  for (const auto &column_name : column_names_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name));
+  }
+
+  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-AnalyzePlanNode::AnalyzePlanNode(std::string table_name, const std::string &schema_name,
-                                 const std::string &database_name, std::vector<std::string> &&column_names,
-                                 transaction::TransactionContext *txn)
-    : AbstractPlanNode(nullptr), table_name_(std::move(table_name)), column_names_(std::move(column_names)) {
-  // TODO(Gus,Wen): Do catalog lookups once catalog is available
-}
+bool AnalyzePlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-AnalyzePlanNode::AnalyzePlanNode(parser::AnalyzeStatement *analyze_stmt, transaction::TransactionContext *txn)
-    : AbstractPlanNode(nullptr) {
-  table_name_ = analyze_stmt->GetAnalyzeTable()->GetTableName();
-  column_names_ = *analyze_stmt->GetAnalyzeColumns();
+  auto &other = dynamic_cast<const AnalyzePlanNode &>(rhs);
 
-  // TODO(Gus,Wen): Do catalog lookups once catalog is available
+  // Target table OID
+  if (GetTargetTableOid() != other.GetTargetTableOid()) return false;
+
+  // Table name
+  if (GetTableName() != other.GetTableName()) return false;
+
+  // Column names
+  const auto &column_names = GetColumnNames();
+  const auto &other_column_names = other.GetColumnNames();
+  if (column_names.size() != other_column_names.size()) return false;
+
+  for (size_t i = 0; i < column_names.size(); i++) {
+    if (column_names[i] != other_column_names[i]) {
+      return false;
+    }
+  }
+
+  return AbstractPlanNode::operator==(rhs);
 }
 }  // namespace terrier::plan_node

@@ -8,7 +8,7 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   // Check join type
-  auto &other = static_cast<const AbstractJoinPlanNode &>(rhs);
+  auto &other = dynamic_cast<const AbstractJoinPlanNode &>(rhs);
   if (GetLogicalJoinType() != other.GetLogicalJoinType()) {
     return false;
   }
@@ -20,10 +20,6 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   }
   if (pred != nullptr && *pred != *other_pred) {
-    return false;
-  }
-
-  if (*GetOutputSchema() != *rhs.GetOutputSchema()) {
     return false;
   }
 

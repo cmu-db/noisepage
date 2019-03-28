@@ -18,9 +18,29 @@ namespace terrier::plan_node {
 
 /**
  * Internal object for representing output columns of a plan node. This object is to be differentiated from
- * catalog::Schema, which contains all columns of a table. This object can contain partial
+ * catalog::Schema, which contains all columns of a table. This object can contain a subset of columns of a table.
+ * This class is also meant to provide mapping information from a set of input columns to a set of output columns.
  */
 class OutputSchema {
+  /**
+   * The mapping of input columns to output columns is stored in two parts:
+   * 1) A target_list stores non-trivial projections that can be calculated from
+   *    expressions.
+   * 2) A direct_map_list stores projections that is simply reorder of attributes
+   *    in the input.
+   *
+   * We separate it in this way for two reasons:
+   * i)  Postgres does the same thing;
+   * ii) It makes it possible to use a more efficient executor to handle pure
+   *     direct map projections.
+   *
+   * The input columns can be either:
+   * 1) Part of the OutputSchema of a child plan node.
+   * 2) Columns provided in INSERT, UPDATE, DELETE statements.
+   *
+   * NB: in case of a constant-valued projection, it is still under the umbrella
+   * of target_list, though it sounds simple enough.
+   */
  public:
   /**
    * This object contains output columns of a plan node which can consist of columns that exist in the catalog
@@ -32,6 +52,7 @@ class OutputSchema {
      * Instantiates a Column object, primary to be used for building a Schema object
      * @param name column name
      * @param type SQL type for this column
+     * @param nullable is column nullable
      * @param oid internal unique identifier for this column
      */
     Column(std::string name, const type::TypeId type, const bool nullable, const catalog::col_oid_t oid)
@@ -83,9 +104,16 @@ class OutputSchema {
   /**
    * An intermediate column produced by plan nodes
    */
-  struct DerivedColumn {
-    Column column_;                                     // Intermediate column
-    std::shared_ptr<parser::AbstractExpression> expr_;  // The expression used to derive the intermediate column
+  class DerivedColumn {
+   public:
+    /**
+     * Intermediate column
+     */
+    Column column_;
+    /**
+     * The expression used to derive the intermediate column
+     */
+    std::shared_ptr<parser::AbstractExpression> expr_;
 
     /**
      * Instantiate a derived column
@@ -152,6 +180,12 @@ class OutputSchema {
   const std::vector<Column> &GetColumns() const { return columns_; }
 
   /**
+   * Make a copy of this OutputSchema
+   * @return shared pointer to the copy
+   */
+  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
+
+  /**
    * Hash the current OutputSchema.
    */
   common::hash_t Hash() const {
@@ -195,32 +229,7 @@ class OutputSchema {
    */
   bool operator!=(const OutputSchema &rhs) const { return !operator==(rhs); }
 
-  /**
-   * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
-   */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
-
  private:
-  /**
-   * The mapping of input columns to output columns is stored in two parts:
-   * 1) A target_list stores non-trivial projections that can be calculated from
-   *    expressions.
-   * 2) A direct_map_list stores projections that is simply reorder of attributes
-   *    in the input.
-   *
-   * We separate it in this way for two reasons:
-   * i)  Postgres does the same thing;
-   * ii) It makes it possible to use a more efficient executor to handle pure
-   *     direct map projections.
-   *
-   * The input columns can be either:
-   * 1) Part of the OutputSchema of a child plan node.
-   * 2) Columns provided in INSERT, UPDATE, DELETE statements.
-   *
-   * NB: in case of a constant-valued projection, it is still under the umbrella
-   * of target_list, though it sounds simple enough.
-   */
   const std::vector<Column> columns_;
   const std::vector<DerivedTarget> targets_;
   const std::vector<DirectMap> direct_map_list_;
