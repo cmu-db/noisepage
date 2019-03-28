@@ -29,7 +29,7 @@ common::hash_t AggregatePlanNode::Hash() const {
 
   hash = common::HashUtil::CombineHashes(hash, HashAggregateTerms(GetAggregateTerms()));
 
-  auto agg_strategy = GetAggregateStrategy();
+  auto agg_strategy = GetAggregateStrategyType();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&agg_strategy));
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
@@ -63,7 +63,7 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (!AreEqual(GetAggregateTerms(), other.GetAggregateTerms())) return false;
 
-  if (GetAggregateStrategy() != other.GetAggregateStrategy()) return false;
+  if (GetAggregateStrategyType() != other.GetAggregateStrategyType()) return false;
 
   return (AbstractPlanNode::operator==(rhs));
 }
