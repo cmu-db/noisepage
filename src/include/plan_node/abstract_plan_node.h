@@ -122,7 +122,7 @@ class AbstractPlanNode {
    * Returns plan type, each derived plan class should override this method to return their specific type
    * @return plan type
    */
-  virtual PlanNodeType GetPlanNodeType() const;
+  virtual PlanNodeType GetPlanNodeType() const = 0;
 
   /**
    * @return output schema for the node. The output schema contains information on columns of the output of the plan
