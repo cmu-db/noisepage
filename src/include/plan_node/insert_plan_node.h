@@ -79,7 +79,6 @@ class InsertPlanNode : public AbstractPlanNode {
      */
     Builder &SetFromInsertStatement(parser::InsertStatement *insert_stmt) {
       table_name_ = insert_stmt->GetInsertionTable()->GetTableName();
-      // TODO(Gus,Wen) get table OID from catalog
       // TODO(Gus,Wen) fill in parameters
       return *this;
     }
@@ -159,7 +158,9 @@ class InsertPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // OID of the target table
+  /**
+   * OID of the target table
+   */
   catalog::table_oid_t target_table_oid_;
 
   // Table name
