@@ -35,22 +35,6 @@ common::hash_t AggregatePlanNode::Hash() const {
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool AggregatePlanNode::AreEqual(const std::vector<AggregatePlanNode::AggregateTerm> &A,
-                                 const std::vector<AggregatePlanNode::AggregateTerm> &B) const {
-  if (A.size() != B.size()) return false;
-
-  for (size_t i = 0; i < A.size(); i++) {
-    if (A[i].aggregate_type_ != B[i].aggregate_type_) return false;
-
-    auto *expr = A[i].expression_;
-
-    if (expr != nullptr && (*expr != *(B[i].expression_))) return false;
-
-    if (A[i].distinct_ != B[i].distinct_) return false;
-  }
-  return true;
-}
-
 bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
@@ -61,7 +45,7 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
   if (pred != nullptr && *pred != *other_pred) return false;
 
-  if (!AreEqual(GetAggregateTerms(), other.GetAggregateTerms())) return false;
+  if (GetAggregateTerms() != other.GetAggregateTerms()) return false;
 
   if (GetAggregateStrategyType() != other.GetAggregateStrategyType()) return false;
 

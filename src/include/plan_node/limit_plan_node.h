@@ -48,7 +48,7 @@ class LimitPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<LimitPlanNode> Build() {
       return std::shared_ptr<LimitPlanNode>(
-          new LimitPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, limit_, offset_));
+          new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_));
     }
 
    protected:
@@ -65,15 +65,12 @@ class LimitPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param limit number of tuples to limit to
    * @param offset offset at which to limit from
    */
   LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                uint32_t estimated_cardinality, size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        limit_(limit),
-        offset_(offset) {}
+                size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), limit_(limit), offset_(offset) {}
 
   /**
    * Constructor used for JSON serialization

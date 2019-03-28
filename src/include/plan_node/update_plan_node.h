@@ -63,8 +63,8 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<UpdatePlanNode> Build() {
       return std::shared_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
-                                                                estimated_cardinality_, target_table_oid_,
-                                                                std::move(table_name_), update_primary_key_));
+                                                                target_table_oid_, std::move(table_name_),
+                                                                update_primary_key_));
     }
 
    protected:
@@ -76,15 +76,13 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param target_table_oid the OID of the target SQL table
    * @param table_name name of the target table
    * @param update_primary_key whether to update primary key
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, catalog::table_oid_t target_table_oid, std::string table_name,
-                 bool update_primary_key)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+                 catalog::table_oid_t target_table_oid, std::string table_name, bool update_primary_key)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         target_table_oid_(target_table_oid),
         table_name_(std::move(table_name)),
         update_primary_key_(update_primary_key) {}

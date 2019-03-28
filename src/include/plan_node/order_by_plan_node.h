@@ -59,9 +59,9 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(
-          new OrderByPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_,
-                              std::move(sort_keys_), std::move(sort_key_orderings_), has_limit_, limit_, offset_));
+      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  std::move(sort_keys_), std::move(sort_key_orderings_),
+                                                                  has_limit_, limit_, offset_));
     }
 
    protected:
@@ -90,7 +90,6 @@ class OrderByPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param sort_keys keys on which to sort on
    * @param sort_key_orderings orderings for each sort key (ASC or DESC). Same size as sort_keys
    * @param has_limit true if operator should perform a limit
@@ -98,10 +97,9 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param offset offset in sort from where to limit from
    */
   OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                  std::vector<catalog::col_oid_t> sort_keys, std::vector<OrderByOrderingType> sort_key_orderings,
-                  bool has_limit, size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+                  std::shared_ptr<OutputSchema> output_schema, std::vector<catalog::col_oid_t> sort_keys,
+                  std::vector<OrderByOrderingType> sort_key_orderings, bool has_limit, size_t limit, size_t offset)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
         sort_key_orderings_(std::move(sort_key_orderings)),
         has_limit_(has_limit),

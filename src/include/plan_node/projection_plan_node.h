@@ -29,18 +29,17 @@ class ProjectionPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<ProjectionPlanNode> Build() {
       return std::shared_ptr<ProjectionPlanNode>(
-          new ProjectionPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_));
+          new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
     }
   };
 
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    */
   explicit ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                              std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality) {}
+                              std::shared_ptr<OutputSchema> output_schema)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
 
  public:
   /**

@@ -43,8 +43,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<ResultPlanNode> Build() {
-      return std::shared_ptr<ResultPlanNode>(new ResultPlanNode(std::move(children_), std::move(output_schema_),
-                                                                estimated_cardinality_, std::move(expr_)));
+      return std::shared_ptr<ResultPlanNode>(
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
     }
 
    protected:
@@ -54,13 +54,11 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, std::shared_ptr<parser::AbstractExpression> expr)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        expr_(std::move(expr)) {}
+                 std::shared_ptr<parser::AbstractExpression> expr)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
 
  public:
   /**
