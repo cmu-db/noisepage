@@ -9,7 +9,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "plan_node/abstract_plan_node.h"
-#include "plan_node/plan_node_defs.h"
 
 // TODO(Gus, Wen): Replace Perform Binding in AggregateTerm and AggregatePlanNode
 // TODO(Gus, Wen): Replace VisitParameters
