@@ -14,10 +14,6 @@
 
 namespace terrier {
 
-namespace storage {
-class SqlTable;
-}  // namespace storage
-
 namespace plan_node {
 
 class InsertPlanNode : public AbstractPlanNode {

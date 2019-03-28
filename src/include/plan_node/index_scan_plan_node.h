@@ -70,7 +70,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
-                    std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
+                    std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                     catalog::index_oid_t index_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
                              is_parallel),

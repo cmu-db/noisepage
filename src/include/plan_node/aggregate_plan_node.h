@@ -32,7 +32,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param expr pointer to aggregate expression
      * @param distinct distinct flag
      */
-    AggregateTerm(parser::ExpressionType aggregate_type, std::unique_ptr<const parser::AbstractExpression> &&expr, bool distinct)
+    AggregateTerm(parser::ExpressionType aggregate_type, std::unique_ptr<const parser::AbstractExpression> &&expr,
+                  bool distinct)
         : aggregate_type_(aggregate_type), expression_(std::move(expr)), distinct_(distinct) {}
 
     /**
@@ -140,7 +141,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
-                    std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
+                    std::unique_ptr<const parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
@@ -148,7 +149,6 @@ class AggregatePlanNode : public AbstractPlanNode {
         aggregate_strategy_(aggregate_strategy) {}
 
  public:
-
   //===--------------------------------------------------------------------===//
   // ACCESSORS
   //===--------------------------------------------------------------------===//

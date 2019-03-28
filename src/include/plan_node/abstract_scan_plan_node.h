@@ -24,7 +24,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> &&predicate) {
+    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
       predicate_ = std::move(predicate);
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -72,7 +72,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema,
-                       std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update,
+                       std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update,
                        bool is_parallel)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         predicate_(std::move(predicate)),

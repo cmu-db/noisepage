@@ -59,7 +59,6 @@ class DeletePlanNode : public AbstractPlanNode {
     Builder &SetFromDeleteStatement(parser::DeleteStatement *delete_stmt) {
       table_name_ = delete_stmt->GetDeletionTable()->GetTableName();
       delete_condition_ = delete_stmt->GetDeleteCondition();
-      // TODO(Gus,Wen) get table OID from catalog
       return *this;
     }
 
