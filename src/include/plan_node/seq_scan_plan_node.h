@@ -47,6 +47,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     }
 
    protected:
+    /**
+     * OID for table being scanned
+     */
     catalog::table_oid_t table_oid_;
   };
 
@@ -55,9 +58,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate scan predicate
-   * @param table_oid OID for table to scan
    * @param is_for_update flag for if scan is for an update
-   * @param parallel flag for parallel scan
+   * @param is_parallel flag for parallel scan
+   * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
@@ -86,7 +89,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // OID for table being scanned
+  /**
+   * OID for table being scanned
+   */
   catalog::table_oid_t table_oid_;
 
  public:

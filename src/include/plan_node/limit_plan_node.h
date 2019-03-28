@@ -7,8 +7,6 @@
 #include "catalog/schema.h"
 #include "plan_node/abstract_plan_node.h"
 
-// TODO(Gus,Wen): I don't think limit really needs an output schema. I'll include it for now, but we can maybe toss it
-
 namespace terrier::plan_node {
 
 /**
@@ -54,7 +52,13 @@ class LimitPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Limit for plan
+     */
     size_t limit_;
+    /**
+     * offset for plan
+     */
     size_t offset_;
   };
 
@@ -103,10 +107,14 @@ class LimitPlanNode : public AbstractPlanNode {
   //  void FromJson(const nlohmann::json &json) override;
 
  private:
-  // The limit
+  /**
+   * The limit
+   */
   size_t limit_;
 
-  // The offset
+  /**
+   * The offset
+   */
   size_t offset_;
 
  public:

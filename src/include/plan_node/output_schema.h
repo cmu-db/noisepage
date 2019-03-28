@@ -32,6 +32,7 @@ class OutputSchema {
      * Instantiates a Column object, primary to be used for building a Schema object
      * @param name column name
      * @param type SQL type for this column
+     * @param nullable is column nullable
      * @param oid internal unique identifier for this column
      */
     Column(std::string name, const type::TypeId type, const bool nullable, const catalog::col_oid_t oid)
@@ -84,8 +85,14 @@ class OutputSchema {
    * An intermediate column produced by plan nodes
    */
   struct DerivedColumn {
-    Column column_;                                     // Intermediate column
-    std::shared_ptr<parser::AbstractExpression> expr_;  // The expression used to derive the intermediate column
+    /**
+     * Intermediate column
+     */
+    Column column_;
+    /**
+     * The expression used to derive the intermediate column
+     */
+    std::shared_ptr<parser::AbstractExpression> expr_;
 
     /**
      * Instantiate a derived column

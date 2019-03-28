@@ -82,7 +82,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param strategy aggregation strategy to be used
      * @return builder object
      */
-    Builder &SetAggregateStrategy(AggregateStrategy strategy) {
+    Builder &SetAggregateStrategyType(AggregateStrategyType strategy) {
       aggregate_strategy_ = strategy;
       return *this;
     }
@@ -109,7 +109,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Strategy to use for aggregation
      */
-    AggregateStrategy aggregate_strategy_;
+    AggregateStrategyType aggregate_strategy_;
   };
 
   /**
@@ -123,7 +123,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
-                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategy aggregate_strategy)
+                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         having_clause_predicate_(std::move(having_clause_predicate)),
         aggregate_terms_(std::move(aggregate_terms)),
@@ -150,7 +150,9 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const parser::AbstractExpression *GetHavingClausePredicate() const { return having_clause_predicate_.get(); }
+  const std::unique_ptr<const parser::AbstractExpression> &GetHavingClausePredicate() const {
+    return having_clause_predicate_;
+  }
 
   /**
    * @return vector of aggregate terms
@@ -160,7 +162,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return aggregation strategy
    */
-  AggregateStrategy GetAggregateStrategy() const { return aggregate_strategy_; }
+  AggregateStrategyType GetAggregateStrategyType() const { return aggregate_strategy_; }
 
   /**
    * @return the type of this plan node
@@ -190,7 +192,7 @@ class AggregatePlanNode : public AbstractPlanNode {
  private:
   std::unique_ptr<const parser::AbstractExpression> having_clause_predicate_;
   const std::vector<AggregateTerm> aggregate_terms_;
-  const AggregateStrategy aggregate_strategy_;
+  const AggregateStrategyType aggregate_strategy_;
 
  public:
   /**

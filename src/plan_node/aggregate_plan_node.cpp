@@ -56,8 +56,8 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = static_cast<const AggregatePlanNode &>(rhs);
 
-  auto *pred = GetHavingClausePredicate();
-  auto *other_pred = other.GetHavingClausePredicate();
+  auto &pred = GetHavingClausePredicate();
+  auto &other_pred = other.GetHavingClausePredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) return false;
   if (pred != nullptr && *pred != *other_pred) return false;
 

@@ -230,25 +230,39 @@ class DropPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // Type of object to drop
+  /**
+   * Type of object to drop
+   */
   DropType drop_type_ = DropType::TABLE;
 
-  // Target Table
+  /**
+   * Target Table
+   */
   std::string table_name_;
 
-  // Database Name
+  /**
+   * Database Name
+   */
   std::string database_name_;
 
-  // Schema Name
+  /**
+   * Schema Name
+   */
   std::string schema_name_;
 
-  // Trigger Name
+  /**
+   * Trigger Name
+   */
   std::string trigger_name_;
 
-  // Index Name
+  /**
+   * Index Name
+   */
   std::string index_name_;
 
-  // Whether "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
+  /**
+   * Whether "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
+   */
   bool if_exists_;
 
  public:

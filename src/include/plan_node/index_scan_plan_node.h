@@ -54,6 +54,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
    protected:
+    /**
+     * index OID to be used for scan
+     */
     catalog::index_oid_t index_oid_;
   };
 
@@ -63,7 +66,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
-   * @param parallel parallel scan flag
+   * @param is_parallel parallel scan flag
    * @param index_oid OID of index to be used in index scan
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -92,7 +95,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // Index oid associated with index scan
+  /**
+   * Index oid associated with index scan
+   */
   catalog::index_oid_t index_oid_;
 
  public:

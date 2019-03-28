@@ -79,7 +79,9 @@ class SetOpPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // Set Operation of this node
+  /**
+   * Set Operation of this node
+   */
   SetOpType set_op_;
 
  public:

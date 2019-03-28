@@ -905,36 +905,52 @@ class CreatePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  // Type of object to create
+  /**
+   * Type of object to create
+   */
   CreateType create_type_;
 
-  // Table Name
+  /**
+   * Table Name
+   */
   std::string table_name_;
 
-  // namespace Name
+  /**
+   * namespace Name
+   */
   std::string schema_name_;
 
-  // Database Name
+  /**
+   * Database Name
+   */
   std::string database_name_;
 
-  // Table Schema
+  /**
+   * Table Schema
+   */
   std::shared_ptr<catalog::Schema> table_schema_;
 
-  // CREATE INDEX
+  /**
+   * [CREATE INDEX] variables
+   */
   parser::IndexType index_type_ = parser::IndexType::INVALID;
   bool unique_index_ = false;
   std::string index_name_;
   std::vector<std::string> index_attrs_;
   std::vector<std::string> key_attrs_;
 
-  // ColumnDefinition for multi-column constraints (including foreign key)
+  /**
+   * ColumnDefinition for multi-column constraints (including foreign key)
+   */
   bool has_primary_key_ = false;
   PrimaryKeyInfo primary_key_;
   std::vector<ForeignKeyInfo> foreign_keys_;
   std::vector<UniqueInfo> con_uniques_;
   std::vector<CheckInfo> con_checks_;
 
-  // CREATE TRIGGER
+  /**
+   * [CREATE TRIGGER] variables
+   */
   std::string trigger_name_;
   std::vector<std::string> trigger_funcnames_;
   std::vector<std::string> trigger_args_;
@@ -942,7 +958,9 @@ class CreatePlanNode : public AbstractPlanNode {
   std::shared_ptr<parser::AbstractExpression> trigger_when_;
   int16_t trigger_type_ = 0;
 
-  // CREATE VIEW
+  /**
+   * [CREATE VIEW] variables
+   */
   std::string view_name_;
   std::shared_ptr<parser::SelectStatement> view_query_;
 

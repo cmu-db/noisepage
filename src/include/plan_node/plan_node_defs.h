@@ -69,7 +69,7 @@ enum class PlanNodeType {
 //===--------------------------------------------------------------------===//
 // Aggregate Stragegies
 //===--------------------------------------------------------------------===//
-enum class AggregateStrategy {
+enum class AggregateStrategyType {
   INVALID = INVALID_TYPE_ID,
   SORTED = 1,
   HASH = 2,
@@ -80,7 +80,7 @@ enum class AggregateStrategy {
 // Order by Orderings
 //===--------------------------------------------------------------------===//
 
-enum class OrderByOrdering { ASC, DESC };
+enum class OrderByOrderingType { ASC, DESC };
 
 //===--------------------------------------------------------------------===//
 // Logical Join Types

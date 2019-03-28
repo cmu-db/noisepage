@@ -125,9 +125,20 @@ class AnalyzePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  catalog::table_oid_t target_table_oid_;  // OID of the target table
-  std::string table_name_;                 // name of the target table
-  std::vector<std::string> column_names_;  // names of the columns to be analyzed
+  /**
+   * OID of the target table
+   */
+  catalog::table_oid_t target_table_oid_;
+
+  /**
+   * name of the target table
+   */
+  std::string table_name_;
+
+  /**
+   * names of the columns to be analyzed
+   */
+  std::vector<std::string> column_names_;
 
  public:
   /**

@@ -101,7 +101,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * @param escape escape character
    */
   explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::string file_name,
-                                      char delimiter = ',', char quote = '"', char escape = '\"')
+                                      char delimiter, char quote, char escape)
       : AbstractPlanNode(std::move(children), nullptr, 0),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),

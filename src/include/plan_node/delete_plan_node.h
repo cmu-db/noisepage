@@ -126,9 +126,18 @@ class DeletePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  catalog::table_oid_t target_table_oid_;                         // the table to be deleted
-  std::string table_name_;                                        // name of the table
-  std::shared_ptr<parser::AbstractExpression> delete_condition_;  // expression of delete condition
+  /**
+   * the table to be deleted
+   */
+  catalog::table_oid_t target_table_oid_;
+  /**
+   * name of the table
+   */
+  std::string table_name_;
+  /**
+   * expression of delete condition
+   */
+  std::shared_ptr<parser::AbstractExpression> delete_condition_;
 
  public:
   /**

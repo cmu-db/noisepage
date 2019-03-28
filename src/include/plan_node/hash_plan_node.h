@@ -17,8 +17,10 @@ namespace terrier::plan_node {
  */
 class HashPlanNode : public AbstractPlanNode {
  public:
+  /**
+   * Hash keys are AsbtractExpressions
+   */
   using HashKeyType = const parser::AbstractExpression;
-  using HashKeyPtrType = std::shared_ptr<HashKeyType>;
 
  protected:
   /**
@@ -32,10 +34,10 @@ class HashPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param term Hash key to be added
+     * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(HashKeyPtrType key) {
+    Builder &AddHashKey(std::shared_ptr<HashKeyType> key) {
       hash_keys_.emplace_back(key);
       return *this;
     }
@@ -50,7 +52,10 @@ class HashPlanNode : public AbstractPlanNode {
     }
 
    protected:
-    std::vector<HashKeyPtrType> hash_keys_;
+    /**
+     * keys to be hashed on
+     */
+    std::vector<std::shared_ptr<HashKeyType>> hash_keys_;
   };
 
   /**
@@ -60,7 +65,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               uint32_t estimated_cardinality, std::vector<HashKeyPtrType> hash_keys)
+               uint32_t estimated_cardinality, std::vector<std::shared_ptr<HashKeyType>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
         hash_keys_(std::move(hash_keys)) {}
 
@@ -71,9 +76,9 @@ class HashPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::HASH; }
 
   /**
-   * @return hash keys to be hashed on
+   * @return keys to be hashed on
    */
-  const std::vector<HashKeyPtrType> &GetHashKeys() const { return hash_keys_; }
+  const std::vector<std::shared_ptr<HashKeyType>> &GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -83,7 +88,7 @@ class HashPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  std::vector<HashKeyPtrType> hash_keys_;
+  std::vector<std::shared_ptr<HashKeyType>> hash_keys_;
 
  public:
   /**
