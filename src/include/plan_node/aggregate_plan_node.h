@@ -76,7 +76,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
     /**
-     * Dont allow builder to be copied or moved
+     * Don't allow builder to be copied or moved
      */
     DISALLOW_COPY_AND_MOVE(Builder);
 
@@ -203,7 +203,7 @@ class AggregatePlanNode : public AbstractPlanNode {
 
  public:
   /**
-   * Dont allow plan to be copied or moved
+   * Don't allow plan to be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(AggregatePlanNode);
 };

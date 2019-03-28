@@ -113,7 +113,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
 
  public:
   /**
-   * Dont allow plan to be copied or moved
+   * Don't allow plan to be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode);
 };

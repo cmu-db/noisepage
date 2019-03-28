@@ -18,7 +18,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
     /**
-     * Dont allow builder to be copied or moved
+     * Don't allow builder to be copied or moved
      */
     DISALLOW_COPY_AND_MOVE(Builder);
 
@@ -172,7 +172,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
  public:
   /**
-   * Dont allow plan to be copied or moved
+   * Don't allow plan to be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(CSVScanPlanNode);
 };
