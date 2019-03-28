@@ -9,6 +9,19 @@
 //    setting definitions will be exposed through Param.
 
 #ifdef __SETTING_GFLAGS_DEFINE__
+
+#define DECLARE_VALIDATOR(name, type, min_value, max_value)                                       \
+  static bool Validate##name(const char *setting_name, type value) {                              \
+    if (value >= min_value && value <= max_value) {                                               \
+      return true;                                                                                \
+    } else {                                                                                      \
+      SETTINGS_LOG_WARN("Value given for \"{}"                                                    \
+                         "\" is not in its min-max bounds ({}-{})",                               \
+                         setting_name, min_value, max_value);                                     \
+      return false;                                                                               \
+    }                                                                                             \
+  }
+
 #ifdef SETTING_int
     #undef SETTING_int
   #endif
@@ -23,10 +36,16 @@
   #endif
 
   #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)        \
-    DEFINE_int32(name, default_value, description);
+    DECLARE_VALIDATOR(name, int, min_value, max_value);                                          \
+    DEFINE_int32(name, default_value, description);                                              \
+    DEFINE_validator(name, &Validate##name);
+
+
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)     \
-    DEFINE_double(name, default_value, description);
+    DECLARE_VALIDATOR(name, double, min_value, max_value);                                       \
+    DEFINE_double(name, default_value, description);                                             \
+    DEFINE_validator(name, &Validate##name);
 
   #define SETTING_bool(name, description, default_value, is_mutable)                             \
     DEFINE_bool(name, default_value, description);

@@ -4,7 +4,9 @@
 #include <catalog/settings_handle.h>
 #include "type/value.h"
 #include "common/exception.h"
+#include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
+
 
 namespace terrier::settings {
 

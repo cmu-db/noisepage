@@ -1,3 +1,4 @@
+#include <gflags/gflags.h>
 #include <network/terrier_server.h>
 #include <fstream>
 #include <iostream>
@@ -16,12 +17,16 @@
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 #include "loggers/type_logger.h"
+#include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-int main() {
+
+DECLARE_bool(help);
+
+int main(int argc, char *argv[]) {
   // initialize loggers
   try {
     init_main_logger();
@@ -39,8 +44,16 @@ int main() {
     std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
     return 1;
   }
+
   // log init now complete
   LOG_TRACE("Logger initialization complete");
+
+  // TODO: Reconsider the order of parsing settings and init loggers
+  if (FLAGS_help) {
+    ::google::SetUsageMessage("Usage Info: \n");
+    ::google::HandleCommandLineHelpFlags();
+  }
+  ::google::ParseCommandLineFlags(&argc, &argv, true);
 
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
