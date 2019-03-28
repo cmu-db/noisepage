@@ -69,8 +69,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<AnalyzePlanNode> Build() {
       return std::shared_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
-                                                                  estimated_cardinality_, target_table_oid_,
-                                                                  std::move(table_name_), std::move(column_names_)));
+                                                                  target_table_oid_, std::move(table_name_),
+                                                                  std::move(column_names_)));
     }
 
    protected:
@@ -82,16 +82,14 @@ class AnalyzePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param target_table_oid the OID of the target SQL table
    * @param table_name name of the target table
    * @param column_names names of the columns of the target table
    */
   AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                  catalog::table_oid_t target_table_oid, std::string table_name,
-                  std::vector<std::string> &&column_names)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+                  std::shared_ptr<OutputSchema> output_schema, catalog::table_oid_t target_table_oid,
+                  std::string table_name, std::vector<std::string> &&column_names)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         target_table_oid_(target_table_oid),
         table_name_(std::move(table_name)),
         column_names_(std::move(column_names)) {}

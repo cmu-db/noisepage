@@ -47,8 +47,8 @@ class HashPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<HashPlanNode> Build() {
-      return std::shared_ptr<HashPlanNode>(new HashPlanNode(std::move(children_), std::move(output_schema_),
-                                                            estimated_cardinality_, std::move(hash_keys_)));
+      return std::shared_ptr<HashPlanNode>(
+          new HashPlanNode(std::move(children_), std::move(output_schema_), std::move(hash_keys_)));
     }
 
    protected:
@@ -61,13 +61,11 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               uint32_t estimated_cardinality, std::vector<std::shared_ptr<HashKeyType>> hash_keys)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        hash_keys_(std::move(hash_keys)) {}
+               std::vector<std::shared_ptr<HashKeyType>> hash_keys)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
   /**

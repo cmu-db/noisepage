@@ -69,8 +69,8 @@ class DeletePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<DeletePlanNode> Build() {
       return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
-                                                                estimated_cardinality_, target_table_oid_,
-                                                                std::move(table_name_), std::move(delete_condition_)));
+                                                                target_table_oid_, std::move(table_name_),
+                                                                std::move(delete_condition_)));
     }
 
    protected:
@@ -82,15 +82,14 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param target_table_oid the OID of the target SQL table
    * @param table_name name of the target table
    * @param delete_condition expression of delete condition
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, catalog::table_oid_t target_table_oid, std::string table_name,
+                 catalog::table_oid_t target_table_oid, std::string table_name,
                  std::shared_ptr<parser::AbstractExpression> delete_condition)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         target_table_oid_(target_table_oid),
         table_name_(std::move(table_name)),
         delete_condition_(std::move(delete_condition)) {}

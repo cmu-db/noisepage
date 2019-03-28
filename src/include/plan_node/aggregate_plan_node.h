@@ -32,8 +32,27 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param expr pointer to aggregate expression
      * @param distinct distinct flag
      */
-    AggregateTerm(parser::ExpressionType aggregate_type, parser::AbstractExpression *expr, bool distinct)
-        : aggregate_type_(aggregate_type), expression_(expr), distinct_(distinct) {}
+    AggregateTerm(parser::ExpressionType aggregate_type, std::unique_ptr<const parser::AbstractExpression> &&expr, bool distinct)
+        : aggregate_type_(aggregate_type), expression_(std::move(expr)), distinct_(distinct) {}
+
+    /**
+     * Check if two AggregateTerms are equal
+     * @param rhs other aggregate term
+     * @return true if two AggregateTerms are equal
+     */
+    bool operator==(const AggregateTerm &rhs) const {
+      if ((expression_ == nullptr && rhs.expression_ != nullptr) ||
+          (expression_ != nullptr && rhs.expression_ == nullptr))
+        return false;
+      if (expression_ != nullptr && *expression_ != *rhs.expression_) return false;
+      return aggregate_type_ == rhs.aggregate_type_ && distinct_ == rhs.distinct_;
+    }
+
+    /**
+     * @param rhs other aggregate term
+     * @return true if two aggregate terms are not equal
+     */
+    bool operator!=(const AggregateTerm &rhs) const { return !(*this == rhs); }
 
     /**
      * Count, Sum, Min, Max, etc
@@ -42,7 +61,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Aggregate expression
      */
-    const parser::AbstractExpression *expression_;
+    std::unique_ptr<const parser::AbstractExpression> expression_;
     /**
      * Distinct flag for aggragate term (example COUNT(distinct order))
      */
@@ -64,8 +83,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAgregateTerm(AggregateTerm term) {
-      aggregate_terms_.push_back(term);
+    Builder &AddAgregateTerm(AggregateTerm &term) {
+      aggregate_terms_.push_back(std::move(term));
       return *this;
     }
 
@@ -73,7 +92,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::unique_ptr<const parser::AbstractExpression> &&predicate) {
+    Builder &SetHavingClausePredicate(std::unique_ptr<const parser::AbstractExpression> &predicate) {
       having_clause_predicate_ = std::move(predicate);
       return *this;
     }
@@ -93,8 +112,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<AggregatePlanNode> Build() {
       return std::shared_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_,
-                                std::move(having_clause_predicate_), std::move(aggregate_terms_), aggregate_strategy_));
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
+                                std::move(aggregate_terms_), aggregate_strategy_));
     }
 
    protected:
@@ -115,26 +134,20 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param having_clause_predicate unique pointer to possible having clause predicate
    * @param aggregate_terms vector of aggregate terms for the aggregation
    * @param aggregate_strategy aggregation strategy to be used
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
+                    std::shared_ptr<OutputSchema> output_schema,
                     std::unique_ptr<const parser::AbstractExpression> &&having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
         aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy) {}
 
  public:
-  ~AggregatePlanNode() override {
-    for (auto term : aggregate_terms_) {
-      delete term.expression_;
-    }
-  }
 
   //===--------------------------------------------------------------------===//
   // ACCESSORS
@@ -177,12 +190,6 @@ class AggregatePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
-  /**
-   * @return true of two vectors of aggregate terms are equal
-   */
-  bool AreEqual(const std::vector<AggregatePlanNode::AggregateTerm> &A,
-                const std::vector<AggregatePlanNode::AggregateTerm> &B) const;
-
   /**
    * @param agg_terms aggregate terms to be hashed
    * @return hash of agregate terms

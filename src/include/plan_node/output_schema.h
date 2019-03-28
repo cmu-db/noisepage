@@ -159,6 +159,12 @@ class OutputSchema {
   const std::vector<Column> &GetColumns() const { return columns_; }
 
   /**
+   * Make a copy of this OutputSchema
+   * @return shared pointer to the copy
+   */
+  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
+
+  /**
    * Hash the current OutputSchema.
    */
   common::hash_t Hash() const {
@@ -201,12 +207,6 @@ class OutputSchema {
    * @return true if the two OutputSchema are not equal
    */
   bool operator!=(const OutputSchema &rhs) const { return !operator==(rhs); }
-
-  /**
-   * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
-   */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
 
  private:
   /**

@@ -46,15 +46,6 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
-    /**
-     * @param cardinality estimated cardinality of output for the plan node
-     * @return builder object
-     */
-    ConcreteType &SetEstimatedCardinality(int cardinality) {
-      estimated_cardinality_ = cardinality;
-      return *dynamic_cast<ConcreteType *>(this);
-    }
-
    protected:
     /**
      * child plans
@@ -64,23 +55,16 @@ class AbstractPlanNode {
      * schema describing output of the node
      */
     std::shared_ptr<OutputSchema> output_schema_;
-    /**
-     * estimated cardinality of output for node
-     */
-    uint32_t estimated_cardinality_ = 0;
   };
 
   /**
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    */
   explicit AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                            std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality)
-      : children_(std::move(children)),
-        output_schema_(std::move(output_schema)),
-        estimated_cardinality_(estimated_cardinality) {}
+                            std::shared_ptr<OutputSchema> output_schema)
+      : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
   /**
    * Constructor for Deserialization and DDL statements
@@ -129,11 +113,6 @@ class AbstractPlanNode {
    * node operator
    */
   std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
-
-  /**
-   * @return estimated cardinality of the output tuple set from this plan node
-   */
-  int GetEstimatedCardinality() const { return estimated_cardinality_; }
 
   //  //===--------------------------------------------------------------------===//
   //  // JSON Serialization/Deserialization
@@ -197,7 +176,6 @@ class AbstractPlanNode {
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::shared_ptr<OutputSchema> output_schema_;
-  uint32_t estimated_cardinality_;
 
  public:
   /**

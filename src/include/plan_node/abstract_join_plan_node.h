@@ -25,7 +25,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> &&predicate) {
-      predicate_ = std::move(predicate);
+      join_predicate_ = std::move(predicate);
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -46,23 +46,22 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
     /**
      * Join predicate
      */
-    std::unique_ptr<const parser::AbstractExpression> predicate_;
+    std::unique_ptr<const parser::AbstractExpression> join_predicate_;
   };
 
   /**
    * Base constructor for joins. Derived join plans should call this constructor
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param join_type logical join type
    * @param predicate join predicate
    */
   AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                       LogicalJoinType join_type, std::unique_ptr<const parser::AbstractExpression> &&predicate)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+                       std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                       std::unique_ptr<const parser::AbstractExpression> &&predicate)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         join_type_(join_type),
-        predicate_(std::move(predicate)) {}
+        join_predicate_(std::move(predicate)) {}
 
  public:
   /**
@@ -83,11 +82,11 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate used for join
    */
-  const parser::AbstractExpression *GetPredicate() const { return predicate_.get(); }
+  const parser::AbstractExpression *GetPredicate() const { return join_predicate_.get(); }
 
  private:
   LogicalJoinType join_type_;
-  const std::unique_ptr<const parser::AbstractExpression> predicate_;
+  const std::unique_ptr<const parser::AbstractExpression> join_predicate_;
 
  public:
   /**

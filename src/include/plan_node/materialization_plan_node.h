@@ -35,8 +35,8 @@ class MaterializationPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<MaterializationPlanNode> Build() {
-      return std::shared_ptr<MaterializationPlanNode>(new MaterializationPlanNode(
-          std::move(children_), std::move(output_schema_), estimated_cardinality_, materialize_flag_));
+      return std::shared_ptr<MaterializationPlanNode>(
+          new MaterializationPlanNode(std::move(children_), std::move(output_schema_), materialize_flag_));
     }
 
    protected:
@@ -46,14 +46,11 @@ class MaterializationPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param set_op the set pperation of this node
    */
   MaterializationPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                          std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
-                          bool materialize_flag)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
-        materialize_flag_(materialize_flag) {}
+                          std::shared_ptr<OutputSchema> output_schema, bool materialize_flag)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), materialize_flag_(materialize_flag) {}
 
  public:
   /**

@@ -670,14 +670,14 @@ class CreatePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<CreatePlanNode> Build() {
-      return std::shared_ptr<CreatePlanNode>(new CreatePlanNode(
-          std::move(children_), std::move(output_schema_), estimated_cardinality_, create_type_, std::move(table_name_),
-          std::move(schema_name_), std::move(database_name_), std::move(table_schema_), index_type_, unique_index_,
-          std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_), has_primary_key_,
-          std::move(primary_key_), std::move(foreign_keys_), std::move(con_uniques_), std::move(con_checks_),
-          std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
-          std::move(trigger_columns_), std::move(trigger_when_), trigger_type_, std::move(view_name_),
-          std::move(view_query_)));
+      return std::shared_ptr<CreatePlanNode>(
+          new CreatePlanNode(std::move(children_), std::move(output_schema_), create_type_, std::move(table_name_),
+                             std::move(schema_name_), std::move(database_name_), std::move(table_schema_), index_type_,
+                             unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_),
+                             has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
+                             std::move(con_uniques_), std::move(con_checks_), std::move(trigger_name_),
+                             std::move(trigger_funcnames_), std::move(trigger_args_), std::move(trigger_columns_),
+                             std::move(trigger_when_), trigger_type_, std::move(view_name_), std::move(view_query_)));
     }
 
    protected:
@@ -717,7 +717,6 @@ class CreatePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param create_type type of object to create
    * @param table_name the name of the table [CREATE TABLE]
    * @param schema_name the name of the schema [CREATE TABLE, CREATE SCHEMA]
@@ -743,16 +742,15 @@ class CreatePlanNode : public AbstractPlanNode {
    * @param view_query view query for [CREATE VIEW]
    */
   CreatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 uint32_t estimated_cardinality, CreateType create_type, std::string table_name,
-                 std::string schema_name, std::string database_name, std::shared_ptr<catalog::Schema> table_schema,
-                 parser::IndexType index_type, bool unique_index, std::string index_name,
-                 std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs, bool has_primary_key,
-                 PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
+                 CreateType create_type, std::string table_name, std::string schema_name, std::string database_name,
+                 std::shared_ptr<catalog::Schema> table_schema, parser::IndexType index_type, bool unique_index,
+                 std::string index_name, std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs,
+                 bool has_primary_key, PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
                  std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks, std::string trigger_name,
                  std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                  std::vector<std::string> &&trigger_columns, std::shared_ptr<parser::AbstractExpression> &&trigger_when,
                  int16_t trigger_type, std::string view_name, std::shared_ptr<parser::SelectStatement> view_query)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         create_type_(create_type),
         table_name_(std::move(table_name)),
         schema_name_(std::move(schema_name)),

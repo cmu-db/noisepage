@@ -42,8 +42,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      */
     std::shared_ptr<SeqScanPlanNode> Build() {
       return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  estimated_cardinality_, std::move(predicate_),
-                                                                  is_for_update_, is_parallel_, table_oid_));
+                                                                  std::move(predicate_), is_for_update_, is_parallel_,
+                                                                  table_oid_));
     }
 
    protected:
@@ -56,18 +56,17 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param predicate scan predicate
    * @param is_for_update flag for if scan is for an update
    * @param is_parallel flag for parallel scan
    * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, uint32_t estimated_cardinality,
+                  std::shared_ptr<OutputSchema> output_schema,
                   std::unique_ptr<const parser::AbstractExpression> &&predicate, bool is_for_update, bool is_parallel,
                   catalog::table_oid_t table_oid)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), estimated_cardinality, std::move(predicate),
-                             is_for_update, is_parallel),
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
+                             is_parallel),
         table_oid_(table_oid) {}
 
  public:

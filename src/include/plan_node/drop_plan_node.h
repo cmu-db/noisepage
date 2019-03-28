@@ -140,10 +140,10 @@ class DropPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::shared_ptr<DropPlanNode> Build() {
-      return std::shared_ptr<DropPlanNode>(
-          new DropPlanNode(std::move(children_), std::move(output_schema_), estimated_cardinality_, drop_type_,
-                           std::move(table_name_), std::move(database_name_), std::move(schema_name_),
-                           std::move(trigger_name_), std::move(index_name_), if_exists_));
+      return std::shared_ptr<DropPlanNode>(new DropPlanNode(std::move(children_), std::move(output_schema_), drop_type_,
+                                                            std::move(table_name_), std::move(database_name_),
+                                                            std::move(schema_name_), std::move(trigger_name_),
+                                                            std::move(index_name_), if_exists_));
     }
 
    protected:
@@ -159,7 +159,6 @@ class DropPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param estimated_cardinality estimated cardinality of output of node
    * @param drop_type type of object to drop
    * @param table_name the name of the table [DROP TABLE]
    * @param database_name the name of the database [DROP TABLE, DROP DATABASE]
@@ -168,9 +167,9 @@ class DropPlanNode : public AbstractPlanNode {
    * @param index_name the name of the index [DROP INDEX]
    */
   DropPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               uint32_t estimated_cardinality, DropType drop_type, std::string table_name, std::string database_name,
-               std::string schema_name, std::string trigger_name, std::string index_name, bool if_exists)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), estimated_cardinality),
+               DropType drop_type, std::string table_name, std::string database_name, std::string schema_name,
+               std::string trigger_name, std::string index_name, bool if_exists)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
         drop_type_(drop_type),
         table_name_(std::move(table_name)),
         database_name_(std::move(database_name)),
