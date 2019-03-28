@@ -24,8 +24,6 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-DECLARE_bool(help);
-
 int main(int argc, char *argv[]) {
   // initialize loggers
   try {
@@ -49,10 +47,7 @@ int main(int argc, char *argv[]) {
   LOG_TRACE("Logger initialization complete");
 
   // TODO: Reconsider the order of parsing settings and init loggers
-  if (FLAGS_help) {
-    ::google::SetUsageMessage("Usage Info: \n");
-    ::google::HandleCommandLineHelpFlags();
-  }
+  ::google::SetUsageMessage("Usage Info: \n");
   ::google::ParseCommandLineFlags(&argc, &argv, true);
 
   // initialize stat registry
