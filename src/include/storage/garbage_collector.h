@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <utility>
+#include <vector>
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -51,7 +52,8 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
-  bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+  bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
+                         std::vector<transaction::timestamp_t> *active_txns) const;
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
@@ -66,7 +68,25 @@ class GarbageCollector {
    * @param undo_record UndoRecord to be unlinked
    * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
    */
-  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
+                        std::vector<transaction::timestamp_t> *active_txns) const;
+
+  /**
+   * Given a version chain, perform interval gc on all versions except the head of the chain
+   * @param txn pointer to the transaction that created an UndoRecord in this chain
+   * @param version_chain_head pointer to the head of the chain
+   * @param active_txns vector containing all active transactions
+   * @return true if an UndoRecord created by txn was unlinked
+   */
+  bool UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
+                                   std::vector<transaction::timestamp_t> *active_txns) const;
+
+  /**
+   * Straight up unlink the undo_record and reclaim its space
+   * @param txn
+   * @param undo_record
+   */
+  void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
