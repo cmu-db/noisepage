@@ -7,6 +7,11 @@
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
 
+#define __SETTING_GFLAGS_DECLARE__
+#include "settings/settings_macro.h"
+#include "settings/settings.h"
+#undef __SETTING_GFLAGS_DECLARE__
+
 
 namespace terrier::settings {
 
