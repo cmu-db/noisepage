@@ -146,29 +146,42 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
   // Perform interval gc for the entire version chain excluding the head of the chain
-  bool collected = UnlinkUndoRecordRestOfChain(txn, version_ptr, active_txns);
+  bool rest_collected = UnlinkUndoRecordRestOfChain(txn, version_ptr, active_txns);
+  bool head_collected = UnlinkUndoRecordHead(txn, version_ptr, active_txns);
+  return head_collected || rest_collected;
+}
 
-  // Perform gc for head of the chain
-  // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
-  transaction::timestamp_t version_ptr_timestamp = version_ptr->Timestamp().load();
-  // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
-  // Collect the head of the chain using compare and swap
-  // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
-  if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
-    if (transaction::TransactionUtil::Committed(version_ptr->Timestamp().load())) {
-      UndoRecord *to_be_unlinked = version_ptr;
-      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-      if (table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, version_ptr->Next())) {
-        UnlinkUndoRecordVersion(txn, to_be_unlinked);
-        if (version_ptr_timestamp == txn->TxnId().load()) {
-          // If I was the header, make collected true, because I was collected
-          collected = true;
-        }
-      }
-      // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *const txn,
+                                                   UndoRecord *const head,
+                                                   std::vector<transaction::timestamp_t> *const active_txns) const {
+    DataTable *table = head->Table();
+    if (table == nullptr) {
+        // This UndoRecord has already been unlinked, so we can skip it
+        return true;
     }
-  }
-  return collected;
+    const TupleSlot slot = head->Slot();
+    const TupleAccessStrategy &accessor = table->accessor_;
+    // Perform gc for head of the chain
+    // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
+    transaction::timestamp_t version_ptr_timestamp = head->Timestamp().load();
+    // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
+    // Collect the head of the chain using compare and swap
+    // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
+    if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
+        if (transaction::TransactionUtil::Committed(head->Timestamp().load())) {
+            UndoRecord *to_be_unlinked = head;
+            // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+            if (table->CompareAndSwapVersionPtr(slot, accessor, head, head->Next())) {
+                UnlinkUndoRecordVersion(txn, to_be_unlinked);
+                if (version_ptr_timestamp == txn->TxnId().load()) {
+                    // If I was the header, make collected true, because I was collected
+                    return true;
+                }
+            }
+            // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+        }
+    }
+    return false;
 }
 
 bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
