@@ -154,6 +154,11 @@ if (USE_GOLD)
   endif ()
 endif ()
 
+
+# data directory for SSL
+set(DATA_DIR "${PROJECT_SOURCE_DIR}/data")
+
+
 ############################################################
 # Compiler flags
 ############################################################
@@ -341,6 +346,7 @@ else()
 endif()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
+include_directories(${PROJECT_BINARY_DIR})
 
 # needed for BwTree
 if (CMAKE_COMPILER_IS_GNUCXX)
