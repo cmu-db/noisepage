@@ -20,7 +20,7 @@
 #include "common/macros.h"
 #include "loggers/main_logger.h"
 #include "parser/pg_trigger.h"
-#include "traffic_cop/fake_result_set.h"
+#include "traffic_cop/result_set.h"
 #include "type/type_id.h"
 
 namespace terrier::traffic_cop {
@@ -62,7 +62,7 @@ using NetworkCallback = std::function<void(void)>;
 
 using TrafficCopPtr = std::shared_ptr<traffic_cop::TrafficCop>;
 
-using SimpleQueryCallback = std::function<void(const traffic_cop::FakeResultSet &, network::PostgresPacketWriter *)>;
+using SimpleQueryCallback = std::function<void(const traffic_cop::ResultSet &, network::PostgresPacketWriter *)>;
 
 enum class NetworkProtocolType {
   POSTGRES_JDBC,

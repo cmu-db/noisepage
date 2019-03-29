@@ -8,9 +8,20 @@ namespace terrier::traffic_cop {
 
 using Row = std::vector<std::string>;
 
-class FakeResultSet {
+/**
+ * The result set for a query
+ */
+
+class ResultSet {
  public:
+  /**
+   * The column names
+   */
   std::vector<std::string> column_names_;
+
+  /**
+   * The rows
+   */
   std::vector<Row> rows_;
 };
 

@@ -4,7 +4,7 @@
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
-#include "traffic_cop/fake_result_set.h"
+#include "traffic_cop/result_set.h"
 #include "traffic_cop/sqlite.h"
 
 namespace terrier::traffic_cop {
@@ -25,7 +25,7 @@ SqliteEngine::~SqliteEngine() { sqlite3_close(sqlite_db_); }
 
 void SqliteEngine::ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                                 const network::SimpleQueryCallback &callback) {
-  FakeResultSet result_set;
+  ResultSet result_set;
 
   sqlite3_exec(sqlite_db_, query, StoreResults, &result_set, &error_msg);
   if (error_msg != nullptr) {
@@ -37,7 +37,7 @@ void SqliteEngine::ExecuteQuery(const char *query, network::PostgresPacketWriter
 }
 
 int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **values, char **column_names) {
-  auto result_set = reinterpret_cast<FakeResultSet *>(result_set_void);
+  auto result_set = reinterpret_cast<ResultSet *>(result_set_void);
 
   if (result_set->column_names_.empty()) {
     for (int i = 0; i < elem_count; i++) {

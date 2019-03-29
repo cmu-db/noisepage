@@ -10,6 +10,7 @@
 
 #include "loggers/test_logger.h"
 #include "network/connection_handle_factory.h"
+#include "util/manual_packet_helpers.h"
 
 namespace terrier::network {
 
@@ -58,4 +59,21 @@ std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   return io_socket;
 }
 
+/*
+ * Read and write buffer size for the test
+ */
+#define TEST_BUF_SIZE 1000
+
+void TerminateConnection(int socket_fd) {
+  char out_buffer[TEST_BUF_SIZE] = {};
+  // Build a correct query message, "SELECT A FROM B"
+  memset(out_buffer, 0, sizeof(out_buffer));
+  out_buffer[0] = 'X';
+  int len = sizeof(int32_t) + sizeof(char);
+  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
+  write(socket_fd, nullptr, len + 1);
+}
+
 }  // namespace terrier::network
+
+

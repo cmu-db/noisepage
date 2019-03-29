@@ -4,17 +4,27 @@
 
 namespace terrier::traffic_cop {
 
-/*
+/**
+ *
  * Traffic Cop of the database.
  * This is the reception of the backend execution system.
  *
  * *Should be a singleton*
- * */
+ *
+ */
 
 class TrafficCop {
  public:
-  void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
+  /**
+   * Execute a simple query.
+   * @param query the query string
+   * @param out the packet writer
+   * @param callback the callback function to write back the results
+   */
+  virtual void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                     const network::SimpleQueryCallback &callback);
+
+  virtual ~TrafficCop() = default;
 
  private:
   SqliteEngine sqlite_engine;

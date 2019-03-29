@@ -13,19 +13,24 @@
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
+#include "util/manual_packet_helpers.h"
+#include "traffic_cop/result_set.h"
 
 #define NUM_THREADS 1
 
-/*
- * Read and write buffer size for the test
- */
-#define TEST_BUF_SIZE 1000
-
 namespace terrier::network {
 
-//===--------------------------------------------------------------------===//
-// Simple Query Tests
-//===--------------------------------------------------------------------===//
+/*
+ * In networks tests, we use a fake traffic cop that always return empty results.
+ */
+class FakeTrafficCop : public traffic_cop::TrafficCop {
+ public:
+  void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
+                    const network::SimpleQueryCallback &callback) override{
+    traffic_cop::ResultSet empty_set;
+    callback(empty_set, out);
+  }
+};
 
 class NetworkTests : public TerrierTest {
  protected:
@@ -49,6 +54,11 @@ class NetworkTests : public TerrierTest {
       TEST_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
+
+    // Setup Traffic Cop
+    std::shared_ptr<FakeTrafficCop> t_cop(new FakeTrafficCop());
+    ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
+
     TEST_LOG_DEBUG("Server initialized");
     server_thread = std::thread([&]() { server.ServerLoop(); });
   }
@@ -89,90 +99,7 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
 
-/**
- * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
- * @param io_socket
- * @return true if reads ReadyForQuery, false for closed.
- */
-bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
-  while (true) {
-    Transition trans = io_socket->FillReadBuffer();
-    if (trans == Transition::TERMINATE) return false;
 
-    // Check if the last message is ReadyForQuery, whose length is fixed 6, without parsing the whole packet.
-    // Sometimes there are more than one message in one packet, so don't simply check the first character.
-    if (io_socket->in_->BytesAvailable() >= 6) {
-      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
-      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
-    }
-  }
-}
-
-/* strlcpy based on OpenBSDs strlcpy.
- * this is a safer version of strcpy.
- * clang-tidy does not accept strcpy so we need this function.
- *
- * Copy src to string dst of size siz.  At most siz-1 characters
- * will be copied.  Always NUL terminates (unless siz == 0).
- * Returns strlen(src); if retval >= siz, truncation occurred.
- */
-size_t strlcpy(char *dst, const char *src, size_t siz) {
-  char *d = dst;
-  const char *s = src;
-  size_t n = siz;
-
-  /* Copy as many bytes as will fit */
-  if (n != 0 && --n != 0) {
-    do {
-      if ((*d++ = *s++) == 0) break;
-    } while (--n != 0);
-  }
-
-  /* Not enough room in dst, add NUL and traverse rest of src */
-  if (n == 0) {
-    if (siz != 0) *d = '\0'; /* NUL-terminate dst */
-    while ((*s++) != 0) {
-    }
-  }
-
-  return (s - src - 1); /* count does not include NUL */
-}
-
-std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
-  // Manually open a socket
-  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-  struct sockaddr_in serv_addr;
-  memset(&serv_addr, 0, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-  serv_addr.sin_port = htons(port);
-
-  int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-  if (ret < 0) TEST_LOG_ERROR("Connection Error");
-
-  auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
-  PostgresPacketWriter writer(io_socket->out_);
-
-  std::unordered_map<std::string, std::string> params{
-      {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
-
-  writer.WriteStartupRequest(params);
-  io_socket->FlushAllWrites();
-
-  ReadUntilReadyOrClose(io_socket);
-  return io_socket;
-}
-
-void TerminateConnection(int socket_fd) {
-  char out_buffer[TEST_BUF_SIZE] = {};
-  // Build a correct query message, "SELECT A FROM B"
-  memset(out_buffer, 0, sizeof(out_buffer));
-  out_buffer[0] = 'X';
-  int len = sizeof(int32_t) + sizeof(char);
-  reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-  write(socket_fd, nullptr, len + 1);
-}
 
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, BadQueryTest) {

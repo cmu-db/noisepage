@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
 #include "network/postgres_protocol_utils.h"
-#include "traffic_cop/fake_result_set.h"
+#include "traffic_cop/result_set.h"
 
 struct sqlite3;
 
