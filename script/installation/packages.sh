@@ -80,7 +80,6 @@ install_mac() {
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
-  brew ls --versions sqlite3 || brew install sqlite3
 }
 
 install_linux() {
