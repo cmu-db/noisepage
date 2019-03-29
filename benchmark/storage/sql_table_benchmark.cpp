@@ -113,11 +113,13 @@ class SqlTableBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(SqlTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    // Create a sql_table
+    storage::SqlTable table(&block_store_, *schema_, catalog::table_oid_t(0));
     // We can use dummy timestamps here since we're not invoking concurrency control
     transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                         LOGGING_DISABLED);
     for (uint32_t i = 0; i < num_inserts_; ++i) {
-      table_->Insert(&txn, *redo_, storage::layout_version_t(0));
+      table.Insert(&txn, *redo_, storage::layout_version_t(0));
     }
   }
 
@@ -129,12 +131,15 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SimpleInsert)(benchmark::State &state) {
 BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    // Create a sql_table
+    storage::SqlTable table(&block_store_, *schema_, catalog::table_oid_t(0));
+
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                           LOGGING_DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; ++i) {
-        table_->Insert(&txn, *redo_, storage::layout_version_t(0));
+        table.Insert(&txn, *redo_, storage::layout_version_t(0));
       }
     };
     common::WorkerPool thread_pool(num_threads_, {});

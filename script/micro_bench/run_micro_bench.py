@@ -716,7 +716,7 @@ class RunMicroBenchmarks(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
-                               "tuple_access   _strategy_benchmark"]
+                               "tuple_access_strategy_benchmark"]
 
         # minimum run time for the benchmark
         self.min_time = 10
