@@ -130,7 +130,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
  * Run a high number of statements with lots of updates to try to trigger aborts.
  */
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, GarbageCollectorLag)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &state) {
   uint64_t lag_count = 0;
   // NOLINTNEXTLINE
   for (auto _ : state) {
