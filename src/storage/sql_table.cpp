@@ -121,8 +121,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   layout_version_t old_version_num = slot.GetBlock()->layout_version_;
   auto curr_dt_version = tables_.at(version_num);
 
-  TERRIER_ASSERT(out_buffer->NumColumns() <=
-                     curr_dt_version.data_table->accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+  TERRIER_ASSERT(out_buffer->NumColumns() <= curr_dt_version.column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
 
@@ -275,16 +274,21 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
   DataTableVersion dt_ver = tables_.at(dt_version_num);
   DataTableVersion curr_ver = tables_.at(version_num);
 
+  TERRIER_ASSERT(out_buffer->NumColumns() <= curr_ver.column_map.size(),
+                 "The output buffer never returns the version pointer columns, so it should have "
+                 "fewer attributes.");
+
   byte *initial_header = ModifyProjectionHeaderForVersion(out_buffer, curr_ver, dt_ver);
 
   DataTable::SlotIterator dt_slot = start_pos->GetDataTableSlotIterator();
-  uint32_t filled = dt_ver.data_table->Scan(txn, &dt_slot, out_buffer);
+  dt_ver.data_table->Scan(txn, &dt_slot, out_buffer);
   if (dt_slot == dt_ver.data_table->end()) {
     if ((start_pos->dt_version_)->first != version_num) {
       ++(*start_pos);
     }
   }
 
+  uint32_t filled = out_buffer->NumTuples();
   std::memcpy(out_buffer, initial_header, out_buffer->HeaderWithoutBitmapSize());
   out_buffer->SetNumTuples(filled);
   delete[] initial_header;

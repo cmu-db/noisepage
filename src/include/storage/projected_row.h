@@ -153,7 +153,6 @@ class PACKED ProjectedRow {
 
  private:
   friend class ProjectedRowInitializer;
-  friend class SqlTable;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];

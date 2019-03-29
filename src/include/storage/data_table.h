@@ -146,9 +146,8 @@ class DataTable {
    * @param start_pos iterator to the starting location for the sequential scan
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
-   * @return Number of tuple slots filled
    */
-  uint32_t Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
+  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
@@ -208,17 +207,13 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
-  /**
-   * The tuple access strategy to access inside blocks in this datatable
-   */
-  const TupleAccessStrategy accessor_;
-
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
 
+  const TupleAccessStrategy accessor_;
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
 
