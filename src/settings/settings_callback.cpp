@@ -2,7 +2,11 @@
 
 namespace terrier::settings {
 
-void SettingsCallback::EmptyCallback(void *old_value UNUSED_ATTRIBUTE,
-                                     void *new_value UNUSED_ATTRIBUTE) { }
+void SettingsCallback::EmptyCallback(void *old_value, void *new_value)
+{ }
+
+void SettingsCallback::MaxConnectionsCallback(void *old_value, void *new_value) {
+
+}
 
 } // namespace terrier::settings

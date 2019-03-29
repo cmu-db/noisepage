@@ -40,7 +40,8 @@ void SettingsManager::DefineSetting(Param param, const std::string &name,
                                     const type::Value &default_value,
                                     const type::Value &min_value,
                                     const type::Value &max_value,
-                                    bool is_mutable) {
+                                    bool is_mutable,
+                                    callback_fn callback) {
 
   if (param_map_.count(param) > 0) {
     throw SETTINGS_EXCEPTION(("Param " + name + " already exists.").c_str());
@@ -59,6 +60,7 @@ void SettingsManager::DefineSetting(Param param, const std::string &name,
   */
 
   param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable));
+  callback_map_.emplace(param, callback);
 
 }
 
@@ -102,15 +104,25 @@ std::string SettingsManager::GetString(Param param) {
 }
 
 void SettingsManager::SetInt(Param param, int32_t value) {
+  int old_value = GetInt(param);
   SetValue(param, type::ValueFactory::GetIntegerValue(value));
+  callback_fn callback = callback_map_.find(param)->second;
+  callback(static_cast<void*>(&old_value), static_cast<void*>(&value));
 }
 
 void SettingsManager::SetBool(Param param, bool value) {
+  bool old_value = GetBool(param);
   SetValue(param, type::ValueFactory::GetBooleanValue(value));
+  callback_fn callback = callback_map_.find(param)->second;
+  callback(static_cast<void*>(&old_value), static_cast<void*>(&value));
 }
 
 void SettingsManager::SetString(Param param, const std::string &value) {
+  std::string old_value = GetString(param);
   SetValue(param, type::ValueFactory::GetVarcharValue(value.c_str()));
+  callback_fn callback = callback_map_.find(param)->second;
+  std::string new_value(value);
+  callback(static_cast<void*>(&old_value), static_cast<void*>(&new_value));
 }
 
 

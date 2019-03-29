@@ -35,7 +35,7 @@
     #undef SETTING_string
   #endif
 
-  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)        \
+  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
     DECLARE_VALIDATOR(name, int, min_value, max_value);                                          \
     DEFINE_int32(name, default_value, description);                                              \
     DEFINE_validator(name, &Validate##name);
@@ -67,7 +67,7 @@
   #ifdef SETTING_string
     #undef SETTING_string
   #endif
-  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)        \
+  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
     DECLARE_int32(name);
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)     \
@@ -93,14 +93,15 @@
   #ifdef SETTING_string
     #undef SETTING_string
   #endif
-  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)      \
+  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)      \
       DefineSetting(                                                                                          \
         terrier::settings::Param::name,                                                                   \
         #name, type::ValueFactory::GetIntegerValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetIntegerValue(default_value),                                      \
         type::ValueFactory::GetIntegerValue(min_value),                                                       \
         type::ValueFactory::GetIntegerValue(max_value),                                                       \
-        is_mutable);
+        is_mutable,                              \
+        callback_fn);
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)   \
       DefineSetting(                                                                                          \
@@ -143,7 +144,7 @@
   #ifdef SETTING_string
     #undef SETTING_string
   #endif
-  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable)        \
+  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
     name,
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)     \

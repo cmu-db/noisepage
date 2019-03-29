@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <catalog/settings_handle.h>
 #include <gflags/gflags.h>
+#include "settings/settings_callback.h"
 #include "type/value.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
@@ -52,6 +53,7 @@ class SettingsManager {
   catalog::SettingsHandle settings_handle_;
   transaction::TransactionManager *txn_manager_;
   std::unordered_map<Param, ParamInfo> param_map_;
+  std::unordered_map<Param, callback_fn> callback_map_;
 
   void DefineSetting(Param param, const std::string &name,
                      const type::Value &value,
@@ -59,7 +61,8 @@ class SettingsManager {
                      const type::Value &default_value,
                      const type::Value &min_value,
                      const type::Value &max_value,
-                     bool is_mutable);
+                     bool is_mutable,
+                     callback_fn callback = nullptr);
 
   type::Value GetValue(Param param);
   void SetValue(Param param, const type::Value &value);
