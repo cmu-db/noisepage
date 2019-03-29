@@ -75,5 +75,3 @@ void TerminateConnection(int socket_fd) {
 }
 
 }  // namespace terrier::network
-
-

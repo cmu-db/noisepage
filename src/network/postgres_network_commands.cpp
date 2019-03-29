@@ -15,8 +15,7 @@ namespace terrier::network {
 // the code here can honestly just be deleted. This is going to be a larger
 // project though, so I want to do the architectural refactor first.
 
-void PostgresNetworkCommand::AcceptResults(const traffic_cop::ResultSet &result_set,
-                                           PostgresPacketWriter *const out) {
+void PostgresNetworkCommand::AcceptResults(const traffic_cop::ResultSet &result_set, PostgresPacketWriter *const out) {
   if (result_set.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
     return;

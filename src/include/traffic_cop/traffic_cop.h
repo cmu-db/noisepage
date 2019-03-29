@@ -22,7 +22,7 @@ class TrafficCop {
    * @param callback the callback function to write back the results
    */
   virtual void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                    const network::SimpleQueryCallback &callback);
+                            const network::SimpleQueryCallback &callback);
 
   virtual ~TrafficCop() = default;
 

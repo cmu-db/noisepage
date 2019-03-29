@@ -13,8 +13,8 @@
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
-#include "util/manual_packet_helpers.h"
 #include "traffic_cop/result_set.h"
+#include "util/manual_packet_helpers.h"
 
 #define NUM_THREADS 1
 
@@ -26,7 +26,7 @@ namespace terrier::network {
 class FakeTrafficCop : public traffic_cop::TrafficCop {
  public:
   void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
-                    const network::SimpleQueryCallback &callback) override{
+                    const network::SimpleQueryCallback &callback) override {
     traffic_cop::ResultSet empty_set;
     callback(empty_set, out);
   }
@@ -98,8 +98,6 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   }
   TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
-
-
 
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, BadQueryTest) {
