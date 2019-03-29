@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <catalog/settings_handle.h>
+#include <gflags/gflags.h>
 #include "type/value.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
