@@ -81,7 +81,6 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions sqlite3 || brew install sqlite3
-  brew ls --versions libsqlite3-dev || brew install libsqlite3-dev  
 }
 
 install_linux() {
