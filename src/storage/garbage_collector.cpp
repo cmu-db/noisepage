@@ -75,10 +75,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    // TODO(Pulkit): Is the comment below out of sync?
-    // TODO(Tianyu): It is possible to immediately deallocate read-only transactions here. However, doing so
-    // complicates logic as the GC cannot delete the transaction before logging has had a chance to process it.
-    // It is unlikely to be a major performance issue so I am leaving it unoptimized.
     if (txn->undo_buffer_.Empty()) {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
@@ -162,7 +158,7 @@ bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *con
     const TupleSlot slot = head->Slot();
     const TupleAccessStrategy &accessor = table->accessor_;
     // Perform gc for head of the chain
-    // TODO(pulkit): Assuming can GC any version greater than the oldest timestamp
+    // Assuming can garbage collect any version greater than the oldest timestamp
     transaction::timestamp_t version_ptr_timestamp = head->Timestamp().load();
     // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
     // Collect the head of the chain using compare and swap
@@ -201,7 +197,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
-  while (curr != nullptr && (next = curr->Next()) != nullptr && active_txns_iter != active_txns->end()) {
+  while (next != nullptr && active_txns_iter != active_txns->end()) {
     if (*active_txns_iter >= curr->Timestamp().load()) {
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
@@ -226,11 +222,12 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // curr was not claimed in the previous iteration, so possibly someone might use it
       curr = curr->Next();
     }
+    next = curr->Next();
   }
 
   // TODO(pulkit): What happens if active_trans_iter ends but there are still elements in the version chain
   // Collect them all? (This is what I am doing here)
-  while (curr != nullptr && (next = curr->Next()) != nullptr) {
+  while (next != nullptr) {
     if (next->Timestamp().load() == txn->TxnId().load()) {
       // Was my undo record reclaimed?
       collected = true;
@@ -242,6 +239,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
     // Move curr pointer ahead
     curr = curr->Next();
+    next = curr->Next();
   }
 
   // Does that mean that they have to be gc'd?
