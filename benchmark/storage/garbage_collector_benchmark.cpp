@@ -127,14 +127,15 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
 }
 
 /**
- * Run a high number of statements with lots of updates to try to trigger aborts.
+ * Run a large number of updates on a small table to generate contention with the GC. Measure the number of transactions
+ * that the GC managed to free during the workload by subtracting the number of "lagging" transactions that still
+ * remained to be cleaned up by the GC after the workload was done running.
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &state) {
   uint64_t lag_count = 0;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    // use a smaller table to make aborts more likely
     LargeTransactionBenchmarkObject tested({8, 8, 8}, 100, txn_length, update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     StartGC(tested.GetTxnManager());
