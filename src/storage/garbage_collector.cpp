@@ -67,7 +67,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   transaction::TransactionQueue requeue;
 
   // Get active_txns in descending sorted order
-  std::vector<transaction::timestamp_t> active_txns = txn_manager_->GetActiveTxns();;
+  std::vector<transaction::timestamp_t> active_txns = txn_manager_->GetActiveTxns();
+  ;
   std::sort(active_txns.begin(), active_txns.end(), std::greater<transaction::timestamp_t>());
 
   // Process every transaction in the unlink queue
@@ -112,8 +113,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   return txns_processed;
 }
 
-bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn,
-                                         UndoRecord *const undo_record,
+bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) const {
   DataTable *&table = undo_record->Table();
   // if this UndoRecord has already been processed, we can skip it
@@ -124,8 +124,7 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
 }
 
 // TODO(pulkit): rename this function to UnlinkUndoRecordTuple
-bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn,
-                                        UndoRecord *const undo_record,
+bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
                                         std::vector<transaction::timestamp_t> *const active_txns) const {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
                  "This undo_record does not belong to this txn.");
@@ -147,37 +146,36 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   return head_collected || rest_collected;
 }
 
-bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *const txn,
-                                                   UndoRecord *const head,
-                                                   std::vector<transaction::timestamp_t> *const active_txns) const {
-    DataTable *table = head->Table();
-    if (table == nullptr) {
-        // This UndoRecord has already been unlinked, so we can skip it
-        return true;
-    }
-    const TupleSlot slot = head->Slot();
-    const TupleAccessStrategy &accessor = table->accessor_;
-    // Perform gc for head of the chain
-    // Assuming can garbage collect any version greater than the oldest timestamp
-    transaction::timestamp_t version_ptr_timestamp = head->Timestamp().load();
-    // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
-    // Collect the head of the chain using compare and swap
-    // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
-    if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
-        if (transaction::TransactionUtil::Committed(head->Timestamp().load())) {
-            UndoRecord *to_be_unlinked = head;
-            // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-            if (table->CompareAndSwapVersionPtr(slot, accessor, head, head->Next())) {
-                UnlinkUndoRecordVersion(txn, to_be_unlinked);
-                if (version_ptr_timestamp == txn->TxnId().load()) {
-                    // If I was the header, make collected true, because I was collected
-                    return true;
-                }
-            }
-            // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *const txn, UndoRecord *const head,
+                                            std::vector<transaction::timestamp_t> *const active_txns) const {
+  DataTable *table = head->Table();
+  if (table == nullptr) {
+    // This UndoRecord has already been unlinked, so we can skip it
+    return true;
+  }
+  const TupleSlot slot = head->Slot();
+  const TupleAccessStrategy &accessor = table->accessor_;
+  // Perform gc for head of the chain
+  // Assuming can garbage collect any version greater than the oldest timestamp
+  transaction::timestamp_t version_ptr_timestamp = head->Timestamp().load();
+  // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
+  // Collect the head of the chain using compare and swap
+  // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
+  if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
+    if (transaction::TransactionUtil::Committed(head->Timestamp().load())) {
+      UndoRecord *to_be_unlinked = head;
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+      if (table->CompareAndSwapVersionPtr(slot, accessor, head, head->Next())) {
+        UnlinkUndoRecordVersion(txn, to_be_unlinked);
+        if (version_ptr_timestamp == txn->TxnId().load()) {
+          // If I was the header, make collected true, because I was collected
+          return true;
         }
+      }
+      // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     }
-    return false;
+  }
+  return false;
 }
 
 bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
@@ -203,9 +201,9 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   bool do_compaction = false;
 
   const storage::ProjectedRow *projectedRow = version_chain_head->Delta();
-  storage::ProjectedRowInitializer initializer_{table->accessor_.GetBlockLayout(), StoragetUtil::ProjectionListAllColumns(layout_)};
-  UndoRecord *compacted_undo_buffer = UndoRecordForUpdate(table, version_chain_head->Slot(),
-          *projectedRow);
+  storage::ProjectedRowInitializer initializer_{table->accessor_.GetBlockLayout(),
+                                                StoragetUtil::ProjectionListAllColumns(layout_)};
+  UndoRecord *compacted_undo_buffer = UndoRecordForUpdate(table, version_chain_head->Slot(), *projectedRow);
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
@@ -219,14 +217,13 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
         switch (next->Type()) {
-            case DeltaRecordType::UPDATE:
-                // Normal delta to be applied. Does not modify the logical delete column.
-                StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), compacted_undo_buffer->Delta());
-                do_compaction = true;
-                break;
-            case DeltaRecordType::INSERT:
-            case DeltaRecordType::DELETE:
-                  ;
+          case DeltaRecordType::UPDATE:
+            // Normal delta to be applied. Does not modify the logical delete column.
+            StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), compacted_undo_buffer->Delta());
+            do_compaction = true;
+            break;
+          case DeltaRecordType::INSERT:
+          case DeltaRecordType::DELETE:;
         }
         if (next->Timestamp().load() == txn->TxnId().load()) {
           // Was my undo record reclaimed?
@@ -238,10 +235,8 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         UnlinkUndoRecordVersion(txn, next);
       } else {
         // If next wasn't committed, don't collect it
-        if(do_compaction)
-        {
-
-            do_compaction = false;
+        if (do_compaction) {
+          do_compaction = false;
         }
         curr = curr->Next();
       }
@@ -315,8 +310,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
       }
   }
 }
-storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
-                                         const storage::ProjectedRow &redo) const{
+storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *const table,
+                                                           const storage::TupleSlot slot,
+                                                           const storage::ProjectedRow &redo) {
   const uint32_t size = storage::UndoRecord::Size(redo);
   transaction::timestamp_t ts(0);
   return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), ts, slot, table, redo);
