@@ -213,7 +213,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
   while (next != nullptr && active_txns_iter != active_txns->end()) {
-    if (*active_txns_iter >= curr->Timestamp().load()) {
+    if (transaction::TransactionUtil::NewerThan(*active_txns_iter, curr->Timestamp().load())) {
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
     } else if (transaction::TransactionUtil::NewerThan(next->Timestamp().load(), *active_txns_iter)) {
