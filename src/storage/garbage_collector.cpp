@@ -188,8 +188,13 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
   DataTable *table = version_chain_head->Table();
   if (table == nullptr) {
+    transaction::timestamp_t version_ptr_timestamp = version_chain_head->Timestamp().load();
     // This UndoRecord has already been unlinked, so we can skip it
-    return true;
+    if (version_ptr_timestamp == txn->TxnId().load()) {
+      // If I was the header, make collected true, because I was collected
+      return true;
+    }
+    return false;
   }
   // Otherwise collect as much as possible and return true if version belonging to txn was collected
   // Don't collect version_chain_head though
@@ -200,9 +205,10 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   auto active_txns_iter = active_txns->begin();
   bool do_compaction = false;
 
-  auto result = NewProjectedRow(version_chain_head->Delta());
-  storage::RecordBufferSegment *buffer_segment = result.first;
-  storage::ProjectedRow *projected_row = result.second;
+  // Create a temporary projected row for undo record compaction
+  std::pair<RecordBufferSegment *, ProjectedRow *> result;
+  storage::RecordBufferSegment *buffer_segment = nullptr;
+  storage::ProjectedRow *projected_row = nullptr;
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
@@ -211,16 +217,24 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
     } else if (next->Timestamp().load() > *active_txns_iter) {
+      // curr is visible to txns traversed till now, so can't GC curr. next is not visible to any txn, attempt GC
       // Collect next only if it was committed, this prevents collection of partial rollback versions
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
         if (!do_compaction) {
+          // This is the first undo record to compact
+          if (buffer_segment != nullptr) {
+            // Release the buffer segment for projected row
+            ReleaseProjectedRow(buffer_segment);
+          }
+          // Initialise the projected row with next's undo record
           result = NewProjectedRow(next->Delta());
           buffer_segment = result.first;
           projected_row = result.second;
           do_compaction = true;
         } else {
+          // Already have a base undo record. Apply this undo record on top of that
           switch (next->Type()) {
             case DeltaRecordType::UPDATE:
               // Normal delta to be applied. Does not modify the logical delete column.
@@ -244,11 +258,22 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       }
     } else {
       if (do_compaction) {
-        UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, version_chain_head->Slot(), *projected_row,
-                                                                version_chain_head->Timestamp().load());
+        // We have compacted some undo records till now
+        // next undo record can't be GC'd. Merge next with the compacted undo records.
+        switch (next->Type()) {
+          case DeltaRecordType::UPDATE:
+            StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+            break;
+          case DeltaRecordType::INSERT:
+          case DeltaRecordType::DELETE:;
+        }
+        UndoRecord *compacted_undo_record =
+            UndoRecordForUpdate(table, next->Slot(), *projected_row, next->Timestamp().load());
+        // Add this to the version chain
         compacted_undo_record->Next().store(next->Next().load());
+        // Set curr to point to the compacted undo record
         curr->Next().store(compacted_undo_record);
-        ReleaseProjectedRow(buffer_segment);
+        // Compaction is over
         do_compaction = false;
       }
       // curr was not claimed in the previous iteration, so possibly someone might use it
@@ -257,8 +282,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     next = curr->Next();
   }
 
-  // TODO(pulkit): What happens if active_trans_iter ends but there are still elements in the version chain
-  // Collect them all? (This is what I am doing here)
+  // active_trans_iter ends but there are still elements in the version chain, Can GC everything below
   while (next != nullptr) {
     if (next->Timestamp().load() == txn->TxnId().load()) {
       // Was my undo record reclaimed?
@@ -274,7 +298,10 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     next = curr->Next();
   }
 
-  // Does that mean that they have to be gc'd?
+  if (buffer_segment != nullptr) {
+    // Release the buffer segment for projected row
+    ReleaseProjectedRow(buffer_segment);
+  }
   return collected;
 }
 
