@@ -17,7 +17,7 @@ namespace plan_node {
  * The plan node for ANALYZE
  */
 class AnalyzePlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an analyze plan node
    */
@@ -79,6 +79,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
     std::vector<std::string> column_names_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

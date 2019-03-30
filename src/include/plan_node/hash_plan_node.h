@@ -22,7 +22,6 @@ class HashPlanNode : public AbstractPlanNode {
    */
   using HashKeyType = const parser::AbstractExpression;
 
- protected:
   /**
    * Builder for hash plan node
    */
@@ -58,6 +57,7 @@ class HashPlanNode : public AbstractPlanNode {
     std::vector<std::shared_ptr<HashKeyType>> hash_keys_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

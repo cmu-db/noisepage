@@ -14,7 +14,7 @@ namespace plan_node {
  * Plan node for creating user defined functions
  */
 class CreateFunctionPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an create function plan node
    */
@@ -140,6 +140,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     int param_count_ = 0;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

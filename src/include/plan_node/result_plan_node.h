@@ -18,7 +18,7 @@ namespace terrier::plan_node {
  * that returns a single constant tuple.
  */
 class ResultPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an delete plan node
    */
@@ -51,6 +51,7 @@ class ResultPlanNode : public AbstractPlanNode {
     std::shared_ptr<parser::AbstractExpression> expr_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

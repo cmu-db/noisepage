@@ -13,7 +13,7 @@ namespace terrier::plan_node {
  * Plan node for order by operator
  */
 class OrderByPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for order by plan node
    */
@@ -87,6 +87,7 @@ class OrderByPlanNode : public AbstractPlanNode {
     size_t offset_ = 0;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

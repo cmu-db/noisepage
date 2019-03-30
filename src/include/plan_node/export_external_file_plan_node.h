@@ -18,7 +18,7 @@ namespace terrier::plan_node {
  * the delimiter, quote, and escape characters to use when writing content.
  */
 class ExportExternalFilePlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for a export external file scan plan node
    */
@@ -93,6 +93,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
     char escape_ = '"';
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param file_name string representation of file name

@@ -11,7 +11,7 @@ namespace terrier::plan_node {
  * Plan node for a CSV scan
  */
 class CSVScanPlanNode : public AbstractScanPlanNode {
- protected:
+ public:
   /**
    * Builder for a CSV scan plan node
    */
@@ -100,6 +100,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     std::string null_string_ = "";
   };
 
+ private:
   /**
    * Constructs a sequential scan over a CSV file
    * @param children child plan nodes

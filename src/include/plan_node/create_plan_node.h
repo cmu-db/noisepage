@@ -239,7 +239,7 @@ struct CheckInfo {
 };
 
 class CreatePlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for a create plan node
    */
@@ -712,6 +712,7 @@ class CreatePlanNode : public AbstractPlanNode {
     std::shared_ptr<parser::SelectStatement> view_query_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

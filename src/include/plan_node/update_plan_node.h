@@ -19,7 +19,7 @@ class SqlTable;
 namespace plan_node {
 
 class UpdatePlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an delete plan node
    */
@@ -73,6 +73,7 @@ class UpdatePlanNode : public AbstractPlanNode {
     bool update_primary_key_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

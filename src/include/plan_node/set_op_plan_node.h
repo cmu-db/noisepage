@@ -17,7 +17,7 @@ namespace terrier::plan_node {
  * IMPORTANT: Both children must have the same physical schema.
  */
 class SetOpPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an delete plan node
    */
@@ -50,6 +50,7 @@ class SetOpPlanNode : public AbstractPlanNode {
     SetOpType set_op_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

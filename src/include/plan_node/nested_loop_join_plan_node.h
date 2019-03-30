@@ -12,7 +12,7 @@ namespace terrier::plan_node {
  * Plan node for nested loop joins
  */
 class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
- protected:
+ public:
   /**
    * Builder for nested loop join plan node
    */
@@ -33,6 +33,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
     }
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

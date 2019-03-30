@@ -13,7 +13,7 @@ namespace terrier::plan_node {
  * Plan node for a limit operator
  */
 class LimitPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for limit plan node
    */
@@ -62,6 +62,7 @@ class LimitPlanNode : public AbstractPlanNode {
     size_t offset_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

@@ -23,7 +23,7 @@ namespace terrier::plan_node {
  * Plan node for an index scan
  */
 class IndexScanPlanNode : public AbstractScanPlanNode {
- protected:
+ public:
   /**
    * Builder for an index scan plan node
    */
@@ -60,6 +60,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     catalog::index_oid_t index_oid_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

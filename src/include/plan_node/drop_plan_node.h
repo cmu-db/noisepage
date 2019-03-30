@@ -18,7 +18,7 @@ namespace plan_node {
  *  The plan node for DROP
  */
 class DropPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for a drop plan node
    */
@@ -156,6 +156,7 @@ class DropPlanNode : public AbstractPlanNode {
     bool if_exists_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

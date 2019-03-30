@@ -16,7 +16,7 @@ namespace terrier::plan_node {
  * table
  */
 class HashJoinPlanNode : public AbstractJoinPlanNode {
- protected:
+ public:
   /**
    * Builder for hash join plan node
    */
@@ -79,6 +79,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
     bool build_bloomfilter_ = false;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

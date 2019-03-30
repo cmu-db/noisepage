@@ -16,7 +16,7 @@ namespace terrier::plan_node {
  * Plan node for sequanial table scan
  */
 class SeqScanPlanNode : public AbstractScanPlanNode {
- protected:
+ public:
   /**
    * Builder for a sequential scan plan node
    */
@@ -53,6 +53,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     catalog::table_oid_t table_oid_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

@@ -17,7 +17,7 @@ namespace terrier {
 namespace plan_node {
 
 class InsertPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for an insert plan node
    */
@@ -101,6 +101,7 @@ class InsertPlanNode : public AbstractPlanNode {
     uint32_t bulk_insert_count_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

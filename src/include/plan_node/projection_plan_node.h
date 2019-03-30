@@ -12,7 +12,7 @@ namespace terrier::plan_node {
  * Plan node for projection
  */
 class ProjectionPlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for projection plan node
    */
@@ -33,6 +33,7 @@ class ProjectionPlanNode : public AbstractPlanNode {
     }
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

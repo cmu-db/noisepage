@@ -14,7 +14,7 @@ namespace plan_node {
  * The plan node for DELETE
  */
 class DeletePlanNode : public AbstractPlanNode {
- protected:
+ public:
   /**
    * Builder for a delete plan node
    */
@@ -78,6 +78,7 @@ class DeletePlanNode : public AbstractPlanNode {
     std::shared_ptr<parser::AbstractExpression> delete_condition_;
   };
 
+ private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
