@@ -114,7 +114,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 }
 
 bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
-                                         std::vector<transaction::timestamp_t> *const active_txns) const {
+                                         std::vector<transaction::timestamp_t> *const active_txns) {
   DataTable *&table = undo_record->Table();
   // if this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
@@ -125,7 +125,7 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
 
 // TODO(pulkit): rename this function to UnlinkUndoRecordTuple
 bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
-                                        std::vector<transaction::timestamp_t> *const active_txns) const {
+                                        std::vector<transaction::timestamp_t> *const active_txns) {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
                  "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
@@ -180,7 +180,7 @@ bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *con
 
 bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
                                                    UndoRecord *const version_chain_head,
-                                                   std::vector<transaction::timestamp_t> *const active_txns) const {
+                                                   std::vector<transaction::timestamp_t> *const active_txns) {
   // If no chain is passed, nothing is collected
   if (version_chain_head == nullptr) {
     return false;
@@ -200,10 +200,9 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   auto active_txns_iter = active_txns->begin();
   bool do_compaction = false;
 
-  const storage::ProjectedRow *projectedRow = version_chain_head->Delta();
-  storage::ProjectedRowInitializer initializer_{table->accessor_.GetBlockLayout(),
-                                                StoragetUtil::ProjectionListAllColumns(layout_)};
-  UndoRecord *compacted_undo_buffer = UndoRecordForUpdate(table, version_chain_head->Slot(), *projectedRow);
+  auto result = NewProjectedRow(version_chain_head->Delta());
+  storage::RecordBufferSegment *buffer_segment = result.first;
+  storage::ProjectedRow *projected_row = result.second;
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
@@ -216,14 +215,20 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
-        switch (next->Type()) {
-          case DeltaRecordType::UPDATE:
-            // Normal delta to be applied. Does not modify the logical delete column.
-            StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), compacted_undo_buffer->Delta());
-            do_compaction = true;
-            break;
-          case DeltaRecordType::INSERT:
-          case DeltaRecordType::DELETE:;
+        if (!do_compaction) {
+          result = NewProjectedRow(next->Delta());
+          buffer_segment = result.first;
+          projected_row = result.second;
+          do_compaction = true;
+        } else {
+          switch (next->Type()) {
+            case DeltaRecordType::UPDATE:
+              // Normal delta to be applied. Does not modify the logical delete column.
+              StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+              break;
+            case DeltaRecordType::INSERT:
+            case DeltaRecordType::DELETE:;
+          }
         }
         if (next->Timestamp().load() == txn->TxnId().load()) {
           // Was my undo record reclaimed?
@@ -235,12 +240,17 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         UnlinkUndoRecordVersion(txn, next);
       } else {
         // If next wasn't committed, don't collect it
-        if (do_compaction) {
-          do_compaction = false;
-        }
         curr = curr->Next();
       }
     } else {
+      if (do_compaction) {
+        UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, version_chain_head->Slot(), *projected_row,
+                                                                version_chain_head->Timestamp().load());
+        compacted_undo_record->Next().store(next->Next().load());
+        curr->Next().store(compacted_undo_record);
+        ReleaseProjectedRow(buffer_segment);
+        do_compaction = false;
+      }
       // curr was not claimed in the previous iteration, so possibly someone might use it
       curr = curr->Next();
     }
@@ -312,9 +322,20 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
 }
 storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *const table,
                                                            const storage::TupleSlot slot,
-                                                           const storage::ProjectedRow &redo) {
+                                                           const storage::ProjectedRow &redo,
+                                                           const transaction::timestamp_t ts) {
   const uint32_t size = storage::UndoRecord::Size(redo);
-  transaction::timestamp_t ts(0);
   return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), ts, slot, table, redo);
+}
+
+std::pair<RecordBufferSegment *, ProjectedRow *> GarbageCollector::NewProjectedRow(const ProjectedRow *row) {
+  RecordBufferSegment *new_segment = txn_manager_->buffer_pool_->Get();
+  auto *projected_row = new_segment->Reserve(row->Size());
+  memcpy(projected_row, row, row->Size());
+  return {new_segment, reinterpret_cast<ProjectedRow *>(projected_row)};
+}
+
+void GarbageCollector::ReleaseProjectedRow(RecordBufferSegment *buffer_segment) {
+  txn_manager_->buffer_pool_->Release(buffer_segment);
 }
 }  // namespace terrier::storage

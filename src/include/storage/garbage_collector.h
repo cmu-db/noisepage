@@ -56,7 +56,7 @@ class GarbageCollector {
   uint32_t ProcessUnlinkQueue();
 
   bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
-                         std::vector<transaction::timestamp_t> *active_txns) const;
+                         std::vector<transaction::timestamp_t> *active_txns);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
@@ -72,7 +72,7 @@ class GarbageCollector {
    * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
    */
   bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
-                        std::vector<transaction::timestamp_t> *active_txns) const;
+                        std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
@@ -82,7 +82,7 @@ class GarbageCollector {
    * @return true if an UndoRecord created by txn was unlinked
    */
   bool UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
-                                   std::vector<transaction::timestamp_t> *active_txns) const;
+                                   std::vector<transaction::timestamp_t> *active_txns);
 
   bool UnlinkUndoRecordHead(transaction::TransactionContext *const txn, UndoRecord *const head,
                             std::vector<transaction::timestamp_t> *const active_txns) const;
@@ -94,9 +94,12 @@ class GarbageCollector {
   void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
-                                           const storage::ProjectedRow &redo);
+                                           const storage::ProjectedRow &redo, const transaction::timestamp_t ts);
 
-  transaction::TransactionManager *const txn_manager_;
+  std::pair<RecordBufferSegment *, ProjectedRow *> NewProjectedRow(const ProjectedRow *row);
+  void ReleaseProjectedRow(RecordBufferSegment *buffer_segment);
+
+  transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run
