@@ -216,7 +216,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     if (*active_txns_iter >= curr->Timestamp().load()) {
       // curr is the version that *active_txns_iter would be reading
       active_txns_iter++;
-    } else if (next->Timestamp().load() > *active_txns_iter) {
+    } else if (transaction::TransactionUtil::NewerThan(next->Timestamp().load(), *active_txns_iter)) {
       // curr is visible to txns traversed till now, so can't GC curr. next is not visible to any txn, attempt GC
       // Collect next only if it was committed, this prevents collection of partial rollback versions
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
