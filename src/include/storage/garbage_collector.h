@@ -6,7 +6,10 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
+#include "storage/record_buffer.h"
 
+const uint32_t num_records_ = 10000;
+const uint32_t reuse_limit_ = 10000;
 namespace terrier::storage {
 
 /**
@@ -23,7 +26,7 @@ class GarbageCollector {
    * @param txn_manager pointer to the TransactionManager
    */
   explicit GarbageCollector(transaction::TransactionManager *txn_manager)
-      : txn_manager_(txn_manager), last_unlinked_{0} {
+      : txn_manager_(txn_manager), last_unlinked_{0} , undo_buffer_(txn_manager->buffer_pool_) {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
@@ -40,6 +43,7 @@ class GarbageCollector {
   std::pair<uint32_t, uint32_t> PerformGarbageCollection();
 
  private:
+
   /**
    * Process the deallocate queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
@@ -90,6 +94,9 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
+  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
+                                                               const storage::ProjectedRow &redo) const;
+
   transaction::TransactionManager *const txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
@@ -97,6 +104,8 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
+
+  storage::UndoBuffer undo_buffer_;
 };
 
 }  // namespace terrier::storage

@@ -81,6 +81,7 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
+  friend class storage::GarbageCollector;
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue though.

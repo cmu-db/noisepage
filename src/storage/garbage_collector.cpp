@@ -188,12 +188,24 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     return false;
   }
 
+  DataTable *table = version_chain_head->Table();
+  if (table == nullptr) {
+    // This UndoRecord has already been unlinked, so we can skip it
+    return true;
+  }
   // Otherwise collect as much as possible and return true if version belonging to txn was collected
   // Don't collect version_chain_head though
   bool collected = false;
+  const TupleAccessStrategy &accessor = table->accessor_;
   UndoRecord *curr = version_chain_head;
   UndoRecord *next = curr->Next();
   auto active_txns_iter = active_txns->begin();
+  bool do_compaction = false;
+
+  const storage::ProjectedRow *projectedRow = version_chain_head->Delta();
+  storage::ProjectedRowInitializer initializer_{table->accessor_.GetBlockLayout(), StoragetUtil::ProjectionListAllColumns(layout_)};
+  UndoRecord *compacted_undo_buffer = UndoRecordForUpdate(table, version_chain_head->Slot(),
+          *projectedRow);
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
@@ -206,6 +218,16 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
+        switch (next->Type()) {
+            case DeltaRecordType::UPDATE:
+                // Normal delta to be applied. Does not modify the logical delete column.
+                StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), compacted_undo_buffer->Delta());
+                do_compaction = true;
+                break;
+            case DeltaRecordType::INSERT:
+            case DeltaRecordType::DELETE:
+                  ;
+        }
         if (next->Timestamp().load() == txn->TxnId().load()) {
           // Was my undo record reclaimed?
           collected = true;
@@ -216,6 +238,11 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         UnlinkUndoRecordVersion(txn, next);
       } else {
         // If next wasn't committed, don't collect it
+        if(do_compaction)
+        {
+
+            do_compaction = false;
+        }
         curr = curr->Next();
       }
     } else {
@@ -287,5 +314,11 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *tx
         }
       }
   }
+}
+storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
+                                         const storage::ProjectedRow &redo) const{
+  const uint32_t size = storage::UndoRecord::Size(redo);
+  transaction::timestamp_t ts(0);
+  return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), ts, slot, table, redo);
 }
 }  // namespace terrier::storage
