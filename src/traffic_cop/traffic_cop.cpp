@@ -10,5 +10,8 @@ void TrafficCop::ExecuteQuery(const char *query, network::PostgresPacketWriter *
                               const network::SimpleQueryCallback &callback) {
   sqlite_engine.ExecuteQuery(query, out, callback);
 }
+std::shared_ptr<Statement> TrafficCop::Parse(const char *query) {
+  return std::shared_ptr<Statement>();
+}
 
 }  // namespace terrier::traffic_cop

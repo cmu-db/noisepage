@@ -89,6 +89,79 @@ struct PostgresInputPacket {
 };
 
 /**
+ * Postgres Value Types
+ * This defines all the types that we will support
+ * We do not allow for user-defined types, nor do we try to do anything dynamic.
+ * For more information, see 'pg_type.h' in Postgres
+ * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
+ */
+
+enum class PostgresValueType {
+  INVALID = INVALID_TYPE_ID,
+  BOOLEAN = 16,
+  TINYINT = 16,  // BOOLEAN is an alias for TINYINT
+  SMALLINT = 21,
+  INTEGER = 23,
+  VARBINARY = 17,
+  BIGINT = 20,
+  REAL = 700,
+  DOUBLE = 701,
+  TEXT = 25,
+  BPCHAR = 1042,
+  BPCHAR2 = 1014,
+  VARCHAR = 1015,
+  VARCHAR2 = 1043,
+  DATE = 1082,
+  TIMESTAMPS = 1114,
+  TIMESTAMPS2 = 1184,
+  TEXT_ARRAY = 1009,     // TEXTARRAYOID in postgres code
+  INT2_ARRAY = 1005,     // INT2ARRAYOID in postgres code
+  INT4_ARRAY = 1007,     // INT4ARRAYOID in postgres code
+  OID_ARRAY = 1028,      // OIDARRAYOID in postgres code
+  FLOADT4_ARRAY = 1021,  // FLOADT4ARRAYOID in postgres code
+  DECIMAL = 1700
+};
+
+
+inline type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
+  switch (type) {
+    case PostgresValueType::BOOLEAN:
+      return type::TypeId::BOOLEAN;
+
+    case PostgresValueType::SMALLINT:
+      return type::TypeId::SMALLINT;
+    case PostgresValueType::INTEGER:
+      return type::TypeId::INTEGER;
+    case PostgresValueType::BIGINT:
+      return type::TypeId::BIGINT;
+    case PostgresValueType::REAL:
+      return type::TypeId::DECIMAL;
+    case PostgresValueType::DOUBLE:
+      return type::TypeId::DECIMAL;
+
+    case PostgresValueType::BPCHAR:
+    case PostgresValueType::BPCHAR2:
+    case PostgresValueType::VARCHAR:
+    case PostgresValueType::VARCHAR2:
+    case PostgresValueType::TEXT:
+      return type::TypeId::VARCHAR;
+
+    case PostgresValueType::DATE:
+    case PostgresValueType::TIMESTAMPS:
+    case PostgresValueType::TIMESTAMPS2:
+      return type::TypeId::TIMESTAMP;
+
+    case PostgresValueType::DECIMAL:
+      return type::TypeId::DECIMAL;
+    default:
+      LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
+      throw NETWORK_PROCESS_EXCEPTION("");
+  }
+}
+
+
+
+/**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
  * helper methods.
  */
@@ -253,7 +326,7 @@ class PostgresPacketWriter {
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
-    for (auto p : config) AppendString(p.first).AppendString(p.second);
+    for (const auto &pair : config) AppendString(pair.first).AppendString(pair.second);
     AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }
@@ -278,7 +351,7 @@ class PostgresPacketWriter {
       AppendString(col_name)
           .AppendValue<int32_t>(0)   // table oid, 0 for now
           .AppendValue<int16_t>(0)   // column oid, 0 for now
-          .AppendValue<int32_t>(25)  // type oid, 25 for varchar in Postgres
+          .AppendValue(static_cast<int32_t>(PostgresValueType::TEXT))  // type oid
           .AppendValue<int16_t>(-1)  // Variable Length
           .AppendValue<int32_t>(-1)  // pg_attribute.attrmod, generally -1
           .AppendValue<int16_t>(0);  // text=0
