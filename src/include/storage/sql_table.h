@@ -38,6 +38,8 @@ class SqlTable {
    * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
    */
   class SlotIterator {
+    // TODO(Yashwanth): Slot iterator currently flawed, for a scan on a certain version, it MUST begin on the latest
+    // version it sees
    public:
     /**
      * @return reference to the underlying tuple slot
@@ -54,11 +56,8 @@ class SqlTable {
      * @return self-reference after the iterator is advanced
      */
     SlotIterator &operator++() {
-      current_it_++;
-      if (current_it_ == dt_version_->second.data_table->end()) {
-        dt_version_++;
-        current_it_ = dt_version_->second.data_table->begin();
-      }
+      dt_version_++;
+      current_it_ = (*dt_version_).second.data_table->begin();
       return *this;
     }
 
@@ -75,7 +74,7 @@ class SqlTable {
     /**
      * Equality check.
      * @param other other iterator to compare to
-     * @return if the two iterators point to the same slot
+     * @return if the two iterators point to the same slotcolumn_ids
      */
     bool operator==(const SlotIterator &other) const { return current_it_ == other.current_it_; }
 
@@ -286,6 +285,7 @@ class SqlTable {
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
+   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @param version the version of DataTable
    * @return vector of col_ids for these col_oids
@@ -302,5 +302,17 @@ class SqlTable {
   template <class ProjectionInitializerType>
   ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer,
                                             layout_version_t version) const;
+
+  /**
+   * Given a projected row/col translates the column id of each column to the column id of the version passed in
+   * If a column doesn't exist in that version sets the column id to VERSION_POINTER_COLUMN_ID
+   * @param out_buffer - projected row/col whose header to modify
+   * @param curr_dt_version - schema version of the passed in projected row/col
+   * @param old_dt_version - schema version that is desired
+   * @return a copy of the old header that is on the heap, needs to be freed once done with
+   */
+  template <class RowType>
+  byte *ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
+                                         const DataTableVersion &old_dt_version) const;
 };
 }  // namespace terrier::storage

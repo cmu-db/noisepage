@@ -204,6 +204,15 @@ class PACKED ProjectedColumns {
                                                          common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
+  /**
+   * Retrieves the size of the header excluding the bitmap
+   * @return size of header
+   */
+  uint64_t HeaderWithoutBitmapSize() const {
+    return sizeof(size_) + sizeof(max_tuples_) + sizeof(num_tuples_) + sizeof(num_cols_) +
+           (sizeof(col_id_t) * sizeof(num_cols_)) + (sizeof(uint32_t) * NumColumns());
+  }
+
  private:
   friend class ProjectedColumnsInitializer;
   uint32_t size_;

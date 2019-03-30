@@ -213,9 +213,9 @@ class DataTable {
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
 
+  const TupleAccessStrategy accessor_;
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
-  const TupleAccessStrategy accessor_;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
