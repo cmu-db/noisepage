@@ -206,6 +206,20 @@ class VarlenEntry {
   }
 
   /**
+   * Constructs a new varlen entry for a checkpointed version. The offset if the offset of the varlen value in the 
+   * checkpoint file, and it is stored in the prefix_ field of the VarlenEntry. The content_ field has no meaning.
+   *
+   * TODO(Mengyang): figure out what to do with non-reclaim varlen.
+   */
+  static VarlenEntry CreateCheckpoint(uint32_t offset, uint32_t size) {
+    TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
+    VarlenEntry result;
+    result.size_ = size;
+    *reinterpret_cast<uint32_t *>(result.prefix_) = offset;
+    return result;
+  }
+
+  /**
    * @return The maximum size of the varlen field, in bytes, that can be inlined within the object. Any objects that are
    * larger need to be stored as a pointer to a separate buffer.
    */

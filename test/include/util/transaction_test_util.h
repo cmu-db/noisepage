@@ -243,6 +243,11 @@ class LargeTransactionTestObject {
   transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
   /**
+   * @return the data table used by this test
+   */
+  storage::DataTable *GetTable() { return &table_; }
+
+  /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
    * of transactions to run concurrently. Transactions are generated using the configuration provided on construction.
    *
