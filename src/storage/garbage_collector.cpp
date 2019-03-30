@@ -273,6 +273,8 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         compacted_undo_record->Next().store(next->Next().load());
         // Set curr to point to the compacted undo record
         curr->Next().store(compacted_undo_record);
+        // Unlinking next undo record
+        UnlinkUndoRecordVersion(txn, next);
         // Compaction is over
         do_compaction = false;
       }
