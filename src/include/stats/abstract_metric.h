@@ -1,5 +1,6 @@
 #pragma once
 
+#include <emmintrin.h>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -10,9 +11,9 @@
 
 namespace terrier {
 
-namespace concurrency {
+namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+}  // namespace transaction
 
 namespace stats {
 /**
@@ -37,122 +38,121 @@ namespace stats {
  */
 class Metric {
  public:
-  virtual ~Metric() = default;
+  virtual ~Metric(){};
 
-  // TODO(tianyu): Add more parameters for events as needed
   /**
-   * @param Context of the transaction beginning
+   * @param txn context of the transaction beginning
    */
-  virtual void OnTransactionBegin(const concurrency::TransactionContext *){};
+  virtual void OnTransactionBegin(const transaction::TransactionContext *txn){};
 
   /**
-   * @param Context of the transaction committing
-   * @param Tile Group ID that used to track database where the txn happens.
+   * @param txn context of the transaction committing
+   * @param src OID fo the database where the txn happens.
    */
-  virtual void OnTransactionCommit(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid){};
 
   /**
-   * @param Context of the transaction aborting
-   * @param Tile Group ID that used to track database where the txn happens.
+   * @param txn context of the transaction committing
+   * @param src OID fo the database where the txn happens.
    */
-  virtual void OnTransactionAbort(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid){};
 
   /**
-   * @param Context of the transaction performing read
-   * @param Tile Group ID that used to track database and table
-   *        where the read happens.
+   * @param txn context of the transaction performing read
+   * @param src database and table id pair that the tuple read happens
    */
-  virtual void OnTupleRead(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTupleRead(const transaction::TransactionContext *txn,
+                           std::pair<catalog::db_oid_t, catalog::table_oid_t> src){};
 
   /**
-   * @param Context of the transaction performing update
-   * @param Tile Group ID that used to track database and table
-   *        where the update happens.
+   * @param txn context of the transaction performing update
+   * @param src database and table id pair that the tuple update happens
    */
-  virtual void OnTupleUpdate(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTupleUpdate(const transaction::TransactionContext *txn,
+                             std::pair<catalog::db_oid_t, catalog::table_oid_t> src){};
 
   /**
-   * @param Context of the transaction performing insert
-   * @param Tile Group ID that used to track database and table
-   *        where the insert happens.
+   * @param txn context of the transaction performing insert
+   * @param src database and table id pair that the tuple insert happens
    */
-  virtual void OnTupleInsert(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTupleInsert(const transaction::TransactionContext *txn,
+                             std::pair<catalog::db_oid_t, catalog::table_oid_t> src){};
 
   /**
-   * @param Context of the transaction performing delete
-   * @param Tile Group ID that used to track database and table
-   *        where the delete happens.
+   * @param txn Context of the transaction performing delete
+   * @param src database and table id pair that the tuple delete happens
    */
-  virtual void OnTupleDelete(const concurrency::TransactionContext *txn, catalog::db_oid_t databse_oid){};
+  virtual void OnTupleDelete(const transaction::TransactionContext *txn,
+                             std::pair<catalog::db_oid_t, catalog::table_oid_t> src){};
 
   /**
-   * @param Database and index id pair that the index read happens
-   * @param Number of read happening
+   * @param src database and index id pair that the index read happens
+   * @param freq number of read happening
    */
-  virtual void OnIndexRead(std::pair<catalog::db_oid_t, catalog::index_oid_t>, size_t databse_oid){};
+  virtual void OnIndexRead(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t freq){};
 
   /**
-   * @param Database and index id pair that the index update happens
+   * @param src database and index id pair that the index update happens
    */
   virtual void OnIndexUpdate(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
-   * @param Database and index id pair that the index insert happens
+   * @param src database and index id pair that the index insert happens
    */
   virtual void OnIndexInsert(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
-   * @param Database and index id pair that the index delete happens
+   * @param src database and index id pair that the index delete happens
    */
   virtual void OnIndexDelete(std::pair<catalog::db_oid_t, catalog::index_oid_t> src){};
 
   /**
-   * @param Database and table id pair that the memory allocation happens
-   * @param Number of bytes being allocated
+   * @param src database and table id pair that the memory allocation happens
+   * @param size number of bytes being allocated
    */
-  virtual void OnMemoryAllocTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
+  virtual void OnTableMemoryAlloc(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index id pair that the memory allocation happens
-   * @param Number of bytes being allocated
+   * @param src database and index id pair that the memory allocation happens
+   * @param size number of bytes being allocated
    */
-  virtual void OnMemoryAllocIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+  virtual void OnIndexMemoryAlloc(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
 
   /**
-   * @param Database and table id pair that the memory free happens
-   * @param Number of bytes being freed
+   * @param src database and table id pair that the memory free happens
+   * @param size number of bytes being freed
    */
-  virtual void OnMemoryFreeTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
+  virtual void OnTableMemoryFree(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index id pair that the memory free happens
-   * @param Number of bytes being freed
+   * @param src database and index id pair that the memory free happens
+   * @param size number of bytes being freed
    */
-  virtual void ONMemoryFreeIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+  virtual void OnIndexMemoryFree(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
 
   /**
-   * @param Database and table id pair that the memory usage happens
-   * @param Number of bytes being used
+   * @param src database and table id pair that the memory usage happens
+   * @param size number of bytes being used
    */
-  virtual void OnMemoryUsageTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
+  virtual void OnTableMemoryUsage(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index id pair that the memory usage happens
-   * @param Number of bytes being used
+   * @param src database and index id pair that the memory usage happens
+   * @param size number of bytes being used
    */
-  virtual void OnMemoryUsageIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+  virtual void OnIndexMemoryUsage(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
 
   /**
-   * @param Database and table id pair that the memory reclaim happens
-   * @param Number of bytes being reclaim
+   * @param src database and table id pair that the memory reclaim happens
+   * @param size number of bytes being reclaim
    */
-  virtual void OnMemoryReclaimTable(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
+  virtual void OnTableMemoryReclaim(std::pair<catalog::db_oid_t, catalog::table_oid_t> src, size_t size){};
 
   /**
-   * @param Database and index id pair that the memory reclaim happens
-   * @param Number of bytes being reclaim
+   * @param src database and index id pair that the memory reclaim happens
+   * @param size number of bytes being reclaim
    */
-  virtual void OnMemoryReclaimIndex(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
+  virtual void OnIndexMemoryReclaim(std::pair<catalog::db_oid_t, catalog::index_oid_t> src, size_t size){};
 
   /**
    * @brief collect the signal of query begin
@@ -243,7 +243,7 @@ class AbstractMetric : public Metric {
  public:
   AbstractMetric() : raw_data_(new DataType()), safe_{true} {}
 
-  ~AbstractMetric() { delete raw_data_.load(); }
+  virtual ~AbstractMetric() override { delete raw_data_.load(); }
   /**
    * @see Metric
    *
@@ -275,7 +275,6 @@ class AbstractMetric : public Metric {
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
-    PELOTON_ASSERT(safe_);
     safe_ = false;
     return {raw_data_.load(), safe_};
   }

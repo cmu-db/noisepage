@@ -17,6 +17,8 @@ namespace terrier::stats {
  */
 class AbstractRawData {
  public:
+  virtual ~AbstractRawData() = default;
+
   /**
    * Given another AbstractRawData classes, combine the other's content with the
    * content of this one. It is guaranteed that nobody will have access to the
@@ -30,8 +32,5 @@ class AbstractRawData {
    * to be garbage-collected after this method is called.
    */
   virtual void UpdateAndPersist() = 0;
-
- public:
-  DISALLOW_COPY_AND_MOVE(AbstractRawData);
 };
 }  // namespace terrier::stats

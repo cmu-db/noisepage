@@ -59,4 +59,16 @@ enum class StatsEventType {
   TEST  // Testing event
 };
 
+/**
+ * Hasher for enums
+ * @tparam E the enum class to be hashed
+ */
+template <class E>
+class EnumHash {
+ public:
+  size_t operator()(const E &e) const {
+    return std::hash<typename std::underlying_type<E>::type>()(static_cast<typename std::underlying_type<E>::type>(e));
+  }
+};
+
 }  // namespace terrier::stats

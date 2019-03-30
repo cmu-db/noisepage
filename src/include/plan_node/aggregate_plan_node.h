@@ -84,8 +84,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAgregateTerm(AggregateTerm &term) {
-      aggregate_terms_.push_back(std::move(term));
+    Builder &AddAgregateTerm(AggregateTerm term) {
+      aggregate_terms_.emplace_back(std::move(term));
       return *this;
     }
 
@@ -93,7 +93,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::unique_ptr<const parser::AbstractExpression> &predicate) {
+    Builder &SetHavingClausePredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
       having_clause_predicate_ = std::move(predicate);
       return *this;
     }

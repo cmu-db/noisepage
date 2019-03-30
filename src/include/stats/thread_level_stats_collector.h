@@ -3,6 +3,7 @@
 #include <thread>
 #include <unordered_map>
 #include "catalog/catalog_defs.h"
+#include "common/container/concurrent_map.h"
 #include "stats/abstract_metric.h"
 #include "stats/abstract_raw_data.h"
 #include "stats/statistic_defs.h"
@@ -11,7 +12,8 @@ namespace terrier {
 
 namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+class TransactionManager;
+}  // namespace transaction
 
 namespace stats {
 /**
@@ -24,20 +26,25 @@ namespace stats {
  */
 class ThreadLevelStatsCollector {
  public:
-  using CollectorsMap =
-      tbb::concurrent_unordered_map<std::thread::id, ThreadLevelStatsCollector, std::hash<std::thread::id>>;
+  using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector, std::hash<std::thread::id>>;
   /**
    * @return the Collector for the calling thread
    */
   static ThreadLevelStatsCollector &GetCollectorForThread() {
     std::thread::id tid = std::this_thread::get_id();
-    return collector_map_[tid];
+    const auto iter = collector_map_.Find(tid);
+    return iter->second;
   }
 
   /**
    * @return A mapping from each thread to their assigned Collector
    */
   static CollectorsMap &GetAllCollectors() { return collector_map_; };
+
+  /**
+   * @return the txn_manager of the system
+   */
+  static transaction::TransactionManager &GetTxnManager() { return txn_manager_; }
 
   /**
    * @brief Constructor of collector
@@ -51,85 +58,100 @@ class ThreadLevelStatsCollector {
 
   /* See Metric for documentation on the following methods. They should correspond
    * to the "OnXxx" methods one-to-one */
-  void CollectTransactionBegin(const concurrency::TransactionContext *txn) {
+  void CollectTransactionBegin(const transaction::TransactionContext *txn) {
     for (auto &metric : metric_dispatch_[StatsEventType::TXN_BEGIN]) metric->OnTransactionBegin(txn);
   };
 
-  void CollectTransactionCommit(const concurrency::TransactionContext *txn, oid_t tile_group_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, tile_group_id);
+  void CollectTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, database_oid);
   };
 
-  void CollectTransactionAbort(const concurrency::TransactionContext *txn, oid_t tile_group_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TXN_ABORT]) metric->OnTransactionAbort(txn, tile_group_id);
+  void CollectTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TXN_ABORT]) metric->OnTransactionAbort(txn, database_oid);
   };
 
-  void CollectTupleRead(const concurrency::TransactionContext *current_txn, oid_t tile_group_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_READ]) metric->OnTupleRead(current_txn, tile_group_id);
+  void CollectTupleRead(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+                        catalog::table_oid_t table_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_READ])
+      metric->OnTupleRead(current_txn, {database_oid, table_oid});
   };
 
-  void CollectTupleUpdate(const concurrency::TransactionContext *current_txn, oid_t tile_group_id) {
+  void CollectTupleUpdate(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+                          catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_UPDATE])
-      metric->OnTupleUpdate(current_txn, tile_group_id);
+      metric->OnTupleUpdate(current_txn, {database_oid, table_oid});
   };
 
-  void CollectTupleInsert(const concurrency::TransactionContext *current_txn, oid_t tile_group_id) {
+  void CollectTupleInsert(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+                          catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_INSERT])
-      metric->OnTupleInsert(current_txn, tile_group_id);
+      metric->OnTupleInsert(current_txn, {database_oid, table_oid});
   };
 
-  void CollectTupleDelete(const concurrency::TransactionContext *current_txn, oid_t tile_group_id) {
+  void CollectTupleDelete(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+                          catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_DELETE])
-      metric->OnTupleDelete(current_txn, tile_group_id);
+      metric->OnTupleDelete(current_txn, {database_oid, table_oid});
   };
 
-  void CollectTableMemoryAlloc(oid_t database_id, oid_t table_id, size_t bytes) {
-    if (table_id == INVALID_OID || database_id == INVALID_OID) return;
-
+  void CollectTableMemoryAlloc(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
-      metric->OnMemoryAlloc({database_id, table_id}, bytes);
+      metric->OnTableMemoryAlloc({database_oid, table_oid}, bytes);
   };
 
-  void CollectTableMemoryFree(oid_t database_id, oid_t table_id, size_t bytes) {
-    if (table_id == INVALID_OID || database_id == INVALID_OID) return;
+  void CollectTableMemoryFree(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
-      metric->OnMemoryFree({database_id, table_id}, bytes);
+      metric->OnTableMemoryFree({database_oid, table_oid}, bytes);
   };
 
-  void CollectIndexRead(oid_t database_id, oid_t index_id, size_t num_read) {
+  void CollectTableMemoryUsage(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
+      metric->OnTableMemoryUsage({database_oid, table_oid}, bytes);
+  };
+
+  void CollectTableMemoryReclaim(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
+      metric->OnTableMemoryReclaim({database_oid, table_oid}, bytes);
+  }
+
+  void CollectIndexRead(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t num_read) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_READ])
-      metric->OnIndexRead({database_id, index_id}, num_read);
+      metric->OnIndexRead({database_oid, index_oid}, num_read);
   };
 
-  void CollectIndexUpdate(oid_t database_id, oid_t index_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_UPDATE]) metric->OnIndexUpdate({database_id, index_id});
+  void CollectIndexUpdate(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_UPDATE])
+      metric->OnIndexUpdate({database_oid, index_oid});
   };
 
-  void CollectIndexInsert(oid_t database_id, oid_t index_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_INSERT]) metric->OnIndexInsert({database_id, index_id});
+  void CollectIndexInsert(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_INSERT])
+      metric->OnIndexInsert({database_oid, index_oid});
   };
 
-  void CollectIndexDelete(oid_t database_id, oid_t index_id) {
-    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_DELETE]) metric->OnIndexDelete({database_id, index_id});
+  void CollectIndexDelete(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
+    for (auto &metric : metric_dispatch_[StatsEventType::INDEX_DELETE])
+      metric->OnIndexDelete({database_oid, index_oid});
   };
 
-  void CollectIndexMemoryAlloc(oid_t database_id, oid_t index_id, size_t bytes) {
+  void CollectIndexMemoryAlloc(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_ALLOC])
-      metric->OnMemoryAlloc({database_id, index_id}, bytes);
+      metric->OnIndexMemoryAlloc({database_oid, index_oid}, bytes);
   };
 
-  void CollectIndexMemoryUsage(oid_t database_id, oid_t index_id, size_t bytes) {
+  void CollectIndexMemoryUsage(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_USAGE])
-      metric->OnMemoryUsage({database_id, index_id}, bytes);
+      metric->OnIndexMemoryUsage({database_oid, index_oid}, bytes);
   };
 
-  void CollectIndexMemoryFree(oid_t database_id, oid_t index_id, size_t bytes) {
+  void CollectIndexMemoryFree(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_FREE])
-      metric->OnMemoryFree({database_id, index_id}, bytes);
+      metric->OnIndexMemoryFree({database_oid, index_oid}, bytes);
   };
 
-  void CollectIndexMemoryReclaim(oid_t database_id, oid_t index_id, size_t bytes) {
+  void CollectIndexMemoryReclaim(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_RECLAIM])
-      metric->OnMemoryReclaim({database_id, index_id}, bytes);
+      metric->OnIndexMemoryReclaim({database_oid, index_oid}, bytes);
   };
 
   void CollectQueryBegin() {
@@ -139,10 +161,6 @@ class ThreadLevelStatsCollector {
   void CollectQueryEnd() {
     for (auto &metric : metric_dispatch_[StatsEventType::QUERY_END]) metric->OnQueryEnd();
   };
-
-  void CollectTestNum(int number) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TEST]) metric->OnTest(number);
-  }
 
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
@@ -176,8 +194,14 @@ class ThreadLevelStatsCollector {
    * receive updates from that type of event.
    */
   std::unordered_map<StatsEventType, MetricList, EnumHash<StatsEventType>> metric_dispatch_;
-
+  /**
+   * Mapping from thread ID to stats collector
+   */
   static CollectorsMap collector_map_;
+  /**
+   * Transaction manager of the system
+   */
+  static transaction::TransactionManager txn_manager_;
 };
 
 }  // namespace stats

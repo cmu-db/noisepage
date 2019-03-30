@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sstream>
 #include <string>
+#include <unordered_map>
 
 #include "catalog/catalog_defs.h"
 #include "stats/abstract_metric.h"
@@ -10,7 +10,7 @@ namespace terrier {
 
 namespace transaction {
 class TransactionContext;
-}  // namespace concurrency
+}  // namespace transaction
 
 namespace stats {
 class DatabaseMetricRawData : public AbstractRawData {
@@ -31,9 +31,6 @@ class DatabaseMetricRawData : public AbstractRawData {
 
   void UpdateAndPersist() override;
 
-  // TODO(Tianyu): Pretty Print
-  const std::string GetInfo() const override { return ""; }
-
  private:
   /**
    * Maps from database id to a pair of counters.
@@ -41,28 +38,19 @@ class DatabaseMetricRawData : public AbstractRawData {
    * First counter represents number of transactions committed and the second
    * one represents the number of transactions aborted.
    */
-  std::unordered_map<oid_t, std::pair<int64_t, int64_t>> counters_;
+  std::unordered_map<catalog::db_oid_t, std::pair<int64_t, int64_t>> counters_;
 };
 
 class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
  public:
-  inline void OnTransactionCommit(const concurrency::TransactionContext *, oid_t tile_group_id) override {
-    oid_t database_id = GetDBTableIdFromTileGroupOid(tile_group_id).first;
-    GetRawData()->IncrementTxnCommited(database_id);
+  void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
+    GetRawData()->IncrementTxnCommited(database_oid);
   }
 
-  inline void OnTransactionAbort(const concurrency::TransactionContext *, oid_t tile_group_id) override {
-    oid_t database_id = GetDBTableIdFromTileGroupOid(tile_group_id).first;
-    GetRawData()->IncrementTxnAborted(database_id);
-  }
-
- private:
-  inline static std::pair<oid_t, oid_t> GetDBTableIdFromTileGroupOid(oid_t tile_group_id) {
-    auto tile_group = catalog::Manager::GetInstance().GetTileGroup(tile_group_id);
-    if (tile_group == nullptr) return {INVALID_OID, INVALID_OID};
-    return {tile_group->GetDatabaseId(), tile_group->GetTableId()};
+  void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
+    GetRawData()->IncrementTxnAborted(database_oid);
   }
 };
 
 }  // namespace stats
-}  // namespace peloton
+}  // namespace terrier
