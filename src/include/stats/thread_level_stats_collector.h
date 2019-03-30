@@ -7,12 +7,12 @@
 #include "stats/abstract_metric.h"
 #include "stats/abstract_raw_data.h"
 #include "stats/statistic_defs.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier {
 
 namespace transaction {
 class TransactionContext;
-class TransactionManager;
 }  // namespace transaction
 
 namespace stats {
@@ -44,7 +44,12 @@ class ThreadLevelStatsCollector {
   /**
    * @return the txn_manager of the system
    */
-  static transaction::TransactionManager &GetTxnManager() { return txn_manager_; }
+  static transaction::TransactionManager *GetTxnManager() { return txn_manager_; }
+
+  /**
+   * @return the txn_manager of the system
+   */
+  static void SetTxnManager(transaction::TransactionManager *txn_manager) { txn_manager_ = txn_manager; }
 
   /**
    * @brief Constructor of collector
@@ -201,7 +206,7 @@ class ThreadLevelStatsCollector {
   /**
    * Transaction manager of the system
    */
-  static transaction::TransactionManager txn_manager_;
+  static transaction::TransactionManager *txn_manager_;
 };
 
 }  // namespace stats

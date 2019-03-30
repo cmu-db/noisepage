@@ -208,7 +208,7 @@ class RawDataWrapper {
   friend class AbstractMetric<DataType>;
 
  public:
-  RawDataWrapper(RawDataWrapper &&other) = default;
+  RawDataWrapper(RawDataWrapper &&other) noexcept;
 
   ~RawDataWrapper() { safe_ = true; }  // Unblock aggregator
 

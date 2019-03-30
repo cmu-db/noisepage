@@ -7,8 +7,8 @@
 namespace terrier::stats {
 
 void DatabaseMetricRawData::UpdateAndPersist() {
-  auto &txn_manager = ThreadLevelStatsCollector::GetTxnManager();
-  auto txn = txn_manager.BeginTransaction();
+  auto txn_manager = ThreadLevelStatsCollector::GetTxnManager();
+  auto txn = txn_manager->BeginTransaction();
   // auto time_since_epoch = std::chrono::system_clock::now().time_since_epoch();
   // auto time_stamp = std::chrono::duration_cast<std::chrono::seconds>(time_since_epoch).count();
 
@@ -32,7 +32,7 @@ void DatabaseMetricRawData::UpdateAndPersist() {
   }*/
 
   // TODO(Wen) might need to change this line
-  txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::stats

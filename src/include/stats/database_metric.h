@@ -15,9 +15,9 @@ class TransactionContext;
 namespace stats {
 class DatabaseMetricRawData : public AbstractRawData {
  public:
-  inline void IncrementTxnCommited(catalog::db_oid_t database_id) { counters_[database_id].first++; }
+  void IncrementTxnCommited(catalog::db_oid_t database_id) { counters_[database_id].first++; }
 
-  inline void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].second++; }
+  void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].second++; }
 
   void Aggregate(AbstractRawData &other) override {
     auto &other_db_metric = dynamic_cast<DatabaseMetricRawData &>(other);
