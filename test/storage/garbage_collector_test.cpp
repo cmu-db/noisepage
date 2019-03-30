@@ -725,6 +725,9 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
         storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
         txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
+        tested.SelectIntoBuffer(txn0, slot);
+        EXPECT_FALSE(tested.select_result_);
+
         auto *txn2 = txn_manager.BeginTransaction();
 
         storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -743,9 +746,17 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
         tested.table_.Update(txn4, slot, *update);
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
 
-        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
+        // Txn 1, 2, 3 will be unlinked. Can't unlink 4 as it installed version chain head and 0 is still active
+        EXPECT_EQ(std::make_pair(0u, 3u), gc.PerformGarbageCollection());
+
+        tested.SelectIntoBuffer(txn0, slot);
+        EXPECT_FALSE(tested.select_result_);
 
         txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+        // Unlink txn 4 as txn 0 committed and unlink read-only txn 0
+        EXPECT_EQ(std::make_pair(3u, 2u), gc.PerformGarbageCollection());
+        // Deallocate txn 4
+        EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
     }
 }
 
@@ -794,12 +805,18 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
         update = tested.GenerateRandomUpdate(&generator_);
         tested.table_.Update(txn7, slot, *update);
         txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
+        // Txn 1, 2, 3, 5, 6 will be unlinked. Can't unlink 7 as it installed version chain head and 0, 4 are still active
         EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
+        // Unlink txn 4
         EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+        // Unlink read-only txn0 and txn 7 as txn 0 committed
+        EXPECT_EQ(std::make_pair(5u, 2u), gc.PerformGarbageCollection());
+        // Deallocate txn 7
+        EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
     }
 }
 
