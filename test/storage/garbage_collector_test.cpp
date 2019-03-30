@@ -711,4 +711,149 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
   }
 }
 
+TEST_F(GarbageCollectorTests, SingleOLAP) {
+    for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+        transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+        GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+        storage::GarbageCollector gc(&txn_manager);
+
+        auto *txn0 = txn_manager.BeginTransaction();
+
+        auto *txn1 = txn_manager.BeginTransaction();
+
+        auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+        storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+        txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn2 = txn_manager.BeginTransaction();
+
+        storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn2, slot, *update);
+        txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn3 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn3, slot, *update);
+        txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn4 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn4, slot, *update);
+        txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
+
+        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
+
+        txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+    }
+}
+
+TEST_F(GarbageCollectorTests, InterleavedOLAP) {
+    for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+        transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+        GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+        storage::GarbageCollector gc(&txn_manager);
+
+        auto *txn0 = txn_manager.BeginTransaction();
+
+        auto *txn1 = txn_manager.BeginTransaction();
+
+        auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+        storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+        txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn2 = txn_manager.BeginTransaction();
+
+        storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn2, slot, *update);
+        txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn3 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn3, slot, *update);
+        txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn4 = txn_manager.BeginTransaction();
+
+        auto *txn5 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn5, slot, *update);
+        txn_manager.Commit(txn5, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn6 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn6, slot, *update);
+        txn_manager.Commit(txn6, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn7= txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn7, slot, *update);
+        txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
+        EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
+
+        txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
+        EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+
+        txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+    }
+}
+
+TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
+    for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+        transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+        GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+        storage::GarbageCollector gc(&txn_manager);
+
+        auto *txn0 = txn_manager.BeginTransaction();
+
+        auto *txn1 = txn_manager.BeginTransaction();
+
+        auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+        storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+        txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn2 = txn_manager.BeginTransaction();
+
+        storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn2, slot, *update);
+        txn_manager.Commit(txn2, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn3 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn3, slot, *update);
+        txn_manager.Commit(txn3, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn4 = txn_manager.BeginTransaction();
+
+        auto *txn5 = txn_manager.BeginTransaction();
+
+        insert_tuple = tested.GenerateRandomTuple(&generator_);
+        slot = tested.table_.Insert(txn5, *insert_tuple);
+        txn_manager.Commit(txn5, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn6 = txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn6, slot, *update);
+        txn_manager.Commit(txn6, TestCallbacks::EmptyCallback, nullptr);
+
+        auto *txn7= txn_manager.BeginTransaction();
+
+        update = tested.GenerateRandomUpdate(&generator_);
+        tested.table_.Update(txn7, slot, *update);
+        txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
+        EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
+
+        txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
+        EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+
+        txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+    }
+}
 }  // namespace terrier
