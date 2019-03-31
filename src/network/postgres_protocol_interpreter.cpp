@@ -13,8 +13,11 @@
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
-Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
-                                                TrafficCopPtr t_cop, NetworkCallback callback) {
+Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,
+                                                std::shared_ptr<WriteQueue> out,
+                                                TrafficCopPtr t_cop,
+                                                ConnectionContext *context,
+                                                NetworkCallback callback) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
@@ -30,7 +33,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   std::shared_ptr<PostgresNetworkCommand> command = PacketToCommand();
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(this, &writer, t_cop, callback);
+  Transition ret = command->Exec(this, &writer, t_cop, context, callback);
   curr_input_packet_.Clear();
   return ret;
 }

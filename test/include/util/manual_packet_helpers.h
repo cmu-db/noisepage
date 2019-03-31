@@ -14,6 +14,9 @@
 
 namespace terrier::network {
 
+// The port used to connect a Postgres backend. Useful for debugging.
+const int POSTGRES_PORT = 5432;
+
 /**
  * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
  * @param io_socket
@@ -21,6 +24,7 @@ namespace terrier::network {
  */
 bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   while (true) {
+    io_socket->in_->Reset();
     Transition trans = io_socket->FillReadBuffer();
     if (trans == Transition::TERMINATE) return false;
 
@@ -32,6 +36,25 @@ bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
     }
   }
 }
+
+std::vector<ReadBuffer> ReadPackets(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
+  while (true) {
+    io_socket->in_->Reset();
+    Transition trans = io_socket->FillReadBuffer();
+    if (trans == Transition::TERMINATE) return false;
+
+    while(io_socket->in_->HasMore())
+    {
+
+    }
+
+    if (io_socket->in_->BytesAvailable() >= 6) {
+      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
+      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
+    }
+  }
+}
+
 
 std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket

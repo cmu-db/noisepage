@@ -1,6 +1,7 @@
 #include <sqlite3.h>
 #include <cstdio>
 #include <string>
+#include <traffic_cop/sqlite.h>
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
@@ -53,6 +54,17 @@ int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **val
   result_set->rows_.push_back(current_row);
 
   return 0;
+}
+sqlite3_stmt *SqliteEngine::PrepareStatement(const char *query) {
+  sqlite3_stmt *stmt;
+  int error_code = sqlite3_prepare_v2(sqlite_db_, query, -1, &stmt, nullptr);
+  if(error_code == SQLITE_OK)
+    return stmt;
+  else
+  {
+    LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
+    return nullptr;
+  }
 }
 
 }  // namespace terrier::traffic_cop

@@ -151,7 +151,8 @@ void TestExtendedQuery(uint16_t port) {
   std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
 
   PostgresPacketWriter writer(io_socket->out_);
-  writer.WriteParseCommand(stmtName, query, {});
+  int type_oid = static_cast<int>(PostgresValueType::INTEGER);
+  writer.WriteParseCommand(stmtName, query, std::vector(4, type_oid));
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 

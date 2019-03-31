@@ -159,8 +159,6 @@ inline type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type)
   }
 }
 
-
-
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
  * helper methods.
@@ -380,7 +378,7 @@ class PostgresPacketWriter {
    */
 
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
-                         std::initializer_list<int32_t> params) {
+                         std::vector<int32_t> params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)
@@ -463,6 +461,11 @@ class PostgresPacketWriter {
    */
   void WriteCloseCommand(ExtendedQueryObjectType type, const std::string &objectName) {
     BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+  }
+
+  void WriteParseComplete()
+  {
+    BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket();
   }
 
   /**

@@ -79,7 +79,7 @@ enum class NetworkMessageType : unsigned char {
   NULL_COMMAND = '0',
 
   // Messages that don't have headers (like Startup message)
-  NO_HEADER,
+  NO_HEADER = 255,
 
   // Responses
   PARSE_COMPLETE = '1',

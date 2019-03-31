@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <sqlite3.h>
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/result_set.h"
 
@@ -14,6 +15,8 @@ class SqliteEngine {
 
   void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                     const network::SimpleQueryCallback &callback);
+
+  sqlite3_stmt* PrepareStatement(const char *query);
 
  private:
   // SQLite database

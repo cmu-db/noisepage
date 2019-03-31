@@ -80,9 +80,45 @@ TEST_F(TrafficCopTests, RoundTripTest) {
   StopServer();
 }
 
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, ExtendedQueryTest) {
+  StartServer();
+  try {
+    auto io_socket = network::StartConnection(5432);
+    network::PostgresPacketWriter writer(io_socket->out_);
+
+    writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
+    io_socket->FlushAllWrites();
+    ReadUntilReadyOrClose(io_socket);
+    writer.WriteSimpleQuery("CREATE TABLE TableA (a1 INT PRIMARY KEY, a2 INT, a3 INT, a4 INT);");
+    io_socket->FlushAllWrites();
+    ReadUntilReadyOrClose(io_socket);
+
+    std::string stmtName = "prepareTest";
+    std::string query = "INSERT INTO TableA VALUES($1, $2, $3, $4);";
+
+    writer.WriteParseCommand(stmtName, query, std::vector(4, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+    io_socket->FlushAllWrites();
+    writer.WriteSyncCommand();
+    io_socket->FlushAllWrites();
+
+    ReadUntilReadyOrClose(io_socket);
+
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+
+  StopServer();
+}
+
+
+
 /*
  * This test is for debugging tests. It can be disabled when testing other components.
- * You can compare packets from terrier and from Postgres to find if you have created correct packets.
+ * You can launch a Postgres backend and compare packets from terrier and from Postgres
+ * to find if you have created correct packets.
+ *
  * */
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {

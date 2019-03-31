@@ -1,16 +1,20 @@
-//
-// Created by Zero on 2019/3/30.
-//
+#pragma once
 
-#ifndef TERRIER_CONNECTIONCONTEXT_H
-#define TERRIER_CONNECTIONCONTEXT_H
+#include <unordered_map>
+#include <string>
 
+#include "traffic_cop/statement.h"
 
+namespace terrier::network {
 
-class ConnectionContext {
+/**
+ * A ConnectionContext stores the state of a connection.
+ */
+
+struct ConnectionContext {
+  std::unordered_map<std::string, traffic_cop::Statement> statements;
+
 
 };
 
-
-
-#endif //TERRIER_CONNECTIONCONTEXT_H
+}

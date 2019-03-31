@@ -1,7 +1,7 @@
 #pragma once
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/sqlite.h"
-#include "traffic_cop/statement.h"
+#include "statement.h"
 
 namespace terrier::traffic_cop {
 
@@ -25,7 +25,7 @@ class TrafficCop {
   virtual void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                             const network::SimpleQueryCallback &callback);
 
-  virtual std::shared_ptr<Statement> Parse(const char *query);
+  virtual Statement Parse(const char *query, const std::vector<type::TypeId> &param_types);
 
   virtual ~TrafficCop() = default;
 

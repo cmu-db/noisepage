@@ -12,9 +12,6 @@ struct Statement {
   sqlite3_stmt *sqlite3_stmt_;
   std::vector<type::TransientValue> query_params;
 
-  Statement(sqlite3_stmt *stmt, std::vector<type::TransientValue> query_params)
-    :sqlite3_stmt_(stmt), query_params(std::move(query_params)){}
-
 };
 
 }
