@@ -229,10 +229,13 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             ReleaseProjectedRow(buffer_segment);
           }
           // Initialise the projected row with next's undo record
-          result = NewProjectedRow(next->Delta());
-          buffer_segment = result.first;
-          projected_row = result.second;
-          do_compaction = true;
+          // Compaction can only be done for a series of Update Undo Records
+          if(next->Type() == DeltaRecordType::UPDATE) {
+              result = NewProjectedRow(next->Delta());
+              buffer_segment = result.first;
+              projected_row = result.second;
+              do_compaction = true;
+          }
         } else {
           // Already have a base undo record. Apply this undo record on top of that
           switch (next->Type()) {
@@ -240,7 +243,24 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               // Normal delta to be applied. Does not modify the logical delete column.
               StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
               break;
-            case DeltaRecordType::INSERT:
+            case DeltaRecordType::INSERT: {
+              if (do_compaction) {
+                // Insert undo record cannot be compacted. Must be visible explicitly
+                // Should not unlink next
+                UndoRecord * compacted_undo_record =
+                        UndoRecordForUpdate(table, next->Slot(), *projected_row, next->Timestamp().load());
+                // Add this to the version chain
+                compacted_undo_record->Next().store(curr->Next().load());
+                // Set curr to point to the compacted undo record
+                curr->Next().store(compacted_undo_record);
+                // Compaction is over
+                do_compaction = false;
+                // Update the pointers
+                curr = next;
+                next = curr->Next().load();
+                continue;
+              }
+            }
             case DeltaRecordType::DELETE:;
           }
         }
@@ -248,7 +268,6 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
           // Was my undo record reclaimed?
           collected = true;
         }
-
         // Unlink next
         curr->Next().store(next->Next().load());
         UnlinkUndoRecordVersion(txn, next);
@@ -260,11 +279,15 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (do_compaction) {
         // We have compacted some undo records till now
         // next undo record can't be GC'd. Merge next with the compacted undo records.
+        bool do_delete_next = true;
         switch (next->Type()) {
           case DeltaRecordType::UPDATE:
             StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
             break;
           case DeltaRecordType::INSERT:
+            next = curr;
+            do_delete_next = false;
+            break;
           case DeltaRecordType::DELETE:;
         }
         UndoRecord *compacted_undo_record =
@@ -273,6 +296,9 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         compacted_undo_record->Next().store(next->Next().load());
         // Set curr to point to the compacted undo record
         curr->Next().store(compacted_undo_record);
+        // Unlinking next undo record only if the next record was compacted (Not an insert record)
+        if(do_delete_next)
+            UnlinkUndoRecordVersion(txn, next);
         // Compaction is over
         do_compaction = false;
       }
@@ -282,7 +308,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     next = curr->Next();
   }
 
-  // active_trans_iter ends but there are still elements in the version chain, Can GC everything below
+  // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
   while (next != nullptr) {
     if (next->Timestamp().load() == txn->TxnId().load()) {
       // Was my undo record reclaimed?
@@ -293,8 +319,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     curr->Next().store(next->Next().load());
     UnlinkUndoRecordVersion(txn, next);
 
-    // Move curr pointer ahead
-    curr = curr->Next();
+    // Move next pointer ahead
     next = curr->Next();
   }
 
