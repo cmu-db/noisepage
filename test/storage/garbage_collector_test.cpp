@@ -746,17 +746,18 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
         tested.table_.Update(txn4, slot, *update);
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
 
-        // Txn 1, 2, 3 will be unlinked. Can't unlink 4 as it installed version chain head and 0 is still active
-        EXPECT_EQ(std::make_pair(0u, 3u), gc.PerformGarbageCollection());
+        // Txn 2, 3 will be unlinked. Can't unlink 4 as it installed version chain head and 0 is still active
+        // Can't unlink txn 1 as it is an Insert Undo Record
+        EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
         tested.SelectIntoBuffer(txn0, slot);
         EXPECT_FALSE(tested.select_result_);
 
         txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-        // Unlink txn 4 as txn 0 committed and unlink read-only txn 0
-        EXPECT_EQ(std::make_pair(3u, 2u), gc.PerformGarbageCollection());
+        // Unlink txn 4 as txn 0 committed and unlink read-only txn 0 and unlink txn 1 as no active txn
+        EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
         // Deallocate txn 4
-        EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+        EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
     }
 }
 
