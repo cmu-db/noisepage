@@ -203,6 +203,9 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   UndoRecord *curr = version_chain_head;
   UndoRecord *next = curr->Next();
   auto active_txns_iter = active_txns->begin();
+  // The undo record which will point to the compacted undo record
+  UndoRecord *src = version_chain_head;
+  // True if we compacted anything, false otherwise
   bool do_compaction = false;
 
   // Create a temporary projected row for undo record compaction
@@ -230,11 +233,12 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
           }
           // Initialise the projected row with next's undo record
           // Compaction can only be done for a series of Update Undo Records
-          if(next->Type() == DeltaRecordType::UPDATE) {
-              result = NewProjectedRow(next->Delta());
-              buffer_segment = result.first;
-              projected_row = result.second;
-              do_compaction = true;
+          if (next->Type() == DeltaRecordType::UPDATE) {
+            src = curr;
+            result = NewProjectedRow(next->Delta());
+            buffer_segment = result.first;
+            projected_row = result.second;
+            do_compaction = true;
           }
         } else {
           // Already have a base undo record. Apply this undo record on top of that
@@ -243,24 +247,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               // Normal delta to be applied. Does not modify the logical delete column.
               StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
               break;
-            case DeltaRecordType::INSERT: {
-              if (do_compaction) {
-                // Insert undo record cannot be compacted. Must be visible explicitly
-                // Should not unlink next
-                UndoRecord * compacted_undo_record =
-                        UndoRecordForUpdate(table, next->Slot(), *projected_row, next->Timestamp().load());
-                // Add this to the version chain
-                compacted_undo_record->Next().store(curr->Next().load());
-                // Set curr to point to the compacted undo record
-                curr->Next().store(compacted_undo_record);
-                // Compaction is over
-                do_compaction = false;
-                // Update the pointers
-                curr = next;
-                next = curr->Next().load();
-                continue;
-              }
-            }
+            case DeltaRecordType::INSERT:
             case DeltaRecordType::DELETE:;
           }
         }
@@ -268,8 +255,6 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
           // Was my undo record reclaimed?
           collected = true;
         }
-        // Unlink next
-        curr->Next().store(next->Next().load());
         UnlinkUndoRecordVersion(txn, next);
       } else {
         // If next wasn't committed, don't collect it
@@ -285,20 +270,19 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
             break;
           case DeltaRecordType::INSERT:
-            next = curr;
-            do_delete_next = false;
-            break;
           case DeltaRecordType::DELETE:;
         }
-        UndoRecord *compacted_undo_record =
-            UndoRecordForUpdate(table, next->Slot(), *projected_row, next->Timestamp().load());
+        UndoRecord *first_compacted_record = src->Next().load();
+        UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, first_compacted_record->Slot(), *projected_row,
+                                                                first_compacted_record->Timestamp().load());
         // Add this to the version chain
         compacted_undo_record->Next().store(next->Next().load());
-        // Set curr to point to the compacted undo record
-        curr->Next().store(compacted_undo_record);
+        // Set src to point to the compacted undo record
+        src->Next().store(compacted_undo_record);
         // Unlinking next undo record only if the next record was compacted (Not an insert record)
-        if(do_delete_next)
-            UnlinkUndoRecordVersion(txn, next);
+        if (do_delete_next) {
+          UnlinkUndoRecordVersion(txn, next);
+        }
         // Compaction is over
         do_compaction = false;
       }
