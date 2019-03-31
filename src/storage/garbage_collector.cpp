@@ -69,7 +69,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   // Get active_txns in descending sorted order
   std::vector<transaction::timestamp_t> active_txns = txn_manager_->GetActiveTxns();
   ;
-  std::sort(active_txns.begin(), active_txns.end(), std::greater<transaction::timestamp_t>());
+  std::sort(active_txns.begin(), active_txns.end(), std::greater<>());
 
   // Process every transaction in the unlink queue
 
@@ -119,19 +119,21 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   // if this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
   // no point in trying to reclaim slots or do any further operation if cannot safely unlink
-  if (!UnlinkUndoRecord(txn, undo_record, active_txns)) return false;
-  return true;
+  UnlinkUndoRecord(txn, undo_record, active_txns);
+
+  table = undo_record->Table();
+  return table == nullptr;
 }
 
 // TODO(pulkit): rename this function to UnlinkUndoRecordTuple
-bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
+void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
                                         std::vector<transaction::timestamp_t> *const active_txns) {
   TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
                  "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
   if (table == nullptr) {
     // This UndoRecord has already been unlinked, so we can skip it
-    return true;
+    return;
   }
   const TupleSlot slot = undo_record->Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
@@ -141,17 +143,16 @@ bool GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const t
   TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
 
   // Perform interval gc for the entire version chain excluding the head of the chain
-  bool rest_collected = UnlinkUndoRecordRestOfChain(txn, version_ptr, active_txns);
-  bool head_collected = UnlinkUndoRecordHead(txn, version_ptr, active_txns);
-  return head_collected || rest_collected;
+  UnlinkUndoRecordRestOfChain(txn, version_ptr, active_txns);
+  UnlinkUndoRecordHead(txn, version_ptr, active_txns);
 }
 
-bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *const txn, UndoRecord *const head,
+void GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *const txn, UndoRecord *const head,
                                             std::vector<transaction::timestamp_t> *const active_txns) const {
   DataTable *table = head->Table();
   if (table == nullptr) {
     // This UndoRecord has already been unlinked, so we can skip it
-    return true;
+    return;
   }
   const TupleSlot slot = head->Slot();
   const TupleAccessStrategy &accessor = table->accessor_;
@@ -169,21 +170,20 @@ bool GarbageCollector::UnlinkUndoRecordHead(transaction::TransactionContext *con
         UnlinkUndoRecordVersion(txn, to_be_unlinked);
         if (version_ptr_timestamp == txn->TxnId().load()) {
           // If I was the header, make collected true, because I was collected
-          return true;
+          return;
         }
       }
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     }
   }
-  return false;
 }
 
-bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
+void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionContext *const txn,
                                                    UndoRecord *const version_chain_head,
                                                    std::vector<transaction::timestamp_t> *const active_txns) {
   // If no chain is passed, nothing is collected
   if (version_chain_head == nullptr) {
-    return false;
+    return;
   }
 
   DataTable *table = version_chain_head->Table();
@@ -192,13 +192,12 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     // This UndoRecord has already been unlinked, so we can skip it
     if (version_ptr_timestamp == txn->TxnId().load()) {
       // If I was the header, make collected true, because I was collected
-      return true;
+      return;
     }
-    return false;
+    return;
   }
   // Otherwise collect as much as possible and return true if version belonging to txn was collected
   // Don't collect version_chain_head though
-  bool collected = false;
   const TupleAccessStrategy &accessor = table->accessor_;
   UndoRecord *curr = version_chain_head;
   UndoRecord *next = curr->Next();
@@ -252,12 +251,11 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               // Insert undo record can be GC'd so this tuple is not visible
               // Set src to point to Insert's next undo record
               src->Next().store(next);
+              curr = curr->Next();
+              next = curr->Next();
+              continue;
             case DeltaRecordType::DELETE:;
           }
-        }
-        if (next->Timestamp().load() == txn->TxnId().load()) {
-          // Was my undo record reclaimed?
-          collected = true;
         }
         UnlinkUndoRecordVersion(txn, next);
         // Update curr
@@ -285,11 +283,6 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
 
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
   while (next != nullptr) {
-    if (next->Timestamp().load() == txn->TxnId().load()) {
-      // Was my undo record reclaimed?
-      collected = true;
-    }
-
     // Unlink next
     curr->Next().store(next->Next().load());
     UnlinkUndoRecordVersion(txn, next);
@@ -302,7 +295,6 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     // Release the buffer segment for projected row
     ReleaseProjectedRow(buffer_segment);
   }
-  return collected;
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(transaction::TransactionContext *const txn,

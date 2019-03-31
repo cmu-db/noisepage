@@ -69,9 +69,8 @@ class GarbageCollector {
    * is either committed or aborted.
    * @param txn pointer to the transaction that created this UndoRecord
    * @param undo_record UndoRecord to be unlinked
-   * @return true if the UndoRecord was either unlinked successfully or already unlinked, false otherwise
    */
-  bool UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
+  void UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
                         std::vector<transaction::timestamp_t> *active_txns);
 
   /**
@@ -79,13 +78,12 @@ class GarbageCollector {
    * @param txn pointer to the transaction that created an UndoRecord in this chain
    * @param version_chain_head pointer to the head of the chain
    * @param active_txns vector containing all active transactions
-   * @return true if an UndoRecord created by txn was unlinked
    */
-  bool UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
+  void UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
                                    std::vector<transaction::timestamp_t> *active_txns);
 
-  bool UnlinkUndoRecordHead(transaction::TransactionContext *const txn, UndoRecord *const head,
-                            std::vector<transaction::timestamp_t> *const active_txns) const;
+  void UnlinkUndoRecordHead(transaction::TransactionContext *txn, UndoRecord *head,
+                            std::vector<transaction::timestamp_t> *active_txns) const;
   /**
    * Straight up unlink the undo_record and reclaim its space
    * @param txn
