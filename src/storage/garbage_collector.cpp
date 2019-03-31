@@ -248,6 +248,10 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
               break;
             case DeltaRecordType::INSERT:
+              do_compaction = false;
+              // Insert undo record can be GC'd so this tuple is not visible
+              // Set src to point to Insert's next undo record
+              src->Next().store(next->Next().load());
             case DeltaRecordType::DELETE:;
           }
         }
@@ -270,6 +274,14 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
             break;
           case DeltaRecordType::INSERT:
+            // Insert undo record is visible
+            // Set src to point to Insert record
+            src->Next().store(next);
+            // Compaction over
+            do_compaction = false;
+            curr = curr->Next();
+            next = curr->Next();
+            continue;
           case DeltaRecordType::DELETE:;
         }
         UndoRecord *first_compacted_record = src->Next().load();
