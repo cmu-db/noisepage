@@ -229,10 +229,13 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             ReleaseProjectedRow(buffer_segment);
           }
           // Initialise the projected row with next's undo record
-          result = NewProjectedRow(next->Delta());
-          buffer_segment = result.first;
-          projected_row = result.second;
-          do_compaction = true;
+          // Compaction can only be done for a series of Update Undo Records
+          if(next->Type() == DeltaRecordType::UPDATE) {
+              result = NewProjectedRow(next->Delta());
+              buffer_segment = result.first;
+              projected_row = result.second;
+              do_compaction = true;
+          }
         } else {
           // Already have a base undo record. Apply this undo record on top of that
           switch (next->Type()) {
@@ -260,11 +263,15 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (do_compaction) {
         // We have compacted some undo records till now
         // next undo record can't be GC'd. Merge next with the compacted undo records.
+        bool do_delete_next = true;
         switch (next->Type()) {
           case DeltaRecordType::UPDATE:
             StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
             break;
           case DeltaRecordType::INSERT:
+            next = curr;
+            do_delete_next = false;
+            break;
           case DeltaRecordType::DELETE:;
         }
         UndoRecord *compacted_undo_record =
@@ -273,8 +280,9 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         compacted_undo_record->Next().store(next->Next().load());
         // Set curr to point to the compacted undo record
         curr->Next().store(compacted_undo_record);
-        // Unlinking next undo record
-        UnlinkUndoRecordVersion(txn, next);
+        // Unlinking next undo record only if the next record was compacted (Not an insert record)
+        if(do_delete_next)
+            UnlinkUndoRecordVersion(txn, next);
         // Compaction is over
         do_compaction = false;
       }
