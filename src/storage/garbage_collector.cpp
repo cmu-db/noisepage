@@ -242,19 +242,31 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             case DeltaRecordType::UPDATE:
               // Normal delta to be applied. Does not modify the logical delete column.
               StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+              if (next->Timestamp().load() == txn->TxnId().load()) {
+                // Was my undo record reclaimed?
+                collected = true;
+              }
+              // Unlink next
+              curr->Next().store(next->Next().load());
+              UnlinkUndoRecordVersion(txn, next);
               break;
-            case DeltaRecordType::INSERT:
+            case DeltaRecordType::INSERT: {
+              if (do_compaction) {
+                    // Insert undo record cannot be compacted. Must be visible explicitly
+                    // Should not unlink next
+                    UndoRecord * compacted_undo_record =
+                        UndoRecordForUpdate(table, curr->Slot(), *projected_row, curr->Timestamp().load());
+                    // Add this to the version chain
+                    compacted_undo_record->Next().store(curr->Next().load());
+                    // Set curr to point to the compacted undo record
+                    curr->Next().store(compacted_undo_record);
+                    // Compaction is over
+                    do_compaction = false;
+                }
+            }
             case DeltaRecordType::DELETE:;
           }
         }
-        if (next->Timestamp().load() == txn->TxnId().load()) {
-          // Was my undo record reclaimed?
-          collected = true;
-        }
-
-        // Unlink next
-        curr->Next().store(next->Next().load());
-        UnlinkUndoRecordVersion(txn, next);
       } else {
         // If next wasn't committed, don't collect it
         curr = curr->Next();
