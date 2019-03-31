@@ -81,7 +81,7 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
-  const uint32_t num_iterations_ = 100;
+  const uint32_t num_iterations_ = 1;
   const uint16_t max_columns_ = 100;
 };
 
@@ -806,18 +806,19 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
         update = tested.GenerateRandomUpdate(&generator_);
         tested.table_.Update(txn7, slot, *update);
         txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
-        // Txn 1, 2, 3, 5, 6 will be unlinked. Can't unlink 7 as it installed version chain head and 0, 4 are still active
-        EXPECT_EQ(std::make_pair(0u, 5u), gc.PerformGarbageCollection());
+        // Txn 2, 3, 5, 6 will be unlinked. Can't unlink 7 as it installed version chain head and 0, 4 are still active
+        // Can't unlink txn 1 as it inserted tuple
+        EXPECT_EQ(std::make_pair(0u, 4u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
         // Unlink txn 4
         EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
         txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-        // Unlink read-only txn0 and txn 7 as txn 0 committed
-        EXPECT_EQ(std::make_pair(5u, 2u), gc.PerformGarbageCollection());
+        // Unlink read-only txn0 and txn 7, txn 1  as txn 0 committed
+        EXPECT_EQ(std::make_pair(4u, 3u), gc.PerformGarbageCollection());
         // Deallocate txn 7
-        EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+        EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
     }
 }
 

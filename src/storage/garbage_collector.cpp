@@ -248,7 +248,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
                 // Insert undo record cannot be compacted. Must be visible explicitly
                 // Should not unlink next
                 UndoRecord * compacted_undo_record =
-                        UndoRecordForUpdate(table, curr->Slot(), *projected_row, curr->Timestamp().load());
+                        UndoRecordForUpdate(table, next->Slot(), *projected_row, next->Timestamp().load());
                 // Add this to the version chain
                 compacted_undo_record->Next().store(curr->Next().load());
                 // Set curr to point to the compacted undo record
@@ -319,8 +319,7 @@ bool GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     curr->Next().store(next->Next().load());
     UnlinkUndoRecordVersion(txn, next);
 
-    // Move curr pointer ahead
-    curr = curr->Next();
+    // Move next pointer ahead
     next = curr->Next();
   }
 
