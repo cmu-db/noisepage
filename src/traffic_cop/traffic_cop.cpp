@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 #include <util/test_harness.h>
+#include <traffic_cop/traffic_cop.h>
 
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/traffic_cop.h"
@@ -16,26 +17,17 @@ Statement TrafficCop::Parse(const char *query, const std::vector<type::TypeId> &
 
   Statement statement;
   statement.sqlite3_stmt_ = sqlite_engine.PrepareStatement(query);
+  statement.param_types = param_types;
+  return statement;
+}
 
+// With SQLite backend, we only produce a list of param values as the portal,
+// because (I think) it is discouraged to copy sqlite3_stmt.
+Portal TrafficCop::Bind(const Statement &stmt, const std::vector<type::TransientValue> &params) {
   using namespace type;
 
-  for(auto type_id : param_types)
-  {
-    // We use zero values for each of the types, as we don't know the actual values now
-    if(type_id == TypeId::INTEGER)
-      statement.query_params.push_back(TransientValueFactory::GetInteger(0));
-    else if(type_id == TypeId::BIGINT)
-      statement.query_params.push_back(TransientValueFactory::GetBigInt(0));
-    else if(type_id == TypeId::BOOLEAN)
-      statement.query_params.push_back(TransientValueFactory::GetBoolean(false));
-    else if(type_id == TypeId::DECIMAL)
-      statement.query_params.push_back(TransientValueFactory::GetDecimal(0.0));
-    else if(type_id == TypeId::VARCHAR)
-      statement.query_params.push_back(TransientValueFactory::GetVarChar(nullptr));
-  }
-
-  return statement;
-
+  Portal ret;
+  return ret;
 }
 
 }  // namespace terrier::traffic_cop

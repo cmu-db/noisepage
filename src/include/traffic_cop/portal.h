@@ -1,8 +1,13 @@
-//
-// Created by Zero on 2019/3/31.
-//
+#pragma once
 
-#ifndef TERRIER_PORTAL_H
-#define TERRIER_PORTAL_H
+#include <sqlite3.h>
 
-#endif //TERRIER_PORTAL_H
+namespace terrier::traffic_cop{
+
+struct Portal{
+  sqlite3_stmt *sqlite_stmt_;
+  std::vector<type::TransientValue> params;
+
+};
+
+} // namespace terrier::traffic_cop

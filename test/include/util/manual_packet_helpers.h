@@ -37,6 +37,7 @@ bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   }
 }
 
+/*
 std::vector<ReadBuffer> ReadPackets(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   while (true) {
     io_socket->in_->Reset();
@@ -54,7 +55,7 @@ std::vector<ReadBuffer> ReadPackets(const std::shared_ptr<NetworkIoWrapper> &io_
     }
   }
 }
-
+*/
 
 std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket

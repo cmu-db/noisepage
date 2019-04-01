@@ -69,13 +69,87 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter,
   return Transition::PROCEED;
 }
 
+
+
 Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
                              PostgresPacketWriter *out,
                              TrafficCopPtr t_cop,
                              ConnectionContext *connection,
                              NetworkCallback callback) {
-  std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Bind query: {0}", query.c_str());
+  std::string portal_name = in_.ReadString();
+
+  std::string stmt_name = in_.ReadString();
+  auto statement_pair = connection->statements.find(stmt_name);
+  if(statement_pair == connection->statements.end()){
+    NETWORK_LOG_ERROR("Error: There is no statement with name {0}", stmt_name);
+    throw NETWORK_PROCESS_EXCEPTION("");
+  }
+
+  // Find out param formats
+  traffic_cop::Statement *statement = &statement_pair->second;
+  auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
+  std::vector<int16_t> is_binary;
+  size_t num_params = statement->NumParams();
+  if(num_formats == 0)
+  {
+    is_binary = std::vector<int16_t>(num_params, 0);
+  }
+  else if(num_formats == 1)
+  {
+    auto format = in_.ReadValue<int16_t>();
+    is_binary = std::vector<int16_t>(num_params, format);
+  }
+  else if(num_formats == num_params)
+  {
+    for(size_t i = 0; i < num_formats; i++)
+    {
+      auto format = in_.ReadValue<int16_t>();
+      is_binary.push_back(format);
+    }
+  }
+  else
+  {
+    NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, (1) in format code.", num_params, num_formats);
+    throw NETWORK_PROCESS_EXCEPTION("");
+  }
+
+
+  // Read param values
+  auto num_params_from_query = static_cast<size_t>(in_.ReadValue<int16_t>());
+  if(num_params_from_query != num_params)
+  {
+    NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, {1} in bind command", num_params, num_params_from_query);
+    throw NETWORK_PROCESS_EXCEPTION("");
+  }
+
+  using namespace type;
+  std::vector<TransientValue> params;
+
+  for(size_t i=0; i<num_params; i++)
+  {
+    auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
+
+    if(statement->param_types[i] == TypeId::INTEGER)
+    {
+      int32_t value;
+      if(is_binary[i] == 0)
+      {
+        char buf[len];
+        in_.Read(len, buf);
+        value = std::stoi(buf);
+      }
+      else
+      {
+        value = in_.ReadValue<int32_t>();
+      }
+
+      params.push_back(TransientValueFactory::GetInteger(value));
+    }
+
+
+  }
+
+
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;

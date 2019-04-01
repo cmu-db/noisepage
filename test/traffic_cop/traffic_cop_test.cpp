@@ -84,7 +84,7 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 TEST_F(TrafficCopTests, ExtendedQueryTest) {
   StartServer();
   try {
-    auto io_socket = network::StartConnection(5432);
+    auto io_socket = network::StartConnection(port);
     network::PostgresPacketWriter writer(io_socket->out_);
 
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
@@ -94,12 +94,30 @@ TEST_F(TrafficCopTests, ExtendedQueryTest) {
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    std::string stmtName = "prepareTest";
+    std::string stmt_name = "test_statement";
     std::string query = "INSERT INTO TableA VALUES($1, $2, $3, $4);";
 
-    writer.WriteParseCommand(stmtName, query, std::vector(4, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+    writer.WriteParseCommand(stmt_name, query, std::vector(4, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
     io_socket->FlushAllWrites();
     writer.WriteSyncCommand();
+    io_socket->FlushAllWrites();
+
+    ReadUntilReadyOrClose(io_socket);
+
+    // Bind
+    auto param1 = std::vector<char>({'1'});
+    auto param2 = std::vector<char>({'2'});
+    auto param3 = std::vector<char>({'3'});
+    auto param4 = std::vector<char>({'4'});
+
+    std::string portal_name = "test_portal";
+    writer.WriteBindCommand(portal_name,
+                            stmt_name,
+                            {}, // All will use text format
+                            {&param1, &param2, &param3, &param4},
+                            {} // No result columns
+                            );
+
     io_socket->FlushAllWrites();
 
     ReadUntilReadyOrClose(io_socket);

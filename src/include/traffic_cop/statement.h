@@ -10,7 +10,9 @@ namespace terrier::traffic_cop {
 struct Statement {
 
   sqlite3_stmt *sqlite3_stmt_;
-  std::vector<type::TransientValue> query_params;
+  std::vector<type::TypeId> param_types;
+
+  size_t NumParams(){return param_types.size();}
 
 };
 

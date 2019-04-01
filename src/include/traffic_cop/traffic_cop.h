@@ -1,7 +1,8 @@
 #pragma once
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/sqlite.h"
-#include "statement.h"
+#include "traffic_cop/statement.h"
+#include "traffic_cop/portal.h"
 
 namespace terrier::traffic_cop {
 
@@ -15,7 +16,11 @@ namespace terrier::traffic_cop {
  */
 
 class TrafficCop {
+
  public:
+
+  virtual ~TrafficCop() = default;
+
   /**
    * Execute a simple query.
    * @param query the query string
@@ -27,8 +32,7 @@ class TrafficCop {
 
   virtual Statement Parse(const char *query, const std::vector<type::TypeId> &param_types);
 
-  virtual ~TrafficCop() = default;
-
+  virtual Portal Bind(const Statement &stmt, const std::vector<type::TransientValue> &params);
  private:
   SqliteEngine sqlite_engine;
 };
