@@ -186,19 +186,21 @@ class SqlTableRW {
         size_t size = 0;
         byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        size = strlen(type::TransientValuePeeker::PeekVarChar(value));
+        const char *val_p = type::TransientValuePeeker::PeekVarChar(value);
+        size = strlen(val_p);
         if (size > storage::VarlenEntry::InlineThreshold()) {
           // not inline, allocate storage
           varlen = common::AllocationUtil::AllocateAligned(size);
-          memcpy(varlen, type::TransientValuePeeker::PeekVarChar(value), size);
+          memcpy(varlen, val_p, size);
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
         } else {
-          // small enought to be stored inline
-          auto byte_p = reinterpret_cast<const byte *>(type::TransientValuePeeker::PeekVarChar(value));
+          // small enough to be stored inline
+          auto byte_p = reinterpret_cast<const byte *>(val_p);
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
         }
+        delete [] val_p;
         break;
       }
         // TODO(yangjuns): support other types
@@ -671,9 +673,12 @@ class SqlTableRW {
         const char *st = type::TransientValuePeeker::PeekVarChar(search_vec[index]);
         uint32_t size = vc_entry->Size();
         if (strlen(st) != size) {
+          delete [] st;
           return false;
         }
-        return strncmp(st, reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
+        bool ret_val = strncmp(st, reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
+        delete [] st;
+        return ret_val;
       } break;
 
       default:
