@@ -201,8 +201,6 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   // Otherwise collect as much as possible and return true if version belonging to txn was collected
   // Don't collect version_chain_head though
   const TupleAccessStrategy &accessor = table->accessor_;
-  UndoRecord *curr = version_chain_head;
-  UndoRecord *next = curr->Next();
   auto active_txns_iter = active_txns->begin();
   // The undo record which will point to the compacted undo record
   UndoRecord *src = version_chain_head;
@@ -214,6 +212,16 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   storage::RecordBufferSegment *buffer_segment = nullptr;
   storage::ProjectedRow *projected_row = nullptr;
 
+  UndoRecord *curr = version_chain_head;
+  UndoRecord *next = curr->Next();
+  // Skip all the uncommitted undo records
+  // Collect only committed undo records, this prevents collection of partial rollback versions
+  while (next != nullptr && !transaction::TransactionUtil::Committed(next->Timestamp().load())) {
+    // Update curr and next
+    curr = curr->Next();
+    next = curr->Next();
+  }
+
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
   while (next != nullptr && active_txns_iter != active_txns->end()) {
@@ -223,54 +231,52 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     } else if (transaction::TransactionUtil::NewerThan(next->Timestamp().load(), *active_txns_iter)) {
       // curr is visible to txns traversed till now, so can't GC curr. next is not visible to any txn, attempt GC
       // Collect next only if it was committed, this prevents collection of partial rollback versions
-      if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
-        // Since *active_txns_iter is not reading next, that means no one is reading this
-        // And so we can reclaim next
-        if (do_compaction == 0) {
-          // This is the first undo record to compact
-          if (buffer_segment != nullptr) {
-            // Release the buffer segment for projected row
-            ReleaseProjectedRow(buffer_segment);
-          }
-          // Initialise the projected row with next's undo record
-          // Compaction can only be done for a series of Update Undo Records
-          if (next->Type() == DeltaRecordType::UPDATE) {
-            src = curr;
-            result = NewProjectedRow(next->Delta());
-            buffer_segment = result.first;
-            projected_row = result.second;
-            do_compaction = 1;
-          }
-        } else {
-          // Already have a base undo record. Apply this undo record on top of that
-          switch (next->Type()) {
-            case DeltaRecordType::UPDATE:
-              // Normal delta to be applied. Does not modify the logical delete column.
-              StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
-              do_compaction++;
-              break;
-            case DeltaRecordType::INSERT:
-              // Compacting here. So unlink src's next
-              UnlinkUndoRecordVersion(txn, src->Next());
-              do_compaction = 0;
-              // Insert undo record can be GC'd so this tuple is not visible
-              // Set src to point to Insert's next undo record
-              src->Next().store(next);
-              curr = curr->Next();
-              next = curr->Next();
-              continue;
-            case DeltaRecordType::DELETE:;
-          }
-          // Don't unlink INSERT as INSERT should be visible
-          // If do_compaction is 1 don't unlink it as it will be unlinked when compaction record is attached
-          // This is done to handle unlinking of the record where compaction begins in Case 3
-          if (next->Type() == DeltaRecordType::UPDATE) {
-            UnlinkUndoRecordVersion(txn, next);
-          }
+      // Since *active_txns_iter is not reading next, that means no one is reading this
+      // And so we can reclaim next
+      if (do_compaction == 0) {
+        // This is the first undo record to compact
+        if (buffer_segment != nullptr) {
+          // Release the buffer segment for projected row
+          ReleaseProjectedRow(buffer_segment);
         }
-        // Update curr
-        curr = curr->Next();
+        // Initialise the projected row with next's undo record
+        // Compaction can only be done for a series of Update Undo Records
+        if (next->Type() == DeltaRecordType::UPDATE) {
+          src = curr;
+          result = NewProjectedRow(next->Delta());
+          buffer_segment = result.first;
+          projected_row = result.second;
+          do_compaction = 1;
+        }
+      } else {
+        // Already have a base undo record. Apply this undo record on top of that
+        switch (next->Type()) {
+          case DeltaRecordType::UPDATE:
+            // Normal delta to be applied. Does not modify the logical delete column.
+            StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+            do_compaction++;
+            break;
+          case DeltaRecordType::INSERT:
+            // Compacting here. So unlink src's next
+            UnlinkUndoRecordVersion(txn, src->Next());
+            do_compaction = 0;
+            // Insert undo record can be GC'd so this tuple is not visible
+            // Set src to point to Insert's next undo record
+            src->Next().store(next);
+            curr = curr->Next();
+            next = curr->Next();
+            continue;
+          case DeltaRecordType::DELETE:;
+        }
+        // Don't unlink INSERT as INSERT should be visible
+        // If do_compaction is 1 don't unlink it as it will be unlinked when compaction record is attached
+        // This is done to handle unlinking of the record where compaction begins in Case 3
+        if (next->Type() == DeltaRecordType::UPDATE) {
+          UnlinkUndoRecordVersion(txn, next);
+        }
       }
+      // Update curr
+      curr = curr->Next();
     } else {
       if (do_compaction > 0) {
         if (do_compaction > 1) {
