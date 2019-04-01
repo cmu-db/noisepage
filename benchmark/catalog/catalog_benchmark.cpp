@@ -36,10 +36,10 @@ class CatalogBenchmark : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state) {
-  std::vector<type::Value> search_vec, ret_row;
+  std::vector<type::TransientValue> search_vec, ret_row;
   // setup search vector, lookup the default database
-  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  search_vec.push_back(type::ValueFactory::GetVarcharValue("terrier"));
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar("terrier"));
 
   catalog::DatabaseHandle db_handle = catalog_->GetDatabaseHandle();
   txn_ = txn_manager_->BeginTransaction();

@@ -187,14 +187,14 @@ class Catalog {
    * @param vec append to this vector of values
    * @param cols vector of column types
    */
-  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols);
+  void SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols);
 
   /**
    * Convert type id to schema type
    * @param type_id type id
    * @return schema type
    */
-  type::Value ValueTypeIdToSchemaType(type::TypeId type_id);
+  type::TransientValue ValueTypeIdToSchemaType(type::TypeId type_id);
 
   /**
    * -------------

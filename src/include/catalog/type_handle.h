@@ -1,6 +1,6 @@
 #pragma once
 
-#include <type/value.h>
+#include <type/transient_value.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -30,12 +30,12 @@ class TypeHandle {
      * @param oid the col_oid of the type
      * @param entry the row as a vector of values
      */
-    TypeEntry(type_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    TypeEntry(type_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column.
      */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
      * Return the col_oid of the type.
@@ -44,7 +44,7 @@ class TypeHandle {
 
    private:
     type_oid_t oid_;
-    std::vector<type::Value> entry_;
+    std::vector<type::TransientValue> entry_;
   };
 
   /**
@@ -80,7 +80,8 @@ class TypeHandle {
   /**
    * Get a type entry from pg_type handle by name.
    */
-  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::Value &type);
+  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn,
+                                                      const type::TransientValue &type);
 
   /**
    * Create storage table

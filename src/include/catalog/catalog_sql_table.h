@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "storage/sql_table.h"
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -11,9 +10,11 @@
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
-#include "type/value.h"
-#include "type/value_factory.h"
+#include "type/transient_value.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
 #include "util/storage_test_util.h"
+
 namespace terrier::catalog {
 
 /**
@@ -157,7 +158,7 @@ class SqlTableRW {
    * @param col_num column number in the schema
    * @param value to save
    */
-  void SetColInRow(storage::ProjectedRow *proj_row, int32_t col_num, const type::Value &value) {
+  void SetColInRow(storage::ProjectedRow *proj_row, int32_t col_num, const type::TransientValue &value) {
     auto offset = pr_map_->at(col_oids_[col_num]);
     if (value.Null()) {
       proj_row->SetNull(offset);
@@ -168,33 +169,33 @@ class SqlTableRW {
     switch (value.Type()) {
       case type::TypeId::BOOLEAN: {
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        (*reinterpret_cast<int8_t *>(col_p)) = static_cast<int8_t>(value.GetBooleanValue());
+        (*reinterpret_cast<int8_t *>(col_p)) = static_cast<int8_t>(type::TransientValuePeeker::PeekBoolean(value));
         break;
       }
       case type::TypeId::INTEGER: {
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        (*reinterpret_cast<int32_t *>(col_p)) = value.GetIntValue();
+        (*reinterpret_cast<int32_t *>(col_p)) = type::TransientValuePeeker::PeekInteger(value);
         break;
       }
       case type::TypeId::BIGINT: {
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        (*reinterpret_cast<int64_t *>(col_p)) = value.GetBigIntValue();
+        (*reinterpret_cast<int64_t *>(col_p)) = type::TransientValuePeeker::PeekBigInt(value);
         break;
       }
       case type::TypeId::VARCHAR: {
         size_t size = 0;
         byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        size = strlen(value.GetVarcharValue());
+        size = strlen(type::TransientValuePeeker::PeekVarChar(value));
         if (size > storage::VarlenEntry::InlineThreshold()) {
           // not inline, allocate storage
           varlen = common::AllocationUtil::AllocateAligned(size);
-          memcpy(varlen, value.GetVarcharValue(), size);
+          memcpy(varlen, type::TransientValuePeeker::PeekVarChar(value), size);
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
         } else {
           // small enought to be stored inline
-          auto byte_p = reinterpret_cast<const byte *>(value.GetVarcharValue());
+          auto byte_p = reinterpret_cast<const byte *>(type::TransientValuePeeker::PeekVarChar(value));
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
         }
@@ -258,7 +259,7 @@ class SqlTableRW {
    * @return Value instance
    * Deprecate?
    */
-  type::Value GetColInRow(storage::ProjectedRow *p_row, int32_t col_num) {
+  type::TransientValue GetColInRow(storage::ProjectedRow *p_row, int32_t col_num) {
     storage::col_id_t storage_col_id(static_cast<uint16_t>(col_num));
     type::TypeId col_type = table_->GetSchema().GetColumn(storage_col_id).GetType();
     byte *col_p = p_row->AccessForceNotNull(ColNumToOffset(col_num));
@@ -302,7 +303,7 @@ class SqlTableRW {
    * @param txn
    * @param row - vector of values to insert
    */
-  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::TransientValue> &row) {
     TERRIER_ASSERT(pri_->NumColumns() == row.size(), "InsertRow: inserted row size != number of columns");
     // get buffer for insertion and use as a row
     auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
@@ -325,7 +326,8 @@ class SqlTableRW {
    *    only one row is returned.
    *    on failure, returns an empty vector;
    */
-  std::vector<type::Value> FindRow(transaction::TransactionContext *txn, const std::vector<type::Value> &search_vec) {
+  std::vector<type::TransientValue> FindRow(transaction::TransactionContext *txn,
+                                            const std::vector<type::TransientValue> &search_vec) {
     bool row_match;
 
     auto layout = GetLayout();
@@ -358,7 +360,7 @@ class SqlTableRW {
     }
     delete[] buffer;
     // return an empty vector
-    return std::vector<type::Value>();
+    return std::vector<type::TransientValue>();
   }
 
   /**
@@ -367,7 +369,7 @@ class SqlTableRW {
    * For entry deletion, we need access to the tuple slot via the projected column api, in order to delete.
    */
   storage::ProjectedColumns *FindRowProjCol(transaction::TransactionContext *txn,
-                                            const std::vector<type::Value> &search_vec) {
+                                            const std::vector<type::TransientValue> &search_vec) {
     bool row_match;
 
     auto layout = GetLayout();
@@ -429,35 +431,35 @@ class SqlTableRW {
    * @param row_view - row to convert
    * @return a vector of Values
    */
-  std::vector<type::Value> ColToValueVec(storage::ProjectedColumns::RowView row_view) {
-    std::vector<type::Value> ret_vec;
+  std::vector<type::TransientValue> ColToValueVec(storage::ProjectedColumns::RowView row_view) {
+    std::vector<type::TransientValue> ret_vec;
     for (int32_t i = 0; i < row_view.NumColumns(); i++) {
       type::TypeId schema_col_type = cols_[i].GetType();
       byte *col_p = row_view.AccessWithNullCheck(ColNumToOffset(i));
       if (col_p == nullptr) {
-        ret_vec.emplace_back(type::ValueFactory::GetNullValue(schema_col_type));
+        ret_vec.emplace_back(type::TransientValueFactory::GetNull(schema_col_type));
         continue;
       }
 
       switch (schema_col_type) {
         case type::TypeId::BOOLEAN: {
           auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetBooleanValue(static_cast<bool>(row_bool_val)));
+          ret_vec.emplace_back(type::TransientValueFactory::GetBoolean(static_cast<bool>(row_bool_val)));
           break;
         }
         case type::TypeId::SMALLINT: {
           auto row_int_val = *(reinterpret_cast<int16_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetSmallIntValue(row_int_val));
+          ret_vec.emplace_back(type::TransientValueFactory::GetSmallInt(row_int_val));
           break;
         }
         case type::TypeId::INTEGER: {
           auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetIntegerValue(row_int_val));
+          ret_vec.emplace_back(type::TransientValueFactory::GetInteger(row_int_val));
           break;
         }
         case type::TypeId::BIGINT: {
           auto row_int_val = *(reinterpret_cast<int64_t *>(col_p));
-          ret_vec.emplace_back(type::ValueFactory::GetBigIntValue(row_int_val));
+          ret_vec.emplace_back(type::TransientValueFactory::GetBigInt(row_int_val));
           break;
         }
         case type::TypeId::VARCHAR: {
@@ -466,12 +468,12 @@ class SqlTableRW {
           // replaced by updated Value implementation.
           // add space for null terminator
           uint32_t size = vc_entry->Size() + 1;
-          auto *ret_st = static_cast<char *>(malloc(size));
+          auto *ret_st = new char[size];
           memcpy(ret_st, vc_entry->Content(), size - 1);
           *(ret_st + size - 1) = 0;
           // TODO(pakhtar): replace with Value varchar
-          ret_vec.emplace_back(type::ValueFactory::GetVarcharValue(ret_st));
-          free(ret_st);
+          ret_vec.emplace_back(type::TransientValueFactory::GetVarChar(ret_st));
+          delete[] ret_st;
           break;
         }
 
@@ -585,7 +587,7 @@ class SqlTableRW {
    * @return true if all values in the search vector match the row
    *         false otherwise
    */
-  bool RowFound(storage::ProjectedColumns::RowView row_view, const std::vector<type::Value> &search_vec) {
+  bool RowFound(storage::ProjectedColumns::RowView row_view, const std::vector<type::TransientValue> &search_vec) {
     // assert that row_view has enough columns
     TERRIER_ASSERT(row_view.NumColumns() >= search_vec.size(), "row_view columns < search_vector");
     // assert that search vector is not empty
@@ -609,22 +611,22 @@ class SqlTableRW {
    * @param col_p the pointer to bytes
    * @return a value
    */
-  type::Value CreateColValue(type::TypeId type_id, byte *col_p) {
+  type::TransientValue CreateColValue(type::TypeId type_id, byte *col_p) {
     switch (type_id) {
       case type::TypeId::INTEGER:
-        return type::ValueFactory::GetIntegerValue(*(reinterpret_cast<uint32_t *>(col_p)));
+        return type::TransientValueFactory::GetInteger(*(reinterpret_cast<uint32_t *>(col_p)));
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
         // TODO(pakhtar): unnecessary copy. Fix appropriately when
         // replaced by updated Value implementation.
         // add space for null terminator
         uint32_t size = vc_entry->Size() + 1;
-        auto *ret_st = static_cast<char *>(malloc(size));
+        auto *ret_st = new char[size];
         memcpy(ret_st, vc_entry->Content(), size - 1);
         *(ret_st + size - 1) = 0;
         // TODO(pakhtar): replace w
-        auto result = type::ValueFactory::GetVarcharValue(ret_st);
-        free(ret_st);
+        auto result = type::TransientValueFactory::GetVarChar(ret_st);
+        delete[] ret_st;
         return result;
       }
       default:
@@ -641,7 +643,7 @@ class SqlTableRW {
    *         false otherwise
    */
   bool ColEqualsValue(int32_t index, storage::ProjectedColumns::RowView row_view,
-                      const std::vector<type::Value> &search_vec) {
+                      const std::vector<type::TransientValue> &search_vec) {
     type::TypeId col_type = cols_[index].GetType();
     if (col_type != search_vec[index].Type()) {
       TERRIER_ASSERT(col_type == search_vec[index].Type(), "schema <-> column type mismatch");
@@ -656,17 +658,17 @@ class SqlTableRW {
     switch (col_type) {
       case type::TypeId::BOOLEAN: {
         auto row_bool_val = *(reinterpret_cast<int8_t *>(col_p));
-        return (row_bool_val == static_cast<int8_t>(search_vec[index].GetBooleanValue()));
+        return (row_bool_val == static_cast<int8_t>(type::TransientValuePeeker::PeekBoolean(search_vec[index])));
       } break;
 
       case type::TypeId::INTEGER: {
         auto row_int_val = *(reinterpret_cast<int32_t *>(col_p));
-        return (row_int_val == search_vec[index].GetIntValue());
+        return (row_int_val == type::TransientValuePeeker::PeekInteger(search_vec[index]));
       } break;
 
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-        const char *st = search_vec[index].GetVarcharValue();
+        const char *st = type::TransientValuePeeker::PeekVarChar(search_vec[index]);
         uint32_t size = vc_entry->Size();
         if (strlen(st) != size) {
           return false;

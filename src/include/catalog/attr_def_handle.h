@@ -7,9 +7,9 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/table_handle.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
+#include "type/transient_value.h"
 namespace terrier::catalog {
 
 class Catalog;
@@ -31,14 +31,14 @@ class AttrDefHandle {
      * @param oid
      * @param entry: the row as a vector of values
      */
-    AttrDefEntry(col_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    AttrDefEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column
      * @param col_num the column index
      * @return the value of the column
      */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
      * Return the col_oid of the attribute
@@ -49,7 +49,7 @@ class AttrDefHandle {
    private:
     // the row
     col_oid_t oid_;
-    std::vector<type::Value> entry_;
+    std::vector<type::TransientValue> entry_;
   };
 
   /**

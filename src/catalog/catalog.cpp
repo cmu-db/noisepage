@@ -188,25 +188,25 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = map_[db_oid][name_map_[db_oid]["pg_attribute"]];
   int32_t col_num = 0;
   for (auto &c : cols) {
-    std::vector<type::Value> row;
-    row.emplace_back(type::ValueFactory::GetIntegerValue(!c.GetOid()));
-    row.emplace_back(type::ValueFactory::GetIntegerValue(!table->Oid()));
-    row.emplace_back(type::ValueFactory::GetVarcharValue(c.GetName().c_str()));
+    std::vector<type::TransientValue> row;
+    row.emplace_back(type::TransientValueFactory::GetInteger(!c.GetOid()));
+    row.emplace_back(type::TransientValueFactory::GetInteger(!table->Oid()));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(c.GetName().c_str()));
 
     // pg_type.oid
     auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
     auto s_type = ValueTypeIdToSchemaType(c.GetType());
     auto type_entry = type_handle.GetTypeEntry(txn, s_type);
-    row.emplace_back(type::ValueFactory::GetIntegerValue(!type_entry->GetTypeOid()));
+    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetTypeOid()));
 
     // length of column type. Varlen columns have the sign bit set.
     // TODO(pakhtar): resolve what to store for varlens.
     auto attr_size = c.GetAttrSize();
-    row.emplace_back(type::ValueFactory::GetIntegerValue(attr_size));
+    row.emplace_back(type::TransientValueFactory::GetInteger(attr_size));
 
     // column number, starting from 1 for "real" columns.
     // The first column, 0, is terrier's row oid.
-    row.emplace_back(type::ValueFactory::GetIntegerValue(col_num++));
+    row.emplace_back(type::TransientValueFactory::GetInteger(col_num++));
     pg_attribute->InsertRow(txn, row);
   }
 }
@@ -235,12 +235,12 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
 }
 
 void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
   db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
   CATALOG_LOG_TRACE("Populate pg_database table");
 
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!terrier_oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("terrier"));
+  row.emplace_back(type::TransientValueFactory::GetInteger(!terrier_oid));
+  row.emplace_back(type::TransientValueFactory::GetVarChar("terrier"));
   SetUnusedColumns(&row, DatabaseHandle::unused_schema_cols_);
   pg_database_->InsertRow(txn, row);
 }
@@ -251,7 +251,7 @@ void Catalog::CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid) {
 }
 
 void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
   CATALOG_LOG_TRACE("Populate pg_tablespace table");
   auto ts_handle = GetTablespaceHandle();
 
@@ -291,7 +291,7 @@ void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, t
 }
 
 void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
   std::shared_ptr<catalog::SqlTableRW> pg_namespace;
 
   // create the namespace table
@@ -305,7 +305,7 @@ void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t d
 }
 
 void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
 
   // create pg_class storage
   std::shared_ptr<catalog::SqlTableRW> pg_class = ClassHandle::Create(txn, this, db_oid, "pg_class");
@@ -364,7 +364,7 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
   std::shared_ptr<SqlTableRW> pg_type = TypeHandle::Create(txn, this, db_oid, "pg_type");
 
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
   // TODO(Yesheng): get rid of this strange calling chain
   auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
   auto catalog_ns_oid =
@@ -437,9 +437,9 @@ void Catalog::DestroyDB(db_oid_t oid) {
 // private methods
 
 void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const char *name) {
-  std::vector<type::Value> entry;
-  entry.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  entry.emplace_back(type::ValueFactory::GetVarcharValue(name));
+  std::vector<type::TransientValue> entry;
+  entry.emplace_back(type::TransientValueFactory::GetInteger(!oid));
+  entry.emplace_back(type::TransientValueFactory::GetVarChar(name));
   SetUnusedColumns(&entry, DatabaseHandle::unused_schema_cols_);
   pg_database_->InsertRow(txn, entry);
 
@@ -447,37 +447,37 @@ void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_
   map_[oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
 }
 
-void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols) {
+void Catalog::SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols) {
   for (const auto col : cols) {
     switch (col.type_id) {
       case type::TypeId::BOOLEAN:
-        vec->emplace_back(type::ValueFactory::GetBooleanValue(false));
+        vec->emplace_back(type::TransientValueFactory::GetBoolean(false));
         break;
 
       case type::TypeId::TINYINT:
-        vec->emplace_back(type::ValueFactory::GetTinyIntValue(0));
+        vec->emplace_back(type::TransientValueFactory::GetTinyInt(0));
 
       case type::TypeId::SMALLINT:
-        vec->emplace_back(type::ValueFactory::GetSmallIntValue(0));
+        vec->emplace_back(type::TransientValueFactory::GetSmallInt(0));
 
       case type::TypeId::INTEGER:
-        vec->emplace_back(type::ValueFactory::GetIntegerValue(0));
+        vec->emplace_back(type::TransientValueFactory::GetInteger(0));
         break;
 
       case type::TypeId::BIGINT:
-        vec->emplace_back(type::ValueFactory::GetBigIntValue(0));
+        vec->emplace_back(type::TransientValueFactory::GetBigInt(0));
 
       case type::TypeId::DATE:
-        vec->emplace_back(type::ValueFactory::GetDateValue(type::date_t(0)));
+        vec->emplace_back(type::TransientValueFactory::GetDate(type::date_t(0)));
 
       case type::TypeId::DECIMAL:
-        vec->emplace_back(type::ValueFactory::GetDecimalValue(0));
+        vec->emplace_back(type::TransientValueFactory::GetDecimal(0));
 
       case type::TypeId::TIMESTAMP:
-        vec->emplace_back(type::ValueFactory::GetTimeStampValue(type::timestamp_t(0)));
+        vec->emplace_back(type::TransientValueFactory::GetTimestamp(type::timestamp_t(0)));
 
       case type::TypeId::VARCHAR:
-        vec->emplace_back(type::ValueFactory::GetNullValue(type::TypeId::VARCHAR));
+        vec->emplace_back(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
         break;
 
       default:
@@ -486,34 +486,34 @@ void Catalog::SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<
   }
 }
 
-type::Value Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
+type::TransientValue Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN:
-      return type::ValueFactory::GetVarcharValue("boolean");
+      return type::TransientValueFactory::GetVarChar("boolean");
 
     case type::TypeId::TINYINT:
-      return type::ValueFactory::GetVarcharValue("tinyint");
+      return type::TransientValueFactory::GetVarChar("tinyint");
 
     case type::TypeId::SMALLINT:
-      return type::ValueFactory::GetVarcharValue("smallint");
+      return type::TransientValueFactory::GetVarChar("smallint");
 
     case type::TypeId::INTEGER:
-      return type::ValueFactory::GetVarcharValue("integer");
+      return type::TransientValueFactory::GetVarChar("integer");
 
     case type::TypeId::BIGINT:
-      return type::ValueFactory::GetVarcharValue("bigint");
+      return type::TransientValueFactory::GetVarChar("bigint");
 
     case type::TypeId::DATE:
-      return type::ValueFactory::GetVarcharValue("date");
+      return type::TransientValueFactory::GetVarChar("date");
 
     case type::TypeId::DECIMAL:
-      return type::ValueFactory::GetVarcharValue("decimal");
+      return type::TransientValueFactory::GetVarChar("decimal");
 
     case type::TypeId::TIMESTAMP:
-      return type::ValueFactory::GetVarcharValue("timestamp");
+      return type::TransientValueFactory::GetVarChar("timestamp");
 
     case type::TypeId::VARCHAR:
-      return type::ValueFactory::GetVarcharValue("varchar");
+      return type::TransientValueFactory::GetVarChar("varchar");
 
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");

@@ -51,14 +51,14 @@ class DatabaseHandle {
      * @param oid: the db_oid of the underlying database
      * @param entry: the row as a vector of values
      */
-    DatabaseEntry(db_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    DatabaseEntry(db_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column
      * @param col_num the column index
      * @return the value of the column
      */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
      * Return the db_oid of the underlying database
@@ -75,7 +75,7 @@ class DatabaseHandle {
 
    private:
     db_oid_t oid_;
-    std::vector<type::Value> entry_;
+    std::vector<type::TransientValue> entry_;
   };
 
   /**
