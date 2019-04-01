@@ -200,7 +200,6 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   }
   // Otherwise collect as much as possible and return true if version belonging to txn was collected
   // Don't collect version_chain_head though
-  const TupleAccessStrategy &accessor = table->accessor_;
   auto active_txns_iter = active_txns->begin();
   // The undo record which will point to the compacted undo record
   UndoRecord *src = version_chain_head;
@@ -208,7 +207,6 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   uint32_t do_compaction = 0;
 
   // Create a temporary projected row for undo record compaction
-  std::pair<RecordBufferSegment *, ProjectedRow *> result;
   storage::RecordBufferSegment *buffer_segment = nullptr;
   storage::ProjectedRow *projected_row = nullptr;
 
@@ -234,83 +232,29 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // Since *active_txns_iter is not reading next, that means no one is reading this
       // And so we can reclaim next
       if (do_compaction == 0) {
+        // This only happens when the first compaction is initiated. Other compactions begin in Case 3.
         // This is the first undo record to compact
-        if (buffer_segment != nullptr) {
-          // Release the buffer segment for projected row
-          ReleaseProjectedRow(buffer_segment);
-        }
-        // Initialise the projected row with next's undo record
-        // Compaction can only be done for a series of Update Undo Records
-        if (next->Type() == DeltaRecordType::UPDATE) {
-          src = curr;
-          result = NewProjectedRow(next->Delta());
-          buffer_segment = result.first;
-          projected_row = result.second;
-          do_compaction = 1;
-        }
+        BeginCompaction(src, curr, next, do_compaction, projected_row, buffer_segment);
       } else {
-        // Already have a base undo record. Apply this undo record on top of that
-        switch (next->Type()) {
-          case DeltaRecordType::UPDATE:
-            // Normal delta to be applied. Does not modify the logical delete column.
-            StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
-            do_compaction++;
-            break;
-          case DeltaRecordType::INSERT:
-            // Compacting here. So unlink src's next
-            UnlinkUndoRecordVersion(txn, src->Next());
-            do_compaction = 0;
-            // Insert undo record can be GC'd so this tuple is not visible
-            // Set src to point to Insert's next undo record
-            src->Next().store(next);
-            curr = curr->Next();
-            next = curr->Next();
-            continue;
-          case DeltaRecordType::DELETE:;
-        }
-        // Don't unlink INSERT as INSERT should be visible
-        // If do_compaction is 1 don't unlink it as it will be unlinked when compaction record is attached
-        // This is done to handle unlinking of the record where compaction begins in Case 3
-        if (next->Type() == DeltaRecordType::UPDATE) {
-          UnlinkUndoRecordVersion(txn, next);
+        if (CompactUndoRecord(txn, src, curr, next, do_compaction, projected_row, buffer_segment)) {
+          // If compaction terminates here because of an Insert record, continue and look for new compaction to begin
+          curr = curr->Next();
+          next = curr->Next();
+          continue;
         }
       }
       // Update curr
       curr = curr->Next();
     } else {
-      if (do_compaction > 0) {
-        if (do_compaction > 1) {
-          UnlinkUndoRecordVersion(txn, src->Next());
-          // We have compacted some undo records till now
-          // next undo record can't be GC'd. Set compacted undo record to point to next.
-          UndoRecord *first_compacted_record = src->Next().load();
-          UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, first_compacted_record->Slot(), *projected_row,
-                                                                  first_compacted_record->Timestamp().load());
-          // Add this to the version chain
-          compacted_undo_record->Next().store(next);
-          // Set src to point to the compacted undo record
-          src->Next().store(compacted_undo_record);
-          // Compaction is over
-          do_compaction = 0;
-          // Added a compacted undo record. So it should be curr
-          curr = compacted_undo_record;
-        } else {
-          if (buffer_segment != nullptr) {
-            // Release the buffer segment for projected row
-            ReleaseProjectedRow(buffer_segment);
-          }
-          curr = curr->Next();
-        }
+      if (do_compaction > 1) {
+        // Compacted more than one undo record, link it to the version chain.
+        LinkCompactedUndoRecord(txn, src, curr, next,do_compaction,projected_row, buffer_segment);
+      } else if (do_compaction == 1) {
+        // Compacted undo record only is frivolous. Drop it.
+        EndCompaction(do_compaction, buffer_segment);
+        curr = curr->Next();
       } else {
-        if (buffer_segment != nullptr) {
-          // Release the buffer segment for projected row
-          ReleaseProjectedRow(buffer_segment);
-        }
-        src = curr;
-        result = NewProjectedRow(next->Delta());
-        buffer_segment = result.first;
-        projected_row = result.second;
-        do_compaction = 1;
+        BeginCompaction(src, curr, next, do_compaction, projected_row, buffer_segment);
         // curr was not claimed in the previous iteration, so possibly someone might use it
         curr = curr->Next();
       }
@@ -328,10 +272,8 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     next = curr->Next();
   }
 
-  if (buffer_segment != nullptr) {
-    // Release the buffer segment for projected row
-    ReleaseProjectedRow(buffer_segment);
-  }
+  // Release the buffer segment for projected row
+  ReleaseProjectedRow(buffer_segment);
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(transaction::TransactionContext *const txn,
@@ -394,7 +336,76 @@ std::pair<RecordBufferSegment *, ProjectedRow *> GarbageCollector::NewProjectedR
 }
 
 void GarbageCollector::ReleaseProjectedRow(RecordBufferSegment *&buffer_segment) {
-  txn_manager_->buffer_pool_->Release(buffer_segment);
-  buffer_segment = nullptr;
+  if (buffer_segment != nullptr) {
+    txn_manager_->buffer_pool_->Release(buffer_segment);
+    buffer_segment = nullptr;
+  }
+}
+
+void GarbageCollector::BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
+                                      ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment) {
+  if (buffer_segment != nullptr) {
+    // Release the buffer segment for projected row
+    ReleaseProjectedRow(buffer_segment);
+  }
+  // Compaction can only be done for a series of Update Undo Records
+  if (next->Type() == DeltaRecordType::UPDATE) {
+    src = curr;
+    auto result = NewProjectedRow(next->Delta());
+    buffer_segment = result.first;
+    projected_row = result.second;
+    do_compaction = 1;
+  }
+}
+
+void GarbageCollector::LinkCompactedUndoRecord(transaction::TransactionContext *const txn, UndoRecord *&src, UndoRecord *&curr,
+                                      UndoRecord *&next, uint32_t &do_compaction, ProjectedRow *&projected_row,
+                                      RecordBufferSegment *&buffer_segment) {
+  DataTable *table = src->Table();
+  UnlinkUndoRecordVersion(txn, src->Next());
+  // We have compacted some undo records till now
+  // next undo record can't be GC'd. Set compacted undo record to point to next.
+  UndoRecord *first_compacted_record = src->Next().load();
+  UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, first_compacted_record->Slot(), *projected_row,
+                                                          first_compacted_record->Timestamp().load());
+  // Add this to the version chain
+  compacted_undo_record->Next().store(next);
+  // Set src to point to the compacted undo record
+  src->Next().store(compacted_undo_record);
+  // Compaction is over
+  EndCompaction(do_compaction, buffer_segment);
+  // Added a compacted undo record. So it should be curr
+  curr = compacted_undo_record;
+}
+
+// Returns true if compaction terminates here because of an Insert record
+bool GarbageCollector::CompactUndoRecord(transaction::TransactionContext *const txn, UndoRecord *&src,
+                                         UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
+                                         ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment) {
+  const TupleAccessStrategy &accessor = src->Table()->accessor_;
+  // Already have a base undo record. Apply this undo record on top of that
+  switch (next->Type()) {
+    case DeltaRecordType::UPDATE:
+      // Normal delta to be applied. Does not modify the logical delete column.
+      StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+      do_compaction++;
+      UnlinkUndoRecordVersion(txn, next);
+      break;
+    case DeltaRecordType::INSERT:
+      // Compacting here. So unlink src's next
+      UnlinkUndoRecordVersion(txn, src->Next());
+      EndCompaction(do_compaction, buffer_segment);
+      // Insert undo record can be GC'd so this tuple is not visible
+      // Set src to point to Insert's next undo record
+      src->Next().store(next);
+      return true;
+    case DeltaRecordType::DELETE:;
+  }
+  return false;
+}
+
+void GarbageCollector::EndCompaction(uint32_t &do_compaction, RecordBufferSegment *&buffer_segment) {
+  do_compaction = 0;
+  ReleaseProjectedRow(buffer_segment);
 }
 }  // namespace terrier::storage

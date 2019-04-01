@@ -90,8 +90,21 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
-  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
-                                           const storage::ProjectedRow &redo, const transaction::timestamp_t ts);
+  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
+                                           const storage::ProjectedRow &redo, transaction::timestamp_t ts);
+
+  void BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
+                       ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment);
+
+  void LinkCompactedUndoRecord(transaction::TransactionContext *txn, UndoRecord *&src, UndoRecord *&curr,
+                                        UndoRecord *&next, uint32_t &do_compaction, ProjectedRow *&projected_row,
+                                        RecordBufferSegment *&buffer_segment);
+
+  bool CompactUndoRecord(transaction::TransactionContext *txn, UndoRecord *&src,
+                                           UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
+                                           ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment);
+
+  void EndCompaction(uint32_t &do_compaction, RecordBufferSegment *&buffer_segment);
 
   std::pair<RecordBufferSegment *, ProjectedRow *> NewProjectedRow(const ProjectedRow *row);
   void ReleaseProjectedRow(RecordBufferSegment *&buffer_segment);
