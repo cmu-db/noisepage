@@ -248,6 +248,8 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               do_compaction++;
               break;
             case DeltaRecordType::INSERT:
+              // Compacting here. So unlink src's next
+              UnlinkUndoRecordVersion(txn, src->Next());
               do_compaction = 0;
               // Insert undo record can be GC'd so this tuple is not visible
               // Set src to point to Insert's next undo record
@@ -257,10 +259,12 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
               continue;
             case DeltaRecordType::DELETE:;
           }
-        }
-        // Don't unlink INSERT as INSERT should be visible
-        if (next->Type() == DeltaRecordType::UPDATE) {
-          UnlinkUndoRecordVersion(txn, next);
+          // Don't unlink INSERT as INSERT should be visible
+          // If do_compaction is 1 don't unlink it as it will be unlinked when compaction record is attached
+          // This is done to handle unlinking of the record where compaction begins in Case 3
+          if (next->Type() == DeltaRecordType::UPDATE) {
+            UnlinkUndoRecordVersion(txn, next);
+          }
         }
         // Update curr
         curr = curr->Next();
@@ -268,6 +272,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
     } else {
       if (do_compaction > 0) {
         if (do_compaction > 1) {
+          UnlinkUndoRecordVersion(txn, src->Next());
           // We have compacted some undo records till now
           // next undo record can't be GC'd. Set compacted undo record to point to next.
           UndoRecord *first_compacted_record = src->Next().load();
