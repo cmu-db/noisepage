@@ -15,6 +15,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   const transaction::timestamp_t start_time{0};
   internal_transaction =
       new transaction::TransactionContext(start_time, start_time, txn_manager_->buffer_pool_, nullptr);
+  internal_transaction->log_processed_ = true;
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
@@ -73,7 +74,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
   // Get active_txns in descending sorted order
   std::vector<transaction::timestamp_t> active_txns = txn_manager_->GetActiveTxns();
-  ;
   std::sort(active_txns.begin(), active_txns.end(), std::greater<>());
 
   // Process every transaction in the unlink queue
@@ -130,11 +130,8 @@ bool GarbageCollector::ProcessUndoRecord(transaction::TransactionContext *const 
   return table == nullptr;
 }
 
-// TODO(pulkit): rename this function to UnlinkUndoRecordTuple
 void GarbageCollector::UnlinkUndoRecord(transaction::TransactionContext *const txn, UndoRecord *const undo_record,
                                         std::vector<transaction::timestamp_t> *const active_txns) {
-  TERRIER_ASSERT(txn->TxnId().load() == undo_record->Timestamp().load(),
-                 "This undo_record does not belong to this txn.");
   DataTable *table = undo_record->Table();
   if (table == nullptr) {
     // This UndoRecord has already been unlinked, so we can skip it
