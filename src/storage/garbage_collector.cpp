@@ -12,6 +12,10 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  const transaction::timestamp_t start_time{0};
+  internal_transaction =
+      new transaction::TransactionContext(start_time, start_time, txn_manager_->buffer_pool_, nullptr);
+
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   uint32_t txns_unlinked = ProcessUnlinkQueue();
@@ -23,6 +27,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
+  txns_to_unlink_.push_front(internal_transaction);
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
@@ -373,7 +378,9 @@ storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *c
                                                            const storage::ProjectedRow &redo,
                                                            const transaction::timestamp_t ts) {
   const uint32_t size = storage::UndoRecord::Size(redo);
-  return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), ts, slot, table, redo);
+  auto *undo_record =
+      storage::UndoRecord::InitializeUpdate(internal_transaction->undo_buffer_.NewEntry(size), ts, slot, table, redo);
+  return undo_record;
 }
 
 std::pair<RecordBufferSegment *, ProjectedRow *> GarbageCollector::NewProjectedRow(const ProjectedRow *row) {

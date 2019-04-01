@@ -8,8 +8,6 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-const uint32_t num_records_ = 10000;
-const uint32_t reuse_limit_ = 10000;
 namespace terrier::storage {
 
 /**
@@ -26,9 +24,10 @@ class GarbageCollector {
    * @param txn_manager pointer to the TransactionManager
    */
   explicit GarbageCollector(transaction::TransactionManager *txn_manager)
-      : txn_manager_(txn_manager), last_unlinked_{0}, undo_buffer_(txn_manager->buffer_pool_) {
+      : txn_manager_(txn_manager), last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+    internal_transaction = nullptr;
   }
 
   /**
@@ -104,8 +103,8 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
-
-  storage::UndoBuffer undo_buffer_;
+  // Internal transaction to hold compacted undo records
+  transaction::TransactionContext *internal_transaction;
 };
 
 }  // namespace terrier::storage
