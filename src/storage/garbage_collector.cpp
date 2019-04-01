@@ -205,7 +205,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   // The undo record which will point to the compacted undo record
   UndoRecord *src = version_chain_head;
   // True if we compacted anything, false otherwise
-  bool do_compaction = false;
+  uint32_t do_compaction = 0;
 
   // Create a temporary projected row for undo record compaction
   std::pair<RecordBufferSegment *, ProjectedRow *> result;
@@ -224,7 +224,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (transaction::TransactionUtil::Committed(next->Timestamp().load())) {
         // Since *active_txns_iter is not reading next, that means no one is reading this
         // And so we can reclaim next
-        if (!do_compaction) {
+        if (do_compaction == 0) {
           // This is the first undo record to compact
           if (buffer_segment != nullptr) {
             // Release the buffer segment for projected row
@@ -237,7 +237,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             result = NewProjectedRow(next->Delta());
             buffer_segment = result.first;
             projected_row = result.second;
-            do_compaction = true;
+            do_compaction = 1;
           }
         } else {
           // Already have a base undo record. Apply this undo record on top of that
@@ -245,9 +245,10 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             case DeltaRecordType::UPDATE:
               // Normal delta to be applied. Does not modify the logical delete column.
               StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(next->Delta()), projected_row);
+              do_compaction++;
               break;
             case DeltaRecordType::INSERT:
-              do_compaction = false;
+              do_compaction = 0;
               // Insert undo record can be GC'd so this tuple is not visible
               // Set src to point to Insert's next undo record
               src->Next().store(next);
@@ -265,21 +266,41 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
         curr = curr->Next();
       }
     } else {
-      if (do_compaction) {
-        // We have compacted some undo records till now
-        // next undo record can't be GC'd. Set compacted undo record to point to next.
-        UndoRecord *first_compacted_record = src->Next().load();
-        UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, first_compacted_record->Slot(), *projected_row,
-                                                                first_compacted_record->Timestamp().load());
-        // Add this to the version chain
-        compacted_undo_record->Next().store(next);
-        // Set src to point to the compacted undo record
-        src->Next().store(compacted_undo_record);
-        // Compaction is over
-        do_compaction = false;
+      if (do_compaction > 0) {
+        if (do_compaction > 1) {
+          // We have compacted some undo records till now
+          // next undo record can't be GC'd. Set compacted undo record to point to next.
+          UndoRecord *first_compacted_record = src->Next().load();
+          UndoRecord *compacted_undo_record = UndoRecordForUpdate(table, first_compacted_record->Slot(), *projected_row,
+                                                                  first_compacted_record->Timestamp().load());
+          // Add this to the version chain
+          compacted_undo_record->Next().store(next);
+          // Set src to point to the compacted undo record
+          src->Next().store(compacted_undo_record);
+          // Compaction is over
+          do_compaction = 0;
+          // Added a compacted undo record. So it should be curr
+          curr = compacted_undo_record;
+        } else {
+          if (buffer_segment != nullptr) {
+            // Release the buffer segment for projected row
+            ReleaseProjectedRow(buffer_segment);
+          }
+          curr = curr->Next();
+        }
+      } else {
+        if (buffer_segment != nullptr) {
+          // Release the buffer segment for projected row
+          ReleaseProjectedRow(buffer_segment);
+        }
+        src = curr;
+        result = NewProjectedRow(next->Delta());
+        buffer_segment = result.first;
+        projected_row = result.second;
+        do_compaction = 1;
+        // curr was not claimed in the previous iteration, so possibly someone might use it
+        curr = curr->Next();
       }
-      // curr was not claimed in the previous iteration, so possibly someone might use it
-      curr = curr->Next();
     }
     next = curr->Next();
   }
@@ -357,7 +378,8 @@ std::pair<RecordBufferSegment *, ProjectedRow *> GarbageCollector::NewProjectedR
   return {new_segment, reinterpret_cast<ProjectedRow *>(projected_row)};
 }
 
-void GarbageCollector::ReleaseProjectedRow(RecordBufferSegment *buffer_segment) {
+void GarbageCollector::ReleaseProjectedRow(RecordBufferSegment *&buffer_segment) {
   txn_manager_->buffer_pool_->Release(buffer_segment);
+  buffer_segment = nullptr;
 }
 }  // namespace terrier::storage

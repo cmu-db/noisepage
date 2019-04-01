@@ -95,7 +95,7 @@ class GarbageCollector {
                                            const storage::ProjectedRow &redo, const transaction::timestamp_t ts);
 
   std::pair<RecordBufferSegment *, ProjectedRow *> NewProjectedRow(const ProjectedRow *row);
-  void ReleaseProjectedRow(RecordBufferSegment *buffer_segment);
+  void ReleaseProjectedRow(RecordBufferSegment *&buffer_segment);
 
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
