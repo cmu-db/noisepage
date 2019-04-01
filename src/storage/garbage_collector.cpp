@@ -257,7 +257,10 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
             case DeltaRecordType::DELETE:;
           }
         }
-        UnlinkUndoRecordVersion(txn, next);
+        // Don't unlink INSERT as INSERT should be visible
+        if (next->Type() == DeltaRecordType::UPDATE) {
+          UnlinkUndoRecordVersion(txn, next);
+        }
         // Update curr
         curr = curr->Next();
       }
