@@ -167,7 +167,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
 
   // The version of the current slot is the same as the version num
   if (old_version == version_num) {
-    return std::make_pair(tables_.at(version_num).data_table->Update(txn, slot, redo), slot);
+    return {tables_.at(version_num).data_table->Update(txn, slot, redo), slot};
   }
 
   // The versions are different
@@ -212,10 +212,12 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.at(version_num).layout, pr, old_pair.second);
 
     // 3. Update the old data-table
-    auto result = Update(txn, slot, *pr, old_pair.second, old_version);
-
+    bool result = tables_.at(old_version).data_table->Update(txn, slot, *pr);
     delete[] buffer;
-    ret_slot = result.second;
+    if (!result) {
+      return {false, slot};
+    }
+    ret_slot = slot;
   } else {
     STORAGE_LOG_DEBUG("have to insert and delete ... ");
 
@@ -234,8 +236,9 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     auto old_pair = InitializerForProjectedRow(old_col_oids, old_version);
     auto old_buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
     ProjectedRow *old_pr = old_pair.first.InitializeRow(old_buffer);
-    bool valid = Select(txn, slot, old_pr, old_pair.second, old_version);
+    bool valid = tables_.at(old_version).data_table->Select(txn, slot, old_pr);
     if (!valid) {
+      delete[] old_buffer;
       return {false, slot};
     }
 
@@ -248,21 +251,19 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.at(old_version).layout, new_pr,
                                               new_pair.second);
     // 3. Insert the row into new table
-    storage::TupleSlot new_slot = Insert(txn, *new_pr, version_num);
+    storage::TupleSlot new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
 
     // 4. Delete the old row
-    Delete(txn, slot, old_version);
+    tables_.at(old_version).data_table->Delete(txn, slot);
 
     // 5. Update the new row
-    Update(txn, new_slot, redo, new_pair.second, version_num);
-    //      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
-    //                     "updating the current version should return the same TupleSlot");
+    tables_.at(version_num).data_table->Update(txn, new_slot, redo);
     delete[] old_buffer;
     delete[] new_buffer;
-    // TODO(yangjuns): Need to update indices
+
     ret_slot = new_slot;
   }
-  return std::make_pair(true, ret_slot);
+  return {true, ret_slot};
 }
 
 void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIterator *start_pos,
