@@ -82,6 +82,7 @@ class SqlTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
+  const uint32_t num_updates_ = 10000000;
   const uint32_t num_threads_ = 4;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
@@ -455,6 +456,26 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentMultiVersionRead)(benchmark::Sta
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
+// Update a tuple in a single-version SqlTable num_updates_ times in a single thread
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &state) {
+  // Insert a tuple to the table
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      LOGGING_DISABLED);
+  storage::TupleSlot slot = table_->Insert(&txn, *redo_, storage::layout_version_t(0));
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_updates_; ++i) {
+      // update the tuple with the same value for benchmark purpose
+      table_->Update(&txn, slot, *redo_, *map_, storage::layout_version_t(0));
+    }
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_updates_);
+}
+
 BENCHMARK_REGISTER_F(SqlTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
@@ -474,5 +495,7 @@ BENCHMARK_REGISTER_F(SqlTableBenchmark, MultiVersionMatchRandomRead)->Unit(bench
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentSingleVersionRead)->Unit(benchmark::kMillisecond)->UseRealTime();
 
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentMultiVersionRead)->Unit(benchmark::kMillisecond)->UseRealTime();
+
+BENCHMARK_REGISTER_F(SqlTableBenchmark, SingleVersionUpdate)->Unit(benchmark::kMillisecond);
 
 }  // namespace terrier
