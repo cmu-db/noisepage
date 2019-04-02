@@ -679,36 +679,123 @@ class CreatePlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Type of object to create
+     */
     CreateType create_type_;
+
+    /**
+     * Table Name
+     */
     std::string table_name_;
+
+    /**
+     * namespace Name
+     */
     std::string schema_name_;
+
+    /**
+     * Database Name
+     */
     std::string database_name_;
+
+    /**
+     * Table Schema
+     */
     std::shared_ptr<catalog::Schema> table_schema_;
 
-    // CREATE INDEX
+    /**
+     * [CREATE INDEX] variables
+     * Index type
+     */
     parser::IndexType index_type_ = parser::IndexType::INVALID;
+
+    /**
+     * True if the index is unique
+     */
     bool unique_index_ = false;
+
+    /**
+     * Name of the Index
+     */
     std::string index_name_;
+
+    /**
+     * Index attributes
+     */
     std::vector<std::string> index_attrs_;
+
+    /**
+     * Attributes that are part of the index key
+     */
     std::vector<std::string> key_attrs_;
 
-    // ColumnDefinition for multi-column constraints (including foreign key)
+    /**
+     * ColumnDefinition for multi-column constraints (including foreign key)
+     * Whether the table/index has primary key
+     */
     bool has_primary_key_ = false;
+
+    /**
+     * Primary key information
+     */
     PrimaryKeyInfo primary_key_;
+
+    /**
+     * Foreign keys information
+     */
     std::vector<ForeignKeyInfo> foreign_keys_;
+
+    /**
+     * Unique constraints
+     */
     std::vector<UniqueInfo> con_uniques_;
+
+    /**
+     * Check constraints
+     */
     std::vector<CheckInfo> con_checks_;
 
-    // CREATE TRIGGER
+    /**
+     * [CREATE TRIGGER] variables
+     * Name of the trigger
+     */
     std::string trigger_name_;
+
+    /**
+     * Names of the trigger functions
+     */
     std::vector<std::string> trigger_funcnames_;
+
+    /**
+     * Trigger arguments
+     */
     std::vector<std::string> trigger_args_;
+
+    /**
+     * Trigger columns
+     */
     std::vector<std::string> trigger_columns_;
+
+    /**
+     * Trigger when claus
+     */
     std::shared_ptr<parser::AbstractExpression> trigger_when_;
+
+    /**
+     * Type of trigger
+     */
     int16_t trigger_type_ = 0;
 
-    // CREATE VIEW
+    /**
+     * [CREATE VIEW] variables
+     * Name of the view
+     */
     std::string view_name_;
+
+    /**
+     * View query
+     */
     std::shared_ptr<parser::SelectStatement> view_query_;
   };
 
@@ -929,36 +1016,96 @@ class CreatePlanNode : public AbstractPlanNode {
 
   /**
    * [CREATE INDEX] variables
+   * Index type
    */
   parser::IndexType index_type_ = parser::IndexType::INVALID;
+
+  /**
+   * True if the index is unique
+   */
   bool unique_index_ = false;
+
+  /**
+   * Name of the Index
+   */
   std::string index_name_;
+
+  /**
+   * Index attributes
+   */
   std::vector<std::string> index_attrs_;
+
+  /**
+   * Attributes that are part of the index key
+   */
   std::vector<std::string> key_attrs_;
 
   /**
    * ColumnDefinition for multi-column constraints (including foreign key)
+   * Whether the table/index has primary key
    */
   bool has_primary_key_ = false;
+
+  /**
+   * Primary key information
+   */
   PrimaryKeyInfo primary_key_;
+
+  /**
+   * Foreign keys information
+   */
   std::vector<ForeignKeyInfo> foreign_keys_;
+
+  /**
+   * Unique constraints
+   */
   std::vector<UniqueInfo> con_uniques_;
+
+  /**
+   * Check constraints
+   */
   std::vector<CheckInfo> con_checks_;
 
   /**
    * [CREATE TRIGGER] variables
+   * Name of the trigger
    */
   std::string trigger_name_;
+
+  /**
+   * Names of the trigger functions
+   */
   std::vector<std::string> trigger_funcnames_;
+
+  /**
+   * Trigger arguments
+   */
   std::vector<std::string> trigger_args_;
+
+  /**
+   * Trigger columns
+   */
   std::vector<std::string> trigger_columns_;
+
+  /**
+   * Trigger when claus
+   */
   std::shared_ptr<parser::AbstractExpression> trigger_when_;
+
+  /**
+   * Type of trigger
+   */
   int16_t trigger_type_ = 0;
 
   /**
    * [CREATE VIEW] variables
+   * Name of the view
    */
   std::string view_name_;
+
+  /**
+   * View query
+   */
   std::shared_ptr<parser::SelectStatement> view_query_;
 
  public:

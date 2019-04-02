@@ -9,9 +9,9 @@ common::hash_t UpdatePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash target_table_oid
-  auto target_table_oid = GetTargetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&target_table_oid));
+  // Hash table_oid
+  auto table_oid = GetTableOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
 
   // Hash table_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
@@ -28,7 +28,7 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Target table OID
   auto &other = static_cast<const plan_node::UpdatePlanNode &>(rhs);
-  if (GetTargetTableOid() != other.GetTargetTableOid()) return false;
+  if (GetTableOid() != other.GetTableOid()) return false;
 
   // Update table name
   if (GetTableName() != other.GetTableName()) return false;

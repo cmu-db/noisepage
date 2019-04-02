@@ -48,6 +48,9 @@ class ResultPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * The expression used to derived the output tuple
+     */
     std::shared_ptr<parser::AbstractExpression> expr_;
   };
 
@@ -81,7 +84,7 @@ class ResultPlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * The expression used to derived the output tuple
+   * the expression used to derived the output tuple
    */
   std::shared_ptr<parser::AbstractExpression> expr_;
 

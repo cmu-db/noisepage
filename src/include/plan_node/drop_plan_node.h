@@ -147,12 +147,39 @@ class DropPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Type of object to drop
+     */
     DropType drop_type_ = DropType::TABLE;
+
+    /**
+     * Target Table
+     */
     std::string table_name_;
+
+    /**
+     * Database Name
+     */
     std::string database_name_;
+
+    /**
+     * Schema Name
+     */
     std::string schema_name_;
+
+    /**
+     * Trigger Name
+     */
     std::string trigger_name_;
+
+    /**
+     * Index Name
+     */
     std::string index_name_;
+
+    /**
+     * Whether "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
+     */
     bool if_exists_;
   };
 

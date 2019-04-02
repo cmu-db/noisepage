@@ -47,6 +47,9 @@ class SetOpPlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * Set Operation of this node
+     */
     SetOpType set_op_;
   };
 
