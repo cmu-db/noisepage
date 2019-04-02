@@ -184,6 +184,7 @@ class UndoRecord {
   }
 
  private:
+  friend class GarbageCollector;
   DeltaRecordType type_;
   std::atomic<UndoRecord *> next_;
   std::atomic<transaction::timestamp_t> timestamp_;

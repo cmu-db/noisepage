@@ -88,26 +88,27 @@ class GarbageCollector {
    * @param txn
    * @param undo_record
    */
-  void UnlinkUndoRecordVersion(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
+  void UnlinkUndoRecordVersion(UndoRecord *undo_record) const;
 
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo, transaction::timestamp_t ts);
 
-  void BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
-                       ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment);
+  void BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction);
 
-  void LinkCompactedUndoRecord(transaction::TransactionContext *txn, UndoRecord *&src, UndoRecord *&curr,
-                                        UndoRecord *&next, uint32_t &do_compaction, ProjectedRow *&projected_row,
-                                        RecordBufferSegment *&buffer_segment);
+  void LinkCompactedUndoRecord(UndoRecord *&start_record, UndoRecord *&curr, UndoRecord *&end_record,
+                               uint32_t &do_compaction, UndoRecord *compacted_undo_record);
 
-  bool CompactUndoRecord(transaction::TransactionContext *txn, UndoRecord *&src,
-                                           UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction,
-                                           ProjectedRow *&projected_row, RecordBufferSegment *&buffer_segment);
+  bool ReadUndoRecord(transaction::TransactionContext *txn, UndoRecord *&start_record, UndoRecord *&curr,
+                      UndoRecord *&next, uint32_t &do_compaction);
 
-  void EndCompaction(uint32_t &do_compaction, RecordBufferSegment *&buffer_segment);
+  void EndCompaction(uint32_t &do_compaction);
 
-  std::pair<RecordBufferSegment *, ProjectedRow *> NewProjectedRow(const ProjectedRow *row);
-  void ReleaseProjectedRow(RecordBufferSegment *&buffer_segment);
+  void FreeUpdateVarlen();
+
+  void ProcessUndoRecordAttributes(UndoRecord *undo_record);
+
+  UndoRecord *CreateUndoRecord(UndoRecord *start_record, UndoRecord *end_record);
+  UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
@@ -118,6 +119,9 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // Internal transaction to hold compacted undo records
   transaction::TransactionContext *internal_transaction;
+
+  std::unordered_map<col_id_t, VarlenEntry *> varlen_map;
+  std::unordered_set<col_id_t> col_set;
 };
 
 }  // namespace terrier::storage
