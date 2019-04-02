@@ -204,7 +204,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
   // The undo record which will point to the compacted undo record
   UndoRecord *start_record = version_chain_head;
   // True if we compacted anything, false otherwise
-  uint32_t do_compaction = 0;
+  uint32_t interval_length = 0;
 
   UndoRecord *curr = version_chain_head;
   UndoRecord *next = curr->Next();
@@ -227,12 +227,12 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // Collect next only if it was committed, this prevents collection of partial rollback versions
       // Since *active_txns_iter is not reading next, that means no one is reading this
       // And so we can reclaim next
-      if (do_compaction == 0) {
+      if (interval_length == 0) {
         // This only happens when the first compaction is initiated. Other compactions begin in Case 3.
         // This is the first undo record to compact
-        BeginCompaction(start_record, curr, next, do_compaction);
+        BeginCompaction(&start_record, curr, next, &interval_length);
       } else {
-        if (ReadUndoRecord(txn, start_record, curr, next, do_compaction)) {
+        if (ReadUndoRecord(txn, start_record, next, &interval_length)) {
           // If compaction terminates here because of an Insert record, continue and look for new compaction to begin
           curr = curr->Next();
           next = curr->Next();
@@ -242,16 +242,16 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       // Update curr
       curr = curr->Next();
     } else {
-      if (do_compaction > 1) {
+      if (interval_length > 1) {
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
         // Compacted more than one undo record, link it to the version chain.
-        LinkCompactedUndoRecord(start_record, curr, next, do_compaction, compacted_undo_record);
-      } else if (do_compaction == 1) {
+        LinkCompactedUndoRecord(start_record, &curr, next, &interval_length, compacted_undo_record);
+      } else if (interval_length == 1) {
         // Compacted undo record only is frivolous. Drop it.
-        EndCompaction(do_compaction);
+        EndCompaction(&interval_length);
         curr = curr->Next();
       } else {
-        BeginCompaction(start_record, curr, next, do_compaction);
+        BeginCompaction(&start_record, curr, next, &interval_length);
         // curr was not claimed in the previous iteration, so possibly someone might use it
         curr = curr->Next();
       }
@@ -281,58 +281,20 @@ void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *undo_record) const {
   if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
-void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const {
-  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
-  const BlockLayout &layout = accessor.GetBlockLayout();
-  switch (undo_record->Type()) {
-    case DeltaRecordType::INSERT:
-      return;  // no possibility of outdated varlen to gc
-    case DeltaRecordType::DELETE:
-      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
-      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
-        col_id_t col_id(i);
-        // Okay to include version vector, as it is never varlen
-        if (layout.IsVarlen(col_id)) {
-          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
-          if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
-        }
-      }
-      break;
-    case DeltaRecordType::UPDATE:
-      // TODO(Tianyu): This might be a really bad idea for large deltas...
-      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
-        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
-        if (layout.IsVarlen(col_id)) {
-          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-          if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
-        }
-      }
-  }
-}
-storage::UndoRecord *GarbageCollector::UndoRecordForUpdate(storage::DataTable *const table,
-                                                           const storage::TupleSlot slot,
-                                                           const storage::ProjectedRow &redo,
-                                                           const transaction::timestamp_t ts) {
-  const uint32_t size = storage::UndoRecord::Size(redo);
-  auto *undo_record =
-      storage::UndoRecord::InitializeUpdate(internal_transaction->undo_buffer_.NewEntry(size), ts, slot, table, redo);
-  return undo_record;
-}
-
-void GarbageCollector::BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next,
-                                       uint32_t &do_compaction) {
+void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord *curr, UndoRecord *next,
+                                       uint32_t *interval_length_ptr) {
   varlen_map.clear();
   col_set.clear();
   // Compaction can only be done for a series of Update Undo Records
   if (next->Type() == DeltaRecordType::UPDATE) {
-    src = curr;
-    do_compaction = 1;
+    *start_record_ptr = curr;
+    *interval_length_ptr = 1;
     ProcessUndoRecordAttributes(next);
   }
 }
 
-void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *&start_record, UndoRecord *&curr, UndoRecord *&end_record,
-                                               uint32_t &do_compaction, UndoRecord *compacted_undo_record) {
+void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
+                                               uint32_t *interval_length_ptr, UndoRecord *compacted_undo_record) {
   UnlinkUndoRecordVersion(start_record->Next());
   // We have compacted some undo records till now
   // end_record undo record can't be GC'd. Set compacted undo record to point to end_record.
@@ -341,25 +303,25 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *&start_record, UndoRe
   // Set start_record to point to the compacted undo record
   start_record->Next().store(compacted_undo_record);
   // Compaction is over
-  EndCompaction(do_compaction);
+  EndCompaction(interval_length_ptr);
   // Added a compacted undo record. So it should be curr
-  curr = compacted_undo_record;
+  *curr_ptr = compacted_undo_record;
 }
 
 // Returns true if compaction terminates here because of an Insert record
-bool GarbageCollector::ReadUndoRecord(transaction::TransactionContext *const txn, UndoRecord *&start_record,
-                                      UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction) {
+bool GarbageCollector::ReadUndoRecord(transaction::TransactionContext *const txn, UndoRecord *start_record,
+                                      UndoRecord *next, uint32_t *interval_length_ptr) {
   // Already have a base undo record. Apply this undo record on top of that
   switch (next->Type()) {
     case DeltaRecordType::UPDATE:
-      do_compaction++;
+      (*interval_length_ptr)++;
       ProcessUndoRecordAttributes(next);
       UnlinkUndoRecordVersion(next);
       break;
     case DeltaRecordType::INSERT:
       // Compacting here. So unlink start_record's next
       UnlinkUndoRecordVersion(start_record->Next());
-      EndCompaction(do_compaction);
+      EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
       start_record->Next().store(next);
@@ -372,7 +334,7 @@ bool GarbageCollector::ReadUndoRecord(transaction::TransactionContext *const txn
   return false;
 }
 
-void GarbageCollector::EndCompaction(uint32_t &do_compaction) { do_compaction = 0; }
+void GarbageCollector::EndCompaction(uint32_t *interval_length_ptr) { *interval_length_ptr = 0; }
 
 void GarbageCollector::ProcessUndoRecordAttributes(UndoRecord *const undo_record) {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;

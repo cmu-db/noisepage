@@ -711,6 +711,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleOLAP) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -763,6 +764,7 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, InterleavedOLAP) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -849,6 +851,7 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);

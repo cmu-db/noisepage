@@ -59,7 +59,6 @@ class GarbageCollector {
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
-  void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
    * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
@@ -90,18 +89,16 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordVersion(UndoRecord *undo_record) const;
 
-  storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *table, storage::TupleSlot slot,
-                                           const storage::ProjectedRow &redo, transaction::timestamp_t ts);
+  void BeginCompaction(UndoRecord **start_record_ptr, UndoRecord *curr, UndoRecord *next,
+                       uint32_t *interval_length_ptr);
 
-  void BeginCompaction(UndoRecord *&src, UndoRecord *&curr, UndoRecord *&next, uint32_t &do_compaction);
+  void LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
+                               uint32_t *interval_length_ptr, UndoRecord *compacted_undo_record);
 
-  void LinkCompactedUndoRecord(UndoRecord *&start_record, UndoRecord *&curr, UndoRecord *&end_record,
-                               uint32_t &do_compaction, UndoRecord *compacted_undo_record);
+  bool ReadUndoRecord(transaction::TransactionContext *txn, UndoRecord *start_record, UndoRecord *next,
+                      uint32_t *interval_length_ptr);
 
-  bool ReadUndoRecord(transaction::TransactionContext *txn, UndoRecord *&start_record, UndoRecord *&curr,
-                      UndoRecord *&next, uint32_t &do_compaction);
-
-  void EndCompaction(uint32_t &do_compaction);
+  void EndCompaction(uint32_t *interval_length_ptr);
 
   void FreeUpdateVarlen();
 
