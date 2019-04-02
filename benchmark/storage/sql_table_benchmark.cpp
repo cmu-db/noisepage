@@ -477,8 +477,8 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * num_updates_);
 }
 
-// Read the num_reads_ of tuples in a random order from a SqlTable in a single thread
-// The SqlTable has multiple schema versions and the read version matches the one stored in the storage layer
+// Update a tuple in a SqlTable num_updates_ times in a single thread
+// The SqlTable has multiple schema versions and the redo can be updated in place
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchUpdate)(benchmark::State &state) {
   // Populate read_table_ by inserting tuples
