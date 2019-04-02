@@ -464,11 +464,12 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &sta
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                       LOGGING_DISABLED);
   storage::TupleSlot slot = table_->Insert(&txn, *redo_, storage::layout_version_t(0));
-
+  // Populate with random values for updates
+  CatalogTestUtil::PopulateRandomRow(redo_, *schema_, *map_, &generator_);
   // NOLINTNEXTLINE
   for (auto _ : state) {
     for (uint32_t i = 0; i < num_updates_; ++i) {
-      // update the tuple with the same value for benchmark purpose
+      // update the tuple with the  for benchmark purpose
       table_->Update(&txn, slot, *redo_, *map_, storage::layout_version_t(0));
     }
   }
