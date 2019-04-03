@@ -15,12 +15,12 @@
 #include "abstract_metric.h"
 #include "abstract_raw_data.h"
 
-namespace terrier::stats{
+namespace terrier::stats {
 
 /**
  * @brief raw data type for testing purpose
  */
-class TestMetricRawData : public AbstractRawData{
+class TestMetricRawData : public AbstractRawData {
  public:
   /**
    * @brief integrate the count with the number specified
@@ -39,7 +39,7 @@ class TestMetricRawData : public AbstractRawData{
 
   void UpdateAndPersist() override {}
 
-  //const std::string GetInfo() const override { return "test metric"; }
+  // const std::string GetInfo() const override { return "test metric"; }
 
   int count_;
 };
@@ -49,4 +49,4 @@ class TestMetric : public AbstractMetric<TestMetricRawData> {
   inline void OnTest(int num) override { GetRawData()->Integrate(num); }
 };
 
-}
+}  // namespace terrier::stats

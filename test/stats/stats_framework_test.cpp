@@ -10,10 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #include "util/test_harness.h"
 //#include "settings/settings_manager.h"
 #include "stats/stats_aggregator.h"
+#include "stats/thread_level_stats_collector.h"
 #include "util/testing_stats_util.h"
 
 namespace terrier {
@@ -27,7 +27,7 @@ class StatsFrameworkTests : public TerrierTest {};
  * @brief Single threaded test with few collection
  */
 TEST_F(StatsFrameworkTests, BasicTest) {
-  //settings::SettingsManager::SetInt(settings::SettingId::stats_mode,
+  // settings::SettingsManager::SetInt(settings::SettingId::stats_mode,
   //                                  static_cast<int>(StatsModeType::TEST));
   stats::ThreadLevelStatsCollector::GetCollectorForThread().CollectTestNum(1);
   stats::ThreadLevelStatsCollector::GetCollectorForThread().CollectTestNum(2);
@@ -123,4 +123,4 @@ TEST_F(StatsFrameworkTests, BasicTest) {
   ASSERT_EQ(actual_sum, aggreg_sum);
 }*/
 
-}
+}  // namespace terrier

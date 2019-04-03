@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "stats/test_metric.h"
 #include "util/testing_stats_util.h"
+#include "stats/test_metric.h"
 
 //#include "executor/delete_executor.h"
 //#include "executor/executor_context.h"
@@ -89,7 +89,7 @@ void TestingStatsUtil::ParseAndPlan(Statement *statement, std::string sql) {
   LOG_TRACE("%s", statement->GetPlanTree().get()->GetInfo().c_str());
   txn_manager.CommitTransaction(txn);
 }*/
-
+/*
 int TestingStatsUtil::AggregateCounts() {
   stats::StatsAggregator aggregator(1);
   auto result = aggregator.AggregateRawData();
@@ -100,7 +100,7 @@ int TestingStatsUtil::AggregateCounts() {
   if (result.empty()) return 0;
 
   return dynamic_cast<stats::TestMetricRawData &>(*result[0]).count_;
-}
+}*/
 /*
 void TestingStatsUtil::Initialize() {
   // Setup Metric

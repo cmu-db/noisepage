@@ -168,8 +168,7 @@ class ThreadLevelStatsCollector {
   };
 
   void CollectTestNum(int number) {
-    for (auto &metric : metric_dispatch_[StatsEventType::TEST])
-      metric->OnTest(number);
+    for (auto &metric : metric_dispatch_[StatsEventType::TEST]) metric->OnTest(number);
   }
 
   /**

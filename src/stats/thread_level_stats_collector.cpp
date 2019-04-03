@@ -6,6 +6,8 @@ namespace terrier::stats {
 
 ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_map_ = CollectorsMap();
 
+transaction::TransactionManager *ThreadLevelStatsCollector::txn_manager_ = nullptr;
+
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
   RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
 }

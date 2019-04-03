@@ -167,8 +167,7 @@ class Metric {
   /**
    * @brief Event used to test the framework
    */
-  virtual void OnTest(int) {};
-
+  virtual void OnTest(int){};
 
   /**
    * @brief Replace RawData with an empty one and return the old one.

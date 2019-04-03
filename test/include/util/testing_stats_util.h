@@ -13,6 +13,8 @@
 #pragma once
 
 #include "gtest/gtest.h"
+#include "stats/stats_aggregator.h"
+#include "stats/test_metric.h"
 //#include "catalog/catalog.h"
 //#include "catalog/schema.h"
 //#include "catalog/column.h"
@@ -44,20 +46,30 @@ namespace terrier {
 
 class TestingStatsUtil {
  public:
-  //static void CreateTable(bool has_primary_key = true);
+  // static void CreateTable(bool has_primary_key = true);
 
-  //static std::shared_ptr<Statement> GetInsertStmt(int id = 1,
+  // static std::shared_ptr<Statement> GetInsertStmt(int id = 1,
   //                                                std::string val = "hello");
 
-  //static void ParseAndPlan(Statement *statement, std::string sql);
+  // static void ParseAndPlan(Statement *statement, std::string sql);
 
-  static int AggregateCounts();
+  static int AggregateCounts() {
+    stats::StatsAggregator aggregator(1);
+    auto result = aggregator.AggregateRawData();
 
-  //static void Initialize();
+    // Only TestRawData should be collected
+    EXPECT_LE(result.size(), 1);
 
-  //static std::pair<oid_t, oid_t> GetDbTableID(const std::string &table_name);
+    if (result.empty()) return 0;
 
-  //static std::pair<oid_t, oid_t> GetDbIndexID(const std::string &table_name);
+    return dynamic_cast<stats::TestMetricRawData &>(*result[0]).count_;
+  }
+
+  // static void Initialize();
+
+  // static std::pair<oid_t, oid_t> GetDbTableID(const std::string &table_name);
+
+  // static std::pair<oid_t, oid_t> GetDbIndexID(const std::string &table_name);
 };
 /*
 class StatsWorkload {
