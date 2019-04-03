@@ -167,6 +167,11 @@ class ThreadLevelStatsCollector {
     for (auto &metric : metric_dispatch_[StatsEventType::QUERY_END]) metric->OnQueryEnd();
   };
 
+  void CollectTestNum(int number) {
+    for (auto &metric : metric_dispatch_[StatsEventType::TEST])
+      metric->OnTest(number);
+  }
+
   /**
    * @return A vector of raw data, for each registered metric. Each piece of
    * data is guaranteed to be safe to read and remove, and the same type of
