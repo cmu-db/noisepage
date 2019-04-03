@@ -26,11 +26,9 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
   children_ = {};
 
   // Deserialize children
-  if (j.find("children") != j.end()) {
-    auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
-    for (const auto &child_json : children_json) {
-      children_.push_back(DeserializeExpression(child_json));
-    }
+  auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
+  for (const auto &child_json : children_json) {
+    children_.push_back(DeserializeExpression(child_json));
   }
 }
 
