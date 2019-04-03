@@ -1,6 +1,16 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
+#include "parser/expression/case_expression.h"
+#include "parser/expression/comparison_expression.h"
+#include "parser/expression/conjunction_expression.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
+#include "parser/expression/operator_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
+#include "parser/expression/subquery_expression.h"
+#include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
 
@@ -47,10 +57,79 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
+//    case ExpressionType::OPERATOR_CASE_EXPR: {
+//      expr = std::make_shared<CaseExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::COMPARE_EQUAL:
+//    case ExpressionType::COMPARE_NOT_EQUAL:
+//    case ExpressionType::COMPARE_LESS_THAN:
+//    case ExpressionType::COMPARE_GREATER_THAN:
+//    case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+//    case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+//    case ExpressionType::COMPARE_LIKE:
+//    case ExpressionType::COMPARE_NOT_LIKE:
+//    case ExpressionType::COMPARE_IN:
+//    case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
+//      expr = std::make_shared<ComparisonExpression>();
+//    }
+
+//    case CONJUNCTION_AND:
+//    case CONJUNCTION_OR: {
+//      expr = std::make_shared<ConjunctionExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::VALUE_CONSTANT: {
+//      expr = std::make_shared<ConstantValueExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::FUNCTION: {
+//      expr = std::make_shared<FunctionExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::OPERATOR_UNARY_MINUS:
+//    case ExpressionType::OPERATOR_PLUS:
+//    case ExpressionType::OPERATOR_MINUS:
+//    case ExpressionType::OPERATOR_MULTIPLY:
+//    case ExpressionType::OPERATOR_DIVIDE:
+//    case ExpressionType::OPERATOR_CONCAT:
+//    case ExpressionType::OPERATOR_MOD:
+//    case ExpressionType::OPERATOR_NOT:
+//    case ExpressionType::OPERATOR_IS_NULL:
+//    case ExpressionType::OPERATOR_IS_NOT_NULL:
+//    case ExpressionType::OPERATOR_EXISTS: {
+//      expr = std::make_shared<OperatorExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::VALUE_PARAMETER: {
+//      expr = std::make_shared<ParameterValueExpression>();
+//      break;
+//    }
+
     case ExpressionType::STAR: {
       expr = std::make_shared<StarExpression>();
       break;
     }
+
+//    case ExpressionType::ROW_SUBQUERY: {
+//      expr = std::make_shared<SubqueryExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::VALUE_TUPLE: {
+//      expr = std::make_shared<TupleValueExpression>();
+//      break;
+//    }
+
+//    case ExpressionType::OPERATOR_CAST: {
+//      expr = std::make_shared<TypeCastExpression>();
+//      break;
+//    }
 
     default:
       // This is 100% a hack, remove later
