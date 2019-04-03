@@ -156,4 +156,24 @@ TEST(ExpressionTests, ConjunctionTest) {
   delete c_expr_3;
 }
 
+// NOLINTNEXTLINE
+TEST(ExpressionTests, AggregateExpressionJsonTest) {
+  // Create expression
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  auto child_expr = std::make_shared<StarExpression>();
+  children.push_back(std::move(child_expr));
+  std::shared_ptr<AggregateExpression> original_expr =
+      std::make_shared<AggregateExpression>(ExpressionType::AGGREGATE_COUNT, std::move(children), true /* distinct */);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(original_expr->IsDistinct(),
+            static_cast<AggregateExpression *>(deserialized_expression.get())->IsDistinct());
+}
+
 }  // namespace terrier::parser::expression

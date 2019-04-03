@@ -23,15 +23,36 @@ class AggregateExpression : public AbstractExpression {
   AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children, bool distinct)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
 
+  AggregateExpression() = default;
+
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<AggregateExpression>(*this); }
 
   /**
    * @return true if we should eliminate duplicate values in aggregate function calculations
    */
-  bool IsDistinct() { return distinct_; }
+  bool IsDistinct() const { return distinct_; }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["distinct"] = distinct_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    distinct_ = j.at("distinct").get<bool>();
+  }
 
  private:
   bool distinct_;
 };
+
+DEFINE_JSON_DECLARATIONS(AggregateExpression);
 
 }  // namespace terrier::parser

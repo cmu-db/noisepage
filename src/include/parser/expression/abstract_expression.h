@@ -33,6 +33,11 @@ class AbstractExpression {
    */
   AbstractExpression(const AbstractExpression &other) = default;
 
+  /**
+   * Default constructor used for json deserialization
+   */
+  AbstractExpression() = default;
+
  public:
   virtual ~AbstractExpression() = default;
 
@@ -94,6 +99,11 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /**
+   * @return children of this abstract expression
+   */
+  const std::vector<std::shared_ptr<AbstractExpression>> &GetChildren() const { return children_; }
+
+  /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
@@ -102,11 +112,33 @@ class AbstractExpression {
     return children_[index];
   }
 
+  /**
+   * Derived expressions should call this base method
+   * @return expression serialized to json
+   */
+  virtual nlohmann::json ToJson() const;
+
+  /**
+   * Derived expressions should call this base method
+   * @param j json to deserialize
+   */
+  virtual void FromJson(const nlohmann::json &j);
+
  private:
-  const ExpressionType expression_type_;                       // type of current expression
-  const type::TypeId return_value_type_;                       // type of return value
+  ExpressionType expression_type_;                             // type of current expression
+  type::TypeId return_value_type_;                             // type of return value
   std::vector<std::shared_ptr<AbstractExpression>> children_;  // list of children
 };
+
+DEFINE_JSON_DECLARATIONS(AbstractExpression);
+
+/**
+ * This should be the primary function used to deserialize an expression
+ * @param json json to deserialize
+ * @return pointer to deserialized expression
+ */
+std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j);
+
 }  // namespace terrier::parser
 
 namespace std {
