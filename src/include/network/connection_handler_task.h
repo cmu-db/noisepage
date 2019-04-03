@@ -21,7 +21,7 @@ namespace terrier::network {
  * all related
  * client events are registered in the handler task. All client interaction
  * happens on the
- * same ConnectionHandlerTask thread for the enitre lifetime of the connection.
+ * same ConnectionHandlerTask thread for the entire lifetime of the connection.
  */
 class ConnectionHandlerTask : public common::NotifiableTask {
  public:

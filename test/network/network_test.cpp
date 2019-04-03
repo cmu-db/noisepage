@@ -30,6 +30,13 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     traffic_cop::ResultSet empty_set;
     callback(empty_set, out);
   }
+  traffic_cop::Statement Parse(const char *query, const std::vector<type::TypeId> &param_types) override {
+    return traffic_cop::Statement();
+  }
+  traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
+                           const std::vector<type::TransientValue> &params) override {
+    return traffic_cop::Portal();
+  }
 };
 
 class NetworkTests : public TerrierTest {
@@ -147,27 +154,26 @@ TEST_F(NetworkTests, NoSSLTest) {
 void TestExtendedQuery(uint16_t port) {
   std::shared_ptr<NetworkIoWrapper> io_socket = StartConnection(port);
   io_socket->out_->Reset();
-  std::string stmtName = "preparedTest";
+  std::string stmt_name = "prepared_test";
   std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
 
   PostgresPacketWriter writer(io_socket->out_);
   int type_oid = static_cast<int>(PostgresValueType::INTEGER);
-  writer.WriteParseCommand(stmtName, query, std::vector(4, type_oid));
+  writer.WriteParseCommand(stmt_name, query, std::vector(4, type_oid));
   io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
+  EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::PARSE_COMPLETE));
 
-  std::string dest;
-  std::string source;
-  writer.WriteBindCommand(dest, source, {}, {}, {});
+  std::string portal_name;
+  writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
   io_socket->FlushAllWrites();
-  EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
+  EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::BIND_COMPLETE));
 
-  writer.WriteExecuteCommand(stmtName, 0);
+  writer.WriteExecuteCommand(portal_name, 0);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // DescribeCommand
-  writer.WriteDescribeCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  writer.WriteDescribeCommand(ExtendedQueryObjectType::PREPARED, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
@@ -177,7 +183,7 @@ void TestExtendedQuery(uint16_t port) {
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // CloseCommand
-  writer.WriteCloseCommand(ExtendedQueryObjectType::PREPARED, stmtName);
+  writer.WriteCloseCommand(ExtendedQueryObjectType::PREPARED, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 

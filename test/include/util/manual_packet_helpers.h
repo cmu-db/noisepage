@@ -20,25 +20,11 @@ const int POSTGRES_PORT = 5432;
 /**
  * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
  * @param io_socket
- * @return true if reads ReadyForQuery, false for closed.
+ * @param expected_msg_type
+ * @return true if reads the expected type message, false for closed.
  */
-bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
-  while (true) {
-    io_socket->in_->Reset();
-    Transition trans = io_socket->FillReadBuffer();
-    if (trans == Transition::TERMINATE) return false;
-
-    // Check if the last message is ReadyForQuery, whose length is fixed 6, without parsing the whole packet.
-    // Sometimes there are more than one message in one packet, so don't simply check the first character.
-    if (io_socket->in_->BytesAvailable() >= 6) {
-      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
-      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
-    }
-  }
-}
-
-/*
-std::vector<ReadBuffer> ReadPackets(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
+bool ReadUntilMessageOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket,
+                             const NetworkMessageType &expected_msg_type) {
   while (true) {
     io_socket->in_->Reset();
     Transition trans = io_socket->FillReadBuffer();
@@ -46,16 +32,27 @@ std::vector<ReadBuffer> ReadPackets(const std::shared_ptr<NetworkIoWrapper> &io_
 
     while(io_socket->in_->HasMore())
     {
+      auto type = io_socket->in_->ReadValue<NetworkMessageType>();
+      auto size = io_socket->in_->ReadValue<int32_t>();
+      if(size >= 4)
+        io_socket->in_->Skip(static_cast<size_t>(size - 4));
 
+      if(type == expected_msg_type)
+        return true;
     }
 
-    if (io_socket->in_->BytesAvailable() >= 6) {
-      io_socket->in_->Skip(io_socket->in_->BytesAvailable() - 6);
-      if (io_socket->in_->ReadValue<NetworkMessageType>() == NetworkMessageType::READY_FOR_QUERY) return true;
-    }
   }
 }
-*/
+
+/**
+ * A wrapper for ReadUntilMessageOrClose since most of the times people expect READY_FOR_QUERY.
+ * @param io_socket
+ * @return
+ */
+bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket)
+{
+  return ReadUntilMessageOrClose(io_socket, NetworkMessageType::READY_FOR_QUERY);
+}
 
 std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
   // Manually open a socket

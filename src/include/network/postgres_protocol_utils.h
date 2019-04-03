@@ -468,6 +468,11 @@ class PostgresPacketWriter {
     BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket();
   }
 
+  void WriteBindComplete()
+  {
+    BeginPacket(NetworkMessageType::BIND_COMPLETE).EndPacket();
+  }
+
   /**
    * End the packet. A packet write must be in progress and said write is not
    * well-formed until this method is called.

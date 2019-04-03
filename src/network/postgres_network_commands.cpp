@@ -82,7 +82,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
   auto statement_pair = connection->statements.find(stmt_name);
   if(statement_pair == connection->statements.end()){
     NETWORK_LOG_ERROR("Error: There is no statement with name {0}", stmt_name);
-    throw NETWORK_PROCESS_EXCEPTION("");
+    return Transition::TERMINATE;
   }
 
   // Find out param formats
@@ -110,7 +110,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
   else
   {
     NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, (1) in format code.", num_params, num_formats);
-    throw NETWORK_PROCESS_EXCEPTION("");
+    return Transition::TERMINATE;
   }
 
 
@@ -119,7 +119,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
   if(num_params_from_query != num_params)
   {
     NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, {1} in bind command", num_params, num_params_from_query);
-    throw NETWORK_PROCESS_EXCEPTION("");
+    return Transition::TERMINATE;
   }
 
   using namespace type;
@@ -145,13 +145,9 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
 
       params.push_back(TransientValueFactory::GetInteger(value));
     }
-
-
   }
 
-
-  out->WriteEmptyQueryResponse();
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  out->WriteBindComplete();
   return Transition::PROCEED;
 }
 

@@ -128,8 +128,6 @@ if (NOT TERRIER_BUILD_BENCHMARKS)
   set(NO_BENCHMARKS 1)
 endif ()
 
-configure_file(cmake/Templates/terrier_config.h.in "${PROJECT_BINARY_DIR}/terrier_config.h")
-
 ###################################################
 # COMPILER TOOLS
 ###################################################
