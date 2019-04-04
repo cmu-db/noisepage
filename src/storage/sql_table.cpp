@@ -327,6 +327,7 @@ std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid
 
   // Build the input to the initializer constructor
   for (const catalog::col_oid_t col_oid : col_oids) {
+    TERRIER_ASSERT(tables_.find(version) != tables_.end(), "Table version must exist before insert");
     TERRIER_ASSERT(tables_.at(version).column_map.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
     const col_id_t col_id = tables_.at(version).column_map.at(col_oid);
     col_ids.push_back(col_id);
@@ -344,6 +345,8 @@ ProjectionMap SqlTable::ProjectionMapForInitializer(const ProjectionInitializerT
     // extract the underlying col_id it refers to
     const col_id_t col_id_at_offset = initializer.ColId(i);
     // find the key (col_oid) in the table's map corresponding to the value (col_id)
+
+    TERRIER_ASSERT(tables_.find(version) != tables_.end(), "Table version must exist");
     const auto oid_to_id =
         std::find_if(tables_.at(version).column_map.cbegin(), tables_.at(version).column_map.cend(),
                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id_at_offset; });

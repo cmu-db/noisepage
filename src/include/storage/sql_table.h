@@ -168,6 +168,7 @@ class SqlTable {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
     // always insert into the new DataTable
+    TERRIER_ASSERT(tables_.find(version_num) != tables_.end(), "Table version must exist before insert");
     return tables_.at(version_num).data_table->Insert(txn, redo);
   }
 
@@ -270,6 +271,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
+    TERRIER_ASSERT(tables_.find(version_num) != tables_.end(), "Table version must exist before insert");
     ProjectedRowInitializer initializer(tables_.at(version_num).layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
