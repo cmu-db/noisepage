@@ -350,7 +350,6 @@ class BwTreeIndexTests : public TerrierTest {
 
     // 2. If primary key or unique index, 2 x Conditional Insert -> Scan -> Delete -> Scan
     switch (index->GetConstraintType()) {
-      case ConstraintType::PRIMARY_KEY:
       case ConstraintType::UNIQUE: {
         EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
         EXPECT_TRUE(index->ConditionalInsert(*key, storage::TupleSlot(), [](const TupleSlot &) { return false; }));
@@ -737,16 +736,12 @@ TEST_F(BwTreeIndexTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
  * 1. Generate a reference key schema.
  * 2. Fill two keys (pr_A, pr_B) with random data (data_A, data_B)
  * 3. Set CompactIntsKeys (key_A, key_B) from (pr_A, pr_B)
- * 4. e
+ * 4. Expect eq(key_A, key_B) == (data_A == data_B)
+ * 5. Expect cmp(key_A, key_B) == (data_A < data_B)
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, RandomCompactIntsKeyTest) {
   const uint32_t num_iterations = 1000;
-  // 1. generate a reference key schema
-  // 2. fill two keys pr_A and pr_B with random data_A and data_B
-  // 3. use pr_A and pr_B to set CompactIntsKeys key_A and key_B
-  // 5. expect eq(key_A, key_B) == (ref_A == ref_B)
-  // 6. expect cmp(key_A, key_B) == (ref_A < ref_B)
 
   for (uint32_t i = 0; i < num_iterations; i++) {
     // generate random key schema

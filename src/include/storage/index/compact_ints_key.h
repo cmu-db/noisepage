@@ -12,7 +12,7 @@
 
 namespace terrier::storage::index {
 
-// This is the maximum number of 8-byte slots to pack into a single CompactIntsKey template. This contraint is not
+// This is the maximum number of 8-byte slots to pack into a single CompactIntsKey template. This constraint is not
 // arbitrary and cannot be increased beyond 256 bits until AVX-512 is more widely available.
 #define INTSKEY_MAX_SLOTS 4
 

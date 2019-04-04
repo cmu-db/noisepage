@@ -100,9 +100,7 @@ enum class ConstraintType : uint8_t {
   INVALID = 0,
   // default type - not used to enforce constraints
   DEFAULT = 1,
-  // used to enforce primary key constraint
-  PRIMARY_KEY = 2,
   // used for unique constraint
-  UNIQUE = 3
+  UNIQUE = 2
 };
 }  // namespace terrier::storage::index

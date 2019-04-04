@@ -10,14 +10,6 @@
 #include "storage/index/index_metadata.h"
 #include "storage/storage_defs.h"
 
-// clang-format off
-#define IndexCounterMembers(f) \
-  f(uint64_t, NumInsert) \
-  f(uint64_t, NumDelete)
-// clang-format on
-DEFINE_PERFORMANCE_CLASS(IndexCounter, IndexCounterMembers)
-#undef IndexCounterMembers
-
 namespace terrier::storage::index {
 
 /**

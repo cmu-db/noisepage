@@ -33,7 +33,7 @@ class BwTreeIndex final : public Index {
 
   bool Insert(const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
-                   "This Insert is designed for secondary indexes with no primary key or uniqueness constraints.");
+                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     return bwtree_->Insert(index_key, location, false);
@@ -47,8 +47,8 @@ class BwTreeIndex final : public Index {
 
   bool ConditionalInsert(const ProjectedRow &tuple, const TupleSlot location,
                          std::function<bool(const TupleSlot)> predicate) final {
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::PRIMARY_KEY || GetConstraintType() == ConstraintType::UNIQUE,
-                   "This Insert is designed for indexes with primary key or uniqueness constraints.");
+    TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
+                   "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;

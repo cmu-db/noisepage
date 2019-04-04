@@ -204,11 +204,11 @@ class ProjectedRowInitializer {
    * initialization.
    *
    * @tparam AttrType datatype of attribute sizes
-   * @param attr_sizes unsorted attribute sizes
+   * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
    * @param pr_offsets pr_offsets[i] = projection list offset of attr_sizes[i] after it gets sorted
    */
   template <typename AttrType>
-  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> attr_sizes,
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> real_attr_sizes,
                                                                          const std::vector<uint16_t> &pr_offsets);
 
  private:

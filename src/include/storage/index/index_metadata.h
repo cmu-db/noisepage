@@ -44,7 +44,7 @@ class IndexMetadata {
         compact_ints_offsets_(ComputeCompactIntsOffsets(attr_sizes_)),
         key_oid_to_offset_(ComputeKeyOidToOffset(key_schema_, ComputePROffsets(inlined_attr_sizes_))),
         initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
-            attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
+            GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
         inlined_initializer_(ProjectedRowInitializer::CreateProjectedRowInitializerForIndexes(
             inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
 
@@ -216,6 +216,16 @@ class IndexMetadata {
       key_oid_to_offset[key_schema[i].GetOid()] = pr_offsets[i];
     }
     return key_oid_to_offset;
+  }
+
+  /**
+   * By default, the uint8_t attr_sizes that we pass around in our system are not the real attribute sizes.
+   * The MSB is set to indicate whether a column is VARLEN or otherwise. We mask these off to get the real sizes.
+   */
+  static std::vector<uint8_t> GetRealAttrSizes(std::vector<uint8_t> attr_sizes) {
+    std::transform(attr_sizes.begin(), attr_sizes.end(), attr_sizes.begin(),
+                   [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
+    return attr_sizes;
   }
 };
 
