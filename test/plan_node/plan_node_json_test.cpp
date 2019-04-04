@@ -8,10 +8,6 @@
 
 namespace terrier::plan_node {
 
-/**
- * A very basic test, to verify that we can invoke the parser in libpg_query.
- */
-
 // TODO(Gus): Possible design flaw, must cast to AbstractPlanNode in order to serialize correctly
 
 // NOLINTNEXTLINE

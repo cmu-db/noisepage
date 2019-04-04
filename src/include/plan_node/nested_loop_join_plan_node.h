@@ -18,6 +18,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   class Builder : public AbstractJoinPlanNode::Builder<Builder> {
    public:
+    Builder() = default;
+
     /**
      * Don't allow builder to be copied or moved
      */

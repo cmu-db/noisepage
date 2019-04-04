@@ -23,6 +23,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
+    Builder() = default;
+
+    /**
+     * Don't allow builder to be copied or moved
+     */
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**

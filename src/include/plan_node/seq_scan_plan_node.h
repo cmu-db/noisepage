@@ -22,6 +22,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   class Builder : public AbstractScanPlanNode::Builder<Builder> {
    public:
+    Builder() = default;
+
     /**
      * Don't allow builder to be copied or moved
      */

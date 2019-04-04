@@ -26,6 +26,7 @@ class AbstractPlanNode {
   template <class ConcreteType>
   class Builder {
    public:
+    Builder() = default;
     virtual ~Builder() = default;
 
     /**
