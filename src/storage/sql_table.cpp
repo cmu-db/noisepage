@@ -119,9 +119,8 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   STORAGE_LOG_DEBUG("slot version: {}, current version: {}", !slot.GetBlock()->layout_version_, !version_num);
 
   layout_version_t old_version_num = slot.GetBlock()->layout_version_;
-  auto curr_dt_version = tables_.at(version_num);
 
-  TERRIER_ASSERT(out_buffer->NumColumns() <= curr_dt_version.column_map.size(),
+  TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.at(version_num).column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
 
@@ -133,13 +132,13 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
   auto old_dt_version = tables_.at(old_version_num);
 
   // The slot version is not the same as the version_num
-  byte *initial_header_buffer = ModifyProjectionHeaderForVersion(out_buffer, curr_dt_version, old_dt_version);
+  col_id_t original_column_ids[out_buffer->NumColumns()];
+  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), old_dt_version,
+          original_column_ids);
 
   // Get the result and copy back the old header
   bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
-  std::memcpy(out_buffer, initial_header_buffer, out_buffer->HeaderWithoutBitmapSize());
-
-  delete[] initial_header_buffer;
+  std::memcpy(out_buffer->ColumnIds(), original_column_ids, sizeof(col_id_t) * out_buffer->NumColumns());
 
   // TODO(Yashwanth): handle default values
   return result;
@@ -270,28 +269,23 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
                     layout_version_t version_num) const {
   layout_version_t dt_version_num = start_pos->operator*().GetBlock()->layout_version_;
 
-  // For each DataTable
-  DataTableVersion dt_ver = tables_.at(dt_version_num);
-  DataTableVersion curr_ver = tables_.at(version_num);
-
-  TERRIER_ASSERT(out_buffer->NumColumns() <= curr_ver.column_map.size(),
+  TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.at(version_num).column_map.size(),
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
-
-  byte *initial_header = ModifyProjectionHeaderForVersion(out_buffer, curr_ver, dt_ver);
+  col_id_t original_column_ids[out_buffer->NumColumns()];
+  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), tables_.at(dt_version_num), original_column_ids);
 
   DataTable::SlotIterator dt_slot = start_pos->GetDataTableSlotIterator();
-  dt_ver.data_table->Scan(txn, &dt_slot, out_buffer);
-  if (dt_slot == dt_ver.data_table->end()) {
+  tables_.at(dt_version_num).data_table->Scan(txn, &dt_slot, out_buffer);
+  if (dt_slot == tables_.at(dt_version_num).data_table->end()) {
     if ((start_pos->dt_version_)->first != version_num) {
       ++(*start_pos);
     }
   }
 
   uint32_t filled = out_buffer->NumTuples();
-  std::memcpy(out_buffer, initial_header, out_buffer->HeaderWithoutBitmapSize());
+  std::memcpy(out_buffer->ColumnIds(), original_column_ids, sizeof(col_id_t) * out_buffer->NumColumns());
   out_buffer->SetNumTuples(filled);
-  delete[] initial_header;
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
@@ -336,12 +330,12 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitial
 // TODO(Yashwanth): don't copy the entire header, no need for template only take in ColumnIds() and then just modify
 // that when resetting header only have memc py ColumnIds()
 template <class RowType>
-byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                                 const DataTableVersion &old_dt_version) const {
+void SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
+                                                 const DataTableVersion &old_dt_version,
+                                                 col_id_t * original_col_id_store) const {
   // The slot version is not the same as the version_num
   // 1. Copy the old header (excluding bitmap)
-  auto initial_header_buffer = common::AllocationUtil::AllocateAligned(out_buffer->HeaderWithoutBitmapSize());
-  std::memcpy(initial_header_buffer, out_buffer, out_buffer->HeaderWithoutBitmapSize());
+  std::memcpy(original_col_id_store, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
 
   // 2. For each column present in the old version, change the column id to the col id of that version
   //    For each column not present in the old version, change the column id to the sentinel value
@@ -357,15 +351,15 @@ byte *SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const Data
       out_buffer->ColumnIds()[i] = VERSION_POINTER_COLUMN_ID;
     }
   }
-
-  return initial_header_buffer;
 }
 
-template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *out_buffer,
+template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *out_buffer,
                                                                         const DataTableVersion &curr_dt_version,
-                                                                        const DataTableVersion &old_dt_version) const;
-template byte *SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(
-    ProjectedColumns *out_buffer, const DataTableVersion &curr_dt_version,
-    const DataTableVersion &old_dt_version) const;
+                                                                        const DataTableVersion &old_dt_version,
+                                                                        col_id_t * original_col_id_store) const;
+template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns *out_buffer,
+                                                                            const DataTableVersion &curr_dt_version,
+                                                                            const DataTableVersion &old_dt_version,
+                                                                            col_id_t * original_col_id_store) const;
 
 }  // namespace terrier::storage
