@@ -1,3 +1,6 @@
+#include <memory>
+#include <vector>
+
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
