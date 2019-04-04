@@ -3,7 +3,9 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
+#include "util/tpcc_benchmark_util.h"
 
 namespace terrier {
 
@@ -30,7 +32,6 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
 
  private:
   std::thread gc_thread_;
@@ -48,10 +49,11 @@ class TPCCBenchmark : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
-  transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     StartGC(&txn_manager);
+    auto tpcc = TPCC(&block_store_);
     //    uint64_t elapsed_ms;
     //    { common::ScopedTimer timer(&elapsed_ms); }
     //    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

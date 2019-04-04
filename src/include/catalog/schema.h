@@ -37,18 +37,31 @@ class Schema {
           type_(type),
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
-          inlined_(true),
           oid_(oid) {
-      if (attr_size_ == VARLEN_COLUMN) {
-        // this is a varlen attribute
-        // attr_size_ is actual size + high bit via GetTypeSize
-        inlined_ = false;
-      }
-      TERRIER_ASSERT(
-          attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8 || attr_size_ == VARLEN_COLUMN,
-          "Attribute size must be 1, 2, 4, 8 or VARLEN_COLUMN bytes.");
+      TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
+                     "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
+
+    /**
+     * Instantiates a Column object, primary to be used for building a Schema object
+     * @param name column name
+     * @param type SQL type for this column
+     * @param nullable true if the column is nullable, false otherwise
+     * @param oid internal unique identifier for this column
+     */
+    Column(std::string name, const type::TypeId type, const uint16_t max_varlen_size, const bool nullable,
+           const col_oid_t oid)
+        : name_(std::move(name)),
+          type_(type),
+          attr_size_(type::TypeUtil::GetTypeSize(type_)),
+          max_varlen_size_(max_varlen_size),
+          nullable_(nullable),
+          oid_(oid) {
+      TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
+      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+    }
+
     /**
      * @return column name
      */
@@ -61,12 +74,14 @@ class Schema {
      * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
      */
     uint8_t GetAttrSize() const { return attr_size_; }
+
+    uint16_t GetMaxVarlenSize() const {
+      TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
+      return max_varlen_size_;
+    }
+
     /**
      * @return true if the attribute is inlined, false if it's a pointer to a varlen entry
-     */
-    bool GetInlined() const { return inlined_; }
-    /**
-     * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
     /**
@@ -78,8 +93,8 @@ class Schema {
     const std::string name_;
     const type::TypeId type_;
     uint8_t attr_size_;
+    uint16_t max_varlen_size_;
     const bool nullable_;
-    bool inlined_;
     const col_oid_t oid_;
     // TODO(Matt): default value would go here
     // Value default_;
