@@ -11,7 +11,7 @@ TEST(PlanNodeTests, CreateDatabasePlanTest) {
   parser::PostgresParser pgparser;
   auto stms = pgparser.BuildParseTree("CREATE DATABASE test");
   EXPECT_EQ(1, stms.size());
-  parser::CreateStatement *create_stmt = static_cast<parser::CreateStatement *>(stms[0].get());
+  auto *create_stmt = static_cast<parser::CreateStatement *>(stms[0].get());
 
   CreatePlanNode::Builder builder;
   auto plan = builder.SetFromCreateStatement(create_stmt).Build();
@@ -26,7 +26,7 @@ TEST(PlanNodeTests, DropDatabasePlanTest) {
   parser::PostgresParser pgparser;
   auto stms = pgparser.BuildParseTree("DROP DATABASE test");
   EXPECT_EQ(1, stms.size());
-  parser::DropStatement *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
 
   DropPlanNode::Builder builder;
   auto plan = builder.SetFromDropStatement(drop_stmt).Build();
