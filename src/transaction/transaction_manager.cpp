@@ -203,10 +203,20 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
     default:
       throw std::runtime_error("unexpected delta record type");
   }
-  // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
-  // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
-  // write.
-  table->AtomicallyWriteVersionPtr(slot, accessor, version_ptr->Next());
+
+  // Because the garbage collector can be concurrently truncating the version chain, it is important we check
+  // that the value we write is not changing.
+  storage::UndoRecord *next;
+  do {
+    next = version_ptr->Next();
+    // Remove this delta record from the version chain, effectively releasing the lock. At this point, the tuple
+    // has been restored to its original form. No CAS needed since we still hold the write lock at time of the atomic
+    // write.
+    table->AtomicallyWriteVersionPtr(slot, accessor, next);
+    // It is still safe at this point if the garbage collector changes the next record from under us, because
+    // as long as the abort function does not return, GC cannot deallocate these stale records. We just need
+    // to make sure we get them before returning.
+  } while (next != version_ptr->Next());
 }
 
 void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,

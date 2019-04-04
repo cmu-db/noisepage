@@ -40,7 +40,8 @@ class GarbageCollectorDataTableTestObject {
   template <class Random>
   storage::ProjectedRow *GenerateRandomUpdate(Random *generator) {
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
-    storage::ProjectedRowInitializer update_initializer(layout_, update_col_ids);
+    storage::ProjectedRowInitializer update_initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout_, update_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(update_initializer.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     storage::ProjectedRow *update = update_initializer.InitializeRow(buffer);
@@ -72,7 +73,8 @@ class GarbageCollectorDataTableTestObject {
   // we don't want the logically deleted field to end up set NULL.
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
-  storage::ProjectedRowInitializer initializer_{layout_, StorageTestUtil::ProjectionListAllColumns(layout_)};
+  storage::ProjectedRowInitializer initializer_ = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(
+      layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
   bool select_result_;
 };
@@ -127,47 +129,6 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
     // Unlink the txn and deallocate immediately because it's read-only
     EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-  }
-}
-
-// Insert a tuple and commit. Next transaction tries to update that tuple (takes write lock), verify that GC doesn't
-// unlink or free the Insert txn's context until safe to do so
-// NOLINTNEXTLINE
-TEST_F(GarbageCollectorTests, WriteWriteConflictRequeue) {
-  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
-    GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&txn_manager);
-
-    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-
-    // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-
-    storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
-
-    auto *txn0 = txn_manager.BeginTransaction();
-
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
-
-    auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
-
-    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
-    EXPECT_TRUE(tested.select_result_);
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
-
-    // Verify that Insert txn doesn't get fully unlinked or reclaimed until txn0 finishes
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-
-    txn_manager.Abort(txn0);
-
-    // Aborted transactions can be removed from the unlink queue immediately
-    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
-    // Safe to deallocate both transactions
-    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 
