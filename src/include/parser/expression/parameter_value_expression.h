@@ -51,4 +51,6 @@ class ParameterValueExpression : public AbstractExpression {
   uint32_t value_idx_;
 };
 
+DEFINE_JSON_DECLARATIONS(ParameterValueExpression);
+
 }  // namespace terrier::parser
