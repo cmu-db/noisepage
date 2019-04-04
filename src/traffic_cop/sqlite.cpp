@@ -78,15 +78,26 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, std::shared_ptr<std::vector<type::Tr
   for(int i=0; i< static_cast<int>(params.size()); i++)
   {
     auto type = params[i].Type();
+    int res;
     if(type == TypeId::INTEGER)
-      sqlite3_bind_int(stmt, i, TransientValuePeeker::PeekInteger(params[i]));
+      res = sqlite3_bind_int(stmt, i+1, TransientValuePeeker::PeekInteger(params[i]));
     else if (type == TypeId::DECIMAL)
-      sqlite3_bind_double(stmt, i, TransientValuePeeker::PeekDecimal(params[i]));
+      res = sqlite3_bind_double(stmt, i+1, TransientValuePeeker::PeekDecimal(params[i]));
     else if(type == TypeId::VARCHAR)
     {
       const char *varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
-      sqlite3_bind_text(stmt, i, varchar_value, -1, SQLITE_STATIC);
+      res = sqlite3_bind_text(stmt, i+1, varchar_value, -1, SQLITE_STATIC);
       delete[] varchar_value;
+    }
+    else
+    {
+      LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
+      res = 0;
+    }
+
+    if(res != SQLITE_OK)
+    {
+      LOG_ERROR("Bind error: error code = {0}", res);
     }
   }
 }
@@ -99,7 +110,9 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     result_set.column_names_.push_back(col_name);
   }
 
-  while(sqlite3_step(stmt) == SQLITE_ROW)
+  int result_code = sqlite3_step(stmt);
+
+  while(result_code == SQLITE_ROW)
   {
     std::vector<std::string> row;
     for(int i=0; i<column_cnt; i++)
@@ -109,6 +122,8 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
       row.push_back(result_str);
     }
     result_set.rows_.push_back(row);
+
+    result_code = sqlite3_step(stmt);
   }
 
   return result_set;

@@ -21,7 +21,8 @@
 namespace terrier::network {
 
 /*
- * In networks tests, we use a fake traffic cop that always return empty results.
+ * In networks tests, we use a fake traffic cop that always return empty results to avoid error msgs.
+ * Maybe replace it to the real traffic cop later?
  */
 class FakeTrafficCop : public traffic_cop::TrafficCop {
  public:
@@ -34,8 +35,11 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     return traffic_cop::Statement();
   }
   traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
-                           std::vector<type::TransientValue> &params) override {
+                           const std::shared_ptr<std::vector<type::TransientValue>> &params) override {
     return traffic_cop::Portal();
+  }
+  traffic_cop::ResultSet Execute(traffic_cop::Portal &portal) override {
+    return traffic_cop::ResultSet();
   }
 };
 

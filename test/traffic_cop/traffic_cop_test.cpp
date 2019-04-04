@@ -81,7 +81,7 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ExtendedQueryTest) {
+TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
   StartServer();
   try {
     auto io_socket = network::StartConnection(port);
@@ -90,30 +90,32 @@ TEST_F(TrafficCopTests, ExtendedQueryTest) {
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
-    writer.WriteSimpleQuery("CREATE TABLE TableA (a1 INT PRIMARY KEY, a2 INT, a3 INT, a4 INT);");
+
+    writer.WriteSimpleQuery("CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT);");
+    io_socket->FlushAllWrites();
+    ReadUntilReadyOrClose(io_socket);
+
+    writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14159, 'niconiconi')");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
     std::string stmt_name = "test_statement";
-    std::string query = "INSERT INTO TableA VALUES($1, $2, $3, $4);";
+    std::string query = "SELECT * from TableA where a_int = ?1";
 
-    writer.WriteParseCommand(stmt_name, query, std::vector(4, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+    writer.WriteParseCommand(stmt_name, query, std::vector(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
     io_socket->FlushAllWrites();
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
 
     // Bind
-    auto param1 = std::vector<char>({'1'});
-    auto param2 = std::vector<char>({'2'});
-    auto param3 = std::vector<char>({'3'});
-    auto param4 = std::vector<char>({'4'});
+    auto param1 = std::vector<char>({'1', '0', '0'});
 
     std::string portal_name = "test_portal";
     writer.WriteBindCommand(portal_name,
                             stmt_name,
                             {}, // All will use text format
-                            {&param1, &param2, &param3, &param4},
-                            {} // No result columns
+                            {&param1},
+                            {} // Don't care about result column formats
                             );
 
     io_socket->FlushAllWrites();
@@ -123,8 +125,7 @@ TEST_F(TrafficCopTests, ExtendedQueryTest) {
     writer.WriteExecuteCommand(portal_name, 0);
     io_socket->FlushAllWrites();
 
-    ReadUntilReadyOrClose(io_socket);
-
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::DATA_ROW);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
