@@ -332,7 +332,7 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitial
 template <class RowType>
 void SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
                                                 const DataTableVersion &old_dt_version,
-                                                col_id_t * original_col_id_store) const {
+                                                col_id_t *original_col_id_store) const {
   // The slot version is not the same as the version_num
   // 1. Copy the old header (excluding bitmap)
   std::memcpy(original_col_id_store, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
@@ -356,10 +356,10 @@ void SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataT
 template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *out_buffer,
                                                                        const DataTableVersion &curr_dt_version,
                                                                        const DataTableVersion &old_dt_version,
-                                                                        col_id_t * original_col_id_store) const;
+                                                                       col_id_t *original_col_id_store) const;
 template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns *out_buffer,
                                                                            const DataTableVersion &curr_dt_version,
                                                                            const DataTableVersion &old_dt_version,
-                                                                           col_id_t * original_col_id_store) const;
+                                                                           col_id_t *original_col_id_store) const;
 
 }  // namespace terrier::storage
