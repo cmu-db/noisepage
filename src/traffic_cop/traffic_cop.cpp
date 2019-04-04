@@ -23,11 +23,16 @@ Statement TrafficCop::Parse(const char *query, const std::vector<type::TypeId> &
 
 // With SQLite backend, we only produce a list of param values as the portal,
 // because (I think) it is discouraged to copy sqlite3_stmt.
-Portal TrafficCop::Bind(const Statement &stmt, const std::vector<type::TransientValue> &params) {
-  using namespace type;
-
+Portal TrafficCop::Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params) {
   Portal ret;
+  ret.sqlite_stmt_ = stmt.sqlite3_stmt_;
+  ret.params = params;
   return ret;
+}
+ResultSet TrafficCop::Execute(Portal &portal) {
+  sqlite_engine.Bind(portal.sqlite_stmt_, portal.params);
+  return sqlite_engine.Execute(portal.sqlite_stmt_);
+
 }
 
 }  // namespace terrier::traffic_cop

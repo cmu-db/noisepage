@@ -6,7 +6,9 @@ namespace terrier::traffic_cop{
 
 struct Portal{
   sqlite3_stmt *sqlite_stmt_;
-  std::vector<type::TransientValue> params;
+
+  // Since TransientValue forbids copying, using a pointer is more convenient
+  std::shared_ptr<std::vector<type::TransientValue>> params;
 
 };
 

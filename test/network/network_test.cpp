@@ -34,7 +34,7 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     return traffic_cop::Statement();
   }
   traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
-                           const std::vector<type::TransientValue> &params) override {
+                           std::vector<type::TransientValue> &params) override {
     return traffic_cop::Portal();
   }
 };

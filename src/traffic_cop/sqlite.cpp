@@ -5,6 +5,8 @@
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
+#include "type/transient_value.h"
+#include "type/transient_value_peeker.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/sqlite.h"
 
@@ -65,6 +67,52 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(const char *query) {
     LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
     return nullptr;
   }
+}
+
+void SqliteEngine::Bind(sqlite3_stmt *stmt, std::shared_ptr<std::vector<type::TransientValue>> &p_params) {
+  using type::TypeId;
+  using type::TransientValuePeeker;
+
+  auto &params = *p_params;
+
+  for(int i=0; i< static_cast<int>(params.size()); i++)
+  {
+    auto type = params[i].Type();
+    if(type == TypeId::INTEGER)
+      sqlite3_bind_int(stmt, i, TransientValuePeeker::PeekInteger(params[i]));
+    else if (type == TypeId::DECIMAL)
+      sqlite3_bind_double(stmt, i, TransientValuePeeker::PeekDecimal(params[i]));
+    else if(type == TypeId::VARCHAR)
+    {
+      const char *varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
+      sqlite3_bind_text(stmt, i, varchar_value, -1, SQLITE_STATIC);
+      delete[] varchar_value;
+    }
+  }
+}
+ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
+  int column_cnt = sqlite3_column_count(stmt);
+  ResultSet result_set;
+  for(int i=0; i<column_cnt; i++)
+  {
+    std::string col_name = std::string(sqlite3_column_name(stmt, i));
+    result_set.column_names_.push_back(col_name);
+  }
+
+  while(sqlite3_step(stmt) == SQLITE_ROW)
+  {
+    std::vector<std::string> row;
+    for(int i=0; i<column_cnt; i++)
+    {
+      const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
+      std::string result_str = std::string(reinterpret_cast<const char*>(result_cstring));
+      row.push_back(result_str);
+    }
+    result_set.rows_.push_back(row);
+  }
+
+  return result_set;
+
 }
 
 }  // namespace terrier::traffic_cop

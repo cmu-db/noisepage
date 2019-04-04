@@ -297,6 +297,18 @@ class PostgresPacketWriter {
   }
 
   /**
+   * A helper function to write a single error message without having to make a vector every time.
+   * @param type
+   * @param status
+   */
+  void WriteSingleErrorResponse(NetworkMessageType type, std::string &status)
+  {
+    std::vector<std::pair<NetworkMessageType, std::string>> buf;
+    buf.emplace_back(type, status);
+    WriteErrorResponse(buf);
+  }
+
+  /**
    * Notify the client a readiness to receive a query
    * @param txn_status
    */

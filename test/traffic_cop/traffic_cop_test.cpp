@@ -99,10 +99,8 @@ TEST_F(TrafficCopTests, ExtendedQueryTest) {
 
     writer.WriteParseCommand(stmt_name, query, std::vector(4, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
     io_socket->FlushAllWrites();
-    writer.WriteSyncCommand();
-    io_socket->FlushAllWrites();
 
-    ReadUntilReadyOrClose(io_socket);
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
 
     // Bind
     auto param1 = std::vector<char>({'1'});
@@ -118,6 +116,11 @@ TEST_F(TrafficCopTests, ExtendedQueryTest) {
                             {} // No result columns
                             );
 
+    io_socket->FlushAllWrites();
+
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::BIND_COMPLETE);
+
+    writer.WriteExecuteCommand(portal_name, 0);
     io_socket->FlushAllWrites();
 
     ReadUntilReadyOrClose(io_socket);

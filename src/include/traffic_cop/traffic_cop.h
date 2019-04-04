@@ -32,7 +32,10 @@ class TrafficCop {
 
   virtual Statement Parse(const char *query, const std::vector<type::TypeId> &param_types);
 
-  virtual Portal Bind(const Statement &stmt, const std::vector<type::TransientValue> &params);
+  virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
+
+  virtual ResultSet Execute(Portal &portal);
+
  private:
   SqliteEngine sqlite_engine;
 };

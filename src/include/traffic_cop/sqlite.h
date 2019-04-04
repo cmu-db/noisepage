@@ -2,6 +2,7 @@
 #include <functional>
 #include <sqlite3.h>
 #include "network/postgres_protocol_utils.h"
+#include "type/transient_value.h"
 #include "traffic_cop/result_set.h"
 
 struct sqlite3;
@@ -17,6 +18,9 @@ class SqliteEngine {
                     const network::SimpleQueryCallback &callback);
 
   sqlite3_stmt* PrepareStatement(const char *query);
+
+  void Bind(sqlite3_stmt *stmt, std::shared_ptr<std::vector<type::TransientValue>> &p_params);
+  ResultSet Execute(sqlite3_stmt *stmt);
 
  private:
   // SQLite database

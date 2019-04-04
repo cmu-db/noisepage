@@ -6,13 +6,9 @@
 #include "network/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
+#include "traffic_cop/portal.h"
 
 namespace terrier::network {
-
-// TODO(Tianyu): This is a refactor in progress.
-// A lot of the code here should really be moved to traffic cop, and a lot of
-// the code here can honestly just be deleted. This is going to be a larger
-// project though, so I want to do the architectural refactor first.
 
 void PostgresNetworkCommand::AcceptResults(const traffic_cop::ResultSet &result_set, PostgresPacketWriter *const out) {
   if (result_set.column_names_.empty()) {
@@ -76,19 +72,26 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
                              TrafficCopPtr t_cop,
                              ConnectionContext *connection,
                              NetworkCallback callback) {
-  std::string portal_name = in_.ReadString();
+  using std::string;
+  using std::vector;
+  using std::pair;
 
-  std::string stmt_name = in_.ReadString();
+  string portal_name = in_.ReadString();
+
+  string stmt_name = in_.ReadString();
   auto statement_pair = connection->statements.find(stmt_name);
   if(statement_pair == connection->statements.end()){
-    NETWORK_LOG_ERROR("Error: There is no statement with name {0}", stmt_name);
-    return Transition::TERMINATE;
+    string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
+    NETWORK_LOG_ERROR(error_msg);
+
+    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    return Transition::PROCEED;
   }
 
   // Find out param formats
   traffic_cop::Statement *statement = &statement_pair->second;
   auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
-  std::vector<int16_t> is_binary;
+  vector<int16_t> is_binary;
   size_t num_params = statement->NumParams();
   if(num_formats == 0)
   {
@@ -109,8 +112,12 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
   }
   else
   {
-    NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, (1) in format code.", num_params, num_formats);
-    return Transition::TERMINATE;
+    string error_msg = fmt::format("Error: Numbers of parameters don't match. "
+                                        "{0} in statement, {1} in format code.", num_params, num_formats);
+    NETWORK_LOG_ERROR(error_msg);
+
+    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    return Transition::PROCEED;
   }
 
 
@@ -118,12 +125,16 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
   auto num_params_from_query = static_cast<size_t>(in_.ReadValue<int16_t>());
   if(num_params_from_query != num_params)
   {
-    NETWORK_LOG_ERROR("Error: Numbers of parameters don't match. {0} in statement, {1} in bind command", num_params, num_params_from_query);
-    return Transition::TERMINATE;
+    string error_msg = fmt::format("Error: Numbers of parameters don't match. "
+                                   "{0} in statement, {1} in bind command", num_params, num_params_from_query);
+    NETWORK_LOG_ERROR(error_msg);
+
+    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    return Transition::PROCEED;
   }
 
   using namespace type;
-  std::vector<TransientValue> params;
+  auto params = std::make_shared<std::vector<TransientValue>>();
 
   for(size_t i=0; i<num_params; i++)
   {
@@ -143,9 +154,42 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter,
         value = in_.ReadValue<int32_t>();
       }
 
-      params.push_back(TransientValueFactory::GetInteger(value));
+      params->push_back(TransientValueFactory::GetInteger(value));
+    }
+    else if(statement->param_types[i] == TypeId::DECIMAL)
+    {
+      double value;
+      if(is_binary[i] == 0)
+      {
+        char buf[len];
+        in_.Read(len, buf);
+        value = std::stod(buf);
+      }
+      else
+      {
+        value = in_.ReadValue<double>();
+      }
+
+      params->push_back(TransientValueFactory::GetDecimal(value));
+    }
+    else if(statement->param_types[i] == TypeId::VARCHAR)
+    {
+      char buf[len];
+      in_.Read(len, buf);
+      params->push_back(TransientValueFactory::GetVarChar(buf));
+    }
+    else
+    {
+      string error_msg = fmt::format("Param type {0} is not implemented yet",
+                                     static_cast<int>(statement->param_types[i]));
+      NETWORK_LOG_ERROR(error_msg);
+      out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+      return Transition::PROCEED;
     }
   }
+
+  traffic_cop::Portal portal = t_cop->Bind(*statement, params);
+  connection->portals.emplace(portal_name, portal);
 
   out->WriteBindComplete();
   return Transition::PROCEED;
@@ -168,9 +212,20 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter,
                                 TrafficCopPtr t_cop,
                                 ConnectionContext *connection,
                                 NetworkCallback callback) {
-  std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Exec query: {0}", query.c_str());
-  out->WriteEmptyQueryResponse();
+  using std::string;
+  string portal_name = in_.ReadString();
+  auto p_portal = connection->portals.find(portal_name);
+  if(p_portal == connection->portals.end())
+  {
+    string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
+    NETWORK_LOG_ERROR(error_msg);
+    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    return Transition::PROCEED;
+  }
+
+  traffic_cop::ResultSet result = t_cop->Execute(p_portal->second);
+  AcceptResults(result, out);
+
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
