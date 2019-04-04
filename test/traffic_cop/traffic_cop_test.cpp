@@ -104,7 +104,7 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
     std::string query = "SELECT * from TableA where a_int = ?1";
 
     writer.WriteParseCommand(stmt_name, query,
-                             std::vector(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+                             std::vector<int>(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
     io_socket->FlushAllWrites();
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
