@@ -13,7 +13,6 @@ namespace terrier::network {
  */
 
 struct ConnectionContext {
-
   /* The statements in this connection */
   std::unordered_map<std::string, traffic_cop::Statement> statements;
 

@@ -318,7 +318,6 @@ class PostgresPacketWriter {
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
-
   /**
    * Writes row description, as the first packet of sending query results
    * @param columns the column names

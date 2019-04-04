@@ -38,4 +38,4 @@ type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
   }
 }
 
-}
+}  // namespace terrier::network
