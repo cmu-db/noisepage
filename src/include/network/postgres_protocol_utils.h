@@ -122,41 +122,7 @@ enum class PostgresValueType {
   DECIMAL = 1700
 };
 
-inline type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
-  switch (type) {
-    case PostgresValueType::BOOLEAN:
-      return type::TypeId::BOOLEAN;
-
-    case PostgresValueType::SMALLINT:
-      return type::TypeId::SMALLINT;
-    case PostgresValueType::INTEGER:
-      return type::TypeId::INTEGER;
-    case PostgresValueType::BIGINT:
-      return type::TypeId::BIGINT;
-    case PostgresValueType::REAL:
-      return type::TypeId::DECIMAL;
-    case PostgresValueType::DOUBLE:
-      return type::TypeId::DECIMAL;
-
-    case PostgresValueType::BPCHAR:
-    case PostgresValueType::BPCHAR2:
-    case PostgresValueType::VARCHAR:
-    case PostgresValueType::VARCHAR2:
-    case PostgresValueType::TEXT:
-      return type::TypeId::VARCHAR;
-
-    case PostgresValueType::DATE:
-    case PostgresValueType::TIMESTAMPS:
-    case PostgresValueType::TIMESTAMPS2:
-      return type::TypeId::TIMESTAMP;
-
-    case PostgresValueType::DECIMAL:
-      return type::TypeId::DECIMAL;
-    default:
-      LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
-      throw NETWORK_PROCESS_EXCEPTION("");
-  }
-}
+type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
 
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
@@ -352,6 +318,11 @@ class PostgresPacketWriter {
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
+
+  /**
+   * Writes row description, as the first packet of sending query results
+   * @param columns the column names
+   */
   void WriteRowDescription(const std::vector<std::string> &columns) {
     // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
     BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
@@ -368,6 +339,10 @@ class PostgresPacketWriter {
     EndPacket();
   }
 
+  /**
+   * Writes a data row.
+   * @param values a row's values.
+   */
   void WriteDataRow(const std::vector<std::string> &values) {
     BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
     for (auto &value : values) {
@@ -376,6 +351,10 @@ class PostgresPacketWriter {
     EndPacket();
   }
 
+  /**
+   * Tells the client that the query command is complete.
+   * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
+   */
   void WriteCommandComplete(const std::string &tag) {
     BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
   }
@@ -386,7 +365,6 @@ class PostgresPacketWriter {
    * @param query The query string to be parsed
    * @param params Supplied parameter object types in the query
    */
-
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query, std::vector<int32_t> params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
@@ -472,8 +450,14 @@ class PostgresPacketWriter {
     BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
+  /**
+   * Tells the client that the parse command is complete.
+   */
   void WriteParseComplete() { BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket(); }
 
+  /**
+   * Tells the client that the bind command is complete.
+   */
   void WriteBindComplete() { BeginPacket(NetworkMessageType::BIND_COMPLETE).EndPacket(); }
 
   /**

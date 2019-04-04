@@ -26,6 +26,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param in
    * @param out
    * @param callback
+   * @param t_cop the traffic cop pointer
+   * @context the connection context
    * @return
    */
   Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCopPtr t_cop,

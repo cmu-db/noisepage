@@ -161,7 +161,7 @@ void TestExtendedQuery(uint16_t port) {
 
   PostgresPacketWriter writer(io_socket->out_);
   auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
-  writer.WriteParseCommand(stmt_name, query, std::vector(4, type_oid));
+  writer.WriteParseCommand(stmt_name, query, std::vector<int>(4, type_oid));
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::PARSE_COMPLETE));
 

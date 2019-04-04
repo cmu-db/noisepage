@@ -30,10 +30,27 @@ class TrafficCop {
   virtual void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                             const network::SimpleQueryCallback &callback);
 
+  /**
+   * Parse a query to a statement.
+   * @param query
+   * @param param_types
+   * @return
+   */
   virtual Statement Parse(const char *query, const std::vector<type::TypeId> &param_types);
 
+  /**
+   * Bind parameters to a statement to obtain a portal.
+   * @param stmt
+   * @param params
+   * @return
+   */
   virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
 
+  /**
+   * Execute a portal.
+   * @param portal
+   * @return
+   */
   virtual ResultSet Execute(Portal *portal);
 
  private:

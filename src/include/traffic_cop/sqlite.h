@@ -11,17 +11,42 @@ struct sqlite3;
 
 namespace terrier::traffic_cop {
 
+/**
+ * The sqlite3 execution engine
+ */
 class SqliteEngine {
  public:
   SqliteEngine();
   virtual ~SqliteEngine();
 
+  /**
+   * Execute a simple query.
+   * @param query The query string
+   * @param out The packet writer
+   * @param callback The callback function to accept the results
+   */
   void ExecuteQuery(const char *query, network::PostgresPacketWriter *out,
                     const network::SimpleQueryCallback &callback);
 
+  /**
+   * Prepare the query to a statement.
+   * @param query The query string
+   * @return The statement
+   */
   sqlite3_stmt *PrepareStatement(const char *query);
 
+  /**
+   * Bind the parameters to the statement.
+   * @param stmt
+   * @param p_params
+   */
   void Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params);
+
+  /**
+   * Execute a bound statement.
+   * @param stmt
+   * @return
+   */
   ResultSet Execute(sqlite3_stmt *stmt);
 
  private:

@@ -43,6 +43,7 @@ class ConnectionHandle {
    * Constructs a new ConnectionHandle
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
+   * @param t_cop The pointer to the traffic cop
    */
   ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop);
 

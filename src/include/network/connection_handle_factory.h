@@ -48,6 +48,11 @@ class ConnectionHandleFactory {
     reusable_handles_.clear();
   }
 
+  /**
+   * Tell the factory the pointer of the traffic cop.
+   * Then the factory will put it to every connection handle.
+   * @param t_cop the pointer to the traffic cop.
+   */
   void SetTrafficCop(const TrafficCopPtr &t_cop) { traffic_cop_ = t_cop; }
 
  private:
