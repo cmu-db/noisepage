@@ -106,10 +106,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
 //      break;
 //    }
 
-//    case ExpressionType::VALUE_PARAMETER: {
-//      expr = std::make_shared<ParameterValueExpression>();
-//      break;
-//    }
+    case ExpressionType::VALUE_PARAMETER: {
+      expr = std::make_shared<ParameterValueExpression>();
+      break;
+    }
 
     case ExpressionType::STAR: {
       expr = std::make_shared<StarExpression>();

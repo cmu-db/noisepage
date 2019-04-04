@@ -176,4 +176,21 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
             static_cast<AggregateExpression *>(deserialized_expression.get())->IsDistinct());
 }
 
+// NOLINTNEXTLINE
+TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
+  // Create expression
+  std::shared_ptr<ParameterValueExpression> original_expr =
+      std::make_shared<ParameterValueExpression>(42 /* value_idx */);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(original_expr->GetValueIdx(),
+            static_cast<ParameterValueExpression *>(deserialized_expression.get())->GetValueIdx());
+}
+
 }  // namespace terrier::parser::expression
