@@ -1,5 +1,6 @@
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <string>
+#include <vector>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -102,7 +103,8 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
     std::string stmt_name = "test_statement";
     std::string query = "SELECT * from TableA where a_int = ?1";
 
-    writer.WriteParseCommand(stmt_name, query, std::vector(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
+    writer.WriteParseCommand(stmt_name, query,
+                             std::vector(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
     io_socket->FlushAllWrites();
 
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PARSE_COMPLETE);
@@ -111,12 +113,8 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
     auto param1 = std::vector<char>({'1', '0', '0'});
 
     std::string portal_name = "test_portal";
-    writer.WriteBindCommand(portal_name,
-                            stmt_name,
-                            {}, // All will use text format
-                            {&param1},
-                            {} // Don't care about result column formats
-                            );
+    // Use text format Don't care about result column formats
+    writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
 
     io_socket->FlushAllWrites();
 
@@ -133,8 +131,6 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
 
   StopServer();
 }
-
-
 
 /*
  * This test is for debugging tests. It can be disabled when testing other components.

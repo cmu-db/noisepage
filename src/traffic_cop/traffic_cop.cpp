@@ -1,6 +1,7 @@
 #include <sqlite3.h>
 #include <util/test_harness.h>
-#include <traffic_cop/traffic_cop.h>
+#include <memory>
+#include <vector>
 
 #include "network/postgres_protocol_utils.h"
 #include "traffic_cop/traffic_cop.h"
@@ -14,7 +15,6 @@ void TrafficCop::ExecuteQuery(const char *query, network::PostgresPacketWriter *
 }
 
 Statement TrafficCop::Parse(const char *query, const std::vector<type::TypeId> &param_types) {
-
   Statement statement;
   statement.sqlite3_stmt_ = sqlite_engine.PrepareStatement(query);
   statement.param_types = param_types;
@@ -29,10 +29,9 @@ Portal TrafficCop::Bind(const Statement &stmt, const std::shared_ptr<std::vector
   ret.params = params;
   return ret;
 }
-ResultSet TrafficCop::Execute(Portal &portal) {
-  sqlite_engine.Bind(portal.sqlite_stmt_, portal.params);
-  return sqlite_engine.Execute(portal.sqlite_stmt_);
-
+ResultSet TrafficCop::Execute(Portal *portal) {
+  sqlite_engine.Bind(portal->sqlite_stmt_, portal->params);
+  return sqlite_engine.Execute(portal->sqlite_stmt_);
 }
 
 }  // namespace terrier::traffic_cop

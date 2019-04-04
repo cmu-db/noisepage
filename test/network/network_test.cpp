@@ -38,9 +38,7 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
                            const std::shared_ptr<std::vector<type::TransientValue>> &params) override {
     return traffic_cop::Portal();
   }
-  traffic_cop::ResultSet Execute(traffic_cop::Portal &portal) override {
-    return traffic_cop::ResultSet();
-  }
+  traffic_cop::ResultSet Execute(traffic_cop::Portal *portal) override { return traffic_cop::ResultSet(); }
 };
 
 class NetworkTests : public TerrierTest {
@@ -162,7 +160,7 @@ void TestExtendedQuery(uint16_t port) {
   std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
 
   PostgresPacketWriter writer(io_socket->out_);
-  int type_oid = static_cast<int>(PostgresValueType::INTEGER);
+  auto type_oid = static_cast<int>(PostgresValueType::INTEGER);
   writer.WriteParseCommand(stmt_name, query, std::vector(4, type_oid));
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilMessageOrClose(io_socket, NetworkMessageType::PARSE_COMPLETE));

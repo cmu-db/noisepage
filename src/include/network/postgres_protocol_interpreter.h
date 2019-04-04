@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <utility>
 #include "loggers/network_logger.h"
+#include "network/connection_context.h"
+#include "network/connection_handle.h"
 #include "network/postgres_network_commands.h"
 #include "network/protocol_interpreter.h"
-#include "connection_handle.h"
-#include "connection_context.h"
 
 namespace terrier::network {
 
@@ -28,11 +28,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param callback
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in,
-                     std::shared_ptr<WriteQueue> out,
-                     TrafficCopPtr t_cop,
-                     ConnectionContext *context,
-                     NetworkCallback callback) override;
+  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out, TrafficCopPtr t_cop,
+                     ConnectionContext *context, NetworkCallback callback) override;
 
   /**
    *

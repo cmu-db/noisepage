@@ -30,17 +30,13 @@ bool ReadUntilMessageOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket,
     Transition trans = io_socket->FillReadBuffer();
     if (trans == Transition::TERMINATE) return false;
 
-    while(io_socket->in_->HasMore())
-    {
+    while (io_socket->in_->HasMore()) {
       auto type = io_socket->in_->ReadValue<NetworkMessageType>();
       auto size = io_socket->in_->ReadValue<int32_t>();
-      if(size >= 4)
-        io_socket->in_->Skip(static_cast<size_t>(size - 4));
+      if (size >= 4) io_socket->in_->Skip(static_cast<size_t>(size - 4));
 
-      if(type == expected_msg_type)
-        return true;
+      if (type == expected_msg_type) return true;
     }
-
   }
 }
 
@@ -49,8 +45,7 @@ bool ReadUntilMessageOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket,
  * @param io_socket
  * @return
  */
-bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket)
-{
+bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
   return ReadUntilMessageOrClose(io_socket, NetworkMessageType::READY_FOR_QUERY);
 }
 

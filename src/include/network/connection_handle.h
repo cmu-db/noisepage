@@ -21,12 +21,12 @@
 #include "common/exception.h"
 #include "loggers/network_logger.h"
 
+#include "network/connection_context.h"
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
 #include "network/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
-#include "network/connection_context.h"
 
 #include "traffic_cop/traffic_cop.h"
 namespace terrier::network {
@@ -104,11 +104,8 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(),
-                                          io_wrapper_->GetWriteQueue(),
-                                          traffic_cop_,
-                                          &context_,
-                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+                                          &context_, [=] { event_active(workpool_event_, EV_WRITE, 0); });
   }
 
   /**
@@ -221,6 +218,5 @@ class ConnectionHandle {
   TrafficCopPtr traffic_cop_;
 
   ConnectionContext context_;
-
 };
 }  // namespace terrier::network

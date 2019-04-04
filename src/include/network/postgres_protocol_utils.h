@@ -122,7 +122,6 @@ enum class PostgresValueType {
   DECIMAL = 1700
 };
 
-
 inline type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
   switch (type) {
     case PostgresValueType::BOOLEAN:
@@ -301,8 +300,7 @@ class PostgresPacketWriter {
    * @param type
    * @param status
    */
-  void WriteSingleErrorResponse(NetworkMessageType type, std::string &status)
-  {
+  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
     std::vector<std::pair<NetworkMessageType, std::string>> buf;
     buf.emplace_back(type, status);
     WriteErrorResponse(buf);
@@ -359,12 +357,12 @@ class PostgresPacketWriter {
     BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for (auto &col_name : columns) {
       AppendString(col_name)
-          .AppendValue<int32_t>(0)   // table oid, 0 for now
-          .AppendValue<int16_t>(0)   // column oid, 0 for now
+          .AppendValue<int32_t>(0)                                     // table oid, 0 for now
+          .AppendValue<int16_t>(0)                                     // column oid, 0 for now
           .AppendValue(static_cast<int32_t>(PostgresValueType::TEXT))  // type oid
-          .AppendValue<int16_t>(-1)  // Variable Length
-          .AppendValue<int32_t>(-1)  // pg_attribute.attrmod, generally -1
-          .AppendValue<int16_t>(0);  // text=0
+          .AppendValue<int16_t>(-1)                                    // Variable Length
+          .AppendValue<int32_t>(-1)                                    // pg_attribute.attrmod, generally -1
+          .AppendValue<int16_t>(0);                                    // text=0
     }
 
     EndPacket();
@@ -389,8 +387,7 @@ class PostgresPacketWriter {
    * @param params Supplied parameter object types in the query
    */
 
-  void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
-                         std::vector<int32_t> params) {
+  void WriteParseCommand(const std::string &destinationStmt, const std::string &query, std::vector<int32_t> params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)
@@ -475,15 +472,9 @@ class PostgresPacketWriter {
     BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
-  void WriteParseComplete()
-  {
-    BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket();
-  }
+  void WriteParseComplete() { BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket(); }
 
-  void WriteBindComplete()
-  {
-    BeginPacket(NetworkMessageType::BIND_COMPLETE).EndPacket();
-  }
+  void WriteBindComplete() { BeginPacket(NetworkMessageType::BIND_COMPLETE).EndPacket(); }
 
   /**
    * End the packet. A packet write must be in progress and said write is not

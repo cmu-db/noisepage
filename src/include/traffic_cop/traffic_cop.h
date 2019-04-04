@@ -1,8 +1,10 @@
 #pragma once
+#include <memory>
+#include <vector>
 #include "network/postgres_protocol_utils.h"
+#include "traffic_cop/portal.h"
 #include "traffic_cop/sqlite.h"
 #include "traffic_cop/statement.h"
-#include "traffic_cop/portal.h"
 
 namespace terrier::traffic_cop {
 
@@ -16,9 +18,7 @@ namespace terrier::traffic_cop {
  */
 
 class TrafficCop {
-
  public:
-
   virtual ~TrafficCop() = default;
 
   /**
@@ -34,7 +34,7 @@ class TrafficCop {
 
   virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
 
-  virtual ResultSet Execute(Portal &portal);
+  virtual ResultSet Execute(Portal *portal);
 
  private:
   SqliteEngine sqlite_engine;
