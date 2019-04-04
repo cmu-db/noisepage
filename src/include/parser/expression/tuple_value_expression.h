@@ -25,6 +25,8 @@ class TupleValueExpression : public AbstractExpression {
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
+  TupleValueExpression() = default;
+
   /**
    * @return column name
    */
@@ -37,9 +39,30 @@ class TupleValueExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TupleValueExpression>(*this); }
 
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["col_name"] = col_name_;
+    j["table_name"] = table_name_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    col_name_ = j.at("col_name").get<std::string>();
+    table_name_ = j.at("table_name").get<std::string>();
+  }
+
  private:
-  const std::string col_name_;
-  const std::string table_name_;
+  std::string col_name_;
+  std::string table_name_;
 };
+
+DEFINE_JSON_DECLARATIONS(TupleValueExpression);
 
 }  // namespace terrier::parser

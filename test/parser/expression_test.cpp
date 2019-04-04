@@ -193,4 +193,22 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
             static_cast<ParameterValueExpression *>(deserialized_expression.get())->GetValueIdx());
 }
 
+// NOLINTNEXTLINE
+TEST(ExpressionTests, TupleValueExpressionJsonTest) {
+  // Create expression
+  std::shared_ptr<TupleValueExpression> original_expr =
+      std::make_shared<TupleValueExpression>("column_name", "table_name");
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto *expr = static_cast<TupleValueExpression *>(deserialized_expression.get());
+  EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
+  EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
+}
+
 }  // namespace terrier::parser::expression
