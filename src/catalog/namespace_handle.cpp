@@ -34,7 +34,7 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
     transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-  search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
@@ -59,7 +59,7 @@ void NamespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::
   std::vector<type::TransientValue> row;
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   catalog_->SetUnusedColumns(&row, NamespaceHandle::unused_schema_cols_);
   pg_namespace_hrw_->InsertRow(txn, row);
 }

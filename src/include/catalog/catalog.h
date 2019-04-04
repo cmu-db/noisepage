@@ -67,7 +67,7 @@ class Catalog {
    * @param txn transaction to use
    * @param name of the database
    */
-  void CreateDatabase(transaction::TransactionContext *txn, const char *name);
+  void CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Delete a database.
@@ -75,7 +75,7 @@ class Catalog {
    * @param txn transaction to use
    * @param db_name of the database
    */
-  void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
+  void DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name);
 
   /**
    * Create a table with schema
@@ -208,7 +208,7 @@ class Catalog {
   /**
    * Add a row into pg_database
    */
-  void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const char *name);
+  void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const std::string &name);
 
   /**
    * Add columns created for Postgres compatibility, but unused, to the schema

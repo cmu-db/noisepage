@@ -37,7 +37,7 @@ class TransientValueUtil {
         return type::TransientValueFactory::GetDate(type::TransientValuePeeker::PeekDate(value));
         break;
       case type::TypeId::VARCHAR:
-        return type::TransientValueFactory::GetVarChar(type::TransientValuePeeker::PeekVarChar(value)); // NOLINT
+        return type::TransientValueFactory::GetVarChar(type::TransientValuePeeker::PeekVarChar(value));
         break;
       default:
         throw CATALOG_EXCEPTION("invalid TransientValue copy.");

@@ -51,7 +51,7 @@ std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::Tra
                                                                 const std::string &type) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-  search_vec.push_back(type::TransientValueFactory::GetVarChar(type.c_str()));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<TypeHandle::TypeEntry>(oid, std::move(ret_row));
@@ -77,10 +77,10 @@ void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, 
   std::vector<type::TransientValue> row;
   // FIXME might be problematic
   row.emplace_back(type::TransientValueFactory::GetInteger(!oid));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(typname.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(typname));
   row.emplace_back(type::TransientValueFactory::GetInteger(!typnamespace));
   row.emplace_back(type::TransientValueFactory::GetInteger(typlen));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(typtype.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(typtype));
   catalog_->SetUnusedColumns(&row, TypeHandle::unused_schema_cols_);
   pg_type_rw_->InsertRow(txn, row);
 }

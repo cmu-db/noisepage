@@ -183,19 +183,18 @@ class SqlTableRW {
         break;
       }
       case type::TypeId::VARCHAR: {
-        size_t size = 0;
-        byte *varlen = nullptr;
         byte *col_p = proj_row->AccessForceNotNull(offset);
-        size = strlen(type::TransientValuePeeker::PeekVarChar(value));
-        if (size > storage::VarlenEntry::InlineThreshold()) {
+        std::string_view varchar = type::TransientValuePeeker::PeekVarChar(value);
+        size_t size = varchar.length();
+        if (varchar.length() > storage::VarlenEntry::InlineThreshold()) {
           // not inline, allocate storage
-          varlen = common::AllocationUtil::AllocateAligned(size);
-          memcpy(varlen, type::TransientValuePeeker::PeekVarChar(value), size);
+          byte *varlen = common::AllocationUtil::AllocateAligned(size);
+          memcpy(varlen, varchar.data(), varchar.length());
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(size), true);
         } else {
           // small enought to be stored inline
-          auto byte_p = reinterpret_cast<const byte *>(type::TransientValuePeeker::PeekVarChar(value));
+          auto byte_p = reinterpret_cast<const byte *>(varchar.data());
           *reinterpret_cast<storage::VarlenEntry *>(col_p) =
               storage::VarlenEntry::CreateInline(byte_p, static_cast<uint32_t>(size));
         }
@@ -464,16 +463,8 @@ class SqlTableRW {
         }
         case type::TypeId::VARCHAR: {
           auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-          // TODO(pakhtar): unnecessary copy. Fix appropriately when
-          // replaced by updated Value implementation.
-          // add space for null terminator
-          uint32_t size = vc_entry->Size() + 1;
-          auto *ret_st = new char[size];
-          memcpy(ret_st, vc_entry->Content(), size - 1);
-          *(ret_st + size - 1) = 0;
-          // TODO(pakhtar): replace with Value varchar
-          ret_vec.emplace_back(type::TransientValueFactory::GetVarChar(ret_st));
-          delete[] ret_st;
+          std::string_view varchar_view(reinterpret_cast<const char *>(vc_entry->Content()), vc_entry->Size());
+          ret_vec.emplace_back(type::TransientValueFactory::GetVarChar(varchar_view));
           break;
         }
 
@@ -617,16 +608,8 @@ class SqlTableRW {
         return type::TransientValueFactory::GetInteger(*(reinterpret_cast<uint32_t *>(col_p)));
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-        // TODO(pakhtar): unnecessary copy. Fix appropriately when
-        // replaced by updated Value implementation.
-        // add space for null terminator
-        uint32_t size = vc_entry->Size() + 1;
-        auto *ret_st = new char[size];
-        memcpy(ret_st, vc_entry->Content(), size - 1);
-        *(ret_st + size - 1) = 0;
-        // TODO(pakhtar): replace w
-        auto result = type::TransientValueFactory::GetVarChar(ret_st);
-        delete[] ret_st;
+        std::string_view varchar_view(reinterpret_cast<const char *>(vc_entry->Content()), vc_entry->Size());
+        auto result = type::TransientValueFactory::GetVarChar(varchar_view);
         return result;
       }
       default:
@@ -668,12 +651,12 @@ class SqlTableRW {
 
       case type::TypeId::VARCHAR: {
         auto *vc_entry = reinterpret_cast<storage::VarlenEntry *>(col_p);
-        const char *st = type::TransientValuePeeker::PeekVarChar(search_vec[index]);
         uint32_t size = vc_entry->Size();
-        if (strlen(st) != size) {
+        std::string_view varchar = type::TransientValuePeeker::PeekVarChar(search_vec[index]);
+        if (varchar.length() != size) {
           return false;
         }
-        return strncmp(st, reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
+        return strncmp(varchar.data(), reinterpret_cast<const char *>(vc_entry->Content()), size) == 0;
       } break;
 
       default:

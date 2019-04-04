@@ -136,7 +136,7 @@ class DatabaseHandle {
    * @param db_name the name of the database
    * @return a shared pointer to database entry; NULL if not found
    */
-  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const std::string &db_name);
 
   /**
    * Delete an entry in database handle.

@@ -23,13 +23,13 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(tx
   CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
-void Catalog::CreateDatabase(transaction::TransactionContext *txn, const char *name) {
+void Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
   db_oid_t new_db_oid = db_oid_t(GetNextOid());
   Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
   BootstrapDatabase(txn, new_db_oid);
 }
 
-void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const char *db_name) {
+void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name) {
   // get database handle
   auto db_handle = GetDatabaseHandle();
   auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
@@ -191,7 +191,7 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     std::vector<type::TransientValue> row;
     row.emplace_back(type::TransientValueFactory::GetInteger(!c.GetOid()));
     row.emplace_back(type::TransientValueFactory::GetInteger(!table->Oid()));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(c.GetName().c_str()));
+    row.emplace_back(type::TransientValueFactory::GetVarChar(c.GetName()));
 
     // pg_type.oid
     auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
@@ -436,7 +436,7 @@ void Catalog::DestroyDB(db_oid_t oid) {
 
 // private methods
 
-void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const char *name) {
+void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const std::string &name) {
   std::vector<type::TransientValue> entry;
   entry.emplace_back(type::TransientValueFactory::GetInteger(!oid));
   entry.emplace_back(type::TransientValueFactory::GetVarChar(name));

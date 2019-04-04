@@ -82,13 +82,13 @@ class TransientValueFactory {
    * internal buffer to store the VARCHAR, so the C string argument can safely be deallocated by the caller after
    * instantiating the TransientValue.
    */
-  static TransientValue GetVarChar(const char *const value) {
-    TERRIER_ASSERT(value != nullptr, "Cannot build VARCHAR from nullptr.");
-    const auto length = static_cast<uint32_t>(std::strlen(value));
-    auto *const varchar = new char[length + sizeof(uint32_t)];
+  static TransientValue GetVarChar(const std::string_view value) {
+    TERRIER_ASSERT(value.data() != nullptr, "Cannot build VARCHAR from nullptr.");
+    size_t length = value.length();
+    auto *varchar = new char[length + sizeof(uint32_t)];
     *(reinterpret_cast<uint32_t *const>(varchar)) = length;
-    char *const varchar_contents = varchar + sizeof(uint32_t);
-    std::memcpy(varchar_contents, value, length);
+    auto *varchar_contents = varchar + sizeof(uint32_t);
+    std::memcpy(varchar_contents, value.data(), length);
     return {TypeId::VARCHAR, varchar};
   }
 };

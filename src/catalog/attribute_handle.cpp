@@ -39,7 +39,7 @@ std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEn
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_->Oid()));
-  search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
   if (ret_row.empty()) {
     throw CATALOG_EXCEPTION("attribute doesn't exist");

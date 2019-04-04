@@ -47,7 +47,7 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
   EXPECT_EQ(!terrier_oid, type::TransientValuePeeker::PeekInteger(db_entry_ptr->GetColumn(0)));
-  EXPECT_STREQ("terrier", type::TransientValuePeeker::PeekVarChar(db_entry_ptr->GetColumn(1)));
+  EXPECT_EQ("terrier", type::TransientValuePeeker::PeekVarChar(db_entry_ptr->GetColumn(1)));
 }
 
 // NOLINTNEXTLINE
