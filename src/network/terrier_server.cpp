@@ -11,8 +11,6 @@
 #include "common/dedicated_thread_registry.h"
 #include "network/terrier_server.h"
 
-#include "terrier_config.h"  // NOLINT
-
 namespace terrier::network {
 
 TerrierServer::TerrierServer() {
