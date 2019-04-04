@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/constants.h"
@@ -92,14 +93,26 @@ class Schema {
   explicit Schema(std::vector<Column> columns) : columns_(std::move(columns)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and 32767.");
+    for (uint32_t i = 0; i < columns_.size(); i++) {
+      col_oid_to_offset[columns_[i].GetOid()] = i;
+    }
   }
   /**
-   * @param col_id offset into the schema specifying which Column to access
+   * @param col_offset offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const storage::col_id_t col_id) const {
-    TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
-    return columns_[!col_id];
+  Column GetColumn(const uint32_t col_offset) const {
+    TERRIER_ASSERT(col_offset < columns_.size(), "column id is out of bounds for this Schema");
+    return columns_[col_offset];
+  }
+  /**
+   * @param col_oid identifier of a Column in the schema
+   * @return description of the schema for a specific column
+   */
+  Column GetColumn(const col_oid_t col_oid) const {
+    TERRIER_ASSERT(col_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    const uint32_t col_offset = col_oid_to_offset.at(col_oid);
+    return columns_[col_offset];
   }
 
   /**
@@ -122,5 +135,6 @@ class Schema {
 
  private:
   const std::vector<Column> columns_;
+  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
 };
 }  // namespace terrier::catalog
