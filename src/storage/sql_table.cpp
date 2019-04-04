@@ -133,8 +133,7 @@ bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlo
 
   // The slot version is not the same as the version_num
   col_id_t original_column_ids[out_buffer->NumColumns()];
-  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), old_dt_version,
-          original_column_ids);
+  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), old_dt_version, original_column_ids);
 
   // Get the result and copy back the old header
   bool result = old_dt_version.data_table->Select(txn, slot, out_buffer);
@@ -273,7 +272,8 @@ void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIt
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
   col_id_t original_column_ids[out_buffer->NumColumns()];
-  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), tables_.at(dt_version_num), original_column_ids);
+  ModifyProjectionHeaderForVersion(out_buffer, tables_.at(version_num), tables_.at(dt_version_num),
+                                   original_column_ids);
 
   DataTable::SlotIterator dt_slot = start_pos->GetDataTableSlotIterator();
   tables_.at(dt_version_num).data_table->Scan(txn, &dt_slot, out_buffer);
@@ -331,8 +331,8 @@ template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitial
 // that when resetting header only have memc py ColumnIds()
 template <class RowType>
 void SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                                 const DataTableVersion &old_dt_version,
-                                                 col_id_t * original_col_id_store) const {
+                                                const DataTableVersion &old_dt_version,
+                                                col_id_t * original_col_id_store) const {
   // The slot version is not the same as the version_num
   // 1. Copy the old header (excluding bitmap)
   std::memcpy(original_col_id_store, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
@@ -354,12 +354,12 @@ void SqlTable::ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataT
 }
 
 template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedRow>(ProjectedRow *out_buffer,
-                                                                        const DataTableVersion &curr_dt_version,
-                                                                        const DataTableVersion &old_dt_version,
+                                                                       const DataTableVersion &curr_dt_version,
+                                                                       const DataTableVersion &old_dt_version,
                                                                         col_id_t * original_col_id_store) const;
 template void SqlTable::ModifyProjectionHeaderForVersion<ProjectedColumns>(ProjectedColumns *out_buffer,
-                                                                            const DataTableVersion &curr_dt_version,
-                                                                            const DataTableVersion &old_dt_version,
-                                                                            col_id_t * original_col_id_store) const;
+                                                                           const DataTableVersion &curr_dt_version,
+                                                                           const DataTableVersion &old_dt_version,
+                                                                           col_id_t * original_col_id_store) const;
 
 }  // namespace terrier::storage
