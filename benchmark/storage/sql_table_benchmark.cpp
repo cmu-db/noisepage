@@ -3,6 +3,7 @@
 
 #include "benchmark/benchmark.h"
 #include "common/strong_typedef.h"
+#include "loggers/main_logger.h"
 #include "storage/data_table.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -12,7 +13,7 @@
 #include "util/catalog_test_util.h"
 #include "util/multithread_test_util.h"
 #include "util/storage_test_util.h"
-
+#include "util/transaction_test_util.h"
 namespace terrier {
 
 // This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
@@ -82,6 +83,7 @@ class SqlTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
+  const uint32_t num_updates_ = 10000000;
   const uint32_t num_threads_ = 4;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
@@ -89,6 +91,7 @@ class SqlTableBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
+  transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   // Schema
   const uint32_t column_num_ = 2;
@@ -455,6 +458,108 @@ BENCHMARK_DEFINE_F(SqlTableBenchmark, ConcurrentMultiVersionRead)(benchmark::Sta
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
+// Update a tuple in a single-version SqlTable num_updates_ times in a single thread
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SqlTableBenchmark, SingleVersionUpdate)(benchmark::State &state) {
+  // Insert a tuple to the table
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      LOGGING_DISABLED);
+  storage::TupleSlot slot = table_->Insert(&txn, *redo_, storage::layout_version_t(0));
+  // Populate with random values for updates
+  CatalogTestUtil::PopulateRandomRow(redo_, *schema_, *map_, &generator_);
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_updates_; ++i) {
+      // update the tuple with the  for benchmark purpose
+      table_->Update(&txn, slot, *redo_, *map_, storage::layout_version_t(0));
+    }
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_updates_);
+}
+
+// Update a tuple in a SqlTable num_updates_ times in a single thread
+// The SqlTable has multiple schema versions and the redo can be updated in place
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMatchUpdate)(benchmark::State &state) {
+  // Populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      LOGGING_DISABLED);
+  // create new schema
+  catalog::col_oid_t col_oid(column_num_);
+  std::vector<catalog::Schema::Column> new_columns(columns_.begin(), columns_.end() - 1);
+  new_columns.emplace_back("", type::TypeId::BIGINT, false, col_oid);
+  catalog::Schema new_schema(new_columns, storage::layout_version_t(1));
+  table_->UpdateSchema(new_schema);
+
+  // create a new insert buffer
+  std::vector<catalog::col_oid_t> all_col_oids(new_columns.size());
+  for (size_t i = 0; i < new_columns.size(); i++) all_col_oids[i] = new_columns[i].GetOid();
+  auto pair = table_->InitializerForProjectedRow(all_col_oids, storage::layout_version_t(1));
+  byte *insert_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedRowSize());
+  storage::ProjectedRow *insert_pr = pair.first.InitializeRow(insert_buffer);
+  CatalogTestUtil::PopulateRandomRow(insert_pr, new_schema, pair.second, &generator_);
+
+  // insert a tuple
+  storage::TupleSlot slot = table_->Insert(&txn, *insert_pr, storage::layout_version_t(1));
+
+  delete[] insert_buffer;
+
+  // create a new update buffer
+  byte *update_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedRowSize());
+  storage::ProjectedRow *update_pr = pair.first.InitializeRow(update_buffer);
+  CatalogTestUtil::PopulateRandomRow(update_pr, new_schema, pair.second, &generator_);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_updates_; ++i) {
+      table_->Update(&txn, slot, *update_pr, pair.second, storage::layout_version_t(1));
+    }
+  }
+  delete[] update_buffer;
+  state.SetItemsProcessed(state.iterations() * num_updates_);
+}
+
+// Update a tuple in a SqlTable num_updates_ times in a single thread
+// The SqlTable has multiple schema versions and the redo cannot be updated in place
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SqlTableBenchmark, MultiVersionMismatchUpdate)(benchmark::State &state) {
+  auto txn = txn_manager_.BeginTransaction();
+  // insert a bunch of tuples
+  std::vector<storage::TupleSlot> update_slots;
+  for (uint32_t i = 0; i < num_updates_; ++i) {
+    update_slots.emplace_back(table_->Insert(txn, *redo_, storage::layout_version_t(0)));
+  }
+
+  // create new schema
+  catalog::col_oid_t col_oid(column_num_);
+  std::vector<catalog::Schema::Column> new_columns(columns_.begin(), columns_.end() - 1);
+  new_columns.emplace_back("", type::TypeId::BIGINT, false, col_oid);
+  catalog::Schema new_schema(new_columns, storage::layout_version_t(1));
+  table_->UpdateSchema(new_schema);
+
+  // create a update buffer
+  std::vector<catalog::col_oid_t> all_col_oids(new_columns.size());
+  for (size_t i = 0; i < new_columns.size(); i++) all_col_oids[i] = new_columns[i].GetOid();
+  auto pair = table_->InitializerForProjectedRow(all_col_oids, storage::layout_version_t(1));
+  byte *update_buffer = common::AllocationUtil::AllocateAligned(pair.first.ProjectedRowSize());
+  storage::ProjectedRow *update_pr = pair.first.InitializeRow(update_buffer);
+  CatalogTestUtil::PopulateRandomRow(update_pr, new_schema, pair.second, &generator_);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    for (uint32_t i = 0; i < num_updates_; ++i) {
+      table_->Update(txn, update_slots[i], *update_pr, pair.second, storage::layout_version_t(1));
+    }
+  }
+  delete[] update_buffer;
+  txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  delete txn;
+  state.SetItemsProcessed(state.iterations() * num_updates_);
+}
+
 BENCHMARK_REGISTER_F(SqlTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
@@ -474,5 +579,11 @@ BENCHMARK_REGISTER_F(SqlTableBenchmark, MultiVersionMatchRandomRead)->Unit(bench
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentSingleVersionRead)->Unit(benchmark::kMillisecond)->UseRealTime();
 
 BENCHMARK_REGISTER_F(SqlTableBenchmark, ConcurrentMultiVersionRead)->Unit(benchmark::kMillisecond)->UseRealTime();
+
+BENCHMARK_REGISTER_F(SqlTableBenchmark, SingleVersionUpdate)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_REGISTER_F(SqlTableBenchmark, MultiVersionMatchUpdate)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_REGISTER_F(SqlTableBenchmark, MultiVersionMismatchUpdate)->Unit(benchmark::kMillisecond);
 
 }  // namespace terrier
