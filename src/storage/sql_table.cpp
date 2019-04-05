@@ -178,8 +178,8 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
   // 3. Else:
   //    3.a) Get the old row
   //    3.b) Convert it into new row
-  //    3.c) Insert new row into new table
-  //    3.d) Delete old row
+  //    3.c) Delete old row
+  //    3.d) Insert new row into new table
   //    3.e) Update the new row in the new table
 
   // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
@@ -219,13 +219,13 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     }
     ret_slot = slot;
   } else {
-    STORAGE_LOG_DEBUG("have to insert and delete ... ");
+    STORAGE_LOG_DEBUG("have to delete and insert ... ");
 
     // need to create a new ProjectedRow of all columns
     // 1. Get the old row
     // 2. Convert it into new row
-    // 3. Insert new row into new table
-    // 4. Delete old row
+    // 3. Delete old row
+    // 4. Insert new row into new table
     // 5. Update the new row in the new table
 
     // 1. Get old row
@@ -250,11 +250,18 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     ProjectedRow *new_pr = new_pair.first.InitializeRow(new_buffer);
     StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.at(old_version).layout, new_pr,
                                               new_pair.second);
-    // 3. Insert the row into new table
-    storage::TupleSlot new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
 
-    // 4. Delete the old row
-    tables_.at(old_version).data_table->Delete(txn, slot);
+    // 3. Delete the old row
+    bool succ = tables_.at(old_version).data_table->Delete(txn, slot);
+
+    // 4. Insert the row into new table
+    storage::TupleSlot new_slot;
+    if (succ) {
+      new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
+    } else {
+      // someone else deleted the old row, the tupleslot is not valid anymore
+      return {false, slot};
+    }
 
     // 5. Update the new row
     tables_.at(version_num).data_table->Update(txn, new_slot, redo);
