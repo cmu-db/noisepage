@@ -131,26 +131,6 @@ class PACKED ProjectedRow {
     return !Bitmap().Test(offset);
   }
 
-  /**
-   * Retrieves the offset inside of projected row to access a specific attribute
-   * @param offset The 0-indexed element to access in this ProjectedRow
-   * @return offset inside of projected row to access a specific attribute
-   */
-  uint32_t GetAttrValueOffset(const uint16_t offset) {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
-    return AttrValueOffsets()[offset];
-  }
-
-  /**
-   * Retrieves the size of the header excluding the bitmap
-   * @return size of header
-   */
-  uint64_t HeaderWithoutBitmapSize() const {
-    // Header contains size_, num_cols_, (array of num_cols_ columnids, each column id is 1 byte), (array of num_cols_
-    // uint32_t)
-    return sizeof(size_) + sizeof(NumColumns()) + (sizeof(col_id_t) * NumColumns()) + (sizeof(uint32_t) * NumColumns());
-  }
-
  private:
   friend class ProjectedRowInitializer;
   uint32_t size_;

@@ -309,10 +309,10 @@ class SqlTable {
    * @param out_buffer - projected row/col whose header to modify
    * @param curr_dt_version - schema version of the passed in projected row/col
    * @param old_dt_version - schema version that is desired
-   * @return a copy of the old header that is on the heap, needs to be freed once done with
+   * @param original_col_id_store - array to store the original column id's on. Should have space to fill all column_ids
    */
   template <class RowType>
-  byte *ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                         const DataTableVersion &old_dt_version) const;
+  void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
+                                        const DataTableVersion &old_dt_version, col_id_t * original_col_id_store) const;
 };
 }  // namespace terrier::storage
