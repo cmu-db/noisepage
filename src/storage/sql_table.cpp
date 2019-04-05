@@ -177,8 +177,8 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
   //    3.a) Get the old row
   //    3.b) Convert it into new row
   //    3.c) Delete old row
-  //    3.d) Insert new row into new table
-  //    3.e) Update the new row in the new table
+  //    3.d) Update the new row before insert
+  //    3.e) Insert new row into new table
 
   // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
   bool is_subset = true;
@@ -223,8 +223,8 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     // 1. Get the old row
     // 2. Convert it into new row
     // 3. Delete old row
-    // 4. Insert new row into new table
-    // 5. Update the new row in the new table
+    // 4. Update the new row before insert
+    // 5. Insert new row into new table
 
     // 1. Get old row
     // 2. Convert it into new row
@@ -241,7 +241,10 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     // 3. Delete the old row
     bool succ = tables_.at(old_version).data_table->Delete(txn, slot);
 
-    // 4. Insert the row into new table
+    // 4. Update the new row before insert
+    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.at(version_num).layout, new_pr, new_pair.second);
+
+    // 5. Insert the row into new table
     storage::TupleSlot new_slot;
     if (succ) {
       new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
@@ -251,8 +254,6 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
       return {false, slot};
     }
 
-    // 5. Update the new row
-    tables_.at(version_num).data_table->Update(txn, new_slot, redo);
     delete[] new_buffer;
 
     ret_slot = new_slot;
