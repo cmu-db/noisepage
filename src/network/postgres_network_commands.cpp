@@ -11,6 +11,11 @@
 
 namespace terrier::network {
 
+/**
+ * Seriealize the result set into a packet.
+ * @param result_set
+ * @param out
+ */
 void PostgresNetworkCommand::AcceptResults(const traffic_cop::ResultSet &result_set, PostgresPacketWriter *const out) {
   if (result_set.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
@@ -30,7 +35,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
                                     TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Execute query: {0}", query.c_str());
+  NETWORK_LOG_INFO("Execute SimpleQuery: {0}", query.c_str());
 
   SimpleQueryCallback result_callback = AcceptResults;
 
@@ -42,9 +47,10 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
 Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
-  NETWORK_LOG_TRACE("Parse query Statement Name: {0}", stmt_name.c_str());
+  NETWORK_LOG_INFO("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
   std::string query = in_.ReadString();
+  NETWORK_LOG_INFO("ParseCommand: {0}", query);
   auto num_params = in_.ReadValue<uint16_t>();
   std::vector<type::TypeId> param_types(num_params);
   for (auto &param_type : param_types) {
@@ -52,7 +58,8 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_type = PostgresValueTypeToInternalValueType(static_cast<PostgresValueType>(oid));
   }
 
-  connection->statements.emplace(stmt_name, t_cop->Parse(query.c_str(), param_types));
+  traffic_cop::Statement stmt = t_cop->Parse(query.c_str(), param_types);
+  connection->statements[stmt_name] = stmt;
 
   out->WriteParseComplete();
   return Transition::PROCEED;
@@ -67,6 +74,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   string portal_name = in_.ReadString();
 
   string stmt_name = in_.ReadString();
+  NETWORK_LOG_INFO("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
+
   auto statement_pair = connection->statements.find(stmt_name);
   if (statement_pair == connection->statements.end()) {
     string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
@@ -160,7 +169,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   }
 
   traffic_cop::Portal portal = t_cop->Bind(*statement, params);
-  connection->portals.emplace(portal_name, portal);
+  connection->portals[portal_name] = portal;
 
   out->WriteBindComplete();
   return Transition::PROCEED;
@@ -179,6 +188,8 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
                                 TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
+  NETWORK_LOG_INFO("ExecuteCommand portal name = {0}", portal_name);
+
   auto p_portal = connection->portals.find(portal_name);
   if (p_portal == connection->portals.end()) {
     string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);

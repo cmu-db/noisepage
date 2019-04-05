@@ -1,10 +1,10 @@
-#include <network/terrier_server.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "common/allocator.h"
+#include "common/settings.h"
 #include "common/stat_registry.h"
 #include "common/strong_typedef.h"
 #include "loggers/index_logger.h"
@@ -14,9 +14,12 @@
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 #include "loggers/type_logger.h"
+#include "network/connection_handle_factory.h"
+#include "network/terrier_server.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/transaction_context.h"
 
 int main() {
@@ -45,6 +48,9 @@ int main() {
   LOG_INFO("Initialization complete");
 
   terrier::network::TerrierServer terrier_server;
+  terrier::network::TrafficCopPtr t_cop(new terrier::traffic_cop::TrafficCop());
+  terrier::network::ConnectionHandleFactory::GetInstance().SetTrafficCop(t_cop);
+  terrier_server.SetPort(terrier::common::Settings::SERVER_PORT);
   terrier_server.SetupServer().ServerLoop();
 
   // shutdown loggers

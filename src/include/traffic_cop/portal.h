@@ -11,10 +11,14 @@ namespace terrier::traffic_cop {
  * A portal is a statement with bound parameters and is ready to execute.
  */
 struct Portal {
-  /* The sqlite3 statement */
+  /**
+   * The sqlite3 statement
+   */
   sqlite3_stmt *sqlite_stmt_;
 
-  /* The sequence of parameter values */
+  /**
+   * The sequence of parameter values
+   */
   // Since TransientValue forbids copying, using a pointer is more convenient
   std::shared_ptr<std::vector<type::TransientValue>> params;
 };

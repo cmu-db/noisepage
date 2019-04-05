@@ -28,6 +28,8 @@ class PostgresNetworkCommand {
    * Executes the command
    * @param interpreter The protocol interpreter that called this
    * @param out The Writer on which to construct output packets for the client
+   * @param t_cop The traffic cop pointer
+   * @param connection The ConnectionContext which contains connection information
    * @param callback The callback function to trigger after
    * @return The next transition for the client's state machine
    */

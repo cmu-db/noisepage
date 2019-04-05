@@ -13,12 +13,19 @@ namespace terrier::network {
  */
 
 struct ConnectionContext {
-  /* The statements in this connection */
+  /**
+   * The statements in this connection
+   */
   std::unordered_map<std::string, traffic_cop::Statement> statements;
 
-  /* The portals in this connection */
+  /**
+   * The portals in this connection
+   */
   std::unordered_map<std::string, traffic_cop::Portal> portals;
 
+  /**
+   * Cleans up this ConnectionContext
+   */
   void Reset() {
     for (auto pair : statements) pair.second.Finalize();
 
