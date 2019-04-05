@@ -180,7 +180,8 @@ class TPCC {
     return astring;
   }
 
-  storage::VarlenEntry RandomAlphaNumericVarlenEntry(const uint32_t x, const uint32_t y, const bool numeric_only) const {
+  storage::VarlenEntry RandomAlphaNumericVarlenEntry(const uint32_t x, const uint32_t y,
+                                                     const bool numeric_only) const {
     TERRIER_ASSERT(x <= y, "Minimum length cannot be greater than the maximum length.");
     const auto string = RandomAlphaNumericString(x, y, numeric_only);
     if (string.length() <= storage::VarlenEntry::InlineThreshold()) {
@@ -194,16 +195,79 @@ class TPCC {
 
   // 4.3.2.5
   template <typename T>
-  T RandomWithin(uint32_t x, uint32_t y, uint32_t p) {
+  T RandomWithin(uint32_t x, uint32_t y, uint32_t p) const {
     return std::uniform_int_distribution(x, y)(*generator_) / static_cast<T>(std::pow(10, p));
   }
 
   // 4.3.2.7
   storage::VarlenEntry RandomZipVarlenEntry() const {
-    auto string = RandomAlphaNumericString(4,4, true);
+    auto string = RandomAlphaNumericString(4, 4, true);
     string.append("11111");
     TERRIER_ASSERT(string.length() == 9, "Wrong ZIP code length.");
     return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()), string.length());
+  }
+
+  // 4.3.3.1
+  storage::ProjectedRow *BuildWarehouseTuple(const int32_t w_id, byte *const buffer,
+                                             const storage::ProjectedRowInitializer &pr_initializer,
+                                             const storage::ProjectionMap &projection_map) const {
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    // W_ID
+    auto col_oid = warehouse_schema_->GetColumn(0).GetOid();
+    auto attr_offset = projection_map.at(col_oid);
+    auto *attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = w_id;
+
+    // W_NAME
+    col_oid = warehouse_schema_->GetColumn(1).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(6, 10, false);
+
+    // W_STREET_1
+    col_oid = warehouse_schema_->GetColumn(2).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+
+    // W_STREET_2
+    col_oid = warehouse_schema_->GetColumn(3).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+
+    // W_CITY
+    col_oid = warehouse_schema_->GetColumn(4).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+
+    // W_STATE
+    col_oid = warehouse_schema_->GetColumn(5).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
+
+    // W_ZIP
+    col_oid = warehouse_schema_->GetColumn(6).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
+
+    // W_TAX
+    col_oid = warehouse_schema_->GetColumn(7).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 2000, 4);
+
+    // W_YTD
+    col_oid = warehouse_schema_->GetColumn(8).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<double *>(attr) = 300000;
+
+    return pr;
   }
 
   void PopulateWarehouseTable(const int32_t w_id) {
@@ -213,61 +277,8 @@ class TPCC {
     const auto projection_map = warehouse_->InitializerForProjectedRow(col_oids).second;
 
     auto *const insert_buffer(common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize()));
-    auto *const insert_pr = pr_initializer.InitializeRow(insert_buffer);
 
-    // W_ID
-    auto col_oid = warehouse_schema_->GetColumn(0).GetOid();
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
-
-    // W_NAME
-    col_oid = warehouse_schema_->GetColumn(1).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(6, 10, false);
-
-    // W_STREET_1
-    col_oid = warehouse_schema_->GetColumn(2).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
-
-    // W_STREET_2
-    col_oid = warehouse_schema_->GetColumn(3).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
-
-    // W_CITY
-    col_oid = warehouse_schema_->GetColumn(4).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
-
-    // W_STATE
-    col_oid = warehouse_schema_->GetColumn(5).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
-
-    // W_ZIP
-    col_oid = warehouse_schema_->GetColumn(6).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
-
-    // W_TAX
-    col_oid = warehouse_schema_->GetColumn(7).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 2000, 4);
-
-    // W_YTD
-    col_oid = warehouse_schema_->GetColumn(8).GetOid();
-    attr_offset = projection_map.at(col_oid);
-    attr = insert_pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 300000;
+    BuildWarehouseTuple(w_id, insert_buffer, pr_initializer, projection_map);
 
     delete[] insert_buffer;
   }
