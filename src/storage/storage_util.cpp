@@ -78,20 +78,17 @@ void StorageUtil::CopyProjectionIntoProjection(const RowType1 &from, const Proje
         // get the size of the attribute
         uint8_t attr_size = layout.AttrSize(from.ColumnIds()[it.second]);
 
-        // get the address where we copy into
-        uint16_t offset = to_map.at(it.first);
-
         byte *addr = to->AccessForceNotNull(offset);
         // Copy things over
         std::memcpy(addr, value, attr_size);
       }
     }
-    // Fill with default values
-    // TODO(yangjuns): fill will default values instead of setting it to be null
-    for (auto &it : to_map) {
-      if (from_map.count(it.first) == 0) {
-        to->SetNull(it.second);
-      }
+  }
+  // Fill with default values
+  // TODO(yangjuns): fill will default values instead of setting it to be null
+  for (auto &it : to_map) {
+    if (from_map.count(it.first) == 0) {
+      to->SetNull(it.second);
     }
   }
 }
