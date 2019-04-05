@@ -1,6 +1,6 @@
 #pragma once
 
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <cstring>
 #include <iostream>
 #include <random>
@@ -596,7 +596,7 @@ class TPCC {
     const auto district_pr_map = district_->InitializerForProjectedRow(district_col_oids).second;
     auto *const district_buffer(common::AllocationUtil::AllocateAligned(district_pr_initializer.ProjectedRowSize()));
 
-    // District
+    // Customer
     const auto customer_col_oids = AllColOidsForSchema(*customer_schema_);
     const auto customer_pr_initializer = customer_->InitializerForProjectedRow(customer_col_oids).first;
     const auto customer_pr_map = customer_->InitializerForProjectedRow(customer_col_oids).second;
@@ -629,6 +629,8 @@ class TPCC {
     txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
     delete[] warehouse_buffer;
+    delete[] district_buffer;
+    delete[] customer_buffer;
   }
 
   uint64_t GetNewOid() { return ++oid_counter; }
