@@ -247,6 +247,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
       new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
     } else {
       // someone else deleted the old row, write-write conflict
+      delete[] new_buffer;
       return {false, slot};
     }
 
