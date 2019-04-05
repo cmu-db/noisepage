@@ -27,6 +27,7 @@ class TPCC {
     CreateWarehouseTable();
     CreateDistrictTable();
     CreateCustomerTable();
+    CreateHistoryTable();
 
     PopulateTables();
   }
@@ -38,7 +39,8 @@ class TPCC {
     delete district_schema_;
     delete customer_;
     delete customer_schema_;
-    //    delete history_;
+    delete history_;
+    delete history_schema_;
     //    delete new_order_;
     //    delete order_;
     //    delete order_line_;
@@ -150,6 +152,29 @@ class TPCC {
     customer_schema_ = new catalog::Schema(customer_columns);
   }
 
+  void CreateHistorySchema() {
+    std::vector<catalog::Schema::Column> history_columns;
+    history_columns.reserve(8);
+
+    history_columns.emplace_back("H_C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_C_D_ID", type::TypeId::INTEGER, false,
+                                 static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_C_W_ID", type::TypeId::INTEGER, false,
+                                 static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_DATE", type::TypeId::TIMESTAMP, false,
+                                 static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_AMOUNT", type::TypeId::DECIMAL, false,
+                                 static_cast<catalog::col_oid_t>(GetNewOid()));
+    history_columns.emplace_back("H_DATA", type::TypeId::VARCHAR, 24, false,
+                                 static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(history_columns.size() == 8, "Wrong number of columns for History schema.");
+
+    history_schema_ = new catalog::Schema(history_columns);
+  }
+
   void CreateWarehouseTable() {
     TERRIER_ASSERT(warehouse_ == nullptr, "Warehouse table already exists.");
     CreateWarehouseSchema();
@@ -168,6 +193,12 @@ class TPCC {
     customer_ = new storage::SqlTable(store_, *customer_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
 
+  void CreateHistoryTable() {
+    TERRIER_ASSERT(history_ == nullptr, "History table already exists.");
+    CreateHistorySchema();
+    history_ = new storage::SqlTable(store_, *history_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
     const auto &cols = schema.GetColumns();
     std::vector<catalog::col_oid_t> col_oids;
@@ -178,7 +209,7 @@ class TPCC {
     return col_oids;
   }
 
-  int64_t Timestamp() const {
+  uint64_t Timestamp() const {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
         .count();
   }
@@ -343,7 +374,7 @@ class TPCC {
     col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 300000;
+    *reinterpret_cast<double *>(attr) = 300000.0;
 
     TERRIER_ASSERT(col_offset == 9, "Didn't get every attribute for Warehouse tuple.");
 
@@ -416,7 +447,7 @@ class TPCC {
     col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 30000;
+    *reinterpret_cast<double *>(attr) = 30000.0;
 
     // D_NEXT_O_ID = 3,001
     col_oid = district_schema_->GetColumn(col_offset++).GetOid();
@@ -524,7 +555,7 @@ class TPCC {
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int64_t *>(attr) = Timestamp();
+    *reinterpret_cast<uint64_t *>(attr) = Timestamp();
 
     // C_CREDIT = "GC". For 10% of the rows, selected at random , C_CREDIT = "BC"
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
@@ -538,7 +569,7 @@ class TPCC {
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 50000;
+    *reinterpret_cast<double *>(attr) = 50000.0;
 
     // C_DISCOUNT random within [0.0000 .. 0.5000]
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
@@ -550,13 +581,13 @@ class TPCC {
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = -10;
+    *reinterpret_cast<double *>(attr) = -10.0;
 
     // C_YTD_PAYMENT = 10.00
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 10;
+    *reinterpret_cast<double *>(attr) = 10.0;
 
     // C_PAYMENT_CNT = 1
     col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
@@ -577,6 +608,66 @@ class TPCC {
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(300, 500, false);
 
     TERRIER_ASSERT(col_offset == 21, "Didn't get every attribute for Customer tuple.");
+
+    return pr;
+  }
+  // 4.3.3.1
+  storage::ProjectedRow *BuildHistoryTuple(const int32_t c_id, const int32_t d_id, const int32_t w_id,
+                                           byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
+                                           const storage::ProjectionMap &projection_map) const {
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // H_C_ID = C_ID
+    auto col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    auto attr_offset = projection_map.at(col_oid);
+    auto *attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = c_id;
+
+    // H_C_D_ID = D_ID
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = d_id;
+
+    // H_C_W_ID = W_ID
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = w_id;
+
+    // H_D_ID = D_ID
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = d_id;
+
+    // H_W_ID = W_ID
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = w_id;
+
+    // H_DATE current date and time
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<uint64_t *>(attr) = Timestamp();
+
+    // H_AMOUNT = 10.00
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<double *>(attr) = 10.0;
+
+    // H_DATA random a-string [12 .. 24]
+    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(12, 24, false);
+
+    TERRIER_ASSERT(col_offset == 8, "Didn't get every attribute for History tuple.");
 
     return pr;
   }
@@ -602,6 +693,12 @@ class TPCC {
     const auto customer_pr_map = customer_->InitializerForProjectedRow(customer_col_oids).second;
     auto *const customer_buffer(common::AllocationUtil::AllocateAligned(customer_pr_initializer.ProjectedRowSize()));
 
+    // History
+    const auto history_col_oids = AllColOidsForSchema(*history_schema_);
+    const auto history_pr_initializer = history_->InitializerForProjectedRow(history_col_oids).first;
+    const auto history_pr_map = history_->InitializerForProjectedRow(history_col_oids).second;
+    auto *const history_buffer(common::AllocationUtil::AllocateAligned(history_pr_initializer.ProjectedRowSize()));
+
     auto *const txn = txn_manager_->BeginTransaction();
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
@@ -622,6 +719,8 @@ class TPCC {
         for (uint32_t c_id = 0; c_id < 3000; c_id++) {
           customer_->Insert(txn, *BuildCustomerTuple(c_id, d_id, w_id, c_credit[c_id], customer_buffer,
                                                      customer_pr_initializer, customer_pr_map));
+          history_->Insert(
+              txn, *BuildHistoryTuple(c_id, d_id, w_id, history_buffer, history_pr_initializer, history_pr_map));
         }
       }
     }
@@ -631,6 +730,7 @@ class TPCC {
     delete[] warehouse_buffer;
     delete[] district_buffer;
     delete[] customer_buffer;
+    delete[] history_buffer;
   }
 
   uint64_t GetNewOid() { return ++oid_counter; }
@@ -645,7 +745,8 @@ class TPCC {
   catalog::Schema *district_schema_ = nullptr;
   storage::SqlTable *customer_ = nullptr;
   catalog::Schema *customer_schema_ = nullptr;
-  //  storage::SqlTable *history_ = nullptr;
+  storage::SqlTable *history_ = nullptr;
+  catalog::Schema *history_schema_ = nullptr;
   //  storage::SqlTable *new_order_ = nullptr;
   //  storage::SqlTable *order_ = nullptr;
   //  storage::SqlTable *order_line_ = nullptr;
