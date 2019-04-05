@@ -129,10 +129,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-      //    case ExpressionType::OPERATOR_CAST: {
-      //      expr = std::make_shared<TypeCastExpression>();
-      //      break;
-      //    }
+    case ExpressionType::OPERATOR_CAST: {
+      expr = std::make_shared<TypeCastExpression>();
+      break;
+    }
 
     default:
       // This is 100% a hack, remove later

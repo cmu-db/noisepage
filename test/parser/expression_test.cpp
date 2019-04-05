@@ -17,6 +17,7 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/tuple_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 
 #include "type/transient_value.h"
@@ -219,6 +220,25 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
     EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetExpressionType(), op);
     EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetReturnValueType(), op_ret_type);
   }
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, TypeCastExpressionJsonTest) {
+  // Create expression
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  auto child_expr = std::make_shared<StarExpression>();
+  children.push_back(std::move(child_expr));
+  std::shared_ptr<TypeCastExpression> original_expr =
+      std::make_shared<TypeCastExpression>(type::TypeId::SMALLINT, std::move(children));
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(original_expr->GetType(), static_cast<TypeCastExpression *>(deserialized_expression.get())->GetType());
 }
 
 // NOLINTNEXTLINE

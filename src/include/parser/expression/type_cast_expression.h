@@ -17,9 +17,38 @@ class TypeCastExpression : public AbstractExpression {
    * Instantiates a new type cast expression.
    */
   TypeCastExpression(type::TypeId type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
-      : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)) {}
+      : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)), type_(type) {}
+
+  TypeCastExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TypeCastExpression>(*this); }
+
+  /**
+   * @return The type this node casts to
+   */
+  type::TypeId GetType() const { return type_; }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["type"] = type_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    type_ = j.at("type").get<type::TypeId>();
+  }
+
+ private:
+  type::TypeId type_;
 };
+
+DEFINE_JSON_DECLARATIONS(TypeCastExpression);
 
 }  // namespace terrier::parser
