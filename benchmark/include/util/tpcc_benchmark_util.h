@@ -47,6 +47,7 @@ class TPCC {
     TERRIER_ASSERT(warehouse_schema_ == nullptr, "Warehouse schema already exists.");
     std::vector<catalog::Schema::Column> warehouse_columns;
     warehouse_columns.reserve(9);
+
     warehouse_columns.emplace_back("W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     warehouse_columns.emplace_back("W_NAME", type::TypeId::VARCHAR, 10, false,
                                    static_cast<catalog::col_oid_t>(GetNewOid()));
@@ -62,13 +63,16 @@ class TPCC {
                                    static_cast<catalog::col_oid_t>(GetNewOid()));
     warehouse_columns.emplace_back("W_TAX", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     warehouse_columns.emplace_back("W_YTD", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    TERRIER_ASSERT(warehouse_columns.size() == 9, "Wrong number of columns.");
+
+    TERRIER_ASSERT(warehouse_columns.size() == 9, "Wrong number of columns for Warehouse schema.");
+
     warehouse_schema_ = new catalog::Schema(warehouse_columns);
   }
 
   catalog::Schema CreateDistrictSchema() {
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(11);
+
     district_columns.emplace_back("D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     district_columns.emplace_back("D_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     district_columns.emplace_back("D_NAME", type::TypeId::VARCHAR, 10, false,
@@ -87,13 +91,16 @@ class TPCC {
     district_columns.emplace_back("D_YTD", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     district_columns.emplace_back("D_NEXT_O_ID", type::TypeId::INTEGER, false,
                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    TERRIER_ASSERT(district_columns.size() == 11, "Wrong number of columns.");
+
+    TERRIER_ASSERT(district_columns.size() == 11, "Wrong number of columns for District schema.");
+
     return catalog::Schema(district_columns);
   }
 
   catalog::Schema CreateCustomerSchema() {
     std::vector<catalog::Schema::Column> customer_columns;
     customer_columns.reserve(21);
+
     customer_columns.emplace_back("C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     customer_columns.emplace_back("C_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
     customer_columns.emplace_back("C_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
@@ -133,7 +140,9 @@ class TPCC {
                                   static_cast<catalog::col_oid_t>(GetNewOid()));
     customer_columns.emplace_back("C_DATA", type::TypeId::VARCHAR, 500, false,
                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    TERRIER_ASSERT(customer_columns.size() == 21, "Wrong number of columns.");
+
+    TERRIER_ASSERT(customer_columns.size() == 21, "Wrong number of columns for Customer schema.");
+
     return catalog::Schema(customer_columns);
   }
 
@@ -188,21 +197,78 @@ class TPCC {
 
   storage::VarlenEntry RandomAlphaNumericVarlenEntry(const uint32_t x, const uint32_t y,
                                                      const bool numeric_only) const {
-    TERRIER_ASSERT(x <= y, "Minimum length cannot be greater than the maximum length.");
-    const auto string = RandomAlphaNumericString(x, y, numeric_only);
-    if (string.length() <= storage::VarlenEntry::InlineThreshold()) {
-      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()), string.length());
+    TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
+    const auto astring = RandomAlphaNumericString(x, y, numeric_only);
+    if (astring.length() <= storage::VarlenEntry::InlineThreshold()) {
+      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(astring.data()), astring.length());
     }
 
-    auto *const varlen = common::AllocationUtil::AllocateAligned(string.length());
-    std::memcpy(varlen, string.data(), string.length());
-    return storage::VarlenEntry::Create(varlen, string.length(), true);
+    auto *const varlen = common::AllocationUtil::AllocateAligned(astring.length());
+    std::memcpy(varlen, astring.data(), astring.length());
+    return storage::VarlenEntry::Create(varlen, astring.length(), true);
+  }
+
+  // 4.3.2.3
+  storage::VarlenEntry RandomLastNameVarlenEntry(const uint16_t numbers) {
+    TERRIER_ASSERT(numbers >= 0 && numbers <= 999, "Invalid input generating C_LAST.");
+    static const char *const syllables[] = {"BAR", "OUGHT", "ABLE",  "PRI",   "PRES",
+                                            "ESE", "ANTI",  "CALLY", "ATION", "EING"};
+
+    const uint8_t syllable1 = numbers / 100;
+    const uint8_t syllable2 = (numbers / 10 % 10);
+    const uint8_t syllable3 = numbers % 10;
+
+    std::string last_name(syllables[syllable1]);
+    last_name.append(syllables[syllable2]);
+    last_name.append(syllables[syllable3]);
+
+    if (last_name.length() <= storage::VarlenEntry::InlineThreshold()) {
+      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(last_name.data()), last_name.length());
+    }
+
+    auto *const varlen = common::AllocationUtil::AllocateAligned(last_name.length());
+    std::memcpy(varlen, last_name.data(), last_name.length());
+    return storage::VarlenEntry::Create(varlen, last_name.length(), true);
   }
 
   // 4.3.2.5
   template <typename T>
   T RandomWithin(uint32_t x, uint32_t y, uint32_t p) const {
     return std::uniform_int_distribution(x, y)(*generator_) / static_cast<T>(std::pow(10, p));
+  }
+
+  // 2.1.6
+  // NURand(A,x,y)=(((random(0,A)| random(x,y))+C)%(y-x+1))+x
+  // where:
+  // exp-1 | exp-2 stands for the bitwise logical OR operation between exp-1 and exp-2
+  // exp-1 % exp-2 stands for exp-1 modulo exp-2
+  // random(x, y) stands for randomly selected within [x .. y] 2.1.6.1
+  // A is a constant chosen according to the size of the range [x .. y]
+  //       for C_LAST, the range is [0 .. 999] and A = 255
+  //       for C_ID, the range is [1 .. 3000] and A = 1023
+  //       for OL_I_ID, the range is [1 .. 100000] and A = 8191
+  // C is a run-time constant randomly chosen within[0 .. A] that can be varied without altering performance.
+  // The same C value, per field (C_LAST, C_ID, and OL_I_ID), must be used by all emulated terminals.
+  int32_t NURand(const int32_t A, const int32_t x, const int32_t y) {
+    TERRIER_ASSERT(
+        (A == 255 && x == 0 && y == 999) || (A == 1023 && x == 1 && y == 3000) || (A == 8191 && x == 1 && y == 100000),
+        "Invalid inputs to NURand().");
+
+    static const int32_t C_c_last = RandomWithin<int32_t>(0, 255, 0);
+    static const int32_t C_c_id = RandomWithin<int32_t>(0, 1023, 0);
+    static const int32_t C_ol_i_id = RandomWithin<int32_t>(0, 8191, 0);
+
+    int32_t C;
+
+    if (A == 255) {
+      C = C_c_last;
+    } else if (A == 1023) {
+      C = C_c_id;
+    } else {
+      C = C_ol_i_id;
+    }
+
+    return (((RandomWithin<int32_t>(0, A, 0) | RandomWithin<int32_t>(x, y, 0)) + C) % (y - x - +1)) + x;
   }
 
   // 4.3.2.7
@@ -403,11 +469,14 @@ class TPCC {
     // customers, and generating a non-uniform random number using the function NURand(255,0,999) for each of the
     // remaining 2,000 customers. The run-time constant C (see Clause 2.1.6) used for the database population must be
     // randomly chosen independently from the test run(s).
-    // TODO(Matt): not following the rule yet
     col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(8, 16, false);
+    if (c_id % 3000 < 1000) {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(c_id % 3000 < 1000);
+    } else {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(NURand(255, 0, 999));
+    }
 
     // C_STREET_1 random a-string [10 .. 20]
     col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
