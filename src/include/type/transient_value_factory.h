@@ -86,7 +86,7 @@ class TransientValueFactory {
     TERRIER_ASSERT(value.data() != nullptr, "Cannot build VARCHAR from nullptr.");
     size_t length = value.length();
     auto *varchar = new char[length + sizeof(uint32_t)];
-    *(reinterpret_cast<uint32_t *const>(varchar)) = length;
+    *(reinterpret_cast<uint32_t *const>(varchar)) = static_cast<uint32_t>(length);
     auto *varchar_contents = varchar + sizeof(uint32_t);
     std::memcpy(varchar_contents, value.data(), length);
     return {TypeId::VARCHAR, varchar};

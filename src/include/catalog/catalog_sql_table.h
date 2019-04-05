@@ -260,7 +260,7 @@ class SqlTableRW {
    */
   type::TransientValue GetColInRow(storage::ProjectedRow *p_row, int32_t col_num) {
     storage::col_id_t storage_col_id(static_cast<uint16_t>(col_num));
-    type::TypeId col_type = table_->GetSchema().GetColumn(storage_col_id).GetType();
+    type::TypeId col_type = table_->GetSchema().GetColumn(col_num).GetType();
     byte *col_p = p_row->AccessForceNotNull(ColNumToOffset(col_num));
     // fix
     return CreateColValue(col_type, col_p);
