@@ -21,19 +21,23 @@ namespace terrier {
 template <class Random>
 class TPCC {
  public:
-  explicit TPCC(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store, Random *generator)
+  explicit TPCC(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store,
+                Random *const generator)
       : txn_manager_(txn_manager), store_(store), generator_(generator) {
     CreateWarehouseTable();
-    PopulateWarehouseTable();
-    //    CreateDistrictTable();
-    //    CreateCustomerTable();
+    CreateDistrictTable();
+    CreateCustomerTable();
+
+    PopulateTables();
   }
 
   ~TPCC() {
     delete warehouse_;
     delete warehouse_schema_;
-    //    delete district_;
-    //    delete customer_;
+    delete district_;
+    delete district_schema_;
+    delete customer_;
+    delete customer_schema_;
     //    delete history_;
     //    delete new_order_;
     //    delete order_;
@@ -69,7 +73,7 @@ class TPCC {
     warehouse_schema_ = new catalog::Schema(warehouse_columns);
   }
 
-  catalog::Schema CreateDistrictSchema() {
+  void CreateDistrictSchema() {
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(11);
 
@@ -94,10 +98,10 @@ class TPCC {
 
     TERRIER_ASSERT(district_columns.size() == 11, "Wrong number of columns for District schema.");
 
-    return catalog::Schema(district_columns);
+    district_schema_ = new catalog::Schema(district_columns);
   }
 
-  catalog::Schema CreateCustomerSchema() {
+  void CreateCustomerSchema() {
     std::vector<catalog::Schema::Column> customer_columns;
     customer_columns.reserve(21);
 
@@ -143,7 +147,7 @@ class TPCC {
 
     TERRIER_ASSERT(customer_columns.size() == 21, "Wrong number of columns for Customer schema.");
 
-    return catalog::Schema(customer_columns);
+    customer_schema_ = new catalog::Schema(customer_columns);
   }
 
   void CreateWarehouseTable() {
@@ -151,18 +155,18 @@ class TPCC {
     CreateWarehouseSchema();
     warehouse_ = new storage::SqlTable(store_, *warehouse_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
-  //
-  //  void CreateDistrictTable() {
-  //    TERRIER_ASSERT(district_ == nullptr, "District table already exists.");
-  //    const auto district_schema = CreateDistrictSchema();
-  //    district_ = new storage::SqlTable(store_, district_schema, static_cast<catalog::table_oid_t>(GetNewOid()));
-  //  }
-  //
-  //  void CreateCustomerTable() {
-  //    TERRIER_ASSERT(customer_ == nullptr, "Customer table already exists.");
-  //    const auto customer_schema = CreateCustomerSchema();
-  //    customer_ = new storage::SqlTable(store_, customer_schema, static_cast<catalog::table_oid_t>(GetNewOid()));
-  //  }
+
+  void CreateDistrictTable() {
+    TERRIER_ASSERT(district_ == nullptr, "District table already exists.");
+    CreateDistrictSchema();
+    district_ = new storage::SqlTable(store_, *district_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
+  void CreateCustomerTable() {
+    TERRIER_ASSERT(customer_ == nullptr, "Customer table already exists.");
+    CreateCustomerSchema();
+    customer_ = new storage::SqlTable(store_, *customer_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
 
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
     const auto &cols = schema.GetColumns();
@@ -209,7 +213,7 @@ class TPCC {
   }
 
   // 4.3.2.3
-  storage::VarlenEntry RandomLastNameVarlenEntry(const uint16_t numbers) {
+  storage::VarlenEntry RandomLastNameVarlenEntry(const uint16_t numbers) const {
     TERRIER_ASSERT(numbers >= 0 && numbers <= 999, "Invalid input generating C_LAST.");
     static const char *const syllables[] = {"BAR", "OUGHT", "ABLE",  "PRI",   "PRES",
                                             "ESE", "ANTI",  "CALLY", "ATION", "EING"};
@@ -249,7 +253,7 @@ class TPCC {
   //       for OL_I_ID, the range is [1 .. 100000] and A = 8191
   // C is a run-time constant randomly chosen within[0 .. A] that can be varied without altering performance.
   // The same C value, per field (C_LAST, C_ID, and OL_I_ID), must be used by all emulated terminals.
-  int32_t NURand(const int32_t A, const int32_t x, const int32_t y) {
+  int32_t NURand(const int32_t A, const int32_t x, const int32_t y) const {
     TERRIER_ASSERT(
         (A == 255 && x == 0 && y == 999) || (A == 1023 && x == 1 && y == 3000) || (A == 8191 && x == 1 && y == 100000),
         "Invalid inputs to NURand().");
@@ -355,67 +359,67 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // D_ID unique within [10]
-    auto col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    auto col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     auto attr_offset = projection_map.at(col_oid);
     auto *attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = d_id;
 
     // D_W_ID = W_ID
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = w_id;
 
     // D_NAME random a-string [6 .. 10]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(6, 10, false);
 
     // D_STREET_1 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // D_STREET_2 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // D_CITY random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // D_STATE random a-string of 2 letters
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
 
     // D_ZIP generated according to Clause 4.3.2.7
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
 
     // D_TAX random within [0.0000 .. 0.2000]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 2000, 4);
 
     // D_YTD = 30,000.00
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = 30000;
 
     // D_NEXT_O_ID = 3,001
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = 3001;
@@ -430,36 +434,38 @@ class TPCC {
                                             const bool good_credit, byte *const buffer,
                                             const storage::ProjectedRowInitializer &pr_initializer,
                                             const storage::ProjectionMap &projection_map) const {
+    TERRIER_ASSERT(c_id >= 0 && c_id < 3000, "Invalid c_id for BuildCustomerTuple().");
+
     auto *const pr = pr_initializer.InitializeRow(buffer);
 
     uint32_t col_offset = 0;
 
     // C_ID unique within [3,000]
-    auto col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    auto col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     auto attr_offset = projection_map.at(col_oid);
     auto *attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = c_id;
 
     // C_D_ID = D_ID
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = d_id;
 
     // C_W_ID = D_W_ID
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = w_id;
 
     // C_FIRST random a-string [8 .. 16]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(8, 16, false);
 
     // C_MIDDLE = "OE"
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) =
@@ -469,59 +475,59 @@ class TPCC {
     // customers, and generating a non-uniform random number using the function NURand(255,0,999) for each of the
     // remaining 2,000 customers. The run-time constant C (see Clause 2.1.6) used for the database population must be
     // randomly chosen independently from the test run(s).
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
-    if (c_id % 3000 < 1000) {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(c_id % 3000 < 1000);
+    if (c_id < 1000) {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(c_id);
     } else {
       *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(NURand(255, 0, 999));
     }
 
     // C_STREET_1 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // C_STREET_2 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // C_CITY random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
 
     // C_STATE random a-string of 2 letters
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
 
     // C_ZIP generated according to Clause 4.3.2.7
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
 
     // C_PHONE random n-string of 16 numbers
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(16, 16, true);
 
     // C_SINCE date/ time given by the operating system when the CUSTOMER table was populated.
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int64_t *>(attr) = Timestamp();
 
     // C_CREDIT = "GC". For 10% of the rows, selected at random , C_CREDIT = "BC"
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) =
@@ -529,68 +535,100 @@ class TPCC {
                     : storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("BC"), 2);
 
     // C_CREDIT_LIM = 50,000.00
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = 50000;
 
     // C_DISCOUNT random within [0.0000 .. 0.5000]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 5000, 4);
 
     // C_BALANCE = -10.00
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = -10;
 
     // C_YTD_PAYMENT = 10.00
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<double *>(attr) = 10;
 
     // C_PAYMENT_CNT = 1
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int16_t *>(attr) = 1;
 
     // C_DELIVERY_CNT = 0
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int16_t *>(attr) = 0;
 
     // C_DATA random a-string [300 .. 500]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
+    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(300, 500, false);
 
-    TERRIER_ASSERT(col_offset == 11, "Didn't get every attribute for Customer tuple.");
+    TERRIER_ASSERT(col_offset == 21, "Didn't get every attribute for Customer tuple.");
 
     return pr;
   }
 
-  void PopulateWarehouseTable() {
+  void PopulateTables() {
     TERRIER_ASSERT(txn_manager_ != nullptr, "TransactionManager does not exist.");
-    TERRIER_ASSERT(warehouse_ != nullptr, "Warehouse table doesn't exist.");
-    const auto col_oids = AllColOidsForSchema(*warehouse_schema_);
-    const auto pr_initializer = warehouse_->InitializerForProjectedRow(col_oids).first;
-    const auto projection_map = warehouse_->InitializerForProjectedRow(col_oids).second;
 
-    auto *const insert_buffer(common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize()));
+    // Warehouse
+    const auto warehouse_col_oids = AllColOidsForSchema(*warehouse_schema_);
+    const auto warehouse_pr_initializer = warehouse_->InitializerForProjectedRow(warehouse_col_oids).first;
+    const auto warehouse_pr_map = warehouse_->InitializerForProjectedRow(warehouse_col_oids).second;
+    auto *const warehouse_buffer(common::AllocationUtil::AllocateAligned(warehouse_pr_initializer.ProjectedRowSize()));
+
+    // District
+    const auto district_col_oids = AllColOidsForSchema(*district_schema_);
+    const auto district_pr_initializer = district_->InitializerForProjectedRow(district_col_oids).first;
+    const auto district_pr_map = district_->InitializerForProjectedRow(district_col_oids).second;
+    auto *const district_buffer(common::AllocationUtil::AllocateAligned(district_pr_initializer.ProjectedRowSize()));
+
+    // District
+    const auto customer_col_oids = AllColOidsForSchema(*customer_schema_);
+    const auto customer_pr_initializer = customer_->InitializerForProjectedRow(customer_col_oids).first;
+    const auto customer_pr_map = customer_->InitializerForProjectedRow(customer_col_oids).second;
+    auto *const customer_buffer(common::AllocationUtil::AllocateAligned(customer_pr_initializer.ProjectedRowSize()));
 
     auto *const txn = txn_manager_->BeginTransaction();
+
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
-      warehouse_->Insert(txn, *BuildWarehouseTuple(w_id, insert_buffer, pr_initializer, projection_map));
+      warehouse_->Insert(txn, *BuildWarehouseTuple(w_id, warehouse_buffer, warehouse_pr_initializer, warehouse_pr_map));
+
+      for (uint32_t d_id = 0; d_id < 10; d_id++) {
+        district_->Insert(txn,
+                          *BuildDistrictTuple(d_id, w_id, district_buffer, district_pr_initializer, district_pr_map));
+
+        // generate booleans to represent GC or BC for customers. 90% are GC (true), and then shuffled
+        std::vector<bool> c_credit;
+        c_credit.reserve(3000);
+        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
+          c_credit.emplace_back(c_id < 300);
+        }
+        std::shuffle(c_credit.begin(), c_credit.end(), *generator_);
+
+        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
+          customer_->Insert(txn, *BuildCustomerTuple(c_id, d_id, w_id, c_credit[c_id], customer_buffer,
+                                                     customer_pr_initializer, customer_pr_map));
+        }
+      }
     }
+
     txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
-    delete[] insert_buffer;
+    delete[] warehouse_buffer;
   }
 
   uint64_t GetNewOid() { return ++oid_counter; }
@@ -601,8 +639,10 @@ class TPCC {
 
   storage::SqlTable *warehouse_ = nullptr;
   catalog::Schema *warehouse_schema_ = nullptr;
-  //  storage::SqlTable *district_ = nullptr;
-  //  storage::SqlTable *customer_ = nullptr;
+  storage::SqlTable *district_ = nullptr;
+  catalog::Schema *district_schema_ = nullptr;
+  storage::SqlTable *customer_ = nullptr;
+  catalog::Schema *customer_schema_ = nullptr;
   //  storage::SqlTable *history_ = nullptr;
   //  storage::SqlTable *new_order_ = nullptr;
   //  storage::SqlTable *order_ = nullptr;
