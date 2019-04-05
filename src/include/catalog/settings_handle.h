@@ -77,10 +77,21 @@ class SettingsHandle {
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
 
+  /**
+   * Insert a row
+   * @param txn transaction to insert a row
+   * @param row row
+   */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::TransientValue> &row) {
     pg_settings_->InsertRow(txn, row);
   }
 
+  /**
+   * Get the settings entry
+   * @param txn transaction to query
+   * @param name settings name
+   * @return settings entry
+   */
   std::shared_ptr<SettingsHandle::SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn,
                                                                   const std::string &name) {
     std::vector<type::TransientValue> search_vec, ret_row;

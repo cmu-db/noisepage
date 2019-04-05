@@ -4,11 +4,17 @@
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
 
-// TODO(Yesheng): why clang-tidy claims here's a leak?
 namespace terrier::catalog {
+/**
+ * Utility class for TransientValues
+ * TODO(Yesheng): move to TransientValueFactory?
+ */
 class TransientValueUtil {
  public:
-  // NOLINTNEXTLINE
+  /**
+   * @param value TransientValue
+   * @return a copied TransientValue
+   */
   static type::TransientValue MakeCopy(const type::TransientValue &value) {
     // NOLINTNEXTLINE
     switch (value.Type()) {

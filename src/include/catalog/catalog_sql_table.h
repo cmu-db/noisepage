@@ -36,21 +36,41 @@ class SqlTableRW {
   }
 
   class RowIterator;
+  /**
+   * Returns the begin iterator
+   * @param txn transaction
+   * @return begin iterator
+   */
   RowIterator begin(transaction::TransactionContext *txn) {
     // initialize all the internal state of the iterator, via constructor
     // return the first row pointer (if there is one)
     return RowIterator(txn, this, true);
   }
 
+  /**
+   * Returns the end iterator
+   * @param txn transaction
+   * @return end iterator
+   */
   RowIterator end(transaction::TransactionContext *txn) { return RowIterator(txn, this, false); }
 
+  /**
+   * Row iterator for SqlTable
+   */
   class RowIterator {
    public:
-    // return values
+    /**
+     * Iterator dereference.
+     */
     storage::ProjectedColumns &operator*() { return *proj_col_bufp; }
+    /**
+     * Arrow operator.
+     */
     storage::ProjectedColumns *operator->() { return proj_col_bufp; }
 
-    // pre-fix increment only.
+    /**
+     * pre-fix increment only.
+     */
     RowIterator &operator++() {
       if (dtsi_ == tblrw_->GetSqlTable()->end()) {
         // no more tuples. Return end()
@@ -74,10 +94,22 @@ class SqlTableRW {
       return *this;
     }
 
+    /**
+     * Equals operator.
+     */
     bool operator==(const RowIterator &other) const { return proj_col_bufp == other.proj_col_bufp; }
 
+    /**
+     * Not equals operator.
+     */
     bool operator!=(const RowIterator &other) const { return !this->operator==(other); }
 
+    /**
+     * Constructor
+     * @param txn transaction
+     * @param tblrw SqlTableRw
+     * @param begin whether a begin operator is contructed.
+     */
     RowIterator(transaction::TransactionContext *txn, SqlTableRW *tblrw, bool begin)
         : txn_(txn), tblrw_(tblrw), buffer_(nullptr), dtsi_(tblrw->GetSqlTable()->begin()), layout_(nullptr) {
       if (!begin) {
@@ -213,7 +245,7 @@ class SqlTableRW {
    */
   catalog::col_oid_t ColNumToOid(int32_t col_num) { return col_oids_[col_num]; }
 
-  /*
+  /**
    * Return the index of column with name
    * @param name column desired
    * @return index of the column

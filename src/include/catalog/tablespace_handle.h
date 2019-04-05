@@ -66,6 +66,7 @@ class TablespaceHandle {
   /**
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace
+   * @param catalog pointer to the catalog class
    */
   explicit TablespaceHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_tablespace)
       : catalog_(catalog), pg_tablespace_(std::move(pg_tablespace)) {}
@@ -92,7 +93,8 @@ class TablespaceHandle {
    */
   std::shared_ptr<TablespaceEntry> GetTablespaceEntry(transaction::TransactionContext *txn, const std::string &name);
 
-  /* Add a tablespace
+  /**
+   * Add a tablespace
    * @param txn
    * @param name tablespace to add
    */
