@@ -21,6 +21,7 @@
 
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 
 namespace terrier::parser::expression {
 
@@ -174,6 +175,50 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(original_expr->IsDistinct(),
             static_cast<AggregateExpression *>(deserialized_expression.get())->IsDistinct());
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, FunctionExpressionJsonTest) {
+  // Create expression
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  auto fn_ret_type = type::TypeId::VARCHAR;
+  auto original_expr = std::make_shared<FunctionExpression>("Funhouse", fn_ret_type, std::move(children));
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetFuncName(), "Funhouse");
+  EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetReturnValueType(), fn_ret_type);
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, OperatorExpressionJsonTest) {
+  auto operators = {
+      ExpressionType::OPERATOR_UNARY_MINUS, ExpressionType::OPERATOR_PLUS,   ExpressionType::OPERATOR_MINUS,
+      ExpressionType::OPERATOR_MULTIPLY,    ExpressionType::OPERATOR_DIVIDE, ExpressionType::OPERATOR_CONCAT,
+      ExpressionType::OPERATOR_MOD,         ExpressionType::OPERATOR_NOT,    ExpressionType::OPERATOR_IS_NULL,
+      ExpressionType::OPERATOR_IS_NOT_NULL, ExpressionType::OPERATOR_EXISTS};
+
+  for (const auto &op : operators) {
+    // Create expression
+    std::vector<std::shared_ptr<AbstractExpression>> children;
+    auto op_ret_type = type::TypeId::BOOLEAN;
+    auto original_expr = std::make_shared<OperatorExpression>(op, op_ret_type, std::move(children));
+
+    // Serialize expression
+    auto json = original_expr->ToJson();
+    EXPECT_FALSE(json.is_null());
+
+    // Deserialize expression
+    auto deserialized_expression = DeserializeExpression(json);
+    EXPECT_EQ(*original_expr, *deserialized_expression);
+    EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetExpressionType(), op);
+    EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetReturnValueType(), op_ret_type);
+  }
 }
 
 // NOLINTNEXTLINE

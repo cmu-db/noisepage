@@ -24,7 +24,24 @@ class OperatorExpression : public AbstractExpression {
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
+  OperatorExpression() = default;
+
   std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<OperatorExpression>(*this); }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
 };
+
+DEFINE_JSON_DECLARATIONS(OperatorExpression);
 
 }  // namespace terrier::parser

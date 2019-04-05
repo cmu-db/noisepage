@@ -89,25 +89,25 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       //      break;
       //    }
 
-      //    case ExpressionType::FUNCTION: {
-      //      expr = std::make_shared<FunctionExpression>();
-      //      break;
-      //    }
+    case ExpressionType::FUNCTION: {
+      expr = std::make_shared<FunctionExpression>();
+      break;
+    }
 
-      //    case ExpressionType::OPERATOR_UNARY_MINUS:
-      //    case ExpressionType::OPERATOR_PLUS:
-      //    case ExpressionType::OPERATOR_MINUS:
-      //    case ExpressionType::OPERATOR_MULTIPLY:
-      //    case ExpressionType::OPERATOR_DIVIDE:
-      //    case ExpressionType::OPERATOR_CONCAT:
-      //    case ExpressionType::OPERATOR_MOD:
-      //    case ExpressionType::OPERATOR_NOT:
-      //    case ExpressionType::OPERATOR_IS_NULL:
-      //    case ExpressionType::OPERATOR_IS_NOT_NULL:
-      //    case ExpressionType::OPERATOR_EXISTS: {
-      //      expr = std::make_shared<OperatorExpression>();
-      //      break;
-      //    }
+    case ExpressionType::OPERATOR_UNARY_MINUS:
+    case ExpressionType::OPERATOR_PLUS:
+    case ExpressionType::OPERATOR_MINUS:
+    case ExpressionType::OPERATOR_MULTIPLY:
+    case ExpressionType::OPERATOR_DIVIDE:
+    case ExpressionType::OPERATOR_CONCAT:
+    case ExpressionType::OPERATOR_MOD:
+    case ExpressionType::OPERATOR_NOT:
+    case ExpressionType::OPERATOR_IS_NULL:
+    case ExpressionType::OPERATOR_IS_NOT_NULL:
+    case ExpressionType::OPERATOR_EXISTS: {
+      expr = std::make_shared<OperatorExpression>();
+      break;
+    }
 
     case ExpressionType::VALUE_PARAMETER: {
       expr = std::make_shared<ParameterValueExpression>();
