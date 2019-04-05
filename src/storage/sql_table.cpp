@@ -229,28 +229,17 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     // 5. Update the new row in the new table
 
     // 1. Get old row
-    std::vector<catalog::col_oid_t> old_col_oids;  // the set of col oids of the old schema
-    for (auto &it : tables_.at(old_version).column_map) {
-      old_col_oids.emplace_back(it.first);
-    }
-    auto old_pair = InitializerForProjectedRow(old_col_oids, old_version);
-    auto old_buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
-    ProjectedRow *old_pr = old_pair.first.InitializeRow(old_buffer);
-    bool valid = tables_.at(old_version).data_table->Select(txn, slot, old_pr);
-    if (!valid) {
-      delete[] old_buffer;
-      return {false, slot};
-    }
-
     // 2. Convert it into new row
     std::vector<catalog::col_oid_t> new_col_oids;  // the set of col oids which the new schema has
     for (auto &it : tables_.at(version_num).column_map) new_col_oids.emplace_back(it.first);
     auto new_pair = InitializerForProjectedRow(new_col_oids, version_num);
     auto new_buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
     ProjectedRow *new_pr = new_pair.first.InitializeRow(new_buffer);
-    StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.at(old_version).layout, new_pr,
-                                              new_pair.second);
-
+    bool valid = Select(txn, slot, new_pr, new_pair.second, version_num);
+    if (!valid) {
+      delete[] new_buffer;
+      return {false, slot};
+    }
     // 3. Delete the old row
     bool succ = tables_.at(old_version).data_table->Delete(txn, slot);
 
@@ -259,13 +248,12 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     if (succ) {
       new_slot = tables_.at(version_num).data_table->Insert(txn, *new_pr);
     } else {
-      // someone else deleted the old row, the tupleslot is not valid anymore
+      // someone else deleted the old row, write-write conflict
       return {false, slot};
     }
 
     // 5. Update the new row
     tables_.at(version_num).data_table->Update(txn, new_slot, redo);
-    delete[] old_buffer;
     delete[] new_buffer;
 
     ret_slot = new_slot;
