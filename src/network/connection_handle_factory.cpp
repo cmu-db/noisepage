@@ -20,6 +20,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, Conn
   reused_handle.io_wrapper_->Restart();
   reused_handle.protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>();
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
+  reused_handle.context_.Reset();
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
   TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");
   return reused_handle;

@@ -32,7 +32,7 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     callback(empty_set, out);
   }
   traffic_cop::Statement Parse(const char *query, const std::vector<type::TypeId> &param_types) override {
-    return traffic_cop::Statement();
+    return traffic_cop::Statement(nullptr, std::vector<type::TypeId>());
   }
   traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
                            const std::shared_ptr<std::vector<type::TransientValue>> &params) override {

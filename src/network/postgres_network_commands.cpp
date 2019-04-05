@@ -124,7 +124,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   for (size_t i = 0; i < num_params; i++) {
     auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
 
-    if (statement->param_types[i] == TypeId::INTEGER) {
+    if (statement->param_types_[i] == TypeId::INTEGER) {
       int32_t value;
       if (is_binary[i] == 0) {
         char buf[len];
@@ -135,7 +135,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       }
 
       params->push_back(TransientValueFactory::GetInteger(value));
-    } else if (statement->param_types[i] == TypeId::DECIMAL) {
+    } else if (statement->param_types_[i] == TypeId::DECIMAL) {
       double value;
       if (is_binary[i] == 0) {
         char buf[len];
@@ -146,13 +146,13 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       }
 
       params->push_back(TransientValueFactory::GetDecimal(value));
-    } else if (statement->param_types[i] == TypeId::VARCHAR) {
+    } else if (statement->param_types_[i] == TypeId::VARCHAR) {
       char buf[len];
       in_.Read(len, buf);
       params->push_back(TransientValueFactory::GetVarChar(buf));
     } else {
       string error_msg =
-          fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types[i]));
+          fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
       NETWORK_LOG_ERROR(error_msg);
       out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
       return Transition::PROCEED;

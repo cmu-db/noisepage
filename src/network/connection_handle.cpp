@@ -182,6 +182,7 @@ Transition ConnectionHandle::TryCloseConnection() {
   // connection handle and we will need to destruct and exit.
   conn_handler_->UnregisterEvent(network_event_);
   conn_handler_->UnregisterEvent(workpool_event_);
+
   return Transition::NONE;
 }
 

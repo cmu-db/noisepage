@@ -47,6 +47,8 @@ class ConnectionHandle {
    */
   ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCopPtr t_cop);
 
+  ~ConnectionHandle() { context_.Reset(); }
+
   /**
    * Disable copying and moving ConnectionHandle instances
    */

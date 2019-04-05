@@ -18,6 +18,13 @@ struct ConnectionContext {
 
   /* The portals in this connection */
   std::unordered_map<std::string, traffic_cop::Portal> portals;
+
+  void Reset() {
+    for (auto pair : statements) pair.second.Finalize();
+
+    statements.clear();
+    portals.clear();
+  }
 };
 
 }  // namespace terrier::network
