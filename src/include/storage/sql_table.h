@@ -313,6 +313,6 @@ class SqlTable {
    */
   template <class RowType>
   void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                        const DataTableVersion &old_dt_version, col_id_t * original_col_id_store) const;
+                                        const DataTableVersion &old_dt_version, col_id_t *original_col_id_store) const;
 };
 }  // namespace terrier::storage
