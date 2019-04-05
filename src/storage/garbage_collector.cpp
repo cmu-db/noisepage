@@ -245,16 +245,12 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(transaction::TransactionConte
       if (interval_length > 1) {
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
         // Compacted more than one undo record, link it to the version chain.
-        LinkCompactedUndoRecord(start_record, &curr, next, &interval_length, compacted_undo_record);
-      } else if (interval_length == 1) {
-        // Compacted undo record only is frivolous. Drop it.
-        EndCompaction(&interval_length);
-        curr = curr->Next();
-      } else {
-        BeginCompaction(&start_record, curr, next, &interval_length);
-        // curr was not claimed in the previous iteration, so possibly someone might use it
-        curr = curr->Next();
+        LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
       }
+      EndCompaction(&interval_length);
+      BeginCompaction(&start_record, curr, next, &interval_length);
+      // curr was not claimed in the previous iteration, so possibly someone might use it
+      curr = curr->Next();
     }
     next = curr->Next();
   }
@@ -294,7 +290,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
 }
 
 void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
-                                               uint32_t *interval_length_ptr, UndoRecord *compacted_undo_record) {
+                                               UndoRecord *compacted_undo_record) {
   UnlinkUndoRecordVersion(start_record->Next());
   // We have compacted some undo records till now
   // end_record undo record can't be GC'd. Set compacted undo record to point to end_record.
@@ -302,8 +298,6 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
   compacted_undo_record->Next().store(end_record);
   // Set start_record to point to the compacted undo record
   start_record->Next().store(compacted_undo_record);
-  // Compaction is over
-  EndCompaction(interval_length_ptr);
   // Added a compacted undo record. So it should be curr
   *curr_ptr = compacted_undo_record;
 }

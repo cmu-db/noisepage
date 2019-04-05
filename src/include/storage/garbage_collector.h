@@ -93,7 +93,7 @@ class GarbageCollector {
                        uint32_t *interval_length_ptr);
 
   void LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
-                               uint32_t *interval_length_ptr, UndoRecord *compacted_undo_record);
+                               UndoRecord *compacted_undo_record);
 
   bool ReadUndoRecord(transaction::TransactionContext *txn, UndoRecord *start_record, UndoRecord *next,
                       uint32_t *interval_length_ptr);
