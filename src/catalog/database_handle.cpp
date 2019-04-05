@@ -64,7 +64,7 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
 }
 
 std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                const char *db_name) {
+                                                                                const std::string &db_name) {
   // we don't need to do this lookup. pg_database is global
   // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
 

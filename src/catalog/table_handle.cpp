@@ -38,7 +38,7 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   std::vector<type::TransientValue> search_vec;
   search_vec.emplace_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.emplace_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-  search_vec.emplace_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  search_vec.emplace_back(type::TransientValueFactory::GetVarChar(name));
 
   std::vector<type::TransientValue> row = pg_class_->FindRow(txn, search_vec);
   auto result = table_oid_t(type::TransientValuePeeker::PeekInteger(row[1]));
@@ -65,7 +65,7 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
   // Add to pg_class
   row.emplace_back(type::TransientValueFactory::GetBigInt(reinterpret_cast<int64_t>(table)));
   row.emplace_back(type::TransientValueFactory::GetInteger(!table->Oid()));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   row.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid_));
   row.emplace_back(type::TransientValueFactory::GetInteger(
       !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid()));

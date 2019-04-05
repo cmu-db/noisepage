@@ -38,7 +38,7 @@ void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t t
 
   row.emplace_back(type::TransientValueFactory::GetBigInt(tbl_ptr));
   row.emplace_back(type::TransientValueFactory::GetInteger(entry_oid));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   row.emplace_back(type::TransientValueFactory::GetInteger(ns_oid));
   row.emplace_back(type::TransientValueFactory::GetInteger(ts_oid));
 

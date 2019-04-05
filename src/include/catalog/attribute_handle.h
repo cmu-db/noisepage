@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
+
 namespace terrier::catalog {
 
 class Catalog;

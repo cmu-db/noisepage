@@ -46,65 +46,65 @@ TEST_F(TableHandleTests, BasicCorrectnessTest) {
   // test if get correct tablename
   auto table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  const char *str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
-  EXPECT_STREQ(str, "pg_database");
+  std::string_view str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_database");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
-  EXPECT_STREQ(str, "pg_tablespace");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_tablespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
-  EXPECT_STREQ(str, "pg_namespace");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_namespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
-  EXPECT_STREQ(str, "pg_class");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_class");
 
   // test if get correct schemaname (namespace)
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
-  EXPECT_STREQ(str, "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
-  EXPECT_STREQ(str, "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
-  EXPECT_STREQ(str, "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
-  EXPECT_STREQ(str, "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   // test if get correct tablespace
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
-  EXPECT_STREQ(str, "pg_global");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
-  EXPECT_STREQ(str, "pg_global");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
-  EXPECT_STREQ(str, "pg_default");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_default");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
-  EXPECT_STREQ(str, "pg_default");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_default");
 }
 
 // Tests for creating a table
@@ -125,14 +125,14 @@ TEST_F(TableHandleTests, CreateTest) {
   auto table = table_handle.CreateTable(txn_, schema, "test_table");
   auto table_entry = table_handle.GetTableEntry(txn_, "test_table");
   EXPECT_NE(table_entry, nullptr);
-  const char *str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
-  EXPECT_STREQ(str, "public");
+  std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
+  EXPECT_EQ(str, "public");
 
   str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(1));
-  EXPECT_STREQ(str, "test_table");
+  EXPECT_EQ(str, "test_table");
 
   str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(2));
-  EXPECT_STREQ(str, "pg_default");
+  EXPECT_EQ(str, "pg_default");
 
   // Insert a row into the table
   auto ptr = table_handle.GetTable(txn_, "test_table");
@@ -149,7 +149,7 @@ TEST_F(TableHandleTests, CreateTest) {
   row.clear();
   row = ptr->FindRow(txn_, search_vec);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(row[0]), 123);
-  EXPECT_STREQ(type::TransientValuePeeker::PeekVarChar(row[1]), "test_name");
+  EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(row[1]), "test_name");
 
   delete table;
 }

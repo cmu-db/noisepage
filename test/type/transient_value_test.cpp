@@ -352,9 +352,8 @@ TEST_F(ValueTests, VarCharTest) {
 
     auto value = type::TransientValueFactory::GetVarChar(data);
     EXPECT_FALSE(value.Null());
-    const char *peeked_data = type::TransientValuePeeker::PeekVarChar(value);
-    EXPECT_EQ(0, std::memcmp(data, peeked_data, length));
-    delete[] peeked_data;
+    std::string_view string_view = type::TransientValuePeeker::PeekVarChar(value);
+    EXPECT_EQ(data, string_view);
 
     auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
     value.SetNull(null);
@@ -362,9 +361,8 @@ TEST_F(ValueTests, VarCharTest) {
 
     value.SetNull(false);
     EXPECT_FALSE(value.Null());
-    peeked_data = type::TransientValuePeeker::PeekVarChar(value);
-    EXPECT_EQ(0, std::memcmp(data, peeked_data, length));
-    delete[] peeked_data;
+    string_view = type::TransientValuePeeker::PeekVarChar(value);
+    EXPECT_EQ(data, string_view);
     delete[] data;
 
     auto copy_constructed_value(value);

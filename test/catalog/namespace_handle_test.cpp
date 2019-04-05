@@ -43,15 +43,11 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
 
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
-  const char *ns_st = type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1));
-  EXPECT_STREQ("pg_catalog", ns_st);
-  delete [] ns_st;
+  EXPECT_EQ("pg_catalog", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
 
   // get the public namespace
   namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "public");
-  const char *pub_st = type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1));
-  EXPECT_STREQ("public", pub_st);
-  delete [] pub_st;
+  EXPECT_EQ("public", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
 }
 
 // Tests that we can create namespace
@@ -65,8 +61,6 @@ TEST_F(NamespaceHandleTests, CreateTest) {
 
   // verify correctly created
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
-  const char * test_st = type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1));
-  EXPECT_STREQ("test_namespace", test_st);
-  delete [] test_st;
+  EXPECT_EQ("test_namespace", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
 }
 }  // namespace terrier

@@ -32,7 +32,7 @@ std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespa
     transaction::TransactionContext *txn, const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-  search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
   tablespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
   return std::make_shared<TablespaceEntry>(oid, std::move(ret_row));
@@ -42,7 +42,7 @@ void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std:
   std::vector<type::TransientValue> row;
 
   row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
-  row.emplace_back(type::TransientValueFactory::GetVarChar(name.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   catalog_->SetUnusedColumns(&row, TablespaceHandle::unused_schema_cols_);
   pg_tablespace_->InsertRow(txn, row);
 }
