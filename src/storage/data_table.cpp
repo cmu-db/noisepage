@@ -8,7 +8,7 @@
 
 namespace terrier::storage {
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
@@ -43,6 +43,7 @@ void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *c
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
+
     ++(*start_pos);
   }
   out_buffer->SetNumTuples(filled);
@@ -192,9 +193,6 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
 template <class RowType>
 bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
                                  RowType *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The output buffer never returns the version pointer columns, so it should have "
-                 "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
 
   UndoRecord *version_ptr;
@@ -205,8 +203,9 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should not read the version pointer column.");
+      if (out_buffer->ColumnIds()[i] == VERSION_POINTER_COLUMN_ID) {
+        continue;
+      }
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
     // Here we will need to check that the version pointer did not change during our read. If it did, the content

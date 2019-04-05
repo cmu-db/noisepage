@@ -173,7 +173,7 @@ class ProjectedRowInitializer {
    * @param layout BlockLayout of the RawBlock to be accessed
    * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
    */
-  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
+  explicit ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
 
   /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer
@@ -186,6 +186,13 @@ class ProjectedRowInitializer {
    * @return size of the ProjectedRow in memory, in bytes, that this initializer constructs.
    */
   uint32_t ProjectedRowSize() const { return size_; }
+
+  /**
+   * Populates the ProjectedRow's members but with only the header, doesn't clear space for data
+   * @param head pointer to the byte buffer to populate for header
+   * @return pointer to the populated ProjectedRow header
+   */
+  ProjectedRow *InitializeHeader(void *head) const;
 
   /**
    * @return number of columns in the projection list

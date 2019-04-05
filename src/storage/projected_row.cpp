@@ -56,12 +56,21 @@ ProjectedRow *ProjectedRowInitializer::InitializeRow(void *const head) const {
   TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
+  ProjectedRow *result = InitializeHeader(head);
+  result->Bitmap().Clear(result->num_cols_);
+  return result;
+}
+
+ProjectedRow *ProjectedRowInitializer::InitializeHeader(void *head) const {
+  TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
+                 "start of ProjectedRow needs to be aligned to 8 bytes to"
+                 "ensure correctness of alignment of its members");
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   result->size_ = size_;
   result->num_cols_ = static_cast<uint16_t>(col_ids_.size());
   for (uint32_t i = 0; i < col_ids_.size(); i++) result->ColumnIds()[i] = col_ids_[i];
   for (uint32_t i = 0; i < col_ids_.size(); i++) result->AttrValueOffsets()[i] = offsets_[i];
-  result->Bitmap().Clear(result->num_cols_);
+
   return result;
 }
 }  // namespace terrier::storage
