@@ -14,7 +14,10 @@ namespace terrier {
 
 class TPCC {
  public:
-  explicit TPCC(storage::BlockStore *const store) : store_(store) { CreateWarehouseTable(); }
+  explicit TPCC(storage::BlockStore *const store) : store_(store) {
+    CreateWarehouseTable();
+    CreateDistrictTable();
+  }
 
   ~TPCC() {
     delete warehouse_;
@@ -83,8 +86,8 @@ class TPCC {
   }
 
   void CreateDistrictTable() {
-    TERRIER_ASSERT(warehouse_ == nullptr, "District table already exists.");
-    const auto district_schema = CreateWarehouseSchema();
+    TERRIER_ASSERT(district_ == nullptr, "District table already exists.");
+    const auto district_schema = CreateDistrictSchema();
     district_ = new storage::SqlTable(store_, district_schema, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
 
