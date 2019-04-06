@@ -53,7 +53,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   for (auto _ : state) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     StartGC(&txn_manager);
-    auto tpcc = TPCC(&txn_manager, &block_store_, &generator_);
+    auto tpcc = tpcc::TPCC(&txn_manager, &block_store_, &generator_);
     //    uint64_t elapsed_ms;
     //    { common::ScopedTimer timer(&elapsed_ms); }
     //    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

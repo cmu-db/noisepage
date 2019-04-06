@@ -11,6 +11,7 @@
 #include "common/macros.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "tpcc/schemas.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "util/random_test_util.h"
@@ -18,7 +19,7 @@
 
 // TODO(Matt): it seems many fields can by smaller than INTEGER
 
-namespace terrier {
+namespace terrier::tpcc {
 
 constexpr uint16_t num_districts_per_warehouse_ = 10;
 constexpr uint16_t num_customers_per_district_ = 3000;
@@ -27,353 +28,47 @@ template <class Random>
 class TPCC {
  public:
   explicit TPCC(transaction::TransactionManager *txn_manager, storage::BlockStore *store, Random *generator)
-      : txn_manager_(txn_manager), store_(store), generator_(generator) {
-    CreateItemTable();
-    CreateWarehouseTable();
-    CreateStockTable();
-    CreateDistrictTable();
-    CreateCustomerTable();
-    CreateHistoryTable();
-    CreateNewOrderTable();
-    CreateOrderTable();
-    CreateOrderLineTable();
+      : txn_manager_(txn_manager),
+        store_(store),
+        generator_(generator),
+        oid_counter(0),
+        num_warehouses_(4),
+        item_schema_(Schemas::CreateItemSchema(&oid_counter)),
+        warehouse_schema_(Schemas::CreateWarehouseSchema(&oid_counter)),
+        stock_schema_(Schemas::CreateStockSchema(&oid_counter)),
+        district_schema_(Schemas::CreateDistrictSchema(&oid_counter)),
+        customer_schema_(Schemas::CreateCustomerSchema(&oid_counter)),
+        history_schema_(Schemas::CreateHistorySchema(&oid_counter)),
+        new_order_schema_(Schemas::CreateNewOrderSchema(&oid_counter)),
+        order_schema_(Schemas::CreateOrderSchema(&oid_counter)),
+        order_line_schema_(Schemas::CreateOrderLineSchema(&oid_counter)),
+        item_(new storage::SqlTable(store_, item_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        warehouse_(new storage::SqlTable(store_, warehouse_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        stock_(new storage::SqlTable(store_, stock_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        district_(new storage::SqlTable(store_, district_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        customer_(new storage::SqlTable(store_, customer_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        history_(new storage::SqlTable(store_, history_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        new_order_(new storage::SqlTable(store_, new_order_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        order_(new storage::SqlTable(store_, order_schema_, static_cast<catalog::table_oid_t>(++oid_counter))),
+        order_line_(new storage::SqlTable(store_, order_line_schema_, static_cast<catalog::table_oid_t>(++oid_counter)))
 
+  {
     PopulateTables();
   }
 
   ~TPCC() {
     delete item_;
-    delete item_schema_;
     delete warehouse_;
-    delete warehouse_schema_;
     delete stock_;
-    delete stock_schema_;
     delete district_;
-    delete district_schema_;
     delete customer_;
-    delete customer_schema_;
     delete history_;
-    delete history_schema_;
     delete new_order_;
-    delete new_order_schema_;
     delete order_;
-    delete order_schema_;
     delete order_line_;
-    delete order_line_schema_;
   }
 
  private:
-  void CreateItemSchema() {
-    TERRIER_ASSERT(item_schema_ == nullptr, "Item schema already exists.");
-    std::vector<catalog::Schema::Column> item_columns;
-    item_columns.reserve(5);
-
-    item_columns.emplace_back("I_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    item_columns.emplace_back("I_IM_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    item_columns.emplace_back("I_NAME", type::TypeId::VARCHAR, 24, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    item_columns.emplace_back("I_PRICE", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    item_columns.emplace_back("I_DATA", type::TypeId::VARCHAR, 50, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(item_columns.size() == 5, "Wrong number of columns for Item schema.");
-
-    item_schema_ = new catalog::Schema(item_columns);
-  }
-
-  void CreateWarehouseSchema() {
-    TERRIER_ASSERT(warehouse_schema_ == nullptr, "Warehouse schema already exists.");
-    std::vector<catalog::Schema::Column> warehouse_columns;
-    warehouse_columns.reserve(9);
-
-    warehouse_columns.emplace_back("W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_NAME", type::TypeId::VARCHAR, 10, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_STREET_1", type::TypeId::VARCHAR, 20, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_STREET_2", type::TypeId::VARCHAR, 20, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_CITY", type::TypeId::VARCHAR, 20, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_STATE", type::TypeId::VARCHAR, 2, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_ZIP", type::TypeId::VARCHAR, 9, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_TAX", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    warehouse_columns.emplace_back("W_YTD", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(warehouse_columns.size() == 9, "Wrong number of columns for Warehouse schema.");
-
-    warehouse_schema_ = new catalog::Schema(warehouse_columns);
-  }
-
-  void CreateStockSchema() {
-    TERRIER_ASSERT(stock_schema_ == nullptr, "Stock schema already exists.");
-    std::vector<catalog::Schema::Column> stock_columns;
-    stock_columns.reserve(17);
-
-    stock_columns.emplace_back("S_I_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_QUANTITY", type::TypeId::SMALLINT, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_01", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_02", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_03", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_04", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_05", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_06", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_07", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_08", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_09", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DIST_10", type::TypeId::VARCHAR, 24, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_YTD", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_ORDER_CNT", type::TypeId::SMALLINT, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_REMOTE_CNT", type::TypeId::SMALLINT, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    stock_columns.emplace_back("S_DATA", type::TypeId::VARCHAR, 50, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(stock_columns.size() == 17, "Wrong number of columns for Stock schema.");
-
-    stock_schema_ = new catalog::Schema(stock_columns);
-  }
-
-  void CreateDistrictSchema() {
-    TERRIER_ASSERT(district_schema_ == nullptr, "District schema already exists.");
-    std::vector<catalog::Schema::Column> district_columns;
-    district_columns.reserve(11);
-
-    district_columns.emplace_back("D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_NAME", type::TypeId::VARCHAR, 10, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_STREET_1", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_STREET_2", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_CITY", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_STATE", type::TypeId::VARCHAR, 2, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_ZIP", type::TypeId::VARCHAR, 9, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_TAX", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_YTD", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    district_columns.emplace_back("D_NEXT_O_ID", type::TypeId::INTEGER, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(district_columns.size() == 11, "Wrong number of columns for District schema.");
-
-    district_schema_ = new catalog::Schema(district_columns);
-  }
-
-  void CreateCustomerSchema() {
-    TERRIER_ASSERT(customer_schema_ == nullptr, "Customer schema already exists.");
-    std::vector<catalog::Schema::Column> customer_columns;
-    customer_columns.reserve(21);
-
-    customer_columns.emplace_back("C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_FIRST", type::TypeId::VARCHAR, 16, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_MIDDLE", type::TypeId::VARCHAR, 2, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_LAST", type::TypeId::VARCHAR, 16, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_STREET_1", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_STREET_2", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_CITY", type::TypeId::VARCHAR, 20, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_STATE", type::TypeId::VARCHAR, 2, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_ZIP", type::TypeId::VARCHAR, 9, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_PHONE", type::TypeId::VARCHAR, 16, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_SINCE", type::TypeId::TIMESTAMP, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_CREDIT", type::TypeId::VARCHAR, 2, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_CREDIT_LIM", type::TypeId::DECIMAL, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_DISCOUNT", type::TypeId::DECIMAL, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_BALANCE", type::TypeId::DECIMAL, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_YTD_PAYMENT", type::TypeId::DECIMAL, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_PAYMENT_CNT", type::TypeId::SMALLINT, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_DELIVERY_CNT", type::TypeId::SMALLINT, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-    customer_columns.emplace_back("C_DATA", type::TypeId::VARCHAR, 500, false,
-                                  static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(customer_columns.size() == 21, "Wrong number of columns for Customer schema.");
-
-    customer_schema_ = new catalog::Schema(customer_columns);
-  }
-
-  void CreateHistorySchema() {
-    TERRIER_ASSERT(history_schema_ == nullptr, "History schema already exists.");
-    std::vector<catalog::Schema::Column> history_columns;
-    history_columns.reserve(8);
-
-    history_columns.emplace_back("H_C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_C_D_ID", type::TypeId::INTEGER, false,
-                                 static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_C_W_ID", type::TypeId::INTEGER, false,
-                                 static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_DATE", type::TypeId::TIMESTAMP, false,
-                                 static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_AMOUNT", type::TypeId::DECIMAL, false,
-                                 static_cast<catalog::col_oid_t>(GetNewOid()));
-    history_columns.emplace_back("H_DATA", type::TypeId::VARCHAR, 24, false,
-                                 static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(history_columns.size() == 8, "Wrong number of columns for History schema.");
-
-    history_schema_ = new catalog::Schema(history_columns);
-  }
-
-  void CreateNewOrderSchema() {
-    TERRIER_ASSERT(new_order_schema_ == nullptr, "New Order schema already exists.");
-    std::vector<catalog::Schema::Column> new_order_columns;
-    new_order_columns.reserve(3);
-
-    new_order_columns.emplace_back("NO_O_ID", type::TypeId::INTEGER, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    new_order_columns.emplace_back("NO_D_ID", type::TypeId::INTEGER, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-    new_order_columns.emplace_back("NO_W_ID", type::TypeId::INTEGER, false,
-                                   static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(new_order_columns.size() == 3, "Wrong number of columns for New Order schema.");
-
-    new_order_schema_ = new catalog::Schema(new_order_columns);
-  }
-
-  void CreateOrderSchema() {
-    TERRIER_ASSERT(order_schema_ == nullptr, "Order schema already exists.");
-    std::vector<catalog::Schema::Column> order_columns;
-    order_columns.reserve(8);
-
-    order_columns.emplace_back("O_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_ENTRY_D", type::TypeId::TIMESTAMP, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_CARRIER_ID", type::TypeId::INTEGER, true,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_OL_CNT", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_columns.emplace_back("O_ALL_LOCAL", type::TypeId::INTEGER, false,
-                               static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(order_columns.size() == 8, "Wrong number of columns for Order schema.");
-
-    order_schema_ = new catalog::Schema(order_columns);
-  }
-
-  void CreateOrderLineSchema() {
-    TERRIER_ASSERT(order_line_schema_ == nullptr, "Order Line schema already exists.");
-    std::vector<catalog::Schema::Column> order_line_columns;
-    order_line_columns.reserve(10);
-
-    order_line_columns.emplace_back("OL_O_ID", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_D_ID", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_W_ID", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_NUMBER", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_I_ID", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_SUPPLY_W_ID", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_QUANTITY", type::TypeId::INTEGER, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_AMOUNT", type::TypeId::DECIMAL, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-    order_line_columns.emplace_back("OL_DIST_INFO", type::TypeId::VARCHAR, 24, false,
-                                    static_cast<catalog::col_oid_t>(GetNewOid()));
-
-    TERRIER_ASSERT(order_line_columns.size() == 10, "Wrong number of columns for Order Line schema.");
-
-    order_line_schema_ = new catalog::Schema(order_line_columns);
-  }
-
-  void CreateItemTable() {
-    TERRIER_ASSERT(item_ == nullptr, "Item table already exists.");
-    CreateItemSchema();
-    item_ = new storage::SqlTable(store_, *item_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateWarehouseTable() {
-    TERRIER_ASSERT(warehouse_ == nullptr, "Warehouse table already exists.");
-    CreateWarehouseSchema();
-    warehouse_ = new storage::SqlTable(store_, *warehouse_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateStockTable() {
-    TERRIER_ASSERT(stock_ == nullptr, "Stock table already exists.");
-    CreateStockSchema();
-    stock_ = new storage::SqlTable(store_, *stock_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateDistrictTable() {
-    TERRIER_ASSERT(district_ == nullptr, "District table already exists.");
-    CreateDistrictSchema();
-    district_ = new storage::SqlTable(store_, *district_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateCustomerTable() {
-    TERRIER_ASSERT(customer_ == nullptr, "Customer table already exists.");
-    CreateCustomerSchema();
-    customer_ = new storage::SqlTable(store_, *customer_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateHistoryTable() {
-    TERRIER_ASSERT(history_ == nullptr, "History table already exists.");
-    CreateHistorySchema();
-    history_ = new storage::SqlTable(store_, *history_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateNewOrderTable() {
-    TERRIER_ASSERT(new_order_ == nullptr, "New Order table already exists.");
-    CreateNewOrderSchema();
-    new_order_ = new storage::SqlTable(store_, *new_order_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateOrderTable() {
-    TERRIER_ASSERT(order_ == nullptr, "Order table already exists.");
-    CreateOrderSchema();
-    order_ = new storage::SqlTable(store_, *order_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
-  void CreateOrderLineTable() {
-    TERRIER_ASSERT(order_line_ == nullptr, "Order Line table already exists.");
-    CreateOrderLineSchema();
-    order_line_ = new storage::SqlTable(store_, *order_line_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
-  }
-
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
     const auto &cols = schema.GetColumns();
     std::vector<catalog::col_oid_t> col_oids;
@@ -527,34 +222,34 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // I_ID unique within [100,000]
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*item_schema_, col_offset++, projection_map, pr, i_id);
+    TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(item_schema_, col_offset++, projection_map, pr, i_id);
 
     // I_IM_ID random within [1 .. 10,000]
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_IM_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*item_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 10000, 0));
+    TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_IM_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(item_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 10000, 0));
 
     // I_NAME random a-string [14 .. 24]
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_NAME", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(14, 24, false));
 
     // I_PRICE random within [1.00 .. 100.00]
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_PRICE", "Wrong attribute.");
-    SetPRAttribute<double>(*item_schema_, col_offset++, projection_map, pr, RandomWithin<double>(100, 10000, 2));
+    TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_PRICE", "Wrong attribute.");
+    SetPRAttribute<double>(item_schema_, col_offset++, projection_map, pr, RandomWithin<double>(100, 10000, 2));
 
     // I_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within I_DATA
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_DATA", "Wrong attribute.");
     if (original) {
-      SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
                                            RandomOriginalVarlenEntry(26, 50));
     } else {
-      SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
                                            RandomAlphaNumericVarlenEntry(26, 50, false));
     }
 
-    TERRIER_ASSERT(col_offset == item_schema_->GetColumns().size(), "Didn't get every attribute for Item tuple.");
+    TERRIER_ASSERT(col_offset == item_schema_.GetColumns().size(), "Didn't get every attribute for Item tuple.");
 
     return pr;
   }
@@ -571,47 +266,47 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // W_ID unique within [number_of_configured_warehouses]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*warehouse_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(warehouse_schema_, col_offset++, projection_map, pr, w_id);
 
     // W_NAME random a-string [6 .. 10]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(6, 10, false));
 
     // W_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STREET_1", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STREET_2", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_CITY", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_STATE random a-string of 2 letters
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STATE", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // W_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_ZIP", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // W_TAX random within [0.0000 .. 0.2000]
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_TAX", "Wrong attribute.");
-    SetPRAttribute<double>(*warehouse_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_TAX", "Wrong attribute.");
+    SetPRAttribute<double>(warehouse_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
 
     // W_YTD = 300,000.00
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_YTD", "Wrong attribute.");
-    SetPRAttribute<double>(*warehouse_schema_, col_offset++, projection_map, pr, 300000.0);
+    TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_YTD", "Wrong attribute.");
+    SetPRAttribute<double>(warehouse_schema_, col_offset++, projection_map, pr, 300000.0);
 
-    TERRIER_ASSERT(col_offset == warehouse_schema_->GetColumns().size(),
+    TERRIER_ASSERT(col_offset == warehouse_schema_.GetColumns().size(),
                    "Didn't get every attribute for Warehouse tuple.");
 
     return pr;
@@ -630,91 +325,91 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // S_I_ID unique within [100,000]
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_I_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, s_i_id);
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(stock_schema_, col_offset++, projection_map, pr, s_i_id);
 
     // S_W_ID = W_ID
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(stock_schema_, col_offset++, projection_map, pr, w_id);
 
     // S_QUANTITY random within [10 .. 100]
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_QUANTITY", "Wrong attribute.");
-    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, RandomWithin<int16_t>(10, 100, 0));
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_QUANTITY", "Wrong attribute.");
+    SetPRAttribute<int16_t>(stock_schema_, col_offset++, projection_map, pr, RandomWithin<int16_t>(10, 100, 0));
 
     // S_DIST_01 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_01", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_01", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_02 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_02", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_02", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_03 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_03", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_03", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_04 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_04", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_04", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_05 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_05", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_05", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_06 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_06", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_06", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_07 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_07", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_07", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_08 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_08", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_08", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_09 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_09", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_09", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_10 random a-string of 24 letters
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_10", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_10", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_YTD = 0
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_YTD", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_YTD", "Wrong attribute.");
+    SetPRAttribute<int32_t>(stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_ORDER_CNT = 0
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_ORDER_CNT", "Wrong attribute.");
-    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_ORDER_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_REMOTE_CNT = 0
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_REMOTE_CNT", "Wrong attribute.");
-    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_REMOTE_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within S_DATA
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DATA", "Wrong attribute.");
+    TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DATA", "Wrong attribute.");
     if (original) {
-      SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                            RandomOriginalVarlenEntry(26, 50));
     } else {
-      SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
                                            RandomAlphaNumericVarlenEntry(26, 50, false));
     }
 
-    TERRIER_ASSERT(col_offset == stock_schema_->GetColumns().size(), "Didn't get every attribute for Stock tuple.");
+    TERRIER_ASSERT(col_offset == stock_schema_.GetColumns().size(), "Didn't get every attribute for Stock tuple.");
 
     return pr;
   }
@@ -732,55 +427,55 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // D_ID unique within [10]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(district_schema_, col_offset++, projection_map, pr, d_id);
 
     // D_W_ID = W_ID
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(district_schema_, col_offset++, projection_map, pr, w_id);
 
     // D_NAME random a-string [6 .. 10]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(6, 10, false));
 
     // D_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STREET_1", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STREET_2", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_CITY", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_STATE random a-string of 2 letters
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STATE", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // D_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_ZIP", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // D_TAX random within [0.0000 .. 0.2000]
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_TAX", "Wrong attribute.");
-    SetPRAttribute<double>(*district_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_TAX", "Wrong attribute.");
+    SetPRAttribute<double>(district_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
 
     // D_YTD = 30,000.00
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_YTD", "Wrong attribute.");
-    SetPRAttribute<double>(*district_schema_, col_offset++, projection_map, pr, 30000.0);
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_YTD", "Wrong attribute.");
+    SetPRAttribute<double>(district_schema_, col_offset++, projection_map, pr, 30000.0);
 
     // D_NEXT_O_ID = 3,001
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_NEXT_O_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, 3001);
+    TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_NEXT_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(district_schema_, col_offset++, projection_map, pr, 3001);
 
-    TERRIER_ASSERT(col_offset == district_schema_->GetColumns().size(),
+    TERRIER_ASSERT(col_offset == district_schema_.GetColumns().size(),
                    "Didn't get every attribute for District tuple.");
 
     return pr;
@@ -801,116 +496,116 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // C_ID unique within [3,000]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, c_id);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(customer_schema_, col_offset++, projection_map, pr, c_id);
 
     // C_D_ID = D_ID
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(customer_schema_, col_offset++, projection_map, pr, d_id);
 
     // C_W_ID = D_W_ID
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(customer_schema_, col_offset++, projection_map, pr, w_id);
 
     // C_FIRST random a-string [8 .. 16]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(8, 16, false));
 
     // C_MIDDLE = "OE"
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_MIDDLE", "Wrong attribute.");
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_MIDDLE", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(
-        *customer_schema_, col_offset++, projection_map, pr,
+        customer_schema_, col_offset++, projection_map, pr,
         storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("OE"), 2));
 
     // C_LAST generated according to Clause 4.3.2.3, iterating through the range of [0 .. 999] for the first 1,000
     // customers, and generating a non-uniform random number using the function NURand(255,0,999) for each of the
     // remaining 2,000 customers. The run-time constant C (see Clause 2.1.6) used for the database population must be
     // randomly chosen independently from the test run(s).
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
     if (c_id <= 1000) {
-      SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                            RandomLastNameVarlenEntry(c_id - 1));
     } else {
-      SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+      SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                            RandomLastNameVarlenEntry(NURand(255, 0, 999)));
     }
 
     // C_STREET_1 random a-string [10 .. 20]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STREET_1", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_STREET_2 random a-string [10 .. 20]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STREET_2", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_CITY random a-string [10 .. 20]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CITY", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_STATE random a-string of 2 letters
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STATE", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // C_ZIP generated according to Clause 4.3.2.7
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_ZIP", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // C_PHONE random n-string of 16 numbers
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_PHONE", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_PHONE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(16, 16, true));
 
     // C_SINCE date/ time given by the operating system when the CUSTOMER table was populated.
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_SINCE", "Wrong attribute.");
-    SetPRAttribute<uint64_t>(*customer_schema_, col_offset++, projection_map, pr, Timestamp());
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_SINCE", "Wrong attribute.");
+    SetPRAttribute<uint64_t>(customer_schema_, col_offset++, projection_map, pr, Timestamp());
 
     // C_CREDIT = "GC". For 10% of the rows, selected at random , C_CREDIT = "BC"
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CREDIT", "Wrong attribute.");
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_CREDIT", "Wrong attribute.");
     if (good_credit) {
       SetPRAttribute<storage::VarlenEntry>(
-          *customer_schema_, col_offset++, projection_map, pr,
+          customer_schema_, col_offset++, projection_map, pr,
           storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("GC"), 2));
     } else {
       SetPRAttribute<storage::VarlenEntry>(
-          *customer_schema_, col_offset++, projection_map, pr,
+          customer_schema_, col_offset++, projection_map, pr,
           storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("BC"), 2));
     }
 
     // C_CREDIT_LIM = 50,000.00
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CREDIT_LIM", "Wrong attribute.");
-    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, 50000.0);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_CREDIT_LIM", "Wrong attribute.");
+    SetPRAttribute<double>(customer_schema_, col_offset++, projection_map, pr, 50000.0);
 
     // C_DISCOUNT random within [0.0000 .. 0.5000]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DISCOUNT", "Wrong attribute.");
-    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 5000, 4));
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_DISCOUNT", "Wrong attribute.");
+    SetPRAttribute<double>(customer_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 5000, 4));
 
     // C_BALANCE = -10.00
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_BALANCE", "Wrong attribute.");
-    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, -10.0);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_BALANCE", "Wrong attribute.");
+    SetPRAttribute<double>(customer_schema_, col_offset++, projection_map, pr, -10.0);
 
     // C_YTD_PAYMENT = 10.00
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_YTD_PAYMENT", "Wrong attribute.");
-    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, 10.0);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_YTD_PAYMENT", "Wrong attribute.");
+    SetPRAttribute<double>(customer_schema_, col_offset++, projection_map, pr, 10.0);
 
     // C_PAYMENT_CNT = 1
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_PAYMENT_CNT", "Wrong attribute.");
-    SetPRAttribute<int16_t>(*customer_schema_, col_offset++, projection_map, pr, 1);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_PAYMENT_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(customer_schema_, col_offset++, projection_map, pr, 1);
 
     // C_DELIVERY_CNT = 0
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DELIVERY_CNT", "Wrong attribute.");
-    SetPRAttribute<int16_t>(*customer_schema_, col_offset++, projection_map, pr, 0);
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_DELIVERY_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(customer_schema_, col_offset++, projection_map, pr, 0);
 
     // C_DATA random a-string [300 .. 500]
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DATA", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_DATA", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(300, 500, false));
 
-    TERRIER_ASSERT(col_offset == customer_schema_->GetColumns().size(),
+    TERRIER_ASSERT(col_offset == customer_schema_.GetColumns().size(),
                    "Didn't get every attribute for Customer tuple.");
 
     return pr;
@@ -930,39 +625,39 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // H_C_ID = C_ID
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, c_id);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(history_schema_, col_offset++, projection_map, pr, c_id);
 
     // H_C_D_ID = D_ID
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_C_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(history_schema_, col_offset++, projection_map, pr, d_id);
 
     // H_C_W_ID = W_ID
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_C_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(history_schema_, col_offset++, projection_map, pr, w_id);
 
     // H_D_ID = D_ID
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(history_schema_, col_offset++, projection_map, pr, d_id);
 
     // H_W_ID = W_ID
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(history_schema_, col_offset++, projection_map, pr, w_id);
 
     // H_DATE current date and time
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_DATE", "Wrong attribute.");
-    SetPRAttribute<uint64_t>(*history_schema_, col_offset++, projection_map, pr, Timestamp());
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_DATE", "Wrong attribute.");
+    SetPRAttribute<uint64_t>(history_schema_, col_offset++, projection_map, pr, Timestamp());
 
     // H_AMOUNT = 10.00
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_AMOUNT", "Wrong attribute.");
-    SetPRAttribute<double>(*history_schema_, col_offset++, projection_map, pr, 10.0);
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_AMOUNT", "Wrong attribute.");
+    SetPRAttribute<double>(history_schema_, col_offset++, projection_map, pr, 10.0);
 
     // H_DATA random a-string [12 .. 24]
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_DATA", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*history_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_DATA", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(history_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(12, 24, false));
 
-    TERRIER_ASSERT(col_offset == history_schema_->GetColumns().size(), "Didn't get every attribute for History tuple.");
+    TERRIER_ASSERT(col_offset == history_schema_.GetColumns().size(), "Didn't get every attribute for History tuple.");
 
     return pr;
   }
@@ -981,18 +676,18 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // NO_O_ID = O_ID
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_O_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, o_id);
+    TERRIER_ASSERT(new_order_schema_.GetColumn(col_offset).GetName() == "NO_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(new_order_schema_, col_offset++, projection_map, pr, o_id);
 
     // NO_D_ID = D_ID
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(new_order_schema_.GetColumn(col_offset).GetName() == "NO_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(new_order_schema_, col_offset++, projection_map, pr, d_id);
 
     // NO_W_ID = W_ID
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(new_order_schema_.GetColumn(col_offset).GetName() == "NO_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(new_order_schema_, col_offset++, projection_map, pr, w_id);
 
-    TERRIER_ASSERT(col_offset == new_order_schema_->GetColumns().size(),
+    TERRIER_ASSERT(col_offset == new_order_schema_.GetColumns().size(),
                    "Didn't get every attribute for New Order tuple.");
 
     return pr;
@@ -1019,29 +714,29 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // O_ID unique within [3,000]
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, o_id);
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, o_id);
 
     // O_D_ID = D_ID
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, d_id);
 
     // O_W_ID = W_ID
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, w_id);
 
     // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_C_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, c_id);
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, c_id);
 
     // O_ENTRY_D current date/ time given by the operating system
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ENTRY_D", "Wrong attribute.");
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_ENTRY_D", "Wrong attribute.");
     const uint64_t entry_d = Timestamp();
-    SetPRAttribute<uint64_t>(*order_schema_, col_offset++, projection_map, pr, entry_d);
+    SetPRAttribute<uint64_t>(order_schema_, col_offset++, projection_map, pr, entry_d);
 
     // O_CARRIER_ID random within [1 .. 10] if O_ID < 2,101, null otherwise
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_CARRIER_ID", "Wrong attribute.");
-    const auto col_oid = order_schema_->GetColumn(col_offset++).GetOid();
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_CARRIER_ID", "Wrong attribute.");
+    const auto col_oid = order_schema_.GetColumn(col_offset++).GetOid();
     const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -1051,15 +746,15 @@ class TPCC {
     }
 
     // O_OL_CNT random within [5 .. 15]
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
     const auto ol_cnt = RandomWithin<int32_t>(5, 15, 0);
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, ol_cnt);
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, ol_cnt);
 
     // O_ALL_LOCAL = 1
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, 1);
+    TERRIER_ASSERT(order_schema_.GetColumn(col_offset).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_schema_, col_offset++, projection_map, pr, 1);
 
-    TERRIER_ASSERT(col_offset == order_schema_->GetColumns().size(), "Didn't get every attribute for Order tuple.");
+    TERRIER_ASSERT(col_offset == order_schema_.GetColumns().size(), "Didn't get every attribute for Order tuple.");
 
     return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
   }
@@ -1079,32 +774,32 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // OL_O_ID = O_ID
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_O_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, o_id);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, o_id);
 
     // OL_D_ID = D_ID
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_D_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, d_id);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, d_id);
 
     // OL_W_ID = W_ID
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, w_id);
 
     // OL_NUMBER unique within [O_OL_CNT]
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_NUMBER", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, ol_number);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_NUMBER", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, ol_number);
 
     // OL_I_ID random within [1 .. 100,000]
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_I_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 100000, 0));
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 100000, 0));
 
     // OL_SUPPLY_W_ID = W_ID
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, w_id);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, w_id);
 
     // OL_DELIVERY_D = O_ENTRY_D if OL_O_ID < 2,101, null otherwise
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
-    const auto col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
+    const auto col_oid = order_line_schema_.GetColumn(col_offset++).GetOid();
     const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -1114,23 +809,23 @@ class TPCC {
     }
 
     // OL_QUANTITY = 5
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_QUANTITY", "Wrong attribute.");
-    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, 5);
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_QUANTITY", "Wrong attribute.");
+    SetPRAttribute<int32_t>(order_line_schema_, col_offset++, projection_map, pr, 5);
 
     // OL_AMOUNT = 0.00 if OL_O_ID < 2,101, random within [0.01 .. 9,999.99] otherwise
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_AMOUNT", "Wrong attribute.");
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_AMOUNT", "Wrong attribute.");
     if (o_id < 2101) {
-      SetPRAttribute<double>(*order_line_schema_, col_offset++, projection_map, pr, 0.0);
+      SetPRAttribute<double>(order_line_schema_, col_offset++, projection_map, pr, 0.0);
     } else {
-      SetPRAttribute<double>(*order_line_schema_, col_offset++, projection_map, pr, RandomWithin<double>(1, 999999, 2));
+      SetPRAttribute<double>(order_line_schema_, col_offset++, projection_map, pr, RandomWithin<double>(1, 999999, 2));
     }
 
     // OL_DIST_INFO random a-string of 24 letters
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_DIST_INFO", "Wrong attribute.");
-    SetPRAttribute<storage::VarlenEntry>(*order_line_schema_, col_offset++, projection_map, pr,
+    TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_DIST_INFO", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(order_line_schema_, col_offset++, projection_map, pr,
                                          RandomAlphaNumericVarlenEntry(24, 24, false));
 
-    TERRIER_ASSERT(col_offset == order_line_schema_->GetColumns().size(),
+    TERRIER_ASSERT(col_offset == order_line_schema_.GetColumns().size(),
                    "Didn't get every attribute for Order Line tuple.");
 
     return pr;
@@ -1140,55 +835,55 @@ class TPCC {
     TERRIER_ASSERT(txn_manager_ != nullptr, "TransactionManager does not exist.");
 
     // Item
-    const auto item_col_oids = AllColOidsForSchema(*item_schema_);
+    const auto item_col_oids = AllColOidsForSchema(item_schema_);
     const auto item_pr_initializer = item_->InitializerForProjectedRow(item_col_oids).first;
     const auto item_pr_map = item_->InitializerForProjectedRow(item_col_oids).second;
     auto *const item_buffer(common::AllocationUtil::AllocateAligned(item_pr_initializer.ProjectedRowSize()));
 
     // Warehouse
-    const auto warehouse_col_oids = AllColOidsForSchema(*warehouse_schema_);
+    const auto warehouse_col_oids = AllColOidsForSchema(warehouse_schema_);
     const auto warehouse_pr_initializer = warehouse_->InitializerForProjectedRow(warehouse_col_oids).first;
     const auto warehouse_pr_map = warehouse_->InitializerForProjectedRow(warehouse_col_oids).second;
     auto *const warehouse_buffer(common::AllocationUtil::AllocateAligned(warehouse_pr_initializer.ProjectedRowSize()));
 
     // Stock
-    const auto stock_col_oids = AllColOidsForSchema(*stock_schema_);
+    const auto stock_col_oids = AllColOidsForSchema(stock_schema_);
     const auto stock_pr_initializer = stock_->InitializerForProjectedRow(stock_col_oids).first;
     const auto stock_pr_map = stock_->InitializerForProjectedRow(stock_col_oids).second;
     auto *const stock_buffer(common::AllocationUtil::AllocateAligned(stock_pr_initializer.ProjectedRowSize()));
 
     // District
-    const auto district_col_oids = AllColOidsForSchema(*district_schema_);
+    const auto district_col_oids = AllColOidsForSchema(district_schema_);
     const auto district_pr_initializer = district_->InitializerForProjectedRow(district_col_oids).first;
     const auto district_pr_map = district_->InitializerForProjectedRow(district_col_oids).second;
     auto *const district_buffer(common::AllocationUtil::AllocateAligned(district_pr_initializer.ProjectedRowSize()));
 
     // Customer
-    const auto customer_col_oids = AllColOidsForSchema(*customer_schema_);
+    const auto customer_col_oids = AllColOidsForSchema(customer_schema_);
     const auto customer_pr_initializer = customer_->InitializerForProjectedRow(customer_col_oids).first;
     const auto customer_pr_map = customer_->InitializerForProjectedRow(customer_col_oids).second;
     auto *const customer_buffer(common::AllocationUtil::AllocateAligned(customer_pr_initializer.ProjectedRowSize()));
 
     // History
-    const auto history_col_oids = AllColOidsForSchema(*history_schema_);
+    const auto history_col_oids = AllColOidsForSchema(history_schema_);
     const auto history_pr_initializer = history_->InitializerForProjectedRow(history_col_oids).first;
     const auto history_pr_map = history_->InitializerForProjectedRow(history_col_oids).second;
     auto *const history_buffer(common::AllocationUtil::AllocateAligned(history_pr_initializer.ProjectedRowSize()));
 
     // Order
-    const auto order_col_oids = AllColOidsForSchema(*order_schema_);
+    const auto order_col_oids = AllColOidsForSchema(order_schema_);
     const auto order_pr_initializer = order_->InitializerForProjectedRow(order_col_oids).first;
     const auto order_pr_map = order_->InitializerForProjectedRow(order_col_oids).second;
     auto *const order_buffer(common::AllocationUtil::AllocateAligned(order_pr_initializer.ProjectedRowSize()));
 
     // New Order
-    const auto new_order_col_oids = AllColOidsForSchema(*new_order_schema_);
+    const auto new_order_col_oids = AllColOidsForSchema(new_order_schema_);
     const auto new_order_pr_initializer = new_order_->InitializerForProjectedRow(new_order_col_oids).first;
     const auto new_order_pr_map = new_order_->InitializerForProjectedRow(new_order_col_oids).second;
     auto *const new_order_buffer(common::AllocationUtil::AllocateAligned(new_order_pr_initializer.ProjectedRowSize()));
 
     // Order Line
-    const auto order_line_col_oids = AllColOidsForSchema(*order_line_schema_);
+    const auto order_line_col_oids = AllColOidsForSchema(order_line_schema_);
     const auto order_line_pr_initializer = order_line_->InitializerForProjectedRow(order_line_col_oids).first;
     const auto order_line_pr_map = order_line_->InitializerForProjectedRow(order_line_col_oids).second;
     auto *const order_line_buffer(
@@ -1294,34 +989,33 @@ class TPCC {
     delete[] order_line_buffer;
   }
 
-  uint64_t GetNewOid() { return ++oid_counter; }
-
-  uint64_t oid_counter = 0;
-
-  uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hardcode this
-
-  storage::SqlTable *item_ = nullptr;
-  catalog::Schema *item_schema_ = nullptr;
-  storage::SqlTable *warehouse_ = nullptr;
-  catalog::Schema *warehouse_schema_ = nullptr;
-  storage::SqlTable *stock_ = nullptr;
-  catalog::Schema *stock_schema_ = nullptr;
-  storage::SqlTable *district_ = nullptr;
-  catalog::Schema *district_schema_ = nullptr;
-  storage::SqlTable *customer_ = nullptr;
-  catalog::Schema *customer_schema_ = nullptr;
-  storage::SqlTable *history_ = nullptr;
-  catalog::Schema *history_schema_ = nullptr;
-  storage::SqlTable *new_order_ = nullptr;
-  catalog::Schema *new_order_schema_ = nullptr;
-  storage::SqlTable *order_ = nullptr;
-  catalog::Schema *order_schema_ = nullptr;
-  storage::SqlTable *order_line_ = nullptr;
-  catalog::Schema *order_line_schema_ = nullptr;
-
   transaction::TransactionManager *const txn_manager_;
   storage::BlockStore *const store_;
   Random *const generator_;
+
+  uint64_t oid_counter;
+
+  const uint32_t num_warehouses_;  // TODO(Matt): don't hardcode this
+
+  const catalog::Schema item_schema_;
+  const catalog::Schema warehouse_schema_;
+  const catalog::Schema stock_schema_;
+  const catalog::Schema district_schema_;
+  const catalog::Schema customer_schema_;
+  const catalog::Schema history_schema_;
+  const catalog::Schema new_order_schema_;
+  const catalog::Schema order_schema_;
+  const catalog::Schema order_line_schema_;
+
+  storage::SqlTable *const item_;
+  storage::SqlTable *const warehouse_;
+  storage::SqlTable *const stock_;
+  storage::SqlTable *const district_;
+  storage::SqlTable *const customer_;
+  storage::SqlTable *const history_;
+  storage::SqlTable *const new_order_;
+  storage::SqlTable *const order_;
+  storage::SqlTable *const order_line_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::tpcc
