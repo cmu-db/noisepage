@@ -756,11 +756,10 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
     // Unlink txn 4 as txn 0 committed and unlink read-only txn 0 and unlink txn 1 as no active txn
-    // Also collect internal transaction which is read only
-    EXPECT_EQ(std::make_pair(2u, 4u), gc.PerformGarbageCollection());
-    // Deallocate txn 4
-    // Also collect internal transaction which is read only
-    EXPECT_EQ(std::make_pair(2u, 1u), gc.PerformGarbageCollection());
+    // Deallocate txn 2, 3
+    EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
+    // Deallocate txn 4 and txn 1
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -835,19 +834,18 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, update_tuple));
 
     txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink txn 4 and unlink internal transaction
-    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    // Unlink txn 4
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink read-only txn 0 and txn 7, txn 1  as txn 0 committed and internal transaction
-    // Deallocate txn 2, 3, 5, 6 and internal transaction
-    EXPECT_EQ(std::make_pair(5u, 4u), gc.PerformGarbageCollection());
-    // Unlink internal transaction
+    // Unlink read-only txn 0 and txn 7, 1  as txn 0 committed and internal transaction
+    // Deallocate txn 2, 3, 5, 6
+    EXPECT_EQ(std::make_pair(4u, 3u), gc.PerformGarbageCollection());
     // Deallocate txn 7 and 1
-    EXPECT_EQ(std::make_pair(2u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -935,8 +933,8 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn4, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink txn 4 and internal txn
-    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    // Unlink txn 4
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -945,12 +943,11 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink read-only txn 0 and txn 1, 3, 5, 7 as txn 0 committed and internal txn
+    // Unlink read-only txn 0 and txn 1, 3, 5, 7 as txn 0 committed
     // Deallocate txn 2, 6
-    EXPECT_EQ(std::make_pair(2u, 6u), gc.PerformGarbageCollection());
-    // Unlink internal txn
+    EXPECT_EQ(std::make_pair(2u, 5u), gc.PerformGarbageCollection());
     // Deallocate txn 1, 3, 5, 7
-    EXPECT_EQ(std::make_pair(4u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(4u, 0u), gc.PerformGarbageCollection());
   }
 }
 }  // namespace terrier

@@ -27,7 +27,7 @@ class GarbageCollector {
       : txn_manager_(txn_manager), last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
-    internal_transaction = nullptr;
+    delta_record_compaction_buffer_ = nullptr;
   }
 
   /**
@@ -54,8 +54,7 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
-  bool ProcessUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
-                         std::vector<transaction::timestamp_t> *active_txns);
+  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
@@ -65,23 +64,18 @@ class GarbageCollector {
    * version chain to be updated in order to unlink the target UndoRecord is not yet committed, we will fail and
    * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
    * is either committed or aborted.
-   * @param txn pointer to the transaction that created this UndoRecord
    * @param undo_record UndoRecord to be unlinked
    */
-  void UnlinkUndoRecord(transaction::TransactionContext *txn, UndoRecord *undo_record,
-                        std::vector<transaction::timestamp_t> *active_txns);
+  void UnlinkUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
-   * @param txn pointer to the transaction that created an UndoRecord in this chain
    * @param version_chain_head pointer to the head of the chain
    * @param active_txns vector containing all active transactions
    */
-  void UnlinkUndoRecordRestOfChain(transaction::TransactionContext *txn, UndoRecord *version_chain_head,
-                                   std::vector<transaction::timestamp_t> *active_txns);
+  void UnlinkUndoRecordRestOfChain(UndoRecord *version_chain_head, std::vector<transaction::timestamp_t> *active_txns);
 
-  void UnlinkUndoRecordHead(transaction::TransactionContext *txn, UndoRecord *head,
-                            std::vector<transaction::timestamp_t> *active_txns) const;
+  void UnlinkUndoRecordHead(UndoRecord *head, std::vector<transaction::timestamp_t> *active_txns) const;
   /**
    * Straight up unlink the undo_record and reclaim its space
    * @param txn
@@ -95,8 +89,7 @@ class GarbageCollector {
   void LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
                                UndoRecord *compacted_undo_record);
 
-  bool ReadUndoRecord(transaction::TransactionContext *txn, UndoRecord *start_record, UndoRecord *next,
-                      uint32_t *interval_length_ptr);
+  bool ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr);
 
   void EndCompaction(uint32_t *interval_length_ptr);
 
@@ -114,11 +107,12 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
-  // Internal transaction to hold compacted undo records
-  transaction::TransactionContext *internal_transaction;
-
-  std::unordered_map<col_id_t, VarlenEntry *> varlen_map;
-  std::unordered_set<col_id_t> col_set;
+  // Undo buffer to hold compacted undo records
+  storage::UndoBuffer *delta_record_compaction_buffer_;
+  std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
+  std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
+  std::unordered_map<col_id_t, VarlenEntry *> varlen_map_;
+  std::unordered_set<col_id_t> col_set_;
 };
 
 }  // namespace terrier::storage
