@@ -7,6 +7,7 @@
 #include "storage/checkpoint_io.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/projected_columns.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
@@ -50,7 +51,7 @@ class CheckpointManager {
    *                 * use a batch of ProjectedRows as buffer
    *                 * support morsel
    */
-  void Checkpoint(DataTable &table, const storage::BlockLayout &layout);
+  void Checkpoint(SqlTable &table, const storage::BlockLayout &layout);
 
  private:
   std::string log_file_path_prefix_;

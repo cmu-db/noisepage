@@ -42,7 +42,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedColumns::RowView &row, Project
   for (auto entry: varlen_entries) {
     // TODO(Zhaozhes): double check the offsets are correct
     uint32_t varlen_size = entry->Size();
-    TERRIER_ASSERT(varlen_size <= VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
+    TERRIER_ASSERT(varlen_size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
     std::memcpy(buffer_ + varlen_offset_, &varlen_size, sizeof(varlen_size));
     varlen_offset_ += sizeof(varlen_size);
     std::memcpy(buffer_ + varlen_offset_, entry->Content(), varlen_size);

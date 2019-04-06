@@ -48,7 +48,7 @@ public:
 
 private:
   BufferedLogWriter buffered_writer;
-  uint32_t block_size_;
+  uint32_t block_size_ = CHECKPOINT_BLOCK_SIZE;
   uint32_t cur_buffer_size_ = 0;
   char *buffer_;
   
