@@ -171,7 +171,7 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
 
   // The version of the current slot is the same as the version num
   if (old_version == version_num) {
-    return std::make_pair(tables_.Find(version_num)->second.data_table->Update(txn, slot, redo), slot);
+    return {tables_.Find(version_num)->second.data_table->Update(txn, slot, redo), slot};
   }
 
   // The versions are different
@@ -182,9 +182,9 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
   // 3. Else:
   //    3.a) Get the old row
   //    3.b) Convert it into new row
-  //    3.c) Insert new row into new table
-  //    3.d) Delete old row
-  //    3.e) Update the new row in the new table
+  //    3.c) Delete old row
+  //    3.d) Update the new row before insert
+  //    3.e) Insert new row into new table
 
   // Check if the Redo's attributes are a subset of old schema so that we can update old version in place
   bool is_subset = true;
@@ -216,57 +216,55 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(version_num)->second.layout, pr, old_pair.second);
 
     // 3. Update the old data-table
-    auto result = Update(txn, slot, *pr, old_pair.second, old_version);
-
+    bool result = tables_.Find(old_version)->second.data_table->Update(txn, slot, *pr);
     delete[] buffer;
-    ret_slot = result.second;
+    if (!result) {
+      return {false, slot};
+    }
+    ret_slot = slot;
   } else {
-    STORAGE_LOG_DEBUG("have to insert and delete ... ");
+    STORAGE_LOG_DEBUG("have to delete and insert ... ");
 
     // need to create a new ProjectedRow of all columns
     // 1. Get the old row
     // 2. Convert it into new row
-    // 3. Insert new row into new table
-    // 4. Delete old row
-    // 5. Update the new row in the new table
+    // 3. Delete old row
+    // 4. Update the new row before insert
+    // 5. Insert new row into new table
 
     // 1. Get old row
-    std::vector<catalog::col_oid_t> old_col_oids;  // the set of col oids of the old schema
-    for (auto &it : tables_.Find(old_version)->second.column_map) {
-      old_col_oids.emplace_back(it.first);
-    }
-    auto old_pair = InitializerForProjectedRow(old_col_oids, old_version);
-    auto old_buffer = common::AllocationUtil::AllocateAligned(old_pair.first.ProjectedRowSize());
-    ProjectedRow *old_pr = old_pair.first.InitializeRow(old_buffer);
-    bool valid = Select(txn, slot, old_pr, old_pair.second, old_version);
-    if (!valid) {
-      return {false, slot};
-    }
-
     // 2. Convert it into new row
     std::vector<catalog::col_oid_t> new_col_oids;  // the set of col oids which the new schema has
     for (auto &it : tables_.Find(version_num)->second.column_map) new_col_oids.emplace_back(it.first);
     auto new_pair = InitializerForProjectedRow(new_col_oids, version_num);
     auto new_buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
     ProjectedRow *new_pr = new_pair.first.InitializeRow(new_buffer);
-    StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.Find(old_version)->second.layout,
-                                              new_pr, new_pair.second);
-    // 3. Insert the row into new table
-    storage::TupleSlot new_slot = Insert(txn, *new_pr, version_num);
+    bool valid = Select(txn, slot, new_pr, new_pair.second, version_num);
+    if (!valid) {
+      delete[] new_buffer;
+      return {false, slot};
+    }
+    // 3. Delete the old row
+    bool succ = tables_.Find(old_version)->second.data_table->Delete(txn, slot);
 
-    // 4. Delete the old row
-    Delete(txn, slot, old_version);
+    // 4. Update the new row before insert
+    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(version_num)->second.layout, new_pr, new_pair.second);
 
-    // 5. Update the new row
-    Update(txn, new_slot, redo, new_pair.second, version_num);
-    //      TERRIER_ASSERT(result_pair.second.GetBlock() == new_slot.GetBlock(),
-    //                     "updating the current version should return the same TupleSlot");
-    delete[] old_buffer;
+    // 5. Insert the row into new table
+    storage::TupleSlot new_slot;
+    if (succ) {
+      new_slot = tables_.Find(version_num)->second.data_table->Insert(txn, *new_pr);
+    } else {
+      // someone else deleted the old row, write-write conflict
+      delete[] new_buffer;
+      return {false, slot};
+    }
+
     delete[] new_buffer;
-    // TODO(yangjuns): Need to update indices
+
     ret_slot = new_slot;
   }
-  return std::make_pair(true, ret_slot);
+  return {true, ret_slot};
 }
 
 void SqlTable::Scan(transaction::TransactionContext *const txn, SqlTable::SlotIterator *start_pos,
