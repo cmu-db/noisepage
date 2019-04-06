@@ -30,6 +30,7 @@ class TPCC {
     CreateDistrictTable();
     CreateCustomerTable();
     CreateHistoryTable();
+    CreateNewOrderTable();
 
     PopulateTables();
   }
@@ -47,7 +48,8 @@ class TPCC {
     delete customer_schema_;
     delete history_;
     delete history_schema_;
-    //    delete new_order_;
+    delete new_order_;
+    delete new_order_schema_;
     //    delete order_;
     //    delete order_line_;
   }
@@ -237,6 +239,22 @@ class TPCC {
     history_schema_ = new catalog::Schema(history_columns);
   }
 
+  void CreateNewOrderSchema() {
+    std::vector<catalog::Schema::Column> new_order_columns;
+    new_order_columns.reserve(3);
+
+    new_order_columns.emplace_back("NO_O_ID", type::TypeId::INTEGER, false,
+                                   static_cast<catalog::col_oid_t>(GetNewOid()));
+    new_order_columns.emplace_back("NO_D_ID", type::TypeId::INTEGER, false,
+                                   static_cast<catalog::col_oid_t>(GetNewOid()));
+    new_order_columns.emplace_back("NO_W_ID", type::TypeId::INTEGER, false,
+                                   static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(new_order_columns.size() == 3, "Wrong number of columns for New Order schema.");
+
+    new_order_schema_ = new catalog::Schema(new_order_columns);
+  }
+
   void CreateItemTable() {
     TERRIER_ASSERT(item_ == nullptr, "Item table already exists.");
     CreateItemSchema();
@@ -271,6 +289,12 @@ class TPCC {
     TERRIER_ASSERT(history_ == nullptr, "History table already exists.");
     CreateHistorySchema();
     history_ = new storage::SqlTable(store_, *history_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
+  void CreateNewOrderTable() {
+    TERRIER_ASSERT(new_order_ == nullptr, "New Order table already exists.");
+    CreateNewOrderSchema();
+    new_order_ = new storage::SqlTable(store_, *new_order_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
 
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
@@ -1043,7 +1067,8 @@ class TPCC {
   catalog::Schema *customer_schema_ = nullptr;
   storage::SqlTable *history_ = nullptr;
   catalog::Schema *history_schema_ = nullptr;
-  //  storage::SqlTable *new_order_ = nullptr;
+  storage::SqlTable *new_order_ = nullptr;
+  catalog::Schema *new_order_schema_ = nullptr;
   //  storage::SqlTable *order_ = nullptr;
   //  storage::SqlTable *order_line_ = nullptr;
 
