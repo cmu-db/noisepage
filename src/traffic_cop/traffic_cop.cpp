@@ -14,7 +14,7 @@ void TrafficCop::ExecuteQuery(const char *query, network::PostgresPacketWriter *
   sqlite_engine.ExecuteQuery(query, out, callback);
 }
 
-Statement TrafficCop::Parse(const char *query, const std::vector<type::TypeId> &param_types) {
+Statement TrafficCop::Parse(const std::string &query, const std::vector<type::TypeId> &param_types) {
   Statement statement(sqlite_engine.PrepareStatement(query), param_types);
   return statement;
 }

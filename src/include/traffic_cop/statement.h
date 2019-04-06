@@ -16,7 +16,7 @@ class Statement {
   /**
    * Creates an empty Statement.
    */
-  Statement() { sqlite3_stmt_ = nullptr; };
+  Statement() { sqlite3_stmt_ = nullptr; }
 
   /**
    * Creates a Statement with parsed sqlite_stmt and param types.

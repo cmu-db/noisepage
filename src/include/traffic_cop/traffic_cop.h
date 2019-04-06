@@ -36,7 +36,7 @@ class TrafficCop {
    * @param param_types
    * @return
    */
-  virtual Statement Parse(const char *query, const std::vector<type::TypeId> &param_types);
+  virtual Statement Parse(const std::string &query, const std::vector<type::TypeId> &param_types);
 
   /**
    * Bind parameters to a statement to obtain a portal.

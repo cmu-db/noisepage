@@ -58,9 +58,14 @@ int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **val
 
   return 0;
 }
-sqlite3_stmt *SqliteEngine::PrepareStatement(const char *query) {
+sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
+
+  // Replace "$" to "?"
+  for(char &c : query)
+    if(c == '$') c = '?';
+
   sqlite3_stmt *stmt;
-  int error_code = sqlite3_prepare_v2(sqlite_db_, query, -1, &stmt, nullptr);
+  int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
   if (error_code == SQLITE_OK) return stmt;
 
   LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
@@ -108,13 +113,20 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     std::vector<std::string> row;
     for (int i = 0; i < column_cnt; i++) {
       const unsigned char *result_cstring = sqlite3_column_text(stmt, i);
-      std::string result_str = std::string(reinterpret_cast<const char *>(result_cstring));
+      std::string result_str;
+      if(result_cstring == nullptr)
+        result_str = "NULL";
+      else
+        result_str = std::string(reinterpret_cast<const char *>(result_cstring));
+
       row.push_back(result_str);
     }
     result_set.rows_.push_back(row);
 
     result_code = sqlite3_step(stmt);
   }
+
+  LOG_INFO("Execute complete, {0} rows are in the result set", result_set.rows_.size());
 
   return result_set;
 }

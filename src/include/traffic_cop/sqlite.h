@@ -33,7 +33,7 @@ class SqliteEngine {
    * @param query The query string
    * @return The statement
    */
-  sqlite3_stmt *PrepareStatement(const char *query);
+  sqlite3_stmt *PrepareStatement(std::string query);
 
   /**
    * Bind the parameters to the statement.

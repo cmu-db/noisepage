@@ -21,15 +21,15 @@ import static org.junit.Assert.assertEquals;
 public class PLTestBase {
     
     public static Connection makeDefaultConnection() throws SQLException {
-	return makeConnection("localhost", 15721, "postgres", "postgres");
+	return makeConnection("localhost", 5432, "postgres", "postgres");
     }
     
     public static Connection makeConnection(String host,
 					    int port,
 					    String username,
 					    String pass) throws SQLException {
-	String url = String.format("jdbc:postgresql://%s:%d/default_database",
-				   host, port);
+	String url = String.format("jdbc:postgresql://%s:%d/%s",
+				   host, port, username);
 	Connection conn = DriverManager.getConnection(url, username, pass);
 	return conn;
     }
