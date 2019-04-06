@@ -26,8 +26,7 @@ constexpr uint16_t num_customers_per_district_ = 3000;
 template <class Random>
 class TPCC {
  public:
-  explicit TPCC(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store,
-                Random *const generator)
+  explicit TPCC(transaction::TransactionManager *txn_manager, storage::BlockStore *store, Random *generator)
       : txn_manager_(txn_manager), store_(store), generator_(generator) {
     CreateItemTable();
     CreateWarehouseTable();
@@ -465,9 +464,9 @@ class TPCC {
         (A == 255 && x == 0 && y == 999) || (A == 1023 && x == 1 && y == 3000) || (A == 8191 && x == 1 && y == 100000),
         "Invalid inputs to NURand().");
 
-    static const int32_t C_c_last = RandomWithin<int32_t>(0, 255, 0);
-    static const int32_t C_c_id = RandomWithin<int32_t>(0, 1023, 0);
-    static const int32_t C_ol_i_id = RandomWithin<int32_t>(0, 8191, 0);
+    static const auto C_c_last = RandomWithin<int32_t>(0, 255, 0);
+    static const auto C_c_id = RandomWithin<int32_t>(0, 1023, 0);
+    static const auto C_ol_i_id = RandomWithin<int32_t>(0, 8191, 0);
 
     int32_t C;
 
@@ -1053,7 +1052,7 @@ class TPCC {
 
     // O_OL_CNT random within [5 .. 15]
     TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
-    const int32_t ol_cnt = RandomWithin<int32_t>(5, 15, 0);
+    const auto ol_cnt = RandomWithin<int32_t>(5, 15, 0);
     SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, ol_cnt);
 
     // O_ALL_LOCAL = 1
