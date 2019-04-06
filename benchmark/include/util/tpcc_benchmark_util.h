@@ -118,7 +118,7 @@ class TPCC {
     // I_NAME random a-string [14 .. 24]
     TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_NAME", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(14, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(14, 24, false, generator_));
 
     // I_PRICE random within [1.00 .. 100.00]
     TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_PRICE", "Wrong attribute.");
@@ -130,10 +130,10 @@ class TPCC {
     TERRIER_ASSERT(item_schema_.GetColumn(col_offset).GetName() == "I_DATA", "Wrong attribute.");
     if (original) {
       SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
-                                           RandomUtil::RandomOriginalVarlenEntry(26, 50, generator_));
+                                           RandomUtil::OriginalVarlenEntry(26, 50, generator_));
     } else {
       SetPRAttribute<storage::VarlenEntry>(item_schema_, col_offset++, projection_map, pr,
-                                           RandomUtil::RandomAlphaNumericVarlenEntry(26, 50, false, generator_));
+                                           RandomUtil::AlphaNumericVarlenEntry(26, 50, false, generator_));
     }
 
     TERRIER_ASSERT(col_offset == item_schema_.GetColumns().size(), "Didn't get every attribute for Item tuple.");
@@ -159,32 +159,32 @@ class TPCC {
     // W_NAME random a-string [6 .. 10]
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(6, 10, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(6, 10, false, generator_));
 
     // W_STREET_1 random a-string [10 .. 20]
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STREET_1", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // W_STREET_2 random a-string [10 .. 20]
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STREET_2", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // W_CITY random a-string [10 .. 20]
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_CITY", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // W_STATE random a-string of 2 letters
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_STATE", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(2, 2, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(2, 2, false, generator_));
 
     // W_ZIP generated according to Clause 4.3.2.7
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_ZIP", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(warehouse_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomZipVarlenEntry(generator_));
+                                         RandomUtil::ZipVarlenEntry(generator_));
 
     // W_TAX random within [0.0000 .. 0.2000]
     TERRIER_ASSERT(warehouse_schema_.GetColumn(col_offset).GetName() == "W_TAX", "Wrong attribute.");
@@ -229,52 +229,52 @@ class TPCC {
     // S_DIST_01 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_01", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_02 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_02", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_03 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_03", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_04 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_04", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_05 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_05", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_06 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_06", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_07 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_07", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_08 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_08", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_09 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_09", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_DIST_10 random a-string of 24 letters
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DIST_10", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     // S_YTD = 0
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_YTD", "Wrong attribute.");
@@ -293,10 +293,10 @@ class TPCC {
     TERRIER_ASSERT(stock_schema_.GetColumn(col_offset).GetName() == "S_DATA", "Wrong attribute.");
     if (original) {
       SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                           RandomUtil::RandomOriginalVarlenEntry(26, 50, generator_));
+                                           RandomUtil::OriginalVarlenEntry(26, 50, generator_));
     } else {
       SetPRAttribute<storage::VarlenEntry>(stock_schema_, col_offset++, projection_map, pr,
-                                           RandomUtil::RandomAlphaNumericVarlenEntry(26, 50, false, generator_));
+                                           RandomUtil::AlphaNumericVarlenEntry(26, 50, false, generator_));
     }
 
     TERRIER_ASSERT(col_offset == stock_schema_.GetColumns().size(), "Didn't get every attribute for Stock tuple.");
@@ -327,32 +327,32 @@ class TPCC {
     // D_NAME random a-string [6 .. 10]
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(6, 10, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(6, 10, false, generator_));
 
     // D_STREET_1 random a-string [10 .. 20]
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STREET_1", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // D_STREET_2 random a-string [10 .. 20]
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STREET_2", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // D_CITY random a-string [10 .. 20]
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_CITY", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // D_STATE random a-string of 2 letters
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_STATE", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(2, 2, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(2, 2, false, generator_));
 
     // D_ZIP generated according to Clause 4.3.2.7
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_ZIP", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(district_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomZipVarlenEntry(generator_));
+                                         RandomUtil::ZipVarlenEntry(generator_));
 
     // D_TAX random within [0.0000 .. 0.2000]
     TERRIER_ASSERT(district_schema_.GetColumn(col_offset).GetName() == "D_TAX", "Wrong attribute.");
@@ -402,7 +402,7 @@ class TPCC {
     // C_FIRST random a-string [8 .. 16]
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(8, 16, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(8, 16, false, generator_));
 
     // C_MIDDLE = "OE"
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_MIDDLE", "Wrong attribute.");
@@ -417,42 +417,42 @@ class TPCC {
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
     if (c_id <= 1000) {
       SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                           RandomUtil::RandomLastNameVarlenEntry(c_id - 1));
+                                           RandomUtil::LastNameVarlenEntry(c_id - 1));
     } else {
       SetPRAttribute<storage::VarlenEntry>(
           customer_schema_, col_offset++, projection_map, pr,
-          RandomUtil::RandomLastNameVarlenEntry(RandomUtil::NURand(255, 0, 999, generator_)));
+          RandomUtil::LastNameVarlenEntry(RandomUtil::NURand(255, 0, 999, generator_)));
     }
 
     // C_STREET_1 random a-string [10 .. 20]
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STREET_1", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // C_STREET_2 random a-string [10 .. 20]
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STREET_2", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // C_CITY random a-string [10 .. 20]
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_CITY", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(10, 20, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(10, 20, false, generator_));
 
     // C_STATE random a-string of 2 letters
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_STATE", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(2, 2, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(2, 2, false, generator_));
 
     // C_ZIP generated according to Clause 4.3.2.7
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_ZIP", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomZipVarlenEntry(generator_));
+                                         RandomUtil::ZipVarlenEntry(generator_));
 
     // C_PHONE random n-string of 16 numbers
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_PHONE", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(16, 16, true, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(16, 16, true, generator_));
 
     // C_SINCE date/ time given by the operating system when the CUSTOMER table was populated.
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_SINCE", "Wrong attribute.");
@@ -498,7 +498,7 @@ class TPCC {
     // C_DATA random a-string [300 .. 500]
     TERRIER_ASSERT(customer_schema_.GetColumn(col_offset).GetName() == "C_DATA", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(customer_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(300, 500, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(300, 500, false, generator_));
 
     TERRIER_ASSERT(col_offset == customer_schema_.GetColumns().size(),
                    "Didn't get every attribute for Customer tuple.");
@@ -550,7 +550,7 @@ class TPCC {
     // H_DATA random a-string [12 .. 24]
     TERRIER_ASSERT(history_schema_.GetColumn(col_offset).GetName() == "H_DATA", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(history_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(12, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(12, 24, false, generator_));
 
     TERRIER_ASSERT(col_offset == history_schema_.GetColumns().size(), "Didn't get every attribute for History tuple.");
 
@@ -720,7 +720,7 @@ class TPCC {
     // OL_DIST_INFO random a-string of 24 letters
     TERRIER_ASSERT(order_line_schema_.GetColumn(col_offset).GetName() == "OL_DIST_INFO", "Wrong attribute.");
     SetPRAttribute<storage::VarlenEntry>(order_line_schema_, col_offset++, projection_map, pr,
-                                         RandomUtil::RandomAlphaNumericVarlenEntry(24, 24, false, generator_));
+                                         RandomUtil::AlphaNumericVarlenEntry(24, 24, false, generator_));
 
     TERRIER_ASSERT(col_offset == order_line_schema_.GetColumns().size(),
                    "Didn't get every attribute for Order Line tuple.");

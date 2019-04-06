@@ -35,10 +35,10 @@ struct RandomUtil {
 
   // 4.3.2.2
   template <class Random>
-  static storage::VarlenEntry RandomAlphaNumericVarlenEntry(const uint32_t x, const uint32_t y, const bool numeric_only,
-                                                            Random *const generator) {
+  static storage::VarlenEntry AlphaNumericVarlenEntry(const uint32_t x, const uint32_t y, const bool numeric_only,
+                                                      Random *const generator) {
     TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
-    const auto astring = RandomAlphaNumericString(x, y, numeric_only, generator);
+    const auto astring = AlphaNumericString(x, y, numeric_only, generator);
     if (astring.length() <= storage::VarlenEntry::InlineThreshold()) {
       return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(astring.data()), astring.length());
     }
@@ -49,7 +49,7 @@ struct RandomUtil {
   }
 
   // 4.3.2.3
-  static storage::VarlenEntry RandomLastNameVarlenEntry(const uint16_t numbers) {
+  static storage::VarlenEntry LastNameVarlenEntry(const uint16_t numbers) {
     TERRIER_ASSERT(numbers >= 0 && numbers <= 999, "Invalid input generating C_LAST.");
     static const char *const syllables[] = {"BAR", "OUGHT", "ABLE",  "PRI",   "PRES",
                                             "ESE", "ANTI",  "CALLY", "ATION", "EING"};
@@ -79,8 +79,8 @@ struct RandomUtil {
 
   // 4.3.2.7
   template <class Random>
-  static storage::VarlenEntry RandomZipVarlenEntry(Random *const generator) {
-    auto string = RandomAlphaNumericString(4, 4, true, generator);
+  static storage::VarlenEntry ZipVarlenEntry(Random *const generator) {
+    auto string = AlphaNumericString(4, 4, true, generator);
     string.append("11111");
     TERRIER_ASSERT(string.length() == 9, "Wrong ZIP code length.");
     return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()), string.length());
@@ -88,9 +88,9 @@ struct RandomUtil {
 
   // 4.3.3.1
   template <class Random>
-  static storage::VarlenEntry RandomOriginalVarlenEntry(const uint32_t x, const uint32_t y, Random *const generator) {
+  static storage::VarlenEntry OriginalVarlenEntry(const uint32_t x, const uint32_t y, Random *const generator) {
     TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
-    auto astring = RandomAlphaNumericString(x, y, false, generator);
+    auto astring = AlphaNumericString(x, y, false, generator);
     TERRIER_ASSERT(astring.length() >= 8, "Needs enough room for ORIGINAL.");
 
     const uint32_t original_index = std::uniform_int_distribution(
@@ -105,21 +105,21 @@ struct RandomUtil {
 
  private:
   template <class Random>
-  static char RandomAlphaNumericChar(const bool numeric_only, Random *const generator) {
+  static char AlphaNumericChar(const bool numeric_only, Random *const generator) {
     static constexpr char alpha_num[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const size_t length = numeric_only ? 9 : 61;
     return alpha_num[std::uniform_int_distribution(static_cast<size_t>(0), length)(*generator)];
   }
 
   template <class Random>
-  static std::string RandomAlphaNumericString(const uint32_t x, const uint32_t y, const bool numeric_only,
-                                              Random *const generator) {
+  static std::string AlphaNumericString(const uint32_t x, const uint32_t y, const bool numeric_only,
+                                        Random *const generator) {
     const uint32_t length = std::uniform_int_distribution(x, y)(*generator);
     std::string astring(length, 'a');
     for (uint32_t i = 0; i < length; i++) {
-      astring[i] = RandomAlphaNumericChar(numeric_only, generator);
+      astring[i] = AlphaNumericChar(numeric_only, generator);
     }
     return astring;
   }
 };
-}
+}  // namespace terrier::tpcc

@@ -293,4 +293,4 @@ struct Schemas {
   static constexpr uint8_t num_order_line_cols = 10;
 };
 
-}
+}  // namespace terrier::tpcc
