@@ -385,7 +385,7 @@ class TPCC {
     return col_oids;
   }
 
-  uint64_t Timestamp() const {
+  static uint64_t Timestamp() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
         .count();
   }
@@ -506,6 +506,16 @@ class TPCC {
     return storage::VarlenEntry::Create(varlen, astring.length(), true);
   }
 
+  template <typename T>
+  static void SetPRAttribute(const catalog::Schema &schema, const uint32_t col_offset,
+                             const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr, T value) {
+    TERRIER_ASSERT((schema.GetColumn(col_offset).GetAttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
+    const auto col_oid = schema.GetColumn(col_offset).GetOid();
+    const auto attr_offset = projection_map.at(col_oid);
+    auto *const attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<T *>(attr) = value;
+  }
+
   // 4.3.3.1
   storage::ProjectedRow *BuildItemTuple(const int32_t i_id, const bool original, byte *const buffer,
                                         const storage::ProjectedRowInitializer &pr_initializer,
@@ -518,46 +528,34 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // I_ID unique within [100,000]
-    auto col_oid = item_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset - 1).GetName() == "I_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = i_id;
+    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*item_schema_, col_offset++, projection_map, pr, i_id);
 
     // I_IM_ID random within [1 .. 10,000]
-    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset - 1).GetName() == "I_IM_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = RandomWithin<int32_t>(1, 10000, 0);
+    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_IM_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*item_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 10000, 0));
 
     // I_NAME random a-string [14 .. 24]
-    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset - 1).GetName() == "I_NAME", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(14, 24, false);
+    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(14, 24, false));
 
     // I_PRICE random within [1.00 .. 100.00]
-    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset - 1).GetName() == "I_PRICE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = RandomWithin<double>(100, 10000, 2);
+    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_PRICE", "Wrong attribute.");
+    SetPRAttribute<double>(*item_schema_, col_offset++, projection_map, pr, RandomWithin<double>(100, 10000, 2));
 
     // I_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within I_DATA
-    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(item_schema_->GetColumn(col_offset - 1).GetName() == "I_DATA", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
+    TERRIER_ASSERT(item_schema_->GetColumn(col_offset).GetName() == "I_DATA", "Wrong attribute.");
     if (original) {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomOriginalVarlenEntry(26, 50);
+      SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+                                           RandomOriginalVarlenEntry(26, 50));
     } else {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(26, 50, false);
+      SetPRAttribute<storage::VarlenEntry>(*item_schema_, col_offset++, projection_map, pr,
+                                           RandomAlphaNumericVarlenEntry(26, 50, false));
     }
 
-    TERRIER_ASSERT(col_offset == 5, "Didn't get every attribute for Item tuple.");
+    TERRIER_ASSERT(col_offset == item_schema_->GetColumns().size(), "Didn't get every attribute for Item tuple.");
 
     return pr;
   }
@@ -574,69 +572,48 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // W_ID unique within [number_of_configured_warehouses]
-    auto col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*warehouse_schema_, col_offset++, projection_map, pr, w_id);
 
     // W_NAME random a-string [6 .. 10]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_NAME", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(6, 10, false);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(6, 10, false));
 
     // W_STREET_1 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_STREET_1", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_STREET_2 random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_STREET_2", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_CITY random a-string [10 .. 20]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_CITY", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // W_STATE random a-string of 2 letters
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_STATE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // W_ZIP generated according to Clause 4.3.2.7
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_ZIP", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*warehouse_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // W_TAX random within [0.0000 .. 0.2000]
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_TAX", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 2000, 4);
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_TAX", "Wrong attribute.");
+    SetPRAttribute<double>(*warehouse_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
 
     // W_YTD = 300,000.00
-    col_oid = warehouse_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset - 1).GetName() == "W_YTD", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 300000.0;
+    TERRIER_ASSERT(warehouse_schema_->GetColumn(col_offset).GetName() == "W_YTD", "Wrong attribute.");
+    SetPRAttribute<double>(*warehouse_schema_, col_offset++, projection_map, pr, 300000.0);
 
-    TERRIER_ASSERT(col_offset == 9, "Didn't get every attribute for Warehouse tuple.");
+    TERRIER_ASSERT(col_offset == warehouse_schema_->GetColumns().size(),
+                   "Didn't get every attribute for Warehouse tuple.");
 
     return pr;
   }
@@ -654,130 +631,91 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // S_I_ID unique within [100,000]
-    auto col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_I_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = s_i_id;
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, s_i_id);
 
     // S_W_ID = W_ID
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, w_id);
 
     // S_QUANTITY random within [10 .. 100]
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_QUANTITY", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int16_t *>(attr) = RandomWithin<int16_t>(10, 100, 0);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_QUANTITY", "Wrong attribute.");
+    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, RandomWithin<int16_t>(10, 100, 0));
 
     // S_DIST_01 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_01", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_01", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_02 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_02", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_02", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_03 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_03", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_03", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_04 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_04", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_04", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_05 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_05", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_05", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_06 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_06", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_06", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_07 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_07", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_07", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_08 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_08", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_08", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_09 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_09", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_09", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_DIST_10 random a-string of 24 letters
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DIST_10", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DIST_10", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
     // S_YTD = 0
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_YTD", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = 0;
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_YTD", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_ORDER_CNT = 0
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_ORDER_CNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int16_t *>(attr) = 0;
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_ORDER_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_REMOTE_CNT = 0
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_REMOTE_CNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int16_t *>(attr) = 0;
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_REMOTE_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(*stock_schema_, col_offset++, projection_map, pr, 0);
 
     // S_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
     // 8 consecutive characters starting at a random position within S_DATA
-    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset - 1).GetName() == "S_DATA", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
+    TERRIER_ASSERT(stock_schema_->GetColumn(col_offset).GetName() == "S_DATA", "Wrong attribute.");
     if (original) {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomOriginalVarlenEntry(26, 50);
+      SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                           RandomOriginalVarlenEntry(26, 50));
     } else {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(26, 50, false);
+      SetPRAttribute<storage::VarlenEntry>(*stock_schema_, col_offset++, projection_map, pr,
+                                           RandomAlphaNumericVarlenEntry(26, 50, false));
     }
 
-    TERRIER_ASSERT(col_offset == 17, "Didn't get every attribute for Stock tuple.");
+    TERRIER_ASSERT(col_offset == stock_schema_->GetColumns().size(), "Didn't get every attribute for Stock tuple.");
 
     return pr;
   }
@@ -795,83 +733,56 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // D_ID unique within [10]
-    auto col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, d_id);
 
     // D_W_ID = W_ID
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, w_id);
 
     // D_NAME random a-string [6 .. 10]
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_NAME", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(6, 10, false);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_NAME", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(6, 10, false));
 
     // D_STREET_1 random a-string [10 .. 20]
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_STREET_1", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_STREET_2 random a-string [10 .. 20]
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_STREET_2", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_CITY random a-string [10 .. 20]
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_CITY", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // D_STATE random a-string of 2 letters
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_STATE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // D_ZIP generated according to Clause 4.3.2.7
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_ZIP", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*district_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // D_TAX random within [0.0000 .. 0.2000]
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_TAX", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 2000, 4);
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_TAX", "Wrong attribute.");
+    SetPRAttribute<double>(*district_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 2000, 4));
 
     // D_YTD = 30,000.00
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_YTD", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 30000.0;
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_YTD", "Wrong attribute.");
+    SetPRAttribute<double>(*district_schema_, col_offset++, projection_map, pr, 30000.0);
 
     // D_NEXT_O_ID = 3,001
-    col_oid = district_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(district_schema_->GetColumn(col_offset - 1).GetName() == "D_NEXT_O_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = 3001;
+    TERRIER_ASSERT(district_schema_->GetColumn(col_offset).GetName() == "D_NEXT_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*district_schema_, col_offset++, projection_map, pr, 3001);
 
-    TERRIER_ASSERT(col_offset == 11, "Didn't get every attribute for District tuple.");
+    TERRIER_ASSERT(col_offset == district_schema_->GetColumns().size(),
+                   "Didn't get every attribute for District tuple.");
 
     return pr;
   }
@@ -891,163 +802,117 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // C_ID unique within [3,000]
-    auto col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = c_id;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, c_id);
 
     // C_D_ID = D_ID
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, d_id);
 
     // C_W_ID = D_W_ID
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*customer_schema_, col_offset++, projection_map, pr, w_id);
 
     // C_FIRST random a-string [8 .. 16]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_FIRST", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(8, 16, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_FIRST", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(8, 16, false));
 
     // C_MIDDLE = "OE"
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_MIDDLE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) =
-        storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("OE"), 2);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_MIDDLE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(
+        *customer_schema_, col_offset++, projection_map, pr,
+        storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("OE"), 2));
 
     // C_LAST generated according to Clause 4.3.2.3, iterating through the range of [0 .. 999] for the first 1,000
     // customers, and generating a non-uniform random number using the function NURand(255,0,999) for each of the
     // remaining 2,000 customers. The run-time constant C (see Clause 2.1.6) used for the database population must be
     // randomly chosen independently from the test run(s).
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_LAST", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    if (c_id < 1000) {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(c_id);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
+    if (c_id <= 1000) {
+      SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                           RandomLastNameVarlenEntry(c_id - 1));
     } else {
-      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomLastNameVarlenEntry(NURand(255, 0, 999));
+      SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                           RandomLastNameVarlenEntry(NURand(255, 0, 999)));
     }
 
     // C_STREET_1 random a-string [10 .. 20]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_STREET_1", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STREET_1", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_STREET_2 random a-string [10 .. 20]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_STREET_2", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STREET_2", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_CITY random a-string [10 .. 20]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_CITY", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(10, 20, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CITY", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(10, 20, false));
 
     // C_STATE random a-string of 2 letters
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_STATE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(2, 2, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_STATE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(2, 2, false));
 
     // C_ZIP generated according to Clause 4.3.2.7
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_ZIP", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomZipVarlenEntry();
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_ZIP", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr, RandomZipVarlenEntry());
 
     // C_PHONE random n-string of 16 numbers
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_PHONE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(16, 16, true);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_PHONE", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(16, 16, true));
 
     // C_SINCE date/ time given by the operating system when the CUSTOMER table was populated.
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_SINCE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<uint64_t *>(attr) = Timestamp();
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_SINCE", "Wrong attribute.");
+    SetPRAttribute<uint64_t>(*customer_schema_, col_offset++, projection_map, pr, Timestamp());
 
     // C_CREDIT = "GC". For 10% of the rows, selected at random , C_CREDIT = "BC"
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_CREDIT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) =
-        good_credit ? storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("GC"), 2)
-                    : storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("BC"), 2);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CREDIT", "Wrong attribute.");
+    if (good_credit) {
+      SetPRAttribute<storage::VarlenEntry>(
+          *customer_schema_, col_offset++, projection_map, pr,
+          storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("GC"), 2));
+    } else {
+      SetPRAttribute<storage::VarlenEntry>(
+          *customer_schema_, col_offset++, projection_map, pr,
+          storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>("BC"), 2));
+    }
 
     // C_CREDIT_LIM = 50,000.00
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_CREDIT_LIM", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 50000.0;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_CREDIT_LIM", "Wrong attribute.");
+    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, 50000.0);
 
     // C_DISCOUNT random within [0.0000 .. 0.5000]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_DISCOUNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = RandomWithin<double>(0, 5000, 4);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DISCOUNT", "Wrong attribute.");
+    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, RandomWithin<double>(0, 5000, 4));
 
     // C_BALANCE = -10.00
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_BALANCE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = -10.0;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_BALANCE", "Wrong attribute.");
+    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, -10.0);
 
     // C_YTD_PAYMENT = 10.00
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_YTD_PAYMENT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 10.0;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_YTD_PAYMENT", "Wrong attribute.");
+    SetPRAttribute<double>(*customer_schema_, col_offset++, projection_map, pr, 10.0);
 
     // C_PAYMENT_CNT = 1
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_PAYMENT_CNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int16_t *>(attr) = 1;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_PAYMENT_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(*customer_schema_, col_offset++, projection_map, pr, 1);
 
     // C_DELIVERY_CNT = 0
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_DELIVERY_CNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int16_t *>(attr) = 0;
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DELIVERY_CNT", "Wrong attribute.");
+    SetPRAttribute<int16_t>(*customer_schema_, col_offset++, projection_map, pr, 0);
 
     // C_DATA random a-string [300 .. 500]
-    col_oid = customer_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset - 1).GetName() == "C_DATA", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(300, 500, false);
+    TERRIER_ASSERT(customer_schema_->GetColumn(col_offset).GetName() == "C_DATA", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*customer_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(300, 500, false));
 
-    TERRIER_ASSERT(col_offset == 21, "Didn't get every attribute for Customer tuple.");
+    TERRIER_ASSERT(col_offset == customer_schema_->GetColumns().size(),
+                   "Didn't get every attribute for Customer tuple.");
 
     return pr;
   }
@@ -1066,62 +931,39 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // H_C_ID = C_ID
-    auto col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_C_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = c_id;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, c_id);
 
     // H_C_D_ID = D_ID
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_C_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, d_id);
 
     // H_C_W_ID = W_ID
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_C_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_C_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, w_id);
 
     // H_D_ID = D_ID
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, d_id);
 
     // H_W_ID = W_ID
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*history_schema_, col_offset++, projection_map, pr, w_id);
 
     // H_DATE current date and time
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_DATE", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<uint64_t *>(attr) = Timestamp();
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_DATE", "Wrong attribute.");
+    SetPRAttribute<uint64_t>(*history_schema_, col_offset++, projection_map, pr, Timestamp());
 
     // H_AMOUNT = 10.00
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_AMOUNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = 10.0;
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_AMOUNT", "Wrong attribute.");
+    SetPRAttribute<double>(*history_schema_, col_offset++, projection_map, pr, 10.0);
 
     // H_DATA random a-string [12 .. 24]
-    col_oid = history_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(history_schema_->GetColumn(col_offset - 1).GetName() == "H_DATA", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(12, 24, false);
+    TERRIER_ASSERT(history_schema_->GetColumn(col_offset).GetName() == "H_DATA", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*history_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(12, 24, false));
 
-    TERRIER_ASSERT(col_offset == 8, "Didn't get every attribute for History tuple.");
+    TERRIER_ASSERT(col_offset == history_schema_->GetColumns().size(), "Didn't get every attribute for History tuple.");
 
     return pr;
   }
@@ -1140,27 +982,19 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // NO_O_ID = O_ID
-    auto col_oid = new_order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset - 1).GetName() == "NO_O_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = o_id;
+    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, o_id);
 
     // NO_D_ID = D_ID
-    col_oid = new_order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset - 1).GetName() == "NO_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, d_id);
 
     // NO_W_ID = W_ID
-    col_oid = new_order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset - 1).GetName() == "NO_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(new_order_schema_->GetColumn(col_offset).GetName() == "NO_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*new_order_schema_, col_offset++, projection_map, pr, w_id);
 
-    TERRIER_ASSERT(col_offset == 3, "Didn't get every attribute for New Order tuple.");
+    TERRIER_ASSERT(col_offset == new_order_schema_->GetColumns().size(),
+                   "Didn't get every attribute for New Order tuple.");
 
     return pr;
   }
@@ -1186,68 +1020,47 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // O_ID unique within [3,000]
-    auto col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = o_id;
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, o_id);
 
     // O_D_ID = D_ID
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, d_id);
 
     // O_W_ID = W_ID
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, w_id);
 
     // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_C_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = c_id;
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_C_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, c_id);
 
     // O_ENTRY_D current date/ time given by the operating system
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_ENTRY_D", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ENTRY_D", "Wrong attribute.");
     const uint64_t entry_d = Timestamp();
-    *reinterpret_cast<uint64_t *>(attr) = entry_d;
+    SetPRAttribute<uint64_t>(*order_schema_, col_offset++, projection_map, pr, entry_d);
 
     // O_CARRIER_ID random within [1 .. 10] if O_ID < 2,101, null otherwise
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_CARRIER_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_CARRIER_ID", "Wrong attribute.");
+    const auto col_oid = order_schema_->GetColumn(col_offset++).GetOid();
+    const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
-      attr = pr->AccessForceNotNull(attr_offset);
+      auto *const attr = pr->AccessForceNotNull(attr_offset);
       *reinterpret_cast<int32_t *>(attr) = RandomWithin<int32_t>(1, 10, 0);
     } else {
       pr->SetNull(attr_offset);
     }
 
     // O_OL_CNT random within [5 .. 15]
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_OL_CNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_OL_CNT", "Wrong attribute.");
     const int32_t ol_cnt = RandomWithin<int32_t>(5, 15, 0);
-    *reinterpret_cast<int32_t *>(attr) = ol_cnt;
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, ol_cnt);
 
     // O_ALL_LOCAL = 1
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = 1;
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset).GetName() == "O_ALL_LOCAL", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_schema_, col_offset++, projection_map, pr, 1);
 
-    TERRIER_ASSERT(col_offset == 8, "Didn't get every attribute for Order tuple.");
+    TERRIER_ASSERT(col_offset == order_schema_->GetColumns().size(), "Didn't get every attribute for Order tuple.");
 
     return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
   }
@@ -1267,80 +1080,59 @@ class TPCC {
     uint32_t col_offset = 0;
 
     // OL_O_ID = O_ID
-    auto col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_O_ID", "Wrong attribute.");
-    auto attr_offset = projection_map.at(col_oid);
-    auto *attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = o_id;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_O_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, o_id);
 
     // OL_D_ID = D_ID
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_D_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = d_id;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_D_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, d_id);
 
     // OL_W_ID = W_ID
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, w_id);
 
     // OL_NUMBER unique within [O_OL_CNT]
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_NUMBER", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = ol_number;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_NUMBER", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, ol_number);
 
     // OL_I_ID random within [1 .. 100,000]
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_I_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = RandomWithin<int32_t>(1, 100000, 0);
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_I_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, RandomWithin<int32_t>(1, 100000, 0));
 
     // OL_SUPPLY_W_ID = W_ID
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = w_id;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_SUPPLY_W_ID", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, w_id);
 
     // OL_DELIVERY_D = O_ENTRY_D if OL_O_ID < 2,101, null otherwise
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_DELIVERY_D", "Wrong attribute.");
+    const auto col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
+    const auto attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
-      attr = pr->AccessForceNotNull(attr_offset);
+      auto *const attr = pr->AccessForceNotNull(attr_offset);
       *reinterpret_cast<uint64_t *>(attr) = o_entry_d;
     } else {
       pr->SetNull(attr_offset);
     }
 
     // OL_QUANTITY = 5
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_QUANTITY", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = 5;
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_QUANTITY", "Wrong attribute.");
+    SetPRAttribute<int32_t>(*order_line_schema_, col_offset++, projection_map, pr, 5);
 
     // OL_AMOUNT = 0.00 if OL_O_ID < 2,101, random within [0.01 .. 9,999.99] otherwise
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_AMOUNT", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<double *>(attr) = o_id < 2101 ? 0.0 : RandomWithin<double>(1, 999999, 2);
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_AMOUNT", "Wrong attribute.");
+    if (o_id < 2101) {
+      SetPRAttribute<double>(*order_line_schema_, col_offset++, projection_map, pr, 0.0);
+    } else {
+      SetPRAttribute<double>(*order_line_schema_, col_offset++, projection_map, pr, RandomWithin<double>(1, 999999, 2));
+    }
 
     // OL_DIST_INFO random a-string of 24 letters
-    col_oid = order_line_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset - 1).GetName() == "OL_DIST_INFO", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+    TERRIER_ASSERT(order_line_schema_->GetColumn(col_offset).GetName() == "OL_DIST_INFO", "Wrong attribute.");
+    SetPRAttribute<storage::VarlenEntry>(*order_line_schema_, col_offset++, projection_map, pr,
+                                         RandomAlphaNumericVarlenEntry(24, 24, false));
 
-    TERRIER_ASSERT(col_offset == 10, "Didn't get every attribute for Order Line tuple.");
+    TERRIER_ASSERT(col_offset == order_line_schema_->GetColumns().size(),
+                   "Didn't get every attribute for Order Line tuple.");
 
     return pr;
   }
