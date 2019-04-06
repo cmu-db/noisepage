@@ -795,16 +795,16 @@ class TPCC {
 
     auto *const txn = txn_manager_->BeginTransaction();
 
-    // generate booleans to represent ORIGINAL for items. 10% are ORIGINAL (true), and then shuffled
-    std::vector<bool> i_original;
-    i_original.reserve(100000);
+    // generate booleans to represent ORIGINAL for item and stock. 10% are ORIGINAL (true), and then shuffled
+    std::vector<bool> original;
+    original.reserve(100000);
     for (uint32_t i_id = 0; i_id < 100000; i_id++) {
-      i_original.emplace_back(i_id < 10000);
+      original.emplace_back(i_id < 10000);
     }
-    std::shuffle(i_original.begin(), i_original.end(), *generator_);
+    std::shuffle(original.begin(), original.end(), *generator_);
 
     for (uint32_t i_id = 0; i_id < 100000; i_id++) {
-      item_->Insert(txn, *BuildItemTuple(i_id, i_original[i_id], item_buffer, item_pr_initializer, item_pr_map));
+      item_->Insert(txn, *BuildItemTuple(i_id, original[i_id], item_buffer, item_pr_initializer, item_pr_map));
     }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
