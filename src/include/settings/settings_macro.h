@@ -10,18 +10,6 @@
 
 #ifdef __SETTING_GFLAGS_DEFINE__
 
-#define DECLARE_VALIDATOR(name, type, min_value, max_value)                                       \
-  static bool Validate##name(const char *setting_name, type value) {                              \
-    if (value >= min_value && value <= max_value) {                                               \
-      return true;                                                                                \
-    } else {                                                                                      \
-      SETTINGS_LOG_WARN("Value given for \"{}"                                                    \
-                         "\" is not in its min-max bounds ({}-{})",                               \
-                         setting_name, min_value, max_value);                                     \
-      return false;                                                                               \
-    }                                                                                             \
-  }
-
 #ifdef SETTING_int
     #undef SETTING_int
   #endif
@@ -36,16 +24,10 @@
   #endif
 
   #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
-    DECLARE_VALIDATOR(name, int, min_value, max_value);                                          \
-    DEFINE_int32(name, default_value, description);                                              \
-    DEFINE_validator(name, &Validate##name);
-
-
+    DEFINE_int32(name, default_value, description);
 
   #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)     \
-    DECLARE_VALIDATOR(name, double, min_value, max_value);                                       \
-    DEFINE_double(name, default_value, description);                                             \
-    DEFINE_validator(name, &Validate##name);
+    DEFINE_double(name, default_value, description);
 
   #define SETTING_bool(name, description, default_value, is_mutable)                             \
     DEFINE_bool(name, default_value, description);
@@ -93,9 +75,9 @@
   #ifdef SETTING_string
     #undef SETTING_string
   #endif
-  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)      \
+  #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
       DefineSetting(                                                                                          \
-        terrier::settings::Param::name,                                                                   \
+        terrier::settings::Param::name,                                                                       \
         #name, type::ValueFactory::GetIntegerValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetIntegerValue(default_value),                                      \
         type::ValueFactory::GetIntegerValue(min_value),                                                       \
@@ -103,27 +85,27 @@
         is_mutable,                              \
         callback_fn);
 
-  #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)   \
+  #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)                  \
       DefineSetting(                                                                                          \
-        terrier::settings::Param::name,                                                                   \
+        terrier::settings::Param::name,                                                                       \
         #name, type::ValueFactory::GetDecimalValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetDecimalValue(default_value),                                      \
         type::ValueFactory::GetDecimalValue(min_value),                                                       \
         type::ValueFactory::GetDecimalValue(max_value),                                                       \
         is_mutable);
 
-  #define SETTING_bool(name, description, default_value, is_mutable)                           \
+  #define SETTING_bool(name, description, default_value, is_mutable)                                          \
       DefineSetting(                                                                                          \
-        terrier::settings::Param::name,                                                                   \
+        terrier::settings::Param::name,                                                                       \
         #name, type::ValueFactory::GetBooleanValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetBooleanValue(default_value),                                      \
         type::ValueFactory::GetBooleanValue(default_value),                                                   \
         type::ValueFactory::GetBooleanValue(default_value),                                                   \
         is_mutable);
 
-  #define SETTING_string(name, description, default_value, is_mutable)                         \
+  #define SETTING_string(name, description, default_value, is_mutable)                                        \
       DefineSetting(                                                                                          \
-        terrier::settings::Param::name,                                                                   \
+        terrier::settings::Param::name,                                                                       \
         #name, type::ValueFactory::GetVarcharValue(FLAGS_##name),                                             \
         description, type::ValueFactory::GetVarcharValue(default_value),                                      \
         type::ValueFactory::GetVarcharValue(default_value),                                                   \

@@ -26,6 +26,9 @@
 
 int main(int argc, char *argv[]) {
   // initialize loggers
+  ::google::SetUsageMessage("Usage Info: \n");
+  ::google::ParseCommandLineFlags(&argc, &argv, true);
+
   try {
     init_main_logger();
     // initialize namespace specific loggers
@@ -45,10 +48,6 @@ int main(int argc, char *argv[]) {
 
   // log init now complete
   LOG_TRACE("Logger initialization complete");
-
-  // TODO: Reconsider the order of parsing settings and init loggers
-  ::google::SetUsageMessage("Usage Info: \n");
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
 
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();

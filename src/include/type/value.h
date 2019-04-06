@@ -245,6 +245,47 @@ class Value {
     return *this;  // return the object itself (by reference)
   }
 
+  // TODO: Migrate to TransientValue
+  bool CompareBetweenInclusive(const Value &a, const Value &b) const {
+     switch (Type()) {
+       case TypeId::TINYINT:
+         return value_.tinyint_ >= a.GetTinyIntValue() &&
+                value_.tinyint_ <= b.GetTinyIntValue();
+       case TypeId::SMALLINT:
+         return value_.smallint_ >= a.GetSmallIntValue() &&
+                value_.smallint_ <= b.GetSmallIntValue();
+       case TypeId::INTEGER:
+         return value_.integer_ >= a.GetIntValue() &&
+                value_.integer_ <= b.GetIntValue();
+       case TypeId::BIGINT:
+         return value_.bigint_ >= a.GetBigIntValue() &&
+                value_.bigint_ <= b.GetBigIntValue();
+       case TypeId::DECIMAL:
+         return value_.decimal_ >= a.GetDecimalValue() &&
+                value_.decimal_ <= b.GetDecimalValue();
+       default:
+         throw std::runtime_error("unsupported comparison type");
+     }
+  }
+
+  // TODO: Migrate to TransientValue
+  std::string PeekAsString() const {
+    switch (Type()) {
+      case TypeId::TINYINT:
+        return std::to_string(value_.tinyint_);
+      case TypeId::SMALLINT:
+        return std::to_string(value_.smallint_);
+      case TypeId::INTEGER:
+        return std::to_string(value_.integer_);
+      case TypeId::BIGINT:
+        return std::to_string(value_.bigint_);
+      case TypeId::DECIMAL:
+        return std::to_string(value_.decimal_);
+      default:
+        throw std::runtime_error("unsupported peek type");
+    }
+  }
+
   /**
    * Hash the value
    * @return hashed value

@@ -42,22 +42,12 @@ void SettingsManager::DefineSetting(Param param, const std::string &name,
                                     const type::Value &max_value,
                                     bool is_mutable,
                                     callback_fn callback) {
-
-  if (param_map_.count(param) > 0) {
-    throw SETTINGS_EXCEPTION(("Param " + name + " already exists.").c_str());
+  if (value.Type() == type::TypeId::INTEGER || value.Type() == type::TypeId::DECIMAL) {
+    if (!value.CompareBetweenInclusive(min_value, max_value))
+      SETTINGS_LOG_WARN("Value given for \"{}"                                                    \
+                         "\" is not in its min-max bounds ({}-{})",
+                         name, min_value.PeekAsString(), max_value.PeekAsString());
   }
-
-  /*
-  // Only below types support min-max bound checking
-  if (value.Type() == type::TypeId::INTEGER || value.Type() == type::TypeId::SMALLINT ||
-      value.Type() == type::TypeId::TINYINT || value.Type() == type::TypeId::DECIMAL) {
-    if (!value.(min_value, max_value))
-      throw SettingsException("Value given for \"" + name +
-          "\" is not in its min-max bounds (" +
-          min_value.ToString() + "-" +
-          max_value.ToString() + ")");
-  }
-  */
 
   param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable));
   callback_map_.emplace(param, callback);
