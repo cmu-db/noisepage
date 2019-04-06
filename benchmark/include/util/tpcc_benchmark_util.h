@@ -520,6 +520,126 @@ class TPCC {
   }
 
   // 4.3.3.1
+  storage::ProjectedRow *BuildStockTuple(const int32_t s_i_id, const int32_t w_id, const bool original,
+                                         byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
+                                         const storage::ProjectionMap &projection_map) const {
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // S_I_ID unique within [100,000]
+    auto col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    auto attr_offset = projection_map.at(col_oid);
+    auto *attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = s_i_id;
+
+    // S_W_ID = W_ID
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = w_id;
+
+    // S_QUANTITY random within [10 .. 100]
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int16_t *>(attr) = RandomWithin<int16_t>(10, 100, 0);
+
+    // S_DIST_01 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_02 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_03 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_04 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_05 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_06 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_07 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_08 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_09 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_DIST_10 random a-string of 24 letters
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(24, 24, false);
+
+    // S_YTD = 0
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = 0;
+
+    // S_ORDER_CNT = 0
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int16_t *>(attr) = 0;
+
+    // S_REMOTE_CNT = 0
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int16_t *>(attr) = 0;
+
+    // S_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
+    // 8 consecutive characters starting at a random position within S_DATA
+    col_oid = stock_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    if (original) {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomOriginalVarlenEntry(26, 50);
+    } else {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(26, 50, false);
+    }
+
+    TERRIER_ASSERT(col_offset == 17, "Didn't get every attribute for Stock tuple.");
+
+    return pr;
+  }
+
+  // 4.3.3.1
   storage::ProjectedRow *BuildDistrictTuple(const int32_t d_id, const int32_t w_id, byte *const buffer,
                                             const storage::ProjectedRowInitializer &pr_initializer,
                                             const storage::ProjectionMap &projection_map) const {
@@ -825,6 +945,12 @@ class TPCC {
     const auto warehouse_pr_map = warehouse_->InitializerForProjectedRow(warehouse_col_oids).second;
     auto *const warehouse_buffer(common::AllocationUtil::AllocateAligned(warehouse_pr_initializer.ProjectedRowSize()));
 
+    // Stock
+    const auto stock_col_oids = AllColOidsForSchema(*stock_schema_);
+    const auto stock_pr_initializer = stock_->InitializerForProjectedRow(stock_col_oids).first;
+    const auto stock_pr_map = stock_->InitializerForProjectedRow(stock_col_oids).second;
+    auto *const stock_buffer(common::AllocationUtil::AllocateAligned(stock_pr_initializer.ProjectedRowSize()));
+
     // District
     const auto district_col_oids = AllColOidsForSchema(*district_schema_);
     const auto district_pr_initializer = district_->InitializerForProjectedRow(district_col_oids).first;
@@ -860,6 +986,14 @@ class TPCC {
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
       warehouse_->Insert(txn, *BuildWarehouseTuple(w_id, warehouse_buffer, warehouse_pr_initializer, warehouse_pr_map));
 
+      // shuffle the original vector again since we reuse it for stock table
+      std::shuffle(original.begin(), original.end(), *generator_);
+
+      for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
+        stock_->Insert(
+            txn, *BuildStockTuple(s_i_id, w_id, original[s_i_id], stock_buffer, stock_pr_initializer, stock_pr_map));
+      }
+
       for (uint32_t d_id = 0; d_id < 10; d_id++) {
         district_->Insert(txn,
                           *BuildDistrictTuple(d_id, w_id, district_buffer, district_pr_initializer, district_pr_map));
@@ -885,6 +1019,7 @@ class TPCC {
 
     delete[] item_buffer;
     delete[] warehouse_buffer;
+    delete[] stock_buffer;
     delete[] district_buffer;
     delete[] customer_buffer;
     delete[] history_buffer;
