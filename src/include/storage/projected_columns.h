@@ -204,7 +204,6 @@ class PACKED ProjectedColumns {
                                                          common::RawBitmap::SizeInBytes(max_tuples_));
   }
 
-
  private:
   friend class ProjectedColumnsInitializer;
   uint32_t size_;

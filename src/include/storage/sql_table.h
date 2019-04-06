@@ -82,7 +82,8 @@ class SqlTable {
      */
     bool operator==(const SlotIterator &other) const {
       // First "is_end" check is that both are end, the second protects the iterator check through short-circuit
-      return (is_end_ && other.is_end_) || (is_end_ == other.is_end_ && txn_version_ == other.txn_version_ && current_it_ == other.current_it_);
+      return (is_end_ && other.is_end_) ||
+             (is_end_ == other.is_end_ && txn_version_ == other.txn_version_ && current_it_ == other.current_it_);
     }
 
     /**
@@ -97,7 +98,8 @@ class SqlTable {
    private:
     friend class SqlTable;
 
-    SlotIterator(const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables, const layout_version_t txn_version, bool is_end)
+    SlotIterator(const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables,
+                 const layout_version_t txn_version, bool is_end)
         : tables_(tables), current_it_(tables_->Find(txn_version)->second.data_table->begin()) {
       txn_version_ = txn_version;
       curr_version_ = txn_version;
@@ -121,9 +123,9 @@ class SqlTable {
         curr_version_--;
         TERRIER_ASSERT(curr_version_ < txn_version_, "Current version must be older than transaction");
         auto next_table = tables_->Find(curr_version_);
-        if (next_table == tables_->CEnd()) { // next_table does not exist (at end)
+        if (next_table == tables_->CEnd()) {  // next_table does not exist (at end)
           is_end_ = true;
-        } else { // next_table is valid
+        } else {  // next_table is valid
           current_it_ = next_table->second.data_table->begin();
         }
       }
@@ -349,6 +351,6 @@ class SqlTable {
    */
   template <class RowType>
   void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                        const DataTableVersion &old_dt_version, col_id_t * original_col_id_store) const;
+                                        const DataTableVersion &old_dt_version, col_id_t *original_col_id_store) const;
 };
 }  // namespace terrier::storage

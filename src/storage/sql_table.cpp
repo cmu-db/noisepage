@@ -109,8 +109,15 @@ void SqlTable::UpdateSchema(const catalog::Schema &schema) {
   }
 
   BlockLayout layout = storage::BlockLayout(attr_sizes);
-  tables_.Insert(schema.GetVersion(), {new DataTable(block_store_, layout, schema.GetVersion()), layout, col_map,
-                                  inv_col_map});
+
+  auto dt = new DataTable(block_store_, layout, schema.GetVersion());
+  // clang's memory analysis has a false positive on this allocation.  The TERRIER_ASSERT on the second line of this
+  // function prevents the insert below from failing (can only fail when key is not unique).  The write-lock on the
+  // catalog prevents any other transaction from being in a race condition with this one.  The corresponding delete
+  // for this allocation is in the destructor for SqlTable.  clang-analyzer-cplusplus.NewDeleteLeaks identifies this
+  // as a potential leak and throws an error incorrectly.
+  // NOLINTNEXTLINE
+  tables_.Insert(schema.GetVersion(), {dt, layout, col_map, inv_col_map});
 }
 
 bool SqlTable::Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer,
@@ -242,8 +249,8 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     auto new_pair = InitializerForProjectedRow(new_col_oids, version_num);
     auto new_buffer = common::AllocationUtil::AllocateAligned(new_pair.first.ProjectedRowSize());
     ProjectedRow *new_pr = new_pair.first.InitializeRow(new_buffer);
-    StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.Find(old_version)->second.layout, new_pr,
-                                              new_pair.second);
+    StorageUtil::CopyProjectionIntoProjection(*old_pr, old_pair.second, tables_.Find(old_version)->second.layout,
+                                              new_pr, new_pair.second);
     // 3. Insert the row into new table
     storage::TupleSlot new_slot = Insert(txn, *new_pr, version_num);
 
@@ -290,7 +297,8 @@ std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid
 
   // Build the input to the initializer constructor
   for (const catalog::col_oid_t col_oid : col_oids) {
-    TERRIER_ASSERT(tables_.Find(version)->second.column_map.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
+    TERRIER_ASSERT(tables_.Find(version)->second.column_map.count(col_oid) > 0,
+                   "Provided col_oid does not exist in the table.");
     const col_id_t col_id = tables_.Find(version)->second.column_map.at(col_oid);
     col_ids.push_back(col_id);
   }

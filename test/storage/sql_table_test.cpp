@@ -1,6 +1,7 @@
 #include "storage/sql_table.h"
 #include <algorithm>
 #include <cstring>
+#include <map>
 #include <random>
 #include <string>
 #include <utility>
@@ -638,8 +639,7 @@ TEST_F(SqlTableTests, ScanTest) {
     EXPECT_EQ(new_col, new_col_map[id]);
   }
 
-  for (auto iter : seen_map)
-    EXPECT_TRUE(iter.second);
+  for (auto iter : seen_map) EXPECT_TRUE(iter.second);
 
   delete[] buffer;
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
