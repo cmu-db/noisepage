@@ -3,7 +3,7 @@
 #define NUM_RESERVED_COLUMNS 1u
 
 namespace terrier::storage {
-void CheckpointManager::Checkpoint(DataTable &table, const storage::BlockLayout &layout) {
+void CheckpointManager::Checkpoint(SqlTable &table, const storage::BlockLayout &layout) {
   std::vector<storage::col_id_t> all_col(layout.NumColumns() - NUM_RESERVED_COLUMNS);
   // Add all of the column ids from the layout to the projection list
   // 0 is version vector so we skip it
