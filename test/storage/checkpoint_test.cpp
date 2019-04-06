@@ -20,6 +20,7 @@ class RandomSqlTableTestObject {
     delete pri_;
     delete pr_map_;
     delete schema_;
+    delete layout_;
     delete table_;
   }
 
@@ -57,6 +58,7 @@ class RandomSqlTableTestObject {
   void Create() {
     schema_ = new catalog::Schema(cols_);
     table_ = new storage::SqlTable(&block_store_, *schema_, table_oid_);
+    layout_ = new storage::BlockLayout(storage::StorageUtil::BlockLayoutFromSchema(*schema_).first);
 
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
@@ -130,9 +132,8 @@ class RandomSqlTableTestObject {
     return table_;
   }
 
-  storage::BlockLayout GetLayout() {
-    auto layout = storage::StorageUtil::BlockLayoutFromSchema(*schema_).first;
-    return layout;
+  storage::BlockLayout &GetLayout() {
+    return *layout_;
   }
 
   transaction::TransactionManager *GetTxnManager() {
@@ -156,6 +157,7 @@ class RandomSqlTableTestObject {
   storage::SqlTable *table_ = nullptr;
 
   catalog::Schema *schema_ = nullptr;
+  storage::BlockLayout *layout_ = nullptr;
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> col_oids_;
 
@@ -171,8 +173,8 @@ struct CheckpointTests : public TerrierTest {
 };
 
 TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
-   const uint32_t num_rows = 1000;
-  const uint32_t num_columns = 10;
+   const uint32_t num_rows = 100;
+  const uint32_t num_columns = 3;
 //  const uint32_t initial_table_size = 100;
   const uint32_t checkpoint_buffer_size = 10000;
 
@@ -180,7 +182,7 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
 
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);
-  tested.GenerateRandomColumns(num_columns, true, &random_generator);
+  tested.GenerateRandomColumns(num_columns, false, &random_generator);
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &generator_);
 
