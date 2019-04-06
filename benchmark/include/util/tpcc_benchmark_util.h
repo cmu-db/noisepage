@@ -24,6 +24,7 @@ class TPCC {
   explicit TPCC(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store,
                 Random *const generator)
       : txn_manager_(txn_manager), store_(store), generator_(generator) {
+    CreateItemTable();
     CreateWarehouseTable();
     CreateDistrictTable();
     CreateCustomerTable();
@@ -33,6 +34,8 @@ class TPCC {
   }
 
   ~TPCC() {
+    delete item_;
+    delete item_schema_;
     delete warehouse_;
     delete warehouse_schema_;
     delete district_;
@@ -44,11 +47,26 @@ class TPCC {
     //    delete new_order_;
     //    delete order_;
     //    delete order_line_;
-    //    delete item_;
     //    delete stock_;
   }
 
  private:
+  void CreateItemSchema() {
+    TERRIER_ASSERT(item_schema_ == nullptr, "Item schema already exists.");
+    std::vector<catalog::Schema::Column> item_columns;
+    item_columns.reserve(5);
+
+    item_columns.emplace_back("I_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    item_columns.emplace_back("I_IM_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    item_columns.emplace_back("I_NAME", type::TypeId::VARCHAR, 24, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    item_columns.emplace_back("I_PRICE", type::TypeId::DECIMAL, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    item_columns.emplace_back("I_DATA", type::TypeId::VARCHAR, 50, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(item_columns.size() == 5, "Wrong number of columns for Item schema.");
+
+    item_schema_ = new catalog::Schema(item_columns);
+  }
+
   void CreateWarehouseSchema() {
     TERRIER_ASSERT(warehouse_schema_ == nullptr, "Warehouse schema already exists.");
     std::vector<catalog::Schema::Column> warehouse_columns;
@@ -175,6 +193,12 @@ class TPCC {
     history_schema_ = new catalog::Schema(history_columns);
   }
 
+  void CreateItemTable() {
+    TERRIER_ASSERT(item_ == nullptr, "Item table already exists.");
+    CreateItemSchema();
+    item_ = new storage::SqlTable(store_, *item_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
   void CreateWarehouseTable() {
     TERRIER_ASSERT(warehouse_ == nullptr, "Warehouse table already exists.");
     CreateWarehouseSchema();
@@ -216,7 +240,7 @@ class TPCC {
 
   char RandomAlphaNumericChar(const bool numeric_only) const {
     static const char *alpha_num = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const size_t length = numeric_only ? 9 : std::strlen(alpha_num) - 1;
+    const size_t length = numeric_only ? 9 : 61;
     return alpha_num[std::uniform_int_distribution(static_cast<size_t>(0), length)(*generator_)];
   }
 
@@ -312,6 +336,70 @@ class TPCC {
     string.append("11111");
     TERRIER_ASSERT(string.length() == 9, "Wrong ZIP code length.");
     return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()), string.length());
+  }
+
+  // 4.3.3.1
+  storage::VarlenEntry RandomOriginalVarlenEntry(const uint32_t x, const uint32_t y) const {
+    TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
+    auto astring = RandomAlphaNumericString(x, y, false);
+    TERRIER_ASSERT(astring.length() >= 8, "Needs enough room for ORIGINAL.");
+
+    const uint32_t original_index = std::uniform_int_distribution(
+        static_cast<uint32_t>(0), static_cast<uint32_t>(astring.length() - 8))(*generator_);
+
+    astring.replace(original_index, 8, "ORIGINAL");
+
+    auto *const varlen = common::AllocationUtil::AllocateAligned(astring.length());
+    std::memcpy(varlen, astring.data(), astring.length());
+    return storage::VarlenEntry::Create(varlen, astring.length(), true);
+  }
+
+  // 4.3.3.1
+  storage::ProjectedRow *BuildItemTuple(const int32_t i_id, const bool original, byte *const buffer,
+                                        const storage::ProjectedRowInitializer &pr_initializer,
+                                        const storage::ProjectionMap &projection_map) const {
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // I_ID unique within [100,000]
+    auto col_oid = item_schema_->GetColumn(col_offset++).GetOid();
+    auto attr_offset = projection_map.at(col_oid);
+    auto *attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = i_id;
+
+    // I_IM_ID random within [1 .. 10,000]
+    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = RandomWithin<int32_t>(1, 10000, 0);
+
+    // I_NAME random a-string [14 .. 24]
+    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(14, 24, false);
+
+    // I_PRICE random within [1.00 .. 100.00]
+    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<double *>(attr) = RandomWithin<double>(100, 10000, 2);
+
+    // I_DATA random a-string [26 .. 50]. For 10% of the rows, selected at random, the string "ORIGINAL" must be held by
+    // 8 consecutive characters starting at a random position within I_DATA
+    col_oid = item_schema_->GetColumn(col_offset++).GetOid();
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    if (original) {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomOriginalVarlenEntry(26, 50);
+    } else {
+      *reinterpret_cast<storage::VarlenEntry *>(attr) = RandomAlphaNumericVarlenEntry(26, 50, false);
+    }
+
+    TERRIER_ASSERT(col_offset == 5, "Didn't get every attribute for Item tuple.");
+
+    return pr;
   }
 
   // 4.3.3.1
@@ -675,6 +763,12 @@ class TPCC {
   void PopulateTables() {
     TERRIER_ASSERT(txn_manager_ != nullptr, "TransactionManager does not exist.");
 
+    // Item
+    const auto item_col_oids = AllColOidsForSchema(*item_schema_);
+    const auto item_pr_initializer = item_->InitializerForProjectedRow(item_col_oids).first;
+    const auto item_pr_map = item_->InitializerForProjectedRow(item_col_oids).second;
+    auto *const item_buffer(common::AllocationUtil::AllocateAligned(item_pr_initializer.ProjectedRowSize()));
+
     // Warehouse
     const auto warehouse_col_oids = AllColOidsForSchema(*warehouse_schema_);
     const auto warehouse_pr_initializer = warehouse_->InitializerForProjectedRow(warehouse_col_oids).first;
@@ -700,6 +794,18 @@ class TPCC {
     auto *const history_buffer(common::AllocationUtil::AllocateAligned(history_pr_initializer.ProjectedRowSize()));
 
     auto *const txn = txn_manager_->BeginTransaction();
+
+    // generate booleans to represent ORIGINAL for items. 10% are ORIGINAL (true), and then shuffled
+    std::vector<bool> i_original;
+    i_original.reserve(100000);
+    for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+      i_original.emplace_back(i_id < 10000);
+    }
+    std::shuffle(i_original.begin(), i_original.end(), *generator_);
+
+    for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+      item_->Insert(txn, *BuildItemTuple(i_id, i_original[i_id], item_buffer, item_pr_initializer, item_pr_map));
+    }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
       warehouse_->Insert(txn, *BuildWarehouseTuple(w_id, warehouse_buffer, warehouse_pr_initializer, warehouse_pr_map));
@@ -739,6 +845,8 @@ class TPCC {
 
   uint32_t num_warehouses_ = 10;  // TODO(Matt): don't hardcode this
 
+  storage::SqlTable *item_ = nullptr;
+  catalog::Schema *item_schema_ = nullptr;
   storage::SqlTable *warehouse_ = nullptr;
   catalog::Schema *warehouse_schema_ = nullptr;
   storage::SqlTable *district_ = nullptr;
@@ -750,7 +858,6 @@ class TPCC {
   //  storage::SqlTable *new_order_ = nullptr;
   //  storage::SqlTable *order_ = nullptr;
   //  storage::SqlTable *order_line_ = nullptr;
-  //  storage::SqlTable *item_ = nullptr;
   //  storage::SqlTable *stock_ = nullptr;
 
   transaction::TransactionManager *const txn_manager_;
