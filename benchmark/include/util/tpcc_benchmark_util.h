@@ -833,6 +833,7 @@ class TPCC {
 
     txn_manager_->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
+    delete[] item_buffer;
     delete[] warehouse_buffer;
     delete[] district_buffer;
     delete[] customer_buffer;
