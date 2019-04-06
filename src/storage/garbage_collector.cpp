@@ -1,5 +1,8 @@
 #include "storage/garbage_collector.h"
+#include <algorithm>
+#include <functional>
 #include <utility>
+#include <vector>
 #include "common/container/concurrent_queue.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
@@ -12,7 +15,7 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
-  const transaction::timestamp_t start_time{0};
+  visited_slots_.clear();
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
@@ -107,7 +110,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
       // with an Interval GC approach
       bool all_unlinked = true;
       for (auto &undo_record : txn->undo_buffer_) {
-        all_unlinked = ProcessUndoRecord(&undo_record, &active_txns) && all_unlinked;
+        all_unlinked = all_unlinked && ProcessUndoRecord(&undo_record, &active_txns);
       }
       if (all_unlinked) {
         // We unlinked all of the UndoRecords for this txn, so we can add it to the deallocation queue
@@ -170,7 +173,10 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
   // if this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
   // no point in trying to reclaim slots or do any further operation if cannot safely unlink
-  UnlinkUndoRecord(undo_record, active_txns);
+
+  if (visited_slots_.insert(undo_record->Slot()).second) {
+    UnlinkUndoRecord(undo_record, active_txns);
+  }
 
   table = undo_record->Table();
   return table == nullptr;
@@ -214,7 +220,7 @@ void GarbageCollector::UnlinkUndoRecordHead(UndoRecord *const head,
     if (transaction::TransactionUtil::Committed(head->Timestamp().load())) {
       UndoRecord *to_be_unlinked = head;
       // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-      if (table->CompareAndSwapVersionPtr(slot, accessor, head, head->Next())) {
+      if (table->CompareAndSwapVersionPtr(slot, accessor, head, head->Next().load())) {
         UnlinkUndoRecordVersion(to_be_unlinked);
       }
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
@@ -243,13 +249,13 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
   uint32_t interval_length = 0;
 
   UndoRecord *curr = version_chain_head;
-  UndoRecord *next = curr->Next();
+  UndoRecord *next = curr->Next().load();
   // Skip all the uncommitted undo records
   // Collect only committed undo records, this prevents collection of partial rollback versions
   while (next != nullptr && !transaction::TransactionUtil::Committed(next->Timestamp().load())) {
     // Update curr and next
-    curr = curr->Next();
-    next = curr->Next();
+    curr = curr->Next().load();
+    next = curr->Next().load();
   }
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
@@ -270,13 +276,13 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
       } else {
         if (ReadUndoRecord(start_record, next, &interval_length)) {
           // If compaction terminates here because of an Insert record, continue and look for new compaction to begin
-          curr = curr->Next();
-          next = curr->Next();
+          curr = curr->Next().load();
+          next = curr->Next().load();
           continue;
         }
       }
       // Update curr
-      curr = curr->Next();
+      curr = curr->Next().load();
     } else {
       if (interval_length > 1) {
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
@@ -287,24 +293,24 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
       EndCompaction(&interval_length);
       BeginCompaction(&start_record, curr, next, &interval_length);
       // curr was not claimed in the previous iteration, so possibly someone might use it
-      curr = curr->Next();
+      curr = curr->Next().load();
     }
-    next = curr->Next();
+    next = curr->Next().load();
   }
 
+  SwapwithSafeAbort(curr, nullptr, table, curr->Slot());
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
   while (next != nullptr) {
     // Unlink next
-    curr->Next().store(next->Next().load());
     UnlinkUndoRecordVersion(next);
-
     // Move next pointer ahead
-    next = curr->Next();
+    next = next->Next().load();
   }
 }
 
 void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
   DataTable *&table = undo_record->Table();
+  TERRIER_ASSERT(table != nullptr, "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
 
   MarkVarlenReclaimable(undo_record);
@@ -330,13 +336,13 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
 
 void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
                                                UndoRecord *compacted_undo_record) {
-  UnlinkUndoRecordVersion(start_record->Next());
+  UnlinkUndoRecordVersion(start_record->Next().load());
   // We have compacted some undo records till now
   // end_record undo record can't be GC'd. Set compacted undo record to point to end_record.
   // Add this to the version chain
   compacted_undo_record->Next().store(end_record);
   // Set start_record to point to the compacted undo record
-  start_record->Next().store(compacted_undo_record);
+  SwapwithSafeAbort(start_record, compacted_undo_record, compacted_undo_record->table_, compacted_undo_record->Slot());
   // Added a compacted undo record. So it should be curr
   *curr_ptr = compacted_undo_record;
 }
@@ -352,16 +358,17 @@ bool GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       break;
     case DeltaRecordType::INSERT:
       // Compacting here. So unlink start_record's next
-      UnlinkUndoRecordVersion(start_record->Next());
+      UnlinkUndoRecordVersion(start_record->Next().load());
       EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
-      start_record->Next().store(next);
+      SwapwithSafeAbort(start_record, next, next->table_, next->Slot());
       // Free all the varlen entries encountered in the compaction pass as it is not visible to any txn.
       // Only the INSERT undo record should be visible
       FreeUpdateVarlen();
       return true;
-    case DeltaRecordType::DELETE:;
+    case DeltaRecordType::DELETE: {
+    }
   }
   return false;
 }
@@ -394,7 +401,7 @@ void GarbageCollector::FreeUpdateVarlen() {
 }
 
 UndoRecord *GarbageCollector::CreateUndoRecord(UndoRecord *const start_record, UndoRecord *const end_record) {
-  UndoRecord *curr = start_record->Next();
+  UndoRecord *curr = start_record->Next().load();
   UndoRecord *first_compacted_record = start_record->Next().load();
   DataTable *table = first_compacted_record->Table();
   const TupleAccessStrategy &accessor = table->accessor_;
@@ -404,7 +411,7 @@ UndoRecord *GarbageCollector::CreateUndoRecord(UndoRecord *const start_record, U
 
   while (curr != end_record) {
     StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(curr->Delta()), base_undo_record->Delta());
-    curr = curr->Next();
+    curr = curr->Next().load();
   }
   return base_undo_record;
 }
@@ -417,7 +424,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   std::vector<col_id_t> col_id_list(col_set_.begin(), col_set_.end());
   auto init = terrier::storage::ProjectedRowInitializer(layout, col_id_list);
 
-  uint32_t size = (uint32_t)sizeof(UndoRecord) + init.ProjectedRowSize();
+  uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
 
   auto *result = reinterpret_cast<UndoRecord *>(head);
@@ -472,11 +479,13 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
 
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-      // Copy the varlen entry from the original undo record to the compacted undo record
-      uint32_t size = varlen->Size();
-      byte *buffer = common::AllocationUtil::AllocateAligned(size);
-      *reinterpret_cast<storage::VarlenEntry *>(undo_record->Delta()->AccessForceNotNull(i)) =
-          storage::VarlenEntry::Create(buffer, size, true);
+      if (varlen != nullptr && varlen->NeedReclaim()) {
+          // Copy the varlen entry from the original undo record to the compacted undo record
+          uint32_t size = varlen->Size();
+          byte *buffer = common::AllocationUtil::AllocateAligned(size);
+          *reinterpret_cast<storage::VarlenEntry *>(undo_record->Delta()->AccessForceNotNull(i)) =
+                  storage::VarlenEntry::Create(buffer, size, true);
+      }
     }
   }
 }
@@ -484,9 +493,25 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
 void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
   for (auto &undo_record : *undo_buffer) {
     for (const byte *ptr : reclaim_varlen_map_[&undo_record]) {
-      delete[] ptr;
+        if(ptr != nullptr) delete[] ptr;
     }
   }
+}
+
+void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, DataTable *table, TupleSlot slot) {
+    UndoRecord *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+    if(curr == version_ptr) {
+        curr->Next().store(to_link);
+        if(curr->Next())
+            TERRIER_ASSERT(curr->Next().load()->table_ != nullptr, "UNLINKED RECORD");
+        while(curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
+                table->AtomicallyReadVersionPtr(slot, table->accessor_) != version_ptr) {
+          table->AtomicallyWriteVersionPtr(slot, table->accessor_, to_link);
+          version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
+        }
+    } else {
+        curr->Next().store(to_link);
+    }
 }
 
 }  // namespace terrier::storage

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <queue>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "storage/record_buffer.h"
@@ -103,6 +105,7 @@ class GarbageCollector {
   void MarkVarlenReclaimable(UndoRecord *undo_record);
   void DeallocateVarlen(UndoBuffer *undo_buffer);
   void CopyVarlen(UndoRecord *undo_record);
+  void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, DataTable *table, TupleSlot slot);
 
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
@@ -117,7 +120,8 @@ class GarbageCollector {
   std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
   std::unordered_map<col_id_t, VarlenEntry *> varlen_map_;
   std::unordered_set<col_id_t> col_set_;
-  std::unordered_map<storage::UndoRecord *,std::forward_list<const byte * > > reclaim_varlen_map_;
+  std::unordered_map<storage::UndoRecord *, std::forward_list<const byte *> > reclaim_varlen_map_;
+  std::unordered_set<TupleSlot> visited_slots_;
 };
 
 }  // namespace terrier::storage
