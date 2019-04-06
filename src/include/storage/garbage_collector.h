@@ -100,6 +100,11 @@ class GarbageCollector {
   UndoRecord *CreateUndoRecord(UndoRecord *start_record, UndoRecord *end_record);
   UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
+  void DeallocateVarlen(UndoBuffer *undo_buffer);
+
+  void ReclaimBufferIfVarlen(UndoRecord *undo_record) const;
+  void CopyVarlen(UndoRecord *undo_record);
+
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;

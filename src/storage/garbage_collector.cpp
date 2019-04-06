@@ -47,6 +47,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
       txns_to_deallocate_.pop_front();
       if (txn->log_processed_) {
         // If the log manager is already done with this transaction, it is safe to deallocate
+//        DeallocateVarlen(&(txn->undo_buffer_));
         delete txn;
         txns_processed++;
       } else {
@@ -62,6 +63,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
     while (!buffers_to_deallocate_.empty()) {
       buf = buffers_to_deallocate_.front();
       buffers_to_deallocate_.pop_front();
+//      DeallocateVarlen(buf);
       delete buf;
     }
   }
@@ -278,6 +280,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
     } else {
       if (interval_length > 1) {
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
+        CopyVarlen(compacted_undo_record);
         // Compacted more than one undo record, link it to the version chain.
         LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
       }
@@ -374,15 +377,8 @@ void GarbageCollector::ProcessUndoRecordAttributes(UndoRecord *const undo_record
 
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-      if (varlen->NeedReclaim()) {
-        auto it = varlen_map_.find(col_id);
-        if (it != varlen_map_.end() && it->second != nullptr) {
-          // Varlen entry for this col already exists. Free this
-          delete[](it->second)->Content();
-        }
-        // Update the varlen pointer.
-        varlen_map_[col_id] = varlen;
-      }
+      // Update the varlen pointer.
+      varlen_map_[col_id] = varlen;
     }
   }
 }
@@ -432,4 +428,57 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   result->slot_ = slot;
   return result;
 }
+
+void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
+  for (auto &undo_record : *undo_buffer) {
+    ReclaimBufferIfVarlen(&undo_record);
+  }
+}
+
+void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *undo_record) const {
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  switch (undo_record->Type()) {
+    case DeltaRecordType::INSERT:
+      return;  // no possibility of outdated varlen to gc
+    case DeltaRecordType::DELETE:
+      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
+      for (uint16_t i = 0; i < layout.NumColumns(); i++) {
+        col_id_t col_id(i);
+        // Okay to include version vector, as it is never varlen
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
+          if (varlen != nullptr && varlen->NeedReclaim()) delete  varlen->Content();
+        }
+      }
+      break;
+    case DeltaRecordType::UPDATE:
+      // TODO(Tianyu): This might be a really bad idea for large deltas...
+      for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+        col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+        if (layout.IsVarlen(col_id)) {
+          auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+          if (varlen != nullptr && varlen->NeedReclaim()) delete  varlen->Content();
+        }
+      }
+  }
+}
+
+void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
+  const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
+    col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
+
+    if (layout.IsVarlen(col_id)) {
+      auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
+      // Copy the varlen entry from the original undo record to the compacted undo record
+      uint32_t size = varlen->Size();
+      byte *buffer = common::AllocationUtil::AllocateAligned(size);
+      *reinterpret_cast<storage::VarlenEntry *>(undo_record->Delta()->AccessForceNotNull(i)) =
+          storage::VarlenEntry::Create(buffer, size, true);
+    }
+  }
+}
+
 }  // namespace terrier::storage
