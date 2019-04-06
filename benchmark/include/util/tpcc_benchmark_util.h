@@ -16,6 +16,8 @@
 #include "util/random_test_util.h"
 #include "util/transaction_benchmark_util.h"
 
+// TODO(Matt): it seems many fields can by smaller than INTEGER
+
 namespace terrier {
 
 template <class Random>
@@ -31,6 +33,8 @@ class TPCC {
     CreateCustomerTable();
     CreateHistoryTable();
     CreateNewOrderTable();
+    CreateOrderTable();
+    CreateOrderLineTable();
 
     PopulateTables();
   }
@@ -50,8 +54,10 @@ class TPCC {
     delete history_schema_;
     delete new_order_;
     delete new_order_schema_;
-    //    delete order_;
-    //    delete order_line_;
+    delete order_;
+    delete order_schema_;
+    delete order_line_;
+    delete order_line_schema_;
   }
 
  private:
@@ -140,6 +146,7 @@ class TPCC {
   }
 
   void CreateDistrictSchema() {
+    TERRIER_ASSERT(district_schema_ == nullptr, "District schema already exists.");
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(11);
 
@@ -168,6 +175,7 @@ class TPCC {
   }
 
   void CreateCustomerSchema() {
+    TERRIER_ASSERT(customer_schema_ == nullptr, "Customer schema already exists.");
     std::vector<catalog::Schema::Column> customer_columns;
     customer_columns.reserve(21);
 
@@ -217,6 +225,7 @@ class TPCC {
   }
 
   void CreateHistorySchema() {
+    TERRIER_ASSERT(history_schema_ == nullptr, "History schema already exists.");
     std::vector<catalog::Schema::Column> history_columns;
     history_columns.reserve(8);
 
@@ -240,6 +249,7 @@ class TPCC {
   }
 
   void CreateNewOrderSchema() {
+    TERRIER_ASSERT(new_order_schema_ == nullptr, "New Order schema already exists.");
     std::vector<catalog::Schema::Column> new_order_columns;
     new_order_columns.reserve(3);
 
@@ -253,6 +263,59 @@ class TPCC {
     TERRIER_ASSERT(new_order_columns.size() == 3, "Wrong number of columns for New Order schema.");
 
     new_order_schema_ = new catalog::Schema(new_order_columns);
+  }
+
+  void CreateOrderSchema() {
+    TERRIER_ASSERT(order_schema_ == nullptr, "Order schema already exists.");
+    std::vector<catalog::Schema::Column> order_columns;
+    order_columns.reserve(8);
+
+    order_columns.emplace_back("O_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_D_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_C_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_ENTRY_D", type::TypeId::TIMESTAMP, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_CARRIER_ID", type::TypeId::INTEGER, true,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_OL_CNT", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_columns.emplace_back("O_ALL_LOCAL", type::TypeId::INTEGER, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(order_columns.size() == 8, "Wrong number of columns for Order schema.");
+
+    order_schema_ = new catalog::Schema(order_columns);
+  }
+
+  void CreateOrderLineSchema() {
+    TERRIER_ASSERT(order_line_schema_ == nullptr, "Order Line schema already exists.");
+    std::vector<catalog::Schema::Column> order_line_columns;
+    order_line_columns.reserve(10);
+
+    order_line_columns.emplace_back("OL_O_ID", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_D_ID", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_W_ID", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_NUMBER", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_I_ID", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_SUPPLY_W_ID", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_QUANTITY", type::TypeId::INTEGER, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_AMOUNT", type::TypeId::DECIMAL, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+    order_line_columns.emplace_back("OL_DIST_INFO", type::TypeId::VARCHAR, 24, false,
+                                    static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(order_line_columns.size() == 10, "Wrong number of columns for Order Line schema.");
+
+    order_line_schema_ = new catalog::Schema(order_line_columns);
   }
 
   void CreateItemTable() {
@@ -295,6 +358,18 @@ class TPCC {
     TERRIER_ASSERT(new_order_ == nullptr, "New Order table already exists.");
     CreateNewOrderSchema();
     new_order_ = new storage::SqlTable(store_, *new_order_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
+  void CreateOrderTable() {
+    TERRIER_ASSERT(order_ == nullptr, "Order table already exists.");
+    CreateOrderSchema();
+    order_ = new storage::SqlTable(store_, *order_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
+  void CreateOrderLineTable() {
+    TERRIER_ASSERT(order_line_ == nullptr, "Order Line table already exists.");
+    CreateOrderLineSchema();
+    order_line_ = new storage::SqlTable(store_, *order_line_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
 
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
@@ -1053,7 +1128,7 @@ class TPCC {
 
   uint64_t oid_counter = 0;
 
-  uint32_t num_warehouses_ = 10;  // TODO(Matt): don't hardcode this
+  uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hardcode this
 
   storage::SqlTable *item_ = nullptr;
   catalog::Schema *item_schema_ = nullptr;
@@ -1069,8 +1144,10 @@ class TPCC {
   catalog::Schema *history_schema_ = nullptr;
   storage::SqlTable *new_order_ = nullptr;
   catalog::Schema *new_order_schema_ = nullptr;
-  //  storage::SqlTable *order_ = nullptr;
-  //  storage::SqlTable *order_line_ = nullptr;
+  storage::SqlTable *order_ = nullptr;
+  catalog::Schema *order_schema_ = nullptr;
+  storage::SqlTable *order_line_ = nullptr;
+  catalog::Schema *order_line_schema_ = nullptr;
 
   transaction::TransactionManager *const txn_manager_;
   storage::BlockStore *const store_;
