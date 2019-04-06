@@ -47,7 +47,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
       txns_to_deallocate_.pop_front();
       if (txn->log_processed_) {
         // If the log manager is already done with this transaction, it is safe to deallocate
-//        DeallocateVarlen(&(txn->undo_buffer_));
+        DeallocateVarlen(&txn->undo_buffer_);
         delete txn;
         txns_processed++;
       } else {
@@ -63,7 +63,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
     while (!buffers_to_deallocate_.empty()) {
       buf = buffers_to_deallocate_.front();
       buffers_to_deallocate_.pop_front();
-//      DeallocateVarlen(buf);
+      DeallocateVarlen(buf);
       delete buf;
     }
   }
@@ -196,7 +196,7 @@ void GarbageCollector::UnlinkUndoRecord(UndoRecord *const undo_record,
 }
 
 void GarbageCollector::UnlinkUndoRecordHead(UndoRecord *const head,
-                                            std::vector<transaction::timestamp_t> *const active_txns) const {
+                                            std::vector<transaction::timestamp_t> *const active_txns) {
   DataTable *table = head->Table();
   if (table == nullptr) {
     // This UndoRecord has already been unlinked, so we can skip it
@@ -303,9 +303,11 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
   }
 }
 
-void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) const {
+void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
   DataTable *&table = undo_record->Table();
   ReclaimSlotIfDeleted(undo_record);
+
+  MarkVarlenReclaimable(undo_record);
   // mark the record as fully processed
   table = nullptr;
 }
@@ -415,7 +417,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   std::vector<col_id_t> col_id_list(col_set_.begin(), col_set_.end());
   auto init = terrier::storage::ProjectedRowInitializer(layout, col_id_list);
 
-  uint32_t size = sizeof(UndoRecord) + init.ProjectedRowSize();
+  uint32_t size = (uint32_t)sizeof(UndoRecord) + init.ProjectedRowSize();
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
 
   auto *result = reinterpret_cast<UndoRecord *>(head);
@@ -429,13 +431,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   return result;
 }
 
-void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
-  for (auto &undo_record : *undo_buffer) {
-    ReclaimBufferIfVarlen(&undo_record);
-  }
-}
-
-void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *undo_record) const {
+void GarbageCollector::MarkVarlenReclaimable(UndoRecord *undo_record) {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
   switch (undo_record->Type()) {
@@ -448,7 +444,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *undo_record) const {
         // Okay to include version vector, as it is never varlen
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
-          if (varlen != nullptr && varlen->NeedReclaim()) delete  varlen->Content();
+          if (varlen != nullptr && varlen->NeedReclaim()) {
+            reclaim_varlen_map_[undo_record].push_front(varlen->Content());
+          }
         }
       }
       break;
@@ -458,7 +456,9 @@ void GarbageCollector::ReclaimBufferIfVarlen(UndoRecord *undo_record) const {
         col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
-          if (varlen != nullptr && varlen->NeedReclaim()) delete  varlen->Content();
+          if (varlen != nullptr && varlen->NeedReclaim()) {
+            reclaim_varlen_map_[undo_record].push_front(varlen->Content());
+          }
         }
       }
   }
@@ -477,6 +477,14 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
       byte *buffer = common::AllocationUtil::AllocateAligned(size);
       *reinterpret_cast<storage::VarlenEntry *>(undo_record->Delta()->AccessForceNotNull(i)) =
           storage::VarlenEntry::Create(buffer, size, true);
+    }
+  }
+}
+
+void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
+  for (auto &undo_record : *undo_buffer) {
+    for (const byte *ptr : reclaim_varlen_map_[&undo_record]) {
+      delete[] ptr;
     }
   }
 }

@@ -75,13 +75,13 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordRestOfChain(UndoRecord *version_chain_head, std::vector<transaction::timestamp_t> *active_txns);
 
-  void UnlinkUndoRecordHead(UndoRecord *head, std::vector<transaction::timestamp_t> *active_txns) const;
+  void UnlinkUndoRecordHead(UndoRecord *head, std::vector<transaction::timestamp_t> *active_txns);
   /**
    * Straight up unlink the undo_record and reclaim its space
    * @param txn
    * @param undo_record
    */
-  void UnlinkUndoRecordVersion(UndoRecord *undo_record) const;
+  void UnlinkUndoRecordVersion(UndoRecord *undo_record);
 
   void BeginCompaction(UndoRecord **start_record_ptr, UndoRecord *curr, UndoRecord *next,
                        uint32_t *interval_length_ptr);
@@ -100,9 +100,8 @@ class GarbageCollector {
   UndoRecord *CreateUndoRecord(UndoRecord *start_record, UndoRecord *end_record);
   UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
+  void MarkVarlenReclaimable(UndoRecord *undo_record);
   void DeallocateVarlen(UndoBuffer *undo_buffer);
-
-  void ReclaimBufferIfVarlen(UndoRecord *undo_record) const;
   void CopyVarlen(UndoRecord *undo_record);
 
   transaction::TransactionManager *txn_manager_;
@@ -118,6 +117,7 @@ class GarbageCollector {
   std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
   std::unordered_map<col_id_t, VarlenEntry *> varlen_map_;
   std::unordered_set<col_id_t> col_set_;
+  std::unordered_map<storage::UndoRecord *,std::forward_list<const byte * > > reclaim_varlen_map_;
 };
 
 }  // namespace terrier::storage
