@@ -248,7 +248,8 @@ std::pair<bool, storage::TupleSlot> SqlTable::Update(transaction::TransactionCon
     bool succ = tables_.Find(old_version)->second.data_table->Delete(txn, slot);
 
     // 4. Update the new row before insert
-    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(version_num)->second.layout, new_pr, new_pair.second);
+    StorageUtil::CopyProjectionIntoProjection(redo, map, tables_.Find(version_num)->second.layout, new_pr,
+                                              new_pair.second);
 
     // 5. Insert the row into new table
     storage::TupleSlot new_slot;
