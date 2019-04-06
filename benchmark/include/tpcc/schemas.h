@@ -9,7 +9,7 @@ namespace terrier::tpcc {
 struct Schemas {
   Schemas() = delete;
 
-  static catalog::Schema CreateItemSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildItemSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> item_columns;
     item_columns.reserve(num_item_cols);
 
@@ -28,7 +28,7 @@ struct Schemas {
     return catalog::Schema(item_columns);
   }
 
-  static catalog::Schema CreateWarehouseSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildWarehouseSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> warehouse_columns;
     warehouse_columns.reserve(num_warehouse_cols);
 
@@ -56,7 +56,7 @@ struct Schemas {
     return catalog::Schema(warehouse_columns);
   }
 
-  static catalog::Schema CreateStockSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildStockSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> stock_columns;
     stock_columns.reserve(num_stock_cols);
 
@@ -100,7 +100,7 @@ struct Schemas {
     return catalog::Schema(stock_columns);
   }
 
-  static catalog::Schema CreateDistrictSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildDistrictSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(num_district_cols);
 
@@ -132,7 +132,7 @@ struct Schemas {
     return catalog::Schema(district_columns);
   }
 
-  static catalog::Schema CreateCustomerSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildCustomerSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> customer_columns;
     customer_columns.reserve(num_customer_cols);
 
@@ -184,7 +184,7 @@ struct Schemas {
     return catalog::Schema(customer_columns);
   }
 
-  static catalog::Schema CreateHistorySchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildHistorySchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> history_columns;
     history_columns.reserve(num_history_cols);
 
@@ -210,7 +210,7 @@ struct Schemas {
     return catalog::Schema(history_columns);
   }
 
-  static catalog::Schema CreateNewOrderSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildNewOrderSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> new_order_columns;
     new_order_columns.reserve(num_new_order_cols);
 
@@ -226,7 +226,7 @@ struct Schemas {
     return catalog::Schema(new_order_columns);
   }
 
-  static catalog::Schema CreateOrderSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildOrderSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_columns;
     order_columns.reserve(num_order_cols);
 
@@ -251,7 +251,7 @@ struct Schemas {
     return catalog::Schema(order_columns);
   }
 
-  static catalog::Schema CreateOrderLineSchema(uint64_t *const oid_counter) {
+  static catalog::Schema BuildOrderLineSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_line_columns;
     order_line_columns.reserve(num_order_line_cols);
 
