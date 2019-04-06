@@ -4,13 +4,14 @@
 #include <vector>
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "storage/checkpoint_io.h"
 #include "storage/write_ahead_log/log_io.h"
-#include "storage/write_ahead_log/log_manager.h"
 #include "storage/projected_columns.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
+
 /**
  * A CheckpointManager is responsible for serializing tuples of all tables in the database out and divide time into epochs by doing checkpoint. 
  */
@@ -20,8 +21,7 @@ class CheckpointManager {
    * Constructs a new CheckpointManager, writing its records out to the given file.
    */
   CheckpointManager(const char *log_file_path_prefix, const uint32_t buffer_size)
-      : log_file_path_prefix_(log_file_path_prefix),
-        buffer_size_(buffer_size) {}
+      : log_file_path_prefix_(log_file_path_prefix) {}
 
   /**
    * Start a new checkpoint with the given transaxtion context.
@@ -30,7 +30,6 @@ class CheckpointManager {
   void StartCheckpoint(transaction::TransactionContext *txn) {
     txn_ = txn;
     out_.Open((log_file_path_prefix_ + std::to_string(!(txn->StartTime()))).c_str());
-    varlen_out_.Open((log_file_path_prefix_ + std::to_string(!(txn->StartTime())) + "_varlen").c_str());
   }
 
   /**
@@ -39,8 +38,6 @@ class CheckpointManager {
   void EndCheckpoint() {
     out_.Persist();
     out_.Close();
-    varlen_out_.Persist();
-    varlen_out_.Close();
   }
 
   /**
@@ -56,31 +53,10 @@ class CheckpointManager {
   void Checkpoint(DataTable &table, const storage::BlockLayout &layout);
 
  private:
-  BufferedLogWriter out_;
-  BufferedLogWriter varlen_out_;
   std::string log_file_path_prefix_;
-  uint32_t varlen_offset_;
-  uint32_t buffer_size_;
-
+  BufferedTupleWriter out_;
   transaction::TransactionContext *txn_;
-
-  void SerializeRow(const ProjectedRow *row) {
-    uint32_t row_size = row->Size();
-    out_.BufferWrite(row, row_size);
-  }
-
-  void SerializeVarlen(const VarlenEntry *entry) {
-    uint32_t varlen_size = entry->Size();
-    TERRIER_ASSERT(varlen_size <= VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
-    WriteValue<uint32_t>(varlen_out_, varlen_size);
-    varlen_out_.BufferWrite(entry->Content(), varlen_size);
-    // TODO(Mengyang): used a magic number here, because sizeof(uint32_t) produces long unsigned int instead of uint32_t.
-    varlen_offset_ += (4 + varlen_size);
-  }
-
-  template <class T>
-  void WriteValue(BufferedLogWriter &out, const T &val) {
-    out.BufferWrite(&val, sizeof(T));
-  }
+  
 };
+
 }  // namespace terrier::storage
