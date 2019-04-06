@@ -1130,7 +1130,7 @@ class TPCC {
   storage::ProjectedRow *BuildNewOrderTuple(const int32_t o_id, const int32_t d_id, const int32_t w_id,
                                             byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
                                             const storage::ProjectionMap &projection_map) const {
-    TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
+    TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
@@ -1192,13 +1192,6 @@ class TPCC {
     auto *attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = o_id;
 
-    // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
-    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
-    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_C_ID", "Wrong attribute.");
-    attr_offset = projection_map.at(col_oid);
-    attr = pr->AccessForceNotNull(attr_offset);
-    *reinterpret_cast<int32_t *>(attr) = c_id;
-
     // O_D_ID = D_ID
     col_oid = order_schema_->GetColumn(col_offset++).GetOid();
     TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_D_ID", "Wrong attribute.");
@@ -1212,6 +1205,13 @@ class TPCC {
     attr_offset = projection_map.at(col_oid);
     attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<int32_t *>(attr) = w_id;
+
+    // O_C_ID selected sequentially from a random permutation of [1 .. 3,000]
+    col_oid = order_schema_->GetColumn(col_offset++).GetOid();
+    TERRIER_ASSERT(order_schema_->GetColumn(col_offset - 1).GetName() == "O_C_ID", "Wrong attribute.");
+    attr_offset = projection_map.at(col_oid);
+    attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<int32_t *>(attr) = c_id;
 
     // O_ENTRY_D current date/ time given by the operating system
     col_oid = order_schema_->GetColumn(col_offset++).GetOid();
@@ -1249,12 +1249,12 @@ class TPCC {
 
     TERRIER_ASSERT(col_offset == 8, "Didn't get every attribute for Order tuple.");
 
-    return {pr, entry_d, ol_cnt};
+    return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
   }
 
   // 4.3.3.1
   storage::ProjectedRow *BuildOrderLineTuple(const int32_t o_id, const int32_t d_id, const int32_t w_id,
-                                             const int32_t ol_number, const int32_t o_entry_d, byte *const buffer,
+                                             const int32_t ol_number, const uint64_t o_entry_d, byte *const buffer,
                                              const storage::ProjectedRowInitializer &pr_initializer,
                                              const storage::ProjectionMap &projection_map) const {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
@@ -1314,7 +1314,7 @@ class TPCC {
     attr_offset = projection_map.at(col_oid);
     if (o_id < 2101) {
       attr = pr->AccessForceNotNull(attr_offset);
-      *reinterpret_cast<int32_t *>(attr) = o_entry_d;
+      *reinterpret_cast<uint64_t *>(attr) = o_entry_d;
     } else {
       pr->SetNull(attr_offset);
     }
@@ -1414,10 +1414,12 @@ class TPCC {
     std::shuffle(original.begin(), original.end(), *generator_);
 
     for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+      // 100,000 rows in the ITEM table
       item_->Insert(txn, *BuildItemTuple(i_id + 1, original[i_id], item_buffer, item_pr_initializer, item_pr_map));
     }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
+      // 1 row in the WAREHOUSE table for each configured warehouse
       warehouse_->Insert(txn,
                          *BuildWarehouseTuple(w_id + 1, warehouse_buffer, warehouse_pr_initializer, warehouse_pr_map));
 
@@ -1425,11 +1427,15 @@ class TPCC {
       std::shuffle(original.begin(), original.end(), *generator_);
 
       for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
+        // For each row in the WAREHOUSE table:
+        // 100,000 rows in the STOCK table
         stock_->Insert(txn, *BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_buffer, stock_pr_initializer,
                                              stock_pr_map));
       }
 
       for (uint32_t d_id = 0; d_id < num_districts_per_warehouse_; d_id++) {
+        // For each row in the WAREHOUSE table:
+        // 10 rows in the DISTRICT table
         district_->Insert(
             txn, *BuildDistrictTuple(d_id + 1, w_id + 1, district_buffer, district_pr_initializer, district_pr_map));
 
@@ -1447,10 +1453,39 @@ class TPCC {
         std::shuffle(o_c_ids.begin(), o_c_ids.end(), *generator_);
 
         for (uint32_t c_id = 0; c_id < num_customers_per_district_; c_id++) {
+          // For each row in the DISTRICT table:
+          // 3,000 rows in the CUSTOMER table
           customer_->Insert(txn, *BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], customer_buffer,
                                                      customer_pr_initializer, customer_pr_map));
+
+          // For each row in the CUSTOMER table:
+          // 1 row in the HISTORY table
           history_->Insert(txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, history_buffer, history_pr_initializer,
                                                    history_pr_map));
+
+          // For each row in the DISTRICT table:
+          // 3,000 rows in the ORDER table
+          const auto o_id = c_id;
+          const auto order_results = BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, order_buffer,
+                                                     order_pr_initializer, order_pr_map);
+          order_->Insert(txn, *(order_results.pr));
+
+          // For each row in the ORDER table:
+          // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
+          // data generation of the New-Order transaction (see Clause 2.4.1)
+          for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
+            order_line_->Insert(
+                txn, *BuildOrderLineTuple(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d,
+                                          order_line_buffer, order_line_pr_initializer, order_line_pr_map));
+          }
+
+          // For each row in the DISTRICT table:
+          // 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
+          // (i.e., with NO_O_ID between 2,101 and 3,000)
+          if (o_id + 1 >= 2101) {
+            new_order_->Insert(txn, *BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_buffer,
+                                                        new_order_pr_initializer, new_order_pr_map));
+          }
         }
       }
     }
