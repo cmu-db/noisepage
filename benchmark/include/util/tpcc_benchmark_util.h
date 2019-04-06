@@ -26,6 +26,7 @@ class TPCC {
       : txn_manager_(txn_manager), store_(store), generator_(generator) {
     CreateItemTable();
     CreateWarehouseTable();
+    CreateStockTable();
     CreateDistrictTable();
     CreateCustomerTable();
     CreateHistoryTable();
@@ -38,6 +39,8 @@ class TPCC {
     delete item_schema_;
     delete warehouse_;
     delete warehouse_schema_;
+    delete stock_;
+    delete stock_schema_;
     delete district_;
     delete district_schema_;
     delete customer_;
@@ -47,7 +50,6 @@ class TPCC {
     //    delete new_order_;
     //    delete order_;
     //    delete order_line_;
-    //    delete stock_;
   }
 
  private:
@@ -91,6 +93,48 @@ class TPCC {
     TERRIER_ASSERT(warehouse_columns.size() == 9, "Wrong number of columns for Warehouse schema.");
 
     warehouse_schema_ = new catalog::Schema(warehouse_columns);
+  }
+
+  void CreateStockSchema() {
+    TERRIER_ASSERT(stock_schema_ == nullptr, "Stock schema already exists.");
+    std::vector<catalog::Schema::Column> stock_columns;
+    stock_columns.reserve(17);
+
+    stock_columns.emplace_back("S_I_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_W_ID", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_QUANTITY", type::TypeId::SMALLINT, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_01", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_02", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_03", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_04", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_05", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_06", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_07", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_08", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_09", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DIST_10", type::TypeId::VARCHAR, 24, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_YTD", type::TypeId::INTEGER, false, static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_ORDER_CNT", type::TypeId::SMALLINT, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_REMOTE_CNT", type::TypeId::SMALLINT, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+    stock_columns.emplace_back("S_DATA", type::TypeId::VARCHAR, 50, false,
+                               static_cast<catalog::col_oid_t>(GetNewOid()));
+
+    TERRIER_ASSERT(stock_columns.size() == 17, "Wrong number of columns for Stock schema.");
+
+    stock_schema_ = new catalog::Schema(stock_columns);
   }
 
   void CreateDistrictSchema() {
@@ -203,6 +247,12 @@ class TPCC {
     TERRIER_ASSERT(warehouse_ == nullptr, "Warehouse table already exists.");
     CreateWarehouseSchema();
     warehouse_ = new storage::SqlTable(store_, *warehouse_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
+  }
+
+  void CreateStockTable() {
+    TERRIER_ASSERT(stock_ == nullptr, "Stock table already exists.");
+    CreateStockSchema();
+    stock_ = new storage::SqlTable(store_, *stock_schema_, static_cast<catalog::table_oid_t>(GetNewOid()));
   }
 
   void CreateDistrictTable() {
@@ -850,6 +900,8 @@ class TPCC {
   catalog::Schema *item_schema_ = nullptr;
   storage::SqlTable *warehouse_ = nullptr;
   catalog::Schema *warehouse_schema_ = nullptr;
+  storage::SqlTable *stock_ = nullptr;
+  catalog::Schema *stock_schema_ = nullptr;
   storage::SqlTable *district_ = nullptr;
   catalog::Schema *district_schema_ = nullptr;
   storage::SqlTable *customer_ = nullptr;
@@ -859,7 +911,6 @@ class TPCC {
   //  storage::SqlTable *new_order_ = nullptr;
   //  storage::SqlTable *order_ = nullptr;
   //  storage::SqlTable *order_line_ = nullptr;
-  //  storage::SqlTable *stock_ = nullptr;
 
   transaction::TransactionManager *const txn_manager_;
   storage::BlockStore *const store_;
