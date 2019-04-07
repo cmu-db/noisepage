@@ -70,6 +70,20 @@ struct Schemas {
     return catalog::Schema(warehouse_columns);
   }
 
+  static storage::index::IndexKeySchema BuildWarehouseKeySchema(const catalog::Schema &schema,
+                                                                uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema warehouse_key_schema;
+    warehouse_key_schema.reserve(num_warehouse_key_cols);
+
+    warehouse_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                      schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(warehouse_key_schema.size() == num_warehouse_key_cols,
+                   "Wrong number of columns for Warehouse key schema.");
+
+    return warehouse_key_schema;
+  }
+
   static catalog::Schema BuildStockTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> stock_columns;
     stock_columns.reserve(num_stock_cols);
@@ -114,6 +128,21 @@ struct Schemas {
     return catalog::Schema(stock_columns);
   }
 
+  static storage::index::IndexKeySchema BuildStockKeySchema(const catalog::Schema &schema,
+                                                            uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema stock_key_schema;
+    stock_key_schema.reserve(num_stock_key_cols);
+
+    stock_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                  schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    stock_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                  schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(stock_key_schema.size() == num_stock_key_cols, "Wrong number of columns for Stock key schema.");
+
+    return stock_key_schema;
+  }
+
   static catalog::Schema BuildDistrictTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> district_columns;
     district_columns.reserve(num_district_cols);
@@ -144,6 +173,22 @@ struct Schemas {
     TERRIER_ASSERT(district_columns.size() == num_district_cols, "Wrong number of columns for District schema.");
 
     return catalog::Schema(district_columns);
+  }
+
+  static storage::index::IndexKeySchema BuildDistrictKeySchema(const catalog::Schema &schema,
+                                                               uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema district_key_schema;
+    district_key_schema.reserve(num_district_key_cols);
+
+    district_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                     schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    district_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                     schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(district_key_schema.size() == num_district_key_cols,
+                   "Wrong number of columns for District key schema.");
+
+    return district_key_schema;
   }
 
   static catalog::Schema BuildCustomerTupleSchema(uint64_t *const oid_counter) {
@@ -198,6 +243,24 @@ struct Schemas {
     return catalog::Schema(customer_columns);
   }
 
+  static storage::index::IndexKeySchema BuildCustomerKeySchema(const catalog::Schema &schema,
+                                                               uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema customer_key_schema;
+    customer_key_schema.reserve(num_customer_key_cols);
+
+    customer_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                     schema.GetColumn(2).GetType(), schema.GetColumn(2).GetNullable());
+    customer_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                     schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    customer_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                     schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(customer_key_schema.size() == num_customer_key_cols,
+                   "Wrong number of columns for Customer key schema.");
+
+    return customer_key_schema;
+  }
+
   static catalog::Schema BuildHistoryTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> history_columns;
     history_columns.reserve(num_history_cols);
@@ -240,6 +303,24 @@ struct Schemas {
     return catalog::Schema(new_order_columns);
   }
 
+  static storage::index::IndexKeySchema BuildNewOrderKeySchema(const catalog::Schema &schema,
+                                                               uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema new_order_key_schema;
+    new_order_key_schema.reserve(num_new_order_key_cols);
+
+    new_order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                      schema.GetColumn(2).GetType(), schema.GetColumn(2).GetNullable());
+    new_order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                      schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    new_order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                      schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(new_order_key_schema.size() == num_new_order_key_cols,
+                   "Wrong number of columns for New Order key schema.");
+
+    return new_order_key_schema;
+  }
+
   static catalog::Schema BuildOrderTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_columns;
     order_columns.reserve(num_order_cols);
@@ -263,6 +344,23 @@ struct Schemas {
     TERRIER_ASSERT(order_columns.size() == num_order_cols, "Wrong number of columns for Order schema.");
 
     return catalog::Schema(order_columns);
+  }
+
+  static storage::index::IndexKeySchema BuildOrderKeySchema(const catalog::Schema &schema,
+                                                            uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema order_key_schema;
+    order_key_schema.reserve(num_order_key_cols);
+
+    order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                  schema.GetColumn(2).GetType(), schema.GetColumn(2).GetNullable());
+    order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                  schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    order_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                  schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(order_key_schema.size() == num_order_key_cols, "Wrong number of columns for Order key schema.");
+
+    return order_key_schema;
   }
 
   static catalog::Schema BuildOrderLineTupleSchema(uint64_t *const oid_counter) {
@@ -293,6 +391,26 @@ struct Schemas {
     TERRIER_ASSERT(order_line_columns.size() == num_order_line_cols, "Wrong number of columns for Order Line schema.");
 
     return catalog::Schema(order_line_columns);
+  }
+
+  static storage::index::IndexKeySchema BuildOrderLineKeySchema(const catalog::Schema &schema,
+                                                                uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema order_line_key_schema;
+    order_line_key_schema.reserve(num_order_line_key_cols);
+
+    order_line_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                       schema.GetColumn(2).GetType(), schema.GetColumn(2).GetNullable());
+    order_line_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                       schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    order_line_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                       schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+    order_line_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                       schema.GetColumn(3).GetType(), schema.GetColumn(3).GetNullable());
+
+    TERRIER_ASSERT(order_line_key_schema.size() == num_order_line_key_cols,
+                   "Wrong number of columns for Order Line key schema.");
+
+    return order_line_key_schema;
   }
 
  private:
