@@ -43,6 +43,11 @@ struct Loader {
     auto *const warehouse_tuple_buffer(
         common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
 
+    const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
+    const auto warehouse_key_pr_map = db->warehouse_index_->GetKeyOidToOffsetMap();
+    auto *const warehouse_key_buffer(
+        common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
+
     // Stock
     const auto stock_tuple_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
     const auto stock_tuple_pr_initializer = db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids).first;
@@ -118,9 +123,15 @@ struct Loader {
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
       // 1 row in the WAREHOUSE table for each configured warehouse
-      db->warehouse_table_->Insert(
-          txn, *BuildWarehouseTuple(w_id + 1, warehouse_tuple_buffer, warehouse_tuple_pr_initializer,
-                                    warehouse_tuple_pr_map, db->warehouse_schema_, generator));
+      const auto *const warehouse_tuple =
+          BuildWarehouseTuple(w_id + 1, warehouse_tuple_buffer, warehouse_tuple_pr_initializer, warehouse_tuple_pr_map,
+                              db->warehouse_schema_, generator);
+      const auto warehouse_slot = db->warehouse_table_->Insert(txn, *warehouse_tuple);
+
+      const auto *const warehouse_key = BuildWarehouseKey(w_id + 1, warehouse_key_buffer, warehouse_key_pr_initializer);
+      bool index_insert_result UNUSED_ATTRIBUTE = db->warehouse_index_->ConditionalInsert(
+          *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
+      TERRIER_ASSERT(index_insert_result, "Index insertion failed.");
 
       // shuffle the ORIGINAL vector again since we reuse it for stock table
       std::shuffle(original.begin(), original.end(), *generator);
@@ -207,6 +218,8 @@ struct Loader {
     delete[] order_tuple_buffer;
     delete[] new_order_tuple_buffer;
     delete[] order_line_tuple_buffer;
+
+    delete[] warehouse_key_buffer;
   }
 
  private:
@@ -313,6 +326,18 @@ struct Loader {
     Util::SetPRAttribute<double>(schema, col_offset++, projection_map, pr, 300000.0);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse tuple.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildWarehouseKey(const int32_t w_id, byte *const buffer,
+                                                  const storage::ProjectedRowInitializer &pr_initializer) {
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    *reinterpret_cast<int32_t *>(pr->AccessForceNotNull(0)) = w_id;
 
     return pr;
   }
