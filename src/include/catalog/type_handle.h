@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
 
