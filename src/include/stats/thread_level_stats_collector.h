@@ -42,7 +42,7 @@ class ThreadLevelStatsCollector {
   /**
    * @return A mapping from each thread to their assigned Collector
    */
-  static CollectorsMap &GetAllCollectors() { return collector_map_; };
+  static CollectorsMap &GetAllCollectors() { return collector_map_; }
 
   /**
    * @return the txn_manager of the system
@@ -68,54 +68,54 @@ class ThreadLevelStatsCollector {
    * to the "OnXxx" methods one-to-one */
   void CollectTransactionBegin(const transaction::TransactionContext *txn) {
     for (auto &metric : metric_dispatch_[StatsEventType::TXN_BEGIN]) metric->OnTransactionBegin(txn);
-  };
+  }
 
   void CollectTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, database_oid);
-  };
+  }
 
   void CollectTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TXN_ABORT]) metric->OnTransactionAbort(txn, database_oid);
-  };
+  }
 
   void CollectTupleRead(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
                         catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_READ])
       metric->OnTupleRead(current_txn, {database_oid, table_oid});
-  };
+  }
 
   void CollectTupleUpdate(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_UPDATE])
       metric->OnTupleUpdate(current_txn, {database_oid, table_oid});
-  };
+  }
 
   void CollectTupleInsert(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_INSERT])
       metric->OnTupleInsert(current_txn, {database_oid, table_oid});
-  };
+  }
 
   void CollectTupleDelete(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_DELETE])
       metric->OnTupleDelete(current_txn, {database_oid, table_oid});
-  };
+  }
 
   void CollectTableMemoryAlloc(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
       metric->OnTableMemoryAlloc({database_oid, table_oid}, bytes);
-  };
+  }
 
   void CollectTableMemoryFree(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
       metric->OnTableMemoryFree({database_oid, table_oid}, bytes);
-  };
+  }
 
   void CollectTableMemoryUsage(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_ALLOC])
       metric->OnTableMemoryUsage({database_oid, table_oid}, bytes);
-  };
+  }
 
   void CollectTableMemoryReclaim(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::TABLE_MEMORY_FREE])
@@ -125,50 +125,50 @@ class ThreadLevelStatsCollector {
   void CollectIndexRead(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t num_read) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_READ])
       metric->OnIndexRead({database_oid, index_oid}, num_read);
-  };
+  }
 
   void CollectIndexUpdate(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_UPDATE])
       metric->OnIndexUpdate({database_oid, index_oid});
-  };
+  }
 
   void CollectIndexInsert(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_INSERT])
       metric->OnIndexInsert({database_oid, index_oid});
-  };
+  }
 
   void CollectIndexDelete(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_DELETE])
       metric->OnIndexDelete({database_oid, index_oid});
-  };
+  }
 
   void CollectIndexMemoryAlloc(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_ALLOC])
       metric->OnIndexMemoryAlloc({database_oid, index_oid}, bytes);
-  };
+  }
 
   void CollectIndexMemoryUsage(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_USAGE])
       metric->OnIndexMemoryUsage({database_oid, index_oid}, bytes);
-  };
+  }
 
   void CollectIndexMemoryFree(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_FREE])
       metric->OnIndexMemoryFree({database_oid, index_oid}, bytes);
-  };
+  }
 
   void CollectIndexMemoryReclaim(catalog::db_oid_t database_oid, catalog::index_oid_t index_oid, size_t bytes) {
     for (auto &metric : metric_dispatch_[StatsEventType::INDEX_MEMORY_RECLAIM])
       metric->OnIndexMemoryReclaim({database_oid, index_oid}, bytes);
-  };
+  }
 
   void CollectQueryBegin() {
     for (auto &metric : metric_dispatch_[StatsEventType::QUERY_BEGIN]) metric->OnQueryBegin();
-  };
+  }
 
   void CollectQueryEnd() {
     for (auto &metric : metric_dispatch_[StatsEventType::QUERY_END]) metric->OnQueryEnd();
-  };
+  }
 
   void CollectTestNum(int number) {
     for (auto &metric : metric_dispatch_[StatsEventType::TEST]) metric->OnTest(number);

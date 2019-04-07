@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "catalog/catalog_defs.h"
 #include "stats/abstract_metric.h"

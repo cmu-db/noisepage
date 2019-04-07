@@ -2,7 +2,6 @@
 
 #include <utility>
 #include <vector>
-#include "statistic_defs.h"
 
 namespace terrier::stats {
 /**
