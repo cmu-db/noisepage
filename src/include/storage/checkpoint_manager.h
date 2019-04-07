@@ -31,7 +31,7 @@ class CheckpointManager {
    */
   void StartCheckpoint(transaction::TransactionContext *txn) {
     txn_ = txn;
-    out_.Open((log_file_path_prefix_ + std::to_string(!(txn->StartTime()))).c_str());
+    out_.Open((GetCheckpointFilePath(txn)).c_str());
   }
 
   /**
@@ -41,6 +41,10 @@ class CheckpointManager {
     out_.Persist();
     out_.Close();
     txn_ = nullptr;
+  }
+
+  std::string GetCheckpointFilePath(transaction::TransactionContext *txn) {
+    return log_file_path_prefix_ + std::to_string(!(txn->StartTime()));
   }
 
   /**
@@ -58,7 +62,7 @@ class CheckpointManager {
   /**
    * Begin a recovery. This will clear all registered tables and layouts.
    */
-  void BeginRecovery(transaction::TransactionContext *txn) {
+  void StartRecovery(transaction::TransactionContext *txn) {
     txn_ = txn;
   }
 

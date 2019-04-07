@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -400,6 +401,34 @@ class RandomSqlTableTestObject {
     return &txn_manager_;
   }
 
+  catalog::Schema *GetSchema() {
+    return schema_;
+  }
+
+  void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table, storage::BlockLayout *layout,
+                    std::vector<std::string> &set) {
+    std::vector<storage::col_id_t> all_col(layout->NumColumns() - NUM_RESERVED_COLUMNS);
+    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout->NumColumns(); col++) {
+      all_col[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
+    }
+    uint32_t max_tuples = 100;
+
+    storage::ProjectedColumnsInitializer column_initializer(*layout, all_col, max_tuples);
+    auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = column_initializer.Initialize(scan_buffer);
+
+    auto it = table->begin();
+    auto end = table->end();
+    while (it != end) {
+      table->Scan(txn, &it, columns);
+      uint32_t num_tuples = columns->NumTuples();
+      for (uint32_t off = 0; off < num_tuples; off++) {
+        storage::ProjectedColumns::RowView row = columns->InterpretAsRow(*layout, off);
+        set.push_back(StorageTestUtil::PrintRow(row, *layout));
+      }
+    }
+  }
+
  private:
 
   static std::vector<type::TypeId> DataTypeAll(bool varlen_allowed) {
@@ -412,7 +441,7 @@ class RandomSqlTableTestObject {
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
-  storage::BlockStore block_store_{100, 100};
+  storage::BlockStore block_store_{10000, 10000};
   catalog::table_oid_t table_oid_{2};
   storage::SqlTable *table_ = nullptr;
 

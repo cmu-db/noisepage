@@ -137,7 +137,7 @@ class BufferedTupleReader {
       return false;
     } else {
       TERRIER_ASSERT(size == buffer_size_, "Incomplete Checkpoint Page");
-      page_offset_ = sizeof(CheckpointFilePage);
+      page_offset_ += sizeof(CheckpointFilePage);
       return true;
     }
   }
@@ -157,7 +157,10 @@ class BufferedTupleReader {
       // no other row in this page.
       return nullptr;
     }
-    return reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
+
+    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
+    page_offset_ += row_size;
+    return result;
   }
 
   uint32_t ReadNextVarlenSize() {
