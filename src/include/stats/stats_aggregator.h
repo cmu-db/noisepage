@@ -1,9 +1,10 @@
 #pragma once
 
-#include <condition_variable>
+#include <condition_variable>  // NOLINT
 #include <fstream>
 #include <map>
-#include <mutex>
+#include <memory>
+#include <mutex>  // NOLINT
 #include <string>
 #include <unordered_map>
 #include <vector>

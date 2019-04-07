@@ -1,7 +1,7 @@
 #pragma once
 
-#include "abstract_metric.h"
-#include "abstract_raw_data.h"
+#include "stats/abstract_metric.h"
+#include "stats/abstract_raw_data.h"
 
 namespace terrier::stats {
 

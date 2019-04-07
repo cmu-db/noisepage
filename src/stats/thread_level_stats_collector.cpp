@@ -1,4 +1,6 @@
 #include "stats/thread_level_stats_collector.h"
+#include <memory>
+#include <vector>
 #include "stats/database_metric.h"
 #include "stats/statistic_defs.h"
 #include "stats/test_metric.h"

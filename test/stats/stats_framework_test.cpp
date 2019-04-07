@@ -1,7 +1,6 @@
-#include "util/test_harness.h"
-//#include "settings/settings_manager.h"
 #include "stats/stats_aggregator.h"
 #include "stats/thread_level_stats_collector.h"
+#include "util/test_harness.h"
 #include "util/testing_stats_util.h"
 
 namespace terrier {
@@ -21,5 +20,5 @@ TEST_F(StatsFrameworkTests, BasicTest) {
   stats::ThreadLevelStatsCollector::GetCollectorForThread()->CollectTestNum(2);
 
   EXPECT_EQ(TestingStatsUtil::AggregateTestCounts(), 3);
-};
+}
 }  // namespace terrier

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <thread>
+#include <memory>
+#include <thread>  // NOLINT
 #include <unordered_map>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/container/concurrent_map.h"
 #include "stats/abstract_metric.h"
