@@ -1,6 +1,7 @@
 #include "storage/sql_table.h"
 #include <algorithm>
 #include <cstring>
+#include <map>
 #include <random>
 #include <string>
 #include <utility>
@@ -50,7 +51,7 @@ class SqlTableTestRW {
     col_oids_.clear();
     for (const auto &c : cols_) {
       col_oids_.emplace_back(c.GetOid());
-      LOG_INFO("{}", !c.GetOid());
+      // LOG_INFO("{}", !c.GetOid());
     }
 
     delete pri_;
@@ -446,7 +447,7 @@ TEST_F(SqlTableTests, UpdateTest) {
   EXPECT_EQ(new_val, 11001);
 
   // update (400, 10003, 42) -> (400, 11003, 420)
-  LOG_INFO("----------------------------")
+  // LOG_INFO("----------------------------")
   update_oids.clear();
   update_oids.emplace_back(catalog::col_oid_t(1));
   update_oids.emplace_back(catalog::col_oid_t(2));
@@ -464,7 +465,7 @@ TEST_F(SqlTableTests, UpdateTest) {
   EXPECT_EQ(new_val, 420);
 
   // update (100, 10000, null) -> (100, 11000, 420)
-  LOG_INFO("----------------------------")
+  // LOG_INFO("----------------------------")
   update_oids.clear();
   update_oids.emplace_back(catalog::col_oid_t(1));
   update_oids.emplace_back(catalog::col_oid_t(2));
@@ -486,6 +487,25 @@ TEST_F(SqlTableTests, UpdateTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, ScanTest) {
+  std::map<uint32_t, uint32_t> datname_map;
+  std::map<uint32_t, uint32_t> new_col_map;
+  std::map<uint32_t, bool> seen_map;
+
+  datname_map[100] = 10000;
+  datname_map[200] = 10001;
+  datname_map[300] = 10002;
+  datname_map[400] = 10003;
+
+  // new_col_map[100] = NULL (created before column added)
+  // new_col_map[200] = NULL (created before column added)
+  // new_col_map[300] = NULL (inserted without value)
+  new_col_map[400] = 42;
+
+  seen_map[100] = false;
+  seen_map[200] = false;
+  seen_map[300] = false;
+  seen_map[400] = false;
+
   SqlTableTestRW table(catalog::table_oid_t(2));
   auto txn = txn_manager_.BeginTransaction();
   table.DefineColumn("id", type::TypeId::INTEGER, false, catalog::col_oid_t(0));
@@ -495,13 +515,13 @@ TEST_F(SqlTableTests, ScanTest) {
   // insert (100, 10000)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 100);
-  table.SetIntColInRow(catalog::col_oid_t(1), 10000);
+  table.SetIntColInRow(catalog::col_oid_t(1), datname_map[100]);
   table.EndInsertRow(txn);
 
   // insert (200, 10001)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 200);
-  table.SetIntColInRow(catalog::col_oid_t(1), 10001);
+  table.SetIntColInRow(catalog::col_oid_t(1), datname_map[200]);
   table.EndInsertRow(txn);
 
   // manually set the version of the transaction to be 1
@@ -511,14 +531,14 @@ TEST_F(SqlTableTests, ScanTest) {
   // insert (300, 10002, null)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 300);
-  table.SetIntColInRow(catalog::col_oid_t(1), 10002);
+  table.SetIntColInRow(catalog::col_oid_t(1), datname_map[300]);
   table.EndInsertRow(txn);
 
   // insert (400, 10003, 42)
   table.StartInsertRow();
   table.SetIntColInRow(catalog::col_oid_t(0), 400);
-  table.SetIntColInRow(catalog::col_oid_t(1), 10003);
-  table.SetIntColInRow(catalog::col_oid_t(2), 42);
+  table.SetIntColInRow(catalog::col_oid_t(1), datname_map[400]);
+  table.SetIntColInRow(catalog::col_oid_t(2), new_col_map[400]);
   table.EndInsertRow(txn);
 
   // begin scan
@@ -532,51 +552,94 @@ TEST_F(SqlTableTests, ScanTest) {
   storage::ProjectedColumns *pc = pc_pair.first.Initialize(buffer);
 
   // scan
-  auto start_pos = table.table_->begin();
+  auto start_pos = table.table_->begin(table.version_);
   table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
+  EXPECT_TRUE(start_pos != table.table_->end());
 
   // check the number of tuples we found
   EXPECT_EQ(pc->NumTuples(), 2);
 
-  // check the if we get (100, 10000, null)
   auto row1 = pc->InterpretAsRow(*table.GetLayout(), 0);
   byte *value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   uint32_t id = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(id, 100);
+  EXPECT_FALSE(seen_map[id]);
+  seen_map[id] = true;
   value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
   EXPECT_NE(value, nullptr);
   uint32_t datname = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(datname, 10000);
+  EXPECT_EQ(datname, datname_map[id]);
+  value = row1.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  if (id != 400) {
+    EXPECT_EQ(value, nullptr);
+  } else {
+    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
+    EXPECT_EQ(new_col, new_col_map[id]);
+  }
 
   // check the if we get (200, 10001, null)
   auto row2 = pc->InterpretAsRow(*table.GetLayout(), 1);
   value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(id, 200);
+  EXPECT_FALSE(seen_map[id]);
+  seen_map[id] = true;
   value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
   EXPECT_NE(value, nullptr);
   datname = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(datname, 10001);
+  EXPECT_EQ(datname, datname_map[id]);
+  value = row2.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  if (id != 400) {
+    EXPECT_EQ(value, nullptr);
+  } else {
+    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
+    EXPECT_EQ(new_col, new_col_map[id]);
+  }
 
   pc = pc_pair.first.Initialize(buffer);
   // Need to scan again to get the rest of the data
   table.table_->Scan(txn, &start_pos, pc, pc_pair.second, table.version_);
-  // check the if we get (400, 10003, 42)
+  EXPECT_EQ(pc->NumTuples(), 2);
+  EXPECT_TRUE(start_pos == table.table_->end());
+
+  auto row3 = pc->InterpretAsRow(*table.GetLayout(), 0);
+  value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
+  EXPECT_NE(value, nullptr);
+  id = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_FALSE(seen_map[id]);
+  seen_map[id] = true;
+  value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
+  EXPECT_NE(value, nullptr);
+  datname = *reinterpret_cast<uint32_t *>(value);
+  EXPECT_EQ(datname, datname_map[id]);
+  value = row3.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
+  if (id != 400) {
+    EXPECT_EQ(value, nullptr);
+  } else {
+    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
+    EXPECT_EQ(new_col, new_col_map[id]);
+  }
+
+  // check the if we get (200, 10001, null)
   auto row4 = pc->InterpretAsRow(*table.GetLayout(), 1);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(0)));
   EXPECT_NE(value, nullptr);
   id = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(id, 400);
+  EXPECT_FALSE(seen_map[id]);
+  seen_map[id] = true;
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(1)));
   EXPECT_NE(value, nullptr);
   datname = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(datname, 10003);
+  EXPECT_EQ(datname, datname_map[id]);
   value = row4.AccessWithNullCheck(pc_pair.second.at(catalog::col_oid_t(2)));
-  EXPECT_NE(value, nullptr);
-  uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
-  EXPECT_EQ(new_col, 42);
+  if (id != 400) {
+    EXPECT_EQ(value, nullptr);
+  } else {
+    uint32_t new_col = *reinterpret_cast<uint32_t *>(value);
+    EXPECT_EQ(new_col, new_col_map[id]);
+  }
+
+  for (auto iter : seen_map) EXPECT_TRUE(iter.second);
 
   delete[] buffer;
   txn_manager_.Commit(txn, TestCallbacks::EmptyCallback, nullptr);

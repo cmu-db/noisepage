@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
+#include "common/container/concurrent_map.h"
+#include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
@@ -56,8 +58,9 @@ class SqlTable {
      * @return self-reference after the iterator is advanced
      */
     SlotIterator &operator++() {
-      dt_version_++;
-      current_it_ = (*dt_version_).second.data_table->begin();
+      TERRIER_ASSERT(!is_end_, "Cannot increment an end iterator");
+      current_it_++;
+      AdvanceOnEndOfDatatable_();
       return *this;
     }
 
@@ -72,11 +75,16 @@ class SqlTable {
     }
 
     /**
-     * Equality check.
+     * Equality check.  Either both iterators are "end" or they must match
+     * on both their observed version and the underlying tuple.
      * @param other other iterator to compare to
      * @return if the two iterators point to the same slotcolumn_ids
      */
-    bool operator==(const SlotIterator &other) const { return current_it_ == other.current_it_; }
+    bool operator==(const SlotIterator &other) const {
+      // First "is_end" check is that both are end, the second protects the iterator check through short-circuit
+      return (is_end_ && other.is_end_) ||
+             (is_end_ == other.is_end_ && txn_version_ == other.txn_version_ && current_it_ == other.current_it_);
+    }
 
     /**
      * Inequality check.
@@ -85,19 +93,49 @@ class SqlTable {
      */
     bool operator!=(const SlotIterator &other) const { return !this->operator==(other); }
 
-    DataTable::SlotIterator GetDataTableSlotIterator() { return current_it_; }
+    DataTable::SlotIterator *GetDataTableSlotIterator() { return &current_it_; }
 
    private:
     friend class SqlTable;
-    /**
-     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
-     */
-    SlotIterator(std::map<layout_version_t, DataTableVersion>::const_iterator dt_version,
-                 DataTable::SlotIterator dt_slot_it)
-        : dt_version_(dt_version), current_it_(dt_slot_it) {}
 
-    std::map<layout_version_t, DataTableVersion>::const_iterator dt_version_;
+    SlotIterator(const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables,
+                 const layout_version_t txn_version, bool is_end)
+        : tables_(tables), current_it_(tables_->Find(txn_version)->second.data_table->begin()) {
+      txn_version_ = txn_version;
+      curr_version_ = txn_version;
+      is_end_ = is_end;
+    }
+
+    /**
+     * Checks if DataTable::SlotIterator is at the end of the table and advances
+     * the iterator to the next table or sets is_end flag as appropriate.  This
+     * refactor is necessary to keep iterator in correct state when used in two
+     * distinct ways:  increment called directly on this object or implicitly
+     * through advancement of the DataTable iterator in SqlTable::Scan.
+     */
+    void AdvanceOnEndOfDatatable_() {
+      if (current_it_ == tables_->Find(curr_version_)->second.data_table->end()) {
+        // layout_version_t is uint32_t so we need to protect against underflow.
+        if (!curr_version_ == 0) {
+          is_end_ = true;
+          return;
+        }
+        curr_version_--;
+        TERRIER_ASSERT(curr_version_ < txn_version_, "Current version must be older than transaction");
+        auto next_table = tables_->Find(curr_version_);
+        if (next_table == tables_->CEnd()) {  // next_table does not exist (at end)
+          is_end_ = true;
+        } else {  // next_table is valid
+          current_it_ = next_table->second.data_table->begin();
+        }
+      }
+    }
+
+    const common::ConcurrentMap<layout_version_t, DataTableVersion> *tables_;
+    layout_version_t txn_version_;
+    layout_version_t curr_version_;
     DataTable::SlotIterator current_it_;
+    bool is_end_;
   };
 
  public:
@@ -167,8 +205,8 @@ class SqlTable {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // TODO(Matt): update indexes
     // always insert into the new DataTable
-    TERRIER_ASSERT(tables_.find(version_num) != tables_.end(), "Table version must exist before insert");
-    return tables_.at(version_num).data_table->Insert(txn, redo);
+    TERRIER_ASSERT(tables_.Find(version_num) != tables_.CEnd(), "Table version must exist before insert");
+    return tables_.Find(version_num)->second.data_table->Insert(txn, redo);
   }
 
   /**
@@ -183,7 +221,7 @@ class SqlTable {
     // TODO(Matt): update indexes
     layout_version_t old_version = slot.GetBlock()->layout_version_;
     // always delete the tuple in the old block
-    return tables_.at(old_version).data_table->Delete(txn, slot);
+    return tables_.Find(old_version)->second.data_table->Delete(txn, slot);
   }
 
   /**
@@ -206,9 +244,9 @@ class SqlTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {
+  SlotIterator begin(layout_version_t txn_version) const {
     // common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return SlotIterator(tables_.begin(), tables_.begin()->second.data_table->begin());
+    return SlotIterator(&tables_, txn_version, false);
   }
 
   /**
@@ -221,7 +259,7 @@ class SqlTable {
    */
   SlotIterator end() const {
     // common::SpinLatch::ScopedSpinLatch guard(&tables_latch_);
-    return SlotIterator(--tables_.end(), (--tables_.end())->second.data_table->end());
+    return SlotIterator(&tables_, tables_.CBegin()->first, true);
   }
 
   /**
@@ -246,7 +284,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedColumnsInitializer initializer(tables_.at(version_num).layout, col_ids, max_tuples);
+    ProjectedColumnsInitializer initializer(tables_.Find(version_num)->second.layout, col_ids, max_tuples);
     auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -270,8 +308,8 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    TERRIER_ASSERT(tables_.find(version_num) != tables_.end(), "Table version must exist before insert");
-    ProjectedRowInitializer initializer(tables_.at(version_num).layout, col_ids);
+    TERRIER_ASSERT(tables_.Find(version_num) != tables_.CEnd(), "Table version must exist before insert");
+    ProjectedRowInitializer initializer(tables_.Find(version_num)->second.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
@@ -283,7 +321,7 @@ class SqlTable {
   const catalog::table_oid_t oid_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
-  std::map<layout_version_t, DataTableVersion> tables_;
+  common::ConcurrentMap<layout_version_t, DataTableVersion> tables_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
@@ -315,6 +353,6 @@ class SqlTable {
    */
   template <class RowType>
   void ModifyProjectionHeaderForVersion(RowType *out_buffer, const DataTableVersion &curr_dt_version,
-                                        const DataTableVersion &old_dt_version, col_id_t * original_col_id_store) const;
+                                        const DataTableVersion &old_dt_version, col_id_t *original_col_id_store) const;
 };
 }  // namespace terrier::storage
