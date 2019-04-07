@@ -45,6 +45,59 @@ class Builder {
     auto *const order_line_table =
         new storage::SqlTable(store_, order_line_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
 
+    // The following assertions verify that all of the primary key and their respective foreign key dependencies have
+    // the same types across schemas.
+
+    TERRIER_ASSERT(
+        warehouse_schema.GetColumn(0).GetName() == "W_ID" && district_schema.GetColumn(1).GetName() == "D_W_ID" &&
+            customer_schema.GetColumn(2).GetName() == "C_W_ID" && history_schema.GetColumn(2).GetName() == "H_C_W_ID" &&
+            history_schema.GetColumn(4).GetName() == "H_W_ID" && new_order_schema.GetColumn(2).GetName() == "NO_W_ID" &&
+            order_schema.GetColumn(2).GetName() == "O_W_ID" && order_line_schema.GetColumn(2).GetName() == "OL_W_ID" &&
+            stock_schema.GetColumn(1).GetName() == "S_W_ID" &&
+            (warehouse_schema.GetColumn(0).GetType() == district_schema.GetColumn(1).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == customer_schema.GetColumn(2).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == history_schema.GetColumn(2).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == history_schema.GetColumn(4).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == new_order_schema.GetColumn(2).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == order_schema.GetColumn(2).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == order_line_schema.GetColumn(2).GetType() &&
+             warehouse_schema.GetColumn(0).GetType() == stock_schema.GetColumn(1).GetType()),
+        "Invalid schema configurations for W_ID.");
+
+    TERRIER_ASSERT(
+        district_schema.GetColumn(0).GetName() == "D_ID" && customer_schema.GetColumn(1).GetName() == "C_D_ID" &&
+            history_schema.GetColumn(1).GetName() == "H_C_D_ID" && history_schema.GetColumn(3).GetName() == "H_D_ID" &&
+            new_order_schema.GetColumn(1).GetName() == "NO_D_ID" && order_schema.GetColumn(1).GetName() == "O_D_ID" &&
+            order_line_schema.GetColumn(1).GetName() == "OL_D_ID" &&
+            (district_schema.GetColumn(0).GetType() == customer_schema.GetColumn(1).GetType() &&
+             district_schema.GetColumn(0).GetType() == history_schema.GetColumn(1).GetType() &&
+             district_schema.GetColumn(0).GetType() == history_schema.GetColumn(3).GetType() &&
+             district_schema.GetColumn(0).GetType() == new_order_schema.GetColumn(1).GetType() &&
+             district_schema.GetColumn(0).GetType() == order_schema.GetColumn(1).GetType() &&
+             district_schema.GetColumn(0).GetType() == order_line_schema.GetColumn(1).GetType()),
+        "Invalid schema configurations for D_ID.");
+
+    TERRIER_ASSERT(customer_schema.GetColumn(0).GetName() == "C_ID" &&
+                       history_schema.GetColumn(0).GetName() == "H_C_ID" &&
+                       order_schema.GetColumn(3).GetName() == "O_C_ID" &&
+                       (customer_schema.GetColumn(0).GetType() == history_schema.GetColumn(0).GetType() &&
+                        customer_schema.GetColumn(0).GetType() == order_schema.GetColumn(3).GetType()),
+                   "Invalid schema configurations for C_ID.");
+
+    TERRIER_ASSERT(new_order_schema.GetColumn(0).GetName() == "NO_O_ID" &&
+                       order_schema.GetColumn(0).GetName() == "O_ID" &&
+                       order_line_schema.GetColumn(0).GetName() == "OL_O_ID" &&
+                       (new_order_schema.GetColumn(0).GetType() == order_schema.GetColumn(0).GetType() &&
+                        new_order_schema.GetColumn(0).GetType() == order_line_schema.GetColumn(0).GetType()),
+                   "Invalid schema configurations for O_ID.");
+
+    TERRIER_ASSERT(order_line_schema.GetColumn(4).GetName() == "OL_I_ID" &&
+                       item_schema.GetColumn(0).GetName() == "I_ID" &&
+                       stock_schema.GetColumn(0).GetName() == "S_I_ID" &&
+                       (order_line_schema.GetColumn(4).GetType() == item_schema.GetColumn(0).GetType() &&
+                        order_line_schema.GetColumn(4).GetType() == stock_schema.GetColumn(0).GetType()),
+                   "Invalid schema configurations for I_ID.");
+
     Loader::PopulateTables(txn_manager_, generator_, item_schema, warehouse_schema, stock_schema, district_schema,
                            customer_schema, history_schema, new_order_schema, order_schema, order_line_schema,
                            item_table, warehouse_table, stock_table, district_table, customer_table, history_table,

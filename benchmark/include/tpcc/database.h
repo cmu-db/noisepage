@@ -67,10 +67,7 @@ class Database {
         customer_index_(nullptr),
         new_order_index_(nullptr),
         order_index_(nullptr),
-        order_line_index_(nullptr) {
-    // TODO(Matt): assert that all the pointers are non-null?
-    // TODO(Matt): assert that all types are what we expect
-  }
+        order_line_index_(nullptr) {}
 
   const catalog::Schema item_schema_;
   const catalog::Schema warehouse_schema_;
