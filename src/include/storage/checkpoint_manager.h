@@ -22,7 +22,7 @@ class CheckpointManager {
   /**
    * Constructs a new CheckpointManager, writing its records out to the given file.
    */
-  CheckpointManager(const char *log_file_path_prefix)
+  explicit CheckpointManager(const char *log_file_path_prefix)
       : log_file_path_prefix_(log_file_path_prefix) {}
 
   /**
@@ -40,6 +40,7 @@ class CheckpointManager {
   void EndCheckpoint() {
     out_.Persist();
     out_.Close();
+    txn_ = nullptr;
   }
 
   /**
@@ -52,12 +53,48 @@ class CheckpointManager {
    *                 * use a batch of ProjectedRows as buffer
    *                 * support morsel
    */
-  void Checkpoint(SqlTable &table, const storage::BlockLayout &layout);
+  void Checkpoint(SqlTable &table, const BlockLayout &layout);
+
+  /**
+   * Begin a recovery. This will clear all registered tables and layouts.
+   */
+  void BeginRecovery(transaction::TransactionContext *txn) {
+    txn_ = txn;
+  }
+
+  void RegisterTable(SqlTable *table, BlockLayout *layout) {
+    tables_.push_back(table);
+    layouts_.push_back(layout);
+  }
+
+  /**
+   * Read the content of a file, and reinsert all tuples into the tables already registered.
+   */
+  void Recover(const char *log_file_path);
+
+  void EndRecovery() {
+    txn_ = nullptr;
+    tables_.clear();
+    layouts_.clear();
+  }
 
  private:
   std::string log_file_path_prefix_;
   BufferedTupleWriter out_;
-  transaction::TransactionContext *txn_;
+  transaction::TransactionContext *txn_ = nullptr;
+  std::vector<SqlTable *> tables_;
+  std::vector<BlockLayout *> layouts_;
+
+  SqlTable *GetTable(catalog::table_oid_t oid) {
+    // TODO(mengyang): add support to multiple tables
+    return tables_.at(0);
+  }
+
+  BlockLayout *GetLayout(catalog::table_oid_t oid) {
+    // TODO(mengyang): add support to multiple tables
+    return layouts_.at(0);
+  }
+
 };
 
 }  // namespace terrier::storage

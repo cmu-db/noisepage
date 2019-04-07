@@ -55,7 +55,6 @@ void BufferedTupleWriter::AppendTupleToBuffer(
     std::memcpy(buffer_ + varlen_offset, &varlen_size, sizeof(varlen_size));
     varlen_offset += sizeof(varlen_size);
     std::memcpy(buffer_ + varlen_offset, entry->Content(), varlen_size);
-    // TODO(Mengyang): used a magic number here, because sizeof(uint32_t) produces long unsigned int instead of uint32_t
     varlen_offset += varlen_size;
   }
   cur_buffer_size_ += tot_size;

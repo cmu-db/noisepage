@@ -4,7 +4,7 @@
 #define NUM_RESERVED_COLUMNS 1u
 
 namespace terrier::storage {
-void CheckpointManager::Checkpoint(SqlTable &table, const storage::BlockLayout &layout) {
+void CheckpointManager::Checkpoint(SqlTable &table, const BlockLayout &layout) {
   std::vector<storage::col_id_t> all_col(layout.NumColumns() - NUM_RESERVED_COLUMNS);
   // Add all of the column ids from the layout to the projection list
   // 0 is version vector so we skip it
@@ -34,5 +34,40 @@ void CheckpointManager::Checkpoint(SqlTable &table, const storage::BlockLayout &
       out_.SerializeTuple(row, row_buffer, layout);
     }
   }
+  out_.Persist();
 }
+
+void CheckpointManager::Recover(const char *log_file_path) {
+  BufferedTupleReader reader(log_file_path);
+
+  while(reader.ReadNextBlock()) {
+    CheckpointFilePage *page = reader.GetPage();
+    // TODO: check checksum here
+    catalog::table_oid_t oid = page->GetTableOid();
+    SqlTable *table = GetTable(oid);
+    BlockLayout *layout = GetLayout(oid);
+
+    ProjectedRow *row = nullptr;
+    while((row = reader.ReadNextRow()) != nullptr) {
+      // loop through columns to deal with non-inlined varlens.
+      for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
+        if (!row->IsNull(projection_list_idx)){
+          storage::col_id_t col = row->ColumnIds()[projection_list_idx];
+          if (layout->IsVarlen(col)) {
+            VarlenEntry *entry = reinterpret_cast<VarlenEntry *>(row->AccessForceNotNull(projection_list_idx));
+            if (!entry->IsInlined()) {
+              uint32_t varlen_size = reader.ReadNextVarlenSize();
+              byte *varlen_content = reader.ReadNextVarlen(varlen_size);
+              byte *varlen = common::AllocationUtil::AllocateAligned(varlen_size);
+              std::memcpy(varlen, varlen_content, varlen_size);
+              *entry = VarlenEntry::Create(varlen, varlen_size, true);
+            }
+          }
+        }
+      }
+      table->Insert(txn_, *row);
+    }
+  }
+}
+
 }  //namespace terrier::storage
