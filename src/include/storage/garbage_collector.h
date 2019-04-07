@@ -77,7 +77,6 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordRestOfChain(UndoRecord *version_chain_head, std::vector<transaction::timestamp_t> *active_txns);
 
-  void UnlinkUndoRecordHead(UndoRecord *head, std::vector<transaction::timestamp_t> *active_txns);
   /**
    * Straight up unlink the undo_record and reclaim its space
    * @param txn
