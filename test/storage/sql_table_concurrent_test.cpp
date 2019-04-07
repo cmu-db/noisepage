@@ -20,18 +20,18 @@ struct SqlTableConcurrentTests : public TerrierTest {
   std::vector<catalog::Schema::Column> GenerateColumnsVector(storage::layout_version_t v) {
     std::vector<catalog::Schema::Column> cols;
 
-    cols.emplace_back("version",                 type::TypeId::INTEGER,  false, catalog::col_oid_t(100));
-    cols.emplace_back("sentinel",                type::TypeId::INTEGER,  false, catalog::col_oid_t(1000));
-    if ((!v) <  1) cols.emplace_back("bigint",   type::TypeId::BIGINT,   false, catalog::col_oid_t(1001));
-    if ((!v) <  2) cols.emplace_back("integer",  type::TypeId::INTEGER,  false, catalog::col_oid_t(1002));
-    if ((!v) <  3) cols.emplace_back("smallint", type::TypeId::SMALLINT, false, catalog::col_oid_t(1003));
-    if ((!v) <  4) cols.emplace_back("tinyint",  type::TypeId::TINYINT,  false, catalog::col_oid_t(1004));
-    if ((!v) >= 5) cols.emplace_back("tinyint",  type::TypeId::TINYINT,  false, catalog::col_oid_t(1005));
+    cols.emplace_back("version", type::TypeId::INTEGER, false, catalog::col_oid_t(100));
+    cols.emplace_back("sentinel", type::TypeId::INTEGER, false, catalog::col_oid_t(1000));
+    if ((!v) < 1) cols.emplace_back("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1001));
+    if ((!v) < 2) cols.emplace_back("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1002));
+    if ((!v) < 3) cols.emplace_back("smallint", type::TypeId::SMALLINT, false, catalog::col_oid_t(1003));
+    if ((!v) < 4) cols.emplace_back("tinyint", type::TypeId::TINYINT, false, catalog::col_oid_t(1004));
+    if ((!v) >= 5) cols.emplace_back("tinyint", type::TypeId::TINYINT, false, catalog::col_oid_t(1005));
     if ((!v) >= 6) cols.emplace_back("smallint", type::TypeId::SMALLINT, false, catalog::col_oid_t(1006));
-    if ((!v) >= 7) cols.emplace_back("integer",  type::TypeId::INTEGER,  false, catalog::col_oid_t(1007));
-    if ((!v) >= 8) cols.emplace_back("bigint",   type::TypeId::BIGINT,   false, catalog::col_oid_t(1008));
+    if ((!v) >= 7) cols.emplace_back("integer", type::TypeId::INTEGER, false, catalog::col_oid_t(1007));
+    if ((!v) >= 8) cols.emplace_back("bigint", type::TypeId::BIGINT, false, catalog::col_oid_t(1008));
 
-    std::vector<catalog::col_oid_t> *col_oids = new std::vector<catalog::col_oid_t>;
+    auto *col_oids = new std::vector<catalog::col_oid_t>;
     for (const auto &c : cols) {
       col_oids->emplace_back(c.GetOid());
     }
@@ -40,7 +40,8 @@ struct SqlTableConcurrentTests : public TerrierTest {
     return cols;
   }
 
-  void PopulateProjectedRow(storage::layout_version_t v, int32_t base_val, storage::ProjectedRow *pr, storage::ProjectionMap *pr_map) {
+  void PopulateProjectedRow(storage::layout_version_t v, int32_t base_val, storage::ProjectedRow *pr,
+                            storage::ProjectionMap *pr_map) {
     EXPECT_NE(pr_map->find(catalog::col_oid_t(100)), pr_map->end());
     uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(100))));
     *version = static_cast<uint32_t>(v);
@@ -64,25 +65,25 @@ struct SqlTableConcurrentTests : public TerrierTest {
     if ((!v) < 3) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1003)), pr_map->end());
       int16_t *smallint = reinterpret_cast<int16_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1003))));
-      *smallint = base_val % 1<<15;
+      *smallint = static_cast<int16_t>(base_val % 1 << 15);
     }
 
     if ((!v) < 4) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1004)), pr_map->end());
-      int8_t  *tinyint = reinterpret_cast<int8_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1004))));
-      *tinyint = base_val % 1<<7;
+      int8_t *tinyint = reinterpret_cast<int8_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1004))));
+      *tinyint = static_cast<int8_t>(base_val % 1 << 7);
     }
 
     if ((!v) >= 5) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1005)), pr_map->end());
-      int8_t  *tinyint = reinterpret_cast<int8_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1005))));
-      *tinyint = base_val % 1<<7;
+      int8_t *tinyint = reinterpret_cast<int8_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1005))));
+      *tinyint = static_cast<int8_t>(base_val % 1 << 7);
     }
 
     if ((!v) >= 6) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1006)), pr_map->end());
       int16_t *smallint = reinterpret_cast<int16_t *>(pr->AccessForceNotNull(pr_map->at(catalog::col_oid_t(1006))));
-      *smallint = base_val % 1<<15;
+      *smallint = static_cast<int16_t>(base_val % 1 << 15);
     }
 
     if ((!v) >= 7) {
@@ -98,7 +99,8 @@ struct SqlTableConcurrentTests : public TerrierTest {
     }
   }
 
-  void ValidateTuple(storage::ProjectedRow *pr, storage::ProjectionMap *pr_map, storage::layout_version_t v, int base_val) {
+  void ValidateTuple(storage::ProjectedRow *pr, storage::ProjectionMap *pr_map, storage::layout_version_t v,
+                     int base_val) {
     EXPECT_NE(pr_map->find(catalog::col_oid_t(100)), pr_map->end());
     uint32_t *version = reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(100))));
     EXPECT_NE(version, nullptr);
@@ -124,22 +126,22 @@ struct SqlTableConcurrentTests : public TerrierTest {
     if ((!v) < 3) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1003)), pr_map->end());
       int16_t *smallint = reinterpret_cast<int16_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1003))));
-      EXPECT_EQ(*smallint, base_val % 1<<15);
+      EXPECT_EQ(*smallint, static_cast<int16_t>(base_val % 1 << 15));
     }
 
     if ((!v) < 4) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1004)), pr_map->end());
-      int8_t  *tinyint = reinterpret_cast<int8_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1004))));
-      EXPECT_EQ(*tinyint, base_val % 1<<7);
+      int8_t *tinyint = reinterpret_cast<int8_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1004))));
+      EXPECT_EQ(*tinyint, static_cast<int8_t>(base_val % 1 << 7));
     }
 
     if ((!v) >= 5) {
       EXPECT_NE(pr_map->find(catalog::col_oid_t(1005)), pr_map->end());
-      int8_t  *tinyint = reinterpret_cast<int8_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1005))));
+      int8_t *tinyint = reinterpret_cast<int8_t *>(pr->AccessWithNullCheck(pr_map->at(catalog::col_oid_t(1005))));
       if (*version < 5)
         EXPECT_EQ(tinyint, nullptr);
       else
-        EXPECT_EQ(*tinyint, base_val % 1<<7);
+        EXPECT_EQ(*tinyint, static_cast<int8_t>(base_val % 1 << 7));
     }
 
     if ((!v) >= 6) {
@@ -148,7 +150,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
       if (*version < 6)
         EXPECT_EQ(smallint, nullptr);
       else
-        EXPECT_EQ(*smallint, base_val % 1<<15);
+        EXPECT_EQ(*smallint, static_cast<int16_t>(base_val % 1 << 15));
     }
 
     if ((!v) >= 7) {
@@ -182,7 +184,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
   std::vector<catalog::Schema::Column> cols_;
   std::vector<catalog::col_oid_t> **versioned_col_oids;
 
-private:
+ private:
   // TODO(yangjuns): need to fake a catalog that maps sql_table -> version_num
 };
 
@@ -193,7 +195,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
-  versioned_col_oids = (std::vector<catalog::col_oid_t> **)calloc(txns_per_thread+1, sizeof(std::vector<catalog::col_oid_t> *));
+  versioned_col_oids = static_cast<std::vector<catalog::col_oid_t> **>(
+      calloc(txns_per_thread + 1, sizeof(std::vector<catalog::col_oid_t> *)));
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -201,16 +204,16 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     catalog::Schema schema(GenerateColumnsVector(schema_version_), schema_version_);
     storage::SqlTable table(&block_store_, schema, table_oid_);
 
-  // Begin concurrent section
+    // Begin concurrent section
     auto workload = [&](uint32_t id) {
       for (uint32_t t = 0; t < txns_per_thread; t++) {
         storage::layout_version_t working_version = schema_version_;
         transaction::TransactionContext *txn;
         if (id == 0) {
-          if (t >= 8) break; // No more schema updates
+          if (t >= 8) break;  // No more schema updates
           txn = txn_manager_.BeginTransaction();
           // LOG_INFO("  Adding schema version {}", (!working_version)+1);
-          catalog::Schema schema(GenerateColumnsVector(working_version+1), working_version+1);
+          catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
           table.UpdateSchema(schema);
           // Update schema
         } else {
@@ -220,7 +223,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
           auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
           auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
           int32_t base_val = id * txns_per_thread + t;
-          byte* buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+          byte *buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
           auto pr = pri->InitializeRow(buffer);
 
           PopulateProjectedRow(working_version, base_val, pr, pr_map);
@@ -238,8 +241,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (uint32_t i = 0; i < txns_per_thread+1; i++)
-      if (versioned_col_oids[i]) delete versioned_col_oids[i];
+    for (uint32_t i = 0; i < txns_per_thread + 1; i++)
+      if (versioned_col_oids[i] != nullptr) delete versioned_col_oids[i];
     // End concurrent section
     // delete init_txn;
   }
@@ -253,7 +256,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
-  versioned_col_oids = (std::vector<catalog::col_oid_t> **)calloc(txns_per_thread+1, sizeof(std::vector<catalog::col_oid_t> *));
+  versioned_col_oids = static_cast<std::vector<catalog::col_oid_t> **>(
+      calloc(txns_per_thread + 1, sizeof(std::vector<catalog::col_oid_t> *)));
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -269,9 +273,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
     auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
 
-
     for (uint32_t i = 0; i < txns_per_thread * num_threads; i++) {
-      byte* buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+      byte *buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
       auto pr = pri->InitializeRow(buffer);
 
       PopulateProjectedRow(schema_version_, i, pr, pr_map);
@@ -287,17 +290,16 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     delete pri;
     delete pr_map;
 
-
-  // Begin concurrent section
+    // Begin concurrent section
     auto workload = [&](uint32_t id) {
       for (uint32_t t = 0; t < txns_per_thread; t++) {
         storage::layout_version_t working_version = schema_version_;
         transaction::TransactionContext *txn;
         if (id == 0) {
-          if (t >= 8) break; // No more schema updates
+          if (t >= 8) break;  // No more schema updates
           txn = txn_manager_.BeginTransaction();
           // LOG_INFO("  Adding schema version {}", (!working_version)+1);
-          catalog::Schema schema(GenerateColumnsVector(working_version+1), working_version+1);
+          catalog::Schema schema(GenerateColumnsVector(working_version + 1), working_version + 1);
           table.UpdateSchema(schema);
           // Update schema
         } else {
@@ -307,7 +309,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
           auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
           auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
           int32_t base_val = id * txns_per_thread + t;
-          byte* buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
+          byte *buffer = common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
           auto pr = pri->InitializeRow(buffer);
 
           table.Select(txn, tuples[base_val], pr, *pr_map, working_version);
@@ -325,8 +327,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (uint32_t i = 0; i < txns_per_thread+1; i++)
-      if (versioned_col_oids[i]) delete versioned_col_oids[i];
+    for (uint32_t i = 0; i < txns_per_thread + 1; i++)
+      if (versioned_col_oids[i] != nullptr) delete versioned_col_oids[i];
     // End concurrent section
     // delete init_txn;
   }

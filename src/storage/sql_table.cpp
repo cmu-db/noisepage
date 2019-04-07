@@ -316,7 +316,7 @@ ProjectionMap SqlTable::ProjectionMapForInitializer(const ProjectionInitializerT
     const col_id_t col_id_at_offset = initializer.ColId(i);
     // find the key (col_oid) in the table's map corresponding to the value (col_id)
 
-    TERRIER_ASSERT(tables_.find(version) != tables_.end(), "Table version must exist");
+    TERRIER_ASSERT(tables_.Find(version) != tables_.CEnd(), "Table version must exist");
     const auto oid_to_id =
         std::find_if(tables_.Find(version)->second.column_map.cbegin(), tables_.Find(version)->second.column_map.cend(),
                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id_at_offset; });
