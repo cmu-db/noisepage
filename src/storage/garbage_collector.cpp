@@ -16,7 +16,6 @@ namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   visited_slots_.clear();
-  reclaim_varlen_map_.clear();
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
@@ -225,7 +224,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
   UndoRecord *next = curr->Next();
   // Skip all the uncommitted undo records
   // Collect only committed undo records, this prevents collection of partial rollback versions
-  while (next != nullptr && !transaction::TransactionUtil::Committed(next->Timestamp().load())) {
+  while (next != nullptr && !transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
     // Update curr and next
     curr = curr->Next();
     next = curr->Next();
@@ -266,7 +265,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
     next = curr->Next();
   }
 
-  SwapwithSafeAbort(curr, nullptr, table, curr->Slot());
+  SwapwithSafeAbort(curr, nullptr);
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
   while (next != nullptr) {
     // Unlink next
@@ -309,7 +308,7 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
   // Add this to the version chain
   compacted_undo_record->Next().store(end_record);
   // Set start_record to point to the compacted undo record
-  SwapwithSafeAbort(start_record, compacted_undo_record, compacted_undo_record->table_, compacted_undo_record->Slot());
+  SwapwithSafeAbort(start_record, compacted_undo_record);
   // Added a compacted undo record. So it should be curr
   *curr_ptr = compacted_undo_record;
 }
@@ -329,7 +328,7 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
-      SwapwithSafeAbort(start_record, next, next->table_, next->Slot());
+      SwapwithSafeAbort(start_record, next);
       break;
     case DeltaRecordType::DELETE: {
     }
@@ -442,21 +441,15 @@ void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
     for (const byte *ptr : reclaim_varlen_map_[&undo_record]) {
       delete[] ptr;
     }
+    if(reclaim_varlen_map_.find(&undo_record) != reclaim_varlen_map_.end()) {
+        reclaim_varlen_map_[&undo_record].clear();
+        reclaim_varlen_map_.erase(&undo_record);
+    }
   }
 }
 
-void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, DataTable *table, TupleSlot slot) {
-  UndoRecord *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
-  if (curr == version_ptr) {
+void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link) {
     curr->Next().store(to_link);
-    while (!transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
-           table->AtomicallyReadVersionPtr(slot, table->accessor_) != version_ptr) {
-      table->AtomicallyWriteVersionPtr(slot, table->accessor_, to_link);
-      version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
-    }
-  } else {
-    curr->Next().store(to_link);
-  }
 }
 
 }  // namespace terrier::storage

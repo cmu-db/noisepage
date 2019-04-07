@@ -172,7 +172,7 @@ class GarbageCollector {
    * @param slot the tuple slot corresponding to the tuple associated with the undo record
    * @param table the table corresponding to the tuple associated with the undo record
    */
-  void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, DataTable *table, TupleSlot slot);
+  void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link);
 
   // reference to the transaction manager class object
   transaction::TransactionManager *txn_manager_;
