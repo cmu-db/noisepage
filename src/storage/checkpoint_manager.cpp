@@ -1,3 +1,4 @@
+#include <iostream>
 #include "storage/checkpoint_manager.h"
 
 #define NUM_RESERVED_COLUMNS 1u
@@ -24,7 +25,8 @@ void CheckpointManager::Checkpoint(SqlTable &table, const storage::BlockLayout &
   ProjectedRow *row_buffer = row_initializer.InitializeRow(redo_buffer);
   
   auto it = table.begin();
-  while (it != table.end()) {
+  auto end = table.end();
+  while (it != end) {
     table.Scan(txn_, &it, columns);
     uint32_t num_tuples = columns->NumTuples();
     for (uint32_t off = 0; off < num_tuples; off++) {

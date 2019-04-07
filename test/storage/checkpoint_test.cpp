@@ -1,5 +1,6 @@
 #include <string>
 #include <random>
+#include <iostream>
 #include "common/object_pool.h"
 #include "storage/storage_util.h"
 #include "storage/sql_table.h"
@@ -173,7 +174,7 @@ struct CheckpointTests : public TerrierTest {
 };
 
 TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
-   const uint32_t num_rows = 100;
+  const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
 //  const uint32_t initial_table_size = 100;
 //  const uint32_t checkpoint_buffer_size = 10000;
