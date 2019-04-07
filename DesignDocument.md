@@ -1,5 +1,4 @@
 # Metric Collection Infrastructure
--------------------------
 
 ## Overview
 
