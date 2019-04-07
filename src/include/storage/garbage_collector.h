@@ -95,8 +95,6 @@ class GarbageCollector {
 
   void EndCompaction(uint32_t *interval_length_ptr);
 
-  void FreeUpdateVarlen();
-
   void ProcessUndoRecordAttributes(UndoRecord *undo_record);
 
   UndoRecord *CreateUndoRecord(UndoRecord *start_record, UndoRecord *end_record);
@@ -118,7 +116,6 @@ class GarbageCollector {
   storage::UndoBuffer *delta_record_compaction_buffer_;
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
   std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
-  std::unordered_map<col_id_t, VarlenEntry *> varlen_map_;
   std::unordered_set<col_id_t> col_set_;
   std::unordered_map<storage::UndoRecord *, std::forward_list<const byte *> > reclaim_varlen_map_;
   std::unordered_set<TupleSlot> visited_slots_;
