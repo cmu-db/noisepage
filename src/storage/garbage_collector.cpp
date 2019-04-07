@@ -16,6 +16,7 @@ namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   visited_slots_.clear();
+  reclaim_varlen_map_.clear();
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
