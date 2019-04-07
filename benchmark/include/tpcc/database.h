@@ -30,6 +30,15 @@ class Database {
     delete new_order_table_;
     delete order_table_;
     delete order_line_table_;
+
+    delete item_index_;
+    delete warehouse_index_;
+    delete stock_index_;
+    delete district_index_;
+    delete customer_index_;
+    delete new_order_index_;
+    delete order_index_;
+    delete order_line_index_;
   }
 
   const catalog::Schema item_schema_;
@@ -52,6 +61,15 @@ class Database {
   storage::SqlTable *const order_table_;
   storage::SqlTable *const order_line_table_;
 
+  const storage::index::IndexKeySchema item_key_schema_;
+  const storage::index::IndexKeySchema warehouse_key_schema_;
+  const storage::index::IndexKeySchema stock_key_schema_;
+  const storage::index::IndexKeySchema district_key_schema_;
+  const storage::index::IndexKeySchema customer_key_schema_;
+  const storage::index::IndexKeySchema new_order_key_schema_;
+  const storage::index::IndexKeySchema order_key_schema_;
+  const storage::index::IndexKeySchema order_line_key_schema_;
+
   storage::index::Index *const item_index_;
   storage::index::Index *const warehouse_index_;
   storage::index::Index *const stock_index_;
@@ -67,9 +85,20 @@ class Database {
   Database(catalog::Schema item_schema, catalog::Schema warehouse_schema, catalog::Schema stock_schema,
            catalog::Schema district_schema, catalog::Schema customer_schema, catalog::Schema history_schema,
            catalog::Schema new_order_schema, catalog::Schema order_schema, catalog::Schema order_line_schema,
+
            storage::SqlTable *const item, storage::SqlTable *const warehouse, storage::SqlTable *const stock,
            storage::SqlTable *const district, storage::SqlTable *const customer, storage::SqlTable *const history,
-           storage::SqlTable *const new_order, storage::SqlTable *const order, storage::SqlTable *const order_line)
+           storage::SqlTable *const new_order, storage::SqlTable *const order, storage::SqlTable *const order_line,
+
+           storage::index::IndexKeySchema item_key_schema, storage::index::IndexKeySchema warehouse_key_schema,
+           storage::index::IndexKeySchema stock_key_schema, storage::index::IndexKeySchema district_key_schema,
+           storage::index::IndexKeySchema customer_key_schema, storage::index::IndexKeySchema new_order_key_schema,
+           storage::index::IndexKeySchema order_key_schema, storage::index::IndexKeySchema order_line_key_schema,
+
+           storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
+           storage::index::Index *const stock_index, storage::index::Index *const district_index,
+           storage::index::Index *const customer_index, storage::index::Index *const new_order_index,
+           storage::index::Index *const order_index, storage::index::Index *const order_line_index)
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
         stock_schema_(std::move(stock_schema)),
@@ -88,14 +117,22 @@ class Database {
         new_order_table_(new_order),
         order_table_(order),
         order_line_table_(order_line),
-        item_index_(nullptr),
-        warehouse_index_(nullptr),
-        stock_index_(nullptr),
-        district_index_(nullptr),
-        customer_index_(nullptr),
-        new_order_index_(nullptr),
-        order_index_(nullptr),
-        order_line_index_(nullptr) {}
+        item_key_schema_(std::move(item_key_schema)),
+        warehouse_key_schema_(std::move(warehouse_key_schema)),
+        stock_key_schema_(std::move(stock_key_schema)),
+        district_key_schema_(std::move(district_key_schema)),
+        customer_key_schema_(std::move(customer_key_schema)),
+        new_order_key_schema_(std::move(new_order_key_schema)),
+        order_key_schema_(std::move(order_key_schema)),
+        order_line_key_schema_(std::move(order_line_key_schema)),
+        item_index_(item_index),
+        warehouse_index_(warehouse_index),
+        stock_index_(stock_index),
+        district_index_(district_index),
+        customer_index_(customer_index),
+        new_order_index_(new_order_index),
+        order_index_(order_index),
+        order_line_index_(order_line_index) {}
 };
 
 }  // namespace terrier::tpcc

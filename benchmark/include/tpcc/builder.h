@@ -4,6 +4,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/macros.h"
+#include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 #include "tpcc/database.h"
 #include "tpcc/schemas.h"
@@ -109,13 +110,37 @@ class Builder {
     auto order_line_key_schema = Schemas::BuildOrderLineKeySchema(order_line_schema, &oid_counter_);
 
     // TODO(Matt): instantiate all of the indexes
+    auto *const item_index = BuildIndex(item_key_schema);
+    auto *const warehouse_index = BuildIndex(warehouse_key_schema);
+    auto *const stock_index = BuildIndex(stock_key_schema);
+    auto *const district_index = BuildIndex(district_key_schema);
+    auto *const customer_index = BuildIndex(customer_key_schema);
+    auto *const new_order_index = BuildIndex(new_order_key_schema);
+    auto *const order_index = BuildIndex(order_key_schema);
+    auto *const order_line_index = BuildIndex(order_line_key_schema);
 
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
-                        new_order_schema, order_schema, order_line_schema, item_table, warehouse_table, stock_table,
-                        district_table, customer_table, history_table, new_order_table, order_table, order_line_table);
+                        new_order_schema, order_schema, order_line_schema,
+
+                        item_table, warehouse_table, stock_table, district_table, customer_table, history_table,
+                        new_order_table, order_table, order_line_table,
+
+                        item_key_schema, warehouse_key_schema, stock_key_schema, district_key_schema,
+                        customer_key_schema, new_order_key_schema, order_key_schema, order_line_key_schema,
+
+                        item_index, warehouse_index, stock_index, district_index, customer_index, new_order_index,
+                        order_index, order_line_index);
   }
 
  private:
+  storage::index::Index *BuildIndex(const storage::index::IndexKeySchema &key_schema) {
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(static_cast<catalog::index_oid_t>(++oid_counter_))
+        .SetKeySchema(key_schema)
+        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    return index_builder.Build();
+  }
+
   storage::BlockStore *const store_;
   uint64_t oid_counter_;
 };
