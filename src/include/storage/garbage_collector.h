@@ -84,26 +84,97 @@ class GarbageCollector {
    */
   void UnlinkUndoRecordVersion(UndoRecord *undo_record);
 
+  /**
+   * Given the first undo record to be compacted, set up variables and begin first phase of interval GC
+   * @param start_record_ptr Stores the beginning of the interval. Required to find the start of interval for the second
+   * pass
+   * @param curr the undo record which will point to the compacted undo record
+   * @param next first undo record to be compacted
+   * @param interval_length_ptr the length of the compaction interval
+   */
   void BeginCompaction(UndoRecord **start_record_ptr, UndoRecord *curr, UndoRecord *next,
                        uint32_t *interval_length_ptr);
 
+  /**
+   * Given the compacted undo record to be linked to the version chain, link it
+   * @param start_record the undo record which marks the beginning of compacted interval and
+   * which will point to the compacted record
+   * @param curr_ptr the pointer marking the current position of interval GC in the version chain
+   * @param end_record the undo record which marks the end of compacted interval and compacted undo record will point
+   * to this record
+   * @param compacted_undo_record the compacted undo record to be linked to the version chain
+   */
   void LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
                                UndoRecord *compacted_undo_record);
 
-  bool ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr);
+  /**
+   * Given the undo record to be compacted in the first GC pass, process it
+   * @param start_record the undo record which marks the beginning of compacted interval and
+   * which will point to the compacted record
+   * @param next the undo record to be compacted
+   * @param interval_length_ptr the length of the compaction interval
+   */
+  void ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr);
 
+  /**
+   * Marks the end of two pass Interval GC
+   * @param interval_length_ptr the length of the compaction interval
+   */
   void EndCompaction(uint32_t *interval_length_ptr);
 
+  /**
+   * Given the undo record to be compacted in the first pass of GC, find all the columns contained in the delta
+   * @param undo_record the undo record to be compacted in the first pass of GC
+   */
   void ProcessUndoRecordAttributes(UndoRecord *undo_record);
 
+  /**
+   * Given the start and the end of the compaction interval after first GC pass, do a second pass and create the
+   * compacted undo record
+   * @param start_record the undo record which marks the beginning of compacted interval
+   * @param end_record the undo record which marks the end of compacted interval
+   * @return the compacted undo record
+   */
   UndoRecord *CreateUndoRecord(UndoRecord *start_record, UndoRecord *end_record);
+
+  /**
+   * Given the time stamp and table slot after first GC pass, create a undo record which can accommodate all the columns
+   * found in the combined delta in the first GC pass
+   * @param timestamp the timestamp which will be allotted to the compacted undo record
+   * @param slot the tuple slot corresponding to the tuple associated with the compacted undo record
+   * @param table the table corresponding to the tuple associated with the compacted undo record
+   * @return the blank undo record which is the placeholder for the compacted undo record
+   */
   UndoRecord *InitializeUndoRecord(transaction::timestamp_t timestamp, TupleSlot slot, DataTable *table);
 
+  /**
+   * Given the undo record,  mark all the varlen entries in the delta to be available for deallocation later
+   * @param undo_record the undo record whose varlen entries are to be marked for deallocation
+   */
   void MarkVarlenReclaimable(UndoRecord *undo_record);
+
+  /**
+   * Given the undo buffer, deallocate all the varlen entries contained in all the undo records in the undo buffer
+   * @param undo_buffer the undo buffer whose varlen entries are to deallocated
+   */
   void DeallocateVarlen(UndoBuffer *undo_buffer);
+
+  /**
+   * Given the compacted undo record, duplicate all the varlens associated with it
+   * @param undo_record the compacted undo record
+   */
   void CopyVarlen(UndoRecord *undo_record);
+
+  /**
+   * Given the undo record to be linked to the version chain, safely link it to the given undo record
+   * @param curr the undo record which will point to the given undo record
+   * @param to_link the undo to be linked to the version chain
+   * @param slot the tuple slot corresponding to the tuple associated with the undo record
+   * @param table the table corresponding to the tuple associated with the undo record
+   */
   void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, DataTable *table, TupleSlot slot);
 
+  // reference to the transaction manager class object
   transaction::TransactionManager *txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
@@ -113,10 +184,15 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // Undo buffer to hold compacted undo records
   storage::UndoBuffer *delta_record_compaction_buffer_;
+  // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
+  // queue of undo buffers containing compacted undo records which ahve been unlinked abd are pending deallocation
   std::forward_list<storage::UndoBuffer *> buffers_to_deallocate_;
+  // set of all column ids in the compacted interval
   std::unordered_set<col_id_t> col_set_;
+  // list of varlen entries per undo record which need to be reclaimed
   std::unordered_map<storage::UndoRecord *, std::forward_list<const byte *> > reclaim_varlen_map_;
+  // set of tuple slots which have already been visited in this GC run
   std::unordered_set<TupleSlot> visited_slots_;
 };
 

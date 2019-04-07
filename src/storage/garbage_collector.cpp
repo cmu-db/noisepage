@@ -222,13 +222,13 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
   uint32_t interval_length = 0;
 
   UndoRecord *curr = version_chain_head;
-  UndoRecord *next = curr->Next().load();
+  UndoRecord *next = curr->Next();
   // Skip all the uncommitted undo records
   // Collect only committed undo records, this prevents collection of partial rollback versions
   while (next != nullptr && !transaction::TransactionUtil::Committed(next->Timestamp().load())) {
     // Update curr and next
-    curr = curr->Next().load();
-    next = curr->Next().load();
+    curr = curr->Next();
+    next = curr->Next();
   }
 
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
@@ -247,15 +247,10 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
         // This is the first undo record to compact
         BeginCompaction(&start_record, curr, next, &interval_length);
       } else {
-        if (ReadUndoRecord(start_record, next, &interval_length)) {
-          // If compaction terminates here because of an Insert record, continue and look for new compaction to begin
-          curr = curr->Next().load();
-          next = curr->Next().load();
-          continue;
-        }
+        ReadUndoRecord(start_record, next, &interval_length);
       }
       // Update curr
-      curr = curr->Next().load();
+      curr = curr->Next();
     } else {
       if (interval_length > 1) {
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
@@ -266,9 +261,9 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
       EndCompaction(&interval_length);
       BeginCompaction(&start_record, curr, next, &interval_length);
       // curr was not claimed in the previous iteration, so possibly someone might use it
-      curr = curr->Next().load();
+      curr = curr->Next();
     }
-    next = curr->Next().load();
+    next = curr->Next();
   }
 
   SwapwithSafeAbort(curr, nullptr, table, curr->Slot());
@@ -277,7 +272,7 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
     // Unlink next
     UnlinkUndoRecordVersion(next);
     // Move next pointer ahead
-    next = next->Next().load();
+    next = next->Next();
   }
 }
 
@@ -308,7 +303,7 @@ void GarbageCollector::BeginCompaction(UndoRecord **start_record_ptr, UndoRecord
 
 void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRecord **curr_ptr, UndoRecord *end_record,
                                                UndoRecord *compacted_undo_record) {
-  UnlinkUndoRecordVersion(start_record->Next().load());
+  UnlinkUndoRecordVersion(start_record->Next());
   // We have compacted some undo records till now
   // end_record undo record can't be GC'd. Set compacted undo record to point to end_record.
   // Add this to the version chain
@@ -320,7 +315,7 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
 }
 
 // Returns true if compaction terminates here because of an Insert record
-bool GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr) {
+void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr) {
   // Already have a base undo record. Apply this undo record on top of that
   switch (next->Type()) {
     case DeltaRecordType::UPDATE:
@@ -330,16 +325,15 @@ bool GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       break;
     case DeltaRecordType::INSERT:
       // Compacting here. So unlink start_record's next
-      UnlinkUndoRecordVersion(start_record->Next().load());
+      UnlinkUndoRecordVersion(start_record->Next());
       EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
       SwapwithSafeAbort(start_record, next, next->table_, next->Slot());
-      return true;
+      break;
     case DeltaRecordType::DELETE: {
     }
   }
-  return false;
 }
 
 void GarbageCollector::EndCompaction(uint32_t *interval_length_ptr) { *interval_length_ptr = 0; }
@@ -354,8 +348,8 @@ void GarbageCollector::ProcessUndoRecordAttributes(UndoRecord *const undo_record
 }
 
 UndoRecord *GarbageCollector::CreateUndoRecord(UndoRecord *const start_record, UndoRecord *const end_record) {
-  UndoRecord *curr = start_record->Next().load();
-  UndoRecord *first_compacted_record = start_record->Next().load();
+  UndoRecord *curr = start_record->Next();
+  UndoRecord *first_compacted_record = start_record->Next();
   DataTable *table = first_compacted_record->Table();
   const TupleAccessStrategy &accessor = table->accessor_;
 
@@ -364,7 +358,7 @@ UndoRecord *GarbageCollector::CreateUndoRecord(UndoRecord *const start_record, U
 
   while (curr != end_record) {
     StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(curr->Delta()), base_undo_record->Delta());
-    curr = curr->Next().load();
+    curr = curr->Next();
   }
   return base_undo_record;
 }
