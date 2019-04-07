@@ -3,11 +3,11 @@
 #include <unordered_map>
 #include <catalog/settings_handle.h>
 #include <gflags/gflags.h>
-#include "settings/settings_callback.h"
 #include "type/value.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
+#include "main/main_database.h"
 
 #define __SETTING_GFLAGS_DECLARE__
 #include "settings/settings_macro.h"
@@ -16,6 +16,8 @@
 
 
 namespace terrier::settings {
+
+using callback_fn = void (*)(void *, void *);
 
 /*
  * SettingsManager:

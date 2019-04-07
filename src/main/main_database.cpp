@@ -46,4 +46,8 @@ namespace terrier {
     main_stat_reg->Shutdown(false);
     return 0;
   }
-}
+
+void MainDatabase::EmptyCallback(void *old_value, void *new_value)
+{ }
+
+} // namespace terrier

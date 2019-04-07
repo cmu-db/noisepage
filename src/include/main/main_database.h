@@ -31,6 +31,9 @@ namespace  terrier{
 class MainDatabase {
  public:
   static int start(int argc, char *argv[]);
+
+  static void EmptyCallback(void *old_value UNUSED_ATTRIBUTE,
+                            void *new_value UNUSED_ATTRIBUTE);
 };
 
 }

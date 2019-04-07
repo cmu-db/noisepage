@@ -10,20 +10,20 @@ SETTING_int(port,
 "Peloton port (default: 15721)",
 15721,
 1024, 65535,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 // Maximum number of connections
 SETTING_int(max_connections,
 "Maximum number of connections (default: 64)",
 64,
 1, 512,
-true, SettingsCallback::MaxConnectionsCallback)
+true, MainDatabase::EmptyCallback)
 
 SETTING_int(rpc_port,
 "Peloton rpc port (default: 15445)",
 15445,
 1024, 65535,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 // TODO(tianyu): Remove when we change to a different rpc framework
 // This is here only because capnp cannot exit gracefully and thus causes
@@ -84,27 +84,27 @@ SETTING_int(monoqueue_task_queue_size,
 "MonoQueue Task Queue Size (default: 32)",
 32,
 8, 128,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 // Size of the MonoQueue worker pool
 SETTING_int(monoqueue_worker_pool_size,
 "MonoQueue Worker Pool Size (default: 4)",
 4,
 1, 32,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 // Number of connection threads used by peloton
 SETTING_int(connection_thread_count,
 "Number of connection threads (default: std::hardware_concurrency())",
 std::thread::hardware_concurrency(),
 1, 64,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 SETTING_int(gc_num_threads,
 "The number of Garbage collection threads to run",
 1,
 1, 128,
-true, SettingsCallback::EmptyCallback)
+true, MainDatabase::EmptyCallback)
 
 SETTING_bool(parallel_execution,
 "Enable parallel execution of queries (default: true)",
@@ -115,7 +115,7 @@ SETTING_int(min_parallel_table_scan_size,
 "Minimum number of tuples a table must have before we consider performing parallel scans (default: 10K)",
 10 * 1000,
 1, std::numeric_limits<int32_t>::max(),
-true, SettingsCallback::EmptyCallback)
+true, MainDatabase::EmptyCallback)
 
 //===----------------------------------------------------------------------===//
 // WRITE AHEAD LOG
@@ -176,14 +176,14 @@ SETTING_int(brain_task_queue_size,
 "Brain Task Queue Size (default: 32)",
 32,
 1, 128,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 // Size of the brain worker pool
 SETTING_int(brain_worker_pool_size,
 "Brain Worker Pool Size (default: 1)",
 1,
 1, 16,
-false, SettingsCallback::EmptyCallback)
+false, MainDatabase::EmptyCallback)
 
 //===----------------------------------------------------------------------===//
 // CODEGEN
@@ -227,7 +227,7 @@ SETTING_int(task_execution_timeout,
 "assuming one plan has been found (default 5000)",
 5000,
 1000, 60000,
-true, SettingsCallback::EmptyCallback)
+true, MainDatabase::EmptyCallback)
 
 //===----------------------------------------------------------------------===//
 // GENERAL
