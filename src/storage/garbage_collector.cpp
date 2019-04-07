@@ -449,7 +449,7 @@ void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link, 
   UndoRecord *version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
   if (curr == version_ptr) {
     curr->Next().store(to_link);
-    while (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
+    while (!transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
            table->AtomicallyReadVersionPtr(slot, table->accessor_) != version_ptr) {
       table->AtomicallyWriteVersionPtr(slot, table->accessor_, to_link);
       version_ptr = table->AtomicallyReadVersionPtr(slot, table->accessor_);
