@@ -14,9 +14,11 @@
 ## Architectural Design
 >Each thread collects data independently during execution while a designated thread aggregates data periodically and writes to SQL tables. In addition, each thread stores the data it collected to SQL tables before un-registering itself from the worker pool. 
 
->To realize above functions, we construct a metric collection framework that is extensible and relatively independent of the database management system. Specifically, our framework has multi-level data structures: different event types such as transaction commit, different metric classes such as metric handler (class Metric) and the actual data holders (class RawData) in metric classes. As Figure 1 demonstrates: 1) Metrics are registered to corresponding events in initialization. 2) When an event is triggered at the running time, related metric handlers are called to apply for latch to access the data. 3) The actual data holders update the values of the variables. 
+>To realize above functions, we construct a metric collection framework that is extensible and relatively independent of the database management system. Specifically, our framework has multi-level data structures: different event types such as transaction commit, different metric classes such as metric handler (class Metric) and the actual data holders (class RawData) in metric classes. As the following figure demonstrates: 1) Metrics are registered to corresponding events in initialization. 2) When an event is triggered at the running time, related metric handlers are called to apply for latch to access the data. 3) The actual data holders update the values of the variables. 
 
 >At the same time, a background aggregator regularly contacts worker threads to swap out their collected data in all data holders and then aggregate them. The aggregated data will be updated and persisted in metric catalog tables.
+
+![data_flow](https://raw.githubusercontent.com/wenxuanqiu/terrier/15-721-project2-stats/src/include/stats/data_flow.png)
 
 ## Design Rationale
 >We choose the current design for several reasons:
