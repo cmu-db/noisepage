@@ -4,6 +4,7 @@
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
+#include "tpcc/builder.h"
 #include "tpcc/database.h"
 #include "transaction/transaction_manager.h"
 
@@ -53,7 +54,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   for (auto _ : state) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     StartGC(&txn_manager);
-    auto tpcc_builder = tpcc::Database::Builder(&txn_manager, &block_store_, &generator_);
+    auto tpcc_builder = tpcc::Builder(&txn_manager, &block_store_, &generator_);
     tpcc::Database *tpcc_db = nullptr;
     uint64_t elapsed_ms;
     {

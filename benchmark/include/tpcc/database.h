@@ -1,12 +1,18 @@
 #pragma once
 
 #include <utility>
-#include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
 #include "common/macros.h"
-#include "storage/sql_table.h"
-#include "tpcc/loader.h"
-#include "tpcc/schemas.h"
+
+namespace terrier::storage {
+class SqlTable;
+namespace index {
+class Index;
+}
+}  // namespace terrier::storage
+
+namespace terrier::catalog {
+class Schema;
+}
 
 // TODO(Matt): it seems many fields can by smaller than INTEGER
 
@@ -14,66 +20,16 @@ namespace terrier::tpcc {
 
 class Database {
  public:
-  template <class Random>
-  class Builder {
-   public:
-    Builder(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store,
-            Random *const generator)
-        : txn_manager_(txn_manager), store_(store), generator_(generator), oid_counter_(0) {}
-    Database *Build() {
-      auto item_schema = Schemas::BuildItemSchema(&oid_counter_);
-      auto warehouse_schema = Schemas::BuildWarehouseSchema(&oid_counter_);
-      auto stock_schema = Schemas::BuildStockSchema(&oid_counter_);
-      auto district_schema = Schemas::BuildDistrictSchema(&oid_counter_);
-      auto customer_schema = Schemas::BuildCustomerSchema(&oid_counter_);
-      auto history_schema = Schemas::BuildHistorySchema(&oid_counter_);
-      auto new_order_schema = Schemas::BuildNewOrderSchema(&oid_counter_);
-      auto order_schema = Schemas::BuildOrderSchema(&oid_counter_);
-      auto order_line_schema = Schemas::BuildOrderLineSchema(&oid_counter_);
-      auto *const item = new storage::SqlTable(store_, item_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const warehouse =
-          new storage::SqlTable(store_, warehouse_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const stock =
-          new storage::SqlTable(store_, stock_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const district =
-          new storage::SqlTable(store_, district_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const customer =
-          new storage::SqlTable(store_, customer_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const history =
-          new storage::SqlTable(store_, history_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const new_order =
-          new storage::SqlTable(store_, new_order_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const order =
-          new storage::SqlTable(store_, order_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-      auto *const order_line =
-          new storage::SqlTable(store_, order_line_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-
-      Loader::PopulateTables(txn_manager_, generator_, item_schema, warehouse_schema, stock_schema, district_schema,
-                             customer_schema, history_schema, new_order_schema, order_schema, order_line_schema, item,
-                             warehouse, stock, district, customer, history, new_order, order, order_line);
-
-      return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
-                          new_order_schema, order_schema, order_line_schema, item, warehouse, stock, district, customer,
-                          history, new_order, order, order_line);
-    }
-
-   private:
-    transaction::TransactionManager *const txn_manager_;
-    storage::BlockStore *const store_;
-    Random *const generator_;
-    uint64_t oid_counter_;
-  };
-
   ~Database() {
-    delete item_;
-    delete warehouse_;
-    delete stock_;
-    delete district_;
-    delete customer_;
-    delete history_;
-    delete new_order_;
-    delete order_;
-    delete order_line_;
+    delete item_table_;
+    delete warehouse_table_;
+    delete stock_table_;
+    delete district_table_;
+    delete customer_table_;
+    delete history_table_;
+    delete new_order_table_;
+    delete order_table_;
+    delete order_line_table_;
   }
 
  private:
@@ -95,15 +51,26 @@ class Database {
         new_order_schema_(std::move(new_order_schema)),
         order_schema_(std::move(order_schema)),
         order_line_schema_(std::move(order_line_schema)),
-        item_(item),
-        warehouse_(warehouse),
-        stock_(stock),
-        district_(district),
-        customer_(customer),
-        history_(history),
-        new_order_(new_order),
-        order_(order),
-        order_line_(order_line) {}
+        item_table_(item),
+        warehouse_table_(warehouse),
+        stock_table_(stock),
+        district_table_(district),
+        customer_table_(customer),
+        history_table_(history),
+        new_order_table_(new_order),
+        order_table_(order),
+        order_line_table_(order_line),
+        item_index_(nullptr),
+        warehouse_index_(nullptr),
+        stock_index_(nullptr),
+        district_index_(nullptr),
+        customer_index_(nullptr),
+        new_order_index_(nullptr),
+        order_index_(nullptr),
+        order_line_index_(nullptr) {
+    // TODO(Matt): assert that all the pointers are non-null?
+    // TODO(Matt): assert that all types are what we expect
+  }
 
   const catalog::Schema item_schema_;
   const catalog::Schema warehouse_schema_;
@@ -115,15 +82,24 @@ class Database {
   const catalog::Schema order_schema_;
   const catalog::Schema order_line_schema_;
 
-  storage::SqlTable *const item_;
-  storage::SqlTable *const warehouse_;
-  storage::SqlTable *const stock_;
-  storage::SqlTable *const district_;
-  storage::SqlTable *const customer_;
-  storage::SqlTable *const history_;
-  storage::SqlTable *const new_order_;
-  storage::SqlTable *const order_;
-  storage::SqlTable *const order_line_;
+  storage::SqlTable *const item_table_;
+  storage::SqlTable *const warehouse_table_;
+  storage::SqlTable *const stock_table_;
+  storage::SqlTable *const district_table_;
+  storage::SqlTable *const customer_table_;
+  storage::SqlTable *const history_table_;
+  storage::SqlTable *const new_order_table_;
+  storage::SqlTable *const order_table_;
+  storage::SqlTable *const order_line_table_;
+
+  storage::index::Index *const item_index_;
+  storage::index::Index *const warehouse_index_;
+  storage::index::Index *const stock_index_;
+  storage::index::Index *const district_index_;
+  storage::index::Index *const customer_index_;
+  storage::index::Index *const new_order_index_;
+  storage::index::Index *const order_index_;
+  storage::index::Index *const order_line_index_;
 };
 
 }  // namespace terrier::tpcc
