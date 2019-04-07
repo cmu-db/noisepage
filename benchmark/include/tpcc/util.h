@@ -1,11 +1,41 @@
 #pragma once
 
 #include <chrono>  // NOLINT
+#include <cstring>
 #include <random>
+#include <string>
+#include "catalog/schema.h"
+#include "storage/projected_row.h"
 
 namespace terrier::tpcc {
-struct RandomUtil {
-  RandomUtil() = delete;
+
+struct Util {
+  Util() = delete;
+
+  static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
+    const auto &cols = schema.GetColumns();
+    std::vector<catalog::col_oid_t> col_oids;
+    col_oids.reserve(cols.size());
+    for (const auto &col : cols) {
+      col_oids.emplace_back(col.GetOid());
+    }
+    return col_oids;
+  }
+
+  template <typename T>
+  static void SetPRAttribute(const catalog::Schema &schema, const uint32_t col_offset,
+                             const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr, T value) {
+    TERRIER_ASSERT((schema.GetColumn(col_offset).GetAttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
+    const auto col_oid = schema.GetColumn(col_offset).GetOid();
+    const auto attr_offset = projection_map.at(col_oid);
+    auto *const attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<T *>(attr) = value;
+  }
+
+  static uint64_t Timestamp() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+        .count();
+  }
 
   // 2.1.6
   template <class Random>
