@@ -2,6 +2,7 @@
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/write_ahead_log/log_io.h"
+
 namespace terrier::storage {
 // TODO(Zhaozhe): Should fetch block_size. Use magic number first.
 // The block size to output to disk every time
@@ -17,10 +18,10 @@ namespace terrier::storage {
  */
 class BufferedTupleWriter {
 //  TODO(Zhaozhe): checksum
-public:
+ public:
   // TODO(Zhaozhe, Mengyang): More fields can be added to header
   class Header {
-  public:
+   public:
     Header() {
       checksum_ = 0;
     }
@@ -30,20 +31,20 @@ public:
     uint32_t GetCheckSum() {
       return checksum_;
     }
-  private:
+   private:
     uint32_t checksum_;
   };
-  
+
   BufferedTupleWriter() = default;
   
-  explicit BufferedTupleWriter(const char *log_file_path) {
-    Open(log_file_path);
-  }
-  
+  explicit BufferedTupleWriter(const char *log_file_path)
+      : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR)),
+        cur_buffer_size_(sizeof(Header)),
+        buffer_(new byte[block_size_]()) {}
+
   void Open(const char *log_file_path) {
-    buffered_writer_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-    block_size_ = CHECKPOINT_BLOCK_SIZE;
-    buffer_ = new char[block_size_];
+    out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    buffer_ = new byte[block_size_]();
     ResetBuffer();
   }
   
@@ -52,28 +53,33 @@ public:
   }
   
   void Close() {
-    PosixIoWrappers::Close(buffered_writer_);
-    delete(buffer_);
+    PosixIoWrappers::Close(out_);
+    delete[] buffer_;
   }
   
   // Serialize the tuple into the internal block buffer, and write to disk when the buffer is full.
   void SerializeTuple(ProjectedColumns::RowView &row, ProjectedRow *row_buffer,
                       const storage::BlockLayout &layout);
-  
+
   void AppendTupleToBuffer(ProjectedRow *row_buffer, int32_t total_varlen,
                            const std::vector<const VarlenEntry*> &varlen_entries);
+
+  Header *GetHeader() {
+    return reinterpret_cast<Header *>(buffer_);
+  }
   
-private:
-  int buffered_writer_;  // fd of the output files
-  uint32_t block_size_;
+ private:
+  int out_;  // fd of the output files
+  uint32_t block_size_ = CHECKPOINT_BLOCK_SIZE;
   uint32_t cur_buffer_size_ = 0;
-  char *buffer_;
+  byte *buffer_ = nullptr;
   
   void ResetBuffer() {
     memset(buffer_, 0, block_size_);
-    Header *header = new Header();
+    auto *header = new Header();
     memcpy(buffer_, header, sizeof(Header));
     cur_buffer_size_ = sizeof(Header);
+    delete header;
   }
   
   void PersistBuffer() {
@@ -83,8 +89,38 @@ private:
       // If the buffer has no contents, just return
       return;
     }
-    PosixIoWrappers::WriteFully(buffered_writer_, buffer_, block_size_);
+    PosixIoWrappers::WriteFully(out_, buffer_, block_size_);
     ResetBuffer();
   }
+};
+
+class BufferedTupleReader {
+ public:
+
+  explicit BufferedTupleReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
+
+  bool HasNextBlock() {
+    return false;
+  }
+
+  void ReadNextBlock() {
+
+  }
+
+  bool HasNextRow() {
+    return false;
+  }
+
+  void ReadNextRow(ProjectedRow *buffer) {
+
+  }
+
+  void Open(const std::string &path) {
+
+  }
+
+ private:
+  int in_;
+
 };
 }
