@@ -27,7 +27,8 @@ TEST_F(ProjectedRowTests, Nulls) {
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer(layout, update_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, update_col_ids);
     auto *update_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *update = initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout, null_ratio_(generator_), &generator_);
@@ -66,7 +67,8 @@ TEST_F(ProjectedRowTests, CopyProjectedRowLayout) {
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
@@ -98,7 +100,8 @@ TEST_F(ProjectedRowTests, MemorySafety) {
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
 
@@ -127,7 +130,8 @@ TEST_F(ProjectedRowTests, Alignment) {
 
     // generate a random projectedRow
     std::vector<storage::col_id_t> all_col_ids = StorageTestUtil::ProjectionListAllColumns(layout);
-    storage::ProjectedRowInitializer initializer(layout, all_col_ids);
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
     for (uint16_t i = 0; i < row->NumColumns(); i++)
