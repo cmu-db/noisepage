@@ -32,7 +32,10 @@ class ThreadLevelStatsCollector {
    */
   static ThreadLevelStatsCollector *GetCollectorForThread() {
     std::thread::id tid = std::this_thread::get_id();
-    const auto iter = collector_map_.Find(tid);
+    auto const iter = collector_map_.Find(tid);
+    if (iter == collector_map_.End()) {
+      return nullptr;
+    }
     return iter->second;
   }
 

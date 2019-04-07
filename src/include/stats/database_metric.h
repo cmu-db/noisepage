@@ -19,9 +19,9 @@ class DatabaseMetricRawData : public AbstractRawData {
 
   void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].second++; }
 
-  void Aggregate(AbstractRawData &other) override {
-    auto &other_db_metric = dynamic_cast<DatabaseMetricRawData &>(other);
-    for (auto &entry : other_db_metric.counters_) {
+  void Aggregate(AbstractRawData *other) override {
+    auto other_db_metric = dynamic_cast<DatabaseMetricRawData *>(other);
+    for (auto &entry : other_db_metric->counters_) {
       auto &this_counter = counters_[entry.first];
       auto &other_counter = entry.second;
       this_counter.first += other_counter.first;
@@ -30,6 +30,11 @@ class DatabaseMetricRawData : public AbstractRawData {
   }
 
   void UpdateAndPersist() override;
+
+  /**
+   * @return the type of the metric this object is holding the data for
+   */
+  MetricType GetMetricType() const override { return MetricType::DATABASE; }
 
  private:
   /**

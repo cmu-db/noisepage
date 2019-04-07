@@ -28,7 +28,7 @@ RawDataCollect StatsAggregator::AggregateRawData() {
       acc = data_block;
     else
       for (size_t i = 0; i < data_block.size(); i++) {
-        acc[i]->Aggregate(*data_block[i]);
+        acc[i]->Aggregate(data_block[i].get());
       }
   };
   return acc;

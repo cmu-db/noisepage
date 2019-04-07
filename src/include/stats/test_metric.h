@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// test_metric.h
-//
-// Identification: src/include/statistics/test_metric.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "abstract_metric.h"
@@ -26,27 +14,36 @@ class TestMetricRawData : public AbstractRawData {
    * @brief integrate the count with the number specified
    * @param num number to be integrate
    */
-  inline void Integrate(int num) { count_ += num; }
+  void Integrate(int num) { value_ += num; }
 
   /**
    * @brief aggregate the counts
    * @param other
    */
-  inline void Aggregate(AbstractRawData &other) override {
-    auto &other_test = dynamic_cast<TestMetricRawData &>(other);
-    count_ += other_test.count_;
+  void Aggregate(AbstractRawData *other) override {
+    auto other_test = dynamic_cast<TestMetricRawData *>(other);
+    value_ += other_test->GetCount();
   }
 
-  void UpdateAndPersist() override {}
+  void UpdateAndPersist() override{};
 
-  // const std::string GetInfo() const override { return "test metric"; }
+  /**
+   * @return the type of the metric this object is holding the data for
+   */
+  MetricType GetMetricType() const override { return MetricType::TEST; }
 
-  int count_;
+  /**
+   * @return value of the test raw data
+   */
+  int GetCount() { return value_; }
+
+ private:
+  int value_;
 };
 
 class TestMetric : public AbstractMetric<TestMetricRawData> {
  public:
-  inline void OnTest(int num) override { GetRawData()->Integrate(num); }
+  void OnTest(int num) override { GetRawData()->Integrate(num); }
 };
 
 }  // namespace terrier::stats

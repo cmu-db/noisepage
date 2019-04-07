@@ -38,7 +38,7 @@ namespace stats {
  */
 class Metric {
  public:
-  virtual ~Metric(){};
+  virtual ~Metric() = default;
 
   /**
    * @param txn context of the transaction beginning
@@ -167,7 +167,7 @@ class Metric {
   /**
    * @brief Event used to test the framework
    */
-  virtual void OnTest(int){};
+  virtual void OnTest(int increment){};
 
   /**
    * @brief Replace RawData with an empty one and return the old one.
@@ -215,7 +215,7 @@ class RawDataWrapper {
  public:
   RawDataWrapper(RawDataWrapper &&other) noexcept;
 
-  ~RawDataWrapper() { safe_ = true; }  // Unblock aggregator
+  ~RawDataWrapper() { *safe_ = true; }  // Unblock aggregator
 
   DISALLOW_COPY(RawDataWrapper);
 
@@ -230,9 +230,9 @@ class RawDataWrapper {
    * @param ptr the pointer it wraps around
    * @param safe the boolean variable it uses to signal its lifetime
    */
-  inline RawDataWrapper(DataType *ptr, std::atomic<bool> &safe) : ptr_(ptr), safe_(safe) {}
+  RawDataWrapper(DataType *ptr, std::atomic<bool> *safe) : ptr_(ptr), safe_(safe) {}
   DataType *ptr_;
-  std::atomic<bool> &safe_;
+  std::atomic<bool> *safe_;
 };
 
 /**
@@ -246,9 +246,9 @@ class RawDataWrapper {
 template <typename DataType>
 class AbstractMetric : public Metric {
  public:
-  AbstractMetric() : raw_data_(new DataType()), safe_{true} {}
+  AbstractMetric() : raw_data_(new DataType()), safe_(std::atomic<bool>(true)) {}
 
-  virtual ~AbstractMetric() override { delete raw_data_.load(); }
+  ~AbstractMetric() override { delete raw_data_.load(); }
   /**
    * @see Metric
    *
@@ -275,13 +275,13 @@ class AbstractMetric : public Metric {
    * Always use this method to access the raw data within an AbstractMetric.
    * @return a RawDataWrapper object to access raw_data_
    */
-  inline RawDataWrapper<DataType> GetRawData() {
+  RawDataWrapper<DataType> GetRawData() {
     // safe_ should first be flipped to false before loading the raw_data_ so
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
     safe_ = false;
-    return {raw_data_.load(), safe_};
+    return {raw_data_.load(), &safe_};
   }
 
  private:

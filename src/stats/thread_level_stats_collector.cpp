@@ -1,6 +1,7 @@
 #include "stats/thread_level_stats_collector.h"
 #include "stats/database_metric.h"
 #include "stats/statistic_defs.h"
+#include "stats/test_metric.h"
 
 namespace terrier::stats {
 
@@ -9,8 +10,9 @@ ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_ma
 transaction::TransactionManager *ThreadLevelStatsCollector::txn_manager_ = nullptr;
 
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
-  RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
   collector_map_.Insert(std::this_thread::get_id(), this);
+  RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
+  RegisterMetric<TestMetric>({StatsEventType::TEST});
 }
 
 ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {

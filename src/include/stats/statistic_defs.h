@@ -31,6 +31,8 @@ enum class MetricType {
   QUERY = 9,
   // Statistics for CPU
   PROCESSOR = 10,
+  // For testing
+  TEST = 11
 };
 
 /**

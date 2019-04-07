@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/macros.h"
+#include "stats/statistic_defs.h"
 
 namespace terrier::stats {
 /**
@@ -25,12 +26,17 @@ class AbstractRawData {
    * other object at this point or after.
    * @param other The other AbstractRawData to be merged
    */
-  virtual void Aggregate(AbstractRawData &other) = 0;
+  virtual void Aggregate(AbstractRawData *other) = 0;
   /**
    * Make necessary updates to the metric raw data and persist the content of
    * this RawData into the Catalog. Expect this object
    * to be garbage-collected after this method is called.
    */
   virtual void UpdateAndPersist() = 0;
+
+  /**
+   * @return the type of the metric this object is holding the data for
+   */
+  virtual MetricType GetMetricType() const = 0;
 };
 }  // namespace terrier::stats
