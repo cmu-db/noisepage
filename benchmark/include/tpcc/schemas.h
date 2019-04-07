@@ -3,6 +3,7 @@
 #include <vector>
 #include "catalog/schema.h"
 #include "common/macros.h"
+#include "storage/index/index_defs.h"
 
 namespace terrier::tpcc {
 
@@ -27,6 +28,18 @@ struct Schemas {
     TERRIER_ASSERT(item_columns.size() == num_item_cols, "Wrong number of columns for Item schema.");
 
     return catalog::Schema(item_columns);
+  }
+
+  static storage::index::IndexKeySchema BuildItemKeySchema(const catalog::Schema &schema, uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema item_key_schema;
+    item_key_schema.reserve(num_item_key_cols);
+
+    item_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                 schema.GetColumn(0).GetType(), schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(item_key_schema.size() == num_item_key_cols, "Wrong number of columns for Item key schema.");
+
+    return item_key_schema;
   }
 
   static catalog::Schema BuildWarehouseTupleSchema(uint64_t *const oid_counter) {
