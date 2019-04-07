@@ -204,6 +204,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
       if (out_buffer->ColumnIds()[i] == VERSION_POINTER_COLUMN_ID) {
+        out_buffer->SetNull(i);  // If we don't have this column, make sure its marked NULL
         continue;
       }
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
