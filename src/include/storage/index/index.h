@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -91,6 +92,18 @@ class Index {
    * @return oid of this indes
    */
   catalog::index_oid_t GetOid() const { return oid_; }
+
+  /**
+   * @return mapping from key oid to projected row offset
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &GetKeyOidToOffsetMap() const {
+    return metadata_.GetKeyOidToOffsetMap();
+  }
+
+  /**
+   * @return projected row initializer for the given key schema
+   */
+  const ProjectedRowInitializer &GetProjectedRowInitializer() const { return metadata_.GetProjectedRowInitializer(); }
 };
 
 }  // namespace terrier::storage::index
