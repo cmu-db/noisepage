@@ -26,11 +26,11 @@ namespace stats {
  */
 class ThreadLevelStatsCollector {
  public:
-  using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector, std::hash<std::thread::id>>;
+  using CollectorsMap = common::ConcurrentMap<std::thread::id, ThreadLevelStatsCollector *, std::hash<std::thread::id>>;
   /**
    * @return the Collector for the calling thread
    */
-  static ThreadLevelStatsCollector &GetCollectorForThread() {
+  static ThreadLevelStatsCollector *GetCollectorForThread() {
     std::thread::id tid = std::this_thread::get_id();
     const auto iter = collector_map_.Find(tid);
     return iter->second;

@@ -8,11 +8,13 @@ ThreadLevelStatsCollector::CollectorsMap ThreadLevelStatsCollector::collector_ma
 
 ThreadLevelStatsCollector::ThreadLevelStatsCollector() {
   RegisterMetric<DatabaseMetric>({StatsEventType::TXN_BEGIN, StatsEventType::TXN_COMMIT, StatsEventType::TXN_ABORT});
+  collector_map_.Insert(std::this_thread::get_id(), this);
 }
 
 ThreadLevelStatsCollector::~ThreadLevelStatsCollector() {
   metrics_.clear();
   metric_dispatch_.clear();
+  collector_map_.Insert(std::this_thread::get_id(), NULL);
 }
 
 std::vector<std::shared_ptr<AbstractRawData>> ThreadLevelStatsCollector::GetDataToAggregate() {
