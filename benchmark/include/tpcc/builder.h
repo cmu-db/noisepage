@@ -17,6 +17,7 @@ class Builder {
   Builder(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store, Random *const generator)
       : txn_manager_(txn_manager), store_(store), generator_(generator), oid_counter_(0) {}
   Database *Build() {
+    // generate all of the table schemas
     auto item_schema = Schemas::BuildItemTupleSchema(&oid_counter_);
     auto warehouse_schema = Schemas::BuildWarehouseTupleSchema(&oid_counter_);
     auto stock_schema = Schemas::BuildStockTupleSchema(&oid_counter_);
@@ -26,6 +27,8 @@ class Builder {
     auto new_order_schema = Schemas::BuildNewOrderTupleSchema(&oid_counter_);
     auto order_schema = Schemas::BuildOrderTupleSchema(&oid_counter_);
     auto order_line_schema = Schemas::BuildOrderLineTupleSchema(&oid_counter_);
+
+    // instantiate all of the tables
     auto *const item_table =
         new storage::SqlTable(store_, item_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
     auto *const warehouse_table =
@@ -97,6 +100,18 @@ class Builder {
                        (order_line_schema.GetColumn(4).GetType() == item_schema.GetColumn(0).GetType() &&
                         order_line_schema.GetColumn(4).GetType() == stock_schema.GetColumn(0).GetType()),
                    "Invalid schema configurations for I_ID.");
+
+    // generate all of the index key schemas
+    auto item_key_schema = Schemas::BuildItemKeySchema(item_schema, &oid_counter_);
+    auto warehouse_key_schema = Schemas::BuildWarehouseKeySchema(warehouse_schema, &oid_counter_);
+    auto stock_key_schema = Schemas::BuildStockKeySchema(stock_schema, &oid_counter_);
+    auto district_key_schema = Schemas::BuildDistrictKeySchema(district_schema, &oid_counter_);
+    auto customer_key_schema = Schemas::BuildCustomerKeySchema(customer_schema, &oid_counter_);
+    auto new_order_key_schema = Schemas::BuildNewOrderKeySchema(new_order_schema, &oid_counter_);
+    auto order_key_schema = Schemas::BuildOrderKeySchema(order_schema, &oid_counter_);
+    auto order_line_key_schema = Schemas::BuildOrderLineKeySchema(order_line_schema, &oid_counter_);
+
+    // TODO(Matt): instantiate all of the indexes
 
     Loader::PopulateTables(txn_manager_, generator_, item_schema, warehouse_schema, stock_schema, district_schema,
                            customer_schema, history_schema, new_order_schema, order_schema, order_line_schema,
