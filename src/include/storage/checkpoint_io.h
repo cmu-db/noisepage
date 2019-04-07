@@ -24,13 +24,13 @@ public:
   
   explicit BufferedTupleWriter(const char *log_file_path)
     : buffered_writer(log_file_path), block_size_(CHECKPOINT_BLOCK_SIZE) {
-    buffer_ = new char(block_size_);
+    buffer_ = new char[block_size_];
     InitBuffer();
   }
   
   void Open(const char *log_file_path) {
     buffered_writer.Open(log_file_path);
-    buffer_ = new char(block_size_);
+    buffer_ = new char[block_size_];
     InitBuffer();
   }
   
