@@ -17,15 +17,15 @@ class Builder {
   Builder(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store, Random *const generator)
       : txn_manager_(txn_manager), store_(store), generator_(generator), oid_counter_(0) {}
   Database *Build() {
-    auto item_schema = Schemas::BuildItemSchema(&oid_counter_);
-    auto warehouse_schema = Schemas::BuildWarehouseSchema(&oid_counter_);
-    auto stock_schema = Schemas::BuildStockSchema(&oid_counter_);
-    auto district_schema = Schemas::BuildDistrictSchema(&oid_counter_);
-    auto customer_schema = Schemas::BuildCustomerSchema(&oid_counter_);
-    auto history_schema = Schemas::BuildHistorySchema(&oid_counter_);
-    auto new_order_schema = Schemas::BuildNewOrderSchema(&oid_counter_);
-    auto order_schema = Schemas::BuildOrderSchema(&oid_counter_);
-    auto order_line_schema = Schemas::BuildOrderLineSchema(&oid_counter_);
+    auto item_schema = Schemas::BuildItemTupleSchema(&oid_counter_);
+    auto warehouse_schema = Schemas::BuildWarehouseTupleSchema(&oid_counter_);
+    auto stock_schema = Schemas::BuildStockTupleSchema(&oid_counter_);
+    auto district_schema = Schemas::BuildDistrictTupleSchema(&oid_counter_);
+    auto customer_schema = Schemas::BuildCustomerTupleSchema(&oid_counter_);
+    auto history_schema = Schemas::BuildHistoryTupleSchema(&oid_counter_);
+    auto new_order_schema = Schemas::BuildNewOrderTupleSchema(&oid_counter_);
+    auto order_schema = Schemas::BuildOrderTupleSchema(&oid_counter_);
+    auto order_line_schema = Schemas::BuildOrderLineTupleSchema(&oid_counter_);
     auto *const item_table =
         new storage::SqlTable(store_, item_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
     auto *const warehouse_table =
