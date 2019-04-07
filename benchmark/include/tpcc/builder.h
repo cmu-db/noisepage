@@ -6,16 +6,13 @@
 #include "common/macros.h"
 #include "storage/sql_table.h"
 #include "tpcc/database.h"
-#include "tpcc/loader.h"
 #include "tpcc/schemas.h"
 
 namespace terrier::tpcc {
 
-template <class Random>
 class Builder {
  public:
-  Builder(transaction::TransactionManager *const txn_manager, storage::BlockStore *const store, Random *const generator)
-      : txn_manager_(txn_manager), store_(store), generator_(generator), oid_counter_(0) {}
+  explicit Builder(storage::BlockStore *const store) : store_(store), oid_counter_(0) {}
   Database *Build() {
     // generate all of the table schemas
     auto item_schema = Schemas::BuildItemTupleSchema(&oid_counter_);
@@ -113,20 +110,13 @@ class Builder {
 
     // TODO(Matt): instantiate all of the indexes
 
-    Loader::PopulateTables(txn_manager_, generator_, item_schema, warehouse_schema, stock_schema, district_schema,
-                           customer_schema, history_schema, new_order_schema, order_schema, order_line_schema,
-                           item_table, warehouse_table, stock_table, district_table, customer_table, history_table,
-                           new_order_table, order_table, order_line_table);
-
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
                         new_order_schema, order_schema, order_line_schema, item_table, warehouse_table, stock_table,
                         district_table, customer_table, history_table, new_order_table, order_table, order_line_table);
   }
 
  private:
-  transaction::TransactionManager *const txn_manager_;
   storage::BlockStore *const store_;
-  Random *const generator_;
   uint64_t oid_counter_;
 };
 }  // namespace terrier::tpcc

@@ -4,6 +4,7 @@
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/projected_row.h"
+#include "tpcc/database.h"
 #include "tpcc/util.h"
 #include "transaction/transaction_manager.h"
 #include "util/transaction_benchmark_util.h"
@@ -19,70 +20,62 @@ struct Loader {
   Loader() = delete;
 
   template <class Random>
-  static void PopulateTables(transaction::TransactionManager *const txn_manager, Random *const generator,
-                             const catalog::Schema &item_schema, const catalog::Schema &warehouse_schema,
-                             const catalog::Schema &stock_schema, const catalog::Schema &district_schema,
-                             const catalog::Schema &customer_schema, const catalog::Schema &history_schema,
-                             const catalog::Schema &new_order_schema, const catalog::Schema &order_schema,
-                             const catalog::Schema &order_line_schema, storage::SqlTable *const item,
-                             storage::SqlTable *const warehouse, storage::SqlTable *const stock,
-                             storage::SqlTable *const district, storage::SqlTable *const customer,
-                             storage::SqlTable *const history, storage::SqlTable *const new_order,
-                             storage::SqlTable *const order, storage::SqlTable *const order_line) {
+  static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Random *const generator,
+                               tpcc::Database *const db) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
 
     // Item
-    const auto item_col_oids = Util::AllColOidsForSchema(item_schema);
-    const auto item_pr_initializer = item->InitializerForProjectedRow(item_col_oids).first;
-    const auto item_pr_map = item->InitializerForProjectedRow(item_col_oids).second;
+    const auto item_col_oids = Util::AllColOidsForSchema(db->item_schema_);
+    const auto item_pr_initializer = db->item_table_->InitializerForProjectedRow(item_col_oids).first;
+    const auto item_pr_map = db->item_table_->InitializerForProjectedRow(item_col_oids).second;
     auto *const item_buffer(common::AllocationUtil::AllocateAligned(item_pr_initializer.ProjectedRowSize()));
 
     // Warehouse
-    const auto warehouse_col_oids = Util::AllColOidsForSchema(warehouse_schema);
-    const auto warehouse_pr_initializer = warehouse->InitializerForProjectedRow(warehouse_col_oids).first;
-    const auto warehouse_pr_map = warehouse->InitializerForProjectedRow(warehouse_col_oids).second;
+    const auto warehouse_col_oids = Util::AllColOidsForSchema(db->warehouse_schema_);
+    const auto warehouse_pr_initializer = db->warehouse_table_->InitializerForProjectedRow(warehouse_col_oids).first;
+    const auto warehouse_pr_map = db->warehouse_table_->InitializerForProjectedRow(warehouse_col_oids).second;
     auto *const warehouse_buffer(common::AllocationUtil::AllocateAligned(warehouse_pr_initializer.ProjectedRowSize()));
 
     // Stock
-    const auto stock_col_oids = Util::AllColOidsForSchema(stock_schema);
-    const auto stock_pr_initializer = stock->InitializerForProjectedRow(stock_col_oids).first;
-    const auto stock_pr_map = stock->InitializerForProjectedRow(stock_col_oids).second;
+    const auto stock_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
+    const auto stock_pr_initializer = db->stock_table_->InitializerForProjectedRow(stock_col_oids).first;
+    const auto stock_pr_map = db->stock_table_->InitializerForProjectedRow(stock_col_oids).second;
     auto *const stock_buffer(common::AllocationUtil::AllocateAligned(stock_pr_initializer.ProjectedRowSize()));
 
     // District
-    const auto district_col_oids = Util::AllColOidsForSchema(district_schema);
-    const auto district_pr_initializer = district->InitializerForProjectedRow(district_col_oids).first;
-    const auto district_pr_map = district->InitializerForProjectedRow(district_col_oids).second;
+    const auto district_col_oids = Util::AllColOidsForSchema(db->district_schema_);
+    const auto district_pr_initializer = db->district_table_->InitializerForProjectedRow(district_col_oids).first;
+    const auto district_pr_map = db->district_table_->InitializerForProjectedRow(district_col_oids).second;
     auto *const district_buffer(common::AllocationUtil::AllocateAligned(district_pr_initializer.ProjectedRowSize()));
 
     // Customer
-    const auto customer_col_oids = Util::AllColOidsForSchema(customer_schema);
-    const auto customer_pr_initializer = customer->InitializerForProjectedRow(customer_col_oids).first;
-    const auto customer_pr_map = customer->InitializerForProjectedRow(customer_col_oids).second;
+    const auto customer_col_oids = Util::AllColOidsForSchema(db->customer_schema_);
+    const auto customer_pr_initializer = db->customer_table_->InitializerForProjectedRow(customer_col_oids).first;
+    const auto customer_pr_map = db->customer_table_->InitializerForProjectedRow(customer_col_oids).second;
     auto *const customer_buffer(common::AllocationUtil::AllocateAligned(customer_pr_initializer.ProjectedRowSize()));
 
     // History
-    const auto history_col_oids = Util::AllColOidsForSchema(history_schema);
-    const auto history_pr_initializer = history->InitializerForProjectedRow(history_col_oids).first;
-    const auto history_pr_map = history->InitializerForProjectedRow(history_col_oids).second;
+    const auto history_col_oids = Util::AllColOidsForSchema(db->history_schema_);
+    const auto history_pr_initializer = db->history_table_->InitializerForProjectedRow(history_col_oids).first;
+    const auto history_pr_map = db->history_table_->InitializerForProjectedRow(history_col_oids).second;
     auto *const history_buffer(common::AllocationUtil::AllocateAligned(history_pr_initializer.ProjectedRowSize()));
 
     // Order
-    const auto order_col_oids = Util::AllColOidsForSchema(order_schema);
-    const auto order_pr_initializer = order->InitializerForProjectedRow(order_col_oids).first;
-    const auto order_pr_map = order->InitializerForProjectedRow(order_col_oids).second;
+    const auto order_col_oids = Util::AllColOidsForSchema(db->order_schema_);
+    const auto order_pr_initializer = db->order_table_->InitializerForProjectedRow(order_col_oids).first;
+    const auto order_pr_map = db->order_table_->InitializerForProjectedRow(order_col_oids).second;
     auto *const order_buffer(common::AllocationUtil::AllocateAligned(order_pr_initializer.ProjectedRowSize()));
 
     // New Order
-    const auto new_order_col_oids = Util::AllColOidsForSchema(new_order_schema);
-    const auto new_order_pr_initializer = new_order->InitializerForProjectedRow(new_order_col_oids).first;
-    const auto new_order_pr_map = new_order->InitializerForProjectedRow(new_order_col_oids).second;
+    const auto new_order_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
+    const auto new_order_pr_initializer = db->new_order_table_->InitializerForProjectedRow(new_order_col_oids).first;
+    const auto new_order_pr_map = db->new_order_table_->InitializerForProjectedRow(new_order_col_oids).second;
     auto *const new_order_buffer(common::AllocationUtil::AllocateAligned(new_order_pr_initializer.ProjectedRowSize()));
 
     // Order Line
-    const auto order_line_col_oids = Util::AllColOidsForSchema(order_line_schema);
-    const auto order_line_pr_initializer = order_line->InitializerForProjectedRow(order_line_col_oids).first;
-    const auto order_line_pr_map = order_line->InitializerForProjectedRow(order_line_col_oids).second;
+    const auto order_line_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
+    const auto order_line_pr_initializer = db->order_line_table_->InitializerForProjectedRow(order_line_col_oids).first;
+    const auto order_line_pr_map = db->order_line_table_->InitializerForProjectedRow(order_line_col_oids).second;
     auto *const order_line_buffer(
         common::AllocationUtil::AllocateAligned(order_line_pr_initializer.ProjectedRowSize()));
 
@@ -98,14 +91,14 @@ struct Loader {
 
     for (uint32_t i_id = 0; i_id < 100000; i_id++) {
       // 100,000 rows in the ITEM table
-      item->Insert(txn, *BuildItemTuple(i_id + 1, original[i_id], item_buffer, item_pr_initializer, item_pr_map,
-                                        item_schema, generator));
+      db->item_table_->Insert(txn, *BuildItemTuple(i_id + 1, original[i_id], item_buffer, item_pr_initializer,
+                                                   item_pr_map, db->item_schema_, generator));
     }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
       // 1 row in the WAREHOUSE table for each configured warehouse
-      warehouse->Insert(txn, *BuildWarehouseTuple(w_id + 1, warehouse_buffer, warehouse_pr_initializer,
-                                                  warehouse_pr_map, warehouse_schema, generator));
+      db->warehouse_table_->Insert(txn, *BuildWarehouseTuple(w_id + 1, warehouse_buffer, warehouse_pr_initializer,
+                                                             warehouse_pr_map, db->warehouse_schema_, generator));
 
       // shuffle the ORIGINAL vector again since we reuse it for stock table
       std::shuffle(original.begin(), original.end(), *generator);
@@ -113,15 +106,17 @@ struct Loader {
       for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
         // For each row in the WAREHOUSE table:
         // 100,000 rows in the STOCK table
-        stock->Insert(txn, *BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_buffer, stock_pr_initializer,
-                                            stock_pr_map, stock_schema, generator));
+        db->stock_table_->Insert(
+            txn, *BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_buffer, stock_pr_initializer,
+                                  stock_pr_map, db->stock_schema_, generator));
       }
 
       for (uint32_t d_id = 0; d_id < num_districts_per_warehouse_; d_id++) {
         // For each row in the WAREHOUSE table:
         // 10 rows in the DISTRICT table
-        district->Insert(txn, *BuildDistrictTuple(d_id + 1, w_id + 1, district_buffer, district_pr_initializer,
-                                                  district_pr_map, district_schema, generator));
+        db->district_table_->Insert(
+            txn, *BuildDistrictTuple(d_id + 1, w_id + 1, district_buffer, district_pr_initializer, district_pr_map,
+                                     db->district_schema_, generator));
 
         // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
         std::vector<uint32_t> o_c_ids;
@@ -139,38 +134,40 @@ struct Loader {
         for (uint32_t c_id = 0; c_id < num_customers_per_district_; c_id++) {
           // For each row in the DISTRICT table:
           // 3,000 rows in the CUSTOMER table
-          customer->Insert(txn,
-                           *BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], customer_buffer,
-                                               customer_pr_initializer, customer_pr_map, customer_schema, generator));
+          db->customer_table_->Insert(
+              txn, *BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], customer_buffer,
+                                       customer_pr_initializer, customer_pr_map, db->customer_schema_, generator));
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
-          history->Insert(txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, history_buffer, history_pr_initializer,
-                                                  history_pr_map, history_schema, generator));
+          db->history_table_->Insert(
+              txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, history_buffer, history_pr_initializer,
+                                      history_pr_map, db->history_schema_, generator));
 
           // For each row in the DISTRICT table:
           // 3,000 rows in the ORDER table
           const auto o_id = c_id;
           const auto order_results = BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, order_buffer,
-                                                     order_pr_initializer, order_pr_map, order_schema, generator);
-          order->Insert(txn, *(order_results.pr));
+                                                     order_pr_initializer, order_pr_map, db->order_schema_, generator);
+          db->order_table_->Insert(txn, *(order_results.pr));
 
           // For each row in the ORDER table:
           // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
           // data generation of the New-Order transaction (see Clause 2.4.1)
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
-            order_line->Insert(
+            db->order_line_table_->Insert(
                 txn, *BuildOrderLineTuple(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d,
                                           order_line_buffer, order_line_pr_initializer, order_line_pr_map,
-                                          order_line_schema, generator));
+                                          db->order_line_schema_, generator));
           }
 
           // For each row in the DISTRICT table:
           // 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
           // (i.e., with NO_O_ID between 2,101 and 3,000)
           if (o_id + 1 >= 2101) {
-            new_order->Insert(txn, *BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_buffer,
-                                                       new_order_pr_initializer, new_order_pr_map, new_order_schema));
+            db->new_order_table_->Insert(
+                txn, *BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_buffer, new_order_pr_initializer,
+                                         new_order_pr_map, db->new_order_schema_));
           }
         }
       }

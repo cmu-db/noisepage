@@ -6,6 +6,7 @@
 #include "storage/storage_defs.h"
 #include "tpcc/builder.h"
 #include "tpcc/database.h"
+#include "tpcc/loader.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -54,12 +55,13 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   for (auto _ : state) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     StartGC(&txn_manager);
-    auto tpcc_builder = tpcc::Builder(&txn_manager, &block_store_, &generator_);
+    auto tpcc_builder = tpcc::Builder(&block_store_);
     tpcc::Database *tpcc_db = nullptr;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
       tpcc_db = tpcc_builder.Build();
+      tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndGC();

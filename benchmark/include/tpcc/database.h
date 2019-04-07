@@ -32,8 +32,36 @@ class Database {
     delete order_line_table_;
   }
 
+  const catalog::Schema item_schema_;
+  const catalog::Schema warehouse_schema_;
+  const catalog::Schema stock_schema_;
+  const catalog::Schema district_schema_;
+  const catalog::Schema customer_schema_;
+  const catalog::Schema history_schema_;
+  const catalog::Schema new_order_schema_;
+  const catalog::Schema order_schema_;
+  const catalog::Schema order_line_schema_;
+
+  storage::SqlTable *const item_table_;
+  storage::SqlTable *const warehouse_table_;
+  storage::SqlTable *const stock_table_;
+  storage::SqlTable *const district_table_;
+  storage::SqlTable *const customer_table_;
+  storage::SqlTable *const history_table_;
+  storage::SqlTable *const new_order_table_;
+  storage::SqlTable *const order_table_;
+  storage::SqlTable *const order_line_table_;
+
+  storage::index::Index *const item_index_;
+  storage::index::Index *const warehouse_index_;
+  storage::index::Index *const stock_index_;
+  storage::index::Index *const district_index_;
+  storage::index::Index *const customer_index_;
+  storage::index::Index *const new_order_index_;
+  storage::index::Index *const order_index_;
+  storage::index::Index *const order_line_index_;
+
  private:
-  template <class Random>
   friend class Builder;
 
   Database(catalog::Schema item_schema, catalog::Schema warehouse_schema, catalog::Schema stock_schema,
@@ -68,35 +96,6 @@ class Database {
         new_order_index_(nullptr),
         order_index_(nullptr),
         order_line_index_(nullptr) {}
-
-  const catalog::Schema item_schema_;
-  const catalog::Schema warehouse_schema_;
-  const catalog::Schema stock_schema_;
-  const catalog::Schema district_schema_;
-  const catalog::Schema customer_schema_;
-  const catalog::Schema history_schema_;
-  const catalog::Schema new_order_schema_;
-  const catalog::Schema order_schema_;
-  const catalog::Schema order_line_schema_;
-
-  storage::SqlTable *const item_table_;
-  storage::SqlTable *const warehouse_table_;
-  storage::SqlTable *const stock_table_;
-  storage::SqlTable *const district_table_;
-  storage::SqlTable *const customer_table_;
-  storage::SqlTable *const history_table_;
-  storage::SqlTable *const new_order_table_;
-  storage::SqlTable *const order_table_;
-  storage::SqlTable *const order_line_table_;
-
-  storage::index::Index *const item_index_;
-  storage::index::Index *const warehouse_index_;
-  storage::index::Index *const stock_index_;
-  storage::index::Index *const district_index_;
-  storage::index::Index *const customer_index_;
-  storage::index::Index *const new_order_index_;
-  storage::index::Index *const order_index_;
-  storage::index::Index *const order_line_index_;
 };
 
 }  // namespace terrier::tpcc
