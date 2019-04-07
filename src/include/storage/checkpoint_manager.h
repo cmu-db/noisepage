@@ -14,14 +14,15 @@
 namespace terrier::storage {
 
 /**
- * A CheckpointManager is responsible for serializing tuples of all tables in the database out and divide time into epochs by doing checkpoint. 
+ * A CheckpointManager is responsible for serializing tuples of all tables in the database out and
+ * divide time into epochs by doing checkpoint.
  */
 class CheckpointManager {
  public:
   /**
    * Constructs a new CheckpointManager, writing its records out to the given file.
    */
-  CheckpointManager(const char *log_file_path_prefix, const uint32_t buffer_size)
+  CheckpointManager(const char *log_file_path_prefix)
       : log_file_path_prefix_(log_file_path_prefix) {}
 
   /**
@@ -57,7 +58,6 @@ class CheckpointManager {
   std::string log_file_path_prefix_;
   BufferedTupleWriter out_;
   transaction::TransactionContext *txn_;
-  
 };
 
 }  // namespace terrier::storage

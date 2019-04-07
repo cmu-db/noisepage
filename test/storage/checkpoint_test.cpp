@@ -176,8 +176,7 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
    const uint32_t num_rows = 100;
   const uint32_t num_columns = 3;
 //  const uint32_t initial_table_size = 100;
-  const uint32_t checkpoint_buffer_size = 10000;
-
+//  const uint32_t checkpoint_buffer_size = 10000;
   int magic_seed = 13523;
 
   auto tested = RandomSqlTableTestObject();
@@ -186,7 +185,7 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
   tested.Create();
   tested.InsertRandomRows(num_rows, 0.2, &generator_);
 
-  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX, checkpoint_buffer_size);
+  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX);
   storage::SqlTable *table = tested.GetTable();
   transaction::TransactionManager *txn_manager = tested.GetTxnManager();
 
@@ -194,7 +193,29 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
   manager.StartCheckpoint(txn);
   manager.Checkpoint(*table, tested.GetLayout());
   manager.EndCheckpoint();
+}
 
+TEST_F(CheckpointTests, SimpleCheckpointWithVarlen) {
+  const uint32_t num_rows = 100;
+  const uint32_t num_columns = 3;
+//  const uint32_t initial_table_size = 100;
+//  const uint32_t checkpoint_buffer_size = 10000;
+  int magic_seed = 13523;
+  
+  auto tested = RandomSqlTableTestObject();
+  std::default_random_engine random_generator(magic_seed);
+  tested.GenerateRandomColumns(num_columns, true, &random_generator);
+  tested.Create();
+  tested.InsertRandomRows(num_rows, 0.2, &generator_);
+  
+  storage::CheckpointManager manager(CHECKPOINT_FILE_PREFIX);
+  storage::SqlTable *table = tested.GetTable();
+  transaction::TransactionManager *txn_manager = tested.GetTxnManager();
+  
+  transaction::TransactionContext *txn = txn_manager->BeginTransaction();
+  manager.StartCheckpoint(txn);
+  manager.Checkpoint(*table, tested.GetLayout());
+  manager.EndCheckpoint();
 }
 
 }  // namespace terrier
