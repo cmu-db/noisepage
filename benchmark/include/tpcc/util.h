@@ -4,6 +4,7 @@
 #include <cstring>
 #include <random>
 #include <string>
+#include <vector>
 #include "catalog/schema.h"
 #include "storage/projected_row.h"
 

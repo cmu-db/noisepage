@@ -4,8 +4,8 @@
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
+#include "tpcc/database.h"
 #include "transaction/transaction_manager.h"
-#include "util/tpcc_benchmark_util.h"
 
 namespace terrier {
 
@@ -53,15 +53,20 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   for (auto _ : state) {
     transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     StartGC(&txn_manager);
-    auto tpcc = tpcc::TPCC(&txn_manager, &block_store_, &generator_);
-    //    uint64_t elapsed_ms;
-    //    { common::ScopedTimer timer(&elapsed_ms); }
-    //    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    auto tpcc_builder = tpcc::Database::Builder(&txn_manager, &block_store_, &generator_);
+    tpcc::Database *tpcc_db = nullptr;
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer timer(&elapsed_ms);
+      tpcc_db = tpcc_builder.Build();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndGC();
+    delete tpcc_db;
   }
   state.SetItemsProcessed(state.iterations());
 }
 
-// BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
-BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
+// BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond);
 }  // namespace terrier

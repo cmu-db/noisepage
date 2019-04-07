@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "catalog/schema.h"
 #include "common/macros.h"
 

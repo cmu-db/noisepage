@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/projected_row.h"
@@ -9,7 +10,7 @@
 
 namespace terrier::tpcc {
 
-constexpr uint32_t num_warehouses_ = 4;
+constexpr uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hard code this
 constexpr uint16_t num_districts_per_warehouse_ = 10;
 constexpr uint16_t num_customers_per_district_ = 3000;
 
@@ -19,15 +20,15 @@ struct Loader {
 
   template <class Random>
   static void PopulateTables(transaction::TransactionManager *const txn_manager, Random *const generator,
-                             storage::SqlTable *const item, storage::SqlTable *const warehouse,
-                             storage::SqlTable *const stock, storage::SqlTable *const district,
-                             storage::SqlTable *const customer, storage::SqlTable *const history,
-                             storage::SqlTable *const new_order, storage::SqlTable *const order,
-                             storage::SqlTable *const order_line, const catalog::Schema &item_schema,
-                             const catalog::Schema &warehouse_schema, const catalog::Schema &stock_schema,
-                             const catalog::Schema &district_schema, const catalog::Schema &customer_schema,
-                             const catalog::Schema &history_schema, const catalog::Schema &new_order_schema,
-                             const catalog::Schema &order_schema, const catalog::Schema &order_line_schema) {
+                             const catalog::Schema &item_schema, const catalog::Schema &warehouse_schema,
+                             const catalog::Schema &stock_schema, const catalog::Schema &district_schema,
+                             const catalog::Schema &customer_schema, const catalog::Schema &history_schema,
+                             const catalog::Schema &new_order_schema, const catalog::Schema &order_schema,
+                             const catalog::Schema &order_line_schema, storage::SqlTable *const item,
+                             storage::SqlTable *const warehouse, storage::SqlTable *const stock,
+                             storage::SqlTable *const district, storage::SqlTable *const customer,
+                             storage::SqlTable *const history, storage::SqlTable *const new_order,
+                             storage::SqlTable *const order, storage::SqlTable *const order_line) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
 
     // Item
