@@ -165,6 +165,11 @@ class Metric {
   virtual void OnQueryEnd(){};
 
   /**
+   * @brief Event used to test the framework
+   */
+  virtual void OnTest(int){};
+
+  /**
    * @brief Replace RawData with an empty one and return the old one.
    *
    * Data from a metric is collected first into a thread-local storage to

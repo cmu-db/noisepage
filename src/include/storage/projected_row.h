@@ -161,21 +161,6 @@ class PACKED ProjectedRow {
 class ProjectedRowInitializer {
  public:
   /**
-   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
-   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
-   * initialization.
-   *
-   * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
-   * utilization and performance. Make no assumption about the ordering of these elements and always consult either
-   * the initializer or the populated ProjectedRow for the true ordering.
-   * @warning col_ids must be a set (no repeats)
-   *
-   * @param layout BlockLayout of the RawBlock to be accessed
-   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
-   */
-  ProjectedRowInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids);
-
-  /**
    * Populates the ProjectedRow's members based on projection list and BlockLayout used to construct this initializer
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
    * @return pointer to the initialized ProjectedRow
@@ -197,7 +182,48 @@ class ProjectedRowInitializer {
    */
   col_id_t ColId(uint16_t i) const { return col_ids_.at(i); }
 
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   *
+   * @warning The ProjectedRowInitializer WILL reorder the given col_ids in its representation for better memory
+   * utilization and performance. Make no assumption about the ordering of these elements and always consult either
+   * the initializer or the populated ProjectedRow for the true ordering
+   * @warning col_ids must be a set (no repeats)
+   *
+   * @param layout BlockLayout of the RawBlock to be accessed
+   * @param col_ids projection list of column ids to map, should have all unique values (no repeats)
+   */
+  static ProjectedRowInitializer CreateProjectedRowInitializer(const BlockLayout &layout,
+                                                               std::vector<col_id_t> col_ids);
+
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   *
+   * @tparam AttrType datatype of attribute sizes
+   * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
+   * @param pr_offsets pr_offsets[i] = projection list offset of attr_sizes[i] after it gets sorted
+   */
+  template <typename AttrType>
+  static ProjectedRowInitializer CreateProjectedRowInitializerForIndexes(std::vector<AttrType> real_attr_sizes,
+                                                                         const std::vector<uint16_t> &pr_offsets);
+
  private:
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   *
+   * @tparam AttrType datatype of attribute sizes
+   * @param attr_sizes sorted attribute sizes
+   * @param col_ids column ids
+   */
+  template <typename AttrType>
+  ProjectedRowInitializer(const std::vector<AttrType> &attr_sizes, std::vector<col_id_t> col_ids);
+
   uint32_t size_ = 0;
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
