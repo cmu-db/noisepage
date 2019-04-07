@@ -41,7 +41,7 @@ public:
   }
   
   void Open(const char *log_file_path) {
-    buffered_writer.Open(log_file_path);
+    buffered_writer_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     block_size_ = CHECKPOINT_BLOCK_SIZE;
     buffer_ = new char[block_size_];
     ResetBuffer();
@@ -52,7 +52,7 @@ public:
   }
   
   void Close() {
-    buffered_writer.Close();
+    PosixIoWrappers::Close(buffered_writer_);
     delete(buffer_);
   }
   
@@ -64,7 +64,7 @@ public:
                            const std::vector<const VarlenEntry*> &varlen_entries);
   
 private:
-  BufferedLogWriter buffered_writer;
+  int buffered_writer_;  // fd of the output files
   uint32_t block_size_;
   uint32_t cur_buffer_size_ = 0;
   char *buffer_;
@@ -83,8 +83,7 @@ private:
       // If the buffer has no contents, just return
       return;
     }
-    buffered_writer.BufferWrite(buffer_, block_size_);
-    buffered_writer.Persist();
+    PosixIoWrappers::WriteFully(buffered_writer_, buffer_, block_size_);
     ResetBuffer();
   }
 };
