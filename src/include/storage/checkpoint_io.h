@@ -13,7 +13,7 @@ namespace terrier::storage {
  * The header of a page in the checkpoint file.
  */
 // TODO(Zhaozhe, Mengyang): More fields can be added to header
-class PACKED CheckpointFilePage {
+class CheckpointFilePage {
  public:
   static void Initialize(CheckpointFilePage *page) {
     // TODO(mengyang): support non-trivial initialization
