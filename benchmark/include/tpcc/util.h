@@ -34,6 +34,18 @@ struct Util {
     *reinterpret_cast<T *>(attr) = value;
   }
 
+  template <typename T>
+  static void SetKeyAttribute(const storage::index::IndexKeySchema &schema, const uint32_t col_offset,
+                              const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &projection_map,
+                              storage::ProjectedRow *const pr, T value) {
+    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
+                   "Invalid attribute size.");
+    const auto col_oid = schema.at(col_offset).GetOid();
+    const auto attr_offset = projection_map.at(col_oid);
+    auto *const attr = pr->AccessForceNotNull(attr_offset);
+    *reinterpret_cast<T *>(attr) = value;
+  }
+
   static uint64_t Timestamp() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
         .count();

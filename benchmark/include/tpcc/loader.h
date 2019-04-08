@@ -36,6 +36,7 @@ struct Loader {
 
     // Item key
     const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
+    const auto item_key_pr_map = db->item_index_->GetKeyOidToOffsetMap();
     auto *const item_key_buffer(common::AllocationUtil::AllocateAligned(item_tuple_pr_initializer.ProjectedRowSize()));
 
     // Warehouse tuple
@@ -49,6 +50,7 @@ struct Loader {
 
     // Warehouse key
     const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
+    const auto warehouse_key_pr_map = db->warehouse_index_->GetKeyOidToOffsetMap();
     auto *const warehouse_key_buffer(
         common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -127,7 +129,8 @@ struct Loader {
       const auto item_slot = db->item_table_->Insert(txn, *item_tuple);
 
       // insert in index
-      const auto *const item_key = BuildItemKey(i_id + 1, item_key_buffer, item_key_pr_initializer);
+      const auto *const item_key =
+          BuildItemKey(i_id + 1, item_key_buffer, item_key_pr_initializer, item_key_pr_map, db->item_key_schema_);
       bool index_insert_result UNUSED_ATTRIBUTE =
           db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Index insertion failed.");
@@ -142,7 +145,8 @@ struct Loader {
       const auto warehouse_slot = db->warehouse_table_->Insert(txn, *warehouse_tuple);
 
       // insert in index
-      const auto *const warehouse_key = BuildWarehouseKey(w_id + 1, warehouse_key_buffer, warehouse_key_pr_initializer);
+      const auto *const warehouse_key = BuildWarehouseKey(w_id + 1, warehouse_key_buffer, warehouse_key_pr_initializer,
+                                                          warehouse_key_pr_map, db->warehouse_key_schema_);
       bool index_insert_result UNUSED_ATTRIBUTE = db->warehouse_index_->ConditionalInsert(
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Index insertion failed.");
@@ -286,13 +290,15 @@ struct Loader {
   }
 
   static storage::ProjectedRow *BuildItemKey(const int32_t i_id, byte *const buffer,
-                                             const storage::ProjectedRowInitializer &pr_initializer) {
+                                             const storage::ProjectedRowInitializer &pr_initializer,
+                                             const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                             const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(i_id >= 1 && i_id <= 100000, "Invalid i_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
 
-    *reinterpret_cast<int32_t *>(pr->AccessForceNotNull(0)) = i_id;
+    Util::SetKeyAttribute(schema, 0, pr_map, pr, i_id);
 
     return pr;
   }
@@ -311,7 +317,7 @@ struct Loader {
 
     // W_ID unique within [number_of_configured_warehouses]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_ID", "Wrong attribute.");
-    Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
+    Util::SetTupleAttribute(schema, col_offset++, projection_map, pr, w_id);
 
     // W_NAME random a-string [6 .. 10]
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "W_NAME", "Wrong attribute.");
@@ -357,14 +363,16 @@ struct Loader {
     return pr;
   }
 
-  static storage::ProjectedRow *BuildWarehouseKey(const int32_t w_id, byte *const buffer,
-                                                  const storage::ProjectedRowInitializer &pr_initializer) {
+  static storage::ProjectedRow *BuildWarehouseKey(
+      const int32_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+      const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
 
-    *reinterpret_cast<int32_t *>(pr->AccessForceNotNull(0)) = w_id;
+    Util::SetKeyAttribute(schema, 0, pr_map, pr, w_id);
 
     return pr;
   }
