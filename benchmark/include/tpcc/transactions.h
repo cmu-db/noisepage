@@ -42,13 +42,13 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
   for (int32_t i = 0; i < args.ol_cnt; i++) {
     int32_t ol_i_id = (i == args.ol_cnt - 1 && args.rbk == 1) ? 8491138 : Util::NURand(8191, 1, 100000, generator);
     int32_t ol_supply_w_id;
-    if (Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1 && num_warehouses_ > 1) {
+    if (Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
       ol_supply_w_id = w_id;
     } else {
       int32_t remote_w_id;
       do {
         remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses_, 0, generator);
-      } while (remote_w_id == w_id);
+      } while (num_warehouses_ > 1 && remote_w_id == w_id);
       ol_supply_w_id = remote_w_id;
     }
     int32_t ol_quantity = Util::RandomWithin<uint8_t>(1, 10, 0, generator);
@@ -61,6 +61,7 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
 struct Transactions {
   Transactions() = delete;
 
+  // 2.4.2
   template <class Random>
   static bool NewOrder(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
                        Worker *const worker, const NewOrderArgs &args) {
