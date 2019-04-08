@@ -70,6 +70,10 @@ class GarbageCollector {
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
+  void ProcessTupleVersionChainHead(DataTable *const table,
+                                    TupleSlot slot,
+                                    std::vector<transaction::timestamp_t> *const active_txns);
+
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
    * @param undo_record pointer to the head of the chain

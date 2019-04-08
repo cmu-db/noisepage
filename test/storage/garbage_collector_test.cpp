@@ -109,9 +109,9 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
-    // Not unlinking the head of version chain
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink the Insert's UndoRecord, then deallocate it on the next run
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -167,9 +167,9 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
 
-    // Unlink and deallocate the single non-read-only transaction
-    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink the two transactions and then deallocate the single non-read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     auto *txn2 = txn_manager.BeginTransaction();
 
@@ -219,9 +219,9 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
 
-    // Unlink and deallocate the single non-read-only transaction
-    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink the two transactions and then deallocate the single non-read-only transaction
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     auto *txn2 = txn_manager.BeginTransaction();
 
@@ -362,9 +362,9 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
-    // Can't unlink the version chain head
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
@@ -432,9 +432,9 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
-    // Can't unlink the head
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
@@ -502,9 +502,9 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
-    // Can't unlink the head
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
@@ -574,9 +574,9 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
     txn_manager.Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
-    // Can't unlink the head
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
+    // Unlink and reclaim the Insert
+    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
@@ -666,9 +666,9 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
 
     txn_manager.Abort(txn0);
 
-    // Process the aborted txn
-    EXPECT_EQ(std::make_pair(0u, 1u), gc.PerformGarbageCollection());
-    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+    // Process the insert and aborted txns. Both should make it to the unlink phase
+    EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -716,11 +716,12 @@ TEST_F(GarbageCollectorTests, SingleOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink read-only txn 0 and unlink txn 1 as no active txn
+    // Unlink txn 4 as txn 0 committed and unlink read-only txn 0 and unlink txn 1 as no active txn
     // Deallocate txn 2, 3
-    EXPECT_EQ(std::make_pair(2u, 2u), gc.PerformGarbageCollection());
-    // Deallocate txn 1
-    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
+    // Deallocate txn 4 and txn 1
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -802,11 +803,11 @@ TEST_F(GarbageCollectorTests, InterleavedOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink read-only txn 0 and txn 1
+    // Unlink read-only txn 0 and txn 7, 1  as txn 0 committed and internal transaction
     // Deallocate txn 2, 3, 5, 6
-    EXPECT_EQ(std::make_pair(4u, 2u), gc.PerformGarbageCollection());
-    // Deallocate txn 1
-    EXPECT_EQ(std::make_pair(1u, 0u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(4u, 3u), gc.PerformGarbageCollection());
+    // Deallocate txn 7 and 1
+    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
   }
 }
 
@@ -876,7 +877,7 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
     update2 = tested.GenerateRandomUpdate(&generator_);
     tested.table_.Update(txn7, slot2, *update2);
     txn_manager.Commit(txn7, TestCallbacks::EmptyCallback, nullptr);
-    // Txn 2, 6 will be unlinked.
+    // Txn 2, 6 will be unlinked. Can't unlink 7, 3 as they installed version chain head and 0, 4 are still active
     // Can't unlink txn 1, 5 as they inserted tuple
     EXPECT_EQ(std::make_pair(0u, 2u), gc.PerformGarbageCollection());
 
@@ -904,11 +905,11 @@ TEST_F(GarbageCollectorTests, TwoTupleOLAP) {
     EXPECT_FALSE(tested.select_result_);
 
     txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
-    // Unlink read-only txn 0 and txn 1, 5 as txn 0 committed
+    // Unlink read-only txn 0 and txn 1, 3, 5, 7 as txn 0 committed
     // Deallocate txn 2, 6
-    EXPECT_EQ(std::make_pair(2u, 3u), gc.PerformGarbageCollection());
-    // Deallocate txn 1, 5
-    EXPECT_EQ(std::make_pair(2u, 0u), gc.PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(2u, 5u), gc.PerformGarbageCollection());
+    // Deallocate txn 1, 3, 5, 7
+    EXPECT_EQ(std::make_pair(4u, 0u), gc.PerformGarbageCollection());
   }
 }
 }  // namespace terrier

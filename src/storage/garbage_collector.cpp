@@ -175,15 +175,44 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
   DataTable *&table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
-
+  const TupleSlot slot = undo_record->Slot();
   // Process this tuple only
-  if (visited_slots_.insert(undo_record->Slot()).second) {
+  if (visited_slots_.insert(slot).second) {
     // Perform interval gc for the entire version chain excluding the head of the chain
     ProcessTupleVersionChain(undo_record, active_txns);
+    ProcessTupleVersionChainHead(table, slot, active_txns);
   }
 
   table = undo_record->Table();
   return table == nullptr;
+}
+
+void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table,
+                                                    TupleSlot slot,
+                                                    std::vector<transaction::timestamp_t> *const active_txns) {
+  if (table == nullptr) {
+    // This UndoRecord has already been unlinked, so we can skip it
+    return;
+  }
+  UndoRecord *version_chain_head;
+  const TupleAccessStrategy &accessor = table->accessor_;
+  version_chain_head = table->AtomicallyReadVersionPtr(slot, accessor);
+  // Perform gc for head of the chain
+  // Assuming can garbage collect any version greater than the oldest timestamp
+  transaction::timestamp_t version_ptr_timestamp = version_chain_head->Timestamp().load();
+  // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
+  // Collect the head of the chain using compare and swap
+  // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
+  if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
+    if (transaction::TransactionUtil::Committed(version_chain_head->Timestamp().load())) {
+      UndoRecord *to_be_unlinked = version_chain_head;
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+      if (table->CompareAndSwapVersionPtr(slot, accessor, version_chain_head, version_chain_head->Next())) {
+        UnlinkUndoRecordVersion(to_be_unlinked);
+      }
+      // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+    }
+  }
 }
 
 void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
