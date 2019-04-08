@@ -101,21 +101,22 @@ struct Util {
     static const char *const syllables[] = {"BAR", "OUGHT", "ABLE",  "PRI",   "PRES",
                                             "ESE", "ANTI",  "CALLY", "ATION", "EING"};
 
-    const uint8_t syllable1 = numbers / 100;
-    const uint8_t syllable2 = (numbers / 10 % 10);
-    const uint8_t syllable3 = numbers % 10;
+    const auto syllable1 = static_cast<const uint8_t>(numbers / 100);
+    const auto syllable2 = static_cast<const uint8_t>(numbers / 10 % 10);
+    const auto syllable3 = static_cast<const uint8_t>(numbers % 10);
 
     std::string last_name(syllables[syllable1]);
     last_name.append(syllables[syllable2]);
     last_name.append(syllables[syllable3]);
 
     if (last_name.length() <= storage::VarlenEntry::InlineThreshold()) {
-      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(last_name.data()), last_name.length());
+      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(last_name.data()),
+                                                static_cast<uint32_t>(last_name.length()));
     }
 
     auto *const varlen = common::AllocationUtil::AllocateAligned(last_name.length());
     std::memcpy(varlen, last_name.data(), last_name.length());
-    return storage::VarlenEntry::Create(varlen, last_name.length(), true);
+    return storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(last_name.length()), true);
   }
 
   // 4.3.2.5
@@ -130,7 +131,8 @@ struct Util {
     auto string = AlphaNumericString(4, 4, true, generator);
     string.append("11111");
     TERRIER_ASSERT(string.length() == 9, "Wrong ZIP code length.");
-    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()), string.length());
+    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()),
+                                              static_cast<uint32_t>(string.length()));
   }
 
   // 4.3.3.1
@@ -147,7 +149,7 @@ struct Util {
 
     auto *const varlen = common::AllocationUtil::AllocateAligned(astring.length());
     std::memcpy(varlen, astring.data(), astring.length());
-    return storage::VarlenEntry::Create(varlen, astring.length(), true);
+    return storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(astring.length()), true);
   }
 
  private:
