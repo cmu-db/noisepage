@@ -188,6 +188,9 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   // Undo buffer to hold compacted undo records
   storage::UndoBuffer *delta_record_compaction_buffer_;
+  // Variable to mark that undo buffer to hold compacted undo records is empty so that it can be deallocated without
+  // unlinking
+  bool compaction_buffer_empty;
   // queue of undo buffers containing compacted undo records which are pending unlinking
   std::forward_list<storage::UndoBuffer *> buffers_to_unlink_;
   // queue of undo buffers containing compacted undo records which ahve been unlinked abd are pending deallocation
