@@ -20,6 +20,8 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   visited_slots_.clear();
   // Create the UndoBuffer for this GC run
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
+  // The compaction buffer is empty
+  compaction_buffer_empty = true;
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
@@ -30,8 +32,15 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   last_unlinked_ = txn_manager_->GetTimestamp();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
+
   // Handover compacted buffer for GC
-  buffers_to_unlink_.push_front(delta_record_compaction_buffer_);
+  if (compaction_buffer_empty) {
+    // Can directly deallocate compaction buffer as it is empty
+    delete delta_record_compaction_buffer_;
+  } else {
+    // Push the compaction buffer for unlinking
+    buffers_to_unlink_.push_front(delta_record_compaction_buffer_);
+  }
 
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
@@ -369,6 +378,8 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   // Get new entry for the undo record from the buffer
   uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
+  // Undo record was empty, so mark the buffer as not empty
+  compaction_buffer_empty = false;
 
   // Initialize UndoRecord with the projected row
   auto *result = reinterpret_cast<UndoRecord *>(head);
