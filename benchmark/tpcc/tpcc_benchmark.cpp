@@ -8,6 +8,7 @@
 #include "tpcc/builder.h"
 #include "tpcc/database.h"
 #include "tpcc/loader.h"
+#include "tpcc/transactions.h"
 #include "tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 
@@ -67,6 +68,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       tpcc::Worker worker(tpcc_db);
 
       tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &worker);
+
+      for (uint32_t w_id = 0; w_id < tpcc::num_warehouses_; w_id++) {
+        const auto args = tpcc::BuildNewOrderArgs(&generator_, w_id + 1);
+        tpcc::Transactions::NewOrder(&txn_manager, &generator_, tpcc_db, &worker, args);
+      }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndGC();
