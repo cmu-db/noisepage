@@ -54,14 +54,20 @@ struct Loader {
     auto *const warehouse_key_buffer(
         common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
 
-    // Stock
+    // Stock tuple
     const auto stock_tuple_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
     const auto stock_tuple_pr_initializer = db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids).first;
     const auto stock_tuple_pr_map = db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids).second;
     auto *const stock_tuple_buffer(
         common::AllocationUtil::AllocateAligned(stock_tuple_pr_initializer.ProjectedRowSize()));
 
-    // District
+    // Stock key
+    const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
+    const auto stock_key_pr_map = db->stock_index_->GetKeyOidToOffsetMap();
+    auto *const stock_key_buffer(
+        common::AllocationUtil::AllocateAligned(stock_tuple_pr_initializer.ProjectedRowSize()));
+
+    // District tuple
     const auto district_tuple_col_oids = Util::AllColOidsForSchema(db->district_schema_);
     const auto district_tuple_pr_initializer =
         db->district_table_->InitializerForProjectedRow(district_tuple_col_oids).first;
@@ -69,7 +75,13 @@ struct Loader {
     auto *const district_tuple_buffer(
         common::AllocationUtil::AllocateAligned(district_tuple_pr_initializer.ProjectedRowSize()));
 
-    // Customer
+    // District key
+    const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
+    const auto district_key_pr_map = db->district_index_->GetKeyOidToOffsetMap();
+    auto *const district_key_buffer(
+        common::AllocationUtil::AllocateAligned(district_tuple_pr_initializer.ProjectedRowSize()));
+
+    // Customer tuple
     const auto customer_tuple_col_oids = Util::AllColOidsForSchema(db->customer_schema_);
     const auto customer_tuple_pr_initializer =
         db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids).first;
@@ -77,7 +89,13 @@ struct Loader {
     auto *const customer_tuple_buffer(
         common::AllocationUtil::AllocateAligned(customer_tuple_pr_initializer.ProjectedRowSize()));
 
-    // History
+    // Customer key
+    const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
+    const auto customer_key_pr_map = db->customer_index_->GetKeyOidToOffsetMap();
+    auto *const customer_key_buffer(
+        common::AllocationUtil::AllocateAligned(customer_tuple_pr_initializer.ProjectedRowSize()));
+
+    // History tuple
     const auto history_tuple_col_oids = Util::AllColOidsForSchema(db->history_schema_);
     const auto history_tuple_pr_initializer =
         db->history_table_->InitializerForProjectedRow(history_tuple_col_oids).first;
@@ -85,14 +103,20 @@ struct Loader {
     auto *const history_tuple_buffer(
         common::AllocationUtil::AllocateAligned(history_tuple_pr_initializer.ProjectedRowSize()));
 
-    // Order
+    // Order tuple
     const auto order_tuple_col_oids = Util::AllColOidsForSchema(db->order_schema_);
     const auto order_tuple_pr_initializer = db->order_table_->InitializerForProjectedRow(order_tuple_col_oids).first;
     const auto order_tuple_pr_map = db->order_table_->InitializerForProjectedRow(order_tuple_col_oids).second;
+
+    // Order key
+    const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
+    const auto order_key_pr_map = db->order_index_->GetKeyOidToOffsetMap();
+    auto *const order_key_buffer(
+        common::AllocationUtil::AllocateAligned(order_tuple_pr_initializer.ProjectedRowSize()));
     auto *const order_tuple_buffer(
         common::AllocationUtil::AllocateAligned(order_tuple_pr_initializer.ProjectedRowSize()));
 
-    // New Order
+    // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
     const auto new_order_tuple_pr_initializer =
         db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids).first;
@@ -101,13 +125,25 @@ struct Loader {
     auto *const new_order_tuple_buffer(
         common::AllocationUtil::AllocateAligned(new_order_tuple_pr_initializer.ProjectedRowSize()));
 
-    // Order Line
+    // New Order key
+    const auto new_order_key_pr_initializer = db->new_order_index_->GetProjectedRowInitializer();
+    const auto new_order_key_pr_map = db->new_order_index_->GetKeyOidToOffsetMap();
+    auto *const new_order_key_buffer(
+        common::AllocationUtil::AllocateAligned(new_order_tuple_pr_initializer.ProjectedRowSize()));
+
+    // Order Line tuple
     const auto order_line_tuple_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
     const auto order_line_tuple_pr_initializer =
         db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids).first;
     const auto order_line_tuple_pr_map =
         db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids).second;
     auto *const order_line_tuple_buffer(
+        common::AllocationUtil::AllocateAligned(order_line_tuple_pr_initializer.ProjectedRowSize()));
+
+    // Order Line key
+    const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+    const auto order_line_key_pr_map = db->order_line_index_->GetKeyOidToOffsetMap();
+    auto *const order_line_key_buffer(
         common::AllocationUtil::AllocateAligned(order_line_tuple_pr_initializer.ProjectedRowSize()));
 
     auto *const txn = txn_manager->BeginTransaction();
@@ -239,6 +275,12 @@ struct Loader {
 
     delete[] item_key_buffer;
     delete[] warehouse_key_buffer;
+    delete[] stock_key_buffer;
+    delete[] district_key_buffer;
+    delete[] customer_key_buffer;
+    delete[] order_key_buffer;
+    delete[] new_order_key_buffer;
+    delete[] order_line_key_buffer;
   }
 
  private:
