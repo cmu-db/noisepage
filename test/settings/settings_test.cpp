@@ -54,7 +54,7 @@ TEST_F(SettingsTests, CallbackTest) {
 
   // Setting new value should invoke callback.
   const int64_t newBufferPoolSize = defaultBufferPoolSize + 1;
-  settings_manager_->SetInt(Param::buffer_pool_size, newBufferPoolSize);
+  settings_manager_->SetInt(Param::buffer_pool_size, static_cast<int32_t>(newBufferPoolSize));
   bufferPoolSize = static_cast<int64_t>(settings_manager_->GetInt(Param::buffer_pool_size));
   EXPECT_EQ(bufferPoolSize, newBufferPoolSize);
 
