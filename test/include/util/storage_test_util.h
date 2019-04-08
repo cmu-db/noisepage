@@ -11,9 +11,9 @@
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "gtest/gtest.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
-#include "storage/sql_table.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "transaction/transaction_manager.h"
@@ -189,7 +189,7 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout, bool varlen_pointer=true) {
+  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout, bool varlen_pointer = true) {
     std::ostringstream os;
     os << "num_cols: " << row.NumColumns() << std::endl;
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
@@ -276,10 +276,9 @@ struct StorageTestUtil {
   }
 };
 
-
 class RandomSqlTableTestObject {
  public:
-  explicit RandomSqlTableTestObject() {}
+  RandomSqlTableTestObject() = default;
   ~RandomSqlTableTestObject() {
     delete pri_;
     delete pr_map_;
@@ -334,9 +333,8 @@ class RandomSqlTableTestObject {
     pr_map_ = new storage::ProjectionMap(std::get<1>(row_pair));
   }
 
-  template<class Random>
-  void InsertRandomRow(transaction::TransactionContext *txn, const double null_bias,
-                       Random *generator) {
+  template <class Random>
+  void InsertRandomRow(transaction::TransactionContext *txn, const double null_bias, Random *generator) {
     std::bernoulli_distribution coin(1 - null_bias);
     std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
     std::uniform_int_distribution<uint8_t> char_dist(0, UINT8_MAX);
@@ -346,7 +344,7 @@ class RandomSqlTableTestObject {
     auto insert = pri_->InitializeRow(insert_buffer);
 
     for (int i = 0; i < cols_.size(); i++) {
-      if (coin(*generator)) { // not null
+      if (coin(*generator)) {  // not null
         uint16_t offset = pr_map_->at(col_oids_[i]);
         insert->SetNotNull(offset);
         auto col = cols_[i];
@@ -362,19 +360,17 @@ class RandomSqlTableTestObject {
               byte *varlen = common::AllocationUtil::AllocateAligned(size);
               StorageTestUtil::FillWithRandomBytes(size, varlen, generator);
               // varlen entries always start off not inlined
-              *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-                      storage::VarlenEntry::Create(varlen, size, true);
+              *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::Create(varlen, size, true);
             } else {
               byte buf[storage::VarlenEntry::InlineThreshold()];
               StorageTestUtil::FillWithRandomBytes(size, buf, generator);
-              *reinterpret_cast<storage::VarlenEntry *>(col_p) =
-                      storage::VarlenEntry::CreateInline(buf, size);
+              *reinterpret_cast<storage::VarlenEntry *>(col_p) = storage::VarlenEntry::CreateInline(buf, size);
             }
             break;
           default:
             break;
         }
-      } else { // null
+      } else {  // null
         insert->SetNull(pr_map_->at(col_oids_[i]));
       }
     }
@@ -383,7 +379,7 @@ class RandomSqlTableTestObject {
     delete[] insert_buffer;
   }
 
-  template<class Random>
+  template <class Random>
   void InsertRandomRows(const int num_rows, const double null_bias, Random *generator) {
     auto txn = txn_manager_.BeginTransaction();
     for (int i = 0; i < num_rows; i++) {
@@ -392,24 +388,16 @@ class RandomSqlTableTestObject {
     txn_manager_.Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
   }
 
-  storage::SqlTable *GetTable() {
-    return table_;
-  }
+  storage::SqlTable *GetTable() { return table_; }
 
-  storage::BlockLayout &GetLayout() {
-    return *layout_;
-  }
+  storage::BlockLayout &GetLayout() { return *layout_; }
 
-  transaction::TransactionManager *GetTxnManager() {
-    return &txn_manager_;
-  }
+  transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
-  catalog::Schema *GetSchema() {
-    return schema_;
-  }
+  catalog::Schema *GetSchema() { return schema_; }
 
   void PrintAllRows(transaction::TransactionContext *txn, storage::SqlTable *table, storage::BlockLayout *layout,
-                    std::vector<std::string> &set) {
+                    std::vector<std::string> *set) {
     std::vector<storage::col_id_t> all_col(layout->NumColumns() - NUM_RESERVED_COLUMNS);
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout->NumColumns(); col++) {
       all_col[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
@@ -427,18 +415,15 @@ class RandomSqlTableTestObject {
       uint32_t num_tuples = columns->NumTuples();
       for (uint32_t off = 0; off < num_tuples; off++) {
         storage::ProjectedColumns::RowView row = columns->InterpretAsRow(*layout, off);
-        set.push_back(StorageTestUtil::PrintRow(row, *layout, false));
+        set->push_back(StorageTestUtil::PrintRow(row, *layout, false));
       }
     }
   }
 
  private:
-
   static std::vector<type::TypeId> DataTypeAll(bool varlen_allowed) {
-    if (varlen_allowed)
-      return {type::TypeId::INTEGER, type::TypeId::VARCHAR};
-    else
-      return {type::TypeId::INTEGER};
+    if (varlen_allowed) return {type::TypeId::INTEGER, type::TypeId::VARCHAR};
+    return {type::TypeId::INTEGER};
   }
 
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
@@ -456,6 +441,5 @@ class RandomSqlTableTestObject {
   storage::ProjectedRowInitializer *pri_ = nullptr;
   storage::ProjectionMap *pr_map_ = nullptr;
 };
-
 
 }  // namespace terrier

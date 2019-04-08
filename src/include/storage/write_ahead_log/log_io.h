@@ -88,15 +88,6 @@ class BufferedLogWriter {
   explicit BufferedLogWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
 
-  BufferedLogWriter() : out_(-1) {}
-
-  /**
-   * Reuse this log writer and open another log file.
-   */
-  void Open(const char *log_file_path) {
-    out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
-  }
-
   /**
    * Must call before object is destructed
    */
