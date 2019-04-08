@@ -20,6 +20,8 @@ class ConstantValueExpression : public AbstractExpression {
   explicit ConstantValueExpression(const type::TransientValue &value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
 
+  ConstantValueExpression() = default;
+
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
   }
@@ -39,8 +41,33 @@ class ConstantValueExpression : public AbstractExpression {
    */
   type::TransientValue GetValue() const { return value_; }
 
+  /**
+   * @return expression serialized to json
+   * @note ToJson is a private member of TransientValue, ConstantValueExpression can access it because it
+   * is a friend class of TransientValue.
+   * @see TransientValue for why ToJson is made private
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["value"] = value_.ToJson();
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   * @note FromJson is a private member of TransientValue, ConstantValueExpression can access it because it
+   * is a friend class of TransientValue.
+   * @see TransientValue for why FromJson is made private
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    value_.FromJson(j.at("value"));
+  }
+
  private:
   type::TransientValue value_;
 };
+
+DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
 
 }  // namespace terrier::parser

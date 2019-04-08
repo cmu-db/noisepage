@@ -1,4 +1,5 @@
 #include <memory>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -215,6 +216,23 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetFuncName(), "Funhouse");
   EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetReturnValueType(), fn_ret_type);
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
+  // Create expression
+  std::default_random_engine generator_;
+  auto value = type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest");
+  auto original_expr = std::make_shared<ConstantValueExpression>(value);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(), value);
 }
 
 // NOLINTNEXTLINE
