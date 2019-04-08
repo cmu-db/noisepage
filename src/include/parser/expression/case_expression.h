@@ -57,8 +57,8 @@ class CaseExpression : public AbstractExpression {
      * @param j json to deserialize
      */
     void FromJson(const nlohmann::json &j) {
-      condition = DeserializeExpression(j["condition"]);
-      then = DeserializeExpression(j["then"]);
+      condition = DeserializeExpression(j.at("condition"));
+      then = DeserializeExpression(j.at("then"));
     }
   };
 
@@ -152,18 +152,16 @@ class CaseExpression : public AbstractExpression {
    */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    auto when_clauses_json = j["when_clauses"];
-    for (const auto &clause_json : when_clauses_json) {
-      WhenClause when;
-      when.FromJson(clause_json);
-      when_clauses_.push_back(when);
-    }
-    default_expr_ = DeserializeExpression(j["default_expr"]);
+    when_clauses_ = j.at("when_clauses").get<std::vector<WhenClause>>();
+    default_expr_ = DeserializeExpression(j.at("default_expr"));
   }
 
  private:
   std::vector<WhenClause> when_clauses_;
   std::shared_ptr<AbstractExpression> default_expr_;
 };
+
+DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);
+DEFINE_JSON_DECLARATIONS(CaseExpression);
 
 }  // namespace terrier::parser
