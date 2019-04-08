@@ -6,6 +6,7 @@
 #include "common/macros.h"
 #include "storage/index/index.h"
 #include "storage/projected_row.h"
+#include "storage/sql_table.h"
 #include "tpcc/database.h"
 #include "tpcc/util.h"
 #include "tpcc/worker.h"
@@ -106,28 +107,30 @@ struct Loader {
 
     auto *const txn = txn_manager->BeginTransaction();
 
-    // generate booleans to represent ORIGINAL for item and stock. 10% are ORIGINAL (true), and then shuffled
-    std::vector<bool> original;
-    original.reserve(100000);
-    for (uint32_t i_id = 0; i_id < 100000; i_id++) {
-      original.emplace_back(i_id < 10000);
-    }
-    std::shuffle(original.begin(), original.end(), *generator);
+    {
+      // generate booleans to represent ORIGINAL for item. 10% are ORIGINAL (true), and then shuffled
+      std::vector<bool> item_original;
+      item_original.reserve(100000);
+      for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+        item_original.emplace_back(i_id < 10000);
+      }
+      std::shuffle(item_original.begin(), item_original.end(), *generator);
 
-    for (uint32_t i_id = 0; i_id < 100000; i_id++) {
-      // 100,000 rows in the ITEM table
-      // insert in table
-      const auto *const item_tuple =
-          BuildItemTuple(i_id + 1, original[i_id], worker->item_tuple_buffer, item_tuple_pr_initializer,
-                         item_tuple_pr_map, db->item_schema_, generator);
-      const auto item_slot = db->item_table_->Insert(txn, *item_tuple);
+      for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+        // 100,000 rows in the ITEM table
+        // insert in table
+        const auto *const item_tuple =
+            BuildItemTuple(i_id + 1, item_original[i_id], worker->item_tuple_buffer, item_tuple_pr_initializer,
+                           item_tuple_pr_map, db->item_schema_, generator);
+        const auto item_slot = db->item_table_->Insert(txn, *item_tuple);
 
-      // insert in index
-      const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
-                                                item_key_pr_map, db->item_key_schema_);
-      bool index_insert_result UNUSED_ATTRIBUTE =
-          db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
-      TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
+        // insert in index
+        const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
+                                                  item_key_pr_map, db->item_key_schema_);
+        bool index_insert_result UNUSED_ATTRIBUTE =
+            db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
+        TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
+      }
     }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
@@ -146,25 +149,33 @@ struct Loader {
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
 
-      // shuffle the ORIGINAL vector again since we reuse it for stock table
-      std::shuffle(original.begin(), original.end(), *generator);
+      {
+        // generate booleans to represent ORIGINAL for stock. 10% are ORIGINAL (true), and then shuffled
+        std::vector<bool> stock_original;
+        stock_original.reserve(100000);
+        for (uint32_t i_id = 0; i_id < 100000; i_id++) {
+          stock_original.emplace_back(i_id < 10000);
+        }
+        std::shuffle(stock_original.begin(), stock_original.end(), *generator);
 
-      for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
-        // For each row in the WAREHOUSE table:
-        // 100,000 rows in the STOCK table
+        for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
+          // For each row in the WAREHOUSE table:
+          // 100,000 rows in the STOCK table
 
-        // insert in table
-        const auto *const stock_tuple =
-            BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], worker->stock_tuple_buffer,
-                            stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
-        const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
+          // insert in table
+          const auto *const stock_tuple =
+              BuildStockTuple(s_i_id + 1, w_id + 1, stock_original[s_i_id], worker->stock_tuple_buffer,
+                              stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
+          const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
 
-        // insert in index
-        const auto *const stock_key = BuildStockKey(s_i_id + 1, w_id + 1, worker->stock_key_buffer,
-                                                    stock_key_pr_initializer, stock_key_pr_map, db->stock_key_schema_);
-        index_insert_result = db->stock_index_->ConditionalInsert(*stock_key, stock_slot,
-                                                                  [](const storage::TupleSlot &) { return false; });
-        TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
+          // insert in index
+          const auto *const stock_key =
+              BuildStockKey(s_i_id + 1, w_id + 1, worker->stock_key_buffer, stock_key_pr_initializer, stock_key_pr_map,
+                            db->stock_key_schema_);
+          index_insert_result = db->stock_index_->ConditionalInsert(*stock_key, stock_slot,
+                                                                    [](const storage::TupleSlot &) { return false; });
+          TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
+        }
       }
 
       for (uint32_t d_id = 0; d_id < 10; d_id++) {
