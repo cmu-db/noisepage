@@ -8,6 +8,7 @@
 #include "storage/projected_row.h"
 #include "tpcc/database.h"
 #include "tpcc/util.h"
+#include "tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 #include "util/transaction_benchmark_util.h"
 
@@ -21,7 +22,7 @@ struct Loader {
 
   template <class Random>
   static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Random *const generator,
-                               tpcc::Database *const db) {
+                               Database *const db, Worker *const worker) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
     TERRIER_ASSERT(generator != nullptr, "Random number generator does not exist.");
     TERRIER_ASSERT(db != nullptr, "Database does not exist.");
@@ -30,109 +31,78 @@ struct Loader {
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
     const auto [item_tuple_pr_initializer, item_tuple_pr_map] =
         db->item_table_->InitializerForProjectedRow(item_tuple_col_oids);
-    auto *const item_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(item_tuple_pr_initializer.ProjectedRowSize()));
 
     // Item key
     const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
     const auto item_key_pr_map = db->item_index_->GetKeyOidToOffsetMap();
-    auto *const item_key_buffer(common::AllocationUtil::AllocateAligned(item_key_pr_initializer.ProjectedRowSize()));
 
     // Warehouse tuple
     const auto warehouse_tuple_col_oids = Util::AllColOidsForSchema(db->warehouse_schema_);
     const auto [warehouse_tuple_pr_initializer, warehouse_tuple_pr_map] =
         db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids);
-    auto *const warehouse_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
 
     // Warehouse key
     const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
     const auto warehouse_key_pr_map = db->warehouse_index_->GetKeyOidToOffsetMap();
-    auto *const warehouse_key_buffer(
-        common::AllocationUtil::AllocateAligned(warehouse_key_pr_initializer.ProjectedRowSize()));
 
     // Stock tuple
     const auto stock_tuple_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
     const auto [stock_tuple_pr_initializer, stock_tuple_pr_map] =
         db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids);
-    auto *const stock_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(stock_tuple_pr_initializer.ProjectedRowSize()));
 
     // Stock key
     const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
     const auto stock_key_pr_map = db->stock_index_->GetKeyOidToOffsetMap();
-    auto *const stock_key_buffer(common::AllocationUtil::AllocateAligned(stock_key_pr_initializer.ProjectedRowSize()));
 
     // District tuple
     const auto district_tuple_col_oids = Util::AllColOidsForSchema(db->district_schema_);
     const auto [district_tuple_pr_initializer, district_tuple_pr_map] =
         db->district_table_->InitializerForProjectedRow(district_tuple_col_oids);
-    auto *const district_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(district_tuple_pr_initializer.ProjectedRowSize()));
 
     // District key
     const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
     const auto district_key_pr_map = db->district_index_->GetKeyOidToOffsetMap();
-    auto *const district_key_buffer(
-        common::AllocationUtil::AllocateAligned(district_key_pr_initializer.ProjectedRowSize()));
 
     // Customer tuple
     const auto customer_tuple_col_oids = Util::AllColOidsForSchema(db->customer_schema_);
     const auto [customer_tuple_pr_initializer, customer_tuple_pr_map] =
         db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids);
-    auto *const customer_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(customer_tuple_pr_initializer.ProjectedRowSize()));
 
     // Customer key
     const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
     const auto customer_key_pr_map = db->customer_index_->GetKeyOidToOffsetMap();
-    auto *const customer_key_buffer(
-        common::AllocationUtil::AllocateAligned(customer_key_pr_initializer.ProjectedRowSize()));
 
     // History tuple
     const auto history_tuple_col_oids = Util::AllColOidsForSchema(db->history_schema_);
     const auto [history_tuple_pr_initializer, history_tuple_pr_map] =
         db->history_table_->InitializerForProjectedRow(history_tuple_col_oids);
-    auto *const history_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(history_tuple_pr_initializer.ProjectedRowSize()));
 
     // Order tuple
     const auto order_tuple_col_oids = Util::AllColOidsForSchema(db->order_schema_);
     const auto [order_tuple_pr_initializer, order_tuple_pr_map] =
         db->order_table_->InitializerForProjectedRow(order_tuple_col_oids);
-    auto *const order_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(order_tuple_pr_initializer.ProjectedRowSize()));
 
     // Order key
     const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
     const auto order_key_pr_map = db->order_index_->GetKeyOidToOffsetMap();
-    auto *const order_key_buffer(common::AllocationUtil::AllocateAligned(order_key_pr_initializer.ProjectedRowSize()));
 
     // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
     const auto [new_order_tuple_pr_initializer, new_order_tuple_pr_map] =
         db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids);
-    auto *const new_order_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(new_order_tuple_pr_initializer.ProjectedRowSize()));
 
     // New Order key
     const auto new_order_key_pr_initializer = db->new_order_index_->GetProjectedRowInitializer();
     const auto new_order_key_pr_map = db->new_order_index_->GetKeyOidToOffsetMap();
-    auto *const new_order_key_buffer(
-        common::AllocationUtil::AllocateAligned(new_order_key_pr_initializer.ProjectedRowSize()));
 
     // Order Line tuple
     const auto order_line_tuple_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
     const auto [order_line_tuple_pr_initializer, order_line_tuple_pr_map] =
         db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids);
-    auto *const order_line_tuple_buffer(
-        common::AllocationUtil::AllocateAligned(order_line_tuple_pr_initializer.ProjectedRowSize()));
 
     // Order Line key
     const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
     const auto order_line_key_pr_map = db->order_line_index_->GetKeyOidToOffsetMap();
-    auto *const order_line_key_buffer(
-        common::AllocationUtil::AllocateAligned(order_line_key_pr_initializer.ProjectedRowSize()));
 
     auto *const txn = txn_manager->BeginTransaction();
 
@@ -148,13 +118,13 @@ struct Loader {
       // 100,000 rows in the ITEM table
       // insert in table
       const auto *const item_tuple =
-          BuildItemTuple(i_id + 1, original[i_id], item_tuple_buffer, item_tuple_pr_initializer, item_tuple_pr_map,
-                         db->item_schema_, generator);
+          BuildItemTuple(i_id + 1, original[i_id], worker->item_tuple_buffer, item_tuple_pr_initializer,
+                         item_tuple_pr_map, db->item_schema_, generator);
       const auto item_slot = db->item_table_->Insert(txn, *item_tuple);
 
       // insert in index
-      const auto *const item_key =
-          BuildItemKey(i_id + 1, item_key_buffer, item_key_pr_initializer, item_key_pr_map, db->item_key_schema_);
+      const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
+                                                item_key_pr_map, db->item_key_schema_);
       bool index_insert_result UNUSED_ATTRIBUTE =
           db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
@@ -164,13 +134,14 @@ struct Loader {
       // 1 row in the WAREHOUSE table for each configured warehouse
       // insert in table
       const auto *const warehouse_tuple =
-          BuildWarehouseTuple(w_id + 1, warehouse_tuple_buffer, warehouse_tuple_pr_initializer, warehouse_tuple_pr_map,
-                              db->warehouse_schema_, generator);
+          BuildWarehouseTuple(w_id + 1, worker->warehouse_tuple_buffer, warehouse_tuple_pr_initializer,
+                              warehouse_tuple_pr_map, db->warehouse_schema_, generator);
       const auto warehouse_slot = db->warehouse_table_->Insert(txn, *warehouse_tuple);
 
       // insert in index
-      const auto *const warehouse_key = BuildWarehouseKey(w_id + 1, warehouse_key_buffer, warehouse_key_pr_initializer,
-                                                          warehouse_key_pr_map, db->warehouse_key_schema_);
+      const auto *const warehouse_key =
+          BuildWarehouseKey(w_id + 1, worker->warehouse_key_buffer, warehouse_key_pr_initializer, warehouse_key_pr_map,
+                            db->warehouse_key_schema_);
       bool index_insert_result = db->warehouse_index_->ConditionalInsert(
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
@@ -184,13 +155,13 @@ struct Loader {
 
         // insert in table
         const auto *const stock_tuple =
-            BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_tuple_buffer, stock_tuple_pr_initializer,
-                            stock_tuple_pr_map, db->stock_schema_, generator);
+            BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], worker->stock_tuple_buffer,
+                            stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator);
         const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
 
         // insert in index
-        const auto *const stock_key = BuildStockKey(s_i_id + 1, w_id + 1, stock_key_buffer, stock_key_pr_initializer,
-                                                    stock_key_pr_map, db->stock_key_schema_);
+        const auto *const stock_key = BuildStockKey(s_i_id + 1, w_id + 1, worker->stock_key_buffer,
+                                                    stock_key_pr_initializer, stock_key_pr_map, db->stock_key_schema_);
         index_insert_result = db->stock_index_->ConditionalInsert(*stock_key, stock_slot,
                                                                   [](const storage::TupleSlot &) { return false; });
         TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
@@ -202,14 +173,14 @@ struct Loader {
 
         // insert in table
         const auto *const district_tuple =
-            BuildDistrictTuple(d_id + 1, w_id + 1, district_tuple_buffer, district_tuple_pr_initializer,
+            BuildDistrictTuple(d_id + 1, w_id + 1, worker->district_tuple_buffer, district_tuple_pr_initializer,
                                district_tuple_pr_map, db->district_schema_, generator);
         const auto district_slot = db->district_table_->Insert(txn, *district_tuple);
 
         // insert in index
         const auto *const district_key =
-            BuildDistrictKey(d_id + 1, w_id + 1, district_key_buffer, district_key_pr_initializer, district_key_pr_map,
-                             db->district_key_schema_);
+            BuildDistrictKey(d_id + 1, w_id + 1, worker->district_key_buffer, district_key_pr_initializer,
+                             district_key_pr_map, db->district_key_schema_);
         index_insert_result = db->district_index_->ConditionalInsert(*district_key, district_slot,
                                                                      [](const storage::TupleSlot &) { return false; });
         TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
@@ -233,13 +204,13 @@ struct Loader {
 
           // insert in table
           const auto *const customer_tuple =
-              BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], customer_tuple_buffer,
+              BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], worker->customer_tuple_buffer,
                                  customer_tuple_pr_initializer, customer_tuple_pr_map, db->customer_schema_, generator);
           const auto customer_slot = db->customer_table_->Insert(txn, *customer_tuple);
 
           // insert in index
           const auto *const customer_key =
-              BuildCustomerKey(c_id + 1, d_id + 1, w_id + 1, customer_key_buffer, customer_key_pr_initializer,
+              BuildCustomerKey(c_id + 1, d_id + 1, w_id + 1, worker->customer_key_buffer, customer_key_pr_initializer,
                                customer_key_pr_map, db->customer_key_schema_);
           index_insert_result = db->customer_index_->ConditionalInsert(
               *customer_key, customer_slot, [](const storage::TupleSlot &) { return false; });
@@ -247,9 +218,9 @@ struct Loader {
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
-          db->history_table_->Insert(
-              txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, history_tuple_buffer, history_tuple_pr_initializer,
-                                      history_tuple_pr_map, db->history_schema_, generator));
+          db->history_table_->Insert(txn, *BuildHistoryTuple(c_id + 1, d_id + 1, w_id + 1, worker->history_tuple_buffer,
+                                                             history_tuple_pr_initializer, history_tuple_pr_map,
+                                                             db->history_schema_, generator));
 
           // For each row in the DISTRICT table:
           // 3,000 rows in the ORDER table
@@ -257,14 +228,14 @@ struct Loader {
           // insert in table
           const auto o_id = c_id;
           const auto order_results =
-              BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, order_tuple_buffer,
+              BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, worker->order_tuple_buffer,
                               order_tuple_pr_initializer, order_tuple_pr_map, db->order_schema_, generator);
           const auto order_slot = db->order_table_->Insert(txn, *(order_results.pr));
 
           // insert in index
           const auto *const order_key =
-              BuildOrderKey(o_id + 1, d_id + 1, w_id + 1, order_key_buffer, order_key_pr_initializer, order_key_pr_map,
-                            db->order_key_schema_);
+              BuildOrderKey(o_id + 1, d_id + 1, w_id + 1, worker->order_key_buffer, order_key_pr_initializer,
+                            order_key_pr_map, db->order_key_schema_);
           index_insert_result = db->order_index_->ConditionalInsert(*order_key, order_slot,
                                                                     [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
@@ -275,13 +246,13 @@ struct Loader {
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
             // insert in table
             const auto *const order_line_tuple = BuildOrderLineTuple(
-                o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d, order_line_tuple_buffer,
+                o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d, worker->order_line_tuple_buffer,
                 order_line_tuple_pr_initializer, order_line_tuple_pr_map, db->order_line_schema_, generator);
             const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_tuple);
 
             // insert in index
             const auto *const order_line_key =
-                BuildOrderLineKey(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_line_key_buffer,
+                BuildOrderLineKey(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, worker->order_line_key_buffer,
                                   order_line_key_pr_initializer, order_line_key_pr_map, db->order_line_key_schema_);
             index_insert_result = db->order_line_index_->ConditionalInsert(
                 *order_line_key, order_line_slot, [](const storage::TupleSlot &) { return false; });
@@ -294,14 +265,14 @@ struct Loader {
           if (o_id + 1 >= 2101) {
             // insert in table
             const auto *const new_order_tuple =
-                BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_tuple_buffer, new_order_tuple_pr_initializer,
-                                   new_order_tuple_pr_map, db->new_order_schema_);
+                BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, worker->new_order_tuple_buffer,
+                                   new_order_tuple_pr_initializer, new_order_tuple_pr_map, db->new_order_schema_);
             const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_tuple);
 
             // insert in index
             const auto *const new_order_key =
-                BuildNewOrderKey(o_id + 1, d_id + 1, w_id + 1, new_order_key_buffer, new_order_key_pr_initializer,
-                                 new_order_key_pr_map, db->new_order_key_schema_);
+                BuildNewOrderKey(o_id + 1, d_id + 1, w_id + 1, worker->new_order_key_buffer,
+                                 new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_key_schema_);
             index_insert_result = db->new_order_index_->ConditionalInsert(
                 *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
             TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
@@ -311,28 +282,8 @@ struct Loader {
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
-
-    delete[] item_tuple_buffer;
-    delete[] warehouse_tuple_buffer;
-    delete[] stock_tuple_buffer;
-    delete[] district_tuple_buffer;
-    delete[] customer_tuple_buffer;
-    delete[] history_tuple_buffer;
-    delete[] order_tuple_buffer;
-    delete[] new_order_tuple_buffer;
-    delete[] order_line_tuple_buffer;
-
-    delete[] item_key_buffer;
-    delete[] warehouse_key_buffer;
-    delete[] stock_key_buffer;
-    delete[] district_key_buffer;
-    delete[] customer_key_buffer;
-    delete[] order_key_buffer;
-    delete[] new_order_key_buffer;
-    delete[] order_line_key_buffer;
   }
 
- private:
   template <class Random>
   static storage::ProjectedRow *BuildItemTuple(const int32_t i_id, const bool original, byte *const buffer,
                                                const storage::ProjectedRowInitializer &pr_initializer,

@@ -2,11 +2,13 @@
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
+#include "common/worker_pool.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "tpcc/builder.h"
 #include "tpcc/database.h"
 #include "tpcc/loader.h"
+#include "tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -61,7 +63,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     {
       common::ScopedTimer timer(&elapsed_ms);
       tpcc_db = tpcc_builder.Build();
-      tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db);
+
+      tpcc::Worker worker(tpcc_db);
+
+      tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &worker);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     EndGC();
@@ -71,5 +76,4 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
-// BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond);
 }  // namespace terrier
