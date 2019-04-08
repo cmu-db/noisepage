@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"

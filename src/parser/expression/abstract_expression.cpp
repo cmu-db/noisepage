@@ -84,10 +84,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       //      break;
       //    }
 
-      //    case ExpressionType::VALUE_CONSTANT: {
-      //      expr = std::make_shared<ConstantValueExpression>();
-      //      break;
-      //    }
+    case ExpressionType::VALUE_CONSTANT: {
+      expr = std::make_shared<ConstantValueExpression>();
+      break;
+    }
 
     case ExpressionType::FUNCTION: {
       expr = std::make_shared<FunctionExpression>();
