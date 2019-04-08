@@ -1,6 +1,10 @@
 #include "settings/settings_manager.h"
-#include <gflags/gflags.h>
 #include "type/value_factory.h"
+
+#include <gflags/gflags.h>
+#include <memory>
+#include <string>
+#include <vector>
 
 // This will expand to define all the settings defined in settings.h
 // using GFlag's DEFINE_...() macro. See settings_common.h.
@@ -38,11 +42,12 @@ void SettingsManager::DefineSetting(Param param, const std::string &name, const 
                                     const type::Value &min_value, const type::Value &max_value, bool is_mutable,
                                     callback_fn callback) {
   if (value.Type() == type::TypeId::INTEGER || value.Type() == type::TypeId::DECIMAL) {
-    if (!value.CompareBetweenInclusive(min_value, max_value))
-      SETTINGS_LOG_WARN(
+    if (!value.CompareBetweenInclusive(min_value, max_value)) {
+      SETTINGS_LOG_ERROR(
           "Value given for \"{}"
           "\" is not in its min-max bounds ({}-{})",
           name, min_value.PeekAsString(), max_value.PeekAsString());
+    }
   }
 
   param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable));

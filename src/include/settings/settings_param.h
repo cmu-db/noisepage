@@ -15,12 +15,6 @@ enum class Param {
  * ParamInfo is the structure to hold settings information.
  */
 struct ParamInfo {
-  std::string name;
-  type::Value value;
-  std::string desc;
-  type::Value default_value;
-  bool is_mutable;
-
   /**
    * The constructor of ParamInfo
    * @param name setting name
@@ -36,6 +30,14 @@ struct ParamInfo {
         desc(std::move(desc)),
         default_value(default_value),
         is_mutable(is_mutable) {}
+
+ private:
+  friend class SettingsManager;
+  std::string name;
+  type::Value value;
+  std::string desc;
+  type::Value default_value;
+  bool is_mutable;
 };
 
 }  // namespace terrier::settings

@@ -2,10 +2,6 @@
 
 namespace terrier {
 int MainDatabase::start(int argc, char *argv[]) {
-  // initialize loggers
-  ::google::SetUsageMessage("Usage Info: \n");
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
-
   try {
     init_main_logger();
     // initialize namespace specific loggers
@@ -13,6 +9,7 @@ int MainDatabase::start(int argc, char *argv[]) {
     terrier::storage::init_storage_logger();
     terrier::transaction::init_transaction_logger();
     terrier::catalog::init_catalog_logger();
+    terrier::settings::init_settings_logger();
     terrier::parser::init_parser_logger();
     terrier::network::init_network_logger();
     // Flush all *registered* loggers using a worker thread.
@@ -25,7 +22,9 @@ int MainDatabase::start(int argc, char *argv[]) {
 
   // log init now complete
   LOG_TRACE("Logger initialization complete");
-
+  // initialize loggers
+  ::google::SetUsageMessage("Usage Info: \n");
+  ::google::ParseCommandLineFlags(&argc, &argv, true);
   // initialize stat registry
   auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
 

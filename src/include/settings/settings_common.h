@@ -23,11 +23,41 @@
 #undef SETTING_string
 #endif
 
+#define VALIDATOR_int(name, default_value)                          \
+  static bool Validate##name(const char *setting_name, int value) { \
+    if (FLAGS_##name == default_value) {                            \
+      return true;                                                  \
+    } else {                                                        \
+      SETTINGS_LOG_ERROR(                                           \
+          "Value for \"{}"                                          \
+          "\" has been set to {})",                                 \
+          setting_name, FLAGS_##name);                              \
+      return false;                                                 \
+    }                                                               \
+  }
+
+#define VALIDATOR_double(name, default_value)                          \
+  static bool Validate##name(const char *setting_name, double value) { \
+    if (FLAGS_##name == default_value) {                               \
+      return true;                                                     \
+    } else {                                                           \
+      SETTINGS_LOG_ERROR(                                              \
+          "Value for \"{}"                                             \
+          "\" has been set to {})",                                    \
+          setting_name, FLAGS_##name);                                 \
+      return false;                                                    \
+    }                                                                  \
+  }
+
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
-  DEFINE_int32(name, default_value, description);
+  DEFINE_int32(name, default_value, description);                                                    \
+  VALIDATOR_int(name, default_value);                                                                \
+  DEFINE_validator(name, &Validate##name);
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable) \
-  DEFINE_double(name, default_value, description);
+  DEFINE_double(name, default_value, description);                                         \
+  VALIDATOR_double(name, default_value);                                                   \
+  DEFINE_validator(name, &Validate##name);
 
 #define SETTING_bool(name, description, default_value, is_mutable) DEFINE_bool(name, default_value, description);
 
@@ -47,6 +77,7 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
+
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
   DECLARE_int32(name);
 

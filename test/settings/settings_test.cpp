@@ -1,6 +1,4 @@
 #include <util/test_harness.h>
-#include "gtest/gtest.h"
-
 #include <cstdio>
 #include <cstring>
 #include <memory>

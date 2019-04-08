@@ -10,7 +10,7 @@
 
 namespace terrier {
 
-class CatalogBenchmark : public benchmark::Fixture {
+/*class CatalogBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
@@ -32,7 +32,7 @@ class CatalogBenchmark : public benchmark::Fixture {
   catalog::Catalog *catalog_;
 
   const int num_lookups = 100000;
-};
+};*/
 
 // NOLINTNEXTLINE
 /*BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state) {
