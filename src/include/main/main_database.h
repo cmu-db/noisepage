@@ -28,10 +28,27 @@
 
 namespace terrier {
 
+/**
+ * The MainDatabase Class holds all the static functions, singleton pointers, etc.
+ * It has the full knowledge of the whole database systems.
+ */
+
 class MainDatabase {
  public:
+
+  /**
+   * Bootstrap the whole database and running the main thread.
+   * @param argc the number of command line arguments
+   * @param argv a list of command line arguments
+   * @return exit status
+   */
   static int start(int argc, char *argv[]);
 
+  /**
+   * Baisc empty callbacks used by settings manager
+   * @param old_value the old value of corresponding setting
+   * @param new_value the new value of corresponding setting
+   */
   static void EmptyCallback(void *old_value UNUSED_ATTRIBUTE, void *new_value UNUSED_ATTRIBUTE);
 };
 

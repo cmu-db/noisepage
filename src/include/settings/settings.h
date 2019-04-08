@@ -74,6 +74,7 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     // Number of connection threads used by peloton
     SETTING_int(connection_thread_count, "Number of connection threads (default: std::hardware_concurrency())",
                 std::thread::hardware_concurrency(), 1, 64, false, MainDatabase::EmptyCallback)
+
          // Number of gc_threads
         SETTING_int(gc_num_threads, "The number of Garbage collection threads to run", 1, 1, 128, true,
                     MainDatabase::EmptyCallback)

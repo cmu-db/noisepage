@@ -18,8 +18,7 @@ namespace terrier::settings {
 
 using callback_fn = void (*)(void *, void *);
 
-/*
- * SettingsManager:
+/**
  * A wrapper for pg_settings table, does not store values in it.
  * Stores and triggers callbacks when a tunable parameter is changed.
  * Static class.
@@ -29,25 +28,91 @@ class SettingsManager {
  public:
   SettingsManager() = delete;
   SettingsManager(const SettingsManager &) = delete;
+
+  /**
+   * The constructor of settings manager
+   * @param catalog a shared pointer to the system catalog
+   * @param txn_manager a pointer to the transaction manager
+   */
   SettingsManager(const std::shared_ptr<catalog::Catalog> &catalog, transaction::TransactionManager *txn_manager);
 
+  /**
+   * Get the value of an integer setting
+   * @param param setting name
+   * @return current setting value
+   */
   int32_t GetInt(Param param);
+
+  /**
+   * Get the value of a double setting
+   * @param param setting name
+   * @return current setting value
+   */
   double GetDouble(Param param);
+
+  /**
+   * Get the value of a boolean setting
+   * @param param setting name
+   * @return current setting value
+   */
   bool GetBool(Param param);
+
+  /**
+   * Get the value of a string setting
+   * @param param setting name
+   * @return current setting value
+   */
   std::string GetString(Param param);
 
+  /**
+   * Set the value of an integer setting
+   * @param param setting name
+   * @param value the new value
+   */
   void SetInt(Param param, int32_t value);
+
+  /**
+   * Set the value of a double setting
+   * @param param setting name
+   * @param value the new value
+   */
+  void SetDouble(Param param, double value);
+
+  /**
+   * Set the value of a boolean setting
+   * @param param setting name
+   * @param value the new value
+   */
   void SetBool(Param param, bool value);
+
+  /**
+   * Set the value of a string setting
+   * @param param setting name
+   * @param value the new value
+   */
   void SetString(Param param, const std::string &value);
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings
+  /**
+   * Store initial value of settings into pg_settings
+   */
   void InitializeCatalog();
 
+  /**
+   * Get current values of all the settings
+   * @return the string consists of the values
+   */
   const std::string GetInfo();
 
+  /**
+   * Print current values of all the settings
+   */
   void ShowInfo();
 
+  /**
+   * Migrate values from GFlags to internal map
+   */
   void InitParams();
 
  private:

@@ -11,6 +11,9 @@ enum class Param {
 #undef __SETTING_ENUM__
 };
 
+/**
+ * ParamInfo is the structure to hold settings information.
+ */
 struct ParamInfo {
   std::string name;
   type::Value value;
@@ -18,6 +21,14 @@ struct ParamInfo {
   type::Value default_value;
   bool is_mutable;
 
+  /**
+   * The constructor of ParamInfo
+   * @param name setting name
+   * @param value setting value
+   * @param desc a description of the setting
+   * @param default_value the default value of the setting
+   * @param is_mutable if the setting is mutable or not
+   */
   ParamInfo(std::string name, const type::Value &value, std::string desc, const type::Value &default_value,
             bool is_mutable)
       : name(std::move(name)),

@@ -38,6 +38,11 @@ class SettingsHandle {
      */
     const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
+    /**
+     * Set the value for a given column
+     * @param col_num the column index
+     * @param value the value of the column
+     */
     void SetColumn(int32_t col_num, const type::Value &value) { entry_[col_num] = value; }
 
     /**
@@ -78,10 +83,21 @@ class SettingsHandle {
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
 
+  /**
+   * Insert row into pg_settings table
+   * @param txn the txn that inserts the row
+   * @param row the row to be inserted
+   */
   void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
     pg_settings_->InsertRow(txn, row);
   }
 
+  /**
+   * Get settings entry by its name attribute
+   * @param txn the txn that gets the entry
+   * @param name the name of the entry to get
+   * @return a shared pointer to the settings entry
+   */
   std::shared_ptr<SettingsHandle::SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn,
                                                                   const std::string &name) {
     std::vector<type::Value> search_vec, ret_row;
