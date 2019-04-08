@@ -9,6 +9,7 @@
 #include "catalog/attribute_handle.h"
 #include "catalog/catalog.h"
 #include "catalog/class_handle.h"
+#include "catalog/index_handle.h"
 #include "catalog/namespace_handle.h"
 #include "catalog/type_handle.h"
 #include "storage/sql_table.h"
@@ -21,6 +22,7 @@ class AttributeHandle;
 class AttrDefHandle;
 class NamespaceHandle;
 class TypeHandle;
+class IndexHandle;
 struct SchemaCol;
 
 /**
@@ -114,6 +116,12 @@ class DatabaseHandle {
    * @return an attribute handle
    */
   AttrDefHandle GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
+   * Get an index handle for the database.
+   * @return
+   */
+  IndexHandle GetIndexHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a

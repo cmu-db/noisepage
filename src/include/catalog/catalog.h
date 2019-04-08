@@ -288,6 +288,12 @@ class Catalog {
   void CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
+   * During startup, create pg_index table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
+  void CreatePGIndex(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  /**
    * TODO(pakhtar): needs changes.
    * For catalog shutdown.
    * Delete all user created tables.

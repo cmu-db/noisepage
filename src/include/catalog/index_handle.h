@@ -8,6 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/catalog_sql_table.h"
+#include "catalog/namespace_handle.h"
 
 namespace terrier::catalog {
 
@@ -81,7 +82,7 @@ class IndexHandle {
    * Debug methods
    */
   void Dump(transaction::TransactionContext *txn) {
-    auto limit = static_cast<int32_t>(TypeHandle::schema_cols_.size());
+    auto limit = static_cast<int32_t>(IndexHandle::schema_cols_.size());
     pg_index_rw_->Dump(txn, limit);
   }
 

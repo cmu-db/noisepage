@@ -46,6 +46,7 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   // - pg_class
   // - pg_type
   // - pg_attrdef
+  // - pg_index
 
   map_.erase(oid);
   name_map_.erase(oid);
@@ -273,13 +274,14 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGNameSpace(txn, db_oid);
   CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
+  CreatePGIndex(txn, db_oid);
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 
   // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
   // pg_attribute is local, so add them too.
-  std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace",
-                                       "pg_class",    "pg_type",       "pg_attrdef",   "pg_settings"};
+  std::vector<std::string> c_tables = {"pg_database", "pg_tablespace", "pg_attribute", "pg_namespace", "pg_class",
+                                       "pg_type",     "pg_attrdef",    "pg_settings",  "pg_index"};
   auto add_cols_to_pg_attr = [this, txn, db_oid](const std::string &st) {
     AddColumnsToPGAttribute(txn, db_oid, map_[db_oid][name_map_[db_oid][st]]->GetSqlTable());
   };
@@ -364,7 +366,6 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
   std::shared_ptr<SqlTableRW> pg_type = TypeHandle::Create(txn, this, db_oid, "pg_type");
 
-  std::vector<type::TransientValue> row;
   // TODO(Yesheng): get rid of this strange calling chain
   auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
   auto catalog_ns_oid =
@@ -388,6 +389,10 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "timestamp", catalog_ns_oid,
                           type::TypeUtil::GetTypeSize(type::TypeId::TIMESTAMP), "b");
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "varchar", catalog_ns_oid, -1, "b");
+}
+
+void Catalog::CreatePGIndex(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
+  std::shared_ptr<SqlTableRW> pg_index = IndexHandle::Create(txn, this, db_oid, "pg_index");
 }
 
 void Catalog::DestroyDB(db_oid_t oid) {
@@ -551,6 +556,12 @@ void Catalog::Dump(transaction::TransactionContext *txn, const db_oid_t db_oid) 
   CATALOG_LOG_DEBUG("-- pg_class -- ");
   auto cls_handle = db_handle.GetClassHandle(txn, db_oid);
   cls_handle.Dump(txn);
+
+  // pg_index
+  CATALOG_LOG_DEBUG("");
+  CATALOG_LOG_DEBUG("-- pg_index -- ");
+  auto index_handle = db_handle.GetIndexHandle(txn, db_oid);
+  type_handle.Dump(txn);
 }
 
 }  // namespace terrier::catalog
