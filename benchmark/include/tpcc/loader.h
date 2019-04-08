@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 #include "catalog/schema.h"
 #include "common/macros.h"
@@ -13,8 +14,6 @@
 namespace terrier::tpcc {
 
 constexpr uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hard code this
-constexpr uint16_t num_districts_per_warehouse_ = 10;
-constexpr uint16_t num_customers_per_district_ = 3000;
 
 // 4.3.3.1
 struct Loader {
@@ -208,7 +207,7 @@ struct Loader {
         TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
       }
 
-      for (uint32_t d_id = 0; d_id < num_districts_per_warehouse_; d_id++) {
+      for (uint32_t d_id = 0; d_id < 10; d_id++) {
         // For each row in the WAREHOUSE table:
         // 10 rows in the DISTRICT table
 
@@ -228,18 +227,18 @@ struct Loader {
 
         // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
         std::vector<uint32_t> o_c_ids;
-        o_c_ids.reserve(num_customers_per_district_);
+        o_c_ids.reserve(3000);
         // generate booleans to represent GC or BC for customers. 90% are GC (true), and then shuffled
         std::vector<bool> c_credit;
-        c_credit.reserve(num_customers_per_district_);
-        for (uint32_t c_id = 0; c_id < num_customers_per_district_; c_id++) {
-          c_credit.emplace_back(c_id < num_customers_per_district_ / 10);
+        c_credit.reserve(3000);
+        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
+          c_credit.emplace_back(c_id < 3000 / 10);
           o_c_ids.emplace_back(c_id + 1);
         }
         std::shuffle(c_credit.begin(), c_credit.end(), *generator);
         std::shuffle(o_c_ids.begin(), o_c_ids.end(), *generator);
 
-        for (uint32_t c_id = 0; c_id < num_customers_per_district_; c_id++) {
+        for (uint32_t c_id = 0; c_id < 3000; c_id++) {
           // For each row in the DISTRICT table:
           // 3,000 rows in the CUSTOMER table
 
@@ -265,11 +264,21 @@ struct Loader {
 
           // For each row in the DISTRICT table:
           // 3,000 rows in the ORDER table
+
+          // insert in table
           const auto o_id = c_id;
           const auto order_results =
               BuildOrderTuple(o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, order_tuple_buffer,
                               order_tuple_pr_initializer, order_tuple_pr_map, db->order_schema_, generator);
-          db->order_table_->Insert(txn, *(order_results.pr));
+          const auto order_slot = db->order_table_->Insert(txn, *(order_results.pr));
+
+          // insert in index
+          const auto *const order_key =
+              BuildOrderKey(o_id + 1, d_id + 1, w_id + 1, order_key_buffer, order_key_pr_initializer, order_key_pr_map,
+                            db->order_key_schema_);
+          index_insert_result = db->order_index_->ConditionalInsert(*order_key, order_slot,
+                                                                    [](const storage::TupleSlot &) { return false; });
+          TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
           // For each row in the ORDER table:
           // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
@@ -602,7 +611,7 @@ struct Loader {
                                                    const storage::ProjectedRowInitializer &pr_initializer,
                                                    const storage::ProjectionMap &projection_map,
                                                    const catalog::Schema &schema, Random *const generator) {
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -670,7 +679,7 @@ struct Loader {
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
                                                  const storage::index::IndexKeySchema &schema) {
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -693,8 +702,8 @@ struct Loader {
                                                    const storage::ProjectedRowInitializer &pr_initializer,
                                                    const storage::ProjectionMap &projection_map,
                                                    const catalog::Schema &schema, Random *const generator) {
-    TERRIER_ASSERT(c_id >= 1 && c_id <= num_customers_per_district_, "Invalid c_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -824,8 +833,8 @@ struct Loader {
                                                  const storage::ProjectedRowInitializer &pr_initializer,
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
                                                  const storage::index::IndexKeySchema &schema) {
-    TERRIER_ASSERT(c_id >= 1 && c_id <= num_customers_per_district_, "Invalid c_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -849,8 +858,8 @@ struct Loader {
                                                   const storage::ProjectedRowInitializer &pr_initializer,
                                                   const storage::ProjectionMap &projection_map,
                                                   const catalog::Schema &schema, Random *const generator) {
-    TERRIER_ASSERT(c_id >= 1 && c_id <= num_customers_per_district_, "Invalid c_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -902,7 +911,7 @@ struct Loader {
                                                    const storage::ProjectionMap &projection_map,
                                                    const catalog::Schema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -933,7 +942,7 @@ struct Loader {
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
                                                  const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -964,8 +973,8 @@ struct Loader {
                                            const storage::ProjectionMap &projection_map, const catalog::Schema &schema,
                                            Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
-    TERRIER_ASSERT(c_id >= 1 && c_id <= num_customers_per_district_, "Invalid c_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
@@ -1019,6 +1028,30 @@ struct Loader {
     return {pr, entry_d, static_cast<int8_t>(ol_cnt)};
   }
 
+  static storage::ProjectedRow *BuildOrderKey(const int32_t o_id, const int32_t d_id, const int32_t w_id,
+                                              byte *const buffer,
+                                              const storage::ProjectedRowInitializer &pr_initializer,
+                                              const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                              const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (O_W_ID, O_D_ID, O_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order key.");
+
+    return pr;
+  }
+
   template <class Random>
   static storage::ProjectedRow *BuildOrderLineTuple(const int32_t o_id, const int32_t d_id, const int32_t w_id,
                                                     const int32_t ol_number, const uint64_t o_entry_d,
@@ -1027,7 +1060,7 @@ struct Loader {
                                                     const storage::ProjectionMap &projection_map,
                                                     const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
-    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
     TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
