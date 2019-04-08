@@ -10,13 +10,14 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "settings/settings_manager.h"
+#include "storage/garbage_collector.h"
 
 namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
   std::shared_ptr<SettingsManager> settings_manager;
-
+  std::shared_ptr<storage::GarbageCollector> gc;
   void SetUp() override {
     TerrierTest::SetUp();
 
@@ -24,6 +25,7 @@ class SettingsTests : public TerrierTest {
     transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
     catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
     settings_manager = std::make_shared<SettingsManager>(terrier::catalog::terrier_catalog, &txn_manager_);
+    gc = std::make_shared<storage::GarbageCollector>(&txn_manager_);
   }
 };
 
@@ -33,6 +35,7 @@ TEST_F(SettingsTests, BasicTest) {
   EXPECT_EQ(port, 15721);
 
   EXPECT_THROW(settings_manager->SetInt(Param::port, 23333), SettingsException);
+  gc->PerformGarbageCollection();
 }
 
 }  // namespace terrier::settings

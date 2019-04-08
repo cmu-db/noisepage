@@ -25,7 +25,7 @@
 
 #define VALIDATOR_int(name, default_value)                          \
   static bool Validate##name(const char *setting_name, int value) { \
-    if (FLAGS_##name == default_value) {                            \
+    if (FLAGS_##name == (int)default_value) {                       \
       return true;                                                  \
     } else {                                                        \
       SETTINGS_LOG_ERROR(                                           \
@@ -38,7 +38,7 @@
 
 #define VALIDATOR_double(name, default_value)                          \
   static bool Validate##name(const char *setting_name, double value) { \
-    if (FLAGS_##name == default_value) {                               \
+    if (FLAGS_##name == (double)default_value) {                       \
       return true;                                                     \
     } else {                                                           \
       SETTINGS_LOG_ERROR(                                              \
