@@ -147,8 +147,13 @@ class BlockAllocator {
  * malloc.
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
-
+/**
+ * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
+ */
 using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+/**
+ * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
+ */
 using InverseColumnMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
@@ -190,7 +195,7 @@ class VarlenEntry {
 
   /**
    * Constructs a new varlen entry, with the associated varlen value inlined within the struct itself. This is only
-   * possible when the inlined value is smaller than InlinedThreshold() as defined. The value is copied and the given
+   * possible when the inlined value is smaller than InlineThreshold() as defined. The value is copied and the given
    * pointer can be safely deallocated regardless of the state of the system.
    * @param content pointer to the varlen content
    * @param size length of the varlen content, in bytes (no C-style nul-terminator. Must be smaller than
@@ -232,7 +237,10 @@ class VarlenEntry {
    * Helper method to decide if the content needs to be GCed separately
    * @return whether the content can be deallocated by itself
    */
-  bool NeedReclaim() const { return size_ > static_cast<int32_t>(InlineThreshold()); }
+  bool NeedReclaim() const {
+    // force a signed comparison, if our sign bit is set size_ is negative so the test returns false
+    return size_ > static_cast<int32_t>(InlineThreshold());
+  }
 
   /**
    * @return pointer to the stored prefix of the varlen entry
@@ -245,7 +253,7 @@ class VarlenEntry {
   const byte *Content() const { return IsInlined() ? prefix_ : content_; }
 
  private:
-  int32_t size_;                   // sign bit is used to denote whether the buffer can be reclaimed by itself
+  int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
 };
