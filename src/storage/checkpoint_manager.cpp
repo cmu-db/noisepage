@@ -20,7 +20,7 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const BlockLayout &lay
   auto *scan_buffer = common::AllocationUtil::AllocateAligned(column_initializer.ProjectedColumnsSize());
   ProjectedColumns *columns = column_initializer.Initialize(scan_buffer);
 
-  ProjectedRowInitializer row_initializer(layout, all_col);
+  ProjectedRowInitializer row_initializer = ProjectedRowInitializer::CreateProjectedRowInitializer(layout, all_col);
   auto *redo_buffer = common::AllocationUtil::AllocateAligned(row_initializer.ProjectedRowSize());
   ProjectedRow *row_buffer = row_initializer.InitializeRow(redo_buffer);
 
