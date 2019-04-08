@@ -35,7 +35,7 @@ The challenging part is the semantics of the lock. The semantics should be
 * When the system is not creating the index, all modifications including insertion, deletion and update on the table should not block one another (at least snapshot isolation).
 * At any time, scan of the table should not be blocked.
 
-After that, a read/write lock with the granularity of a table corresponds that semantics. When creation of an index starts, the transaction should first acquire the write lock on that table. When the transaction completes creating the index, it releases the write lock. When any modifications to the table starts, it should first acquire the read lock on that table. When the modification completes, it releases the read lock. All scanning operations will not come to the lock manager and read the table directly.
+After that, a shared/exclusive lock with the granularity of a table corresponds that semantics. When creation of an index starts, the transaction should first acquire the exclusive lock on that table. When the transaction completes creating the index, it releases the exclusive lock. When any modifications to the table starts, it should first acquire the shared lock on that table. When the modification completes, it releases the shared lock. All scanning operations will not come to the lock manager and read the table directly.
 
 This design is simple and straightforward. It is also easy to implement correctly. However, it may create a huge overhead when building an index on a extremely large table.
 
