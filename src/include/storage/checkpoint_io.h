@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -20,25 +21,15 @@ class PACKED CheckpointFilePage {
     page->table_oid_ = catalog::table_oid_t(0);
   }
 
-  uint32_t GetChecksum() {
-    return checksum_;
-  }
+  uint32_t GetChecksum() { return checksum_; }
 
-  void SetCheckSum(uint32_t checksum) {
-    checksum_ = checksum;
-  }
+  void SetCheckSum(uint32_t checksum) { checksum_ = checksum; }
 
-  catalog::table_oid_t GetTableOid() {
-    return table_oid_;
-  }
+  catalog::table_oid_t GetTableOid() { return table_oid_; }
 
-  void SetTableOid(catalog::table_oid_t oid) {
-    table_oid_ = oid;
-  }
+  void SetTableOid(catalog::table_oid_t oid) { table_oid_ = oid; }
 
-  byte *GetPayload() {
-    return varlen_contents_;
-  }
+  byte *GetPayload() { return varlen_contents_; }
 
  private:
   uint32_t checksum_;
@@ -55,11 +46,10 @@ class PACKED CheckpointFilePage {
  * ----------------------------------------------------------------------------------
  */
 class BufferedTupleWriter {
-//  TODO(Zhaozhe): checksum
+  // TODO(Zhaozhe): checksum
  public:
-
   BufferedTupleWriter() = default;
-  
+
   explicit BufferedTupleWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR)),
         block_size_(CHECKPOINT_BLOCK_SIZE),
@@ -73,39 +63,34 @@ class BufferedTupleWriter {
     buffer_ = new byte[block_size_]();
     ResetBuffer();
   }
-  
-  void Persist() {
-    PersistBuffer();
-  }
-  
+
+  void Persist() { PersistBuffer(); }
+
   void Close() {
     PosixIoWrappers::Close(out_);
     delete[] buffer_;
   }
-  
+
   // Serialize the tuple into the internal block buffer, and write to disk when the buffer is full.
-  void SerializeTuple(ProjectedColumns::RowView &row, ProjectedRow *row_buffer,
-                      const storage::BlockLayout &layout);
+  void SerializeTuple(ProjectedColumns::RowView *row, ProjectedRow *row_buffer, const storage::BlockLayout &layout);
 
   void AppendTupleToBuffer(ProjectedRow *row_buffer, int32_t total_varlen,
-                           const std::vector<const VarlenEntry*> &varlen_entries);
+                           const std::vector<const VarlenEntry *> &varlen_entries);
 
-  CheckpointFilePage *GetHeader() {
-    return reinterpret_cast<CheckpointFilePage *>(buffer_);
-  }
-  
+  CheckpointFilePage *GetHeader() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
+
  private:
   int out_;  // fd of the output files
-  uint32_t block_size_ = CHECKPOINT_BLOCK_SIZE;
+  uint32_t block_size_;
   uint32_t cur_buffer_size_ = 0;
   byte *buffer_ = nullptr;
-  
+
   void ResetBuffer() {
     memset(buffer_, 0, block_size_);
     CheckpointFilePage::Initialize(reinterpret_cast<CheckpointFilePage *>(buffer_));
     cur_buffer_size_ = sizeof(CheckpointFilePage);
   }
-  
+
   void PersistBuffer() {
     // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
     if (cur_buffer_size_ == sizeof(CheckpointFilePage)) {
@@ -119,10 +104,8 @@ class BufferedTupleWriter {
 
 class BufferedTupleReader {
  public:
-
   explicit BufferedTupleReader(const char *log_file_path)
-      : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)),
-        buffer_(new byte[block_size_]()) {}
+      : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)), buffer_(new byte[block_size_]()) {}
 
   ~BufferedTupleReader() {
     PosixIoWrappers::Close(in_);
@@ -137,11 +120,10 @@ class BufferedTupleReader {
     uint32_t size = PosixIoWrappers::ReadFully(in_, buffer_, block_size_);
     if (size == 0) {
       return false;
-    } else {
-      TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
-      page_offset_ += sizeof(CheckpointFilePage);
-      return true;
     }
+    TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
+    page_offset_ += sizeof(CheckpointFilePage);
+    return true;
   }
 
   /**
@@ -160,10 +142,10 @@ class BufferedTupleReader {
       return nullptr;
     }
 
-    ProjectedRow *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
-    // TODO (Zhaozhe): Ensure alignment directly when checkpointing
+    auto *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
+    // TODO(Zhaozhe): Ensure alignment directly when checkpointing
     // Allocate new memory because we have to ensure alignment, for project_row to work correctly
-    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(common::AllocationUtil::AllocateAligned(row_size));
+    auto *result = reinterpret_cast<ProjectedRow *>(common::AllocationUtil::AllocateAligned(row_size));
     memcpy(result, checkpoint_row, row_size);
     page_offset_ += row_size;
     return result;
@@ -182,9 +164,7 @@ class BufferedTupleReader {
     return result;
   }
 
-  CheckpointFilePage *GetPage() {
-    return reinterpret_cast<CheckpointFilePage *>(buffer_);
-  }
+  CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
   int in_;
@@ -192,4 +172,4 @@ class BufferedTupleReader {
   uint32_t page_offset_ = 0;
   byte *buffer_;
 };
-}
+}  // namespace terrier::storage

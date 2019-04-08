@@ -206,7 +206,7 @@ class VarlenEntry {
   }
 
   /**
-   * Constructs a new varlen entry for a checkpointed version. The offset if the offset of the varlen value in the 
+   * Constructs a new varlen entry for a checkpointed version. The offset if the offset of the varlen value in the
    * checkpoint file, and it is stored in the prefix_ field of the VarlenEntry. The content_ field has no meaning.
    *
    * TODO(Mengyang): figure out what to do with non-reclaim varlen.

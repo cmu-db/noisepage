@@ -5,9 +5,9 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/checkpoint_io.h"
-#include "storage/write_ahead_log/log_io.h"
 #include "storage/projected_columns.h"
 #include "storage/sql_table.h"
+#include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
@@ -22,8 +22,7 @@ class CheckpointManager {
   /**
    * Constructs a new CheckpointManager, writing its records out to the given file.
    */
-  explicit CheckpointManager(const char *log_file_path_prefix)
-      : log_file_path_prefix_(log_file_path_prefix) {}
+  explicit CheckpointManager(const char *log_file_path_prefix) : log_file_path_prefix_(log_file_path_prefix) {}
 
   /**
    * Start a new checkpoint with the given transaxtion context.
@@ -51,20 +50,18 @@ class CheckpointManager {
    * Persist a table. This is achieved by first scan the table with a ProjectedColumn buffer, then transfer the data
    * to a ProjectedRow buffer and write the memory representation of the ProjectedRow directly to disk. Varlen columns
    * that is not inlined will be written to another checkpoint file.
-   * 
-   * TODO(Mengyang): possible optimizations: 
+   *
+   * TODO(Mengyang): possible optimizations:
    *                 * store projected columns directly to disk
    *                 * use a batch of ProjectedRows as buffer
    *                 * support morsel
    */
-  void Checkpoint(SqlTable &table, const BlockLayout &layout);
+  void Checkpoint(const SqlTable &table, const BlockLayout &layout);
 
   /**
    * Begin a recovery. This will clear all registered tables and layouts.
    */
-  void StartRecovery(transaction::TransactionContext *txn) {
-    txn_ = txn;
-  }
+  void StartRecovery(transaction::TransactionContext *txn) { txn_ = txn; }
 
   void RegisterTable(SqlTable *table, BlockLayout *layout) {
     tables_.push_back(table);
@@ -98,7 +95,6 @@ class CheckpointManager {
     // TODO(mengyang): add support to multiple tables
     return layouts_.at(0);
   }
-
 };
 
 }  // namespace terrier::storage
