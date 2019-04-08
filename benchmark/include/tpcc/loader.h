@@ -28,8 +28,8 @@ struct Loader {
 
     // Item tuple
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
-    const auto item_tuple_pr_initializer = db->item_table_->InitializerForProjectedRow(item_tuple_col_oids).first;
-    const auto item_tuple_pr_map = db->item_table_->InitializerForProjectedRow(item_tuple_col_oids).second;
+    const auto [item_tuple_pr_initializer, item_tuple_pr_map] =
+        db->item_table_->InitializerForProjectedRow(item_tuple_col_oids);
     auto *const item_tuple_buffer(
         common::AllocationUtil::AllocateAligned(item_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -40,10 +40,8 @@ struct Loader {
 
     // Warehouse tuple
     const auto warehouse_tuple_col_oids = Util::AllColOidsForSchema(db->warehouse_schema_);
-    const auto warehouse_tuple_pr_initializer =
-        db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids).first;
-    const auto warehouse_tuple_pr_map =
-        db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids).second;
+    const auto [warehouse_tuple_pr_initializer, warehouse_tuple_pr_map] =
+        db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids);
     auto *const warehouse_tuple_buffer(
         common::AllocationUtil::AllocateAligned(warehouse_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -55,8 +53,8 @@ struct Loader {
 
     // Stock tuple
     const auto stock_tuple_col_oids = Util::AllColOidsForSchema(db->stock_schema_);
-    const auto stock_tuple_pr_initializer = db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids).first;
-    const auto stock_tuple_pr_map = db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids).second;
+    const auto [stock_tuple_pr_initializer, stock_tuple_pr_map] =
+        db->stock_table_->InitializerForProjectedRow(stock_tuple_col_oids);
     auto *const stock_tuple_buffer(
         common::AllocationUtil::AllocateAligned(stock_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -68,9 +66,8 @@ struct Loader {
 
     // District tuple
     const auto district_tuple_col_oids = Util::AllColOidsForSchema(db->district_schema_);
-    const auto district_tuple_pr_initializer =
-        db->district_table_->InitializerForProjectedRow(district_tuple_col_oids).first;
-    const auto district_tuple_pr_map = db->district_table_->InitializerForProjectedRow(district_tuple_col_oids).second;
+    const auto [district_tuple_pr_initializer, district_tuple_pr_map] =
+        db->district_table_->InitializerForProjectedRow(district_tuple_col_oids);
     auto *const district_tuple_buffer(
         common::AllocationUtil::AllocateAligned(district_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -82,9 +79,8 @@ struct Loader {
 
     // Customer tuple
     const auto customer_tuple_col_oids = Util::AllColOidsForSchema(db->customer_schema_);
-    const auto customer_tuple_pr_initializer =
-        db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids).first;
-    const auto customer_tuple_pr_map = db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids).second;
+    const auto [customer_tuple_pr_initializer, customer_tuple_pr_map] =
+        db->customer_table_->InitializerForProjectedRow(customer_tuple_col_oids);
     auto *const customer_tuple_buffer(
         common::AllocationUtil::AllocateAligned(customer_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -96,16 +92,15 @@ struct Loader {
 
     // History tuple
     const auto history_tuple_col_oids = Util::AllColOidsForSchema(db->history_schema_);
-    const auto history_tuple_pr_initializer =
-        db->history_table_->InitializerForProjectedRow(history_tuple_col_oids).first;
-    const auto history_tuple_pr_map = db->history_table_->InitializerForProjectedRow(history_tuple_col_oids).second;
+    const auto [history_tuple_pr_initializer, history_tuple_pr_map] =
+        db->history_table_->InitializerForProjectedRow(history_tuple_col_oids);
     auto *const history_tuple_buffer(
         common::AllocationUtil::AllocateAligned(history_tuple_pr_initializer.ProjectedRowSize()));
 
     // Order tuple
     const auto order_tuple_col_oids = Util::AllColOidsForSchema(db->order_schema_);
-    const auto order_tuple_pr_initializer = db->order_table_->InitializerForProjectedRow(order_tuple_col_oids).first;
-    const auto order_tuple_pr_map = db->order_table_->InitializerForProjectedRow(order_tuple_col_oids).second;
+    const auto [order_tuple_pr_initializer, order_tuple_pr_map] =
+        db->order_table_->InitializerForProjectedRow(order_tuple_col_oids);
 
     // Order key
     const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
@@ -117,10 +112,8 @@ struct Loader {
 
     // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
-    const auto new_order_tuple_pr_initializer =
-        db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids).first;
-    const auto new_order_tuple_pr_map =
-        db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids).second;
+    const auto [new_order_tuple_pr_initializer, new_order_tuple_pr_map] =
+        db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids);
     auto *const new_order_tuple_buffer(
         common::AllocationUtil::AllocateAligned(new_order_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -132,10 +125,8 @@ struct Loader {
 
     // Order Line tuple
     const auto order_line_tuple_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
-    const auto order_line_tuple_pr_initializer =
-        db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids).first;
-    const auto order_line_tuple_pr_map =
-        db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids).second;
+    const auto [order_line_tuple_pr_initializer, order_line_tuple_pr_map] =
+        db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids);
     auto *const order_line_tuple_buffer(
         common::AllocationUtil::AllocateAligned(order_line_tuple_pr_initializer.ProjectedRowSize()));
 
@@ -749,11 +740,13 @@ struct Loader {
     // randomly chosen independently from the test run(s).
     TERRIER_ASSERT(schema.GetColumn(col_offset).GetName() == "C_LAST", "Wrong attribute.");
     if (c_id <= 1000) {
+      const auto rand_num = static_cast<const uint16_t>(c_id - 1);
       Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
-                                                    Util::LastNameVarlenEntry(c_id - 1));
+                                                    Util::LastNameVarlenEntry(rand_num));
     } else {
+      const auto rand_num = static_cast<const uint16_t>(Util::NURand(255, 0, 999, generator));
       Util::SetTupleAttribute<storage::VarlenEntry>(schema, col_offset++, projection_map, pr,
-                                                    Util::LastNameVarlenEntry(Util::NURand(255, 0, 999, generator)));
+                                                    Util::LastNameVarlenEntry(rand_num));
     }
 
     // C_STREET_1 random a-string [10 .. 20]
