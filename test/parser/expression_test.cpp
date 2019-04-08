@@ -315,4 +315,23 @@ TEST(ExpressionTests, TupleValueExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
 }
 
+// NOLINTNEXTLINE
+TEST(ExpressionTests, ComparisonExpressionJsonTest) {
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
+  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
+
+  // Create expression
+  std::shared_ptr<ComparisonExpression> original_expr =
+      std::make_shared<ComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(children));
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+}
+
 }  // namespace terrier::parser::expression

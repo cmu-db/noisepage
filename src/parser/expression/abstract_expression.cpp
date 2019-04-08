@@ -65,18 +65,19 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-      //    case ExpressionType::COMPARE_EQUAL:
-      //    case ExpressionType::COMPARE_NOT_EQUAL:
-      //    case ExpressionType::COMPARE_LESS_THAN:
-      //    case ExpressionType::COMPARE_GREATER_THAN:
-      //    case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-      //    case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      //    case ExpressionType::COMPARE_LIKE:
-      //    case ExpressionType::COMPARE_NOT_LIKE:
-      //    case ExpressionType::COMPARE_IN:
-      //    case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
-      //      expr = std::make_shared<ComparisonExpression>();
-      //    }
+    case ExpressionType::COMPARE_EQUAL:
+    case ExpressionType::COMPARE_NOT_EQUAL:
+    case ExpressionType::COMPARE_LESS_THAN:
+    case ExpressionType::COMPARE_GREATER_THAN:
+    case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+    case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+    case ExpressionType::COMPARE_LIKE:
+    case ExpressionType::COMPARE_NOT_LIKE:
+    case ExpressionType::COMPARE_IN:
+    case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
+      expr = std::make_shared<ComparisonExpression>();
+      break;
+    }
 
       //    case CONJUNCTION_AND:
       //    case CONJUNCTION_OR: {
