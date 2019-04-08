@@ -22,9 +22,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedColumns::RowView &row, Project
           *reinterpret_cast<VarlenEntry *>(row_buffer->AccessForceNotNull(projection_list_idx)) =
               VarlenEntry::CreateCheckpoint(varlen_offset, size);
           varlen_entries.push_back(varlen_entry);
-          // TODO(Mengyang): used a magic number here,
-          //  because sizeof(uint32_t) produces long unsigned int instead of uint32_t.
-          varlen_offset += (4 + varlen_entry->Size());
+          varlen_offset += (sizeof(uint32_t) + varlen_entry->Size());
         }
       } else {
         std::memcpy(row_buffer->AccessForceNotNull(projection_list_idx),
