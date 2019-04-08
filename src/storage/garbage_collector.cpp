@@ -7,6 +7,7 @@
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
+#include "storage/projected_row.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -363,7 +364,7 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
 
   // Initialize the projected row with the set of columns we have seen in the first pass
   std::vector<col_id_t> col_id_list(col_set_.begin(), col_set_.end());
-  auto init = terrier::storage::ProjectedRowInitializer(layout, col_id_list);
+  auto init = storage::ProjectedRowInitializer::CreateProjectedRowInitializer(layout, col_id_list);
 
   // Get new entry for the undo record from the buffer
   uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
