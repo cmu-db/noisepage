@@ -122,7 +122,7 @@ class BufferedTupleReader {
       return false;
     }
     TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
-    page_offset_ += static_cast<uint32_t >(sizeof(CheckpointFilePage));
+    page_offset_ += static_cast<uint32_t>(sizeof(CheckpointFilePage));
     return true;
   }
 
