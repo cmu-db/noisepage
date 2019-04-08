@@ -13,7 +13,7 @@ namespace terrier::storage {
  * The header of a page in the checkpoint file.
  */
 // TODO(Zhaozhe, Mengyang): More fields can be added to header
-class PACKED CheckpointFilePage {
+class CheckpointFilePage {
  public:
   static void Initialize(CheckpointFilePage *page) {
     // TODO(mengyang): support non-trivial initialization
@@ -122,7 +122,7 @@ class BufferedTupleReader {
       return false;
     }
     TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
-    page_offset_ += sizeof(CheckpointFilePage);
+    page_offset_ += static_cast<uint32_t >(sizeof(CheckpointFilePage));
     return true;
   }
 
@@ -153,7 +153,7 @@ class BufferedTupleReader {
 
   uint32_t ReadNextVarlenSize() {
     uint32_t size = *reinterpret_cast<uint32_t *>(buffer_ + page_offset_);
-    page_offset_ += sizeof(uint32_t);
+    page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
     return size;
   }
 

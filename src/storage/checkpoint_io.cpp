@@ -23,7 +23,7 @@ void BufferedTupleWriter::SerializeTuple(ProjectedColumns::RowView *row, Project
           *reinterpret_cast<VarlenEntry *>(row_buffer->AccessForceNotNull(projection_list_idx)) =
               VarlenEntry::CreateCheckpoint(varlen_offset, size);
           varlen_entries.push_back(varlen_entry);
-          varlen_offset += (sizeof(uint32_t) + varlen_entry->Size());
+          varlen_offset += (static_cast<uint32_t>(sizeof(uint32_t)) + varlen_entry->Size());
         }
       } else {
         std::memcpy(row_buffer->AccessForceNotNull(projection_list_idx), row->AccessForceNotNull(projection_list_idx),
@@ -50,7 +50,7 @@ void BufferedTupleWriter::AppendTupleToBuffer(ProjectedRow *row_buffer, int32_t 
     uint32_t varlen_size = entry->Size();
     TERRIER_ASSERT(varlen_size > VarlenEntry::InlineThreshold(), "Small varlens should be inlined.");
     std::memcpy(buffer_ + varlen_offset, &varlen_size, sizeof(varlen_size));
-    varlen_offset += sizeof(varlen_size);
+    varlen_offset += static_cast<uint32_t>(sizeof(varlen_size));
     std::memcpy(buffer_ + varlen_offset, entry->Content(), varlen_size);
     varlen_offset += varlen_size;
   }
