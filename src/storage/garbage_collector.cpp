@@ -172,7 +172,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) {
-  DataTable *&table = undo_record->Table();
+  DataTable *table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
   const TupleSlot slot = undo_record->Slot();
@@ -187,8 +187,7 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
   return table == nullptr;
 }
 
-void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table,
-                                                    TupleSlot slot,
+void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, TupleSlot slot,
                                                     std::vector<transaction::timestamp_t> *const active_txns) {
   if (table == nullptr) {
     // This UndoRecord has already been unlinked, so we can skip it
@@ -286,7 +285,7 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
   }
 
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
-  SwapwithSafeAbort(curr, nullptr);
+  curr->Next().store(nullptr);
   while (next != nullptr) {
     // Unlink next
     UnlinkUndoRecordVersion(next);
@@ -328,7 +327,7 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
   // Add this to the version chain
   compacted_undo_record->Next().store(end_record);
   // Set start_record to point to the compacted undo record
-  SwapwithSafeAbort(start_record, compacted_undo_record);
+  start_record->Next().store(compacted_undo_record);
   // Added a compacted undo record. So it should be curr
   *curr_ptr = compacted_undo_record;
 }
@@ -350,7 +349,7 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
-      SwapwithSafeAbort(start_record, next);
+      start_record->Next().store(next);
       break;
     case DeltaRecordType::DELETE: {
     }
@@ -481,7 +480,5 @@ void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
     }
   }
 }
-
-void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link) { curr->Next().store(to_link); }
 
 }  // namespace terrier::storage
