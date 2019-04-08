@@ -9,8 +9,8 @@
 // This will expand to define all the settings defined in settings.h
 // using GFlag's DEFINE_...() macro. See settings_common.h.
 #define __SETTING_GFLAGS_DEFINE__
-#include "settings/settings_common.h"
-#include "settings/settings_defs.h"
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__
 
 namespace terrier::settings {
@@ -32,8 +32,8 @@ void SettingsManager::InitParams() {
 // This will expand to invoke settings_manager::DefineSetting on
 // all of the settings defined in settings.h. See settings_common.h.
 #define __SETTING_DEFINE__
-#include "settings/settings_common.h"
-#include "settings/settings_defs.h"
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_DEFINE__
 }
 
@@ -47,6 +47,7 @@ void SettingsManager::DefineSetting(Param param, const std::string &name, const 
           "Value given for \"{}"
           "\" is not in its min-max bounds ({}-{})",
           name, min_value.PeekAsString(), max_value.PeekAsString());
+      throw SETTINGS_EXCEPTION("Invalid setting value");
     }
   }
 
