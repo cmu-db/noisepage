@@ -62,7 +62,7 @@ const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
     {10, "min_val", type::TypeId::VARCHAR},    {11, "max_val", type::TypeId::VARCHAR},
     {12, "enumvals", type::TypeId::VARCHAR},   {13, "boot_val", type::TypeId::VARCHAR},
     {14, "reset_val", type::TypeId::VARCHAR},  {15, "sourcefile", type::TypeId::VARCHAR},
-    {16, "sourceline", type::TypeId::VARCHAR}, {17, "pending_restart", type::TypeId::BOOLEAN}};
+    {16, "sourceline", type::TypeId::INTEGER}, {17, "pending_restart", type::TypeId::BOOLEAN}};
 
 const std::vector<SchemaCol> SettingsHandle::unused_schema_cols_ = {};
 

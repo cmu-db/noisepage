@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
 #include <type/value.h>
+#include <string>
 
 namespace terrier::settings {
 
@@ -18,9 +18,12 @@ struct ParamInfo {
   type::Value default_value;
   bool is_mutable;
 
-  ParamInfo(const std::string &name, const type::Value &value, const std::string &desc, const type::Value &default_value,
-        bool is_mutable)
-      : name(name), value(value), desc(desc), default_value(default_value),
+  ParamInfo(std::string name, const type::Value &value, std::string desc, const type::Value &default_value,
+            bool is_mutable)
+      : name(std::move(name)),
+        value(value),
+        desc(std::move(desc)),
+        default_value(default_value),
         is_mutable(is_mutable) {}
 };
 

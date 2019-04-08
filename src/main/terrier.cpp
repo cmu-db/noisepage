@@ -25,6 +25,4 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-int main(int argc, char *argv[]) {
-  terrier::MainDatabase::start(argc, argv);
-}
+int main(int argc, char *argv[]) { terrier::MainDatabase::start(argc, argv); }

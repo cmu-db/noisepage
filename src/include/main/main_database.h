@@ -26,14 +26,13 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace  terrier{
+namespace terrier {
 
 class MainDatabase {
  public:
   static int start(int argc, char *argv[]);
 
-  static void EmptyCallback(void *old_value UNUSED_ATTRIBUTE,
-                            void *new_value UNUSED_ATTRIBUTE);
+  static void EmptyCallback(void *old_value UNUSED_ATTRIBUTE, void *new_value UNUSED_ATTRIBUTE);
 };
 
-}
+}  // namespace terrier

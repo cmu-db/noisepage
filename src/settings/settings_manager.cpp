@@ -1,5 +1,5 @@
-#include <gflags/gflags.h>
 #include "settings/settings_manager.h"
+#include <gflags/gflags.h>
 #include "type/value_factory.h"
 
 // This will expand to define all the settings defined in settings.h
@@ -17,50 +17,43 @@ using ValueFactory = type::ValueFactory;
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
 
-SettingsManager::SettingsManager(std::shared_ptr<catalog::Catalog> catalog,
-                                 transaction::TransactionManager *txn_manager) :
-  settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
-
+SettingsManager::SettingsManager(const std::shared_ptr<catalog::Catalog> &catalog,
+                                 transaction::TransactionManager *txn_manager)
+    : settings_handle_(catalog->GetSettingsHandle()), txn_manager_(txn_manager) {
   InitParams();
   InitializeCatalog();
 }
 
 void SettingsManager::InitParams() {
-  // This will expand to invoke settings_manager::DefineSetting on
-  // all of the settings defined in settings.h. See settings_macro.h.
-  #define __SETTING_DEFINE__
-  #include "settings/settings_macro.h"
-  #include "settings/settings.h"
-  #undef __SETTING_DEFINE__
+// This will expand to invoke settings_manager::DefineSetting on
+// all of the settings defined in settings.h. See settings_macro.h.
+#define __SETTING_DEFINE__
+#include "settings/settings_macro.h"
+#include "settings/settings.h"
+#undef __SETTING_DEFINE__
 }
 
-void SettingsManager::DefineSetting(Param param, const std::string &name,
-                                    const type::Value &value,
-                                    const std::string &description,
-                                    const type::Value &default_value,
-                                    const type::Value &min_value,
-                                    const type::Value &max_value,
-                                    bool is_mutable,
+void SettingsManager::DefineSetting(Param param, const std::string &name, const type::Value &value,
+                                    const std::string &description, const type::Value &default_value,
+                                    const type::Value &min_value, const type::Value &max_value, bool is_mutable,
                                     callback_fn callback) {
   if (value.Type() == type::TypeId::INTEGER || value.Type() == type::TypeId::DECIMAL) {
     if (!value.CompareBetweenInclusive(min_value, max_value))
-      SETTINGS_LOG_WARN("Value given for \"{}"                                                    \
-                         "\" is not in its min-max bounds ({}-{})",
-                         name, min_value.PeekAsString(), max_value.PeekAsString());
+      SETTINGS_LOG_WARN(
+          "Value given for \"{}"
+          "\" is not in its min-max bounds ({}-{})",
+          name, min_value.PeekAsString(), max_value.PeekAsString());
   }
 
   param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable));
   callback_map_.emplace(param, callback);
-
 }
 
 void SettingsManager::InitializeCatalog() {
-
   auto txn = txn_manager_->BeginTransaction();
   auto column_num = catalog::SettingsHandle::schema_cols_.size();
 
-  for(auto pair : param_map_)
-  {
+  for (auto pair : param_map_) {
     Param param = pair.first;
     ParamInfo info = pair.second;
 
@@ -77,34 +70,26 @@ void SettingsManager::InitializeCatalog() {
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
 }
 
-int32_t SettingsManager::GetInt(Param param) {
-  return GetValue(param).GetIntValue();
-}
+int32_t SettingsManager::GetInt(Param param) { return GetValue(param).GetIntValue(); }
 
-double SettingsManager::GetDouble(Param param) {
-  return GetValue(param).GetDecimalValue();
-}
+double SettingsManager::GetDouble(Param param) { return GetValue(param).GetDecimalValue(); }
 
-bool SettingsManager::GetBool(Param param) {
-  return GetValue(param).GetBooleanValue();
-}
+bool SettingsManager::GetBool(Param param) { return GetValue(param).GetBooleanValue(); }
 
-std::string SettingsManager::GetString(Param param) {
-  return GetValue(param).GetVarcharValue();
-}
+std::string SettingsManager::GetString(Param param) { return GetValue(param).GetVarcharValue(); }
 
 void SettingsManager::SetInt(Param param, int32_t value) {
   int old_value = GetInt(param);
   SetValue(param, type::ValueFactory::GetIntegerValue(value));
   callback_fn callback = callback_map_.find(param)->second;
-  callback(static_cast<void*>(&old_value), static_cast<void*>(&value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
 }
 
 void SettingsManager::SetBool(Param param, bool value) {
   bool old_value = GetBool(param);
   SetValue(param, type::ValueFactory::GetBooleanValue(value));
   callback_fn callback = callback_map_.find(param)->second;
-  callback(static_cast<void*>(&old_value), static_cast<void*>(&value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
 }
 
 void SettingsManager::SetString(Param param, const std::string &value) {
@@ -112,9 +97,8 @@ void SettingsManager::SetString(Param param, const std::string &value) {
   SetValue(param, type::ValueFactory::GetVarcharValue(value.c_str()));
   callback_fn callback = callback_map_.find(param)->second;
   std::string new_value(value);
-  callback(static_cast<void*>(&old_value), static_cast<void*>(&new_value));
+  callback(static_cast<void *>(&old_value), static_cast<void *>(&new_value));
 }
-
 
 const std::string SettingsManager::GetInfo() {
   /*
@@ -131,16 +115,18 @@ const std::string SettingsManager::GetInfo() {
   info.append(StringUtil::Format("%34s:   %-34s\n", "Socket Family", GetString(Param::socket_family).c_str()));
   info.append(StringUtil::Format("%34s:   %-34s\n", "Statistics", GetInt(Param::stats_mode) ? "enabled" : "disabled"));
   info.append(StringUtil::Format("%34s:   %-34i\n", "Max Connections", GetInt(Param::max_connections)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Index Tuner", GetBool(Param::index_tuner) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Layout Tuner", GetBool(Param::layout_tuner) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   (queue size %i, %i threads)\n", "Worker Pool", GetInt(Param::monoqueue_task_queue_size), GetInt(Param::monoqueue_worker_pool_size)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Parallel Query Execution", GetBool(Param::parallel_execution) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34i\n", "Min. Parallel Table Scan Size", GetInt(Param::min_parallel_table_scan_size)));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Code-generation", GetBool(Param::codegen) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Print IR Statistics", GetBool(Param::print_ir_stats) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34s\n", "Dump IR", GetBool(Param::dump_ir) ? "enabled" : "disabled"));
-  info.append(StringUtil::Format("%34s:   %-34i\n", "Optimization Timeout", GetInt(Param::task_execution_timeout)));
-  info.append(StringUtil::Format("%34s:   %-34i\n", "Number of GC threads", GetInt(Param::gc_num_threads)));
+  info.append(StringUtil::Format("%34s:   %-34s\n", "Index Tuner", GetBool(Param::index_tuner) ? "enabled" :
+  "disabled")); info.append(StringUtil::Format("%34s:   %-34s\n", "Layout Tuner", GetBool(Param::layout_tuner) ?
+  "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   (queue size %i, %i threads)\n", "Worker Pool",
+  GetInt(Param::monoqueue_task_queue_size), GetInt(Param::monoqueue_worker_pool_size)));
+  info.append(StringUtil::Format("%34s:   %-34s\n", "Parallel Query Execution", GetBool(Param::parallel_execution) ?
+  "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   %-34i\n", "Min. Parallel Table Scan Size",
+  GetInt(Param::min_parallel_table_scan_size))); info.append(StringUtil::Format("%34s:   %-34s\n", "Code-generation",
+  GetBool(Param::codegen) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:   %-34s\n", "Print IR
+  Statistics", GetBool(Param::print_ir_stats) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:
+  %-34s\n", "Dump IR", GetBool(Param::dump_ir) ? "enabled" : "disabled")); info.append(StringUtil::Format("%34s:
+  %-34i\n", "Optimization Timeout", GetInt(Param::task_execution_timeout))); info.append(StringUtil::Format("%34s:
+  %-34i\n", "Number of GC threads", GetInt(Param::gc_num_threads)));
   // clang-format on
 
   return StringBoxUtil::Box(info);
@@ -148,20 +134,18 @@ const std::string SettingsManager::GetInfo() {
   return "";
 }
 
-void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/ }
+void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/
+}
 
 type::Value SettingsManager::GetValue(Param param) {
   auto param_info = param_map_.find(param);
   return param_info->second.value;
-
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
-
   auto param_info = param_map_.find(param)->second;
 
-  if(!param_info.is_mutable)
-    throw SETTINGS_EXCEPTION((param_info.name + " is not mutable.").c_str());
+  if (!param_info.is_mutable) throw SETTINGS_EXCEPTION((param_info.name + " is not mutable.").c_str());
 
   param_info.value = value;
 
