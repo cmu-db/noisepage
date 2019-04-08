@@ -58,7 +58,7 @@ void SettingsManager::InitializeCatalog() {
   auto txn = txn_manager_->BeginTransaction();
   auto column_num = catalog::SettingsHandle::schema_cols_.size();
 
-  for (auto pair : param_map_) {
+  for (const auto &pair : param_map_) {
     Param param = pair.first;
     ParamInfo info = pair.second;
 
@@ -73,6 +73,8 @@ void SettingsManager::InitializeCatalog() {
   }
 
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
+  if(!txn_manager_->GCEnabled())
+    delete txn;
 }
 
 int32_t SettingsManager::GetInt(Param param) { return GetValue(param).GetIntValue(); }
@@ -165,6 +167,8 @@ void SettingsManager::SetValue(Param param, const type::Value &value) {
   auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
   entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
+  if(!txn_manager_->GCEnabled())
+    delete txn;
 }
 
 }  // namespace terrier::settings
