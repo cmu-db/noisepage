@@ -33,12 +33,33 @@ class CaseExpression : public AbstractExpression {
      * @return if the two are equal
      */
     bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
+
     /**
      * Inequality check
      * @param rhs the other WhenClause to compare toz
      * @return if the two are not equal
      */
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
+
+    /**
+     * Derived expressions should call this base method
+     * @return expression serialized to json
+     */
+    nlohmann::json ToJson() const {
+      nlohmann::json j;
+      j["condition"] = condition;
+      j["then"] = then;
+      return j;
+    }
+
+    /**
+     * Derived expressions should call this base method
+     * @param j json to deserialize
+     */
+    void FromJson(const nlohmann::json &j) {
+      condition = DeserializeExpression(j["condition"]);
+      then = DeserializeExpression(j["then"]);
+    }
   };
 
   /**
@@ -52,6 +73,7 @@ class CaseExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
         default_expr_(std::move(default_expr)) {}
+  CaseExpression() = default;
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -110,6 +132,34 @@ class CaseExpression : public AbstractExpression {
    * @return default clause, if it exists
    */
   std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    std::vector<nlohmann::json> when_clauses_json;
+    for (const auto &when_clause : when_clauses_) {
+      when_clauses_json.push_back(when_clause.ToJson());
+    }
+    j["when_clauses"] = when_clauses_json;
+    j["default_expr"] = default_expr_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    auto when_clauses_json = j["when_clauses"];
+    for (const auto &clause_json : when_clauses_json) {
+      WhenClause when;
+      when.FromJson(clause_json);
+      when_clauses_.push_back(when);
+    }
+    default_expr_ = DeserializeExpression(j["default_expr"]);
+  }
 
  private:
   std::vector<WhenClause> when_clauses_;

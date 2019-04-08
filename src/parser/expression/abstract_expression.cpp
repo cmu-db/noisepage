@@ -60,10 +60,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-      //    case ExpressionType::OPERATOR_CASE_EXPR: {
-      //      expr = std::make_shared<CaseExpression>();
-      //      break;
-      //    }
+    case ExpressionType::OPERATOR_CASE_EXPR: {
+      expr = std::make_shared<CaseExpression>();
+      break;
+    }
 
       //    case ExpressionType::COMPARE_EQUAL:
       //    case ExpressionType::COMPARE_NOT_EQUAL:

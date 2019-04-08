@@ -179,6 +179,27 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, CaseExpressionTest) {
+  // Create expression
+  std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
+  std::vector<CaseExpression::WhenClause> when_clauses;
+  CaseExpression::WhenClause when{const_expr, const_expr};
+  when_clauses.push_back(when);
+  std::shared_ptr<CaseExpression> case_expr =
+      std::make_shared<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+
+  // Serialize expression
+  auto json = case_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*case_expr, *deserialized_expression);
+  EXPECT_EQ(case_expr->GetReturnValueType(),
+            static_cast<CaseExpression *>(deserialized_expression.get())->GetReturnValueType());
+}
+
+// NOLINTNEXTLINE
 TEST(ExpressionTests, FunctionExpressionJsonTest) {
   // Create expression
   std::vector<std::shared_ptr<AbstractExpression>> children;
