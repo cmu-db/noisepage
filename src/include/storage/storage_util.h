@@ -141,6 +141,20 @@ class StorageUtil {
   static std::pair<BlockLayout, ColumnMap> BlockLayoutFromSchema(const catalog::Schema &schema);
 
   /**
+   * Given attribute sizes which will be sorted descending, computes the starting offsets for each of them.
+   *
+   * e.g. attribute_sizes {1, 2, 2, VARLEN} sorts to {VARLEN, 2, 2, 1}
+   * so the offsets returned are {0, 1, 1, 1, 3}
+   *
+   * @param attr_sizes attribute sizes
+   * @param num_reserved_columns number of extra 8-byte columns
+   *
+   * @return {offset_varlen, offset_8, offset_4, offset_2, offset_1}
+   */
+  static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+                                                           uint16_t num_reserved_columns);
+
+  /**
    * Given a layout, it generations a projection list that includes all the columns.
    * @param layout the given layout
    * @return a vector of all column ids

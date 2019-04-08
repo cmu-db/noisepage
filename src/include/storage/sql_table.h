@@ -17,8 +17,7 @@ namespace terrier::storage {
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
- * concepts like Schema. This layer will also handle index maintenance, and possibly constraint checking (confirm when
- * we bring in execution layer). The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level.
+ * concepts like Schema. The goal is to hide concepts like col_id_t and BlockLayout above the SqlTable level.
  * The SqlTable API should only refer to storage concepts via things like Schema and col_oid_t, and then perform the
  * translation to BlockLayout and col_id_t to talk to the DataTable and other areas of the storage layer.
  */
@@ -307,7 +306,8 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer(tables_.Find(version_num)->second.layout, col_ids);
+    ProjectedRowInitializer initializer =
+        ProjectedRowInitializer::CreateProjectedRowInitializer(tables_.Find(version_num)->second.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
     TERRIER_ASSERT(projection_map.size() == col_oids.size(),
                    "ProjectionMap be the same number of columns as requested col_oids.");
