@@ -189,7 +189,7 @@ struct StorageTestUtil {
   }
 
   template <class RowType>
-  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout) {
+  static std::string PrintRow(const RowType &row, const storage::BlockLayout &layout, bool varlen_pointer=true) {
     std::ostringstream os;
     os << "num_cols: " << row.NumColumns() << std::endl;
     for (uint16_t i = 0; i < row.NumColumns(); i++) {
@@ -203,7 +203,10 @@ struct StorageTestUtil {
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
         os << "col_id: " << !col_id;
-        os << " is varlen, ptr " << entry->Content();
+        os << " is varlen";
+        if (varlen_pointer) {
+          os << ", ptr " << entry->Content();
+        }
         os << ", size " << entry->Size();
         os << ", reclaimable " << entry->NeedReclaim();
         os << ", content ";
@@ -424,7 +427,7 @@ class RandomSqlTableTestObject {
       uint32_t num_tuples = columns->NumTuples();
       for (uint32_t off = 0; off < num_tuples; off++) {
         storage::ProjectedColumns::RowView row = columns->InterpretAsRow(*layout, off);
-        set.push_back(StorageTestUtil::PrintRow(row, *layout));
+        set.push_back(StorageTestUtil::PrintRow(row, *layout, false));
       }
     }
   }

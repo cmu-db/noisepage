@@ -51,7 +51,7 @@ class PACKED CheckpointFilePage {
  * The block size is fetched from database setting, and should be the page size.
  * layout:
  * ----------------------------------------------------------------------------------
- * | checksum | table_oid | tuple1 | varlen_entry(if exist) | tuple2 | tuple3 | ... |
+ * | checksum | table_oid | tuple1 | varlen_entries(if exist) | tuple2 | tuple3 | ... |
  * ----------------------------------------------------------------------------------
  */
 class BufferedTupleWriter {
@@ -62,11 +62,14 @@ class BufferedTupleWriter {
   
   explicit BufferedTupleWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR)),
-        cur_buffer_size_(sizeof(CheckpointFilePage)),
-        buffer_(new byte[block_size_]()) {}
+        block_size_(CHECKPOINT_BLOCK_SIZE),
+        buffer_(new byte[block_size_]()) {
+    ResetBuffer();
+  }
 
   void Open(const char *log_file_path) {
     out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    block_size_ = CHECKPOINT_BLOCK_SIZE;
     buffer_ = new byte[block_size_]();
     ResetBuffer();
   }
@@ -105,7 +108,6 @@ class BufferedTupleWriter {
   
   void PersistBuffer() {
     // TODO(zhaozhe): calculate CHECKSUM. Currently using default 0 as checksum
-    // TODO(zhaozhe): header size might need to be considered as well
     if (cur_buffer_size_ == sizeof(CheckpointFilePage)) {
       // If the buffer has no contents, just return
       return;
@@ -120,7 +122,7 @@ class BufferedTupleReader {
 
   explicit BufferedTupleReader(const char *log_file_path)
       : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)),
-        buffer_(new byte[buffer_size_]()) {}
+        buffer_(new byte[block_size_]()) {}
 
   ~BufferedTupleReader() {
     PosixIoWrappers::Close(in_);
@@ -132,11 +134,11 @@ class BufferedTupleReader {
    * @return true if a page is read successfully. false, if EOF is encountered.
    */
   bool ReadNextBlock() {
-    uint32_t size = PosixIoWrappers::ReadFully(in_, buffer_, buffer_size_);
+    uint32_t size = PosixIoWrappers::ReadFully(in_, buffer_, block_size_);
     if (size == 0) {
       return false;
     } else {
-      TERRIER_ASSERT(size == buffer_size_, "Incomplete Checkpoint Page");
+      TERRIER_ASSERT(size == block_size_, "Incomplete Checkpoint Page");
       page_offset_ += sizeof(CheckpointFilePage);
       return true;
     }
@@ -148,7 +150,7 @@ class BufferedTupleReader {
    *         nullptr if an error happens or there is no other row in the page.
    */
   ProjectedRow *ReadNextRow() {
-    if (buffer_size_ - page_offset_ < sizeof(uint32_t)) {
+    if (block_size_ - page_offset_ < sizeof(uint32_t)) {
       // definitely not enough to store another row in the page.
       return nullptr;
     }
@@ -158,7 +160,11 @@ class BufferedTupleReader {
       return nullptr;
     }
 
-    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
+    ProjectedRow *checkpoint_row = reinterpret_cast<ProjectedRow *>(buffer_ + page_offset_);
+    // TODO (Zhaozhe): Ensure alignment directly when checkpointing
+    // Allocate new memory because we have to ensure alignment, for project_row to work correctly
+    ProjectedRow *result = reinterpret_cast<ProjectedRow *>(common::AllocationUtil::AllocateAligned(row_size));
+    memcpy(result, checkpoint_row, row_size);
     page_offset_ += row_size;
     return result;
   }
@@ -169,6 +175,7 @@ class BufferedTupleReader {
     return size;
   }
 
+  // Warning: the returning pointer is not aligned, so make sure the calling function does not depend on alignment
   byte *ReadNextVarlen(uint32_t size) {
     byte *result = buffer_ + page_offset_;
     page_offset_ += size;
@@ -181,7 +188,7 @@ class BufferedTupleReader {
 
  private:
   int in_;
-  uint32_t buffer_size_ = CHECKPOINT_BLOCK_SIZE;
+  uint32_t block_size_ = CHECKPOINT_BLOCK_SIZE;
   uint32_t page_offset_ = 0;
   byte *buffer_;
 };

@@ -1,4 +1,3 @@
-#include <iostream>
 #include "storage/checkpoint_manager.h"
 
 #define NUM_RESERVED_COLUMNS 1u
@@ -57,10 +56,10 @@ void CheckpointManager::Recover(const char *log_file_path) {
             VarlenEntry *entry = reinterpret_cast<VarlenEntry *>(row->AccessForceNotNull(projection_list_idx));
             if (!entry->IsInlined()) {
               uint32_t varlen_size = reader.ReadNextVarlenSize();
-              byte *varlen_content = reader.ReadNextVarlen(varlen_size);
-              byte *varlen = common::AllocationUtil::AllocateAligned(varlen_size);
-              std::memcpy(varlen, varlen_content, varlen_size);
-              *entry = VarlenEntry::Create(varlen, varlen_size, true);
+              byte *checkpoint_varlen_content = reader.ReadNextVarlen(varlen_size);
+              byte *varlen_content = common::AllocationUtil::AllocateAligned(varlen_size);
+              std::memcpy(varlen_content, checkpoint_varlen_content, varlen_size);
+              *entry = VarlenEntry::Create(varlen_content, varlen_size, true);
             }
           }
         }
