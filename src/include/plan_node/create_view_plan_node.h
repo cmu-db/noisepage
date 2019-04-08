@@ -60,9 +60,9 @@ class CreateViewPlanNode : public AbstractPlanNode {
      * Build the create view plan node
      * @return plan node
      */
-    std::shared_ptr<CreateViewPlanNode> Build() {
-      return std::shared_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
-                                                                std::move(view_name_), std::move(view_query_)));
+    std::unique_ptr<CreateViewPlanNode> Build() {
+      return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
+                                                                        std::move(view_name_), std::move(view_query_)));
     }
 
    protected:
@@ -84,14 +84,15 @@ class CreateViewPlanNode : public AbstractPlanNode {
    * @param view_name  view name
    * @param view_query view query
    */
-  CreatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 std::string view_name, std::shared_ptr<parser::SelectStatement> view_query)
+  CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                     std::shared_ptr<OutputSchema> output_schema, std::string view_name,
+                     std::shared_ptr<parser::SelectStatement> view_query)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
  public:
-  CreatePlanNode() = delete;
+  CreateViewPlanNode() = delete;
   /**
    * @return the type of this plan node
    */
@@ -100,7 +101,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
   /**
    * @return view name
    */
-  std::string GetViewName() const { return view_name_; }
+  const std::string &GetViewName() const { return view_name_; }
 
   /**
    * @return view query

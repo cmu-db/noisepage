@@ -54,8 +54,8 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
      * Build the create database plan node
      * @return plan node
      */
-    std::shared_ptr<CreateDatabasePlanNode> Build() {
-      return std::shared_ptr<CreateDatabasePlanNode>(
+    std::unique_ptr<CreateDatabasePlanNode> Build() {
+      return std::unique_ptr<CreateDatabasePlanNode>(
           new CreateDatabasePlanNode(std::move(children_), std::move(output_schema_), std::move(database_name_)));
     }
 

@@ -51,8 +51,8 @@ class CreateSchemaPlanNode : public AbstractPlanNode {
      * Build the create schema plan node
      * @return plan node
      */
-    std::shared_ptr<CreateSchemaPlanNode> Build() {
-      return std::shared_ptr<CreateSchemaPlanNode>(
+    std::unique_ptr<CreateSchemaPlanNode> Build() {
+      return std::unique_ptr<CreateSchemaPlanNode>(
           new CreateSchemaPlanNode(std::move(children_), std::move(output_schema_), std::move(schema_name_)));
     }
 

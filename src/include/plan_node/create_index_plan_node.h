@@ -110,11 +110,10 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * Build the create index plan node
      * @return plan node
      */
-    std::shared_ptr<CreateIndexPlanNode> Build() {
-      return std::shared_ptr<CreateIndexPlanNode>(
-          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), std::move(table_name_),
-                                  std::move(schema_name_), std::move(database_name_), index_type_, unique_index_,
-                                  std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
+    std::unique_ptr<CreateIndexPlanNode> Build() {
+      return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
+          std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_), index_type_,
+          unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
     }
 
    protected:

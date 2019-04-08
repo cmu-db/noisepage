@@ -1,12 +1,12 @@
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/tuple_value_expression.h"
 #include "parser/postgresparser.h"
-#include "plan_node/create_plan_node.h"
+#include "plan_node/create_database_plan_node.h"
 #include "plan_node/drop_plan_node.h"
 #include "plan_node/hash_join_plan_node.h"
 #include "plan_node/hash_plan_node.h"
@@ -34,12 +34,12 @@ TEST(PlanNodeTest, CreateDatabasePlanTest) {
   EXPECT_EQ(1, stms.size());
   auto *create_stmt = static_cast<parser::CreateStatement *>(stms[0].get());
 
-  CreatePlanNode::Builder builder;
+  CreateDatabasePlanNode::Builder builder;
   auto plan = builder.SetFromCreateStatement(create_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
   EXPECT_STREQ("test", plan->GetDatabaseName().c_str());
-  EXPECT_EQ(CreateType::DB, plan->GetCreateType());
+  EXPECT_EQ(PlanNodeType::CREATE_DATABASE, plan->GetPlanNodeType());
 }
 
 // NOLINTNEXTLINE

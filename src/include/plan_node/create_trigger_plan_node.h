@@ -117,8 +117,8 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * Build the create function plan node
      * @return plan node
      */
-    std::shared_ptr<CreateTriggerPlanNode> Build() {
-      return std::shared_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
+    std::unique_ptr<CreateTriggerPlanNode> Build() {
+      return std::unique_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
           std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_),
           std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
           std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));

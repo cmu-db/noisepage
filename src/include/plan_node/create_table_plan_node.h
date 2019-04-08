@@ -473,8 +473,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Build the create table plan node
      * @return plan node
      */
-    std::shared_ptr<CreateTablePlanNode> Build() {
-      return std::shared_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
+    std::unique_ptr<CreateTablePlanNode> Build() {
+      return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
           std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_),
           std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
