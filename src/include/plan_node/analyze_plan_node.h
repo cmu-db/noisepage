@@ -71,8 +71,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
      * Build the analyze plan node
      * @return plan node
      */
-    std::shared_ptr<AnalyzePlanNode> Build() {
-      return std::shared_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<AnalyzePlanNode> Build() {
+      return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
                                                                   table_oid_, std::move(table_name_),
                                                                   std::move(column_names_)));
     }

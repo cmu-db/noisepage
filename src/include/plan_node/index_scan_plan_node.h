@@ -49,9 +49,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * Build the Index scan plan node
      * @return plan node
      */
-    std::shared_ptr<IndexScanPlanNode> Build() {
-      return std::shared_ptr<IndexScanPlanNode>(new IndexScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      std::move(predicate_), is_for_update_,
+    std::unique_ptr<IndexScanPlanNode> Build() {
+      return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      std::move(scan_predicate_), is_for_update_,
                                                                       is_parallel_, index_oid_));
     }
 

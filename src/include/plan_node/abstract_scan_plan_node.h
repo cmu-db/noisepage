@@ -24,8 +24,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
-      predicate_ = std::move(predicate);
+    ConcreteType &SetScanPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
+      scan_predicate_ = std::move(predicate);
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -51,7 +51,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     /**
      * Scan predicate
      */
-    std::unique_ptr<const parser::AbstractExpression> predicate_;
+    std::unique_ptr<const parser::AbstractExpression> scan_predicate_;
     /**
      * Is scan for update
      */
@@ -75,7 +75,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
                        std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update,
                        bool is_parallel)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        predicate_(std::move(predicate)),
+        scan_predicate_(std::move(predicate)),
         is_for_update_(is_for_update),
         is_parallel_(is_parallel) {}
 
@@ -83,7 +83,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * @return predicate used for performing scan
    */
-  const parser::AbstractExpression *GetPredicate() const { return predicate_.get(); }
+  const std::unique_ptr<const parser::AbstractExpression> &GetScanPredicate() const { return scan_predicate_; }
 
   /**
    * @return for update flag
@@ -99,7 +99,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Selection predicate. We remove const to make it used when deserialization
    */
-  std::unique_ptr<const parser::AbstractExpression> predicate_;
+  std::unique_ptr<const parser::AbstractExpression> scan_predicate_;
 
   /**
    * Are the tuples produced by this plan intended for update?

@@ -669,8 +669,8 @@ class CreatePlanNode : public AbstractPlanNode {
      * Build the create function plan node
      * @return plan node
      */
-    std::shared_ptr<CreatePlanNode> Build() {
-      return std::shared_ptr<CreatePlanNode>(
+    std::unique_ptr<CreatePlanNode> Build() {
+      return std::unique_ptr<CreatePlanNode>(
           new CreatePlanNode(std::move(children_), std::move(output_schema_), create_type_, std::move(table_name_),
                              std::move(schema_name_), std::move(database_name_), std::move(table_schema_), index_type_,
                              unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_),

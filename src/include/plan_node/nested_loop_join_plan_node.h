@@ -29,8 +29,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::shared_ptr<NestedLoopJoinPlanNode> Build() {
-      return std::shared_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
+    std::unique_ptr<NestedLoopJoinPlanNode> Build() {
+      return std::unique_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
           std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_)));
     }
   };

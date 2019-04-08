@@ -71,8 +71,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * Build the export external file scan plan node
      * @return plan node
      */
-    std::shared_ptr<ExportExternalFilePlanNode> Build() {
-      return std::shared_ptr<ExportExternalFilePlanNode>(
+    std::unique_ptr<ExportExternalFilePlanNode> Build() {
+      return std::unique_ptr<ExportExternalFilePlanNode>(
           new ExportExternalFilePlanNode(std::move(children_), file_name_, delimiter_, quote_, escape_));
     }
 

@@ -60,8 +60,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * Build the hash join plan node
      * @return plan node
      */
-    std::shared_ptr<HashJoinPlanNode> Build() {
-      return std::shared_ptr<HashJoinPlanNode>(
+    std::unique_ptr<HashJoinPlanNode> Build() {
+      return std::unique_ptr<HashJoinPlanNode>(
           new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_),
                                left_hash_keys_, right_hash_keys_, build_bloomfilter_));
     }

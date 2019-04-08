@@ -48,8 +48,8 @@ class LimitPlanNode : public AbstractPlanNode {
      * Build the limit plan node
      * @return plan node
      */
-    std::shared_ptr<LimitPlanNode> Build() {
-      return std::shared_ptr<LimitPlanNode>(
+    std::unique_ptr<LimitPlanNode> Build() {
+      return std::unique_ptr<LimitPlanNode>(
           new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_));
     }
 

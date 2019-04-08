@@ -44,8 +44,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * Build the setop plan node
      * @return plan node
      */
-    std::shared_ptr<ResultPlanNode> Build() {
-      return std::shared_ptr<ResultPlanNode>(
+    std::unique_ptr<ResultPlanNode> Build() {
+      return std::unique_ptr<ResultPlanNode>(
           new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
     }
 

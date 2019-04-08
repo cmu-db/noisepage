@@ -141,8 +141,8 @@ class DropPlanNode : public AbstractPlanNode {
      * Build the drop function plan node
      * @return plan node
      */
-    std::shared_ptr<DropPlanNode> Build() {
-      return std::shared_ptr<DropPlanNode>(new DropPlanNode(std::move(children_), std::move(output_schema_), drop_type_,
+    std::unique_ptr<DropPlanNode> Build() {
+      return std::unique_ptr<DropPlanNode>(new DropPlanNode(std::move(children_), std::move(output_schema_), drop_type_,
                                                             std::move(table_name_), std::move(database_name_),
                                                             std::move(schema_name_), std::move(trigger_name_),
                                                             std::move(index_name_), if_exists_));

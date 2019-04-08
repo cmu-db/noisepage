@@ -60,8 +60,8 @@ class OrderByPlanNode : public AbstractPlanNode {
      * Build the order by plan node
      * @return plan node
      */
-    std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<OrderByPlanNode> Build() {
+      return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(sort_keys_), std::move(sort_key_orderings_),
                                                                   has_limit_, limit_, offset_));
     }

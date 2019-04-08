@@ -43,8 +43,8 @@ class SetOpPlanNode : public AbstractPlanNode {
      * Build the setop plan node
      * @return plan node
      */
-    std::shared_ptr<SetOpPlanNode> Build() {
-      return std::shared_ptr<SetOpPlanNode>(
+    std::unique_ptr<SetOpPlanNode> Build() {
+      return std::unique_ptr<SetOpPlanNode>(
           new SetOpPlanNode(std::move(children_), std::move(output_schema_), set_op_));
     }
 

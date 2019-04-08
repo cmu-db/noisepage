@@ -14,8 +14,8 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   // Check predicate
-  auto *pred = GetPredicate();
-  auto *other_pred = other.GetPredicate();
+  auto &pred = GetJoinPredicate();
+  auto &other_pred = other.GetJoinPredicate();
   if ((pred == nullptr && other_pred != nullptr) || (pred != nullptr && other_pred == nullptr)) {
     return false;
   }
@@ -33,8 +33,8 @@ common::hash_t AbstractJoinPlanNode::Hash() const {
   auto join_type = GetLogicalJoinType();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&join_type));
 
-  if (GetPredicate() != nullptr) {
-    hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
+  if (GetJoinPredicate() != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
   }
 
   return hash;

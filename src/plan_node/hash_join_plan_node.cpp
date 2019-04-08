@@ -12,7 +12,7 @@ common::hash_t HashJoinPlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&logical_join_type));
 
   // Hash Predicate
-  hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
+  hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
 
   // Hash left keys
   for (const auto &left_hash_key : left_hash_keys_) {
@@ -42,7 +42,7 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (IsBloomFilterEnabled() != other.IsBloomFilterEnabled()) return false;
 
-  if (*GetPredicate() != *other.GetPredicate()) return false;
+  if (*GetJoinPredicate() != *other.GetJoinPredicate()) return false;
 
   // Left hash keys
   const auto &left_keys = GetLeftHashKeys();
