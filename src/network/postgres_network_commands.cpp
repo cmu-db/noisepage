@@ -35,7 +35,7 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
                                     TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
   interpreter->protocol_type_ = NetworkProtocolType::POSTGRES_PSQL;
   std::string query = in_.ReadString();
-  NETWORK_LOG_INFO("Execute SimpleQuery: {0}", query.c_str());
+  NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
   SimpleQueryCallback result_callback = AcceptResults;
 
@@ -47,10 +47,10 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
 Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
-  NETWORK_LOG_INFO("ParseCommand Statement Name: {0}", stmt_name.c_str());
+  NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
   std::string query = in_.ReadString();
-  NETWORK_LOG_INFO("ParseCommand: {0}", query);
+  NETWORK_LOG_TRACE("ParseCommand: {0}", query);
   auto num_params = in_.ReadValue<uint16_t>();
   std::vector<type::TypeId> param_types(num_params);
   for (auto &param_type : param_types) {
@@ -74,7 +74,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   string portal_name = in_.ReadString();
 
   string stmt_name = in_.ReadString();
-  NETWORK_LOG_INFO("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
+  NETWORK_LOG_TRACE("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
 
   auto statement_pair = connection->statements.find(stmt_name);
   if (statement_pair == connection->statements.end()) {
@@ -178,7 +178,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
                                  TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
   std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Parse query: {0}", query.c_str());
+  NETWORK_LOG_TRACE("Describe query: {0}", query.c_str());
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
@@ -188,7 +188,7 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
                                 TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
-  NETWORK_LOG_INFO("ExecuteCommand portal name = {0}", portal_name);
+  NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
   auto p_portal = connection->portals.find(portal_name);
   if (p_portal == connection->portals.end()) {
