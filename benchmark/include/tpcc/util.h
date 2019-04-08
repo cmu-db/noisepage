@@ -42,28 +42,29 @@ struct Util {
     TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");
     const auto col_oid = schema.at(col_offset).GetOid();
-    const auto attr_offset = projection_map.at(col_oid);
+    const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;
   }
 
   static uint64_t Timestamp() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-        .count();
+    auto time_since_epoch = std::chrono::system_clock::now().time_since_epoch();
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(time_since_epoch).count());
   }
 
   // 2.1.6
   template <class Random>
-  static int32_t NURand(const int32_t A, const int32_t x, const int32_t y, Random *const generator) {
-    TERRIER_ASSERT(
-        (A == 255 && x == 0 && y == 999) || (A == 1023 && x == 1 && y == 3000) || (A == 8191 && x == 1 && y == 100000),
-        "Invalid inputs to NURand().");
+  static uint32_t NURand(const uint32_t A, const uint32_t x, const uint32_t y, Random *const generator) {
+    TERRIER_ASSERT((A == 255 && x == 0 && y == 999)              // C_LAST
+                       || (A == 1023 && x == 1 && y == 3000)     // C_ID
+                       || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
+                   "Invalid inputs to NURand().");
 
-    static const auto C_c_last = RandomWithin<int32_t>(0, 255, 0, generator);
-    static const auto C_c_id = RandomWithin<int32_t>(0, 1023, 0, generator);
-    static const auto C_ol_i_id = RandomWithin<int32_t>(0, 8191, 0, generator);
+    static const auto C_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
+    static const auto C_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
+    static const auto C_ol_i_id = RandomWithin<uint32_t>(0, 8191, 0, generator);
 
-    int32_t C;
+    uint32_t C;
 
     if (A == 255) {
       C = C_c_last;
@@ -73,9 +74,10 @@ struct Util {
       C = C_ol_i_id;
     }
 
-    return (((RandomWithin<int32_t>(0, A, 0, generator) | RandomWithin<int32_t>(x, y, 0, generator)) + C) %
-            (y - x - +1)) +
-           x;
+    const auto rand0A = RandomWithin<uint32_t>(0, A, 0, generator);
+    const auto randxy = RandomWithin<uint32_t>(x, y, 0, generator);
+
+    return (((rand0A | randxy) + C) % (y - x + 1)) + x;
   }
 
   // 4.3.2.2
@@ -118,7 +120,7 @@ struct Util {
 
   // 4.3.2.5
   template <class T, class Random>
-  static T RandomWithin(uint32_t x, uint32_t y, uint32_t p, Random *const generator) {
+  static T RandomWithin(const uint32_t x, const uint32_t y, const uint32_t p, Random *const generator) {
     return std::uniform_int_distribution(x, y)(*generator) / static_cast<T>(std::pow(10, p));
   }
 

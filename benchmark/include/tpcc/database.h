@@ -14,7 +14,7 @@ namespace terrier::catalog {
 class Schema;
 }
 
-// TODO(Matt): it seems many fields can by smaller than INTEGER
+// TODO(Matt): it seems many fields can be smaller than INTEGER
 
 namespace terrier::tpcc {
 
