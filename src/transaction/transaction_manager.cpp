@@ -1,6 +1,7 @@
 #include "transaction/transaction_manager.h"
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {

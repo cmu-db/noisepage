@@ -15,18 +15,18 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  // Clear the visited slots
   visited_slots_.clear();
+  // Create the UndoBuffer for this GC run
   delta_record_compaction_buffer_ = new UndoBuffer(txn_manager_->buffer_pool_);
 
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   uint32_t txns_unlinked = ProcessUnlinkQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
-  if (txns_unlinked > 0) {
-    // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
-    // safe to deallocate the transactions in our queue.
-    last_unlinked_ = txn_manager_->GetTimestamp();
-  }
+  // Update the last unlinked timestamp every GC run conservatively whether or not any transaction/compacted
+  // undo record is unlinked.
+  last_unlinked_ = txn_manager_->GetTimestamp();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
   // Handover compacted buffer for GC
@@ -50,6 +50,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
       txns_to_deallocate_.pop_front();
       if (txn->log_processed_) {
         // If the log manager is already done with this transaction, it is safe to deallocate
+        // Deallocate Varlen pointers of the Undo Buffer
         DeallocateVarlen(&txn->undo_buffer_);
         delete txn;
         txns_processed++;
@@ -66,6 +67,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue() {
     while (!buffers_to_deallocate_.empty()) {
       buf = buffers_to_deallocate_.front();
       buffers_to_deallocate_.pop_front();
+      // Deallocate Varlen pointers of the Undo Buffer
       DeallocateVarlen(buf);
       delete buf;
     }
@@ -170,60 +172,44 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) {
   DataTable *&table = undo_record->Table();
-  // if this UndoRecord has already been processed, we can skip it
+  // If this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
-  // no point in trying to reclaim slots or do any further operation if cannot safely unlink
 
+  // Process this tuple only
   if (visited_slots_.insert(undo_record->Slot()).second) {
-    UnlinkUndoRecord(undo_record, active_txns);
+    // Perform interval gc for the entire version chain excluding the head of the chain
+    ProcessTupleVersionChain(undo_record, active_txns);
   }
 
   table = undo_record->Table();
   return table == nullptr;
 }
 
-void GarbageCollector::UnlinkUndoRecord(UndoRecord *const undo_record,
-                                        std::vector<transaction::timestamp_t> *const active_txns) {
-  DataTable *table = undo_record->Table();
-  if (table == nullptr) {
-    // This UndoRecord has already been unlinked, so we can skip it
-    return;
-  }
+void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
+                                                std::vector<transaction::timestamp_t> *const active_txns) {
+  // Read the Version Pointer of this tuple
   const TupleSlot slot = undo_record->Slot();
+  DataTable *table = undo_record->Table();
   const TupleAccessStrategy &accessor = table->accessor_;
+  UndoRecord *version_chain_head;
+  version_chain_head = table->AtomicallyReadVersionPtr(slot, accessor);
 
-  UndoRecord *version_ptr;
-  version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  TERRIER_ASSERT(version_ptr != nullptr, "GC should not be trying to unlink in an empty version chain.");
-
-  // Perform interval gc for the entire version chain excluding the head of the chain
-  UnlinkUndoRecordRestOfChain(version_ptr, active_txns);
-}
-
-void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_chain_head,
-                                                   std::vector<transaction::timestamp_t> *const active_txns) {
   // If no chain is passed, nothing is collected
   if (version_chain_head == nullptr) {
     return;
   }
 
-  DataTable *table = version_chain_head->Table();
-  if (table == nullptr) {
-    // This UndoRecord has already been unlinked, so we can skip it
-    return;
-  }
-  // Otherwise collect as much as possible and return true if version belonging to txn was collected
+  // Otherwise collect as much as possible
   // Don't collect version_chain_head though
   auto active_txns_iter = active_txns->begin();
   // The undo record which will point to the compacted undo record
   UndoRecord *start_record = version_chain_head;
-  // True if we compacted anything, false otherwise
   uint32_t interval_length = 0;
 
   UndoRecord *curr = version_chain_head;
   UndoRecord *next = curr->Next();
-  // Skip all the uncommitted undo records
-  // Collect only committed undo records, this prevents collection of partial rollback versions
+  // Skip all the uncommitted undo records, this prevents collection of partial rollback versions.
+  // Also skip the first committed record to simplify contention on the version chain between Rollback and GC.
   while (next != nullptr && !transaction::TransactionUtil::Committed(curr->Timestamp().load())) {
     // Update curr and next
     curr = curr->Next();
@@ -238,7 +224,6 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
       active_txns_iter++;
     } else if (transaction::TransactionUtil::NewerThan(next->Timestamp().load(), *active_txns_iter)) {
       // curr is visible to txns traversed till now, so can't GC curr. next is not visible to any txn, attempt GC
-      // Collect next only if it was committed, this prevents collection of partial rollback versions
       // Since *active_txns_iter is not reading next, that means no one is reading this
       // And so we can reclaim next
       if (interval_length == 0) {
@@ -246,18 +231,23 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
         // This is the first undo record to compact
         BeginCompaction(&start_record, curr, next, &interval_length);
       } else {
+        // Process the undo record to determine the set of columns for the compacted record.
         ReadUndoRecord(start_record, next, &interval_length);
       }
       // Update curr
       curr = curr->Next();
     } else {
       if (interval_length > 1) {
+        // Create the undo record by a second traversal through the records to be compacted.
         UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
+        // Copy the varlen attributes of the compacted record
         CopyVarlen(compacted_undo_record);
-        // Compacted more than one undo record, link it to the version chain.
+        // Link the compacted record to the version chain.
         LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
       }
+      // Set interval length to 0
       EndCompaction(&interval_length);
+      // Begin compaction for the next interval
       BeginCompaction(&start_record, curr, next, &interval_length);
       // curr was not claimed in the previous iteration, so possibly someone might use it
       curr = curr->Next();
@@ -265,8 +255,8 @@ void GarbageCollector::UnlinkUndoRecordRestOfChain(UndoRecord *const version_cha
     next = curr->Next();
   }
 
-  SwapwithSafeAbort(curr, nullptr);
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
+  SwapwithSafeAbort(curr, nullptr);
   while (next != nullptr) {
     // Unlink next
     UnlinkUndoRecordVersion(next);
@@ -279,9 +269,9 @@ void GarbageCollector::UnlinkUndoRecordVersion(UndoRecord *const undo_record) {
   DataTable *&table = undo_record->Table();
   TERRIER_ASSERT(table != nullptr, "Table should not be NULL here");
   ReclaimSlotIfDeleted(undo_record);
-
+  // Add Varlen of the Undo record to the reclaim_varlen_map_ where it can be reclaimed later
   MarkVarlenReclaimable(undo_record);
-  // mark the record as fully processed
+  // Mark the record as fully processed
   table = nullptr;
 }
 
@@ -313,13 +303,15 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
   *curr_ptr = compacted_undo_record;
 }
 
-// Returns true if compaction terminates here because of an Insert record
 void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next, uint32_t *interval_length_ptr) {
   // Already have a base undo record. Apply this undo record on top of that
   switch (next->Type()) {
     case DeltaRecordType::UPDATE:
+      // Update the interval length
       (*interval_length_ptr)++;
+      // Process the Attributes to determine the attributes required for the compacted undo record
       ProcessUndoRecordAttributes(next);
+      // Mark the Record as unlinked
       UnlinkUndoRecordVersion(next);
       break;
     case DeltaRecordType::INSERT:
@@ -352,9 +344,11 @@ UndoRecord *GarbageCollector::CreateUndoRecord(UndoRecord *const start_record, U
   DataTable *table = first_compacted_record->Table();
   const TupleAccessStrategy &accessor = table->accessor_;
 
+  // Initialize the base Undo record
   UndoRecord *base_undo_record =
       InitializeUndoRecord(first_compacted_record->Timestamp().load(), first_compacted_record->Slot(), table);
 
+  // Apply all the undo records which have to be compacted
   while (curr != end_record) {
     StorageUtil::ApplyDelta(accessor.GetBlockLayout(), *(curr->Delta()), base_undo_record->Delta());
     curr = curr->Next();
@@ -367,15 +361,19 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   const TupleAccessStrategy &accessor = table->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
 
+  // Initialize the projected row with the set of columns we have seen in the first pass
   std::vector<col_id_t> col_id_list(col_set_.begin(), col_set_.end());
   auto init = terrier::storage::ProjectedRowInitializer(layout, col_id_list);
 
+  // Get new entry for the undo record from the buffer
   uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
 
+  // Initialize UndoRecord with the projected row
   auto *result = reinterpret_cast<UndoRecord *>(head);
   init.InitializeRow(result->varlen_contents_);
 
+  // Initialize UndoRecord metadata
   result->type_ = DeltaRecordType ::UPDATE;
   result->next_ = nullptr;
   result->timestamp_.store(timestamp);
@@ -398,6 +396,7 @@ void GarbageCollector::MarkVarlenReclaimable(UndoRecord *undo_record) {
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
           if (varlen != nullptr && varlen->NeedReclaim()) {
+            // Add it to the varlen map to be reclaimed later
             reclaim_varlen_map_[undo_record].push_front(varlen->Content());
           }
         }
@@ -410,6 +409,7 @@ void GarbageCollector::MarkVarlenReclaimable(UndoRecord *undo_record) {
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
           if (varlen != nullptr && varlen->NeedReclaim()) {
+            // Add it to the varlen map to be reclaimed later
             reclaim_varlen_map_[undo_record].push_front(varlen->Content());
           }
         }
@@ -420,9 +420,11 @@ void GarbageCollector::MarkVarlenReclaimable(UndoRecord *undo_record) {
 void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
   const BlockLayout &layout = accessor.GetBlockLayout();
+
+  // Iterate through the columns in the delta record, copy the varlen entries and assign the copied ones
+  // to the compacted record.
   for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
     col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
-
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
       if (varlen != nullptr && varlen->NeedReclaim()) {
@@ -437,19 +439,19 @@ void GarbageCollector::CopyVarlen(UndoRecord *undo_record) {
 }
 
 void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
+  // Iterates through the undo buffers varlen pointers stored in the reclaim_varlen_map_ and frees them.
   for (auto &undo_record : *undo_buffer) {
     for (const byte *ptr : reclaim_varlen_map_[&undo_record]) {
       delete[] ptr;
     }
-    if(reclaim_varlen_map_.find(&undo_record) != reclaim_varlen_map_.end()) {
-        reclaim_varlen_map_[&undo_record].clear();
-        reclaim_varlen_map_.erase(&undo_record);
+    // Delete the entry from the map since all the varlen pointers of the undo record are reclaimed
+    if (reclaim_varlen_map_.find(&undo_record) != reclaim_varlen_map_.end()) {
+      reclaim_varlen_map_[&undo_record].clear();
+      reclaim_varlen_map_.erase(&undo_record);
     }
   }
 }
 
-void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link) {
-    curr->Next().store(to_link);
-}
+void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link) { curr->Next().store(to_link); }
 
 }  // namespace terrier::storage

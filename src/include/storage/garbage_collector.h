@@ -56,10 +56,6 @@ class GarbageCollector {
    */
   uint32_t ProcessUnlinkQueue();
 
-  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
-
-  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
-
   /**
    * Given a UndoRecord that has been deemed safe to unlink by the GC, attempts to remove it from the version chain.
    * It's possible that this process will fail because the GC is conservative with conflicts. If the UndoRecord in the
@@ -67,15 +63,19 @@ class GarbageCollector {
    * expect this txn to be requeued and we'll try again on the next GC invocation, hopefully after the conflicting txn
    * is either committed or aborted.
    * @param undo_record UndoRecord to be unlinked
+   * @param active_txns list of timestamps of running transactions
+   * @return true, if the undo record was unlinked
    */
-  void UnlinkUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
+  bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
+
+  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
-   * @param version_chain_head pointer to the head of the chain
+   * @param undo_record pointer to the head of the chain
    * @param active_txns vector containing all active transactions
    */
-  void UnlinkUndoRecordRestOfChain(UndoRecord *version_chain_head, std::vector<transaction::timestamp_t> *active_txns);
+  void ProcessTupleVersionChain(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Straight up unlink the undo_record and reclaim its space
@@ -169,8 +169,6 @@ class GarbageCollector {
    * Given the undo record to be linked to the version chain, safely link it to the given undo record
    * @param curr the undo record which will point to the given undo record
    * @param to_link the undo to be linked to the version chain
-   * @param slot the tuple slot corresponding to the tuple associated with the undo record
-   * @param table the table corresponding to the tuple associated with the undo record
    */
   void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link);
 
