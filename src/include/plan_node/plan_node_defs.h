@@ -43,7 +43,12 @@ enum class PlanNodeType {
 
   // DDL Nodes
   DROP,
-  CREATE,
+  CREATE_DATABASE,
+  CREATE_SCHEMA,
+  CREATE_TABLE,
+  CREATE_INDEX,
+  CREATE_TRIGGER,
+  CREATE_VIEW,
   POPULATE_INDEX,
   ANALYZE,
   CREATE_FUNC,
@@ -95,19 +100,6 @@ enum class LogicalJoinType {
 };
 
 //===--------------------------------------------------------------------===//
-// Create Types
-//===--------------------------------------------------------------------===//
-enum class CreateType {
-  INVALID = INVALID_TYPE_ID,  // invalid create type
-  DB = 1,                     // db create type
-  TABLE = 2,                  // table create type
-  INDEX = 3,                  // index create type
-  CONSTRAINT = 4,             // constraint create type
-  TRIGGER = 5,                // trigger create type
-  SCHEMA = 6,                 // schema create type
-};
-
-//===--------------------------------------------------------------------===//
 // Drop Types
 //===--------------------------------------------------------------------===//
 
@@ -118,7 +110,8 @@ enum class DropType {
   INDEX = 3,                  // index drop type
   CONSTRAINT = 4,             // constraint drop type
   TRIGGER = 5,                // trigger drop type
-  SCHEMA = 6,                 // trigger drop type
+  SCHEMA = 6,                 // schema drop type
+  VIEW = 7,                   // view drop type
 };
 
 //===--------------------------------------------------------------------===//
