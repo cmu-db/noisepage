@@ -47,4 +47,11 @@ int MainDatabase::start(int argc, char *argv[]) {
 
 void MainDatabase::EmptyCallback(void *old_value, void *new_value) {}
 
+void MainDatabase::BufferPoolSizeCallback(void *old_value, void *new_value) {
+  int new_size = *static_cast<int*>(new_value);
+  txn_manager_->SetBufferPoolSizeLimit(new_size);
+}
+
+transaction::TransactionManager* MainDatabase::txn_manager_;
+
 }  // namespace terrier

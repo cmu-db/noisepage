@@ -12,6 +12,11 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     // Maximum number of connections
     SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true,
                 MainDatabase::EmptyCallback)
+
+                // Buffer pool size in transaction manager
+                SETTING_int(buffer_pool_size, "Buffer pool size in transaction manager (default : 100000)",
+                    100000, 1, 1000000, true, MainDatabase::BufferPoolSizeCallback)
+
     // RPC port
     SETTING_int(rpc_port, "Peloton rpc port (default: 15445)", 15445, 1024, 65535, false, MainDatabase::EmptyCallback)
 

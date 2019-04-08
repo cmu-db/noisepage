@@ -44,11 +44,20 @@ class MainDatabase {
   static int start(int argc, char *argv[]);
 
   /**
-   * Baisc empty callbacks used by settings manager
+   * Basic empty callbacks used by settings manager
    * @param old_value the old value of corresponding setting
    * @param new_value the new value of corresponding setting
    */
   static void EmptyCallback(void *old_value UNUSED_ATTRIBUTE, void *new_value UNUSED_ATTRIBUTE);
+
+  /**
+   * Buffer pool size callback used by settings manager
+   * @param old_value old value of buffer pool size
+   * @param new_value new value of buffer pool size
+   */
+  static void BufferPoolSizeCallback(void *old_value UNUSED_ATTRIBUTE, void *new_value UNUSED_ATTRIBUTE);
+
+  static transaction::TransactionManager* txn_manager_;
 };
 
 }  // namespace terrier

@@ -158,7 +158,7 @@ type::Value SettingsManager::GetValue(Param param) {
 }
 
 void SettingsManager::SetValue(Param param, const type::Value &value) {
-  auto param_info = param_map_.find(param)->second;
+  ParamInfo& param_info = param_map_.find(param)->second;
 
   if (!param_info.is_mutable) throw SETTINGS_EXCEPTION((param_info.name + " is not mutable.").c_str());
 
