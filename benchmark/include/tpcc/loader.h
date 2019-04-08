@@ -340,7 +340,11 @@ struct Loader {
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
 
-    Util::SetKeyAttribute(schema, 0, pr_map, pr, i_id);
+    uint32_t col_offset = 0;
+
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, i_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Item key.");
 
     return pr;
   }
@@ -414,7 +418,11 @@ struct Loader {
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
 
-    Util::SetKeyAttribute(schema, 0, pr_map, pr, w_id);
+    uint32_t col_offset = 0;
+
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Warehouse key.");
 
     return pr;
   }
