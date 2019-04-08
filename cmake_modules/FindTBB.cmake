@@ -33,7 +33,7 @@
 #               [[COMPONENTS] [components...]]
 #               [OPTIONAL_COMPONENTS components...])
 #
-# where the allowed components are Ftbbmalloc and tbb_preview. Users may modify
+# where the allowed components are tbbmalloc and tbb_preview. Users may modify
 # the behavior of this module with the following variables:
 #
 # * TBB_ROOT_DIR          - The base directory the of TBB installation.
