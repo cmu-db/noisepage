@@ -17,15 +17,13 @@ namespace terrier::settings {
 class SettingsTests : public TerrierTest {
  protected:
   std::shared_ptr<SettingsManager> settings_manager;
-  std::shared_ptr<storage::GarbageCollector> gc;
   void SetUp() override {
     TerrierTest::SetUp();
 
     storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
-    transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+    transaction::TransactionManager txn_manager_(&buffer_pool_, false, nullptr);
     catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
     settings_manager = std::make_shared<SettingsManager>(terrier::catalog::terrier_catalog, &txn_manager_);
-    gc = std::make_shared<storage::GarbageCollector>(&txn_manager_);
   }
 };
 
@@ -35,7 +33,6 @@ TEST_F(SettingsTests, BasicTest) {
   EXPECT_EQ(port, 15721);
 
   EXPECT_THROW(settings_manager->SetInt(Param::port, 23333), SettingsException);
-  gc->PerformGarbageCollection();
 }
 
 }  // namespace terrier::settings

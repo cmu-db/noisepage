@@ -25,28 +25,26 @@
 
 #define VALIDATOR_int(name, default_value)                          \
   static bool Validate##name(const char *setting_name, int value) { \
-    if (FLAGS_##name == (int)default_value) {                       \
+    if (FLAGS_##name == static_cast<int>(default_value)) {          \
       return true;                                                  \
-    } else {                                                        \
-      SETTINGS_LOG_ERROR(                                           \
-          "Value for \"{}"                                          \
-          "\" has been set to {})",                                 \
-          setting_name, FLAGS_##name);                              \
-      return false;                                                 \
     }                                                               \
+    SETTINGS_LOG_ERROR(                                             \
+        "Value for \"{}"                                            \
+        "\" has been set to {})",                                   \
+        setting_name, FLAGS_##name);                                \
+    return false;                                                   \
   }
 
 #define VALIDATOR_double(name, default_value)                          \
   static bool Validate##name(const char *setting_name, double value) { \
-    if (FLAGS_##name == (double)default_value) {                       \
+    if (FLAGS_##name == static_cast<double>(default_value)) {          \
       return true;                                                     \
-    } else {                                                           \
-      SETTINGS_LOG_ERROR(                                              \
-          "Value for \"{}"                                             \
-          "\" has been set to {})",                                    \
-          setting_name, FLAGS_##name);                                 \
-      return false;                                                    \
     }                                                                  \
+    SETTINGS_LOG_ERROR(                                                \
+        "Value for \"{}"                                               \
+        "\" has been set to {})",                                      \
+        setting_name, FLAGS_##name);                                   \
+    return false;                                                      \
   }
 
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
