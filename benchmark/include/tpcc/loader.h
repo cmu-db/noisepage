@@ -284,10 +284,19 @@ struct Loader {
           // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
           // data generation of the New-Order transaction (see Clause 2.4.1)
           for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
-            db->order_line_table_->Insert(
-                txn, *BuildOrderLineTuple(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d,
-                                          order_line_tuple_buffer, order_line_tuple_pr_initializer,
-                                          order_line_tuple_pr_map, db->order_line_schema_, generator));
+            // insert in table
+            const auto *const order_line_tuple = BuildOrderLineTuple(
+                o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_results.o_entry_d, order_line_tuple_buffer,
+                order_line_tuple_pr_initializer, order_line_tuple_pr_map, db->order_line_schema_, generator);
+            const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_tuple);
+
+            // insert in index
+            const auto *const order_line_key =
+                BuildOrderLineKey(o_id + 1, d_id + 1, w_id + 1, ol_number + 1, order_line_key_buffer,
+                                  order_line_key_pr_initializer, order_line_key_pr_map, db->order_line_key_schema_);
+            index_insert_result = db->order_line_index_->ConditionalInsert(
+                *order_line_key, order_line_slot, [](const storage::TupleSlot &) { return false; });
+            TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
           }
 
           // For each row in the DISTRICT table:
@@ -1123,6 +1132,31 @@ struct Loader {
                                                   Util::AlphaNumericVarlenEntry(24, 24, false, generator));
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order Line tuple.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildOrderLineKey(
+      const int32_t o_id, const int32_t d_id, const int32_t w_id, const int32_t ol_number, byte *const buffer,
+      const storage::ProjectedRowInitializer &pr_initializer,
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+      const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, ol_number);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order Line key.");
 
     return pr;
   }
