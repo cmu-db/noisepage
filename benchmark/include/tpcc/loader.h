@@ -169,7 +169,7 @@ struct Loader {
           BuildItemKey(i_id + 1, item_key_buffer, item_key_pr_initializer, item_key_pr_map, db->item_key_schema_);
       bool index_insert_result UNUSED_ATTRIBUTE =
           db->item_index_->ConditionalInsert(*item_key, item_slot, [](const storage::TupleSlot &) { return false; });
-      TERRIER_ASSERT(index_insert_result, "Index insertion failed.");
+      TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
     }
 
     for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
@@ -183,9 +183,9 @@ struct Loader {
       // insert in index
       const auto *const warehouse_key = BuildWarehouseKey(w_id + 1, warehouse_key_buffer, warehouse_key_pr_initializer,
                                                           warehouse_key_pr_map, db->warehouse_key_schema_);
-      bool index_insert_result UNUSED_ATTRIBUTE = db->warehouse_index_->ConditionalInsert(
+      bool index_insert_result = db->warehouse_index_->ConditionalInsert(
           *warehouse_key, warehouse_slot, [](const storage::TupleSlot &) { return false; });
-      TERRIER_ASSERT(index_insert_result, "Index insertion failed.");
+      TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
 
       // shuffle the ORIGINAL vector again since we reuse it for stock table
       std::shuffle(original.begin(), original.end(), *generator);
@@ -193,17 +193,38 @@ struct Loader {
       for (uint32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
         // For each row in the WAREHOUSE table:
         // 100,000 rows in the STOCK table
-        db->stock_table_->Insert(
-            txn, *BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_tuple_buffer,
-                                  stock_tuple_pr_initializer, stock_tuple_pr_map, db->stock_schema_, generator));
+
+        // insert in table
+        const auto *const stock_tuple =
+            BuildStockTuple(s_i_id + 1, w_id + 1, original[s_i_id], stock_tuple_buffer, stock_tuple_pr_initializer,
+                            stock_tuple_pr_map, db->stock_schema_, generator);
+        const auto stock_slot = db->stock_table_->Insert(txn, *stock_tuple);
+
+        // insert in index
+        const auto *const stock_key = BuildStockKey(s_i_id + 1, w_id + 1, stock_key_buffer, stock_key_pr_initializer,
+                                                    stock_key_pr_map, db->stock_key_schema_);
+        index_insert_result = db->stock_index_->ConditionalInsert(*stock_key, stock_slot,
+                                                                  [](const storage::TupleSlot &) { return false; });
+        TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
       }
 
       for (uint32_t d_id = 0; d_id < num_districts_per_warehouse_; d_id++) {
         // For each row in the WAREHOUSE table:
         // 10 rows in the DISTRICT table
-        db->district_table_->Insert(
-            txn, *BuildDistrictTuple(d_id + 1, w_id + 1, district_tuple_buffer, district_tuple_pr_initializer,
-                                     district_tuple_pr_map, db->district_schema_, generator));
+
+        // insert in table
+        const auto *const district_tuple =
+            BuildDistrictTuple(d_id + 1, w_id + 1, district_tuple_buffer, district_tuple_pr_initializer,
+                               district_tuple_pr_map, db->district_schema_, generator);
+        const auto district_slot = db->district_table_->Insert(txn, *district_tuple);
+
+        // insert in index
+        const auto *const district_key =
+            BuildDistrictKey(d_id + 1, w_id + 1, district_key_buffer, district_key_pr_initializer, district_key_pr_map,
+                             db->district_key_schema_);
+        index_insert_result = db->district_index_->ConditionalInsert(*district_key, district_slot,
+                                                                     [](const storage::TupleSlot &) { return false; });
+        TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
 
         // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
         std::vector<uint32_t> o_c_ids;
@@ -342,6 +363,7 @@ struct Loader {
 
     uint32_t col_offset = 0;
 
+    // Primary Key: I_ID
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, i_id);
 
     TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Item key.");
@@ -420,6 +442,7 @@ struct Loader {
 
     uint32_t col_offset = 0;
 
+    // Primary Key: W_ID
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Warehouse key.");
@@ -532,6 +555,27 @@ struct Loader {
     return pr;
   }
 
+  static storage::ProjectedRow *BuildStockKey(const int32_t s_i_id, const int32_t w_id, byte *const buffer,
+                                              const storage::ProjectedRowInitializer &pr_initializer,
+                                              const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                              const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(s_i_id >= 1 && s_i_id <= 100000, "Invalid s_i_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (S_W_ID, S_I_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, s_i_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Stock key.");
+
+    return pr;
+  }
+
   template <class Random>
   static storage::ProjectedRow *BuildDistrictTuple(const int32_t d_id, const int32_t w_id, byte *const buffer,
                                                    const storage::ProjectedRowInitializer &pr_initializer,
@@ -597,6 +641,27 @@ struct Loader {
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, 3001);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District tuple.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildDistrictKey(const int32_t d_id, const int32_t w_id, byte *const buffer,
+                                                 const storage::ProjectedRowInitializer &pr_initializer,
+                                                 const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                                 const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (D_W_ID, D_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for District key.");
 
     return pr;
   }
