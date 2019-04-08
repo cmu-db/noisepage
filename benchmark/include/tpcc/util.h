@@ -24,8 +24,9 @@ struct Util {
   }
 
   template <typename T>
-  static void SetPRAttribute(const catalog::Schema &schema, const uint32_t col_offset,
-                             const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr, T value) {
+  static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
+                                const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
+                                T value) {
     TERRIER_ASSERT((schema.GetColumn(col_offset).GetAttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
     const auto col_oid = schema.GetColumn(col_offset).GetOid();
     const auto attr_offset = projection_map.at(col_oid);
