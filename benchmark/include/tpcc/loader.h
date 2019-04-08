@@ -242,9 +242,20 @@ struct Loader {
         for (uint32_t c_id = 0; c_id < num_customers_per_district_; c_id++) {
           // For each row in the DISTRICT table:
           // 3,000 rows in the CUSTOMER table
-          db->customer_table_->Insert(txn, *BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id],
-                                                               customer_tuple_buffer, customer_tuple_pr_initializer,
-                                                               customer_tuple_pr_map, db->customer_schema_, generator));
+
+          // insert in table
+          const auto *const customer_tuple =
+              BuildCustomerTuple(c_id + 1, d_id + 1, w_id + 1, c_credit[c_id], customer_tuple_buffer,
+                                 customer_tuple_pr_initializer, customer_tuple_pr_map, db->customer_schema_, generator);
+          const auto customer_slot = db->customer_table_->Insert(txn, *customer_tuple);
+
+          // insert in index
+          const auto *const customer_key =
+              BuildCustomerKey(c_id + 1, d_id + 1, w_id + 1, customer_key_buffer, customer_key_pr_initializer,
+                               customer_key_pr_map, db->customer_key_schema_);
+          index_insert_result = db->customer_index_->ConditionalInsert(
+              *customer_key, customer_slot, [](const storage::TupleSlot &) { return false; });
+          TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
@@ -794,6 +805,30 @@ struct Loader {
                                                   Util::AlphaNumericVarlenEntry(300, 500, false, generator));
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer tuple.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildCustomerKey(const int32_t c_id, const int32_t d_id, const int32_t w_id,
+                                                 byte *const buffer,
+                                                 const storage::ProjectedRowInitializer &pr_initializer,
+                                                 const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                                 const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(c_id >= 1 && c_id <= num_customers_per_district_, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (C_W_ID, C_D_ID, C_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Customer key.");
 
     return pr;
   }
