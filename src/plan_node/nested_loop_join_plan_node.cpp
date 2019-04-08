@@ -7,7 +7,7 @@ common::hash_t NestedLoopJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 
   // Hash Predicate
-  hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
+  hash = common::HashUtil::CombineHashes(hash, GetJoinPredicate()->Hash());
 
   // Hash join type
   auto logical_join_type = GetLogicalJoinType();
@@ -25,7 +25,7 @@ bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (GetLogicalJoinType() != other.GetLogicalJoinType()) return false;
 
-  if (*GetPredicate() != *other.GetPredicate()) return false;
+  if (*GetJoinPredicate() != *other.GetJoinPredicate()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

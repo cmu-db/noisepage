@@ -112,8 +112,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * Build the aggregate plan node
      * @return plan node
      */
-    std::shared_ptr<AggregatePlanNode> Build() {
-      return std::shared_ptr<AggregatePlanNode>(
+    std::unique_ptr<AggregatePlanNode> Build() {
+      return std::unique_ptr<AggregatePlanNode>(
           new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
                                 std::move(aggregate_terms_), aggregate_strategy_));
     }

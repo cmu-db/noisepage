@@ -63,8 +63,8 @@ class UpdatePlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::shared_ptr<UpdatePlanNode> Build() {
-      return std::shared_ptr<UpdatePlanNode>(new UpdatePlanNode(
+    std::unique_ptr<UpdatePlanNode> Build() {
+      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(
           std::move(children_), std::move(output_schema_), table_oid_, std::move(table_name_), update_primary_key_));
     }
 

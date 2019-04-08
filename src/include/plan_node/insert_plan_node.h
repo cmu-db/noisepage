@@ -89,8 +89,8 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::shared_ptr<InsertPlanNode> Build() {
-      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<InsertPlanNode> Build() {
+      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 table_oid_, std::move(table_name_), std::move(values_),
                                                                 std::move(parameter_info_), bulk_insert_count_));
     }

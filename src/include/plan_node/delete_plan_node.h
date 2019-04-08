@@ -68,8 +68,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::shared_ptr<DeletePlanNode> Build() {
-      return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<DeletePlanNode> Build() {
+      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
                                                                 table_oid_, std::move(table_name_),
                                                                 std::move(delete_condition_)));
     }

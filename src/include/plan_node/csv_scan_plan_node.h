@@ -73,8 +73,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * Build the csv scan plan node
      * @return plan node
      */
-    std::shared_ptr<CSVScanPlanNode> Build() {
-      return std::shared_ptr<CSVScanPlanNode>(
+    std::unique_ptr<CSVScanPlanNode> Build() {
+      return std::unique_ptr<CSVScanPlanNode>(
           new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
                               is_parallel_, file_name_, delimiter_, quote_, escape_, null_string_));
     }

@@ -8,8 +8,8 @@ common::hash_t IndexScanPlanNode::Hash() const {
   common::hash_t hash = common::HashUtil::Hash(&type);
 
   // Hash predicate
-  if (GetPredicate() != nullptr) {
-    hash = common::HashUtil::CombineHashes(hash, GetPredicate()->Hash());
+  if (GetScanPredicate() != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, GetScanPredicate()->Hash());
   }
 
   // Hash is_for_update
@@ -25,8 +25,8 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &rhs_plan_node = static_cast<const IndexScanPlanNode &>(rhs);
 
   // Predicate
-  auto *pred = GetPredicate();
-  auto *rhs_plan_node_pred = rhs_plan_node.GetPredicate();
+  auto &pred = GetScanPredicate();
+  auto &rhs_plan_node_pred = rhs_plan_node.GetScanPredicate();
   if ((pred == nullptr && rhs_plan_node_pred != nullptr) || (pred != nullptr && rhs_plan_node_pred == nullptr))
     return false;
   if (pred != nullptr && *pred != *rhs_plan_node_pred) return false;

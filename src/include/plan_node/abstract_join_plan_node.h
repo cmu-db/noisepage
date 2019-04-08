@@ -24,7 +24,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
      * @param predicate join predicate
      * @return builder object
      */
-    ConcreteType &SetPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
+    ConcreteType &SetJoinPredicate(std::unique_ptr<const parser::AbstractExpression> predicate) {
       join_predicate_ = std::move(predicate);
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -82,11 +82,11 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate used for join
    */
-  const parser::AbstractExpression *GetPredicate() const { return join_predicate_.get(); }
+  const std::unique_ptr<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   LogicalJoinType join_type_;
-  const std::unique_ptr<const parser::AbstractExpression> join_predicate_;
+  std::unique_ptr<const parser::AbstractExpression> join_predicate_;
 
  public:
   /**

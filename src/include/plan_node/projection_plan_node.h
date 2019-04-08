@@ -29,8 +29,8 @@ class ProjectionPlanNode : public AbstractPlanNode {
      * Build the projection plan node
      * @return plan node
      */
-    std::shared_ptr<ProjectionPlanNode> Build() {
-      return std::shared_ptr<ProjectionPlanNode>(
+    std::unique_ptr<ProjectionPlanNode> Build() {
+      return std::unique_ptr<ProjectionPlanNode>(
           new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
     }
   };

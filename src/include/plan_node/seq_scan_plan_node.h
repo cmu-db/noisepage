@@ -42,10 +42,10 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * Build the sequential scan plan node
      * @return plan node
      */
-    std::shared_ptr<SeqScanPlanNode> Build() {
-      return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  std::move(predicate_), is_for_update_, is_parallel_,
-                                                                  table_oid_));
+    std::unique_ptr<SeqScanPlanNode> Build() {
+      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  std::move(scan_predicate_), is_for_update_,
+                                                                  is_parallel_, table_oid_));
     }
 
    protected:
