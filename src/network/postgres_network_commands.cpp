@@ -58,7 +58,7 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
     param_type = PostgresValueTypeToInternalValueType(static_cast<PostgresValueType>(oid));
   }
 
-  traffic_cop::Statement stmt = t_cop->Parse(query.c_str(), param_types);
+  traffic_cop::Statement stmt = t_cop->Parse(query, param_types);
   connection->statements[stmt_name] = stmt;
 
   out->WriteParseComplete();
