@@ -86,7 +86,7 @@ void SettingsManager::SetInt(Param param, int32_t value) {
 }
 
 void SettingsManager::SetDouble(Param param, double value) {
-  int old_value = GetDouble(param);
+  double old_value = GetDouble(param);
   SetValue(param, type::ValueFactory::GetDecimalValue(value));
   callback_fn callback = callback_map_.find(param)->second;
   callback(static_cast<void *>(&old_value), static_cast<void *>(&value));

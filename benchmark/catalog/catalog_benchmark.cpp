@@ -35,7 +35,7 @@ class CatalogBenchmark : public benchmark::Fixture {
 };
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state) {
+/*BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state) {
   std::vector<type::Value> search_vec, ret_row;
   // setup search vector, lookup the default database
   search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
@@ -57,6 +57,6 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
   delete txn_;
 }
 
-BENCHMARK_REGISTER_F(CatalogBenchmark, DatabaseLookupTime)->Unit(benchmark::kMillisecond)->MinTime(2);
+BENCHMARK_REGISTER_F(CatalogBenchmark, DatabaseLookupTime)->Unit(benchmark::kMillisecond)->MinTime(2);*/
 
 }  // namespace terrier
