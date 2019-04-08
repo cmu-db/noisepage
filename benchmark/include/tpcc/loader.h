@@ -285,9 +285,19 @@ struct Loader {
           // 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
           // (i.e., with NO_O_ID between 2,101 and 3,000)
           if (o_id + 1 >= 2101) {
-            db->new_order_table_->Insert(txn, *BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_tuple_buffer,
-                                                                  new_order_tuple_pr_initializer,
-                                                                  new_order_tuple_pr_map, db->new_order_schema_));
+            // insert in table
+            const auto *const new_order_tuple =
+                BuildNewOrderTuple(o_id + 1, d_id + 1, w_id + 1, new_order_tuple_buffer, new_order_tuple_pr_initializer,
+                                   new_order_tuple_pr_map, db->new_order_schema_);
+            const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_tuple);
+
+            // insert in index
+            const auto *const new_order_key =
+                BuildNewOrderKey(o_id + 1, d_id + 1, w_id + 1, new_order_key_buffer, new_order_key_pr_initializer,
+                                 new_order_key_pr_map, db->new_order_key_schema_);
+            index_insert_result = db->new_order_index_->ConditionalInsert(
+                *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
+            TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
           }
         }
       }
@@ -913,6 +923,30 @@ struct Loader {
     Util::SetTupleAttribute<int32_t>(schema, col_offset++, projection_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order tuple.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildNewOrderKey(const int32_t o_id, const int32_t d_id, const int32_t w_id,
+                                                 byte *const buffer,
+                                                 const storage::ProjectedRowInitializer &pr_initializer,
+                                                 const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+                                                 const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= num_districts_per_warehouse_, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for New Order key.");
 
     return pr;
   }
