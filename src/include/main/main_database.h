@@ -35,7 +35,6 @@ namespace terrier {
 
 class MainDatabase {
  public:
-
   /**
    * Bootstrap the whole database and running the main thread.
    * @param argc the number of command line arguments

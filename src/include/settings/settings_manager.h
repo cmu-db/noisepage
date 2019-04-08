@@ -10,8 +10,8 @@
 #include "type/value.h"
 
 #define __SETTING_GFLAGS_DECLARE__
-#include "settings/settings_macro.h"
-#include "settings/settings.h"
+#include "settings/settings_common.h"
+#include "settings/settings_defs.h"
 #undef __SETTING_GFLAGS_DECLARE__
 
 namespace terrier::settings {

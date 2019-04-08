@@ -11,9 +11,8 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     // Maximum number of connections
     SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true,
                 MainDatabase::EmptyCallback)
-        // RPC port
-        SETTING_int(rpc_port, "Peloton rpc port (default: 15445)", 15445, 1024, 65535, false,
-                    MainDatabase::EmptyCallback)
+    // RPC port
+    SETTING_int(rpc_port, "Peloton rpc port (default: 15445)", 15445, 1024, 65535, false, MainDatabase::EmptyCallback)
 
     // TODO(tianyu): Remove when we change to a different rpc framework
     // This is here only because capnp cannot exit gracefully and thus causes
@@ -75,18 +74,18 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     SETTING_int(connection_thread_count, "Number of connection threads (default: std::hardware_concurrency())",
                 std::thread::hardware_concurrency(), 1, 64, false, MainDatabase::EmptyCallback)
 
-         // Number of gc_threads
-        SETTING_int(gc_num_threads, "The number of Garbage collection threads to run", 1, 1, 128, true,
-                    MainDatabase::EmptyCallback)
+    // Number of gc_threads
+    SETTING_int(gc_num_threads, "The number of Garbage collection threads to run", 1, 1, 128, true,
+                MainDatabase::EmptyCallback)
 
-             // If parallel execution is enabled
-            SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true)
+    // If parallel execution is enabled
+    SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true)
 
-                // Minimum number of tuples a table must have
-                SETTING_int(min_parallel_table_scan_size,
-                            "Minimum number of tuples a table must have before we consider performing parallel scans "
-                            "(default: 10K)",
-                            10 * 1000, 1, std::numeric_limits<int32_t>::max(), true, MainDatabase::EmptyCallback)
+    // Minimum number of tuples a table must have
+    SETTING_int(min_parallel_table_scan_size,
+                "Minimum number of tuples a table must have before we consider performing parallel scans "
+                "(default: 10K)",
+                10 * 1000, 1, std::numeric_limits<int32_t>::max(), true, MainDatabase::EmptyCallback)
 
     //===----------------------------------------------------------------------===//
     // WRITE AHEAD LOG
@@ -148,29 +147,28 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     // If code-generation is enabled
     SETTING_bool(codegen, "Enable code-generation for query execution (default: true)", true, true)
 
-        // If llvm code is interpreted
-        SETTING_bool(codegen_interpreter, "Force interpretation of generated llvm code (default: false)", false, true)
+    // If llvm code is interpreted
+    SETTING_bool(codegen_interpreter, "Force interpretation of generated llvm code (default: false)", false, true)
 
-            // If statics will be printed on generated IR
-            SETTING_bool(print_ir_stats, "Print statistics on generated IR (default: false)", false, true)
+    // If statics will be printed on generated IR
+    SETTING_bool(print_ir_stats, "Print statistics on generated IR (default: false)", false, true)
 
-                // If logging of all generated IR is enabled
-                SETTING_bool(dump_ir, "Enable logging of all generated IR (default: false)", false, true)
+    // If logging of all generated IR is enabled
+    SETTING_bool(dump_ir, "Enable logging of all generated IR (default: false)", false, true)
 
     //===----------------------------------------------------------------------===//
     // Optimizer
     //===----------------------------------------------------------------------===//
     SETTING_bool(predicate_push_down, "Enable predicate push-down optimization (default: true)", true, true)
 
-        // If bloom filter for hash join in codegen is enabled
-        SETTING_bool(hash_join_bloom_filter, "Enable bloom filter for hash join in codegen (default: false)", false,
-                     true)
-            // Timeout for task execution
-            SETTING_int(task_execution_timeout,
-                        "Maximum allowed length of time (in ms) for task "
-                        "execution step of optimizer, "
-                        "assuming one plan has been found (default 5000)",
-                        5000, 1000, 60000, true, MainDatabase::EmptyCallback)
+    // If bloom filter for hash join in codegen is enabled
+    SETTING_bool(hash_join_bloom_filter, "Enable bloom filter for hash join in codegen (default: false)", false, true)
+    // Timeout for task execution
+    SETTING_int(task_execution_timeout,
+                "Maximum allowed length of time (in ms) for task "
+                "execution step of optimizer, "
+                "assuming one plan has been found (default 5000)",
+                5000, 1000, 60000, true, MainDatabase::EmptyCallback)
 
     //===----------------------------------------------------------------------===//
     // GENERAL

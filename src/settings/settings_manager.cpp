@@ -3,10 +3,10 @@
 #include "type/value_factory.h"
 
 // This will expand to define all the settings defined in settings.h
-// using GFlag's DEFINE_...() macro. See settings_macro.h.
+// using GFlag's DEFINE_...() macro. See settings_common.h.
 #define __SETTING_GFLAGS_DEFINE__
-#include "settings/settings_macro.h"
-#include "settings/settings.h"
+#include "settings/settings_common.h"
+#include "settings/settings_defs.h"
 #undef __SETTING_GFLAGS_DEFINE__
 
 namespace terrier::settings {
@@ -26,10 +26,10 @@ SettingsManager::SettingsManager(const std::shared_ptr<catalog::Catalog> &catalo
 
 void SettingsManager::InitParams() {
 // This will expand to invoke settings_manager::DefineSetting on
-// all of the settings defined in settings.h. See settings_macro.h.
+// all of the settings defined in settings.h. See settings_common.h.
 #define __SETTING_DEFINE__
-#include "settings/settings_macro.h"
-#include "settings/settings.h"
+#include "settings/settings_common.h"
+#include "settings/settings_defs.h"
 #undef __SETTING_DEFINE__
 }
 
