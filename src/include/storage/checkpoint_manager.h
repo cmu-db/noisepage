@@ -42,6 +42,11 @@ class CheckpointManager {
     txn_ = nullptr;
   }
 
+  /**
+   * Construct the path to the checkpoint file, given the txn context.
+   * @param txn context the current checkpoint is running under
+   * @return path to the checkpoint file.
+   */
   std::string GetCheckpointFilePath(transaction::TransactionContext *txn) {
     return log_file_path_prefix_ + std::to_string(!(txn->StartTime()));
   }
@@ -63,6 +68,11 @@ class CheckpointManager {
    */
   void StartRecovery(transaction::TransactionContext *txn) { txn_ = txn; }
 
+  /**
+   * Register a table in the checkpoint manager, so that its content can be restored during the recovery.
+   * @param table to be recovered.
+   * @param layout of the table.
+   */
   void RegisterTable(SqlTable *table, BlockLayout *layout) {
     tables_.push_back(table);
     layouts_.push_back(layout);
@@ -73,6 +83,9 @@ class CheckpointManager {
    */
   void Recover(const char *log_file_path);
 
+  /**
+   * Stop the current recovery. All registered tables are cleared.
+   */
   void EndRecovery() {
     txn_ = nullptr;
     tables_.clear();
