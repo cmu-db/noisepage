@@ -246,20 +246,47 @@ struct Transactions {
       db->stock_index_->ScanKey(*stock_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Stock index lookup failed.");
 
-      // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), and S_DATA in table
+      // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA in table
       const auto s_quantity_oid = db->stock_schema_.GetColumn(2).GetOid();
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(2 + args.d_id).GetOid();
+      const auto s_ytd_oid = db->stock_schema_.GetColumn(13).GetOid();
+      const auto s_order_cnt_oid = db->stock_schema_.GetColumn(14).GetOid();
+      const auto s_remote_cnt_oid = db->stock_schema_.GetColumn(15).GetOid();
       const auto s_data_oid = db->stock_schema_.GetColumn(16).GetOid();
-      const auto [stock_select_pr_initializer, stock_select_pr_map] = db->stock_table_->InitializerForProjectedRow(
-          {s_quantity_oid, s_dist_xx_oid, s_data_oid});  // TODO(Matt): cache this thing
+      const auto [stock_select_pr_initializer, stock_select_pr_map] =
+          db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid,
+                                                        s_remote_cnt_oid, s_data_oid});  // TODO(Matt): cache this thing
       auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
       db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
       const auto UNUSED_ATTRIBUTE s_quantity =
           *reinterpret_cast<int16_t *>(stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_quantity_oid)));
       const auto UNUSED_ATTRIBUTE s_dist_xx = *reinterpret_cast<storage::VarlenEntry *>(
           stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_dist_xx_oid)));
+      const auto UNUSED_ATTRIBUTE s_ytd =
+          *reinterpret_cast<int32_t *>(stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_ytd_oid)));
+      const auto UNUSED_ATTRIBUTE s_order_cnt = *reinterpret_cast<int16_t *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_order_cnt_oid)));
+      const auto UNUSED_ATTRIBUTE s_remote_cnt = *reinterpret_cast<int16_t *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_remote_cnt_oid)));
       const auto UNUSED_ATTRIBUTE s_data = *reinterpret_cast<storage::VarlenEntry *>(
           stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_data_oid)));
+
+      // Update S_QUANTITY, S_YTD, S_REMOTE_CNT
+      const auto [stock_update_pr_initializer, stock_update_pr_map] = db->stock_table_->InitializerForProjectedRow(
+          {s_quantity_oid, s_ytd_oid, s_remote_cnt_oid});  // TODO(Matt): cache this thing
+      auto *const stock_update_tuple = stock_update_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
+      *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(stock_update_pr_map.at(s_quantity_oid))) =
+          (s_quantity >= item.ol_quantity + 10) ? s_quantity - item.ol_quantity : s_quantity - item.ol_quantity + 91;
+      *reinterpret_cast<int32_t *>(stock_update_tuple->AccessForceNotNull(stock_update_pr_map.at(s_ytd_oid))) =
+          s_ytd + item.ol_quantity;
+      *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(stock_update_pr_map.at(s_remote_cnt_oid))) =
+          !item.home ? s_remote_cnt + 1 : s_remote_cnt;
+
+      result = db->stock_table_->Update(txn, index_scan_results[0], *stock_update_tuple);
+      if (!result) {
+        txn_manager->Abort(txn);
+        return false;
+      }
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
