@@ -46,10 +46,33 @@ class OrderByDescription {
    */
   std::vector<std::shared_ptr<AbstractExpression>> GetOrderByExpressions() { return exprs_; }
 
+  /**
+   * @return OrderByDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["types"] = types_;
+    j["exprs"] = exprs_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    types_ = j.at("types").get<std::vector<OrderType>>();
+    auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
+    for (const auto &expr : expressions) {
+      exprs_.push_back(DeserializeExpression(expr));
+    }
+  }
+
  private:
-  const std::vector<OrderType> types_;
-  const std::vector<std::shared_ptr<AbstractExpression>> exprs_;
+  std::vector<OrderType> types_;
+  std::vector<std::shared_ptr<AbstractExpression>> exprs_;
 };
+
+DEFINE_JSON_DECLARATIONS(OrderByDescription);
 
 /**
  * Describes the limit clause in a SELECT statement.
@@ -89,10 +112,30 @@ class LimitDescription {
    */
   int64_t GetOffset() { return offset_; }
 
+  /**
+   * @return LimitDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["limit"] = limit_;
+    j["offset"] = offset_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    limit_ = j.at("types").get<int64_t>();
+    offset_ = j.at("exprs").get<int64_t>();
+  }
+
  private:
   int64_t limit_;
   int64_t offset_;
 };
+
+DEFINE_JSON_DECLARATIONS(LimitDescription);
 
 /**
  * Represents the sql "GROUP BY".
@@ -124,10 +167,33 @@ class GroupByDescription {
    */
   std::shared_ptr<AbstractExpression> GetHaving() { return having_; }
 
+  /**
+   * @return GroupDescription serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["columns"] = columns_;
+    j["having"] = having_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
+    for (const auto &expr : column_expressions) {
+      columns_.push_back(DeserializeExpression(expr));
+    }
+    having_ = DeserializeExpression(j.at("having"));
+  }
+
  private:
-  const std::vector<std::shared_ptr<AbstractExpression>> columns_;
-  const std::shared_ptr<AbstractExpression> having_;
+  std::vector<std::shared_ptr<AbstractExpression>> columns_;
+  std::shared_ptr<AbstractExpression> having_;
 };
+
+DEFINE_JSON_DECLARATIONS(GroupByDescription);
 
 /**
  * Represents the sql "SELECT ..."
@@ -205,17 +271,53 @@ class SelectStatement : public SQLStatement {
    */
   void SetUnionSelect(std::shared_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
 
+  /**
+   * @return select_statement serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = SQLStatement::ToJson();
+    j["select"] = select_;
+    j["select_distinct"] = select_distinct_;
+    j["from"] = from_;
+    j["where"] = where_;
+    j["group_by"] = group_by_;
+    j["order_by"] = order_by_;
+    j["limit"] = limit_;
+    j["union_select"] = union_select_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    SQLStatement::FromJson(j);
+    auto select_expressions = j.at("select").get<std::vector<nlohmann::json>>();
+    for (const auto &expr : select_expressions) {
+      select_.push_back(DeserializeExpression(expr));
+    }
+    select_distinct_ = j.at("select_distinct").get<bool>();
+    from_ = j.at("from").get<std::shared_ptr<TableRef>>();
+    where_ = DeserializeExpression(j.at("where"));
+    group_by_ = j.at("group_by").get<std::shared_ptr<GroupByDescription>>();
+    order_by_ = j.at("order_by").get<std::shared_ptr<OrderByDescription>>();
+    limit_ = j.at("limit").get<std::shared_ptr<LimitDescription>>();
+    union_select_ = j.at("union_select").get<std::shared_ptr<SelectStatement>>();
+  }
+
  private:
-  const std::vector<std::shared_ptr<AbstractExpression>> select_;
-  const bool select_distinct_;
-  const std::shared_ptr<TableRef> from_;
-  const std::shared_ptr<AbstractExpression> where_;
-  const std::shared_ptr<GroupByDescription> group_by_;
-  const std::shared_ptr<OrderByDescription> order_by_;
-  const std::shared_ptr<LimitDescription> limit_;
+  std::vector<std::shared_ptr<AbstractExpression>> select_;
+  bool select_distinct_;
+  std::shared_ptr<TableRef> from_;
+  std::shared_ptr<AbstractExpression> where_;
+  std::shared_ptr<GroupByDescription> group_by_;
+  std::shared_ptr<OrderByDescription> order_by_;
+  std::shared_ptr<LimitDescription> limit_;
 
   std::shared_ptr<SelectStatement> union_select_;
 };
+
+DEFINE_JSON_DECLARATIONS(SelectStatement);
 
 }  // namespace parser
 }  // namespace terrier

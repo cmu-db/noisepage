@@ -21,10 +21,29 @@ class SubqueryExpression : public AbstractExpression {
   explicit SubqueryExpression(std::shared_ptr<parser::SelectStatement> subselect)
       : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
 
+  SubqueryExpression() = default;
+
   std::unique_ptr<AbstractExpression> Copy() const override {
     // TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
     // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
     return std::make_unique<SubqueryExpression>(*this);
+  }
+
+  /**
+   * @return expression serialized to json
+   */
+  nlohmann::json ToJson() const override {
+    nlohmann::json j = AbstractExpression::ToJson();
+    j["subselect"] = subselect_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
+    subselect_ = j.at("subselect").get<std::shared_ptr<parser::SelectStatement>>();
   }
 
   /**
@@ -35,5 +54,7 @@ class SubqueryExpression : public AbstractExpression {
  private:
   std::shared_ptr<parser::SelectStatement> subselect_;
 };
+
+DEFINE_JSON_DECLARATIONS(SubqueryExpression);
 
 }  // namespace terrier::parser

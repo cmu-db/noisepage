@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
 #include "parser/parser_defs.h"
@@ -41,11 +42,33 @@ struct TableInfo {
    */
   std::string GetDatabaseName() { return database_name_; }
 
+  /**
+   * @return TableInfo serialized to json
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["table_name"] = table_name_;
+    j["schema_name"] = schema_name_;
+    j["database_name"] = database_name_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  void FromJson(const nlohmann::json &j) {
+    table_name_ = j.at("table_name").get<std::string>();
+    schema_name_ = j.at("schema_name").get<std::string>();
+    database_name_ = j.at("database_name").get<std::string>();
+  }
+
  private:
-  const std::string table_name_;
-  const std::string schema_name_;
-  const std::string database_name_;
+  std::string table_name_;
+  std::string schema_name_;
+  std::string database_name_;
 };
+
+DEFINE_JSON_DECLARATIONS(TableInfo);
 
 /**
  * Base class for the parsed SQL statements.
@@ -75,6 +98,22 @@ class SQLStatement {
    * @param v visitor
    */
   virtual void Accept(SqlNodeVisitor *v) = 0;
+
+  /**
+   * Derived statement should call this base method
+   * @return statement serialized to json
+   */
+  virtual nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["stmt_type"] = stmt_type_;
+    return j;
+  }
+
+  /**
+   * Derived statement should call this base method
+   * @param j json to deserialize
+   */
+  virtual void FromJson(const nlohmann::json &j) { stmt_type_ = j.at("stmt_type").get<StatementType>(); }
 
  private:
   StatementType stmt_type_;
@@ -112,6 +151,8 @@ class TableRefStatement : public SQLStatement {
  private:
   const std::shared_ptr<TableInfo> table_info_ = nullptr;
 };
+
+DEFINE_JSON_DECLARATIONS(SQLStatement);
 
 }  // namespace parser
 }  // namespace terrier
