@@ -202,7 +202,6 @@ class SqlTable {
   TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo,
                    layout_version_t version_num) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
     // always insert into the new DataTable
     return tables_.Find(version_num)->second.data_table->Insert(txn, redo);
   }
@@ -216,7 +215,6 @@ class SqlTable {
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot, layout_version_t version_num) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
-    // TODO(Matt): update indexes
     layout_version_t old_version = slot.GetBlock()->layout_version_;
     // always delete the tuple in the old block
     return tables_.Find(old_version)->second.data_table->Delete(txn, slot);
