@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "tpcc/database.h"
@@ -207,6 +208,7 @@ struct Transactions {
 
     // for each item in order
     for (const auto &item : args.items) {
+      uint32_t ol_number = 1;
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
       const auto item_key_pr_map = db->item_index_->GetKeyOidToOffsetMap();
@@ -287,6 +289,64 @@ struct Transactions {
         txn_manager->Abort(txn);
         return false;
       }
+
+      // Insert new row in Order Line
+      const auto [order_line_insert_pr_initializer, order_line_insert_pr_map] =
+          db->order_line_table_->InitializerForProjectedRow(
+              Util::AllColOidsForSchema(db->order_line_schema_));  // TODO(Matt): cache this thing
+      auto *const order_line_insert_tuple =
+          order_line_insert_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 0, order_line_insert_pr_map, order_line_insert_tuple,
+                                       d_next_o_id);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 1, order_line_insert_pr_map, order_line_insert_tuple,
+                                       args.d_id);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 2, order_line_insert_pr_map, order_line_insert_tuple,
+                                       args.w_id);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 3, order_line_insert_pr_map, order_line_insert_tuple,
+                                       ol_number);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 4, order_line_insert_pr_map, order_line_insert_tuple,
+                                       item.ol_i_id);
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 5, order_line_insert_pr_map, order_line_insert_tuple,
+                                       item.ol_supply_w_id);
+      order_line_insert_tuple->SetNull(order_line_insert_pr_map.at(db->order_line_schema_.GetColumn(6).GetOid()));
+      Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 7, order_line_insert_pr_map, order_line_insert_tuple,
+                                       item.ol_quantity);
+      Util::SetTupleAttribute<double>(db->order_line_schema_, 8, order_line_insert_pr_map, order_line_insert_tuple,
+                                      item.ol_quantity * i_price);
+      if (s_dist_xx.Size() <= storage::VarlenEntry::InlineThreshold()) {
+        Util::SetTupleAttribute<storage::VarlenEntry>(db->order_line_schema_, 9, order_line_insert_pr_map,
+                                                      order_line_insert_tuple, s_dist_xx);
+      } else {
+        auto *const varlen = common::AllocationUtil::AllocateAligned(s_dist_xx.Size());
+        std::memcpy(varlen, s_dist_xx.Content(), s_dist_xx.Size());
+        const auto varlen_entry = storage::VarlenEntry::Create(varlen, s_dist_xx.Size(), true);
+        Util::SetTupleAttribute<storage::VarlenEntry>(db->order_line_schema_, 9, order_line_insert_pr_map,
+                                                      order_line_insert_tuple, varlen_entry);
+      }
+
+      const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
+
+      // insert in index
+      const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+      const auto order_line_key_pr_map = db->order_line_index_->GetKeyOidToOffsetMap();
+      auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
+
+      Util::SetKeyAttribute<int32_t>(db->order_line_key_schema_, 0, order_line_key_pr_map, order_line_key, args.w_id);
+      Util::SetKeyAttribute<int32_t>(db->order_line_key_schema_, 1, order_line_key_pr_map, order_line_key, args.d_id);
+      Util::SetKeyAttribute<int32_t>(db->order_line_key_schema_, 2, order_line_key_pr_map, order_line_key, d_next_o_id);
+      Util::SetKeyAttribute<int32_t>(db->order_line_key_schema_, 3, order_line_key_pr_map, order_line_key, ol_number);
+
+      index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, order_line_slot,
+                                                                     [](const storage::TupleSlot &) { return false; });
+      TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
+
+      const std::string_view i_data_str(reinterpret_cast<const char *const>(i_data.Content()), i_data.Size());
+      const std::string_view s_data_str(reinterpret_cast<const char *const>(s_data.Content()), s_data.Size());
+
+      const bool UNUSED_ATTRIBUTE brand =
+          i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0 != std::string::npos);
+
+      ol_number++;
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
