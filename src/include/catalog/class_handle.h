@@ -61,6 +61,8 @@ class ClassHandle {
    */
   std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid);
 
+  std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, const char *name);
+
   /**
    * Add row into the Class table.
    * @param txn transaction to run

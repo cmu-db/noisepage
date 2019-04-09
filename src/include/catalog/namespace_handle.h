@@ -31,8 +31,8 @@ class NamespaceHandle {
      * @param oid the namespace_oid of the underlying database
      * @param entry: the row as a vector of values
      */
-    NamespaceEntry(namespace_oid_t oid, std::vector<type::TransientValue> &&entry)
-        : oid_(oid), entry_(std::move(entry)) {}
+    NamespaceEntry(namespace_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+        : oid_(oid), sql_table_(sql_table), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column
@@ -40,6 +40,17 @@ class NamespaceHandle {
      * @return the value of the column
      */
     const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+    bool ColumnIsNull(const std::string &st);
+    bool GetBooleanColumn(const std::string &st);
+    int8_t GetTinyIntColumn(const std::string &st);
+    int16_t GetSmallIntColumn(const std::string &st);
+    int32_t GetIntegerColumn(const std::string &st);
+    int64_t GetBigIntColumn(const std::string &st);
+    double GetDecimalColumn(const std::string &st);
+    type::timestamp_t GetTimestampColumn(const std::string &st);
+    type::date_t GetDateColumn(const std::string &st);
+    std::string_view GetVarcharColumn(const std::string &st);
 
     /**
      * Return the namespace_oid of the underlying database
@@ -49,6 +60,7 @@ class NamespaceHandle {
 
    private:
     namespace_oid_t oid_;
+    catalog::SqlTableRW *sql_table_;
     std::vector<type::TransientValue> entry_;
   };
 

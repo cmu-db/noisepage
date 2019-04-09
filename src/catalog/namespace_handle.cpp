@@ -22,12 +22,71 @@ const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
     {3, "nspacl", type::TypeId::VARCHAR},
 };
 
+bool NamespaceHandle::NamespaceEntry::ColumnIsNull(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  return (entry_[index].Null());
+}
+
+bool NamespaceHandle::NamespaceEntry::GetBooleanColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::BOOLEAN, "Type is not boolean");
+  return (type::TransientValuePeeker::PeekBoolean(entry_[index]));
+}
+
+int8_t NamespaceHandle::NamespaceEntry::GetTinyIntColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::TINYINT, "Type is not tiny integer");
+  return (type::TransientValuePeeker::PeekTinyInt(entry_[index]));
+}
+
+int16_t NamespaceHandle::NamespaceEntry::GetSmallIntColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::SMALLINT, "Type is not small integer");
+  return (type::TransientValuePeeker::PeekSmallInt(entry_[index]));
+}
+
+int32_t NamespaceHandle::NamespaceEntry::GetIntegerColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::INTEGER, "Type is not integer");
+  return (type::TransientValuePeeker::PeekInteger(entry_[index]));
+}
+
+int64_t NamespaceHandle::NamespaceEntry::GetBigIntColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::BIGINT, "Type is not big integer");
+  return (type::TransientValuePeeker::PeekBigInt(entry_[index]));
+}
+
+double NamespaceHandle::NamespaceEntry::GetDecimalColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::DECIMAL, "Type is not decimal");
+  return (type::TransientValuePeeker::PeekDecimal(entry_[index]));
+}
+
+type::timestamp_t NamespaceHandle::NamespaceEntry::GetTimestampColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::TIMESTAMP, "Type is not timestamp");
+  return (type::TransientValuePeeker::PeekTimestamp(entry_[index]));
+}
+
+type::date_t NamespaceHandle::NamespaceEntry::GetDateColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::DATE, "Type is not date");
+  return (type::TransientValuePeeker::PeekDate(entry_[index]));
+}
+
+std::string_view NamespaceHandle::NamespaceEntry::GetVarcharColumn(const std::string &st) {
+  int32_t index = sql_table_->ColNameToIndex(st);
+  TERRIER_ASSERT(entry_[index].Type() == type::TypeId::VARCHAR, "Type is not varchar");
+  return (type::TransientValuePeeker::PeekVarChar(entry_[index]));
+}
+
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
     transaction::TransactionContext *txn, namespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
-  return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
 }
 
 std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
@@ -37,7 +96,7 @@ std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEn
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
 }
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {

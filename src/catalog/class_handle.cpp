@@ -32,6 +32,17 @@ std::shared_ptr<ClassHandle::ClassEntry> ClassHandle::GetClassEntry(transaction:
   return std::make_shared<ClassEntry>(oid, std::move(ret_row));
 }
 
+std::shared_ptr<ClassHandle::ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn,
+                                                                    const char *name) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
+  ret_row = pg_class_rw_->FindRow(txn, search_vec);
+  col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[1]));
+  return std::make_shared<ClassEntry>(oid, std::move(ret_row));
+}
+
 void ClassHandle::AddEntry(transaction::TransactionContext *txn, const int64_t tbl_ptr, const int32_t entry_oid,
                            const std::string &name, const int32_t ns_oid, const int32_t ts_oid) {
   std::vector<type::TransientValue> row;

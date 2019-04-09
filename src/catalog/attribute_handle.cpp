@@ -26,19 +26,22 @@ const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
 const std::vector<SchemaCol> AttributeHandle::unused_schema_cols_ = {};
 
 std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEntry(
-    transaction::TransactionContext *txn, col_oid_t oid) {
+    transaction::TransactionContext *txn,
+    table_oid_t table_oid,
+    col_oid_t col_oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
-  search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
-  search_vec.push_back(type::TransientValueFactory::GetInteger(!table_->Oid()));
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!col_oid));
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
-  return std::make_shared<AttributeEntry>(oid, std::move(ret_row));
+  col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  return std::make_shared<AttributeHandle::AttributeEntry>(oid, std::move(ret_row));
 }
 
 std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEntry(
-    transaction::TransactionContext *txn, const std::string &name) {
+    transaction::TransactionContext *txn, table_oid_t table_oid, const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-  search_vec.push_back(type::TransientValueFactory::GetInteger(!table_->Oid()));
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
   if (ret_row.empty()) {

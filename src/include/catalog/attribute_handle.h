@@ -73,8 +73,8 @@ class AttributeHandle {
    * Construct an attribute handle. It keeps a pointer to the pg_attribute sql table.
    * @param table a pointer to SqlTableRW
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
-   * Deprecate
    */
+  // TODO(pakhtar): deprecate
   explicit AttributeHandle(SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
       : table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
 
@@ -87,26 +87,24 @@ class AttributeHandle {
   col_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Get a attribute entry for a given col_oid. It's essentially equivalent to reading a
-   * row from pg_attribute. It has to be executed in a transaction context.
-   *
-   * @param txn the transaction that initiates the read
-   * @param oid the col_oid of the database the transaction wants to read
-   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist in
-   * the database
+   * Get an attribute entry.
+   * @param txn transaction (required)
+   * @param table_oid, an attribute for this table
+   * @param col_oid, attribute for col_oid of table_oid
+   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, col_oid_t oid);
+  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+                                                   col_oid_t col_oid);
 
   /**
-   * Get a attribute entry for a given attribute. It's essentially equivalent to reading a
-   * row from pg_attribute. It has to be executed in a transaction context.
-   *
-   * @param txn the transaction that initiates the read
-   * @param name the attribute of the database the transaction wants to read
-   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist in
-   * the database
+   * Get an attribute entry.
+   * @param txn transaction (required)
+   * @param table_oid, an attribute for this table
+   * @param name, attribute for column name of table_oid
+   * @return a shared pointer to Attribute entry;
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, const std::string &name);
+  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+      const std::string &name);
 
   /**
    * Create the storage table
