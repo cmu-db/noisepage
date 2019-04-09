@@ -127,7 +127,7 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
 TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
   const uint32_t num_rows = 10;
   const uint32_t num_columns = 3;
-  int magic_seed = 13523;
+  int magic_seed = 13523777;
   // initialize test
   auto tested = RandomSqlTableTestObject();
   std::default_random_engine random_generator(magic_seed);

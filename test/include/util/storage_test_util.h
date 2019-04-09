@@ -418,6 +418,7 @@ class RandomSqlTableTestObject {
         set->push_back(StorageTestUtil::PrintRow(row, *layout, false));
       }
     }
+    delete[] scan_buffer;
   }
 
  private:

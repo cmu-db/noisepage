@@ -35,6 +35,8 @@ void CheckpointManager::Checkpoint(const SqlTable &table, const BlockLayout &lay
     }
   }
   out_.Persist();
+  delete[] scan_buffer;
+  delete[] redo_buffer;
 }
 
 void CheckpointManager::Recover(const char *log_file_path) {
