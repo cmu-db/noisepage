@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <traffic_cop/sqlite.h>
 
 #include "loggers/main_logger.h"
 #include "network/network_defs.h"
@@ -58,6 +59,7 @@ int SqliteEngine::StoreResults(void *result_set_void, int elem_count, char **val
 
   return 0;
 }
+
 sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
 
   // Replace "$" to "?"
@@ -99,13 +101,21 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
     }
   }
 }
-ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
+
+std::vector<std::string> SqliteEngine::DescribeColumns(sqlite3_stmt *stmt) {
   int column_cnt = sqlite3_column_count(stmt);
-  ResultSet result_set;
+  std::vector<std::string> column_names;
   for (int i = 0; i < column_cnt; i++) {
     std::string col_name = std::string(sqlite3_column_name(stmt, i));
-    result_set.column_names_.push_back(col_name);
+    column_names.push_back(col_name);
   }
+  return column_names;
+}
+
+ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
+  ResultSet result_set;
+  result_set.column_names_ = DescribeColumns(stmt);
+  int column_cnt = static_cast<int>(result_set.column_names_.size());
 
   int result_code = sqlite3_step(stmt);
 
@@ -126,9 +136,10 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     result_code = sqlite3_step(stmt);
   }
 
-  LOG_INFO("Execute complete, {0} rows are in the result set", result_set.rows_.size());
+  LOG_DEBUG("Execute complete, {0} rows are in the result set", result_set.rows_.size());
 
   return result_set;
 }
+
 
 }  // namespace terrier::traffic_cop

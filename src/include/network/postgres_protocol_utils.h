@@ -318,6 +318,16 @@ class PostgresPacketWriter {
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
+  void WriteParameterDescription(const std::vector<PostgresValueType> &param_types){
+    BeginPacket(NetworkMessageType::PARAMETER_DESCRIPTION);
+    AppendValue<int32_t>(static_cast<int32_t>(param_types.size()));
+
+    for(auto &type : param_types)
+      AppendValue<int32_t>(static_cast<int32_t>(type));
+
+    EndPacket();
+  }
+
   /**
    * Writes row description, as the first packet of sending query results
    * @param columns the column names
@@ -436,7 +446,7 @@ class PostgresPacketWriter {
    * @param type The type of object to describe
    * @param objectName The name of the object to describe8
    */
-  void WriteDescribeCommand(ExtendedQueryObjectType type, const std::string &objectName) {
+  void WriteDescribeCommand(DescribeCommandObjectType type, const std::string &objectName) {
     BeginPacket(NetworkMessageType::DESCRIBE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
@@ -445,7 +455,7 @@ class PostgresPacketWriter {
    * @param type The type of object to close
    * @param objectName The name of the object to close
    */
-  void WriteCloseCommand(ExtendedQueryObjectType type, const std::string &objectName) {
+  void WriteCloseCommand(DescribeCommandObjectType type, const std::string &objectName) {
     BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 

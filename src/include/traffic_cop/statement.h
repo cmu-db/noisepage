@@ -23,14 +23,19 @@ class Statement {
    * @param stmt
    * @param param_types
    */
-  Statement(sqlite3_stmt *stmt, std::vector<type::TypeId> param_types)
+  Statement(sqlite3_stmt *stmt, std::vector<network::PostgresValueType> param_types)
       : sqlite3_stmt_(stmt), param_types_(std::move(param_types)) {}
 
-  /* The sqlite3 statement */
+  /**
+   * The sqlite3 statement
+   */
   sqlite3_stmt *sqlite3_stmt_;
 
-  /* The types of the parameters*/
-  std::vector<type::TypeId> param_types_;
+  /**
+   * The types of the parameters
+   * To satisfy Describe command, we store Postgres type oid here instead of internal type ids.
+   */
+  std::vector<network::PostgresValueType> param_types_;
 
   /**
    * Returns the number of the parameters.

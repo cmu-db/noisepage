@@ -36,7 +36,7 @@ class TrafficCop {
    * @param param_types
    * @return
    */
-  virtual Statement Parse(const std::string &query, const std::vector<type::TypeId> &param_types);
+  virtual Statement Parse(const std::string &query, const std::vector<network::PostgresValueType> &param_types);
 
   /**
    * Bind parameters to a statement to obtain a portal.
@@ -45,6 +45,11 @@ class TrafficCop {
    * @return
    */
   virtual Portal Bind(const Statement &stmt, const std::shared_ptr<std::vector<type::TransientValue>> &params);
+
+  virtual std::vector<std::string> DescribeColumns(const Statement &stmt);
+
+  virtual std::vector<std::string> DescribeColumns(const Portal &portal);
+
 
   /**
    * Execute a portal.

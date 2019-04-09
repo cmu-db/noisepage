@@ -92,6 +92,7 @@ enum class NetworkMessageType : unsigned char {
   EMPTY_QUERY_RESPONSE = 'I',
   NO_DATA_RESPONSE = 'n',
   READY_FOR_QUERY = 'Z',
+  PARAMETER_DESCRIPTION = 't',
   ROW_DESCRIPTION = 'T',
   DATA_ROW = 'D',
   // Errors
@@ -115,7 +116,7 @@ enum class NetworkMessageType : unsigned char {
 // Describe Message Types
 //===--------------------------------------------------------------------===//
 
-enum class ExtendedQueryObjectType : unsigned char { PORTAL = 'P', PREPARED = 'S' };
+enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT = 'S' };
 
 //===--------------------------------------------------------------------===//
 // Query Types

@@ -101,7 +101,7 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
     ReadUntilReadyOrClose(io_socket);
 
     std::string stmt_name = "test_statement";
-    std::string query = "SELECT * from TableA where a_int = ?1";
+    std::string query = "SELECT * from TableA where a_int = $1";
 
     writer.WriteParseCommand(stmt_name, query,
                              std::vector<int>(1, static_cast<int32_t>(network::PostgresValueType::INTEGER)));
@@ -113,17 +113,22 @@ TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
     auto param1 = std::vector<char>({'1', '0', '0'});
 
     std::string portal_name = "test_portal";
-    // Use text format Don't care about result column formats
+    // Use text format, don't care about result column formats
     writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
-
     io_socket->FlushAllWrites();
-
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::BIND_COMPLETE);
+    
+    writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, "test_portal");
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::ROW_DESCRIPTION);
 
     writer.WriteExecuteCommand(portal_name, 0);
     io_socket->FlushAllWrites();
-
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::DATA_ROW);
+    
+    writer.WriteSyncCommand();
+    io_socket->FlushAllWrites();
+    ReadUntilReadyOrClose(io_socket);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);

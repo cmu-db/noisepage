@@ -42,6 +42,8 @@ class SqliteEngine {
    */
   void Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params);
 
+  std::vector<std::string> DescribeColumns(sqlite3_stmt *stmt);
+
   /**
    * Execute a bound statement.
    * @param stmt

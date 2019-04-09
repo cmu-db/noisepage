@@ -31,7 +31,7 @@ class FakeTrafficCop : public traffic_cop::TrafficCop {
     traffic_cop::ResultSet empty_set;
     callback(empty_set, out);
   }
-  traffic_cop::Statement Parse(const std::string &query, const std::vector<type::TypeId> &param_types) override {
+  traffic_cop::Statement Parse(const std::string &query, const std::vector<PostgresValueType> &param_types) override {
     return traffic_cop::Statement(nullptr, std::vector<type::TypeId>());
   }
   traffic_cop::Portal Bind(const traffic_cop::Statement &stmt,
@@ -175,7 +175,7 @@ void TestExtendedQuery(uint16_t port) {
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // DescribeCommand
-  writer.WriteDescribeCommand(ExtendedQueryObjectType::PREPARED, stmt_name);
+  writer.WriteDescribeCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
@@ -185,7 +185,7 @@ void TestExtendedQuery(uint16_t port) {
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 
   // CloseCommand
-  writer.WriteCloseCommand(ExtendedQueryObjectType::PREPARED, stmt_name);
+  writer.WriteCloseCommand(DescribeCommandObjectType::STATEMENT, stmt_name);
   io_socket->FlushAllWrites();
   EXPECT_TRUE(ReadUntilReadyOrClose(io_socket));
 

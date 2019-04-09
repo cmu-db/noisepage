@@ -11,8 +11,13 @@
 
 namespace terrier::network {
 
+void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out){
+  NETWORK_LOG_ERROR(msg);
+  out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
+}
+
 /**
- * Seriealize the result set into a packet.
+ * Used in simple query. The callback to serialize a result set.
  * @param result_set
  * @param out
  */
@@ -52,10 +57,10 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand: {0}", query);
   auto num_params = in_.ReadValue<uint16_t>();
-  std::vector<type::TypeId> param_types(num_params);
-  for (auto &param_type : param_types) {
+  std::vector<PostgresValueType> param_types;
+  for (uint16_t i=0; i<num_params; i++) {
     auto oid = in_.ReadValue<int32_t>();
-    param_type = PostgresValueTypeToInternalValueType(static_cast<PostgresValueType>(oid));
+    param_types.push_back(static_cast<PostgresValueType>(oid));
   }
 
   traffic_cop::Statement stmt = t_cop->Parse(query, param_types);
@@ -79,13 +84,11 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   auto statement_pair = connection->statements.find(stmt_name);
   if (statement_pair == connection->statements.end()) {
     string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
-    NETWORK_LOG_ERROR(error_msg);
-
-    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
   }
 
-  // Find out param formats
+  // Find out param formats (text/binary)
   traffic_cop::Statement *statement = &statement_pair->second;
   auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
   vector<int16_t> is_binary;
@@ -105,9 +108,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
         "Error: Numbers of parameters don't match. "
         "{0} in statement, {1} in format code.",
         num_params, num_formats);
-    NETWORK_LOG_ERROR(error_msg);
 
-    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
   }
 
@@ -118,9 +120,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
         "Error: Numbers of parameters don't match. "
         "{0} in statement, {1} in bind command",
         num_params, num_params_from_query);
-    NETWORK_LOG_ERROR(error_msg);
 
-    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
   }
 
@@ -132,8 +133,9 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 
   for (size_t i = 0; i < num_params; i++) {
     auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
+    auto type = PostgresValueTypeToInternalValueType(statement->param_types_[i]);
 
-    if (statement->param_types_[i] == TypeId::INTEGER) {
+    if (type == TypeId::INTEGER) {
       int32_t value;
       if (is_binary[i] == 0) {
         char buf[len];
@@ -142,9 +144,9 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       } else {
         value = in_.ReadValue<int32_t>();
       }
-
       params->push_back(TransientValueFactory::GetInteger(value));
-    } else if (statement->param_types_[i] == TypeId::DECIMAL) {
+
+    } else if (type == TypeId::DECIMAL) {
       double value;
       if (is_binary[i] == 0) {
         char buf[len];
@@ -153,17 +155,18 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
       } else {
         value = in_.ReadValue<double>();
       }
-
       params->push_back(TransientValueFactory::GetDecimal(value));
-    } else if (statement->param_types_[i] == TypeId::VARCHAR) {
+
+    } else if (type == TypeId::VARCHAR) {
       char buf[len];
       in_.Read(len, buf);
       params->push_back(TransientValueFactory::GetVarChar(buf));
+
     } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
-      NETWORK_LOG_ERROR(error_msg);
-      out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+
+      LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
   }
@@ -177,10 +180,42 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 
 Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
                                  TrafficCopPtr t_cop, ConnectionContext *connection, NetworkCallback callback) {
-  std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Describe query: {0}", query.c_str());
-  out->WriteEmptyQueryResponse();
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  auto type = in_.ReadValue<DescribeCommandObjectType>();
+  std::string name = in_.ReadString();
+  NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
+  std::vector<std::string> column_names;
+
+  if(type == DescribeCommandObjectType::STATEMENT){
+    auto p_statement = connection->statements.find(name);
+    if(p_statement == connection->statements.end()) {
+      std::string error_msg = fmt::format("There is no statement with name {0}", name);
+      NETWORK_LOG_ERROR(error_msg);
+      out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+      return Transition::PROCEED;
+    }
+    traffic_cop::Statement &statement = p_statement->second;
+    out->WriteParameterDescription(statement.param_types_);
+
+    column_names = t_cop->DescribeColumns(statement);
+
+  }
+  else if(type == DescribeCommandObjectType::PORTAL){
+    auto p_portal = connection->portals.find(name);
+    if(p_portal == connection->portals.end()){
+      std::string error_msg = fmt::format("There is no portal with name {0}", name);
+      LogAndWriteErrorMsg(error_msg, out);
+      return Transition::PROCEED;
+    }
+
+    column_names = t_cop->DescribeColumns(p_portal->second);
+  }
+  else {
+    std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
+    LogAndWriteErrorMsg(error_msg, out);
+    return Transition::PROCEED;
+  }
+
+  out->WriteRowDescription(column_names);
   return Transition::PROCEED;
 }
 
@@ -199,16 +234,15 @@ Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgr
   }
 
   traffic_cop::ResultSet result = t_cop->Execute(&(p_portal->second));
-  AcceptResults(result, out);
+  for(const auto &row : result.rows_) out->WriteDataRow(row);
 
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  out->WriteCommandComplete("");
   return Transition::PROCEED;
 }
 
 Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
                              ConnectionContext *connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
-  out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
