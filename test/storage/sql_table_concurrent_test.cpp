@@ -182,7 +182,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
   storage::layout_version_t schema_version_ = storage::layout_version_t(0);
   storage::BlockStore block_store_{100, 100};
   std::vector<catalog::Schema::Column> cols_;
-  std::vector<std::vector<catalog::col_oid_t> *>versioned_col_oids;
+  std::vector<std::vector<catalog::col_oid_t> *> versioned_col_oids;
 
  private:
   // TODO(yangjuns): need to fake a catalog that maps sql_table -> version_num
@@ -239,7 +239,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     for (auto &version : versioned_col_oids)
-      if (version != nullptr) delete version;
+      delete version;
+    versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
   }
@@ -321,7 +322,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
     for (auto &version : versioned_col_oids)
-      if (version != nullptr) delete version;
+      delete version;
+    versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
   }
