@@ -167,6 +167,16 @@ class DataTable {
   SlotIterator end() const;
 
   /**
+   * @warning NOT the number of tuples currently in the data table. Such a value is not well-defined unless referring
+   * to a transactional snapshot.
+   * @return number of slots allocated for this data table.
+   */
+  uint64_t NumSlots() const {
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    return blocks_.size() * accessor_.GetBlockLayout().NumSlots();
+  }
+
+  /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
    * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
    * process. Update will only happen if there is no write-write conflict and tuple is visible, otherwise, this is
@@ -237,6 +247,7 @@ class DataTable {
   template <class RowType>
   bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
 
+  void InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest);
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 

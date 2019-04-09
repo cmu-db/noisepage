@@ -9,9 +9,11 @@
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "storage/block_access_controller.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -27,7 +29,10 @@ STRONG_TYPEDEF(layout_version_t, uint32_t);
 
 /**
  * A block is a chunk of memory used for storage. It does not have any meaning
- * unless interpreted by a @see TupleAccessStrategy
+ * unless interpreted by a TupleAccessStrategy. The header layout is documented in the class as well.
+ * @see TupleAccessStrategy
+ *
+ * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
 struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
@@ -41,9 +46,14 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   std::atomic<uint32_t> insert_head_;
   /**
+   * Access controller of this block
+   */
+  BlockAccessController controller_;
+
+  /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t)];
+  byte content_[common::Constants::BLOCK_SIZE - 2 * sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word.
 };
@@ -160,7 +170,7 @@ using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  * TODO(Matt): could be used by the GC for recycling
  */
-enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE, LOCK };
 
 /**
  * Types of LogRecords
@@ -258,6 +268,51 @@ class VarlenEntry {
 };
 // To make sure our explicit padding is not screwing up the layout
 static_assert(sizeof(VarlenEntry) == 16, "size of the class should be 16 bytes");
+
+/**
+ * Equality checker that checks the underlying varlen bytes are equal (deep)
+ */
+struct VarlenContentDeepEqual {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether the two varlen entries hold the same underlying value
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
+    if (lhs.Size() != rhs.Size()) return false;
+    // TODO(Tianyu): Can optimize using prefixes
+    return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
+  }
+};
+
+/**
+ * Hasher that hashes the entry using the underlying varlen value
+ */
+struct VarlenContentHasher {
+  size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+};
+
+/**
+ * Lexicographic comparison of two varlen entries.
+ */
+struct VarlenContentCompare {
+  /**
+   *
+   * @param lhs left hand side of comparison
+   * @param rhs right hand side of comparison
+   * @return whether lhs < rhs in lexicographic order
+   */
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
+    // Compare up to the minimum of the two sizes
+    int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
+    if (res == 0) {
+      // Shorter wins. If the two are equal, also return false.
+      return lhs.Size() < rhs.Size();
+    }
+    return res < 0;
+  }
+};
 
 }  // namespace terrier::storage
 
