@@ -26,8 +26,8 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
    * @param oid class def oid
    * @param entry a row in pg_class that represents this table
    */
-  ClassEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  ClassEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**

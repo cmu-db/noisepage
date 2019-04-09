@@ -25,10 +25,8 @@ const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
 // TODO(pakhtar): add unused columns
 const std::vector<SchemaCol> AttributeHandle::unused_schema_cols_ = {};
 
-std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(
-    transaction::TransactionContext *txn,
-    table_oid_t table_oid,
-    col_oid_t col_oid) {
+std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::TransactionContext *txn,
+                                                                   table_oid_t table_oid, col_oid_t col_oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!col_oid));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
@@ -37,8 +35,8 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(
   return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(
-    transaction::TransactionContext *txn, table_oid_t table_oid, const std::string &name) {
+std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::TransactionContext *txn,
+                                                                   table_oid_t table_oid, const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));

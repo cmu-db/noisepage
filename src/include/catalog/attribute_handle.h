@@ -26,8 +26,8 @@ class AttributeEntry : public CatalogEntry<col_oid_t> {
    * @param oid attribute oid
    * @param entry a row in pg_attribute that represents this table
    */
-  AttributeEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  AttributeEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**
@@ -78,7 +78,7 @@ class AttributeHandle {
    * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist
    */
   std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
-                                                   col_oid_t col_oid);
+                                                    col_oid_t col_oid);
 
   /**
    * Get an attribute entry.
@@ -88,7 +88,7 @@ class AttributeHandle {
    * @return a shared pointer to Attribute entry;
    */
   std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
-      const std::string &name);
+                                                    const std::string &name);
 
   /**
    * Create the storage table

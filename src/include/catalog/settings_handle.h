@@ -24,8 +24,8 @@ class SettingsEntry : public CatalogEntry<settings_oid_t> {
    * @param oid settings oid
    * @param entry a row in pg_settings that represents this table
    */
-  SettingsEntry(settings_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  SettingsEntry(settings_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**

@@ -33,8 +33,8 @@ class DatabaseEntry : public CatalogEntry<db_oid_t> {
    * @param oid database def oid
    * @param entry a row in pg_database that represents this table
    */
-  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
   /**
    * Delete the data (for this entry) from the storage table.
    * After this, the entry object must be deleted as no other

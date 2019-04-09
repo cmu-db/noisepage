@@ -27,8 +27,8 @@ class AttrDefEntry : public CatalogEntry<col_oid_t> {
    * @param oid attributed def oid
    * @param entry a row in pg_attrdef that represents this table
    */
-  AttrDefEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  AttrDefEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
 };
 
 /**

@@ -30,8 +30,7 @@ std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionC
   return std::make_shared<ClassEntry>(oid, pg_class_rw_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn,
-                                                                    const char *name) {
+std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, const char *name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));

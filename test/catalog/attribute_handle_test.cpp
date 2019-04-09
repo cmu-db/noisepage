@@ -42,7 +42,7 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   auto attribute_handle = db_handle.GetAttributeHandle(txn_, terrier_oid);
   // lookup the table oid for pg_database
   auto class_entry = class_handle.GetClassEntry(txn_, "pg_database");
-  const catalog::table_oid_t terrier_table_oid(!class_entry->GetClassOid());
+  const catalog::table_oid_t terrier_table_oid(!class_entry->GetOid());
 
   auto table_handle = db_handle.GetNamespaceHandle(txn_, terrier_oid).GetTableHandle(txn_, "pg_catalog");
 

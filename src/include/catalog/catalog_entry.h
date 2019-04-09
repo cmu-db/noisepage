@@ -92,8 +92,8 @@ class CatalogEntry {
   /**
    * Constructor, should not be directly instantiated.
    */
-  CatalogEntry(Oid oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
-      oid_(oid), sql_table_(sql_table), entry_(std::move(entry)) {}
+  CatalogEntry(Oid oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : oid_(oid), sql_table_(sql_table), entry_(std::move(entry)) {}
 
  private:
   Oid oid_;
