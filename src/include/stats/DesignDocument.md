@@ -12,7 +12,7 @@
 > + **Other:** Callbacks should be added at the point the concerned events happen, so the metric collection infrastructure can update the related metrics.
 
 ## Architectural Design
->Each thread collects data independently during execution while a designated thread aggregates data periodically and writes to SQL tables. In addition, each thread stores the data it collected to SQL tables before un-registering itself from the worker pool. 
+>Each thread collects data independently during execution while a designated thread aggregates data periodically and writes to SQL tables. In addition, each thread stores the data it collected to SQL tables before leaving the current execution context and starting a new task.
 
 >To realize above functions, we construct a metric collection framework that is extensible and relatively independent of the database management system. Specifically, our framework has multi-level data structures: different event types such as transaction commit, different metric classes such as metric handler (class Metric) and the actual data holders (class RawData) in metric classes. As the following figure demonstrates: 1) Metrics are registered to corresponding events in initialization. 2) When an event is triggered at the running time, related metric handlers are called to apply for latch to access the data. 3) The actual data holders update the values of the variables. 
 
