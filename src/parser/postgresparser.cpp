@@ -147,7 +147,8 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
       break;
     }
     case T_SelectStmt: {
-      result = std::unique_ptr<SQLStatement>(reinterpret_cast<SQLStatement *>(SelectTransform(reinterpret_cast<SelectStmt *>(node)).get()));
+      result = std::unique_ptr<SQLStatement>(
+          reinterpret_cast<SQLStatement *>(SelectTransform(reinterpret_cast<SelectStmt *>(node)).get()));
       break;
     }
     case T_VacuumStmt: {

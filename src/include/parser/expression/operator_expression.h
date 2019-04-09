@@ -26,7 +26,7 @@ class OperatorExpression : public AbstractExpression {
 
   OperatorExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<OperatorExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }
 
   /**
    * @return expression serialized to json

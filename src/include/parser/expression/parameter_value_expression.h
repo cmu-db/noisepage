@@ -20,8 +20,8 @@ class ParameterValueExpression : public AbstractExpression {
 
   ParameterValueExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<ParameterValueExpression>(*this);
+  std::shared_ptr<AbstractExpression> Copy() const override {
+    return std::make_shared<ParameterValueExpression>(*this);
   }
 
   /**

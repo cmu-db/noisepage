@@ -24,7 +24,7 @@ class ConjunctionExpression : public AbstractExpression {
 
   ConjunctionExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConjunctionExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConjunctionExpression>(*this); }
 
   /**
    * @return expression serialized to json

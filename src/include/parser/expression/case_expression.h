@@ -103,7 +103,7 @@ class CaseExpression : public AbstractExpression {
     return (*default_exp == *other_default_exp);
   }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<CaseExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
 
   /**
    * @return the number of when clauses

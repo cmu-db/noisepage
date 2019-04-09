@@ -37,7 +37,7 @@ class TupleValueExpression : public AbstractExpression {
    */
   std::string GetTableName() { return table_name_; }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TupleValueExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TupleValueExpression>(*this); }
 
   /**
    * @return expression serialized to json

@@ -25,7 +25,7 @@ class AggregateExpression : public AbstractExpression {
 
   AggregateExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<AggregateExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<AggregateExpression>(*this); }
 
   /**
    * @return true if we should eliminate duplicate values in aggregate function calculations
