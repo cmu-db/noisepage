@@ -89,9 +89,15 @@ class Index {
   ConstraintType GetConstraintType() const { return constraint_type_; }
 
   /**
-   * @return oid of this indes
+   * @return oid of this index
    */
   catalog::index_oid_t GetOid() const { return oid_; }
+
+  /**
+   * @return reference to the metadata of this index
+   */
+  const IndexMetadata& GetIndexMetadata() const {return metadata_;}
+
 };
 
 }  // namespace terrier::storage::index

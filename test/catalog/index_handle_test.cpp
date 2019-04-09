@@ -28,7 +28,7 @@ struct IndexHandleTest : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 };
 
-// Tests that we can get the default namespace and get the correct value from the corresponding row in pg_namespace
+// Tests that we can correctly add new index entry to the pg_index and correctly get the index entry by the index oid.
 // NOLINTNEXTLINE
 TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   // terrier has db_oid_t DEFAULT_DATABASE_OID
@@ -51,25 +51,15 @@ TEST_F(IndexHandleTest, BasicCorrectnessTest) {
   auto index_entry = index_handle.GetIndexEntry(txn_, indexrelid);
 
   EXPECT_NE(index_entry, nullptr);
-
   EXPECT_EQ(!index_entry->GetIndexOid(), !indexrelid);
-
   EXPECT_EQ(!catalog::index_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(0))), !indexrelid);
-
   EXPECT_EQ(!catalog::table_oid_t(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(1))), !indrelid);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(2)), indnatts);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_entry->GetColumn(3)), indnkeyatts);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(4)), indisunique);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(5)), indisprimary);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(6)), indisvalid);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(7)), indisready);
-
   EXPECT_EQ(type::TransientValuePeeker::PeekBoolean(index_entry->GetColumn(8)), indislive);
 }
 
