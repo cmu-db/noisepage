@@ -51,8 +51,9 @@ class CreateViewPlanNode : public AbstractPlanNode {
      */
     Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
       // TODO(Gus,Wen) Need to implement
-      // if (create_stmt->GetCreateType() == parser::CreateStatement::kView) {
-      //}
+      /* if (create_stmt->GetCreateType() == parser::CreateStatement::kView) {
+
+      }*/
       return *this;
     }
 

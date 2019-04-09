@@ -123,7 +123,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     std::string table_name_;
 
     /**
-     * namespace Name
+     * Schema Name
      */
     std::string schema_name_;
 

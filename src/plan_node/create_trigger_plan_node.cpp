@@ -15,9 +15,6 @@ common::hash_t CreateTriggerPlanNode::Hash() const {
   // Hash table_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
 
-  // Hash schema_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetSchemaName()));
-
   // Hash trigger_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
 
@@ -47,9 +44,6 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Table name
   if (GetTableName() != other.GetTableName()) return false;
-
-  // Schema name
-  if (GetSchemaName() != other.GetSchemaName()) return false;
 
   // Hash trigger_name
   if (GetTriggerName() != other.GetTriggerName()) return false;

@@ -530,11 +530,11 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param table_name the name of the table
    * @param schema_name the name of the schema
    * @param table_schema schema of the table to create
-   * @param has_primary_key true if index/table has primary key [CREATE INDEX/TABLE]
-   * @param primary_key primary_key of table [CREATE TABLE]
-   * @param foreign_keys foreign keys meta-data [CREATE TABLE]
-   * @param con_uniques unique constraints [CREATE TABLE]
-   * @param con_checks check constraints [CREATE TABLE]
+   * @param has_primary_key true if index/table has primary key
+   * @param primary_key primary_key of table
+   * @param foreign_keys foreign keys meta-data
+   * @param con_uniques unique constraints
+   * @param con_checks check constraints
    */
   CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string schema_name,

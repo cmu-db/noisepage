@@ -28,7 +28,7 @@ class CreateSchemaPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param schema_name the name of the schema [CREATE TABLE, CREATE SCHEMA]
+     * @param schema_name the name of the schema
      * @return builder object
      */
     Builder &SetSchemaName(std::string schema_name) {

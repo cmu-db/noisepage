@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "catalog/schema.h"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -91,7 +90,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
       if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTrigger) {
         trigger_name_ = std::string(create_stmt->GetTriggerName());
         table_name_ = std::string(create_stmt->GetTableName());
-        schema_name_ = std::string(create_stmt->GetSchemaName());
 
         if (create_stmt->GetTriggerWhen()) {
           trigger_when_ = create_stmt->GetTriggerWhen()->Copy();
@@ -118,20 +116,20 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CreateTriggerPlanNode> Build() {
-      return std::unique_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
-          std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_),
-          std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
-          std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
+      return std::unique_ptr<CreateTriggerPlanNode>(
+          new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), std::move(table_name_),
+                                    std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
+                                    std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
     }
 
    protected:
     /**
-     * Table Name
+     * Table name
      */
     std::string table_name_;
 
     /**
-     * namespace Name
+     * Schema name
      */
     std::string schema_name_;
 
@@ -171,7 +169,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param table_name the name of the table
-   * @param schema_name the name of the schema
    * @param trigger_name name of the trigger
    * @param trigger_funcnames trigger function names
    * @param trigger_args trigger args
@@ -180,13 +177,12 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param trigger_type trigger type, i.e. information about row, timing, events, access by pg_trigger
    */
   CreateTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                        std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string schema_name,
-                        std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
-                        std::vector<std::string> &&trigger_args, std::vector<std::string> &&trigger_columns,
+                        std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string trigger_name,
+                        std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+                        std::vector<std::string> &&trigger_columns,
                         std::shared_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         table_name_(std::move(table_name)),
-        schema_name_(std::move(schema_name)),
         trigger_name_(std::move(trigger_name)),
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
@@ -205,10 +201,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @return name of the table
    */
   const std::string &GetTableName() const { return table_name_; }
-  /**
-   * @return name of the schema
-   */
-  const std::string &GetSchemaName() const { return schema_name_; }
 
   /**
    * @return trigger name
@@ -252,11 +244,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * Table Name
    */
   std::string table_name_;
-
-  /**
-   * namespace Name
-   */
-  std::string schema_name_;
 
   /**
    * Name of the trigger
