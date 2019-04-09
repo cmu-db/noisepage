@@ -196,15 +196,26 @@ bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
   return table == nullptr;
 }
 
+
+bool SanityCheck(UndoRecord* a) {
+    while(a) {
+        if(a->Table() == nullptr)
+            return false;
+        a = a->Next();
+    }
+    return true;
+}
+
 void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, TupleSlot slot,
                                                     std::vector<transaction::timestamp_t> *const active_txns) {
-  if (table == nullptr) {
-    // This UndoRecord has already been unlinked, so we can skip it
-    return;
-  }
   UndoRecord *version_chain_head;
   const TupleAccessStrategy &accessor = table->accessor_;
   version_chain_head = table->AtomicallyReadVersionPtr(slot, accessor);
+  if (version_chain_head == nullptr) {
+    // This version chain is empty, so we can skip it
+    return;
+  }
+  TERRIER_ASSERT(SanityCheck(version_chain_head), "SANITY CHECK FAILS");
   // Perform gc for head of the chain
   // Assuming can garbage collect any version greater than the oldest timestamp
   transaction::timestamp_t version_ptr_timestamp = version_chain_head->Timestamp().load();
@@ -212,10 +223,12 @@ void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, Tupl
   // Collect the head of the chain using compare and swap
   // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
   if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
-    if (transaction::TransactionUtil::Committed(version_chain_head->Timestamp().load())) {
+    if (transaction::TransactionUtil::Committed(version_ptr_timestamp)) {
       UndoRecord *to_be_unlinked = version_chain_head;
       // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
-      if (table->CompareAndSwapVersionPtr(slot, accessor, version_chain_head, version_chain_head->Next())) {
+      if (table->CompareAndSwapVersionPtr(slot, accessor, version_chain_head, nullptr)) {
+        UndoRecord *new_version = table->AtomicallyReadVersionPtr(slot, accessor);
+        TERRIER_ASSERT(new_version == nullptr, "NEW VERSION SHOULD ALWAYS BE NULL POINTER");
         UnlinkUndoRecordVersion(to_be_unlinked);
       }
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
