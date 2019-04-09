@@ -68,6 +68,8 @@ void CheckpointManager::Recover(const char *log_file_path) {
         }
       }
       table->Insert(txn_, *row);
+      // TODO(mengyang): currently delete row here. this line should be deleted after alignment in checkpoint is done.
+      delete[] reinterpret_cast<byte *>(row);
     }
   }
 }

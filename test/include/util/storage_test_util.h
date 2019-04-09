@@ -386,6 +386,7 @@ class RandomSqlTableTestObject {
       InsertRandomRow(txn, null_bias, generator);
     }
     txn_manager_.Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
+    delete txn;
   }
 
   storage::SqlTable *GetTable() { return table_; }

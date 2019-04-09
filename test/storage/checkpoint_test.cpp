@@ -39,6 +39,7 @@ TEST_F(CheckpointTests, SimpleCheckpointNoVarlen) {
   manager.EndCheckpoint();
   txn_manager->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
   unlink(manager.GetCheckpointFilePath(txn).c_str());
+  delete txn;
 }
 
 // NOLINTNEXTLINE
@@ -63,6 +64,7 @@ TEST_F(CheckpointTests, SimpleCheckpointWithVarlen) {
   manager.EndCheckpoint();
   txn_manager->Commit(txn, StorageTestUtil::EmptyCallback, nullptr);
   unlink(manager.GetCheckpointFilePath(txn).c_str());
+  delete txn;
 }
 
 // NOLINTNEXTLINE
@@ -119,8 +121,12 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryNoVarlen) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  delete recovered_table;
   unlink(checkpoint_path.c_str());
+  delete recovered_table;
+  delete checkpoint_txn;
+  delete scan_txn;
+  delete scan_txn_2;
+  delete recovery_txn;
 }
 
 // NOLINTNEXTLINE
@@ -177,8 +183,12 @@ TEST_F(CheckpointTests, SimpleCheckpointRecoveryWithVarlen) {
                       std::inserter(diff2, diff2.begin()));
   EXPECT_EQ(diff1.size(), 0);
   EXPECT_EQ(diff2.size(), 0);
-  delete recovered_table;
   unlink(checkpoint_path.c_str());
+  delete recovered_table;
+  delete checkpoint_txn;
+  delete scan_txn;
+  delete scan_txn_2;
+  delete recovery_txn;
 }
 
 }  // namespace terrier
