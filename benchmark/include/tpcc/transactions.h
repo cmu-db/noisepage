@@ -46,14 +46,14 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
     int32_t ol_i_id = (i == args.ol_cnt - 1 && args.rbk == 1) ? 8491138 : Util::NURand(8191, 1, 100000, generator);
     int32_t ol_supply_w_id;
     bool home;
-    if (Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
+    if (num_warehouses_ == 1 || Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
       ol_supply_w_id = w_id;
       home = true;
     } else {
       int32_t remote_w_id;
       do {
         remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses_, 0, generator);
-      } while (num_warehouses_ > 1 && remote_w_id == w_id);
+      } while (remote_w_id == w_id);
       ol_supply_w_id = remote_w_id;
       home = false;
       args.o_all_local = false;
@@ -204,6 +204,38 @@ struct Transactions {
     index_insert_result =
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+
+    // for each item in order
+    for (const auto &item : args.items) {
+      // Look up I_ID in index
+      const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
+      const auto item_key_pr_map = db->item_index_->GetKeyOidToOffsetMap();
+      auto *const item_key = item_key_pr_initializer.InitializeRow(worker->item_key_buffer);
+      *reinterpret_cast<int32_t *>(item_key->AccessForceNotNull(0)) = item.ol_i_id;
+      index_scan_results.clear();
+      db->item_index_->ScanKey(*item_key, &index_scan_results);
+
+      if (index_scan_results.empty()) {
+        TERRIER_ASSERT(item.ol_i_id == 8491139, "It's the unused value.");
+        txn_manager->Abort(txn);
+        return false;
+      }
+
+      // Select I_PRICE, I_NAME, and I_DATE in table
+      const auto i_price_oid = db->item_schema_.GetColumn(3).GetOid();
+      const auto i_name_oid = db->item_schema_.GetColumn(2).GetOid();
+      const auto i_data_oid = db->item_schema_.GetColumn(4).GetOid();
+      const auto [item_select_pr_initializer, item_select_pr_map] = db->item_table_->InitializerForProjectedRow(
+          {i_price_oid, i_name_oid, i_data_oid});  // TODO(Matt): cache this thing
+      auto *const item_select_tuple = item_select_pr_initializer.InitializeRow(worker->item_tuple_buffer);
+      db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
+      const auto UNUSED_ATTRIBUTE i_price =
+          *reinterpret_cast<double *>(item_select_tuple->AccessWithNullCheck(item_select_pr_map.at(i_price_oid)));
+      const auto UNUSED_ATTRIBUTE i_name = *reinterpret_cast<storage::VarlenEntry *>(
+          item_select_tuple->AccessWithNullCheck(item_select_pr_map.at(i_name_oid)));
+      const auto UNUSED_ATTRIBUTE i_data = *reinterpret_cast<storage::VarlenEntry *>(
+          item_select_tuple->AccessWithNullCheck(item_select_pr_map.at(i_data_oid)));
+    }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
