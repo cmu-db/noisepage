@@ -334,4 +334,22 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expression);
 }
 
+// NOLINTNEXTLINE
+TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
+  // Create expression
+  std::vector<std::shared_ptr<AbstractExpression>> children;
+  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  std::shared_ptr<ConjunctionExpression> original_expr =
+      std::make_shared<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+}
+
 }  // namespace terrier::parser::expression

@@ -79,11 +79,11 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-      //    case CONJUNCTION_AND:
-      //    case CONJUNCTION_OR: {
-      //      expr = std::make_shared<ConjunctionExpression>();
-      //      break;
-      //    }
+    case ExpressionType::CONJUNCTION_AND:
+    case ExpressionType::CONJUNCTION_OR: {
+      expr = std::make_shared<ConjunctionExpression>();
+      break;
+    }
 
     case ExpressionType::VALUE_CONSTANT: {
       expr = std::make_shared<ConstantValueExpression>();
@@ -136,8 +136,7 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     }
 
     default:
-      // This is 100% a hack, remove later
-      TERRIER_ASSERT(false, "Unknown expression type during deserialization");
+      throw std::runtime_error("Unknown expression type during deserialization");
   }
   expr->FromJson(j);
   return expr;
