@@ -96,8 +96,7 @@ class Index {
   /**
    * @return reference to the metadata of this index
    */
-  const IndexMetadata& GetIndexMetadata() const {return metadata_;}
-
+  const IndexMetadata &GetIndexMetadata() const { return metadata_; }
 };
 
 }  // namespace terrier::storage::index
