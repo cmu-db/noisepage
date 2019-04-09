@@ -190,7 +190,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
-  const uint32_t num_iterations = 5;
+  const uint32_t num_iterations = 100;
   const uint32_t txns_per_thread = 10;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
@@ -247,7 +247,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
 
 // NOLINTNEXTLINE
 TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
-  const uint32_t num_iterations = 5;
+  const uint32_t num_iterations = 100;
   const uint32_t txns_per_thread = 10;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
