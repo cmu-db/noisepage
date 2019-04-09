@@ -27,31 +27,32 @@ enum class PlanNodeType {
   // Scan Nodes
   SEQSCAN,
   INDEXSCAN,
-  HYBRIDSCAN,
   CSVSCAN,
 
   // Join Nodes
   NESTLOOP,
   HASHJOIN,
-  MERGEJOIN,
 
   // Mutator Nodes
   UPDATE,
   INSERT,
   DELETE,
-  APPEND,
 
   // DDL Nodes
-  DROP,
   CREATE_DATABASE,
   CREATE_SCHEMA,
   CREATE_TABLE,
   CREATE_INDEX,
+  CREATE_FUNC,
   CREATE_TRIGGER,
   CREATE_VIEW,
-  POPULATE_INDEX,
+  DROP_DATABASE,
+  DROP_SCHEMA,
+  DROP_TABLE,
+  DROP_INDEX,
+  DROP_TRIGGER,
+  DROP_VIEW,
   ANALYZE,
-  CREATE_FUNC,
 
   // Algebra Nodes
   AGGREGATE,
@@ -64,7 +65,6 @@ enum class PlanNodeType {
 
   // Utility
   EXPORT_EXTERNAL_FILE,
-  MATERIALIZE,
   RESULT,
 
   // Test
@@ -97,21 +97,6 @@ enum class LogicalJoinType {
   INNER = 3,                  // inner
   OUTER = 4,                  // outer
   SEMI = 5                    // IN+Subquery is SEMI
-};
-
-//===--------------------------------------------------------------------===//
-// Drop Types
-//===--------------------------------------------------------------------===//
-
-enum class DropType {
-  INVALID = INVALID_TYPE_ID,  // invalid drop type
-  DB = 1,                     // db drop type
-  TABLE = 2,                  // table drop type
-  INDEX = 3,                  // index drop type
-  CONSTRAINT = 4,             // constraint drop type
-  TRIGGER = 5,                // trigger drop type
-  SCHEMA = 6,                 // schema drop type
-  VIEW = 7,                   // view drop type
 };
 
 //===--------------------------------------------------------------------===//

@@ -7,7 +7,7 @@
 #include "parser/expression/tuple_value_expression.h"
 #include "parser/postgresparser.h"
 #include "plan_node/create_database_plan_node.h"
-#include "plan_node/drop_plan_node.h"
+#include "plan_node/drop_database_plan_node.h"
 #include "plan_node/hash_join_plan_node.h"
 #include "plan_node/hash_plan_node.h"
 #include "plan_node/seq_scan_plan_node.h"
@@ -49,12 +49,12 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
   EXPECT_EQ(1, stms.size());
   auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
 
-  DropPlanNode::Builder builder;
+  DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
   EXPECT_STREQ("test", plan->GetDatabaseName().c_str());
-  EXPECT_EQ(DropType::DB, plan->GetDropType());
+  EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
 }
 
 // Test creation of simple two table join.
