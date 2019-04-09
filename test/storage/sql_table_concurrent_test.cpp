@@ -195,8 +195,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
-  versioned_col_oids = static_cast<std::vector<catalog::col_oid_t> **>(
-      calloc(txns_per_thread + 1, sizeof(std::vector<catalog::col_oid_t> *)));
+  versioned_col_oids = new (std::vector<catalog::col_oid_t> *)[txns_per_thread + 1];
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -246,7 +245,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     // End concurrent section
     // delete init_txn;
   }
-  free(versioned_col_oids);
+  delete[] versioned_col_oids;
 }
 
 // NOLINTNEXTLINE
@@ -256,8 +255,8 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
 
-  versioned_col_oids = static_cast<std::vector<catalog::col_oid_t> **>(
-      calloc(txns_per_thread + 1, sizeof(std::vector<catalog::col_oid_t> *)));
+  versioned_col_oids = new (std::vector<catalog::col_oid_t> *)[txns_per_thread + 1];
+
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -332,7 +331,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     // End concurrent section
     // delete init_txn;
   }
-  free(versioned_col_oids);
+  delete[] versioned_col_oids;
 }
 
 // NOLINTNEXTLINE
