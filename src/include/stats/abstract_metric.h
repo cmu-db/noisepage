@@ -48,13 +48,13 @@ class Metric {
 
   /**
    * @param txn context of the transaction committing
-   * @param src OID fo the database where the txn happens.
+   * @param database_oid OID fo the database where the txn happens.
    */
   virtual void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {}
 
   /**
-   * @param txn context of the transaction committing
-   * @param src OID fo the database where the txn happens.
+   * @param txn context of the transaction aborting
+   * @param database_oid OID fo the database where the txn happens.
    */
   virtual void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {}
 
@@ -166,7 +166,7 @@ class Metric {
   virtual void OnQueryEnd() {}
 
   /**
-   * @brief Event used to test the framework
+   * @brief event used to test the framework
    */
   virtual void OnTest(int increment) {}
 
@@ -195,7 +195,9 @@ class Metric {
   virtual std::shared_ptr<AbstractRawData> Swap() = 0;
 };
 
-/* Forward Declaration */
+/**
+ * Forward Declaration
+ */
 template <typename DataType>
 class AbstractMetric;
 
@@ -214,10 +216,14 @@ class RawDataWrapper {
   friend class AbstractMetric<DataType>;
 
  public:
-  RawDataWrapper(RawDataWrapper &&other) noexcept;
+  /**
+   * Unblock aggregator
+   */
+  ~RawDataWrapper() { *safe_ = true; }
 
-  ~RawDataWrapper() { *safe_ = true; }  // Unblock aggregator
-
+  /**
+   * Don't allow RawDataWrapper to be copied, only allow change of ownership (move)
+   */
   DISALLOW_COPY(RawDataWrapper);
 
   /**
@@ -247,8 +253,13 @@ class RawDataWrapper {
 template <typename DataType>
 class AbstractMetric : public Metric {
  public:
+  /**
+   * Instantiate an abstract metric object with the templated data type
+   */
   AbstractMetric() : raw_data_(new DataType()), safe_(std::atomic<bool>(true)) {}
-
+  /**
+   * De-allocate pointer to raw data
+   */
   ~AbstractMetric() override { delete raw_data_.load(); }
   /**
    * @see Metric
@@ -286,7 +297,13 @@ class AbstractMetric : public Metric {
   }
 
  private:
+  /**
+   * Pointer to raw data
+   */
   std::atomic<DataType *> raw_data_;
+  /**
+   * Indicate whether it is safe ti read the raw data, similar to a latch
+   */
   std::atomic<bool> safe_;
 };
 }  // namespace stats

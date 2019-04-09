@@ -33,11 +33,15 @@ class StatsAggregator : public DedicatedThreadTask {
 
   /**
    * Aggregate metrics from all threads which have collected stats,
-   * combine with what was previously in catalog
-   * and insert new total into catalog
+   * combine with what was previously persisted in internal SQL tables
+   * and insert new total into SQLtable
    */
   void Aggregate();
 
+  /**
+   * Worker method for Aggregate() that performs stats collection
+   * @return raw data collected from all threads
+   */
   std::vector<std::shared_ptr<AbstractRawData>> AggregateRawData();
 
  private:

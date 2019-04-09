@@ -25,6 +25,11 @@ class TestMetricRawData : public AbstractRawData {
     value_ += other_test->GetCount();
   }
 
+  /**
+   * Make necessary updates to the metric raw data and persist the content of
+   * this RawData into internal SQL tables. Expect this object
+   * to be garbage-collected after this method is called.
+   */
   void UpdateAndPersist() override{};
 
   /**
@@ -38,11 +43,21 @@ class TestMetricRawData : public AbstractRawData {
   int GetCount() { return value_; }
 
  private:
+  /**
+   * Representation of some data
+   */
   int value_;
 };
 
+/**
+ * @brief Interface around test raw data
+ */
 class TestMetric : public AbstractMetric<TestMetricRawData> {
  public:
+  /**
+   *
+   * @param num value to integrate with test raw data
+   */
   void OnTest(int num) override { GetRawData()->Integrate(num); }
 };
 

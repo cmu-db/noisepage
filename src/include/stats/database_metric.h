@@ -14,12 +14,28 @@ class TransactionContext;
 }  // namespace transaction
 
 namespace stats {
+
+/**
+ * Raw data object for holding stats collected at the database level
+ */
 class DatabaseMetricRawData : public AbstractRawData {
  public:
-  void IncrementTxnCommited(catalog::db_oid_t database_id) { counters_[database_id].first++; }
+  /**
+   * Increment the number of committed transaction by one
+   * @param database_id OID of the database the transaction committed in
+   */
+  void IncrementTxnCommitted(catalog::db_oid_t database_id) { counters_[database_id].first++; }
 
+  /**
+   * Increment the number of aborted transaction by one
+   * @param database_id OID of the database the transaction aborted in
+   */
   void IncrementTxnAborted(catalog::db_oid_t database_id) { counters_[database_id].second++; }
 
+  /**
+   * Aggregate collected data from another raw data object into this raw data object
+   * @param other
+   */
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<DatabaseMetricRawData *>(other);
     for (auto &entry : other_db_metric->counters_) {
@@ -30,6 +46,11 @@ class DatabaseMetricRawData : public AbstractRawData {
     }
   }
 
+  /**
+   * Make necessary updates to the metric raw data and persist the content of
+   * this RawData into the Catalog. Expect this object
+   * to be garbage-collected after this method is called.
+   */
   void UpdateAndPersist() override;
 
   /**
@@ -49,10 +70,20 @@ class DatabaseMetricRawData : public AbstractRawData {
 
 class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
  public:
+  /**
+   * Database level action on transaction commit
+   * @param txn transaction context of the committing transaction
+   * @param database_oid OID of the database the transaction is running in
+   */
   void OnTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
-    GetRawData()->IncrementTxnCommited(database_oid);
+    GetRawData()->IncrementTxnCommitted(database_oid);
   }
 
+  /**
+   * Database level action on transaction abort
+   * @param txn transaction context of the aborting transaction
+   * @param database_oid OID of the database the transaction is running in
+   */
   void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) override {
     GetRawData()->IncrementTxnAborted(database_oid);
   }

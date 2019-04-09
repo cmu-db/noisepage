@@ -27,9 +27,10 @@ class AbstractRawData {
    * @param other The other AbstractRawData to be merged
    */
   virtual void Aggregate(AbstractRawData *other) = 0;
+
   /**
    * Make necessary updates to the metric raw data and persist the content of
-   * this RawData into the Catalog. Expect this object
+   * this RawData into internal SQL tables. Expect this object
    * to be garbage-collected after this method is called.
    */
   virtual void UpdateAndPersist() = 0;

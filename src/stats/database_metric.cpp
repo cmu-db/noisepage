@@ -12,7 +12,6 @@ void DatabaseMetricRawData::UpdateAndPersist() {
 
   // TODO(Wen) find a way to store collected data
 
-
   // TODO(Wen) might need to change this line
   txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 }
