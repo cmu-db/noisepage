@@ -94,6 +94,9 @@ class TransientValueFactory {
     return {TypeId::VARCHAR, varchar};
   }
 
+  /**
+   * Get a full copy of a transient value.
+   */
   static type::TransientValue GetCopy(const type::TransientValue &value) {
     // NOLINTNEXTLINE
     switch (value.Type()) {

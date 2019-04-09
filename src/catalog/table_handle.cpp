@@ -66,7 +66,7 @@ SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const
   row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   row.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid_));
   row.emplace_back(type::TransientValueFactory::GetInteger(
-      !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid()));
+      !catalog_->GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid()));
   pg_class_->InsertRow(txn, row);
   return table;
 }

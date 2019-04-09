@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "catalog/catalog_sql_table.h"
 
 namespace terrier::catalog {
@@ -13,30 +14,16 @@ namespace terrier::catalog {
 class Catalog;
 
 /**
- * A type entry represents a row in pg_type catalog.
+ * An TypeEntry is a row in pg_class catalog
  */
-class TypeEntry {
+class TypeEntry : public CatalogEntry<type_oid_t> {
  public:
   /**
-   * Constructs a type entry.
-   * @param oid the col_oid of the type
-   * @param entry the row as a vector of values
+   * Constructor
+   * @param oid type def oid
+   * @param entry a row in pg_type that represents this table
    */
-  TypeEntry(type_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-  /**
-   * Get the value for a given column.
-   */
-  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-  /**
-   * Return the col_oid of the type.
-   */
-  type_oid_t GetTypeOid() { return oid_; }
-
- private:
-  type_oid_t oid_;
-  std::vector<type::TransientValue> entry_;
+  TypeEntry(type_oid_t oid, std::vector<type::TransientValue> &&entry) : CatalogEntry(oid, std::move(entry)) {}
 };
 
 /**

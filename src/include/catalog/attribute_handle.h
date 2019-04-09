@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
@@ -18,31 +19,14 @@ struct SchemaCol;
 /**
  * A attribute entry represent a row in pg_attribute catalog.
  */
-class AttributeEntry {
+class AttributeEntry : public CatalogEntry<col_oid_t> {
  public:
   /**
-   * Constructs a attribute entry.
-   * @param oid the col_oid of the attribute
-   * @param entry: the row as a vector of values
+   * Constructor
+   * @param oid attribute oid
+   * @param entry a row in pg_attribute that represents this table
    */
-  AttributeEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-  /**
-   * Get the value for a given column
-   * @param col_num the column index
-   * @return the value of the column
-   */
-  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-  /**
-   * Return the col_oid of the attribute
-   * @return col_oid of the attribute
-   */
-  col_oid_t GetAttributeOid() { return oid_; }
-
- private:
-  col_oid_t oid_;
-  std::vector<type::TransientValue> entry_;
+  AttributeEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : CatalogEntry(oid, std::move(entry)) {}
 };
 
 /**

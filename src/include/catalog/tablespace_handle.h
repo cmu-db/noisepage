@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
@@ -17,32 +18,15 @@ struct SchemaCol;
 /**
  * A tablespace entry represent a row in pg_tablespace catalog.
  */
-class TablespaceEntry {
+class TablespaceEntry : public CatalogEntry<tablespace_oid_t> {
  public:
   /**
-   * Constructs a tablespace entry.
-   * @param oid the tablespace_oid of the underlying database
-   * @param entry: the row as a vector of values
+   * Constructor
+   * @param oid tablespace def oid
+   * @param entry a row in pg_tablespace that represents this table
    */
   TablespaceEntry(tablespace_oid_t oid, std::vector<type::TransientValue> &&entry)
-      : oid_(oid), entry_(std::move(entry)) {}
-
-  /**
-   * Return the tablespace_oid
-   * @return tablespace_oid the tablespace oid
-   */
-  tablespace_oid_t GetTablespaceOid() { return oid_; }
-
-  /**
-   * Get the value for a given column
-   * @param col_num the column index
-   * @return the value of the column
-   */
-  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
- private:
-  tablespace_oid_t oid_;
-  std::vector<type::TransientValue> entry_;
+      : CatalogEntry(oid, std::move(entry)) {}
 };
 
 /**

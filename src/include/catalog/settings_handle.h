@@ -17,32 +17,14 @@ class Catalog;
 /**
  * An SettingsEntry is a row in pg_setting catalog
  */
-class SettingsEntry {
+class SettingsEntry : public CatalogEntry<settings_oid_t> {
  public:
   /**
-   * Constructs a Settings entry.
-   * @param oid
-   * @param entry: the row as a vector of values
+   * Constructor
+   * @param oid settings oid
+   * @param entry a row in pg_settings that represents this table
    */
-  SettingsEntry(settings_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-  /**
-   * Get the value for a given column
-   * @param col_num the column index
-   * @return the value of the column
-   */
-  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-  /**
-   * Return the settings_oid of the attribute
-   * @return settings_oid of the attribute
-   */
-  settings_oid_t GetSettingsOid() { return oid_; }
-
- private:
-  // the row
-  settings_oid_t oid_;
-  std::vector<type::TransientValue> entry_;
+  SettingsEntry(settings_oid_t oid, std::vector<type::TransientValue> &&entry) : CatalogEntry(oid, std::move(entry)) {}
 };
 
 /**

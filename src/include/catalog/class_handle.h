@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "catalog/table_handle.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -18,32 +19,14 @@ struct SchemaCol;
 /**
  * An ClassEntry is a row in pg_class catalog
  */
-class ClassEntry {
+class ClassEntry : public CatalogEntry<col_oid_t> {
  public:
   /**
-   * Constructs a Class entry.
-   * @param oid
-   * @param entry: the row as a vector of values
+   * Constructor
+   * @param oid class def oid
+   * @param entry a row in pg_class that represents this table
    */
-  ClassEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-  /**
-   * Get the value for a given column
-   * @param col_num the column index
-   * @return the value of the column
-   */
-  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-  /**
-   * Return the col_oid of the attribute
-   * @return col_oid of the attribute
-   */
-  col_oid_t GetClassOid() { return oid_; }
-
- private:
-  // the row
-  col_oid_t oid_;
-  std::vector<type::TransientValue> entry_;
+  ClassEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : CatalogEntry(oid, std::move(entry)) {}
 };
 
 /**

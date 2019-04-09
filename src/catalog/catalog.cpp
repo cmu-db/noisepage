@@ -33,7 +33,7 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   // get database handle
   auto db_handle = GetDatabaseHandle();
   auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
-  auto oid = db_entry->GetDatabaseOid();
+  auto oid = db_entry->GetOid();
   // remove entry from pg_database
   db_handle.DeleteEntry(txn, db_entry);
 
@@ -197,7 +197,7 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
     auto s_type = ValueTypeIdToSchemaType(c.GetType());
     auto type_entry = type_handle.GetTypeEntry(txn, s_type);
-    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetTypeOid()));
+    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetOid()));
 
     // length of column type. Varlen columns have the sign bit set.
     // TODO(pakhtar): resolve what to store for varlens.
@@ -314,10 +314,10 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 
   // lookup oids inserted in multiple entries
   auto pg_catalog_namespace_oid =
-      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
-  auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
+  auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetOid();
+  auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid();
 
   // Insert pg_database
   // (namespace: catalog, tablespace: global)
@@ -368,7 +368,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   // TODO(Yesheng): get rid of this strange calling chain
   auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
   auto catalog_ns_oid =
-      GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
   // built-in types as in type/type_id.h
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,
