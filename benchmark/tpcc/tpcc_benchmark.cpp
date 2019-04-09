@@ -69,8 +69,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
       tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &worker);
 
-      for (uint32_t w_id = 0; w_id < tpcc::num_warehouses_; w_id++) {
-        const auto args = tpcc::BuildNewOrderArgs(&generator_, w_id + 1);
+      for (uint32_t w_id = 0; w_id < 20; w_id++) {
+        const auto args = tpcc::BuildNewOrderArgs(&generator_, 1);
         tpcc::Transactions::NewOrder(&txn_manager, &generator_, tpcc_db, &worker, args);
       }
     }
