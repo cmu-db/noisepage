@@ -74,7 +74,11 @@ install_mac() {
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
+  brew ls --versions libevent || brew install libevent
+  brew ls --versions libpqxx || brew install libpqxx
   (brew ls --versions llvm | grep 6) || brew install llvm@6
+  brew ls --versions openssl || brew install openssl
+  brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
 }
 
@@ -91,10 +95,21 @@ install_linux() {
       doxygen \
       git \
       g++-7 \
+      libevent-dev \
       libjemalloc-dev \
+      libpq-dev \
+      libssl-dev \
       libtbb-dev \
       zlib1g-dev \
-      llvm-6.0
+      llvm-6.0 \
+      pkg-config \
+      postgresql-client
+   #install libpqxx-6.2 manually
+   apt-get -y install wget
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
+   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb
+   dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb
+   dpkg -i libpqxx-dev_6.2.4-4_amd64.deb
 }
 
 main "$@"

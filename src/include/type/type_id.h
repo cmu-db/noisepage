@@ -17,6 +17,6 @@ enum class TypeId : uint8_t {
   TIMESTAMP,
   DATE,
   VARCHAR,
-  VARBINARY  // TODO(Matt): unimplemented, needed for postgresparser
+  VARBINARY
 };
 }  // namespace terrier::type
