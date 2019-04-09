@@ -15,55 +15,26 @@ namespace terrier::catalog {
 struct SchemaCol;
 
 /**
+ * A namespace entry represent a row in pg_namespace catalog.
+ */
+class NamespaceEntry : public CatalogEntry<namespace_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid namespace def oid
+   * @param entry a row in pg_namespace that represents this table
+   */
+  NamespaceEntry(namespace_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
+};
+
+/**
  * A namespace handle contains information about all the namespaces in a database. It is used to
  * retrieve namespace related information and it serves as the entry point for access the tables
  * under different namespaces.
  */
 class NamespaceHandle {
  public:
-  /**
-   * A namespace entry represent a row in pg_namespace catalog.
-   */
-  class NamespaceEntry {
-   public:
-    /**
-     * Constructs a namespace entry.
-     * @param oid the namespace_oid of the underlying database
-     * @param entry: the row as a vector of values
-     */
-    NamespaceEntry(namespace_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
-        : oid_(oid), sql_table_(sql_table), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    bool ColumnIsNull(const std::string &st);
-    bool GetBooleanColumn(const std::string &st);
-    int8_t GetTinyIntColumn(const std::string &st);
-    int16_t GetSmallIntColumn(const std::string &st);
-    int32_t GetIntegerColumn(const std::string &st);
-    int64_t GetBigIntColumn(const std::string &st);
-    double GetDecimalColumn(const std::string &st);
-    type::timestamp_t GetTimestampColumn(const std::string &st);
-    type::date_t GetDateColumn(const std::string &st);
-    std::string_view GetVarcharColumn(const std::string &st);
-
-    /**
-     * Return the namespace_oid of the underlying database
-     * @return namespace_oid of the database
-     */
-    namespace_oid_t GetNamespaceOid() { return oid_; }
-
-   private:
-    namespace_oid_t oid_;
-    catalog::SqlTableRW *sql_table_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
    * @param catalog a pointer to the catalog

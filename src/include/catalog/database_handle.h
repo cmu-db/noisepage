@@ -24,6 +24,26 @@ class TypeHandle;
 struct SchemaCol;
 
 /**
+ * A database entry represents a row in pg_database catalog.
+ */
+class DatabaseEntry : public CatalogEntry<db_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid database def oid
+   * @param entry a row in pg_database that represents this table
+   */
+  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry) :
+  CatalogEntry(oid, sql_table, std::move(entry)) {}
+  /**
+   * Delete the data (for this entry) from the storage table.
+   * After this, the entry object must be deleted as no other
+   * operations are possible.
+   */
+  bool Delete(transaction::TransactionContext *txn);
+};
+
+/**
  * A DatabaseHandle provides access to the (global) system pg_database
  * catalog.
  *
@@ -38,46 +58,8 @@ struct SchemaCol;
  * DatabaseEntry instances provide accessors for individual rows of
  * pg_database.
  */
-
 class DatabaseHandle {
  public:
-  /**
-   * A database entry represents a row in pg_database catalog.
-   */
-  class DatabaseEntry {
-   public:
-    /**
-     * Constructs a database entry.
-     * @param oid: the db_oid of the underlying database
-     * @param entry: the row as a vector of values
-     */
-    DatabaseEntry(db_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the db_oid of the underlying database
-     * @return db_oid of the database
-     */
-    db_oid_t GetDatabaseOid() { return oid_; }
-
-    /**
-     * Delete the data (for this entry) from the storage table.
-     * After this, the entry object must be deleted as no other
-     * operations are possible.
-     */
-    bool Delete(transaction::TransactionContext *txn);
-
-   private:
-    db_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param catalog a pointer to the catalog object

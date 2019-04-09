@@ -25,7 +25,7 @@ const std::vector<SchemaCol> AttributeHandle::schema_cols_ = {
 // TODO(pakhtar): add unused columns
 const std::vector<SchemaCol> AttributeHandle::unused_schema_cols_ = {};
 
-std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEntry(
+std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(
     transaction::TransactionContext *txn,
     table_oid_t table_oid,
     col_oid_t col_oid) {
@@ -34,10 +34,10 @@ std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEn
   search_vec.push_back(type::TransientValueFactory::GetInteger(!table_oid));
   ret_row = pg_attribute_hrw_->FindRow(txn, search_vec);
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<AttributeHandle::AttributeEntry>(oid, std::move(ret_row));
+  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEntry(
+std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(
     transaction::TransactionContext *txn, table_oid_t table_oid, const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
@@ -48,7 +48,7 @@ std::shared_ptr<AttributeHandle::AttributeEntry> AttributeHandle::GetAttributeEn
     throw CATALOG_EXCEPTION("attribute doesn't exist");
   }
   col_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<AttributeEntry>(oid, std::move(ret_row));
+  return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
 }
 
 col_oid_t AttributeHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
