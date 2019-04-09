@@ -40,7 +40,7 @@ TEST_F(CatalogTests, CreateDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
   auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
-  auto oid = entry->GetDatabaseOid();
+  auto oid = entry->GetOid();
   catalog_->Dump(txn_, oid);
 }
 
@@ -65,7 +65,7 @@ TEST_F(CatalogTests, DeleteDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
   auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
-  auto oid = entry->GetDatabaseOid();
+  auto oid = entry->GetOid();
   catalog_->Dump(txn_, oid);
 
   // delete it
