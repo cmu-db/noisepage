@@ -35,7 +35,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
     for (const auto &c : cols) {
       col_oids->emplace_back(c.GetOid());
     }
-    versioned_col_oids[!v] = col_oids;
+    versioned_col_oids.emplace_back(col_oids);
 
     return cols;
   }
@@ -182,7 +182,7 @@ struct SqlTableConcurrentTests : public TerrierTest {
   storage::layout_version_t schema_version_ = storage::layout_version_t(0);
   storage::BlockStore block_store_{100, 100};
   std::vector<catalog::Schema::Column> cols_;
-  std::vector<catalog::col_oid_t> **versioned_col_oids;
+  std::vector<std::vector<catalog::col_oid_t> *>versioned_col_oids;
 
  private:
   // TODO(yangjuns): need to fake a catalog that maps sql_table -> version_num
@@ -194,8 +194,6 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
   const uint32_t txns_per_thread = 10;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
-
-  versioned_col_oids = new (std::vector<catalog::col_oid_t> *)[txns_per_thread + 1];
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -240,12 +238,11 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (uint32_t i = 0; i < txns_per_thread + 1; i++)
-      if (versioned_col_oids[i] != nullptr) delete versioned_col_oids[i];
+    for (auto &version : versioned_col_oids)
+      if (version != nullptr) delete version;
     // End concurrent section
     // delete init_txn;
   }
-  delete[] versioned_col_oids;
 }
 
 // NOLINTNEXTLINE
@@ -254,9 +251,6 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
   const uint32_t txns_per_thread = 10;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
-
-  versioned_col_oids = new (std::vector<catalog::col_oid_t> *)[txns_per_thread + 1];
-
 
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     // LOG_INFO("iteration {}", iteration);
@@ -326,12 +320,11 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (uint32_t i = 0; i < txns_per_thread + 1; i++)
-      if (versioned_col_oids[i] != nullptr) delete versioned_col_oids[i];
+    for (auto &version : versioned_col_oids)
+      if (version != nullptr) delete version;
     // End concurrent section
     // delete init_txn;
   }
-  delete[] versioned_col_oids;
 }
 
 // NOLINTNEXTLINE
