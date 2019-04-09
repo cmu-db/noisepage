@@ -238,8 +238,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentInsertsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (auto &version : versioned_col_oids)
-      delete version;
+    for (auto &version : versioned_col_oids) delete version;
     versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
@@ -321,8 +320,7 @@ TEST_F(SqlTableConcurrentTests, ConcurrentSelectsWithDifferentVersions) {
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    for (auto &version : versioned_col_oids)
-      delete version;
+    for (auto &version : versioned_col_oids) delete version;
     versioned_col_oids.clear();
     // End concurrent section
     // delete init_txn;
