@@ -215,7 +215,6 @@ void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, Tupl
     // This version chain is empty, so we can skip it
     return;
   }
-  TERRIER_ASSERT(SanityCheck(version_chain_head), "SANITY CHECK FAILS");
   // Perform gc for head of the chain
   // Assuming can garbage collect any version greater than the oldest timestamp
   transaction::timestamp_t version_ptr_timestamp = version_chain_head->Timestamp().load();
@@ -224,12 +223,9 @@ void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, Tupl
   // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
   if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
     if (transaction::TransactionUtil::Committed(version_ptr_timestamp)) {
-      UndoRecord *to_be_unlinked = version_chain_head;
       // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
       if (table->CompareAndSwapVersionPtr(slot, accessor, version_chain_head, nullptr)) {
-        UndoRecord *new_version = table->AtomicallyReadVersionPtr(slot, accessor);
-        TERRIER_ASSERT(new_version == nullptr, "NEW VERSION SHOULD ALWAYS BE NULL POINTER");
-        UnlinkUndoRecordVersion(to_be_unlinked);
+        UnlinkUndoRecordVersion(version_chain_head);
       }
       // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
     }
@@ -305,6 +301,25 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
     }
     next = curr->Next();
   }
+
+    if (interval_length > 1) {
+        // Create the undo record by a second traversal through the records to be compacted.
+        UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
+        // Copy the varlen attributes of the compacted record
+        CopyVarlen(compacted_undo_record);
+        // Link the compacted record to the version chain.
+        LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
+    } else if(interval_length == 1) {
+        if(active_txns_iter != active_txns->end()) {
+          // Exited out of case 3 such that the last record is still visible to some transaction
+        } else {
+          // Exited out of case 3 such that the last record is not visible to any transaction
+          UnlinkUndoRecordVersion(start_record->Next());
+          start_record->Next().store(nullptr);
+        }
+    }
+    // Set interval length to 0
+    EndCompaction(&interval_length);
 
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
   curr->Next().store(nullptr);
