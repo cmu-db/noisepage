@@ -16,6 +16,9 @@ namespace terrier {
 
 namespace plan_node {
 
+/**
+ * Plan node for insert
+ */
 class InsertPlanNode : public AbstractPlanNode {
  public:
   /**
@@ -67,7 +70,7 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param parameter_vector parameters information
+     * @param bulk_insert_count number of times to insert
      * @return builder object
      */
     Builder &SetBulkInsertCOunt(uint32_t bulk_insert_count) {
@@ -76,7 +79,7 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param delete_stmt the SQL DELETE statement
+     * @param insert_stmt the SQL INSERT statement
      * @return builder object
      */
     Builder &SetFromInsertStatement(parser::InsertStatement *insert_stmt) {

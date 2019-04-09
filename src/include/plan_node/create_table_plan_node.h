@@ -14,13 +14,16 @@
 namespace terrier::plan_node {
 
 /**
- * The meta-data for a constraint reference.
- * This is meant to be a bridge from the parser to the
- * catalog. It only has table names and not OIDs, whereas
- * the catalog only wants OIDs.
+ * Primary key
  */
 struct PrimaryKeyInfo {
+  /**
+   * Columns of the primary key
+   */
   std::vector<std::string> primary_key_cols_;
+  /**
+   * Name of this constraint
+   */
   std::string constraint_name_;
 
   /**
@@ -60,12 +63,33 @@ struct PrimaryKeyInfo {
   bool operator!=(const PrimaryKeyInfo &rhs) const { return !(*this == rhs); }
 };
 
+/**
+ * Foreign key constraints
+ */
 struct ForeignKeyInfo {
+  /**
+   * Sources of foreign key constraints
+   */
   std::vector<std::string> foreign_key_sources_;
+  /**
+   * Sinks of foreign key constraints
+   */
   std::vector<std::string> foreign_key_sinks_;
+  /**
+   * Name of the sink table
+   */
   std::string sink_table_name_;
+  /**
+   * Name of this constraint
+   */
   std::string constraint_name_;
+  /**
+   * Update action
+   */
   parser::FKConstrActionType upd_action_;
+  /**
+   * Delete action
+   */
   parser::FKConstrActionType del_action_;
 
   /**
@@ -130,8 +154,17 @@ struct ForeignKeyInfo {
   bool operator!=(const ForeignKeyInfo &rhs) const { return !(*this == rhs); }
 };
 
+/**
+ * Unique constraints
+ */
 struct UniqueInfo {
+  /**
+   * Columns that need to have unique values
+   */
   std::vector<std::string> unique_cols_;
+  /**
+   * Name of this constraint
+   */
   std::string constraint_name_;
 
   /**
@@ -171,10 +204,25 @@ struct UniqueInfo {
   bool operator!=(const UniqueInfo &rhs) const { return !(*this == rhs); }
 };
 
+/**
+ * Check constraints
+ */
 struct CheckInfo {
+  /**
+   * Columns that need to be checked
+   */
   std::vector<std::string> check_cols_;
+  /**
+   * Name of this constraint
+   */
   std::string constraint_name_;
+  /**
+   * Type of expression to be checked
+   */
   parser::ExpressionType expr_type_;
+  /**
+   * Value of expression to be checked
+   */
   type::TransientValue expr_value_;
 
   /**

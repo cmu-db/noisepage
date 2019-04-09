@@ -32,10 +32,10 @@ class ResultPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param tuple the tuple in the storage layer
+     * @param expr the expression used to derived the output tuple
      * @return builder object
      */
-    Builder &SetTuple(std::shared_ptr<parser::AbstractExpression> expr) {
+    Builder &SetExpr(std::shared_ptr<parser::AbstractExpression> expr) {
       expr_ = std::move(expr);
       return *this;
     }
@@ -86,7 +86,7 @@ class ResultPlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * the expression used to derived the output tuple
+   * Expression used to derived the output tuple
    */
   std::shared_ptr<parser::AbstractExpression> expr_;
 

@@ -75,8 +75,17 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
    protected:
+    /**
+     * the table to be deleted
+     */
     catalog::table_oid_t table_oid_;
+    /**
+     * name of the table
+     */
     std::string table_name_;
+    /**
+     * expression of delete condition
+     */
     std::shared_ptr<parser::AbstractExpression> delete_condition_;
   };
 

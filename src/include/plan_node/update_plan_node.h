@@ -9,15 +9,11 @@
 #include "plan_node/abstract_plan_node.h"
 #include "plan_node/output_schema.h"
 
-namespace terrier {
+namespace terrier::plan_node {
 
-namespace storage {
-class SqlTable;
-}
-// TODO(Gus,Wen) Add back VisitParameters, SetParamaterValues, and PerformBinding
-
-namespace plan_node {
-
+/**
+ * Plan node for update
+ */
 class UpdatePlanNode : public AbstractPlanNode {
  public:
   /**
@@ -153,5 +149,4 @@ class UpdatePlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode);
 };
 
-}  // namespace plan_node
-}  // namespace terrier
+}  // namespace terrier::plan_node
