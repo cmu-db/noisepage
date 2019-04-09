@@ -216,7 +216,7 @@ struct Transactions {
       db->item_index_->ScanKey(*item_key, &index_scan_results);
 
       if (index_scan_results.empty()) {
-        TERRIER_ASSERT(item.ol_i_id == 8491139, "It's the unused value.");
+        TERRIER_ASSERT(item.ol_i_id == 8491138, "It's the unused value.");
         txn_manager->Abort(txn);
         return false;
       }
@@ -235,6 +235,31 @@ struct Transactions {
           item_select_tuple->AccessWithNullCheck(item_select_pr_map.at(i_name_oid)));
       const auto UNUSED_ATTRIBUTE i_data = *reinterpret_cast<storage::VarlenEntry *>(
           item_select_tuple->AccessWithNullCheck(item_select_pr_map.at(i_data_oid)));
+
+      // Look up S_I_ID, S_W_ID in index
+      const auto stock_key_pr_initializer = db->stock_index_->GetProjectedRowInitializer();
+      const auto stock_key_pr_map = db->stock_index_->GetKeyOidToOffsetMap();
+      const auto *const stock_key =
+          Loader::BuildStockKey(item.ol_i_id, args.w_id, worker->stock_key_buffer, stock_key_pr_initializer,
+                                stock_key_pr_map, db->stock_key_schema_);
+      index_scan_results.clear();
+      db->stock_index_->ScanKey(*stock_key, &index_scan_results);
+      TERRIER_ASSERT(index_scan_results.size() == 1, "Stock index lookup failed.");
+
+      // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), and S_DATA in table
+      const auto s_quantity_oid = db->stock_schema_.GetColumn(2).GetOid();
+      const auto s_dist_xx_oid = db->stock_schema_.GetColumn(2 + args.d_id).GetOid();
+      const auto s_data_oid = db->stock_schema_.GetColumn(16).GetOid();
+      const auto [stock_select_pr_initializer, stock_select_pr_map] = db->stock_table_->InitializerForProjectedRow(
+          {s_quantity_oid, s_dist_xx_oid, s_data_oid});  // TODO(Matt): cache this thing
+      auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
+      db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
+      const auto UNUSED_ATTRIBUTE s_quantity =
+          *reinterpret_cast<int16_t *>(stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_quantity_oid)));
+      const auto UNUSED_ATTRIBUTE s_dist_xx = *reinterpret_cast<storage::VarlenEntry *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_dist_xx_oid)));
+      const auto UNUSED_ATTRIBUTE s_data = *reinterpret_cast<storage::VarlenEntry *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_data_oid)));
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
