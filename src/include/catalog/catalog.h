@@ -47,7 +47,6 @@ struct SchemaCol {
  * The values for all oid types are generated from a single value space
  * i.e. every oid regardless of type, is unique.
  *
- * TODO(Yesheng): Port over to TransientValue
  */
 class Catalog {
  public:
@@ -267,7 +266,7 @@ class Catalog {
    * During startup, create pg_namespace table (local to db_oid)
    * @param txn_manager the global transaction manager
    */
-  void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
+  void CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
    * During startup, create pg_class table (local to db_oid)

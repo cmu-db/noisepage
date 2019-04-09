@@ -1,4 +1,3 @@
-#include <catalog/transient_value_util.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -7,6 +6,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/type_handle.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::catalog {
 
@@ -40,36 +40,35 @@ type_oid_t TypeHandle::TypeToOid(transaction::TransactionContext *txn, const std
   return type_oid_t(type::TransientValuePeeker::PeekInteger(te->GetColumn(0)));
 }
 
-std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid) {
+std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   return std::make_shared<TypeEntry>(oid, std::move(ret_row));
 }
 
-std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
-                                                                const std::string &type) {
+std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn, const std::string &type) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TypeHandle::TypeEntry>(oid, std::move(ret_row));
+  return std::make_shared<TypeEntry>(oid, std::move(ret_row));
 }
 
 /*
  * Lookup a type and return the entry, e.g. "boolean"
  */
-std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
-                                                                const type::TransientValue &type) {
+std::shared_ptr<TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
+                                                    const type::TransientValue &type) {
   std::vector<type::TransientValue> search_vec, ret_row;
   for (int32_t i = 0; i < 1; i++) {
     search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   }
-  search_vec.push_back(TransientValueUtil::MakeCopy(type));
+  search_vec.push_back(type::TransientValueFactory::GetCopy(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
   type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<TypeHandle::TypeEntry>(oid, std::move(ret_row));
+  return std::make_shared<TypeEntry>(oid, std::move(ret_row));
 }
 
 void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, const std::string &typname,

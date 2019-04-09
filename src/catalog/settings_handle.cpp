@@ -33,8 +33,8 @@ const std::vector<SchemaCol> SettingsHandle::schema_cols_ = {
 const std::vector<SchemaCol> SettingsHandle::unused_schema_cols_ = {};
 
 // Find entry with (row) oid and return it
-std::shared_ptr<SettingsHandle::SettingsEntry> SettingsHandle::GetSettingsEntry(transaction::TransactionContext *txn,
-                                                                                settings_oid_t oid) {
+std::shared_ptr<SettingsEntry> SettingsHandle::GetSettingsEntry(transaction::TransactionContext *txn,
+                                                                settings_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_settings_->FindRow(txn, search_vec);

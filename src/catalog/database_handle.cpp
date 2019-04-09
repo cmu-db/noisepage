@@ -5,7 +5,6 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/schema.h"
-#include "catalog/transient_value_util.h"
 #include "loggers/main_logger.h"
 #include "storage/block_layout.h"
 #include "storage/projected_columns.h"
@@ -53,8 +52,7 @@ AttrDefHandle DatabaseHandle::GetAttrDefHandle(transaction::TransactionContext *
   return AttrDefHandle(catalog_->GetDatabaseCatalog(oid, "pg_attrdef"));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                db_oid_t oid) {
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {
   auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
 
   std::vector<type::TransientValue> search_vec;
@@ -63,8 +61,8 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   return std::make_shared<DatabaseEntry>(oid, std::move(row_vec));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                const std::string &db_name) {
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
+                                                                const std::string &db_name) {
   // we don't need to do this lookup. pg_database is global
   // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
 
@@ -85,7 +83,7 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
 bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
   // get the oid of this row
-  search_vec.emplace_back(TransientValueUtil::MakeCopy(entry->GetColumn(0)));
+  search_vec.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(0)));
 
   // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_database_rw_->FindRowProjCol(txn, search_vec);

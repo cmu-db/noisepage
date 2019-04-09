@@ -15,43 +15,43 @@ namespace terrier::catalog {
 struct SchemaCol;
 
 /**
+ * A namespace entry represent a row in pg_namespace catalog.
+ */
+class NamespaceEntry {
+ public:
+  /**
+   * Constructs a namespace entry.
+   * @param oid the namespace_oid of the underlying database
+   * @param entry: the row as a vector of values
+   */
+  NamespaceEntry(namespace_oid_t oid, std::vector<type::TransientValue> &&entry)
+      : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Get the value for a given column
+   * @param col_num the column index
+   * @return the value of the column
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+  /**
+   * Return the namespace_oid of the underlying database
+   * @return namespace_oid of the database
+   */
+  namespace_oid_t GetNamespaceOid() { return oid_; }
+
+ private:
+  namespace_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * A namespace handle contains information about all the namespaces in a database. It is used to
  * retrieve namespace related information and it serves as the entry point for access the tables
  * under different namespaces.
  */
 class NamespaceHandle {
  public:
-  /**
-   * A namespace entry represent a row in pg_namespace catalog.
-   */
-  class NamespaceEntry {
-   public:
-    /**
-     * Constructs a namespace entry.
-     * @param oid the namespace_oid of the underlying database
-     * @param entry: the row as a vector of values
-     */
-    NamespaceEntry(namespace_oid_t oid, std::vector<type::TransientValue> &&entry)
-        : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the namespace_oid of the underlying database
-     * @return namespace_oid of the database
-     */
-    namespace_oid_t GetNamespaceOid() { return oid_; }
-
-   private:
-    namespace_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct a namespace handle. It keeps a pointer to the pg_namespace sql table.
    * @param catalog a pointer to the catalog

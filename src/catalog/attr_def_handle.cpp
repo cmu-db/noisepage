@@ -19,8 +19,7 @@ const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, "oid", type::Typ
 const std::vector<SchemaCol> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
 
 // Find entry with (row) oid and return it
-std::shared_ptr<AttrDefHandle::AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn,
-                                                                            col_oid_t oid) {
+std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);

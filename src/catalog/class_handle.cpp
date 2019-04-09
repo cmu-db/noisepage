@@ -6,7 +6,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/class_handle.h"
-#include "catalog/transient_value_util.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 namespace terrier::catalog {
@@ -24,8 +23,7 @@ const std::vector<SchemaCol> ClassHandle::schema_cols_ = {{0, "__ptr", type::Typ
 const std::vector<SchemaCol> ClassHandle::unused_schema_cols_ = {};
 
 // Find entry with (row) oid and return it
-std::shared_ptr<ClassHandle::ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn,
-                                                                    col_oid_t oid) {
+std::shared_ptr<ClassEntry> ClassHandle::GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_class_rw_->FindRow(txn, search_vec);
@@ -75,7 +73,7 @@ std::shared_ptr<catalog::SqlTableRW> ClassHandle::Create(transaction::Transactio
 bool ClassHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<ClassEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
   // get the oid of this row
-  search_vec.emplace_back(TransientValueUtil::MakeCopy(entry->GetColumn(0)));
+  search_vec.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(0)));
 
   // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_class_rw_->FindRowProjCol(txn, search_vec);

@@ -15,6 +15,37 @@ class Catalog;
 struct SchemaCol;
 
 /**
+ * A tablespace entry represent a row in pg_tablespace catalog.
+ */
+class TablespaceEntry {
+ public:
+  /**
+   * Constructs a tablespace entry.
+   * @param oid the tablespace_oid of the underlying database
+   * @param entry: the row as a vector of values
+   */
+  TablespaceEntry(tablespace_oid_t oid, std::vector<type::TransientValue> &&entry)
+      : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Return the tablespace_oid
+   * @return tablespace_oid the tablespace oid
+   */
+  tablespace_oid_t GetTablespaceOid() { return oid_; }
+
+  /**
+   * Get the value for a given column
+   * @param col_num the column index
+   * @return the value of the column
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+ private:
+  tablespace_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * A TablespaceHandle provides access to the (global) system pg_tablespace
  * catalog.
  *
@@ -29,40 +60,8 @@ struct SchemaCol;
  * TablespaceEntry instances provide accessors for individual rows of
  * pg_tablespace
  */
-
 class TablespaceHandle {
  public:
-  /**
-   * A tablespace entry represent a row in pg_tablespace catalog.
-   */
-  class TablespaceEntry {
-   public:
-    /**
-     * Constructs a tablespace entry.
-     * @param oid the tablespace_oid of the underlying database
-     * @param entry: the row as a vector of values
-     */
-    TablespaceEntry(tablespace_oid_t oid, std::vector<type::TransientValue> &&entry)
-        : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Return the tablespace_oid
-     * @return tablespace_oid the tablespace oid
-     */
-    tablespace_oid_t GetTablespaceOid() { return oid_; }
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-   private:
-    tablespace_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct a tablespace handle. It keeps a pointer to the pg_tablespace sql table.
    * @param pg_tablespace a pointer to pg_tablespace

@@ -22,16 +22,16 @@ const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
     {3, "nspacl", type::TypeId::VARCHAR},
 };
 
-std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
-    transaction::TransactionContext *txn, namespace_oid_t oid) {
+std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                   namespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
 }
 
-std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
-    transaction::TransactionContext *txn, const std::string &name) {
+std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                   const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));

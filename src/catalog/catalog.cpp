@@ -270,7 +270,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 
   // Order: pg_attribute -> pg_namespace -> pg_class
   CreatePGAttribute(txn, db_oid);
-  CreatePGNameSpace(txn, db_oid);
+  CreatePGNamespace(txn, db_oid);
   CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
   AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
@@ -290,7 +290,7 @@ void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, t
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
 }
 
-void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
+void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
   std::vector<type::TransientValue> row;
   std::shared_ptr<catalog::SqlTableRW> pg_namespace;
 

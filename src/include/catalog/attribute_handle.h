@@ -16,6 +16,36 @@ class Catalog;
 struct SchemaCol;
 
 /**
+ * A attribute entry represent a row in pg_attribute catalog.
+ */
+class AttributeEntry {
+ public:
+  /**
+   * Constructs a attribute entry.
+   * @param oid the col_oid of the attribute
+   * @param entry: the row as a vector of values
+   */
+  AttributeEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Get the value for a given column
+   * @param col_num the column index
+   * @return the value of the column
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+  /**
+   * Return the col_oid of the attribute
+   * @return col_oid of the attribute
+   */
+  col_oid_t GetAttributeOid() { return oid_; }
+
+ private:
+  col_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * An attribute handle provides accessors to the pg_attribute catalog.
  * Each database has it's own pg_attribute catalog.
  *
@@ -28,39 +58,8 @@ struct SchemaCol;
  * The term attribute is equivalent to column and is used for historical
  * reasons.
  */
-
 class AttributeHandle {
  public:
-  /**
-   * A attribute entry represent a row in pg_attribute catalog.
-   */
-  class AttributeEntry {
-   public:
-    /**
-     * Constructs a attribute entry.
-     * @param oid the col_oid of the attribute
-     * @param entry: the row as a vector of values
-     */
-    AttributeEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the col_oid of the attribute
-     * @return col_oid of the attribute
-     */
-    col_oid_t GetAttributeOid() { return oid_; }
-
-   private:
-    col_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct an attribute handle
    * @param catalog catalog ptr

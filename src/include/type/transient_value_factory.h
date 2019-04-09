@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstring>
+#include "common/exception.h"
 #include "type/transient_value.h"
+#include "type/transient_value_peeker.h"
 #include "type/type_id.h"
 
 namespace terrier::type {
@@ -90,6 +92,42 @@ class TransientValueFactory {
     auto *varchar_contents = varchar + sizeof(uint32_t);
     std::memcpy(varchar_contents, value.data(), length);
     return {TypeId::VARCHAR, varchar};
+  }
+
+  static type::TransientValue GetCopy(const type::TransientValue &value) {
+    // NOLINTNEXTLINE
+    switch (value.Type()) {
+      case type::TypeId::BOOLEAN:
+        return type::TransientValueFactory::GetBoolean(type::TransientValuePeeker::PeekBoolean(value));
+        break;
+      case type::TypeId::TINYINT:
+        return type::TransientValueFactory::GetTinyInt(type::TransientValuePeeker::PeekTinyInt(value));
+        break;
+      case type::TypeId::SMALLINT:
+        return type::TransientValueFactory::GetSmallInt(type::TransientValuePeeker::PeekSmallInt(value));
+        break;
+      case type::TypeId::INTEGER:
+        return type::TransientValueFactory::GetInteger(type::TransientValuePeeker::PeekInteger(value));
+        break;
+      case type::TypeId::BIGINT:
+        return type::TransientValueFactory::GetBigInt(type::TransientValuePeeker::PeekBigInt(value));
+        break;
+      case type::TypeId::DECIMAL:
+        return type::TransientValueFactory::GetDecimal(type::TransientValuePeeker::PeekDecimal(value));
+        break;
+      case type::TypeId::TIMESTAMP:
+        return type::TransientValueFactory::GetTimestamp(type::TransientValuePeeker::PeekTimestamp(value));
+        break;
+      case type::TypeId::DATE:
+        return type::TransientValueFactory::GetDate(type::TransientValuePeeker::PeekDate(value));
+        break;
+      case type::TypeId::VARCHAR:
+        return type::TransientValueFactory::GetVarChar(type::TransientValuePeeker::PeekVarChar(value));
+        break;
+      default:
+        throw NOT_IMPLEMENTED_EXCEPTION("invalid TransientValue copy.");
+        break;
+    }
   }
 };
 

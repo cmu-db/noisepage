@@ -14,8 +14,7 @@
 
 namespace terrier::catalog {
 
-std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
-                                                                    table_oid_t oid) {
+std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn, table_oid_t oid) {
   // get the namespace_oid of the table to check if it's a table under current namespace
   namespace_oid_t nsp_oid(0);
   std::vector<type::TransientValue> search_vec;
@@ -28,8 +27,7 @@ std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction:
   return std::make_shared<TableEntry>(oid, std::move(row), txn, pg_class_, pg_namespace_, pg_tablespace_);
 }
 
-std::shared_ptr<TableHandle::TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn,
-                                                                    const std::string &name) {
+std::shared_ptr<TableEntry> TableHandle::GetTableEntry(transaction::TransactionContext *txn, const std::string &name) {
   return GetTableEntry(txn, NameToOid(txn, name));
 }
 

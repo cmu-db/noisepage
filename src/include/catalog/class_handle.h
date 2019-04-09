@@ -16,42 +16,42 @@ class Catalog;
 struct SchemaCol;
 
 /**
+ * An ClassEntry is a row in pg_class catalog
+ */
+class ClassEntry {
+ public:
+  /**
+   * Constructs a Class entry.
+   * @param oid
+   * @param entry: the row as a vector of values
+   */
+  ClassEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Get the value for a given column
+   * @param col_num the column index
+   * @return the value of the column
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+  /**
+   * Return the col_oid of the attribute
+   * @return col_oid of the attribute
+   */
+  col_oid_t GetClassOid() { return oid_; }
+
+ private:
+  // the row
+  col_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * Class (equiv. of pg_class) stores much of the metadata for
  * anything that has columns and is like a table.
  */
 class ClassHandle {
  public:
-  /**
-   * An ClassEntry is a row in pg_class catalog
-   */
-  class ClassEntry {
-   public:
-    /**
-     * Constructs a Class entry.
-     * @param oid
-     * @param entry: the row as a vector of values
-     */
-    ClassEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the col_oid of the attribute
-     * @return col_oid of the attribute
-     */
-    col_oid_t GetClassOid() { return oid_; }
-
-   private:
-    // the row
-    col_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Get a specific Class entry.
    * @param txn the transaction that initiates the read

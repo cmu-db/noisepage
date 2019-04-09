@@ -17,42 +17,42 @@ class Catalog;
 struct SchemaCol;
 
 /**
+ * An AttrDefEntry is a row in pg_attrdef catalog
+ */
+class AttrDefEntry {
+ public:
+  /**
+   * Constructs an AttrDef entry.
+   * @param oid
+   * @param entry: the row as a vector of values
+   */
+  AttrDefEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Get the value for a given column
+   * @param col_num the column index
+   * @return the value of the column
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+  /**
+   * Return the col_oid of the attribute
+   * @return col_oid of the attribute
+   */
+  col_oid_t GetAttrDefOid() { return oid_; }
+
+ private:
+  // the row
+  col_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * AttrDef (attribute default) contains the default value for attributes
  * (i.e. a column), where such a default has been defined.
  */
 class AttrDefHandle {
  public:
-  /**
-   * An AttrDefEntry is a row in pg_attrdef catalog
-   */
-  class AttrDefEntry {
-   public:
-    /**
-     * Constructs an AttrDef entry.
-     * @param oid
-     * @param entry: the row as a vector of values
-     */
-    AttrDefEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the col_oid of the attribute
-     * @return col_oid of the attribute
-     */
-    col_oid_t GetAttrDefOid() { return oid_; }
-
-   private:
-    // the row
-    col_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Get a specific attrdef entry.
    * @param txn the transaction that initiates the read

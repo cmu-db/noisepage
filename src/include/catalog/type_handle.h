@@ -13,6 +13,33 @@ namespace terrier::catalog {
 class Catalog;
 
 /**
+ * A type entry represents a row in pg_type catalog.
+ */
+class TypeEntry {
+ public:
+  /**
+   * Constructs a type entry.
+   * @param oid the col_oid of the type
+   * @param entry the row as a vector of values
+   */
+  TypeEntry(type_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
+
+  /**
+   * Get the value for a given column.
+   */
+  const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
+
+  /**
+   * Return the col_oid of the type.
+   */
+  type_oid_t GetTypeOid() { return oid_; }
+
+ private:
+  type_oid_t oid_;
+  std::vector<type::TransientValue> entry_;
+};
+
+/**
  * A type handle contains information about data types.
  *
  * pg_type:
@@ -20,33 +47,6 @@ class Catalog;
  */
 class TypeHandle {
  public:
-  /**
-   * A type entry represents a row in pg_type catalog.
-   */
-  class TypeEntry {
-   public:
-    /**
-     * Constructs a type entry.
-     * @param oid the col_oid of the type
-     * @param entry the row as a vector of values
-     */
-    TypeEntry(type_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column.
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the col_oid of the type.
-     */
-    type_oid_t GetTypeOid() { return oid_; }
-
-   private:
-    type_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct a type handle. It keeps a pointer to the pg_type sql table.
    */
@@ -80,8 +80,7 @@ class TypeHandle {
   /**
    * Get a type entry from pg_type handle by name.
    */
-  std::shared_ptr<TypeHandle::TypeEntry> GetTypeEntry(transaction::TransactionContext *txn,
-                                                      const type::TransientValue &type);
+  std::shared_ptr<TypeEntry> GetTypeEntry(transaction::TransactionContext *txn, const type::TransientValue &type);
 
   /**
    * Create storage table
