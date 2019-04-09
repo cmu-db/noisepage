@@ -203,6 +203,7 @@ class SqlTable {
                    layout_version_t version_num) const {
     // TODO(Matt): check constraints? Discuss if that happens in execution layer or not
     // always insert into the new DataTable
+    TERRIER_ASSERT(tables_.Find(version_num) != tables_.CEnd(), "Table version must exist before insert");
     return tables_.Find(version_num)->second.data_table->Insert(txn, redo);
   }
 
@@ -304,6 +305,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids, version_num);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
+    TERRIER_ASSERT(tables_.Find(version_num) != tables_.CEnd(), "Table version must exist before insert");
     ProjectedRowInitializer initializer =
         ProjectedRowInitializer::CreateProjectedRowInitializer(tables_.Find(version_num)->second.layout, col_ids);
     auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer, version_num);
