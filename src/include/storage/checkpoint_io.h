@@ -15,20 +15,44 @@ namespace terrier::storage {
 // TODO(Zhaozhe, Mengyang): More fields can be added to header
 class CheckpointFilePage {
  public:
+  /**
+   * Initialize a given page
+   * @param page to be initialized.
+   */
   static void Initialize(CheckpointFilePage *page) {
     // TODO(mengyang): support non-trivial initialization
     page->checksum_ = 0;
     page->table_oid_ = catalog::table_oid_t(0);
   }
 
+  /**
+   * Get the checksum of the page.
+   * @return checksum of the page.
+   */
   uint32_t GetChecksum() { return checksum_; }
 
+  /**
+   * Set the checksum of the page.
+   * @param checksum
+   */
   void SetCheckSum(uint32_t checksum) { checksum_ = checksum; }
 
+  /**
+   * Get the oid of the table whose rows are stored in this page.
+   * @return oid of the table.
+   */
   catalog::table_oid_t GetTableOid() { return table_oid_; }
 
+  /**
+   * Set the oid of the table whose rows are stored in this page.
+   * @param oid of the table.
+   */
   void SetTableOid(catalog::table_oid_t oid) { table_oid_ = oid; }
 
+  /**
+   * Get the pointer to the first row in this page.
+   * @return pointer to the first row.
+   */
   byte *GetPayload() { return varlen_contents_; }
 
  private:
@@ -50,6 +74,10 @@ class BufferedTupleWriter {
  public:
   BufferedTupleWriter() = default;
 
+  /**
+   * Instantiate a new BufferedTupleWriter, open a new checkpoint file to write into.
+   * @param log_file_path path to the checkpoint file.
+   */
   explicit BufferedTupleWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR)),
         block_size_(CHECKPOINT_BLOCK_SIZE),
@@ -57,6 +85,10 @@ class BufferedTupleWriter {
     ResetBuffer();
   }
 
+  /**
+   * Open a file to write into
+   * @param log_file_path path to the checkpoint file.
+   */
   void Open(const char *log_file_path) {
     out_ = PosixIoWrappers::Open(log_file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     block_size_ = CHECKPOINT_BLOCK_SIZE;
@@ -64,20 +96,41 @@ class BufferedTupleWriter {
     ResetBuffer();
   }
 
+  /**
+   * Write the content of the buffer into disk.
+   */
   void Persist() { PersistBuffer(); }
 
+  /**
+   * Close current file and release the buffer.
+   */
   void Close() {
     PosixIoWrappers::Close(out_);
     delete[] buffer_;
   }
 
-  // Serialize the tuple into the internal block buffer, and write to disk when the buffer is full.
+  /**
+   * Serialize the tuple into the buffer, and write to disk when the buffer is full.
+   * @param row pointer to the RowView given by ProjectedColumn
+   * @param row_buffer pointer to the ProjectedRow buffer.
+   * @param layout of the Row.
+   */
   void SerializeTuple(ProjectedColumns::RowView *row, ProjectedRow *row_buffer, const storage::BlockLayout &layout);
 
+  /**
+   * Serialize a ProjectedRow and its varlens into the file.
+   * @param row_buffer pointer to the row to be serialized.
+   * @param total_varlen total length of all varlens of this row.
+   * @param varlen_entries all the varlen entries in this row.
+   */
   void AppendTupleToBuffer(ProjectedRow *row_buffer, int32_t total_varlen,
                            const std::vector<const VarlenEntry *> &varlen_entries);
 
-  CheckpointFilePage *GetHeader() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
+  /**
+   * Get the current checkpoint page.
+   * @return pointer to the checkpoint page header.
+   */
+  CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
   int out_;  // fd of the output files
@@ -102,11 +155,22 @@ class BufferedTupleWriter {
   }
 };
 
+/**
+ * Reader class to read checkpoint file in pages (Checkpoint Page),
+ * and provides basic interface similar to an iterator.
+ */
 class BufferedTupleReader {
  public:
+  /**
+   * Instantiate a new BufferedTupleReader to read from a checkpoint file.
+   * @param log_file_path path to the checkpoint file.
+   */
   explicit BufferedTupleReader(const char *log_file_path)
       : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)), buffer_(new byte[block_size_]()) {}
 
+  /**
+   * destruct the reader, close the file opened and release the buffer space.
+   */
   ~BufferedTupleReader() {
     PosixIoWrappers::Close(in_);
     delete[] buffer_;
@@ -151,19 +215,34 @@ class BufferedTupleReader {
     return result;
   }
 
+  /**
+   * Read the size of the varlen pointed by the current offset. This does not check if currently the offset points to
+   * a varlen.
+   * @return
+   */
   uint32_t ReadNextVarlenSize() {
     uint32_t size = *reinterpret_cast<uint32_t *>(buffer_ + page_offset_);
     page_offset_ += static_cast<uint32_t>(sizeof(uint32_t));
     return size;
   }
 
-  // Warning: the returning pointer is not aligned, so make sure the calling function does not depend on alignment
+  /**
+   * Read the next few bytes as a varlen content. The size field of this varlen should already been skipped.
+   *
+   * Warning: the returning pointer is not aligned, so make sure the calling function does not depend on alignment
+   * @param size of the varlen
+   * @return pointer to the varlen content
+   */
   byte *ReadNextVarlen(uint32_t size) {
     byte *result = buffer_ + page_offset_;
     page_offset_ += size;
     return result;
   }
 
+  /**
+   * Get the current checkpoint page.
+   * @return pointer to the checkpoint page header.
+   */
   CheckpointFilePage *GetPage() { return reinterpret_cast<CheckpointFilePage *>(buffer_); }
 
  private:
