@@ -343,7 +343,7 @@ class RandomSqlTableTestObject {
     auto insert_buffer = common::AllocationUtil::AllocateAligned(pri_->ProjectedRowSize());
     auto insert = pri_->InitializeRow(insert_buffer);
 
-    for (int i = 0; i < int(cols_.size()); i++) {
+    for (int i = 0; i < static_cast<int>(cols_.size()); i++) {
       if (coin(*generator)) {  // not null
         uint16_t offset = pr_map_->at(col_oids_[i]);
         insert->SetNotNull(offset);
