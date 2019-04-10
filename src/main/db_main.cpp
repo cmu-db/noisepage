@@ -4,22 +4,17 @@
 namespace terrier {
 
 int DBMain::Init(int argc, char **argv) {
-  try {
-    init_main_logger();
-    // initialize namespace specific loggers
-    storage::init_index_logger();
-    storage::init_storage_logger();
-    transaction::init_transaction_logger();
-    parser::init_parser_logger();
-    network::init_network_logger();
-    // Flush all *registered* loggers using a worker thread.
-    // Registered loggers must be thread safe for this to work correctly
-    spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
+  init_main_logger();
+  // initialize namespace specific loggers
+  storage::init_index_logger();
+  storage::init_storage_logger();
+  transaction::init_transaction_logger();
+  parser::init_parser_logger();
+  network::init_network_logger();
+  // Flush all *registered* loggers using a worker thread.
+  // Registered loggers must be thread safe for this to work correctly
+  spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
 
-  } catch (const spdlog::spdlog_ex &ex) {
-    std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
-    return 1;
-  }
   LOG_TRACE("Logger initialization complete");
 
   // TODO(Weichen): init settings manager

@@ -15,11 +15,11 @@
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 #include "loggers/type_logger.h"
+#include "network/terrier_server.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
-#include "network/terrier_server.h"
 
 namespace terrier {
 
