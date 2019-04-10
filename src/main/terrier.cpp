@@ -1,3 +1,4 @@
+#include <memory>
 #include "main/db_main.h"
 
 int main(int argc, char **argv) {

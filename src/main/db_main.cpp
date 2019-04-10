@@ -1,5 +1,5 @@
-#include <memory>
 #include "main/db_main.h"
+#include <memory>
 
 namespace terrier {
 int DBMain::Init(int argc, char **argv) {
