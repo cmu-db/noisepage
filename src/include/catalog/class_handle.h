@@ -46,6 +46,12 @@ class ClassHandle {
    */
   std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, col_oid_t oid);
 
+  /**
+   * Get a class entry by name
+   * @param txn transaction
+   * @param name to lookup
+   * @return a shared ptr to a Class entry. 
+   */
   std::shared_ptr<ClassEntry> GetClassEntry(transaction::TransactionContext *txn, const char *name);
 
   /**
