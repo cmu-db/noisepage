@@ -66,13 +66,110 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
   return args;
 }
 
-struct Transactions {
-  Transactions() = delete;
+class Transactions {
+ public:
+  explicit Transactions(const Database *const db)
+      : warehouse_select_pr_initializer(
+            db->warehouse_table_->InitializerForProjectedRow({db->warehouse_schema_.GetColumn(7).GetOid()}).first),
+        warehouse_select_pr_map(
+            db->warehouse_table_->InitializerForProjectedRow({db->warehouse_schema_.GetColumn(7).GetOid()}).second),
+        d_tax_oid(db->district_schema_.GetColumn(8).GetOid()),
+        d_next_o_id_oid(db->district_schema_.GetColumn(10).GetOid()),
+        district_select_pr_initializer(
+            db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid}).first),
+        district_select_pr_map(db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid}).second),
+        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_next_o_id_oid}).first),
+        c_discount_oid(db->customer_schema_.GetColumn(15).GetOid()),
+        c_last_oid(db->customer_schema_.GetColumn(5).GetOid()),
+        c_credit_oid(db->customer_schema_.GetColumn(13).GetOid()),
+        customer_select_pr_initializer(
+            db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid}).first),
+        customer_select_pr_map(
+            db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid}).second),
+        new_order_insert_pr_initializer(
+            db->new_order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->new_order_schema_)).first),
+        new_order_insert_pr_map(
+            db->new_order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->new_order_schema_)).second),
+        order_insert_pr_initializer(
+            db->order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_schema_)).first),
+        order_insert_pr_map(
+            db->order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_schema_)).second),
+        i_price_oid(db->item_schema_.GetColumn(3).GetOid()),
+        i_name_oid(db->item_schema_.GetColumn(2).GetOid()),
+        i_data_oid(db->item_schema_.GetColumn(4).GetOid()),
+        item_select_pr_initializer(
+            db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid}).first),
+        item_select_pr_map(db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid}).second),
+        s_quantity_oid(db->stock_schema_.GetColumn(2).GetOid()),
+        s_ytd_oid(db->stock_schema_.GetColumn(13).GetOid()),
+        s_order_cnt_oid(db->stock_schema_.GetColumn(14).GetOid()),
+        s_remote_cnt_oid(db->stock_schema_.GetColumn(15).GetOid()),
+        s_data_oid(db->stock_schema_.GetColumn(16).GetOid()),
+        stock_update_pr_initializer(
+            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_remote_cnt_oid}).first),
+        stock_update_pr_map(
+            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_remote_cnt_oid}).second),
+        order_line_insert_pr_initializer(
+            db->order_line_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_line_schema_)).first),
+        order_line_insert_pr_map(
+            db->order_line_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_line_schema_))
+                .second) {
+    for (uint8_t i = 0; i < 10; i++) {
+      s_dist_xx_oids.push_back(db->stock_schema_.GetColumn(3 + i).GetOid());
+    }
+
+    for (auto i : s_dist_xx_oids) {
+      stock_select_initializers.push_back(db->stock_table_->InitializerForProjectedRow(
+          {s_quantity_oid, i, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid}));
+    }
+  }
+
+  const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
+  const storage::ProjectionMap warehouse_select_pr_map;
+
+  const catalog::col_oid_t d_tax_oid;
+  const catalog::col_oid_t d_next_o_id_oid;
+  const storage::ProjectedRowInitializer district_select_pr_initializer;
+  const storage::ProjectionMap district_select_pr_map;
+
+  const storage::ProjectedRowInitializer district_update_pr_initializer;
+
+  const catalog::col_oid_t c_discount_oid;
+  const catalog::col_oid_t c_last_oid;
+  const catalog::col_oid_t c_credit_oid;
+  const storage::ProjectedRowInitializer customer_select_pr_initializer;
+  const storage::ProjectionMap customer_select_pr_map;
+
+  const storage::ProjectedRowInitializer new_order_insert_pr_initializer;
+  const storage::ProjectionMap new_order_insert_pr_map;
+
+  const storage::ProjectedRowInitializer order_insert_pr_initializer;
+  const storage::ProjectionMap order_insert_pr_map;
+
+  const catalog::col_oid_t i_price_oid;
+  const catalog::col_oid_t i_name_oid;
+  const catalog::col_oid_t i_data_oid;
+  const storage::ProjectedRowInitializer item_select_pr_initializer;
+  const storage::ProjectionMap item_select_pr_map;
+
+  const catalog::col_oid_t s_quantity_oid;
+  const catalog::col_oid_t s_ytd_oid;
+  const catalog::col_oid_t s_order_cnt_oid;
+  const catalog::col_oid_t s_remote_cnt_oid;
+  const catalog::col_oid_t s_data_oid;
+  const storage::ProjectedRowInitializer stock_update_pr_initializer;
+  const storage::ProjectionMap stock_update_pr_map;
+
+  const storage::ProjectedRowInitializer order_line_insert_pr_initializer;
+  const storage::ProjectionMap order_line_insert_pr_map;
+
+  std::vector<catalog::col_oid_t> s_dist_xx_oids;
+  std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
 
   // 2.4.2
   template <class Random>
-  static bool NewOrder(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
-                       Worker *const worker, const NewOrderArgs &args) {
+  bool NewOrder(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
+                Worker *const worker, const NewOrderArgs &args) const {
     auto *const txn = txn_manager->BeginTransaction();
 
     // Look up W_ID in index
@@ -86,10 +183,6 @@ struct Transactions {
     TERRIER_ASSERT(index_scan_results.size() == 1, "Warehouse index lookup failed.");
 
     // Select W_TAX in table
-    const auto [warehouse_select_pr_initializer, warehouse_select_pr_map] =
-        db->warehouse_table_->InitializerForProjectedRow(
-            {db->warehouse_schema_.GetColumn(7).GetOid()});  // TODO(Matt): cache this thing
-
     auto *const warehouse_select_tuple = warehouse_select_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
     db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
     const auto UNUSED_ATTRIBUTE w_tax = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(0));
@@ -105,10 +198,6 @@ struct Transactions {
     TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
     // Select D_TAX, D_NEXT_O_ID in table
-    const auto d_tax_oid = db->district_schema_.GetColumn(8).GetOid();
-    const auto d_next_o_id_oid = db->district_schema_.GetColumn(10).GetOid();
-    const auto [district_select_pr_initializer, district_select_pr_map] =
-        db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid});  // TODO(Matt): cache this thing
     auto *const district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
     db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
 
@@ -118,8 +207,6 @@ struct Transactions {
         district_select_tuple->AccessWithNullCheck(district_select_pr_map.at(d_next_o_id_oid)));
 
     // Increment D_NEXT_O_ID in table
-    const auto [district_update_pr_initializer, district_update_pr_map] =
-        db->district_table_->InitializerForProjectedRow({d_next_o_id_oid});  // TODO(Matt): cache this thing
     auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
     *reinterpret_cast<int32_t *>(district_update_tuple->AccessForceNotNull(0)) = d_next_o_id + 1;
 
@@ -140,12 +227,6 @@ struct Transactions {
     TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
 
     // Select C_DISCOUNT, C_LAST, and C_CREDIT in table
-    const auto c_discount_oid = db->customer_schema_.GetColumn(15).GetOid();
-    const auto c_last_oid = db->customer_schema_.GetColumn(5).GetOid();
-    const auto c_credit_oid = db->customer_schema_.GetColumn(13).GetOid();
-    const auto [customer_select_pr_initializer, customer_select_pr_map] =
-        db->customer_table_->InitializerForProjectedRow(
-            {c_discount_oid, c_last_oid, c_credit_oid});  // TODO(Matt): cache this thing
     auto *const customer_select_tuple = customer_select_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
     db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
     const auto UNUSED_ATTRIBUTE c_discount = *reinterpret_cast<double *>(
@@ -156,9 +237,6 @@ struct Transactions {
         customer_select_tuple->AccessWithNullCheck(customer_select_pr_map.at(c_credit_oid)));
 
     // Insert new row in New Order
-    const auto [new_order_insert_pr_initializer, new_order_insert_pr_map] =
-        db->new_order_table_->InitializerForProjectedRow(
-            Util::AllColOidsForSchema(db->new_order_schema_));  // TODO(Matt): cache this thing
     auto *const new_order_insert_tuple = new_order_insert_pr_initializer.InitializeRow(worker->new_order_key_buffer);
     Util::SetTupleAttribute<int32_t>(db->new_order_schema_, 0, new_order_insert_pr_map, new_order_insert_tuple,
                                      d_next_o_id);
@@ -180,8 +258,6 @@ struct Transactions {
     TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
 
     // Insert new row in Order
-    const auto [order_insert_pr_initializer, order_insert_pr_map] = db->order_table_->InitializerForProjectedRow(
-        Util::AllColOidsForSchema(db->order_schema_));  // TODO(Matt): cache this thing
     auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
     Util::SetTupleAttribute<int32_t>(db->order_schema_, 0, order_insert_pr_map, order_insert_tuple, d_next_o_id);
     Util::SetTupleAttribute<int32_t>(db->order_schema_, 1, order_insert_pr_map, order_insert_tuple, args.d_id);
@@ -224,11 +300,6 @@ struct Transactions {
       }
 
       // Select I_PRICE, I_NAME, and I_DATE in table
-      const auto i_price_oid = db->item_schema_.GetColumn(3).GetOid();
-      const auto i_name_oid = db->item_schema_.GetColumn(2).GetOid();
-      const auto i_data_oid = db->item_schema_.GetColumn(4).GetOid();
-      const auto [item_select_pr_initializer, item_select_pr_map] = db->item_table_->InitializerForProjectedRow(
-          {i_price_oid, i_name_oid, i_data_oid});  // TODO(Matt): cache this thing
       auto *const item_select_tuple = item_select_pr_initializer.InitializeRow(worker->item_tuple_buffer);
       db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
       const auto UNUSED_ATTRIBUTE i_price =
@@ -249,33 +320,24 @@ struct Transactions {
       TERRIER_ASSERT(index_scan_results.size() == 1, "Stock index lookup failed.");
 
       // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA in table
-      const auto s_quantity_oid = db->stock_schema_.GetColumn(2).GetOid();
-      const auto s_dist_xx_oid = db->stock_schema_.GetColumn(2 + args.d_id).GetOid();
-      const auto s_ytd_oid = db->stock_schema_.GetColumn(13).GetOid();
-      const auto s_order_cnt_oid = db->stock_schema_.GetColumn(14).GetOid();
-      const auto s_remote_cnt_oid = db->stock_schema_.GetColumn(15).GetOid();
-      const auto s_data_oid = db->stock_schema_.GetColumn(16).GetOid();
-      const auto [stock_select_pr_initializer, stock_select_pr_map] =
-          db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid,
-                                                        s_remote_cnt_oid, s_data_oid});  // TODO(Matt): cache this thing
-      auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
+      auto *const stock_select_tuple =
+          stock_select_initializers[args.d_id - 1].first.InitializeRow(worker->stock_tuple_buffer);
       db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
-      const auto UNUSED_ATTRIBUTE s_quantity =
-          *reinterpret_cast<int16_t *>(stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_quantity_oid)));
-      const auto UNUSED_ATTRIBUTE s_dist_xx = *reinterpret_cast<storage::VarlenEntry *>(
-          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_dist_xx_oid)));
-      const auto UNUSED_ATTRIBUTE s_ytd =
-          *reinterpret_cast<int32_t *>(stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_ytd_oid)));
+      const auto UNUSED_ATTRIBUTE s_quantity = *reinterpret_cast<int16_t *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_initializers[args.d_id - 1].second.at(s_quantity_oid)));
+      const auto UNUSED_ATTRIBUTE s_dist_xx =
+          *reinterpret_cast<storage::VarlenEntry *>(stock_select_tuple->AccessWithNullCheck(
+              stock_select_initializers[args.d_id - 1].second.at(s_dist_xx_oids[args.d_id - 1])));
+      const auto UNUSED_ATTRIBUTE s_ytd = *reinterpret_cast<int32_t *>(
+          stock_select_tuple->AccessWithNullCheck(stock_select_initializers[args.d_id - 1].second.at(s_ytd_oid)));
       const auto UNUSED_ATTRIBUTE s_order_cnt = *reinterpret_cast<int16_t *>(
-          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_order_cnt_oid)));
-      const auto UNUSED_ATTRIBUTE s_remote_cnt = *reinterpret_cast<int16_t *>(
-          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_remote_cnt_oid)));
+          stock_select_tuple->AccessWithNullCheck(stock_select_initializers[args.d_id - 1].second.at(s_order_cnt_oid)));
+      const auto UNUSED_ATTRIBUTE s_remote_cnt = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessWithNullCheck(
+          stock_select_initializers[args.d_id - 1].second.at(s_remote_cnt_oid)));
       const auto UNUSED_ATTRIBUTE s_data = *reinterpret_cast<storage::VarlenEntry *>(
-          stock_select_tuple->AccessWithNullCheck(stock_select_pr_map.at(s_data_oid)));
+          stock_select_tuple->AccessWithNullCheck(stock_select_initializers[args.d_id - 1].second.at(s_data_oid)));
 
       // Update S_QUANTITY, S_YTD, S_REMOTE_CNT
-      const auto [stock_update_pr_initializer, stock_update_pr_map] = db->stock_table_->InitializerForProjectedRow(
-          {s_quantity_oid, s_ytd_oid, s_remote_cnt_oid});  // TODO(Matt): cache this thing
       auto *const stock_update_tuple = stock_update_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
       *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(stock_update_pr_map.at(s_quantity_oid))) =
           (s_quantity >= item.ol_quantity + 10) ? s_quantity - item.ol_quantity : s_quantity - item.ol_quantity + 91;
@@ -291,9 +353,6 @@ struct Transactions {
       }
 
       // Insert new row in Order Line
-      const auto [order_line_insert_pr_initializer, order_line_insert_pr_map] =
-          db->order_line_table_->InitializerForProjectedRow(
-              Util::AllColOidsForSchema(db->order_line_schema_));  // TODO(Matt): cache this thing
       auto *const order_line_insert_tuple =
           order_line_insert_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
       Util::SetTupleAttribute<int32_t>(db->order_line_schema_, 0, order_line_insert_pr_map, order_line_insert_tuple,

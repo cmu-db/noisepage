@@ -15,7 +15,7 @@
 
 namespace terrier::tpcc {
 
-constexpr uint32_t num_warehouses_ = 1;  // TODO(Matt): don't hard code this
+constexpr uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hard code this
 
 // 4.3.3.1
 struct Loader {
