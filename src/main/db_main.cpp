@@ -1,10 +1,13 @@
+#include <memory>
 #include "main/db_main.h"
 
 namespace terrier {
-int DBMain::Init() {
+int DBMain::Init(int argc, char **argv) {
   try {
     // init settings manager
-    // init ......
+    // init gc
+    // init catalog
+    // init woker pool
     init_main_logger();
     // initialize namespace specific loggers
     terrier::storage::init_index_logger();

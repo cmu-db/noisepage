@@ -22,10 +22,35 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier {
+
+/**
+ * A DBMain object holds every thing (i.e. pointers to every component)
+ * about the database system. Only settings manager can access the DBMain
+ * object.
+ */
 class DBMain {
  public:
-  int Init();
+  /**
+   * This function initializes the following components in order:
+   *    SettingsManager
+   *    Garbage Collector
+   *    Catalog
+   *    Worker Pool
+   *    Logging
+   *    Stats
+   * @return 0 if initialized successfully; 1 otherwise
+   */
+  int Init(int argc, char **argv);
+
+  /**
+   * This function boots traffic cop and networking layer
+   * @return 0 if started successfully; 1 otherwise
+   */
   int Start();
+
+  /**
+   * This function provides the shutdown API
+   */
   void Shutdown();
 
  private:
