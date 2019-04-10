@@ -1,6 +1,5 @@
 #pragma once
 
-#include <network/terrier_server.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -20,13 +19,14 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
+#include "network/terrier_server.h"
 
 namespace terrier {
 
 /**
  * A DBMain object holds every thing (i.e. pointers to every component)
- * about the database system. Only settings manager can access the DBMain
- * object.
+ * about the database system.
+ * *Only the settings manager should be able to access the DBMain object.*
  */
 class DBMain {
  public:
@@ -55,6 +55,7 @@ class DBMain {
 
  private:
   // friend class SettingsManager
-  std::shared_ptr<terrier::common::StatisticsRegistry> main_stat_reg_;
+  std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
+  network::TerrierServer terrier_server_;
 };
 }  // namespace terrier
