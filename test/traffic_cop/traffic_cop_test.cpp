@@ -81,8 +81,22 @@ TEST_F(TrafficCopTests, RoundTripTest) {
   StopServer();
 }
 
+//NOLINTNEXTLINE
+TEST_F(TrafficCopTests, ExtendedQueryTest){
+  StartServer();
+  try{
+    pqxx::connection connection(
+        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port));
+
+
+
+  } catch(const std::exception &e) {
+
+  }
+}
+
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, SimpleExtendedQueryTest) {
+TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   StartServer();
   try {
     auto io_socket = network::StartConnection(port);

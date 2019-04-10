@@ -189,8 +189,7 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
     auto p_statement = connection->statements.find(name);
     if(p_statement == connection->statements.end()) {
       std::string error_msg = fmt::format("There is no statement with name {0}", name);
-      NETWORK_LOG_ERROR(error_msg);
-      out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+      LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
     traffic_cop::Statement &statement = p_statement->second;
@@ -215,7 +214,10 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
     return Transition::PROCEED;
   }
 
-  out->WriteRowDescription(column_names);
+  if(column_names.empty())
+    out->WriteNoData();
+  else
+    out->WriteRowDescription(column_names);
   return Transition::PROCEED;
 }
 
@@ -249,9 +251,8 @@ Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 
 Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCopPtr t_cop,
                               ConnectionContext *connection, NetworkCallback callback) {
+  NETWORK_LOG_TRACE("Close Command");
   // Send close complete response
-  out->WriteEmptyQueryResponse();
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 

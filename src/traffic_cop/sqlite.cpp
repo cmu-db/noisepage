@@ -78,6 +78,7 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
   using type::TransientValuePeeker;
   using type::TypeId;
 
+  sqlite3_reset(stmt);
   auto &params = *p_params;
 
   for (int i = 0; i < static_cast<int>(params.size()); i++) {
@@ -136,7 +137,7 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     result_code = sqlite3_step(stmt);
   }
 
-  LOG_DEBUG("Execute complete, {0} rows are in the result set", result_set.rows_.size());
+  LOG_TRACE("Execute complete, {0} rows are in the result set", result_set.rows_.size());
 
   return result_set;
 }

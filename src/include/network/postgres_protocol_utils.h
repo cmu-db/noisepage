@@ -318,9 +318,14 @@ class PostgresPacketWriter {
    */
   void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
 
+  /**
+   * Writes a no-data response
+   */
+  void WriteNoData(){BeginPacket(NetworkMessageType::NO_DATA_RESPONSE).EndPacket();}
+
   void WriteParameterDescription(const std::vector<PostgresValueType> &param_types){
     BeginPacket(NetworkMessageType::PARAMETER_DESCRIPTION);
-    AppendValue<int32_t>(static_cast<int32_t>(param_types.size()));
+    AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
     for(auto &type : param_types)
       AppendValue<int32_t>(static_cast<int32_t>(type));
