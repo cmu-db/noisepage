@@ -41,7 +41,7 @@ bool SeqScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (IsForUpdate() != rhs_plan_node.IsForUpdate()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return AbstractScanPlanNode::operator==(rhs) && AbstractPlanNode::operator==(rhs);
 }
 
 }  // namespace terrier::plan_node

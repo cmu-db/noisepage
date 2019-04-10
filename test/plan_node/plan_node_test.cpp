@@ -70,6 +70,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
                         .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
                                                                             catalog::col_oid_t(1)))
                         .SetTableOID(catalog::table_oid_t(1))
+                        .SetDatabaseOid(catalog::db_oid_t(0))
                         .SetScanPredicate(std::make_unique<parser::StarExpression>())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
@@ -78,6 +79,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_1->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_1->GetChildrenSize());
   EXPECT_EQ(catalog::table_oid_t(1), seq_scan_1->GetTableOid());
+  EXPECT_EQ(catalog::db_oid_t(0), seq_scan_1->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_1->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_1->IsForUpdate());
   EXPECT_TRUE(seq_scan_1->IsParallel());
@@ -86,6 +88,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
                         .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
                                                                             catalog::col_oid_t(2)))
                         .SetTableOID(catalog::table_oid_t(2))
+                        .SetDatabaseOid(catalog::db_oid_t(0))
                         .SetScanPredicate(std::make_unique<parser::StarExpression>())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
@@ -94,6 +97,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_2->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_2->GetChildrenSize());
   EXPECT_EQ(catalog::table_oid_t(2), seq_scan_2->GetTableOid());
+  EXPECT_EQ(catalog::db_oid_t(0), seq_scan_2->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_2->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
   EXPECT_TRUE(seq_scan_2->IsParallel());
