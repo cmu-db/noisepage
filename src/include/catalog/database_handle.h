@@ -31,6 +31,7 @@ class DatabaseEntry : public CatalogEntry<db_oid_t> {
   /**
    * Constructor
    * @param oid database def oid
+   * @param sql_table associated with this entry
    * @param entry a row in pg_database that represents this table
    */
   DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)

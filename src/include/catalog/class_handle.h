@@ -24,6 +24,7 @@ class ClassEntry : public CatalogEntry<col_oid_t> {
   /**
    * Constructor
    * @param oid class def oid
+   * @param sql_table associated with this entry
    * @param entry a row in pg_class that represents this table
    */
   ClassEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)

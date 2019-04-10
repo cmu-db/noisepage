@@ -22,6 +22,7 @@ class SettingsEntry : public CatalogEntry<settings_oid_t> {
   /**
    * Constructor
    * @param oid settings oid
+   * @param sql_table associated with this entry
    * @param entry a row in pg_settings that represents this table
    */
   SettingsEntry(settings_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
