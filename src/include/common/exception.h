@@ -62,6 +62,8 @@ class Exception : public std::runtime_error {
         return "Parser";
       case ExceptionType::NETWORK:
         return "Network";
+      case ExceptionType::SETTINGS:
+        return "Settings";
       default:
         return "Unknown exception type";
     }
