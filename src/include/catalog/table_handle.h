@@ -140,10 +140,9 @@ class TableHandle {
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace
    */
-  TableHandle(Catalog *catalog, db_oid_t db_oid, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
+  TableHandle(Catalog *catalog, namespace_oid_t nsp_oid, std::shared_ptr<SqlTableRW> pg_class,
               std::shared_ptr<SqlTableRW> pg_namespace, std::shared_ptr<SqlTableRW> pg_tablespace)
       : catalog_(catalog),
-        db_oid_(db_oid),
         nsp_oid_(nsp_oid),
         pg_class_(std::move(pg_class)),
         pg_namespace_(std::move(pg_namespace)),
@@ -205,7 +204,6 @@ class TableHandle {
 
  private:
   Catalog *catalog_;
-  db_oid_t db_oid_;
   namespace_oid_t nsp_oid_;
   std::shared_ptr<SqlTableRW> pg_class_;
   std::shared_ptr<SqlTableRW> pg_namespace_;

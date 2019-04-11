@@ -232,7 +232,6 @@ class Catalog {
    */
   void Bootstrap(transaction::TransactionContext *txn);
 
-
   void CreatePGDatabase(table_oid_t table_oid);
 
   void CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid);

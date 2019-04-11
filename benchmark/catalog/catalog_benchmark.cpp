@@ -56,7 +56,6 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, DatabaseLookupTime)(benchmark::State &state
     }
   }
   state.SetItemsProcessed(state.iterations() * num_lookups);
-
 }
 
 BENCHMARK_REGISTER_F(CatalogBenchmark, DatabaseLookupTime)->Unit(benchmark::kMillisecond)->MinTime(2);

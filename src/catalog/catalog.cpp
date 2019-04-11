@@ -19,9 +19,9 @@ std::shared_ptr<Catalog> terrier_catalog;
 
 Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn)
     : txn_manager_(txn_manager), oid_(START_OID) {
-    CATALOG_LOG_TRACE("Creating catalog ...");
-    Bootstrap(txn);
-    CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
+  CATALOG_LOG_TRACE("Creating catalog ...");
+  Bootstrap(txn);
+  CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
 void Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
