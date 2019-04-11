@@ -68,7 +68,20 @@ class GarbageCollector {
    */
   bool ProcessUndoRecord(UndoRecord *undo_record, std::vector<transaction::timestamp_t> *active_txns);
 
+  /**
+   * Delete the slot corresponding to the unlinked undo record if the undo record was a DELETE
+   * @param undo_record the unlinked undo record
+   */
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
+
+  /**
+   * Given the data table and the tuple slot, try unlinking the version chain head for that tuple slot
+   * @param table data table
+   * @param slot tuple slot
+   * @param active_txns list of currently running active transactions
+   */
+  void ProcessTupleVersionChainHead(DataTable *table, TupleSlot slot,
+                                    std::vector<transaction::timestamp_t> *active_txns);
 
   /**
    * Given a version chain, perform interval gc on all versions except the head of the chain
@@ -164,13 +177,6 @@ class GarbageCollector {
    * @param undo_record the compacted undo record
    */
   void CopyVarlen(UndoRecord *undo_record);
-
-  /**
-   * Given the undo record to be linked to the version chain, safely link it to the given undo record
-   * @param curr the undo record which will point to the given undo record
-   * @param to_link the undo to be linked to the version chain
-   */
-  void SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link);
 
   // reference to the transaction manager class object
   transaction::TransactionManager *txn_manager_;

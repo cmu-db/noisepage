@@ -181,18 +181,55 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
 
 bool GarbageCollector::ProcessUndoRecord(UndoRecord *const undo_record,
                                          std::vector<transaction::timestamp_t> *const active_txns) {
-  DataTable *&table = undo_record->Table();
+  DataTable *table = undo_record->Table();
   // If this UndoRecord has already been processed, we can skip it
   if (table == nullptr) return true;
-
+  const TupleSlot slot = undo_record->Slot();
   // Process this tuple only
-  if (visited_slots_.insert(undo_record->Slot()).second) {
+  if (visited_slots_.insert(slot).second) {
     // Perform interval gc for the entire version chain excluding the head of the chain
     ProcessTupleVersionChain(undo_record, active_txns);
+    ProcessTupleVersionChainHead(table, slot, active_txns);
   }
 
   table = undo_record->Table();
   return table == nullptr;
+}
+
+
+bool SanityCheck(UndoRecord* a) {
+    while(a) {
+        if(a->Table() == nullptr)
+            return false;
+        a = a->Next();
+    }
+    return true;
+}
+
+void GarbageCollector::ProcessTupleVersionChainHead(DataTable *const table, TupleSlot slot,
+                                                    std::vector<transaction::timestamp_t> *const active_txns) {
+  UndoRecord *version_chain_head;
+  const TupleAccessStrategy &accessor = table->accessor_;
+  version_chain_head = table->AtomicallyReadVersionPtr(slot, accessor);
+  if (version_chain_head == nullptr) {
+    // This version chain is empty, so we can skip it
+    return;
+  }
+  // Perform gc for head of the chain
+  // Assuming can garbage collect any version greater than the oldest timestamp
+  transaction::timestamp_t version_ptr_timestamp = version_chain_head->Timestamp().load();
+  // If there are no active transactions, or if the version pointer is older than the oldest active transaction,
+  // Collect the head of the chain using compare and swap
+  // Note that active_txns is sorted in descending order, so its tail should have the oldest txn's timestamp
+  if (active_txns->empty() || version_ptr_timestamp < active_txns->back()) {
+    if (transaction::TransactionUtil::Committed(version_ptr_timestamp)) {
+      // Our UndoRecord is the first in the chain, handle contention on the write lock with CAS
+      if (table->CompareAndSwapVersionPtr(slot, accessor, version_chain_head, nullptr)) {
+        UnlinkUndoRecordVersion(version_chain_head);
+      }
+      // Someone swooped the VersionPointer while we were trying to swap it (aka took the write lock)
+    }
+  }
 }
 
 void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
@@ -265,8 +302,27 @@ void GarbageCollector::ProcessTupleVersionChain(UndoRecord *const undo_record,
     next = curr->Next();
   }
 
+    if (interval_length > 1) {
+        // Create the undo record by a second traversal through the records to be compacted.
+        UndoRecord *compacted_undo_record = CreateUndoRecord(start_record, next);
+        // Copy the varlen attributes of the compacted record
+        CopyVarlen(compacted_undo_record);
+        // Link the compacted record to the version chain.
+        LinkCompactedUndoRecord(start_record, &curr, next, compacted_undo_record);
+    } else if(interval_length == 1) {
+        if(active_txns_iter != active_txns->end()) {
+          // Exited out of case 3 such that the last record is still visible to some transaction
+        } else {
+          // Exited out of case 3 such that the last record is not visible to any transaction
+          UnlinkUndoRecordVersion(start_record->Next());
+          start_record->Next().store(nullptr);
+        }
+    }
+    // Set interval length to 0
+    EndCompaction(&interval_length);
+
   // active_trans_iter ends but there are still elements in the version chain. Can GC everything below
-  SwapwithSafeAbort(curr, nullptr);
+  curr->Next().store(nullptr);
   while (next != nullptr) {
     // Unlink next
     UnlinkUndoRecordVersion(next);
@@ -308,7 +364,7 @@ void GarbageCollector::LinkCompactedUndoRecord(UndoRecord *start_record, UndoRec
   // Add this to the version chain
   compacted_undo_record->Next().store(end_record);
   // Set start_record to point to the compacted undo record
-  SwapwithSafeAbort(start_record, compacted_undo_record);
+  start_record->Next().store(compacted_undo_record);
   // Added a compacted undo record. So it should be curr
   *curr_ptr = compacted_undo_record;
 }
@@ -330,7 +386,7 @@ void GarbageCollector::ReadUndoRecord(UndoRecord *start_record, UndoRecord *next
       EndCompaction(interval_length_ptr);
       // Insert undo record can be GC'd so this tuple is not visible
       // Set start_record to point to Insert's next undo record
-      SwapwithSafeAbort(start_record, next);
+      start_record->Next().store(next);
       break;
     case DeltaRecordType::DELETE: {
     }
@@ -463,7 +519,5 @@ void GarbageCollector::DeallocateVarlen(UndoBuffer *undo_buffer) {
     }
   }
 }
-
-void GarbageCollector::SwapwithSafeAbort(UndoRecord *curr, UndoRecord *to_link) { curr->Next().store(to_link); }
 
 }  // namespace terrier::storage
