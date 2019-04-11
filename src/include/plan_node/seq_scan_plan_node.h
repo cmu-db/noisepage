@@ -45,7 +45,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     std::unique_ptr<SeqScanPlanNode> Build() {
       return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(scan_predicate_), is_for_update_,
-                                                                  is_parallel_, table_oid_));
+                                                                  is_parallel_, database_oid_, table_oid_));
     }
 
    protected:
@@ -62,14 +62,15 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param predicate scan predicate
    * @param is_for_update flag for if scan is for an update
    * @param is_parallel flag for parallel scan
+   * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema,
                   std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                  catalog::table_oid_t table_oid)
+                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel),
+                             is_parallel, database_oid),
         table_oid_(table_oid) {}
 
  public:

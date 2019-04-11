@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "plan_node/abstract_plan_node.h"
 
@@ -47,6 +48,15 @@ class AbstractScanPlanNode : public AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * @param oid database OID of table/index beind scanned
+     * @return builder object
+     */
+    ConcreteType &SetDatabaseOid(catalog::db_oid_t oid) {
+      database_oid_ = oid;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
    protected:
     /**
      * Scan predicate
@@ -60,6 +70,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * Is this a parallel scan
      */
     bool is_parallel_ = false;
+
+    /**
+     * Database OID for scan
+     */
+    catalog::db_oid_t database_oid_;
   };
 
   /**
@@ -69,15 +84,17 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
    * @param is_parallel parallel scan flag
+   * @param database_oid database oid for scan
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::shared_ptr<OutputSchema> output_schema,
                        std::unique_ptr<const parser::AbstractExpression> predicate, bool is_for_update,
-                       bool is_parallel)
+                       bool is_parallel, catalog::db_oid_t database_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(std::move(predicate)),
         is_for_update_(is_for_update),
-        is_parallel_(is_parallel) {}
+        is_parallel_(is_parallel),
+        database_oid_(database_oid) {}
 
  public:
   /**
@@ -95,6 +112,17 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   bool IsParallel() const { return is_parallel_; }
 
+  /**
+   * @return database OID of index/table being scanned
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return the hashed value of this plan node
+   */
+  common::hash_t Hash() const override;
+  bool operator==(const AbstractPlanNode &rhs) const override;
+
  private:
   /**
    * Selection predicate. We remove const to make it used when deserialization
@@ -110,6 +138,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Should this scan be performed in parallel?
    */
   bool is_parallel_;
+
+  /**
+   * Database OID for scan
+   */
+  catalog::db_oid_t database_oid_;
 
  public:
   /**
