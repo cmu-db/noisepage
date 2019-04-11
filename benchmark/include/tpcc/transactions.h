@@ -403,7 +403,7 @@ class NewOrder {
     *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
 
-    bool index_insert_result = db->new_order_index_->ConditionalInsert(
+    bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
         *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
 
