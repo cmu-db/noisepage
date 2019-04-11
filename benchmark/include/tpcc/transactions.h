@@ -68,12 +68,12 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
 class NewOrder {
  public:
   struct StockSelectPROffsets {
-    const uint16_t s_quantity_select_pr_offset;
-    const uint16_t s_dist_xx_select_pr_offset;
-    const uint16_t s_ytd_select_pr_offset;
-    const uint16_t s_order_cnt_select_pr_offset;
-    const uint16_t s_remote_cnt_select_pr_offset;
-    const uint16_t s_data_select_pr_offset;
+    const uint8_t s_quantity_select_pr_offset;
+    const uint8_t s_dist_xx_select_pr_offset;
+    const uint8_t s_ytd_select_pr_offset;
+    const uint8_t s_order_cnt_select_pr_offset;
+    const uint8_t s_remote_cnt_select_pr_offset;
+    const uint8_t s_data_select_pr_offset;
   };
 
   explicit NewOrder(const Database *const db)
@@ -208,12 +208,13 @@ class NewOrder {
     stock_select_pr_offsets.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).GetOid();
-      stock_select_pr_offsets.push_back({stock_select_initializers[d_id].second.at(s_quantity_oid),
-                                         stock_select_initializers[d_id].second.at(s_dist_xx_oid),
-                                         stock_select_initializers[d_id].second.at(s_ytd_oid),
-                                         stock_select_initializers[d_id].second.at(s_order_cnt_oid),
-                                         stock_select_initializers[d_id].second.at(s_remote_cnt_oid),
-                                         stock_select_initializers[d_id].second.at(s_data_oid)});
+      stock_select_pr_offsets.push_back(
+          {static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_quantity_oid)),
+           static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_dist_xx_oid)),
+           static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_ytd_oid)),
+           static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_order_cnt_oid)),
+           static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_remote_cnt_oid)),
+           static_cast<uint8_t>(stock_select_initializers[d_id].second.at(s_data_oid))});
     }
   }
 
