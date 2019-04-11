@@ -36,7 +36,7 @@ class DropViewPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the view to drop
+     * @param view_oid the OID of the view to drop
      * @return builder object
      */
     Builder &SetViewOid(catalog::view_oid_t view_oid) {

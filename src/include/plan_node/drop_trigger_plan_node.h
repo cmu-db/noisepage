@@ -36,7 +36,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the trigger to drop
+     * @param trigger_oid the OID of the trigger to drop
      * @return builder object
      */
     Builder &SetTriggerOid(catalog::trigger_oid_t trigger_oid) {

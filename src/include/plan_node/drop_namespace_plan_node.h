@@ -36,7 +36,7 @@ class DropNamespacePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the namespace to drop
+     * @param namespace_oid the OID of the namespace to drop
      * @return builder object
      */
     Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {

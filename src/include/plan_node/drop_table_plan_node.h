@@ -36,7 +36,7 @@ class DropTablePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the table to drop
+     * @param table_oid the OID of the table to drop
      * @return builder object
      */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {

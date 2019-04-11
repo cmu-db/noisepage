@@ -313,7 +313,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param namespace OID of the namespace
+     * @param namespace_oid OID of the namespace
      * @return builder object
      */
     Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {

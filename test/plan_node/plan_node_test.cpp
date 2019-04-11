@@ -52,7 +52,8 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
 
   DropDatabasePlanNode::Builder builder;
   std::default_random_engine generator_;
-  auto database_oid = static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+  auto database_oid =
+      static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
   auto plan = builder.SetDatabaseOid(database_oid).SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
@@ -70,7 +71,8 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
 
   DropDatabasePlanNode::Builder builder;
   std::default_random_engine generator_;
-  auto database_oid = static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+  auto database_oid =
+      static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
   auto plan = builder.SetDatabaseOid(database_oid).SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);

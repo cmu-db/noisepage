@@ -36,7 +36,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the index to drop
+     * @param index_oid the OID of the index to drop
      * @return builder object
      */
     Builder &SetIndexOid(catalog::index_oid_t index_oid) {
