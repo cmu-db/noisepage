@@ -49,18 +49,6 @@ std::shared_ptr<AttributeEntry> AttributeHandle::GetAttributeEntry(transaction::
   return std::make_shared<AttributeEntry>(oid, pg_attribute_hrw_.get(), std::move(ret_row));
 }
 
-col_oid_t AttributeHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
-  Schema schema = table_->GetSqlTable()->GetSchema();
-  auto cols = schema.GetColumns();
-  for (auto &c : cols) {
-    if (name == c.GetName()) {
-      return c.GetOid();
-    }
-  }
-  throw CATALOG_EXCEPTION("column doesn't exist");
-  return col_oid_t(0);
-}
-
 std::shared_ptr<catalog::SqlTableRW> AttributeHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                              db_oid_t db_oid, const std::string &name) {
   std::shared_ptr<catalog::SqlTableRW> pg_attr;

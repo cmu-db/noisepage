@@ -43,12 +43,6 @@ table_oid_t TableHandle::NameToOid(transaction::TransactionContext *txn, const s
   return result;
 }
 
-AttributeHandle TableHandle::GetAttributeHandle(transaction::TransactionContext *txn, const std::string &table_name) {
-  // get the table pointer
-  SqlTableRW *table_ptr = GetTable(txn, table_name);
-  return AttributeHandle(table_ptr, catalog_->GetDatabaseCatalog(db_oid_, "pg_attribute"));
-}
-
 SqlTableRW *TableHandle::CreateTable(transaction::TransactionContext *txn, const Schema &schema,
                                      const std::string &name) {
   std::vector<type::TransientValue> row;

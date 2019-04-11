@@ -55,15 +55,6 @@ class AttributeHandle {
       : pg_attribute_hrw_(std::move(pg_attribute)) {}
 
   /**
-   * Construct an attribute handle. It keeps a pointer to the pg_attribute sql table.
-   * @param table a pointer to SqlTableRW
-   * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
-   */
-  // TODO(pakhtar): deprecate
-  explicit AttributeHandle(SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
-      : table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
-
-  /**
    * Convert a attribute string to its oid representation
    * @param name the attribute
    * @param txn the transaction context
@@ -114,8 +105,6 @@ class AttributeHandle {
   static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  // Catalog *catalog_;
-  SqlTableRW *table_;
   std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
 };
 

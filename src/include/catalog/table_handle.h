@@ -180,14 +180,6 @@ class TableHandle {
   std::shared_ptr<TableEntry> GetTableEntry(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Get a table handle under the given namespace
-   * @param txn the transaction context
-   * @param table_name the name of the table
-   * @return a handle to all the attributes in the table
-   */
-  AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, const std::string &table_name);
-
-  /**
    * Create a SqlTable. The namespace of the table is the same as the TableHandle.
    * @param txn the transaction context
    * @param name the table name
