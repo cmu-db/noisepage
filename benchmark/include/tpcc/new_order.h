@@ -304,11 +304,8 @@ class NewOrder {
     auto *const district_update_tuple = district_update_pr_initializer.InitializeRow(worker->district_tuple_buffer);
     *reinterpret_cast<int32_t *>(district_update_tuple->AccessForceNotNull(0)) = d_next_o_id + 1;
 
-    bool result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
-    if (!result) {
-      txn_manager->Abort(txn);
-      return false;
-    }
+    bool UNUSED_ATTRIBUTE result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
+    TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     // Look up C_ID, D_ID, W_ID in index
     const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
@@ -452,6 +449,7 @@ class NewOrder {
 
       result = db->stock_table_->Update(txn, index_scan_results[0], *stock_update_tuple);
       if (!result) {
+        // This can fail due to remote orders
         txn_manager->Abort(txn);
         return false;
       }

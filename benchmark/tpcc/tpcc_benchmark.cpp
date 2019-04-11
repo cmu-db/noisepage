@@ -56,7 +56,7 @@ class TPCCBenchmark : public benchmark::Fixture {
  private:
   std::thread log_thread_;
   volatile bool logging_ = false;
-  const std::chrono::milliseconds log_period_milli_{40};
+  const std::chrono::milliseconds log_period_milli_{10};
 
   void LogThreadLoop() {
     while (logging_) {
@@ -68,7 +68,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
   volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{40};
+  const std::chrono::milliseconds gc_period_{10};
 
   void GCThreadLoop() {
     while (run_gc_) {
