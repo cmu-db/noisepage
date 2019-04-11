@@ -47,7 +47,7 @@ class TupleAccessStrategy {
    * ----------------------------------------------------------------------------------------------
    *
    * Note that we will never need to span a tuple across multiple pages if we enforce
-   * block size to be 1 MB and columns to be less than 32767 (max int16_t)
+   * block size to be 1 MB and columns to be less than MAX_COL
    */
   struct Block {
     MEM_REINTERPRETATION_ONLY(Block)
@@ -105,6 +105,10 @@ class TupleAccessStrategy {
    */
   void InitializeRawBlock(RawBlock *raw, layout_version_t layout_version) const;
 
+  /**
+   * @param block block to access
+   * @return the ArrowBlockMetadata object of the requested block
+   */
   ArrowBlockMetadata &GetArrowBlockMetadata(RawBlock *block) const {
     return reinterpret_cast<Block *>(block)->GetArrowBlockMetadata();
   }

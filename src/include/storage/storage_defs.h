@@ -170,7 +170,7 @@ using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  * TODO(Matt): could be used by the GC for recycling
  */
-enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE, LOCK };
+enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 
 /**
  * Types of LogRecords
@@ -290,6 +290,10 @@ struct VarlenContentDeepEqual {
  * Hasher that hashes the entry using the underlying varlen value
  */
 struct VarlenContentHasher {
+  /**
+   * @param obj object to hash
+   * @return hash code of object
+   */
   size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
 };
 

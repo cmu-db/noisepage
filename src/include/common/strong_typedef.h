@@ -66,6 +66,7 @@ class StrongTypeAlias {
 
  public:
   StrongTypeAlias() = default;
+
   /**
    * Constructs a new StrongTypeAlias.
    * @param val const reference to the underlying type.

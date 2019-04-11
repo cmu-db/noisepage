@@ -16,7 +16,7 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
   for (uint8_t size UNUSED_ATTRIBUTE : attr_sizes_)
     TERRIER_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT8_MAX), "Invalid size of a column");
   TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
-                 "number of columns must be between 1 and 32767");
+                 "number of columns must be between 1 and MAX_COL");
   TERRIER_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
   // skip the reserved columns because we still want those first and shouldn't mess up 8-byte alignment
