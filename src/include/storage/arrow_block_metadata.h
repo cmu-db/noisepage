@@ -36,7 +36,7 @@ class ArrowVarlenColumn {
         values_(common::AllocationUtil::AllocateAligned(values_length_)),
         offsets_(common::AllocationUtil::AllocateAligned<uint32_t>(offsets_length_)) {}
 
-  DISALLOW_COPY(ArrowVarlenColumn);
+  DISALLOW_COPY(ArrowVarlenColumn)
 
   /**
    * Move constructor
@@ -168,7 +168,7 @@ class ArrowColumnInfo {
  */
 class ArrowBlockMetadata {
  public:
-  MEM_REINTERPRETATION_ONLY(ArrowBlockMetadata);
+  MEM_REINTERPRETATION_ONLY(ArrowBlockMetadata)
 
   /**
    * @param num_cols number of columns stored in the block
@@ -207,7 +207,7 @@ class ArrowBlockMetadata {
 
   /**
     * @param col_id the column of interest
-    * @retur the null count for given column
+    * @return the null count for given column
     */
   uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
 

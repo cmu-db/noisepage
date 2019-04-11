@@ -56,6 +56,9 @@ class BlockLayout {
   // TODO(Tianyu): Can probably store this like varlens to avoid computing every time.
   // TODO(Tianyu): The old test code has a util function that does this. Now that we are including this in the codebase
   // itself, we should replace the calls in test with this and delete that.
+  /**
+   * @return all the columns in the layout
+   */
   std::vector<col_id_t> AllColumns() const {
     std::vector<col_id_t> result;
     for (uint16_t i = NUM_RESERVED_COLUMNS; i < attr_sizes_.size(); i++) result.emplace_back(i);
