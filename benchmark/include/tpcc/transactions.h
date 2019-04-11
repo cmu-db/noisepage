@@ -15,7 +15,7 @@ struct NewOrderArgs {
     int32_t ol_i_id;
     int32_t ol_supply_w_id;
     int32_t ol_quantity;
-    bool home;
+    bool remote;
   };
 
   int32_t w_id;
@@ -45,28 +45,28 @@ NewOrderArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
   for (int32_t i = 0; i < args.ol_cnt; i++) {
     int32_t ol_i_id = (i == args.ol_cnt - 1 && args.rbk == 1) ? 8491138 : Util::NURand(8191, 1, 100000, generator);
     int32_t ol_supply_w_id;
-    bool home;
+    bool remote;
     if (num_warehouses_ == 1 || Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
       ol_supply_w_id = w_id;
-      home = true;
+      remote = false;
     } else {
       int32_t remote_w_id;
       do {
         remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses_, 0, generator);
       } while (remote_w_id == w_id);
       ol_supply_w_id = remote_w_id;
-      home = false;
+      remote = true;
       args.o_all_local = false;
     }
     int32_t ol_quantity = Util::RandomWithin<uint8_t>(1, 10, 0, generator);
-    args.items.push_back({ol_i_id, ol_supply_w_id, ol_quantity, home});
+    args.items.push_back({ol_i_id, ol_supply_w_id, ol_quantity, remote});
   }
   args.o_entry_d = Util::Timestamp();
   return args;
 }
 
 class NewOrder {
- public:
+ private:
   struct StockSelectPROffsets {
     const uint8_t s_quantity_select_pr_offset;
     const uint8_t s_dist_xx_select_pr_offset;
@@ -76,6 +76,100 @@ class NewOrder {
     const uint8_t s_data_select_pr_offset;
   };
 
+  const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
+
+  const catalog::col_oid_t d_tax_oid;
+  const catalog::col_oid_t d_next_o_id_oid;
+  const storage::ProjectedRowInitializer district_select_pr_initializer;
+  const storage::ProjectionMap district_select_pr_map;
+
+  const uint8_t d_id_key_pr_offset;
+  const uint8_t d_w_id_key_pr_offset;
+  const uint8_t d_tax_select_pr_offset;
+  const uint8_t d_next_o_id_select_pr_offset;
+  const storage::ProjectedRowInitializer district_update_pr_initializer;
+
+  const catalog::col_oid_t c_discount_oid;
+  const catalog::col_oid_t c_last_oid;
+  const catalog::col_oid_t c_credit_oid;
+  const storage::ProjectedRowInitializer customer_select_pr_initializer;
+  const storage::ProjectionMap customer_select_pr_map;
+  const uint8_t c_discount_select_pr_offset;
+  const uint8_t c_last_select_pr_offset;
+  const uint8_t c_credit_select_pr_offset;
+  const uint8_t c_id_key_pr_offset;
+  const uint8_t c_d_id_key_pr_offset;
+  const uint8_t c_w_id_key_pr_offset;
+
+  const storage::ProjectedRowInitializer new_order_insert_pr_initializer;
+  const storage::ProjectionMap new_order_insert_pr_map;
+  const uint8_t no_o_id_insert_pr_offset;
+  const uint8_t no_d_id_insert_pr_offset;
+  const uint8_t no_w_id_insert_pr_offset;
+
+  const uint8_t no_o_id_key_pr_offset;
+  const uint8_t no_d_id_key_pr_offset;
+  const uint8_t no_w_id_key_pr_offset;
+
+  const storage::ProjectedRowInitializer order_insert_pr_initializer;
+  const storage::ProjectionMap order_insert_pr_map;
+  const uint8_t o_id_insert_pr_offset;
+  const uint8_t o_d_id_insert_pr_offset;
+  const uint8_t o_w_id_insert_pr_offset;
+  const uint8_t o_c_id_insert_pr_offset;
+  const uint8_t o_entry_d_insert_pr_offset;
+  const uint8_t o_carrier_id_insert_pr_offset;
+  const uint8_t o_ol_cnt_insert_pr_offset;
+  const uint8_t o_all_local_insert_pr_offset;
+
+  const uint8_t o_id_key_pr_offset;
+  const uint8_t o_d_id_key_pr_offset;
+  const uint8_t o_w_id_key_pr_offset;
+
+  const catalog::col_oid_t i_price_oid;
+  const catalog::col_oid_t i_name_oid;
+  const catalog::col_oid_t i_data_oid;
+  const storage::ProjectedRowInitializer item_select_pr_initializer;
+  const storage::ProjectionMap item_select_pr_map;
+  const uint8_t i_price_select_pr_offset;
+  const uint8_t i_name_select_pr_offset;
+  const uint8_t i_data_select_pr_offset;
+
+  const catalog::col_oid_t s_quantity_oid;
+  const catalog::col_oid_t s_ytd_oid;
+  const catalog::col_oid_t s_order_cnt_oid;
+  const catalog::col_oid_t s_remote_cnt_oid;
+  const catalog::col_oid_t s_data_oid;
+  const storage::ProjectedRowInitializer stock_update_pr_initializer;
+  const storage::ProjectionMap stock_update_pr_map;
+  const uint8_t s_quantity_update_pr_offset;
+  const uint8_t s_ytd_update_pr_offset;
+  const uint8_t s_order_cnt_update_pr_offset;
+  const uint8_t s_remote_cnt_update_pr_offset;
+  const uint8_t s_i_id_key_pr_offset;
+  const uint8_t s_w_id_key_pr_offset;
+
+  const storage::ProjectedRowInitializer order_line_insert_pr_initializer;
+  const storage::ProjectionMap order_line_insert_pr_map;
+  const uint8_t ol_o_id_insert_pr_offset;
+  const uint8_t ol_d_id_insert_pr_offset;
+  const uint8_t ol_w_id_insert_pr_offset;
+  const uint8_t ol_number_insert_pr_offset;
+  const uint8_t ol_i_id_insert_pr_offset;
+  const uint8_t ol_supply_w_id_insert_pr_offset;
+  const uint8_t ol_delivery_d_insert_pr_offset;
+  const uint8_t ol_quantity_insert_pr_offset;
+  const uint8_t ol_amount_insert_pr_offset;
+  const uint8_t ol_dist_info_insert_pr_offset;
+  const uint8_t ol_o_id_key_pr_offset;
+  const uint8_t ol_d_id_key_pr_offset;
+  const uint8_t ol_w_id_key_pr_offset;
+  const uint8_t ol_number_key_pr_offset;
+
+  std::vector<StockSelectPROffsets> stock_select_pr_offsets;
+  std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
+
+ public:
   explicit NewOrder(const Database *const db)
 
       // Warehouse metadata
@@ -218,99 +312,6 @@ class NewOrder {
     }
   }
 
-  const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
-
-  const catalog::col_oid_t d_tax_oid;
-  const catalog::col_oid_t d_next_o_id_oid;
-  const storage::ProjectedRowInitializer district_select_pr_initializer;
-  const storage::ProjectionMap district_select_pr_map;
-
-  const uint8_t d_id_key_pr_offset;
-  const uint8_t d_w_id_key_pr_offset;
-  const uint8_t d_tax_select_pr_offset;
-  const uint8_t d_next_o_id_select_pr_offset;
-  const storage::ProjectedRowInitializer district_update_pr_initializer;
-
-  const catalog::col_oid_t c_discount_oid;
-  const catalog::col_oid_t c_last_oid;
-  const catalog::col_oid_t c_credit_oid;
-  const storage::ProjectedRowInitializer customer_select_pr_initializer;
-  const storage::ProjectionMap customer_select_pr_map;
-  const uint8_t c_discount_select_pr_offset;
-  const uint8_t c_last_select_pr_offset;
-  const uint8_t c_credit_select_pr_offset;
-  const uint8_t c_id_key_pr_offset;
-  const uint8_t c_d_id_key_pr_offset;
-  const uint8_t c_w_id_key_pr_offset;
-
-  const storage::ProjectedRowInitializer new_order_insert_pr_initializer;
-  const storage::ProjectionMap new_order_insert_pr_map;
-  const uint8_t no_o_id_insert_pr_offset;
-  const uint8_t no_d_id_insert_pr_offset;
-  const uint8_t no_w_id_insert_pr_offset;
-
-  const uint8_t no_o_id_key_pr_offset;
-  const uint8_t no_d_id_key_pr_offset;
-  const uint8_t no_w_id_key_pr_offset;
-
-  const storage::ProjectedRowInitializer order_insert_pr_initializer;
-  const storage::ProjectionMap order_insert_pr_map;
-  const uint8_t o_id_insert_pr_offset;
-  const uint8_t o_d_id_insert_pr_offset;
-  const uint8_t o_w_id_insert_pr_offset;
-  const uint8_t o_c_id_insert_pr_offset;
-  const uint8_t o_entry_d_insert_pr_offset;
-  const uint8_t o_carrier_id_insert_pr_offset;
-  const uint8_t o_ol_cnt_insert_pr_offset;
-  const uint8_t o_all_local_insert_pr_offset;
-
-  const uint8_t o_id_key_pr_offset;
-  const uint8_t o_d_id_key_pr_offset;
-  const uint8_t o_w_id_key_pr_offset;
-
-  const catalog::col_oid_t i_price_oid;
-  const catalog::col_oid_t i_name_oid;
-  const catalog::col_oid_t i_data_oid;
-  const storage::ProjectedRowInitializer item_select_pr_initializer;
-  const storage::ProjectionMap item_select_pr_map;
-  const uint8_t i_price_select_pr_offset;
-  const uint8_t i_name_select_pr_offset;
-  const uint8_t i_data_select_pr_offset;
-
-  const catalog::col_oid_t s_quantity_oid;
-  const catalog::col_oid_t s_ytd_oid;
-  const catalog::col_oid_t s_order_cnt_oid;
-  const catalog::col_oid_t s_remote_cnt_oid;
-  const catalog::col_oid_t s_data_oid;
-  const storage::ProjectedRowInitializer stock_update_pr_initializer;
-  const storage::ProjectionMap stock_update_pr_map;
-  const uint8_t s_quantity_update_pr_offset;
-  const uint8_t s_ytd_update_pr_offset;
-  const uint8_t s_order_cnt_update_pr_offset;
-  const uint8_t s_remote_cnt_update_pr_offset;
-  const uint8_t s_i_id_key_pr_offset;
-  const uint8_t s_w_id_key_pr_offset;
-
-  const storage::ProjectedRowInitializer order_line_insert_pr_initializer;
-  const storage::ProjectionMap order_line_insert_pr_map;
-  const uint8_t ol_o_id_insert_pr_offset;
-  const uint8_t ol_d_id_insert_pr_offset;
-  const uint8_t ol_w_id_insert_pr_offset;
-  const uint8_t ol_number_insert_pr_offset;
-  const uint8_t ol_i_id_insert_pr_offset;
-  const uint8_t ol_supply_w_id_insert_pr_offset;
-  const uint8_t ol_delivery_d_insert_pr_offset;
-  const uint8_t ol_quantity_insert_pr_offset;
-  const uint8_t ol_amount_insert_pr_offset;
-  const uint8_t ol_dist_info_insert_pr_offset;
-  const uint8_t ol_o_id_key_pr_offset;
-  const uint8_t ol_d_id_key_pr_offset;
-  const uint8_t ol_w_id_key_pr_offset;
-  const uint8_t ol_number_key_pr_offset;
-
-  std::vector<StockSelectPROffsets> stock_select_pr_offsets;
-  std::vector<std::pair<storage::ProjectedRowInitializer, storage::ProjectionMap>> stock_select_initializers;
-
   // 2.4.2
   template <class Random>
   bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
@@ -321,7 +322,7 @@ class NewOrder {
 
     // Look up W_ID in index
     const auto warehouse_key_pr_initializer = db->warehouse_index_->GetProjectedRowInitializer();
-    auto *const warehouse_key = warehouse_key_pr_initializer.InitializeRow(worker->district_key_buffer);
+    auto *const warehouse_key = warehouse_key_pr_initializer.InitializeRow(worker->warehouse_key_buffer);
 
     *reinterpret_cast<int32_t *>(warehouse_key->AccessForceNotNull(0)) = args.w_id;
 
@@ -338,8 +339,8 @@ class NewOrder {
     const auto district_key_pr_initializer = db->district_index_->GetProjectedRowInitializer();
     auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
 
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
 
     index_scan_results.clear();
     db->district_index_->ScanKey(*district_key, &index_scan_results);
@@ -433,9 +434,12 @@ class NewOrder {
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
+    const auto UNUSED_ATTRIBUTE ol_cnt = args.ol_cnt;
+
     // for each item in order
     for (const auto &item : args.items) {
       uint32_t ol_number = 1;
+
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
       auto *const item_key = item_key_pr_initializer.InitializeRow(worker->item_key_buffer);
@@ -448,6 +452,8 @@ class NewOrder {
         txn_manager->Abort(txn);
         return false;
       }
+
+      TERRIER_ASSERT(index_scan_results.size() == 1, "Item index lookup failed.");
 
       // Select I_PRICE, I_NAME, and I_DATE in table
       auto *const item_select_tuple = item_select_pr_initializer.InitializeRow(worker->item_tuple_buffer);
@@ -464,7 +470,7 @@ class NewOrder {
       auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
 
       *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = item.ol_i_id;
-      *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = item.ol_supply_w_id;
 
       index_scan_results.clear();
       db->stock_index_->ScanKey(*stock_key, &index_scan_results);
@@ -496,7 +502,7 @@ class NewOrder {
       *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_order_cnt_update_pr_offset)) =
           s_order_cnt + 1;
       *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_remote_cnt_update_pr_offset)) =
-          !item.home ? s_remote_cnt + 1 : s_remote_cnt;
+          item.remote ? s_remote_cnt + 1 : s_remote_cnt;
 
       result = db->stock_table_->Update(txn, index_scan_results[0], *stock_update_tuple);
       if (!result) {
@@ -505,6 +511,14 @@ class NewOrder {
       }
 
       const double ol_amount = item.ol_quantity * i_price;
+
+      const std::string_view i_data_str(reinterpret_cast<const char *const>(i_data.Content()), i_data.Size());
+      const std::string_view s_data_str(reinterpret_cast<const char *const>(s_data.Content()), s_data.Size());
+
+      const std::string UNUSED_ATTRIBUTE brand_generic =
+          i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0 != std::string::npos)
+              ? "B"
+              : "G";
 
       // Insert new row in Order Line
       auto *const order_line_insert_tuple =
@@ -519,7 +533,6 @@ class NewOrder {
       *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_supply_w_id_insert_pr_offset)) =
           item.ol_supply_w_id;
       order_line_insert_tuple->SetNull(ol_delivery_d_insert_pr_offset);
-
       *reinterpret_cast<int32_t *>(order_line_insert_tuple->AccessForceNotNull(ol_quantity_insert_pr_offset)) =
           item.ol_quantity;
       *reinterpret_cast<double *>(order_line_insert_tuple->AccessForceNotNull(ol_amount_insert_pr_offset)) =
@@ -551,12 +564,6 @@ class NewOrder {
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, order_line_slot,
                                                                      [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
-
-      const std::string_view i_data_str(reinterpret_cast<const char *const>(i_data.Content()), i_data.Size());
-      const std::string_view s_data_str(reinterpret_cast<const char *const>(s_data.Content()), s_data.Size());
-
-      const bool UNUSED_ATTRIBUTE brand =
-          i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0 != std::string::npos);
 
       ol_number++;
       total_amount += ol_amount;

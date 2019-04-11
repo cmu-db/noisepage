@@ -55,7 +55,7 @@ class TPCCBenchmark : public benchmark::Fixture {
  private:
   std::thread log_thread_;
   volatile bool logging_ = false;
-  const std::chrono::milliseconds log_period_milli_{10};
+  const std::chrono::milliseconds log_period_milli_{40};
 
   void LogThreadLoop() {
     while (logging_) {
@@ -67,7 +67,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   std::thread gc_thread_;
   storage::GarbageCollector *gc_ = nullptr;
   volatile bool run_gc_ = false;
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::milliseconds gc_period_{40};
 
   void GCThreadLoop() {
     while (run_gc_) {
@@ -83,8 +83,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+//    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
+    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
     auto tpcc_builder = tpcc::Builder(&block_store_);
     auto *const tpcc_db = tpcc_builder.Build();
 
@@ -94,9 +94,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     tpcc::Worker worker_buffers4(tpcc_db);
 
     tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &worker_buffers1);
-    log_manager_->Process();  // log all of the Inserts from table creation
+//    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
-    StartLogging();
+//    StartLogging();
 
     std::vector<tpcc::NewOrderArgs> args1;
     args1.reserve(num_txns);
@@ -146,10 +146,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       worker4.join();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-    EndLogging();
+//    EndLogging();
     EndGC();
     delete tpcc_db;
-    delete log_manager_;
+//    delete log_manager_;
   }
   state.SetItemsProcessed(state.iterations() * num_txns * 4);
 }
