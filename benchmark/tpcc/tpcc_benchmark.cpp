@@ -8,7 +8,7 @@
 #include "tpcc/builder.h"
 #include "tpcc/database.h"
 #include "tpcc/loader.h"
-#include "tpcc/transactions.h"
+#include "tpcc/new_order.h"
 #include "tpcc/worker.h"
 #include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
