@@ -73,6 +73,10 @@ struct Loader {
     const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
     const auto customer_key_pr_map = db->customer_index_->GetKeyOidToOffsetMap();
 
+    // Customer Name key
+    const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
+    const auto customer_name_key_pr_map = db->customer_name_index_->GetKeyOidToOffsetMap();
+
     // History tuple
     const auto history_tuple_col_oids = Util::AllColOidsForSchema(db->history_schema_);
     const auto [history_tuple_pr_initializer, history_tuple_pr_map] =
@@ -226,6 +230,30 @@ struct Loader {
           index_insert_result = db->customer_index_->ConditionalInsert(
               *customer_key, customer_slot, [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
+
+          // insert in customer name index
+          const auto c_last_tuple =
+              *reinterpret_cast<const storage::VarlenEntry *const>(customer_tuple->AccessWithNullCheck(
+                  customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).GetOid())));
+
+          storage::ProjectedRow *customer_name_key = nullptr;
+          if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
+            customer_name_key = BuildCustomerNameKey(c_last_tuple, d_id + 1, w_id + 1, worker->customer_key_buffer,
+                                                     customer_name_key_pr_initializer, customer_name_key_pr_map,
+                                                     db->customer_name_key_schema_);
+          } else {
+            auto *const c_last_varlen = common::AllocationUtil::AllocateAligned(c_last_tuple.Size());
+            std::memcpy(c_last_varlen, c_last_tuple.Content(), c_last_tuple.Size());
+            const auto c_last_key = storage::VarlenEntry::Create(c_last_varlen, c_last_tuple.Size(), true);
+
+            customer_name_key = BuildCustomerNameKey(c_last_key, d_id + 1, w_id + 1, worker->customer_key_buffer,
+                                                     customer_name_key_pr_initializer, customer_name_key_pr_map,
+                                                     db->customer_name_key_schema_);
+          }
+
+          index_insert_result = db->customer_name_index_->ConditionalInsert(
+              *customer_name_key, customer_slot, [](const storage::TupleSlot &) { return false; });
+          TERRIER_ASSERT(index_insert_result, "Customer Name index insertion failed.");
 
           // For each row in the CUSTOMER table:
           // 1 row in the HISTORY table
@@ -808,6 +836,29 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Customer key.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildCustomerNameKey(
+      const storage::VarlenEntry &c_last, const int32_t d_id, const int32_t w_id, byte *const buffer,
+      const storage::ProjectedRowInitializer &pr_initializer,
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+      const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Primary Key: (C_W_ID, C_D_ID, C_LAST)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_last);
 
     TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Customer key.");
 

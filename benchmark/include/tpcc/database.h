@@ -36,6 +36,7 @@ class Database {
     delete stock_index_;
     delete district_index_;
     delete customer_index_;
+    delete customer_name_index_;
     delete new_order_index_;
     delete order_index_;
     delete order_line_index_;
@@ -66,6 +67,7 @@ class Database {
   const storage::index::IndexKeySchema stock_key_schema_;
   const storage::index::IndexKeySchema district_key_schema_;
   const storage::index::IndexKeySchema customer_key_schema_;
+  const storage::index::IndexKeySchema customer_name_key_schema_;
   const storage::index::IndexKeySchema new_order_key_schema_;
   const storage::index::IndexKeySchema order_key_schema_;
   const storage::index::IndexKeySchema order_line_key_schema_;
@@ -75,6 +77,7 @@ class Database {
   storage::index::Index *const stock_index_;
   storage::index::Index *const district_index_;
   storage::index::Index *const customer_index_;
+  storage::index::Index *const customer_name_index_;
   storage::index::Index *const new_order_index_;
   storage::index::Index *const order_index_;
   storage::index::Index *const order_line_index_;
@@ -92,13 +95,15 @@ class Database {
 
            storage::index::IndexKeySchema item_key_schema, storage::index::IndexKeySchema warehouse_key_schema,
            storage::index::IndexKeySchema stock_key_schema, storage::index::IndexKeySchema district_key_schema,
-           storage::index::IndexKeySchema customer_key_schema, storage::index::IndexKeySchema new_order_key_schema,
-           storage::index::IndexKeySchema order_key_schema, storage::index::IndexKeySchema order_line_key_schema,
+           storage::index::IndexKeySchema customer_key_schema, storage::index::IndexKeySchema customer_name_key_schema,
+           storage::index::IndexKeySchema new_order_key_schema, storage::index::IndexKeySchema order_key_schema,
+           storage::index::IndexKeySchema order_line_key_schema,
 
            storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
            storage::index::Index *const stock_index, storage::index::Index *const district_index,
-           storage::index::Index *const customer_index, storage::index::Index *const new_order_index,
-           storage::index::Index *const order_index, storage::index::Index *const order_line_index)
+           storage::index::Index *const customer_index, storage::index::Index *const customer_name_index,
+           storage::index::Index *const new_order_index, storage::index::Index *const order_index,
+           storage::index::Index *const order_line_index)
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
         stock_schema_(std::move(stock_schema)),
@@ -122,6 +127,7 @@ class Database {
         stock_key_schema_(std::move(stock_key_schema)),
         district_key_schema_(std::move(district_key_schema)),
         customer_key_schema_(std::move(customer_key_schema)),
+        customer_name_key_schema_(std::move(customer_name_key_schema)),
         new_order_key_schema_(std::move(new_order_key_schema)),
         order_key_schema_(std::move(order_key_schema)),
         order_line_key_schema_(std::move(order_line_key_schema)),
@@ -130,6 +136,7 @@ class Database {
         stock_index_(stock_index),
         district_index_(district_index),
         customer_index_(customer_index),
+        customer_name_index_(customer_name_index),
         new_order_index_(new_order_index),
         order_index_(order_index),
         order_line_index_(order_line_index) {}

@@ -267,6 +267,26 @@ struct Schemas {
     return customer_key_schema;
   }
 
+  static storage::index::IndexKeySchema BuildCustomerNameKeySchema(const catalog::Schema &schema,
+                                                                   uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema customer_name_key_schema;
+    customer_name_key_schema.reserve(num_customer_name_key_cols);
+
+    // primary key: C_W_ID, C_D_ID, C_LAST
+    customer_name_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                          schema.GetColumn(2).GetType(), schema.GetColumn(2).GetNullable());
+    customer_name_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                          schema.GetColumn(1).GetType(), schema.GetColumn(1).GetNullable());
+    customer_name_key_schema.emplace_back(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)),
+                                          schema.GetColumn(5).GetType(), schema.GetColumn(5).GetNullable(),
+                                          schema.GetColumn(5).GetMaxVarlenSize());
+
+    TERRIER_ASSERT(customer_name_key_schema.size() == num_customer_name_key_cols,
+                   "Wrong number of columns for Customer Name key schema.");
+
+    return customer_name_key_schema;
+  }
+
   static catalog::Schema BuildHistoryTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> history_columns;
     history_columns.reserve(num_history_cols);
@@ -439,6 +459,7 @@ struct Schemas {
   static constexpr uint8_t num_stock_key_cols = 2;
   static constexpr uint8_t num_district_key_cols = 2;
   static constexpr uint8_t num_customer_key_cols = 3;
+  static constexpr uint8_t num_customer_name_key_cols = 3;
   static constexpr uint8_t num_new_order_key_cols = 3;
   static constexpr uint8_t num_order_key_cols = 3;
   static constexpr uint8_t num_order_line_key_cols = 4;
