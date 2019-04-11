@@ -14,6 +14,15 @@
 
 namespace terrier::catalog {
 
+const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+                                                             {1, "datname", type::TypeId::VARCHAR}};
+
+const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
+    {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
+    {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
+    {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
+    {8, "datconnlimit", type::TypeId::INTEGER}};
+
 /**
  * Handle methods
  */
@@ -39,39 +48,42 @@ AttributeHandle DatabaseHandle::GetAttributeHandle(transaction::TransactionConte
   return AttributeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_attribute"));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                db_oid_t oid) {
-  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
-
-  std::vector<type::Value> search_vec;
-  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
-  auto row_vec = pg_database_rw->FindRow(txn, search_vec);
-  return std::make_shared<DatabaseEntry>(oid, row_vec);
+AttrDefHandle DatabaseHandle::GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid) {
+  return AttrDefHandle(catalog_->GetDatabaseCatalog(oid, "pg_attrdef"));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                const char *db_name) {
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {
+  auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
+
+  std::vector<type::TransientValue> search_vec;
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
+  auto row_vec = pg_database_rw->FindRow(txn, search_vec);
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw.get(), std::move(row_vec));
+}
+
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
+                                                                const std::string &db_name) {
   // we don't need to do this lookup. pg_database is global
   // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
 
   // just use pg_database_
 
-  std::vector<type::Value> search_vec;
-  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  search_vec.push_back(type::ValueFactory::GetVarcharValue(db_name));
+  std::vector<type::TransientValue> search_vec;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(db_name));
   auto row_vec = pg_database_rw_->FindRow(txn, search_vec);
   if (row_vec.empty()) {
     return nullptr;
   }
   // specifying the oid is redundant. Eliminate?
-  db_oid_t oid(row_vec[0].GetIntValue());
-  return std::make_shared<DatabaseEntry>(oid, row_vec);
+  db_oid_t oid(type::TransientValuePeeker::PeekInteger(row_vec[0]));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_.get(), std::move(row_vec));
 }
 
 bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {
-  std::vector<type::Value> search_vec;
+  std::vector<type::TransientValue> search_vec;
   // get the oid of this row
-  search_vec.emplace_back(entry->GetColumn(0));
+  search_vec.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(0)));
 
   // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_database_rw_->FindRowProjCol(txn, search_vec);
@@ -81,14 +93,5 @@ bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std
   delete[] reinterpret_cast<byte *>(proj_col_p);
   return status;
 }
-
-const std::vector<SchemaCol> DatabaseHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                             {1, "datname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> DatabaseHandle::unused_schema_cols_ = {
-    {2, "datdba", type::TypeId::INTEGER},        {3, "encoding", type::TypeId::INTEGER},
-    {4, "datcollate", type::TypeId::VARCHAR},    {5, "datctype", type::TypeId::VARCHAR},
-    {6, "datistemplate", type::TypeId::BOOLEAN}, {7, "datallowconn", type::TypeId::BOOLEAN},
-    {8, "datconnlimit", type::TypeId::INTEGER}};
 
 }  // namespace terrier::catalog

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/attr_def_handle.h"
 #include "catalog/attribute_handle.h"
 #include "catalog/catalog.h"
 #include "catalog/class_handle.h"
@@ -17,9 +18,31 @@ namespace terrier::catalog {
 
 class Catalog;
 class AttributeHandle;
+class AttrDefHandle;
 class NamespaceHandle;
 class TypeHandle;
 struct SchemaCol;
+
+/**
+ * A database entry represents a row in pg_database catalog.
+ */
+class DatabaseEntry : public CatalogEntry<db_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid database def oid
+   * @param sql_table associated with this entry
+   * @param entry a row in pg_database that represents this table
+   */
+  DatabaseEntry(db_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
+  /**
+   * Delete the data (for this entry) from the storage table.
+   * After this, the entry object must be deleted as no other
+   * operations are possible.
+   */
+  bool Delete(transaction::TransactionContext *txn);
+};
 
 /**
  * A DatabaseHandle provides access to the (global) system pg_database
@@ -36,46 +59,8 @@ struct SchemaCol;
  * DatabaseEntry instances provide accessors for individual rows of
  * pg_database.
  */
-
 class DatabaseHandle {
  public:
-  /**
-   * A database entry represents a row in pg_database catalog.
-   */
-  class DatabaseEntry {
-   public:
-    /**
-     * Constructs a database entry.
-     * @param oid: the db_oid of the underlying database
-     * @param entry: the row as a vector of values
-     */
-    DatabaseEntry(db_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the db_oid of the underlying database
-     * @return db_oid of the database
-     */
-    db_oid_t GetDatabaseOid() { return oid_; }
-
-    /**
-     * Delete the data (for this entry) from the storage table.
-     * After this, the entry object must be deleted as no other
-     * operations are possible.
-     */
-    bool Delete(transaction::TransactionContext *txn);
-
-   private:
-    db_oid_t oid_;
-    std::vector<type::Value> entry_;
-  };
-
   /**
    * Construct a database handle. It keeps a pointer to pg_database sql table.
    * @param catalog a pointer to the catalog object
@@ -108,6 +93,12 @@ class DatabaseHandle {
   AttributeHandle GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid);
 
   /**
+   * Get a attribute handle for the database.
+   * @return an attribute handle
+   */
+  AttrDefHandle GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid);
+
+  /**
    * Get a database entry for a given db_oid. It's essentially equivalent to reading a
    * row from pg_database. It has to be executed in a transaction context.
    *
@@ -128,7 +119,7 @@ class DatabaseHandle {
    * @param db_name the name of the database
    * @return a shared pointer to database entry; NULL if not found
    */
-  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const char *db_name);
+  std::shared_ptr<DatabaseEntry> GetDatabaseEntry(transaction::TransactionContext *txn, const std::string &db_name);
 
   /**
    * Delete an entry in database handle.

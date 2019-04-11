@@ -8,15 +8,22 @@
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
+
 namespace terrier::catalog {
 
+const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+                                                            {1, "adrelid", type::TypeId::INTEGER},
+                                                            {2, "adnum", type::TypeId::INTEGER},
+                                                            {3, "adbin", type::TypeId::VARCHAR}};
+
+const std::vector<SchemaCol> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
+
 // Find entry with (row) oid and return it
-std::shared_ptr<AttrDefHandle::AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn,
-                                                                            col_oid_t oid) {
-  std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
+std::shared_ptr<AttrDefEntry> AttrDefHandle::GetAttrDefEntry(transaction::TransactionContext *txn, col_oid_t oid) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_attrdef_rw_->FindRow(txn, search_vec);
-  return std::make_shared<AttrDefEntry>(oid, ret_row);
+  return std::make_shared<AttrDefEntry>(oid, pg_attrdef_rw_.get(), std::move(ret_row));
 }
 
 std::shared_ptr<catalog::SqlTableRW> AttrDefHandle::Create(transaction::TransactionContext *txn, Catalog *catalog,
@@ -44,12 +51,5 @@ std::shared_ptr<catalog::SqlTableRW> AttrDefHandle::Create(transaction::Transact
   // catalog->AddColumnsToPGAttribute(txn, db_oid, pg_attrdef->GetSqlTable());
   return pg_attrdef;
 }
-
-const std::vector<SchemaCol> AttrDefHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                            {1, "adrelid", type::TypeId::INTEGER},
-                                                            {2, "adnum", type::TypeId::INTEGER},
-                                                            {3, "adbin", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> AttrDefHandle::unused_schema_cols_ = {{4, "adsrc", type::TypeId::VARCHAR}};
 
 }  // namespace terrier::catalog

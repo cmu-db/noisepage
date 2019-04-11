@@ -180,6 +180,12 @@ class TransientValue {
   FRIEND_TEST(ValueTests, DateTest);
   FRIEND_TEST(ValueTests, VarCharTest);
 
+  /**
+   * Constructor for NULL value
+   * @param type type id
+   */
+  explicit TransientValue(const TypeId type) : type_(type), data_(0) { SetNull(true); }
+
   template <typename T>
   TransientValue(const TypeId type, T data) {
     // clear internal buffer

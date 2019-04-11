@@ -14,8 +14,8 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -40,7 +40,7 @@ TEST_F(CatalogTests, CreateDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
   auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
-  auto oid = entry->GetDatabaseOid();
+  auto oid = entry->GetOid();
   catalog_->Dump(txn_, oid);
 }
 
@@ -53,7 +53,10 @@ TEST_F(CatalogTests, CreateUserTableTest) {
   cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
-  catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
+  auto tbl_oid = catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
+  catalog_->Dump(txn_, terrier_oid);
+
+  catalog_->DeleteTable(txn_, terrier_oid, tbl_oid);
   catalog_->Dump(txn_, terrier_oid);
 }
 
@@ -62,7 +65,7 @@ TEST_F(CatalogTests, DeleteDatabaseTest) {
   catalog_->CreateDatabase(txn_, "test_database");
   auto db_handle = catalog_->GetDatabaseHandle();
   auto entry = db_handle.GetDatabaseEntry(txn_, "test_database");
-  auto oid = entry->GetDatabaseOid();
+  auto oid = entry->GetOid();
   catalog_->Dump(txn_, oid);
 
   // delete it

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/schema.h"
@@ -12,29 +13,36 @@
 #include "type/type_id.h"
 namespace terrier::catalog {
 
-std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
-    transaction::TransactionContext *txn, tablespace_oid_t oid) {
-  std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
+const std::vector<SchemaCol> TablespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
+                                                               {1, "spcname", type::TypeId::VARCHAR}};
+
+const std::vector<SchemaCol> TablespaceHandle::unused_schema_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
+                                                                      {3, "spcacl", type::TypeId::VARCHAR},
+                                                                      {4, "spcoptions", type::TypeId::VARCHAR}};
+
+std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                                      tablespace_oid_t oid) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
-  return std::make_shared<TablespaceEntry>(oid, ret_row);
+  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<TablespaceHandle::TablespaceEntry> TablespaceHandle::GetTablespaceEntry(
-    transaction::TransactionContext *txn, const std::string &name) {
-  std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+std::shared_ptr<TablespaceEntry> TablespaceHandle::GetTablespaceEntry(transaction::TransactionContext *txn,
+                                                                      const std::string &name) {
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_tablespace_->FindRow(txn, search_vec);
-  tablespace_oid_t oid(ret_row[0].GetIntValue());
-  return std::make_shared<TablespaceEntry>(oid, ret_row);
+  tablespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  return std::make_shared<TablespaceEntry>(oid, pg_tablespace_.get(), std::move(ret_row));
 }
 
 void TablespaceHandle::AddEntry(transaction::TransactionContext *txn, const std::string &name) {
-  std::vector<type::Value> row;
+  std::vector<type::TransientValue> row;
 
-  row.emplace_back(type::ValueFactory::GetIntegerValue(catalog_->GetNextOid()));
-  row.emplace_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(name));
   catalog_->SetUnusedColumns(&row, TablespaceHandle::unused_schema_cols_);
   pg_tablespace_->InsertRow(txn, row);
 }
@@ -63,12 +71,5 @@ std::shared_ptr<catalog::SqlTableRW> TablespaceHandle::Create(Catalog *catalog, 
   catalog->AddToMaps(db_oid, storage_table_oid, name, storage_table);
   return storage_table;
 }
-
-const std::vector<SchemaCol> TablespaceHandle::schema_cols_ = {{0, "oid", type::TypeId::INTEGER},
-                                                               {1, "spcname", type::TypeId::VARCHAR}};
-
-const std::vector<SchemaCol> TablespaceHandle::unused_schema_cols_ = {{2, "spcowner", type::TypeId::INTEGER},
-                                                                      {3, "spcacl", type::TypeId::VARCHAR},
-                                                                      {4, "spcoptions", type::TypeId::VARCHAR}};
 
 }  // namespace terrier::catalog

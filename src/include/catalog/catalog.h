@@ -20,6 +20,10 @@ class SettingsHandle;
 
 /**
  * Schema column for used/unused schema rows.
+ * This is only used to transfer schema definition information to the sql table for Create. Thereafter, the
+ * this structure should not be used and schema information can be obtained from the catalog or from
+ * sql table GetSchema.
+ * Note that col_num is NOT used.
  */
 struct SchemaCol {
   /** column no */
@@ -33,7 +37,7 @@ struct SchemaCol {
 /**
  * The global catalog object.
  *
- * The catalog is modelled upon the Postgres catalog, modified for terrier.
+ * The catalog is modeled upon the Postgres catalog, modified for terrier.
  *
  * pg_database, pg_tablespace and pg_settings are global catalogs
  * (only a single instance). Other catalogs are "local" to each database.
@@ -47,7 +51,6 @@ struct SchemaCol {
  * The values for all oid types are generated from a single value space
  * i.e. every oid regardless of type, is unique.
  *
- * TODO(Yesheng): Port over to TransientValue
  */
 class Catalog {
  public:
@@ -56,8 +59,9 @@ class Catalog {
    * A default database is created. Its tables are created and populated.
    *
    * @param txn_manager the global transaction manager
+   * @param txn to be used for bootstrapping
    */
-  explicit Catalog(transaction::TransactionManager *txn_manager);
+  Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn);
 
   /**
    * Create a database, and all its tables. Set initial content
@@ -67,7 +71,7 @@ class Catalog {
    * @param txn transaction to use
    * @param name of the database
    */
-  void CreateDatabase(transaction::TransactionContext *txn, const char *name);
+  void CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
 
   /**
    * Delete a database.
@@ -75,7 +79,7 @@ class Catalog {
    * @param txn transaction to use
    * @param db_name of the database
    */
-  void DeleteDatabase(transaction::TransactionContext *txn, const char *db_name);
+  void DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name);
 
   /**
    * Create a table with schema
@@ -84,8 +88,8 @@ class Catalog {
    * @param table_name table name
    * @param schema schema to use
    */
-  void CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                   const Schema &schema);
+  table_oid_t CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                          const Schema &schema);
 
   /**
    * Delete a table
@@ -187,14 +191,14 @@ class Catalog {
    * @param vec append to this vector of values
    * @param cols vector of column types
    */
-  void SetUnusedColumns(std::vector<type::Value> *vec, const std::vector<SchemaCol> &cols);
+  void SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols);
 
   /**
    * Convert type id to schema type
    * @param type_id type id
    * @return schema type
    */
-  type::Value ValueTypeIdToSchemaType(type::TypeId type_id);
+  type::TransientValue ValueTypeIdToSchemaType(type::TypeId type_id);
 
   /**
    * -------------
@@ -208,7 +212,7 @@ class Catalog {
   /**
    * Add a row into pg_database
    */
-  void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const char *name);
+  void AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const std::string &name);
 
   /**
    * Add columns created for Postgres compatibility, but unused, to the schema
@@ -223,9 +227,10 @@ class Catalog {
    * correctly perform SQL queries.
    * 1) It creates and populates all the global catalogs
    * 2) It creates a default database named "terrier"
-   * 2) It bootstraps the default database.
+   * 3) It bootstraps the default database.
+   * @param txn to be used for bootstrapping
    */
-  void Bootstrap();
+  void Bootstrap(transaction::TransactionContext *txn);
 
   void CreatePGDatabase(table_oid_t table_oid);
 
@@ -267,7 +272,7 @@ class Catalog {
    * During startup, create pg_namespace table (local to db_oid)
    * @param txn_manager the global transaction manager
    */
-  void CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid);
+  void CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
    * During startup, create pg_class table (local to db_oid)
@@ -280,6 +285,12 @@ class Catalog {
    * @param txn_manager the global transaction manager
    */
   void CreatePGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  /**
+   * During startup, create pg_attrdef table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
+  void CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
    * During startup, create pg_type table (local to db_oid)

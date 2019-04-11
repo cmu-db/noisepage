@@ -7,7 +7,7 @@ list(APPEND BENCHMARK_UTIL_SRCS ${BENCHMARK_UTIL_HDRS})
 ###############################################
 if (TERRIER_BUILD_BENCHMARKS)
     add_library(benchmark_util STATIC ${BENCHMARK_UTIL_SRCS})
-    target_link_libraries(benchmark_util benchmark)
+    target_link_libraries(benchmark_util benchmark pthread)
     add_dependencies(benchmark_util gtest)
 
     add_subdirectory(catalog)

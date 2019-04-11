@@ -15,8 +15,8 @@ struct TableHandleTests : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -46,65 +46,65 @@ TEST_F(TableHandleTests, BasicCorrectnessTest) {
   // test if get correct tablename
   auto table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  auto str = table_entry_ptr->GetColInRow(1);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_database");
+  std::string_view str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_database");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(1);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_tablespace");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_tablespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(1);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_namespace");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_namespace");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(1);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_class");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(1));
+  EXPECT_EQ(str_view, "pg_class");
 
   // test if get correct schemaname (namespace)
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(0);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(0);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(0);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(0);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_catalog");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(0));
+  EXPECT_EQ(str_view, "pg_catalog");
 
   // test if get correct tablespace
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_database");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(2);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_global");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_tablespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(2);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_global");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_global");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_namespace");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(2);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_default");
 
   table_entry_ptr = table_handle.GetTableEntry(txn_, "pg_class");
   EXPECT_NE(table_entry_ptr, nullptr);
-  str = table_entry_ptr->GetColInRow(2);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
+  str_view = type::TransientValuePeeker::PeekVarChar(table_entry_ptr->GetColInRow(2));
+  EXPECT_EQ(str_view, "pg_default");
 }
 
 // Tests for creating a table
@@ -125,31 +125,31 @@ TEST_F(TableHandleTests, CreateTest) {
   auto table = table_handle.CreateTable(txn_, schema, "test_table");
   auto table_entry = table_handle.GetTableEntry(txn_, "test_table");
   EXPECT_NE(table_entry, nullptr);
-  auto str = table_entry->GetColInRow(0);
-  EXPECT_STREQ(str.GetVarcharValue(), "public");
+  std::string_view str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(0));
+  EXPECT_EQ(str, "public");
 
-  str = table_entry->GetColInRow(1);
-  EXPECT_STREQ(str.GetVarcharValue(), "test_table");
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(1));
+  EXPECT_EQ(str, "test_table");
 
-  str = table_entry->GetColInRow(2);
-  EXPECT_STREQ(str.GetVarcharValue(), "pg_default");
+  str = type::TransientValuePeeker::PeekVarChar(table_entry->GetColInRow(2));
+  EXPECT_EQ(str, "pg_default");
 
   // Insert a row into the table
   auto ptr = table_handle.GetTable(txn_, "test_table");
   EXPECT_EQ(ptr, table);
 
-  std::vector<type::Value> row;
-  row.emplace_back(type::ValueFactory::GetIntegerValue(123));
-  row.emplace_back(type::ValueFactory::GetVarcharValue("test_name"));
+  std::vector<type::TransientValue> row;
+  row.emplace_back(type::TransientValueFactory::GetInteger(123));
+  row.emplace_back(type::TransientValueFactory::GetVarChar("test_name"));
   ptr->InsertRow(txn_, row);
 
   // Read row from the table
-  std::vector<type::Value> search_vec;
-  search_vec.emplace_back(type::ValueFactory::GetIntegerValue(123));
+  std::vector<type::TransientValue> search_vec;
+  search_vec.emplace_back(type::TransientValueFactory::GetInteger(123));
   row.clear();
   row = ptr->FindRow(txn_, search_vec);
-  EXPECT_EQ(row[0].GetIntValue(), 123);
-  EXPECT_STREQ(row[1].GetVarcharValue(), "test_name");
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(row[0]), 123);
+  EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(row[1]), "test_name");
 
   delete table;
 }

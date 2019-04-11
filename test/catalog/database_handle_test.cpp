@@ -14,8 +14,8 @@ struct DatabaseHandleTests : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -46,8 +46,8 @@ TEST_F(DatabaseHandleTests, BasicCorrectnessTest) {
   // lookup the default database
   auto db_entry_ptr = db_handle.GetDatabaseEntry(txn_, terrier_oid);
 
-  EXPECT_EQ(!terrier_oid, db_entry_ptr->GetColumn(0).GetIntValue());
-  EXPECT_STREQ("terrier", db_entry_ptr->GetColumn(1).GetVarcharValue());
+  EXPECT_EQ(!terrier_oid, type::TransientValuePeeker::PeekInteger(db_entry_ptr->GetColumn(0)));
+  EXPECT_EQ("terrier", type::TransientValuePeeker::PeekVarChar(db_entry_ptr->GetColumn(1)));
 }
 
 // NOLINTNEXTLINE

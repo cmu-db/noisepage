@@ -1,7 +1,8 @@
-#include <util/transaction_test_util.h>
 #include "catalog/catalog.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
+#include "util/transaction_test_util.h"
 namespace terrier {
 
 struct TypeHandleTest : public TerrierTest {
@@ -9,8 +10,8 @@ struct TypeHandleTest : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -39,7 +40,8 @@ TEST_F(TypeHandleTest, BasicCorrectnessTest) {
   auto type_entry_ptr = type_handle.GetTypeEntry(txn_, "integer");
   EXPECT_NE(type_entry_ptr, nullptr);
 
-  EXPECT_EQ(type_entry_ptr->GetColumn(3).GetIntValue(), type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(type_entry_ptr->GetColumn(3)),
+            type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
 }
 
 }  // namespace terrier
