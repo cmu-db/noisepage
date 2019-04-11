@@ -28,6 +28,15 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid  OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
      * @param language the UDF language type
      * @return builder object
      */
@@ -126,12 +135,17 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateFunctionPlanNode> Build() {
       return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
-          std::move(children_), std::move(output_schema_), language_, std::move(function_param_names_),
+          std::move(children_), std::move(output_schema_), database_oid_, language_, std::move(function_param_names_),
           std::move(function_param_types_), std::move(function_body_), is_replace_, std::move(function_name_),
           return_type_, param_count_));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
     /**
      * Indicates the UDF language type
      */
@@ -177,6 +191,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
    * @param language the UDF language type
    * @param function_param_names Function parameters names passed to the UDF
    * @param function_param_types Function parameter types passed to the UDF
@@ -187,12 +202,13 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @param param_count number of parameter of UDF
    */
   CreateFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                         std::shared_ptr<OutputSchema> output_schema, parser::PLType language,
-                         std::vector<std::string> &&function_param_names,
+                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                         parser::PLType language, std::vector<std::string> &&function_param_names,
                          std::vector<parser::Parameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
                          parser::Parameter::DataType return_type, int param_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
         language_(language),
         function_param_names_(std::move(function_param_names)),
         function_param_types_(std::move(function_param_types)),
@@ -207,6 +223,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_FUNC; }
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return name of the user defined function
@@ -256,6 +277,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
+  /**
+   * OID of database
+   */
+  catalog::db_oid_t database_oid_;
+
   /**
    * Indicates the UDF language type
    */

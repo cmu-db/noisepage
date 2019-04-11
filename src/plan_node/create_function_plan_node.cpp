@@ -7,6 +7,10 @@ common::hash_t CreateFunctionPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
+  // Hash database_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
   // Hash language
   auto language = GetUDFLanguage();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&language));
@@ -46,6 +50,9 @@ bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
   auto &other = dynamic_cast<const CreateFunctionPlanNode &>(rhs);
+
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
 
   // Language
   if (GetUDFLanguage() != other.GetUDFLanguage()) return false;

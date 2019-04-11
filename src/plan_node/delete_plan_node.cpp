@@ -10,12 +10,13 @@ common::hash_t DeletePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
+  // Hash database_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
   // Hash table_oid
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
-
-  // Hash table_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
 
   // Hash delete_condition
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delete_condition_->Hash()));
@@ -28,11 +29,11 @@ bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DeletePlanNode &>(rhs);
 
-  // Target table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
 
-  // Table name
-  if (GetTableName() != other.GetTableName()) return false;
+  // Table OID
+  if (GetTableOid() != other.GetTableOid()) return false;
 
   // Delete condition
   if (*GetDeleteCondition() != *other.GetDeleteCondition()) return false;

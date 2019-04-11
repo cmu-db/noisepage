@@ -1,4 +1,5 @@
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,15 +46,18 @@ TEST(PlanNodeTest, CreateDatabasePlanTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, DropDatabasePlanTest) {
   parser::PostgresParser pgparser;
-  auto stms = pgparser.BuildParseTree("DROP DATABASE test");
+  auto stms = pgparser.BuildParseTree("DROP DATABASE IF EXISTS test");
   EXPECT_EQ(1, stms.size());
   auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
 
   DropDatabasePlanNode::Builder builder;
-  auto plan = builder.SetFromDropStatement(drop_stmt).Build();
+  std::default_random_engine generator_;
+  auto database_oid = static_cast<catalog::db_oid_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+  auto plan = builder.SetDatabaseOid(database_oid).SetFromDropStatement(drop_stmt).Build();
 
   EXPECT_TRUE(plan != nullptr);
-  EXPECT_STREQ("test", plan->GetDatabaseName().c_str());
+  EXPECT_EQ(database_oid, plan->GetDatabaseOid());
+  EXPECT_TRUE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
 }
 
@@ -69,7 +73,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto seq_scan_1 = seq_scan_builder
                         .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
                                                                             catalog::col_oid_t(1)))
-                        .SetTableOID(catalog::table_oid_t(1))
+                        .SetTableOid(catalog::table_oid_t(1))
                         .SetScanPredicate(std::make_unique<parser::StarExpression>())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
@@ -85,7 +89,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto seq_scan_2 = seq_scan_builder
                         .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
                                                                             catalog::col_oid_t(2)))
-                        .SetTableOID(catalog::table_oid_t(2))
+                        .SetTableOid(catalog::table_oid_t(2))
                         .SetScanPredicate(std::make_unique<parser::StarExpression>())
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)

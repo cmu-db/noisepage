@@ -27,20 +27,20 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param table_name the name of the table
+     * @param database_oid  OID of the database
      * @return builder object
      */
-    Builder &SetTableName(std::string table_name) {
-      table_name_ = std::move(table_name);
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
       return *this;
     }
 
     /**
-     * @param schema_name the name of the schema
+     * @param table_oid OID of the table to create index on
      * @return builder object
      */
-    Builder &SetSchemaName(std::string schema_name) {
-      schema_name_ = std::move(schema_name);
+    Builder &SetTableOid(catalog::table_oid_t table_oid) {
+      table_oid_ = table_oid;
       return *this;
     }
 
@@ -87,8 +87,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
       if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kIndex) {
         index_name_ = std::string(create_stmt->GetIndexName());
-        table_name_ = std::string(create_stmt->GetTableName());
-        schema_name_ = std::string(create_stmt->GetSchemaName());
 
         // This holds the attribute names.
         std::vector<std::string> index_attrs_holder;
@@ -112,20 +110,20 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateIndexPlanNode> Build() {
       return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
-          std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_), index_type_,
-          unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
+          std::move(children_), std::move(output_schema_), database_oid_, table_oid_, index_type_, unique_index_,
+          std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
     }
 
    protected:
     /**
-     * Table Name
+     * OID of the database
      */
-    std::string table_name_;
+    catalog::db_oid_t database_oid_;
 
     /**
-     * Schema Name
+     * OID of the table to create index on
      */
-    std::string schema_name_;
+    catalog::table_oid_t table_oid_;
 
     /**
      * Name of the Index
@@ -157,10 +155,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param create_type type of object to create
-   * @param table_name the name of the table
-   * @param schema_name the name of the schema
-   * @param database_name the name of the database
+   * @param database_oid OID of the database
+   * @param table_oid OID of the table to create index on
    * @param table_schema schema of the table to create
    * @param index_type type of index to create
    * @param unique_index true if index should be unique
@@ -169,12 +165,13 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param key_attrs key attributes
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string schema_name,
-                      parser::IndexType index_type, bool unique_index, std::string index_name,
-                      std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs)
+                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                      catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique_index,
+                      std::string index_name, std::vector<std::string> &&index_attrs,
+                      std::vector<std::string> &&key_attrs)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        table_name_(std::move(table_name)),
-        schema_name_(std::move(schema_name)),
+        database_oid_(database_oid),
+        table_oid_(table_oid),
         index_type_(index_type),
         unique_index_(unique_index),
         index_name_(std::move(index_name)),
@@ -183,23 +180,26 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
  public:
   CreateIndexPlanNode() = delete;
+
   /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_INDEX; }
 
   /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the table to create index on
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
    * @return name of the index
    */
   const std::string &GetIndexName() const { return index_name_; }
-  /**
-   * @return name of the table
-   */
-  const std::string &GetTableName() const { return table_name_; }
-  /**
-   * @return name of the schema
-   */
-  const std::string &GetSchemaName() const { return schema_name_; }
 
   /**
    * @return true if index should be unique
@@ -230,14 +230,14 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * Table Name
+   * OID of the database
    */
-  std::string table_name_;
+  catalog::db_oid_t database_oid_;
 
   /**
-   * Schema Name
+   * OID of the table to create index on
    */
-  std::string schema_name_;
+  catalog::table_oid_t table_oid_;
 
   /**
    * Index type

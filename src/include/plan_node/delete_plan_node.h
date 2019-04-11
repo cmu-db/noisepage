@@ -28,20 +28,20 @@ class DeletePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {
       table_oid_ = table_oid;
-      return *this;
-    }
-
-    /**
-     * @param table_name name of the target table
-     * @return builder object
-     */
-    Builder &SetTableName(std::string table_name) {
-      table_name_ = std::move(table_name);
       return *this;
     }
 
@@ -59,7 +59,6 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetFromDeleteStatement(parser::DeleteStatement *delete_stmt) {
-      table_name_ = delete_stmt->GetDeletionTable()->GetTableName();
       delete_condition_ = delete_stmt->GetDeleteCondition();
       return *this;
     }
@@ -69,20 +68,21 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
-                                                                table_oid_, std::move(table_name_),
-                                                                std::move(delete_condition_)));
+      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(
+          std::move(children_), std::move(output_schema_), database_oid_, table_oid_, std::move(delete_condition_)));
     }
 
    protected:
     /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
+    /**
      * the table to be deleted
      */
     catalog::table_oid_t table_oid_;
-    /**
-     * name of the table
-     */
-    std::string table_name_;
+
     /**
      * expression of delete condition
      */
@@ -98,25 +98,24 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param delete_condition expression of delete condition
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::table_oid_t table_oid, std::string table_name,
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::shared_ptr<parser::AbstractExpression> delete_condition)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         table_oid_(table_oid),
-        table_name_(std::move(table_name)),
         delete_condition_(std::move(delete_condition)) {}
 
  public:
   DeletePlanNode() = delete;
 
   /**
-   * @return the OID of the table to be deleted
+   * @return OID of the database
    */
-  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return the names of the target table
+   * @return OID of the table to be deleted
    */
-  const std::string &GetTableName() const { return table_name_; }
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
    * @return the expression of delete condition
@@ -137,15 +136,17 @@ class DeletePlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * the table to be deleted
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * Table to be deleted
    */
   catalog::table_oid_t table_oid_;
+
   /**
-   * name of the table
-   */
-  std::string table_name_;
-  /**
-   * expression of delete condition
+   * Expression of delete condition
    */
   std::shared_ptr<parser::AbstractExpression> delete_condition_;
 

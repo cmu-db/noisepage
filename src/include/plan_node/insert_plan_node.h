@@ -12,9 +12,7 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 
-namespace terrier {
-
-namespace plan_node {
+namespace terrier::plan_node {
 
 /**
  * Plan node for insert
@@ -34,20 +32,20 @@ class InsertPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {
       table_oid_ = table_oid;
-      return *this;
-    }
-
-    /**
-     * @param table_name name of the target table
-     * @return builder object
-     */
-    Builder &SetTableName(std::string table_name) {
-      table_name_ = std::move(table_name);
       return *this;
     }
 
@@ -79,26 +77,21 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param insert_stmt the SQL INSERT statement
-     * @return builder object
-     */
-    Builder &SetFromInsertStatement(parser::InsertStatement *insert_stmt) {
-      table_name_ = insert_stmt->GetInsertionTable()->GetTableName();
-      // TODO(Gus,Wen) fill in parameters
-      return *this;
-    }
-
-    /**
      * Build the delete plan node
      * @return plan node
      */
     std::unique_ptr<InsertPlanNode> Build() {
       return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                table_oid_, std::move(table_name_), std::move(values_),
+                                                                database_oid_, table_oid_, std::move(values_),
                                                                 std::move(parameter_info_), bulk_insert_count_));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
     /**
      * OID of the table to insert into
      */
@@ -130,18 +123,19 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
    * @param table_oid the OID of the target SQL table
-   * @param table_name name of the target table
    * @param values values to insert
    * @param parameter_info parameters information
    * @param bulk_insert_count the number of times to insert
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::table_oid_t table_oid, std::string table_name, std::vector<type::TransientValue> &&values,
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                 std::vector<type::TransientValue> &&values,
                  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> &&parameter_info, uint32_t bulk_insert_count)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
         table_oid_(table_oid),
-        table_name_(std::move(table_name)),
         values_(std::move(values)),
         parameter_info_(std::move(parameter_info)),
         bulk_insert_count_(bulk_insert_count) {}
@@ -150,17 +144,17 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INSERT; };
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INSERT; }
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return the OID of the table to insert into
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
-
-  /**
-   * @return the name of the table to insert into
-   */
-  const std::string &GetTableName() const { return table_name_; }
 
   // TODO(Gus,Wen) use transient value peeker to peek values
 
@@ -183,14 +177,14 @@ class InsertPlanNode : public AbstractPlanNode {
 
  private:
   /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
    * OID of the table to insert into
    */
   catalog::table_oid_t table_oid_;
-
-  /**
-   * name of the table to insert into
-   */
-  std::string table_name_;
 
   /**
    * values to insert
@@ -213,5 +207,4 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   DISALLOW_COPY_AND_MOVE(InsertPlanNode);
 };
-}  // namespace plan_node
-}  // namespace terrier
+}  // namespace terrier::plan_node

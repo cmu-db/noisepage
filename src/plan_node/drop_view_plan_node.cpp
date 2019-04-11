@@ -7,8 +7,13 @@ common::hash_t DropViewPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash view_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetViewName()));
+  // Hash databse_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
+  // Hash view_oid
+  auto view_oid = GetViewOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&view_oid));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
@@ -22,8 +27,11 @@ bool DropViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropViewPlanNode &>(rhs);
 
-  // View name
-  if (GetViewName() != other.GetViewName()) return false;
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
+  // View OID
+  if (GetViewOid() != other.GetViewOid()) return false;
 
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;

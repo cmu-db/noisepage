@@ -7,8 +7,13 @@ common::hash_t DropTriggerPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash trigger_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTriggerName()));
+  // Hash databse_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
+  // Hash trigger_oid
+  auto trigger_oid = GetTriggerOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_oid));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
@@ -22,8 +27,11 @@ bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropTriggerPlanNode &>(rhs);
 
-  // Trigger name
-  if (GetTriggerName() != other.GetTriggerName()) return false;
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
+  // Trigger OID
+  if (GetTriggerOid() != other.GetTriggerOid()) return false;
 
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;

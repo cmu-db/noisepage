@@ -1,9 +1,9 @@
-#include "plan_node/drop_table_plan_node.h"
+#include "plan_node/drop_namespace_plan_node.h"
 #include <string>
 #include <utility>
 
 namespace terrier::plan_node {
-common::hash_t DropTablePlanNode::Hash() const {
+common::hash_t DropNamespacePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
@@ -11,9 +11,9 @@ common::hash_t DropTablePlanNode::Hash() const {
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
-  // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  // Hash namespace_oid
+  auto namespace_oid = GetNamespaceOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
@@ -22,16 +22,16 @@ common::hash_t DropTablePlanNode::Hash() const {
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool DropTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
+bool DropNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &other = dynamic_cast<const DropTablePlanNode &>(rhs);
+  auto &other = dynamic_cast<const DropNamespacePlanNode &>(rhs);
 
   // Database OID
   if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
 
-  // Table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
+  // Namespace OID
+  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
 
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;

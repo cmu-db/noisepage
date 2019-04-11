@@ -29,6 +29,24 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid  OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
+     * @param table_oid OID of the table to create trigger on
+     * @return builder object
+     */
+    Builder &SetTableOid(catalog::table_oid_t table_oid) {
+      table_oid_ = table_oid;
+      return *this;
+    }
+
+    /**
      * @param trigger_name name of the trigger
      * @return builder object
      */
@@ -89,7 +107,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
       if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTrigger) {
         trigger_name_ = std::string(create_stmt->GetTriggerName());
-        table_name_ = std::string(create_stmt->GetTableName());
 
         if (create_stmt->GetTriggerWhen()) {
           trigger_when_ = create_stmt->GetTriggerWhen()->Copy();
@@ -117,21 +134,21 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateTriggerPlanNode> Build() {
       return std::unique_ptr<CreateTriggerPlanNode>(
-          new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), std::move(table_name_),
+          new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_,
                                     std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
                                     std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
     }
 
    protected:
     /**
-     * Table name
+     * OID of the database
      */
-    std::string table_name_;
+    catalog::db_oid_t database_oid_;
 
     /**
-     * Schema name
+     * OID of the table to create trigger on
      */
-    std::string schema_name_;
+    catalog::table_oid_t table_oid_;
 
     /**
      * Name of the trigger
@@ -168,7 +185,8 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param table_name the name of the table
+   * @param database_oid OID of the database
+   * @param table_oid OID of the table to create trigger on
    * @param trigger_name name of the trigger
    * @param trigger_funcnames trigger function names
    * @param trigger_args trigger args
@@ -177,12 +195,14 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param trigger_type trigger type, i.e. information about row, timing, events, access by pg_trigger
    */
   CreateTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                        std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string trigger_name,
+                        std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                        catalog::table_oid_t table_oid, std::string trigger_name,
                         std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                         std::vector<std::string> &&trigger_columns,
                         std::shared_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        table_name_(std::move(table_name)),
+        database_oid_(database_oid),
+        table_oid_(table_oid),
         trigger_name_(std::move(trigger_name)),
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
@@ -192,15 +212,21 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
 
  public:
   CreateTriggerPlanNode() = delete;
+
   /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_TRIGGER; }
 
   /**
-   * @return name of the table
+   * @return OID of the database
    */
-  const std::string &GetTableName() const { return table_name_; }
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the table to create trigger on
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
    * @return trigger name
@@ -241,9 +267,14 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * Table Name
+   * OID of the database
    */
-  std::string table_name_;
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the table to create trigger on
+   */
+  catalog::table_oid_t table_oid_;
 
   /**
    * Name of the trigger

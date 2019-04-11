@@ -33,7 +33,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * @param oid oid for table to scan
      * @return builder object
      */
-    Builder &SetTableOID(catalog::table_oid_t oid) {
+    Builder &SetTableOid(catalog::table_oid_t oid) {
       table_oid_ = oid;
       return *this;
     }

@@ -31,6 +31,15 @@ class AnalyzePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -40,30 +49,11 @@ class AnalyzePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param table_name name of the target table
+     * @param column_oids OIDs of the columns of the target table
      * @return builder object
      */
-    Builder &SetTableName(std::string table_name) {
-      table_name_ = std::move(table_name);
-      return *this;
-    }
-
-    /**
-     * @param column_names names of the columns of the target table
-     * @return builder object
-     */
-    Builder &SetColumnNames(std::vector<std::string> &&column_names) {
-      column_names_ = std::move(column_names);
-      return *this;
-    }
-
-    /**
-     * @param analyze_stmt the SQL ANALYZE statement
-     * @return builder object
-     */
-    Builder &SetFromAnalyzeStatement(parser::AnalyzeStatement *analyze_stmt) {
-      table_name_ = analyze_stmt->GetAnalyzeTable()->GetTableName();
-      column_names_ = *analyze_stmt->GetAnalyzeColumns();
+    Builder &SetColumnOIDs(std::vector<catalog::col_oid_t> &&column_oids) {
+      column_oids_ = std::move(column_oids);
       return *this;
     }
 
@@ -73,42 +63,41 @@ class AnalyzePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<AnalyzePlanNode> Build() {
       return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
-                                                                  table_oid_, std::move(table_name_),
-                                                                  std::move(column_names_)));
+                                                                  database_oid_, table_oid_, std::move(column_oids_)));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
     /**
      * OID of the target table
      */
     catalog::table_oid_t table_oid_;
 
     /**
-     * name of the target table
+     * oids of the columns to be analyzed
      */
-    std::string table_name_;
-
-    /**
-     * names of the columns to be analyzed
-     */
-    std::vector<std::string> column_names_;
+    std::vector<catalog::col_oid_t> column_oids_;
   };
 
  private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param table_oid the OID of the target SQL table
-   * @param table_name name of the target table
-   * @param column_names names of the columns of the target table
+   * @param database_oid OID of the database
+   * @param table_oid OID of the target SQL table
+   * @param column_oids OIDs of the columns of the target table
    */
   AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid, std::string table_name,
-                  std::vector<std::string> &&column_names)
+                  std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                  catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
         table_oid_(table_oid),
-        table_name_(std::move(table_name)),
-        column_names_(std::move(column_names)) {}
+        column_oids_(std::move(column_oids)) {}
 
  public:
   /**
@@ -117,19 +106,19 @@ class AnalyzePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::ANALYZE; }
 
   /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
    * @return the OID of the target table
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @return the name of the target table
+   * @return the OIDs of the columns to be analyzed
    */
-  std::string GetTableName() const { return table_name_; }
-
-  /**
-   * @return the names of the columns to be analyzed
-   */
-  std::vector<std::string> GetColumnNames() const { return column_names_; }
+  std::vector<catalog::col_oid_t> GetColumnOids() const { return column_oids_; }
 
   /**
    * @return the hashed value of this plan node
@@ -140,19 +129,19 @@ class AnalyzePlanNode : public AbstractPlanNode {
 
  private:
   /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
    * OID of the target table
    */
   catalog::table_oid_t table_oid_;
 
   /**
-   * name of the target table
+   * OIDs of the columns to be analyzed
    */
-  std::string table_name_;
-
-  /**
-   * names of the columns to be analyzed
-   */
-  std::vector<std::string> column_names_;
+  std::vector<catalog::col_oid_t> column_oids_;
 
  public:
   /**

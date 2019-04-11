@@ -27,16 +27,16 @@ class DropDatabasePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_name the name of the database
+     * @param database_oid the OID of the database to drop
      * @return builder object
      */
-    Builder &SetDatabaseName(std::string database_name) {
-      database_name_ = std::move(database_name);
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
       return *this;
     }
 
     /**
-     * @param if_exists true if "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
+     * @param if_exists true if "IF EXISTS" was used
      * @return builder object
      */
     Builder &SetIfExist(bool if_exists) {
@@ -50,7 +50,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      */
     Builder &SetFromDropStatement(parser::DropStatement *drop_stmt) {
       if (drop_stmt->GetDropType() == parser::DropStatement::DropType::kDatabase) {
-        database_name_ = drop_stmt->GetDatabaseName();
         if_exists_ = drop_stmt->IsIfExists();
       }
       return *this;
@@ -61,15 +60,15 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DropDatabasePlanNode> Build() {
-      return std::unique_ptr<DropDatabasePlanNode>(new DropDatabasePlanNode(
-          std::move(children_), std::move(output_schema_), std::move(database_name_), if_exists_));
+      return std::unique_ptr<DropDatabasePlanNode>(
+          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_, if_exists_));
     }
 
    protected:
     /**
-     * Database Name
+     * OID of the database to drop
      */
-    std::string database_name_;
+    catalog::db_oid_t database_oid_;
 
     /**
      * Whether "IF EXISTS" was used
@@ -81,13 +80,12 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param drop_type type of object to drop
-   * @param database_name the name of the database
+   * @param database_oid OID of the database to drop
    */
   DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema, std::string database_name, bool if_exists)
+                       std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_name_(std::move(database_name)),
+        database_oid_(database_oid),
         if_exists_(if_exists) {}
 
  public:
@@ -99,12 +97,12 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP_DATABASE; }
 
   /**
-   * @return database name
+   * @return OID of the database to drop
    */
-  std::string GetDatabaseName() const { return database_name_; }
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return true if "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
+   * @return true if "IF EXISTS" was used
    */
   bool IsIfExists() const { return if_exists_; }
 
@@ -117,9 +115,9 @@ class DropDatabasePlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * Database Name
+   * OID of the database to drop
    */
-  std::string database_name_;
+  catalog::db_oid_t database_oid_;
 
   /**
    * Whether "IF EXISTS" was used

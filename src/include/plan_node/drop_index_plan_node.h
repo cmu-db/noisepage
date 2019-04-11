@@ -4,9 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "parser/drop_statement.h"
 #include "plan_node/abstract_plan_node.h"
-#include "transaction/transaction_context.h"
 
 namespace terrier::plan_node {
 /**
@@ -27,11 +27,20 @@ class DropIndexPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param index_name the name of the index
+     * @param database_oid the OID of the database
      * @return builder object
      */
-    Builder &SetIndexName(std::string index_name) {
-      index_name_ = std::move(index_name);
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
+     * @param database_oid the OID of the index to drop
+     * @return builder object
+     */
+    Builder &SetIndexOid(catalog::index_oid_t index_oid) {
+      index_oid_ = index_oid;
       return *this;
     }
 
@@ -49,8 +58,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetFromDropStatement(parser::DropStatement *drop_stmt) {
-      if (drop_stmt->GetDropType() == parser::DropStatement::DropType::kIndex) {
-        index_name_ = drop_stmt->GetIndexName();
+      if (drop_stmt->GetDropType() == parser::DropStatement::DropType::kDatabase) {
         if_exists_ = drop_stmt->IsIfExists();
       }
       return *this;
@@ -61,15 +69,20 @@ class DropIndexPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DropIndexPlanNode> Build() {
-      return std::unique_ptr<DropIndexPlanNode>(
-          new DropIndexPlanNode(std::move(children_), std::move(output_schema_), std::move(index_name_), if_exists_));
+      return std::unique_ptr<DropIndexPlanNode>(new DropIndexPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      database_oid_, index_oid_, if_exists_));
     }
 
    protected:
     /**
-     * Index name
+     * OID of the database
      */
-    std::string index_name_;
+    catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of the index to drop
+     */
+    catalog::index_oid_t index_oid_;
 
     /**
      * Whether "IF EXISTS" was used
@@ -81,12 +94,15 @@ class DropIndexPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param index_name the name of the index
+   * @param database_oid OID of the database
+   * @param index_oid OID of the index to drop
    */
   DropIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, std::string index_name, bool if_exists)
+                    std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                    catalog::index_oid_t index_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        index_name_(std::move(index_name)),
+        database_oid_(database_oid),
+        index_oid_(index_oid),
         if_exists_(if_exists) {}
 
  public:
@@ -98,9 +114,14 @@ class DropIndexPlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP_INDEX; }
 
   /**
-   * @return index name
+   * @return OID of the database
    */
-  std::string GetIndexName() const { return index_name_; }
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the index to drop
+   */
+  catalog::index_oid_t GetIndexOid() const { return index_oid_; }
 
   /**
    * @return true if "IF EXISTS" was used
@@ -116,9 +137,14 @@ class DropIndexPlanNode : public AbstractPlanNode {
 
  private:
   /**
-   * Index name
+   * OID of the database
    */
-  std::string index_name_;
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the index to drop
+   */
+  catalog::index_oid_t index_oid_;
 
   /**
    * Whether "IF EXISTS" was used

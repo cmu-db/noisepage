@@ -10,12 +10,12 @@
 
 namespace terrier::plan_node {
 /**
- *  The plan node for dropping triggers
+ *  The plan node for dropping namespaces
  */
-class DropTriggerPlanNode : public AbstractPlanNode {
+class DropNamespacePlanNode : public AbstractPlanNode {
  public:
   /**
-   * Builder for a drop trigger plan node
+   * Builder for a drop namespace plan node
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
@@ -36,11 +36,11 @@ class DropTriggerPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param database_oid the OID of the trigger to drop
+     * @param database_oid the OID of the namespace to drop
      * @return builder object
      */
-    Builder &SetTriggerOid(catalog::trigger_oid_t trigger_oid) {
-      trigger_oid_ = trigger_oid;
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
       return *this;
     }
 
@@ -65,12 +65,12 @@ class DropTriggerPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * Build the drop trigger plan node
+     * Build the drop namespace plan node
      * @return plan node
      */
-    std::unique_ptr<DropTriggerPlanNode> Build() {
-      return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, trigger_oid_, if_exists_));
+    std::unique_ptr<DropNamespacePlanNode> Build() {
+      return std::unique_ptr<DropNamespacePlanNode>(new DropNamespacePlanNode(
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, if_exists_));
     }
 
    protected:
@@ -80,9 +80,9 @@ class DropTriggerPlanNode : public AbstractPlanNode {
     catalog::db_oid_t database_oid_;
 
     /**
-     * OID of the trigger to drop
+     * OID of the namespace to drop
      */
-    catalog::trigger_oid_t trigger_oid_;
+    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * Whether "IF EXISTS" was used
@@ -95,23 +95,23 @@ class DropTriggerPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
-   * @param trigger_oid OID of the trigger to drop
+   * @param namespace_oid OID of the namespace to drop
    */
-  DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::trigger_oid_t trigger_oid, bool if_exists)
+  DropNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                        std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                        catalog::namespace_oid_t namespace_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
-        trigger_oid_(trigger_oid),
+        namespace_oid_(namespace_oid),
         if_exists_(if_exists) {}
 
  public:
-  DropTriggerPlanNode() = delete;
+  DropNamespacePlanNode() = delete;
 
   /**
    * @return the type of this plan node
    */
-  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP_TRIGGER; }
+  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DROP_NAMESPACE; }
 
   /**
    * @return OID of the database
@@ -119,9 +119,9 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the trigger to drop
+   * @return OID of the namespace to drop
    */
-  catalog::trigger_oid_t GetTriggerOid() const { return trigger_oid_; }
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return true if "IF EXISTS" was used
@@ -142,9 +142,9 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of the trigger to drop
+   * OID of the namespace to drop
    */
-  catalog::trigger_oid_t trigger_oid_;
+  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Whether "IF EXISTS" was used
@@ -155,7 +155,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   /**
    * Don't allow plan to be copied or moved
    */
-  DISALLOW_COPY_AND_MOVE(DropTriggerPlanNode);
+  DISALLOW_COPY_AND_MOVE(DropNamespacePlanNode);
 };
 
 }  // namespace terrier::plan_node

@@ -292,7 +292,7 @@ struct CheckInfo {
 class CreateTablePlanNode : public AbstractPlanNode {
  public:
   /**
-   * Builder for a create plan node
+   * Builder for a create table plan node
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
@@ -304,20 +304,29 @@ class CreateTablePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid  OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
+     * @param namespace OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_name the name of the table
      * @return builder object
      */
     Builder &SetTableName(std::string table_name) {
       table_name_ = std::move(table_name);
-      return *this;
-    }
-
-    /**
-     * @param schema_name the name of the schema
-     * @return builder object
-     */
-    Builder &SetSchemaName(std::string schema_name) {
-      schema_name_ = std::move(schema_name);
       return *this;
     }
 
@@ -382,7 +391,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
     Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
       if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTable) {
         table_name_ = std::string(create_stmt->GetTableName());
-        schema_name_ = std::string(create_stmt->GetSchemaName());
         std::vector<catalog::Schema::Column> columns;
         std::vector<std::string> pri_cols;
 
@@ -523,21 +531,26 @@ class CreateTablePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateTablePlanNode> Build() {
       return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
-          std::move(children_), std::move(output_schema_), std::move(table_name_), std::move(schema_name_),
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, std::move(table_name_),
           std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
     }
 
    protected:
     /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of the schema/namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
+
+    /**
      * Table Name
      */
     std::string table_name_;
-
-    /**
-     * namespace Name
-     */
-    std::string schema_name_;
 
     /**
      * Table Schema
@@ -575,8 +588,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_name the name of the table
-   * @param schema_name the name of the schema
    * @param table_schema schema of the table to create
    * @param has_primary_key true if index/table has primary key
    * @param primary_key primary_key of table
@@ -585,13 +599,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param con_checks check constraints
    */
   CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, std::string table_name, std::string schema_name,
+                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                      catalog::namespace_oid_t namespace_oid, std::string table_name,
                       std::shared_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
                       std::vector<ForeignKeyInfo> &&foreign_keys, std::vector<UniqueInfo> &&con_uniques,
                       std::vector<CheckInfo> &&con_checks)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_name_(std::move(table_name)),
-        schema_name_(std::move(schema_name)),
         table_schema_(std::move(table_schema)),
         has_primary_key_(has_primary_key),
         primary_key_(std::move(primary_key)),
@@ -601,22 +617,29 @@ class CreateTablePlanNode : public AbstractPlanNode {
 
  public:
   CreateTablePlanNode() = delete;
+
   /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_TABLE; }
 
   /**
-   * @return name of the table for
+   * @return OID of the database
    */
-  const std::string &GetTableName() const { return table_name_; }
-  /**
-   * @return name of the schema for
-   */
-  const std::string &GetSchemaName() const { return schema_name_; }
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return pointer to the schema for
+   * @return OID of the namespace to create index on
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return name of the table
+   */
+  const std::string &GetTableName() const { return table_name_; }
+
+  /**
+   * @return pointer to the schema
    */
   std::shared_ptr<catalog::Schema> GetTableSchema() const { return table_schema_; }
 
@@ -654,14 +677,19 @@ class CreateTablePlanNode : public AbstractPlanNode {
 
  private:
   /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
    * Table Name
    */
   std::string table_name_;
-
-  /**
-   * Schema Name
-   */
-  std::string schema_name_;
 
   /**
    * Table Schema

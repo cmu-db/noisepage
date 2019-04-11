@@ -1,33 +1,35 @@
-#include "plan_node/drop_database_plan_node.h"
+#include "plan_node/create_namespace_plan_node.h"
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
+#include "parser/parser_defs.h"
 
 namespace terrier::plan_node {
-common::hash_t DropDatabasePlanNode::Hash() const {
+common::hash_t CreateNamespacePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash databse_oid
+  // Hash database_oid
   auto database_oid = GetDatabaseOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
-  // Hash if_exists_
-  auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  // Hash schema_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetNamespaceName()));
 
   return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
 }
 
-bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
+bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
 
-  auto &other = dynamic_cast<const DropDatabasePlanNode &>(rhs);
+  auto &other = dynamic_cast<const CreateNamespacePlanNode &>(rhs);
 
   // Database OID
   if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
 
-  // If exists
-  if (IsIfExists() != other.IsIfExists()) return false;
+  // Schema name
+  if (GetNamespaceName() != other.GetNamespaceName()) return false;
 
   return AbstractPlanNode::operator==(rhs);
 }

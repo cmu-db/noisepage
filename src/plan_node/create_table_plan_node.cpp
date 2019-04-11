@@ -10,11 +10,16 @@ common::hash_t CreateTablePlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
+  // Hash database_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
+  // Hash namespace_oid
+  auto namespace_oid = GetNamespaceOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+
   // Hash table_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
-
-  // Hash schema_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetSchemaName()));
 
   // TODO(Gus,Wen) Hash catalog::Schema
 
@@ -48,11 +53,14 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const CreateTablePlanNode &>(rhs);
 
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
+  // Namespace OID
+  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+
   // Table name
   if (GetTableName() != other.GetTableName()) return false;
-
-  // Schema name
-  if (GetSchemaName() != other.GetSchemaName()) return false;
 
   // TODO(Gus,Wen) Compare catalog::Schema
 

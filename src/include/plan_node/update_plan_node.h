@@ -26,7 +26,16 @@ class UpdatePlanNode : public AbstractPlanNode {
     /**
      * Don't allow builder to be copied or moved
      */
-    DISALLOW_COPY_AND_MOVE(Builder);
+    DISALLOW_COPY_AND_MOVE(Builder)
+
+    /**
+     * @param database_oid OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
 
     /**
      * @param table_oid the OID of the target SQL table
@@ -34,15 +43,6 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {
       table_oid_ = table_oid;
-      return *this;
-    }
-
-    /**
-     * @param table_name name of the target table
-     * @return builder object
-     */
-    Builder &SetTableName(std::string table_name) {
-      table_name_ = std::move(table_name);
       return *this;
     }
 
@@ -60,11 +60,16 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(
-          std::move(children_), std::move(output_schema_), table_oid_, std::move(table_name_), update_primary_key_));
+      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
+                                                                database_oid_, table_oid_, update_primary_key_));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
     /**
      * OID of the table to update
      */
@@ -85,29 +90,30 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
-   * @param table_oid the OID of the target SQL table
+   * @param database_oid OID of the database
+   * @param table_oid OID of the target SQL table
    * @param table_name name of the target table
    * @param update_primary_key whether to update primary key
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-                 catalog::table_oid_t table_oid, std::string table_name, bool update_primary_key)
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
         table_oid_(table_oid),
-        table_name_(std::move(table_name)),
         update_primary_key_(update_primary_key) {}
 
  public:
   UpdatePlanNode() = delete;
 
   /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
    * @return the OID of the target table to operate on
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
-
-  /**
-   * @return the name of the target table
-   */
-  const std::string &GetTableName() const { return table_name_; }
 
   /**
    * @return whether to update primary key
@@ -128,14 +134,14 @@ class UpdatePlanNode : public AbstractPlanNode {
 
  private:
   /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
    * OID of the table to update
    */
   catalog::table_oid_t table_oid_;
-
-  /**
-   * Name of the table to update
-   */
-  std::string table_name_;
 
   /**
    * Whether to update primary key

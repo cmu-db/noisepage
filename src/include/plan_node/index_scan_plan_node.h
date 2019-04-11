@@ -40,7 +40,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * @param oid oid for index to use for scan
      * @return builder object
      */
-    Builder &SetIndexOID(catalog::index_oid_t oid) {
+    Builder &SetIndexOid(catalog::index_oid_t oid) {
       index_oid_ = oid;
       return *this;
     }

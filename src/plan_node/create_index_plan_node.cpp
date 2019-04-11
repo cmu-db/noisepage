@@ -9,11 +9,13 @@ common::hash_t CreateIndexPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
-  // Hash table_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
+  // Hash database_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
 
-  // Hash schema_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetSchemaName()));
+  // Hash table_oid
+  auto table_oid = GetTableOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
 
   // Hash index_type
   auto index_type = GetIndexType();
@@ -40,11 +42,11 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const CreateIndexPlanNode &>(rhs);
 
-  // Table name
-  if (GetTableName() != other.GetTableName()) return false;
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
 
-  // Schema name
-  if (GetSchemaName() != other.GetSchemaName()) return false;
+  // Table OID
+  if (GetTableOid() != other.GetTableOid()) return false;
 
   // Index type
   if (GetIndexType() != other.GetIndexType()) return false;

@@ -28,6 +28,24 @@ class CreateViewPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param database_oid  OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
+     * @param namespace OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param view_name  view name
      * @return builder object
      */
@@ -63,10 +81,21 @@ class CreateViewPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateViewPlanNode> Build() {
       return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
+                                                                        database_oid_, namespace_oid_,
                                                                         std::move(view_name_), std::move(view_query_)));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of the schema/namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
+
     /**
      * Name of the view
      */
@@ -82,11 +111,14 @@ class CreateViewPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param view_name  view name
    * @param view_query view query
    */
   CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                     std::shared_ptr<OutputSchema> output_schema, std::string view_name,
+                     std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                     catalog::namespace_oid_t namespace_oid, std::string view_name,
                      std::shared_ptr<parser::SelectStatement> view_query)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         view_name_(std::move(view_name)),
@@ -94,6 +126,16 @@ class CreateViewPlanNode : public AbstractPlanNode {
 
  public:
   CreateViewPlanNode() = delete;
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace to create index on
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
   /**
    * @return the type of this plan node
    */
@@ -117,6 +159,16 @@ class CreateViewPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
   /**
    * Name of the view
    */

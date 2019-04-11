@@ -12,12 +12,13 @@ common::hash_t InsertPlanNode::Hash() const {
   auto type = GetPlanNodeType();
   common::hash_t hash = common::HashUtil::Hash(&type);
 
+  // Hash database_oid
+  auto database_oid = GetDatabaseOid();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+
   // Hash table_oid
   auto table_oid = GetTableOid();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
-
-  // Hash table_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetTableName()));
 
   // TODO(Gus,Wen) hash values
 
@@ -38,11 +39,11 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const plan_node::InsertPlanNode &>(rhs);
 
+  // Database OID
+  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+
   // Target table OID
   if (GetTableOid() != other.GetTableOid()) return false;
-
-  // Table name
-  if (GetTableName() != other.GetTableName()) return false;
 
   // TODO(Gus,Wen) compare values
 
