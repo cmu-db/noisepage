@@ -114,29 +114,29 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       args4.push_back(tpcc::BuildNewOrderArgs(&generator_, 4));
     }
 
-    tpcc::Transactions new_order(tpcc_db);
+    tpcc::NewOrder new_order(tpcc_db);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
 
       std::thread worker1([&] {
         for (const auto &arg : args1) {
-          new_order.NewOrder(&txn_manager, &generator_, tpcc_db, &worker_buffers1, arg);
+          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers1, arg);
         }
       });
       std::thread worker2([&] {
         for (const auto &arg : args2) {
-          new_order.NewOrder(&txn_manager, &generator_, tpcc_db, &worker_buffers2, arg);
+          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers2, arg);
         }
       });
       std::thread worker3([&] {
         for (const auto &arg : args3) {
-          new_order.NewOrder(&txn_manager, &generator_, tpcc_db, &worker_buffers3, arg);
+          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers3, arg);
         }
       });
       std::thread worker4([&] {
         for (const auto &arg : args4) {
-          new_order.NewOrder(&txn_manager, &generator_, tpcc_db, &worker_buffers4, arg);
+          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers4, arg);
         }
       });
 
