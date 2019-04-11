@@ -29,39 +29,37 @@ class IndexPopulator {
                             SqlTable &sql_table, const IndexKeySchema &index_key_schema, Index &index) {  // NOLINT
     // Create the projected row for the index
     const IndexMetadata &metadata = index.GetIndexMetadata();
-    const auto &pr_initializer = metadata.GetProjectedRowInitializer();
-    auto *key_buf_index = common::AllocationUtil::AllocateAligned(pr_initializer.ProjectedRowSize());
-    ProjectedRow *index_key = pr_initializer.InitializeRow(key_buf_index);
+    const auto &index_pr_init = metadata.GetProjectedRowInitializer();
+    auto *index_pr_buf = common::AllocationUtil::AllocateAligned(index_pr_init.ProjectedRowSize());
+    ProjectedRow *indkey_pr = index_pr_init.InitializeRow(index_pr_buf);
 
     // Create the projected row for the sql table
     std::vector<catalog::col_oid_t> col_oids;
     for (const auto &it : index_key_schema) {
       col_oids.emplace_back(catalog::col_oid_t(!it.GetOid()));
     }
-    auto init_and_map = sql_table.InitializerForProjectedRow(col_oids);
-    auto *key_buf = common::AllocationUtil::AllocateAligned(init_and_map.first.ProjectedRowSize());
-    ProjectedRow *key = init_and_map.first.InitializeRow(key_buf);
+    auto table_pr_init = sql_table.InitializerForProjectedRow(col_oids).first;
+    auto *table_pr_buf = common::AllocationUtil::AllocateAligned(table_pr_init.ProjectedRowSize());
+    ProjectedRow *select_pr = table_pr_init.InitializeRow(table_pr_buf);
 
     // Record the col_id of each column
-    std::vector<col_id_t> sql_table_cols;
-    sql_table_cols.reserve(key->NumColumns());
-    for (uint16_t i = 0; i < key->NumColumns(); ++i) {
-      sql_table_cols.emplace_back(key->ColumnIds()[i]);
-    }
+    const col_id_t *columns = select_pr->ColumnIds();
+    uint16_t num_cols = select_pr->NumColumns();
+    std::vector<col_id_t> sql_table_cols(columns, columns + num_cols);
 
     for (const auto &it : sql_table) {
-      if (sql_table.Select(txn, it, key)) {
-        for (uint16_t i = 0; i < key->NumColumns(); ++i) {
-          key->ColumnIds()[i] = index_key->ColumnIds()[i];
+      if (sql_table.Select(txn, it, select_pr)) {
+        for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
+          select_pr->ColumnIds()[i] = indkey_pr->ColumnIds()[i];
         }
-        index.Insert(*key, it);
-        for (uint16_t i = 0; i < key->NumColumns(); ++i) {
-          key->ColumnIds()[i] = sql_table_cols[i];
+        index.Insert(*select_pr, it);
+        for (uint16_t i = 0; i < select_pr->NumColumns(); ++i) {
+          select_pr->ColumnIds()[i] = sql_table_cols[i];
         }
       }
     }
-    delete[] key_buf_index;
-    delete[] key_buf;
+    delete[] index_pr_buf;
+    delete[] table_pr_buf;
   }
 };
 }  // namespace terrier::storage::index
