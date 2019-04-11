@@ -59,8 +59,9 @@ class Catalog {
    * A default database is created. Its tables are created and populated.
    *
    * @param txn_manager the global transaction manager
+   * @param txn to be used for bootstrapping
    */
-  explicit Catalog(transaction::TransactionManager *txn_manager);
+  Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn);
 
   /**
    * Create a database, and all its tables. Set initial content
@@ -226,9 +227,11 @@ class Catalog {
    * correctly perform SQL queries.
    * 1) It creates and populates all the global catalogs
    * 2) It creates a default database named "terrier"
-   * 2) It bootstraps the default database.
+   * 3) It bootstraps the default database.
+   * @param txn to be used for bootstrapping
    */
-  void Bootstrap();
+  void Bootstrap(transaction::TransactionContext *txn);
+
 
   void CreatePGDatabase(table_oid_t table_oid);
 

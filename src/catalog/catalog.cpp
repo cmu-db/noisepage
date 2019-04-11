@@ -17,10 +17,11 @@ namespace terrier::catalog {
 
 std::shared_ptr<Catalog> terrier_catalog;
 
-Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), oid_(START_OID) {
-  CATALOG_LOG_TRACE("Creating catalog ...");
-  Bootstrap();
-  CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
+Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn)
+    : txn_manager_(txn_manager), oid_(START_OID) {
+    CATALOG_LOG_TRACE("Creating catalog ...");
+    Bootstrap(txn);
+    CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
 void Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
@@ -157,10 +158,8 @@ std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
 
-void Catalog::Bootstrap() {
+void Catalog::Bootstrap(transaction::TransactionContext *txn) {
   CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
-  transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-
   CreatePGDatabase(table_oid_t(GetNextOid()));
   PopulatePGDatabase(txn);
 
@@ -170,8 +169,6 @@ void Catalog::Bootstrap() {
   pg_settings_ = SettingsHandle::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
-  txn_manager_->Commit(txn, BootstrapCallback, nullptr);
-  delete txn;
 }
 
 void Catalog::AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,

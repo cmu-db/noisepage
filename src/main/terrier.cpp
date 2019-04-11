@@ -48,13 +48,15 @@ int main() {
   // create the global transaction mgr
   terrier::storage::RecordBufferSegmentPool buffer_pool_(100000, 10000);
   terrier::transaction::TransactionManager txn_manager_(&buffer_pool_, true, nullptr);
+  terrier::transaction::TransactionContext *txn_ = txn_manager_.BeginTransaction();
   // create the (system) catalogs
-  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_);
+  terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(&txn_manager_, txn_);
   LOG_INFO("Initialization complete");
 
   terrier::network::TerrierServer terrier_server;
   terrier_server.SetupServer().ServerLoop();
 
+  // TODO(pakhtar): fix so the catalog works nicely with the GC, and shutdown is clean and leak-free. (#323)
   // shutdown loggers
   spdlog::shutdown();
   main_stat_reg->Shutdown(false);
