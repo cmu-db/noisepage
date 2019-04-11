@@ -20,6 +20,10 @@ class SettingsHandle;
 
 /**
  * Schema column for used/unused schema rows.
+ * This is only used to transfer schema definition information to the sql table for Create. Thereafter, the
+ * this structure should not be used and schema information can be obtained from the catalog or from
+ * sql table GetSchema.
+ * Note that col_num is NOT used.
  */
 struct SchemaCol {
   /** column no */
@@ -33,7 +37,7 @@ struct SchemaCol {
 /**
  * The global catalog object.
  *
- * The catalog is modelled upon the Postgres catalog, modified for terrier.
+ * The catalog is modeled upon the Postgres catalog, modified for terrier.
  *
  * pg_database, pg_tablespace and pg_settings are global catalogs
  * (only a single instance). Other catalogs are "local" to each database.
@@ -279,6 +283,12 @@ class Catalog {
    * @param txn_manager the global transaction manager
    */
   void CreatePGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid);
+
+  /**
+   * During startup, create pg_attrdef table (local to db_oid)
+   * @param txn_manager the global transaction manager
+   */
+  void CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid);
 
   /**
    * During startup, create pg_type table (local to db_oid)

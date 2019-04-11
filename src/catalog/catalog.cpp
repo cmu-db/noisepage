@@ -227,10 +227,10 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   }
   // create the table
   pg_database_->Create();
-  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
+  db_oid_t default_db_oid = DEFAULT_DATABASE_OID;
 
   // add it to the map
-  map_[terrier_oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
+  map_[default_db_oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
   // what about the name map?
 }
 
@@ -273,7 +273,7 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   CreatePGNamespace(txn, db_oid);
   CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
-  AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
+  CreatePGAttrDef(txn, db_oid);
 
   // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
@@ -288,6 +288,10 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 
 void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
+}
+
+void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid) {
+  std::shared_ptr<catalog::SqlTableRW> pg_attrdef = AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
 }
 
 void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {

@@ -9,11 +9,11 @@
 #include "common/exception.h"
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
+#include "storage/storage_util.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
-#include "util/storage_test_util.h"
 
 namespace terrier::catalog {
 
@@ -118,7 +118,7 @@ class SqlTableRW {
         return;
       }
       layout_ = tblrw_->GetLayoutP();
-      all_cols = StorageTestUtil::ProjectionListAllColumns(*layout_);
+      all_cols = storage::StorageUtil::ProjectionListAllColumns(*layout_);
       auto col_initer = new storage::ProjectedColumnsInitializer(*layout_, all_cols, 1);
       buffer_ = common::AllocationUtil::AllocateAligned(col_initer->ProjectedColumnsSize());
       proj_col_bufp = col_initer->Initialize(buffer_);
@@ -268,7 +268,7 @@ class SqlTableRW {
   int32_t GetNumRows(transaction::TransactionContext *txn) {
     int32_t num_cols = 0;
     auto layout = GetLayout();
-    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
     storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 100);
     auto *buffer = common::AllocationUtil::AllocateAligned(col_initer.ProjectedColumnsSize());
     storage::ProjectedColumns *proj_col_bufp = col_initer.Initialize(buffer);
@@ -363,7 +363,7 @@ class SqlTableRW {
 
     auto layout = GetLayout();
     // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
     // get one row at a time
     if (col_initer_ == nullptr) {
       col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
@@ -405,7 +405,7 @@ class SqlTableRW {
 
     auto layout = GetLayout();
     // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
     // get one row at a time
     // storage::ProjectedColumnsInitializer col_initer(layout, all_cols, 1);
     if (col_initer_ == nullptr) {
@@ -520,7 +520,7 @@ class SqlTableRW {
   void Dump(transaction::TransactionContext *txn, int32_t max_col = 0) {
     auto layout = GetLayout();
     // setup parameters for a scan
-    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout);
+    std::vector<storage::col_id_t> all_cols = storage::StorageUtil::ProjectionListAllColumns(layout);
     // get one row at a time
     if (col_initer_ == nullptr) {
       col_initer_ = new storage::ProjectedColumnsInitializer(layout, all_cols, 1);
@@ -695,9 +695,6 @@ class SqlTableRW {
         throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ColEqualsValue");
     }
   }
-
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-  transaction::TransactionManager txn_manager_ = {&buffer_pool_, true, LOGGING_DISABLED};
 
   storage::BlockStore block_store_{100, 100};
   catalog::table_oid_t table_oid_;
