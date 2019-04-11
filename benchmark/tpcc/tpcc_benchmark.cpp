@@ -10,6 +10,7 @@
 #include "tpcc/loader.h"
 #include "tpcc/transactions.h"
 #include "tpcc/worker.h"
+#include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -98,13 +99,13 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     StartGC(&txn_manager);
     //    StartLogging();
 
-    std::vector<tpcc::NewOrderArgs> args1;
+    std::vector<tpcc::TransactionArgs> args1;
     args1.reserve(num_txns);
-    std::vector<tpcc::NewOrderArgs> args2;
+    std::vector<tpcc::TransactionArgs> args2;
     args2.reserve(num_txns);
-    std::vector<tpcc::NewOrderArgs> args3;
+    std::vector<tpcc::TransactionArgs> args3;
     args3.reserve(num_txns);
-    std::vector<tpcc::NewOrderArgs> args4;
+    std::vector<tpcc::TransactionArgs> args4;
     args4.reserve(num_txns);
 
     for (uint32_t i = 0; i < num_txns; i++) {
