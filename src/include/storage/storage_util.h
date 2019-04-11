@@ -134,5 +134,13 @@ class StorageUtil {
    */
   static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
                                                            uint16_t num_reserved_columns);
+
+  /**
+   * Return a vector of all the column ids in the layout, excluding columns reserved by the storage layer
+   * for internal use.
+   * @param layout
+   * @return vector of column ids
+   */
+  static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
 };
 }  // namespace terrier::storage

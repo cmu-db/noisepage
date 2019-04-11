@@ -22,22 +22,22 @@ const std::vector<SchemaCol> NamespaceHandle::unused_schema_cols_ = {
     {3, "nspacl", type::TypeId::VARCHAR},
 };
 
-std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
-    transaction::TransactionContext *txn, namespace_oid_t oid) {
+std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                   namespace_oid_t oid) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
-  return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
 }
 
-std::shared_ptr<NamespaceHandle::NamespaceEntry> NamespaceHandle::GetNamespaceEntry(
-    transaction::TransactionContext *txn, const std::string &name) {
+std::shared_ptr<NamespaceEntry> NamespaceHandle::GetNamespaceEntry(transaction::TransactionContext *txn,
+                                                                   const std::string &name) {
   std::vector<type::TransientValue> search_vec, ret_row;
   search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   search_vec.push_back(type::TransientValueFactory::GetVarChar(name));
   ret_row = pg_namespace_hrw_->FindRow(txn, search_vec);
   namespace_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-  return std::make_shared<NamespaceEntry>(oid, std::move(ret_row));
+  return std::make_shared<NamespaceEntry>(oid, pg_namespace_hrw_.get(), std::move(ret_row));
 }
 
 namespace_oid_t NamespaceHandle::NameToOid(transaction::TransactionContext *txn, const std::string &name) {
@@ -50,7 +50,7 @@ TableHandle NamespaceHandle::GetTableHandle(transaction::TransactionContext *txn
   std::string pg_class("pg_class");
   std::string pg_namespace("pg_namespace");
   std::string pg_tablespace("pg_tablespace");
-  return TableHandle(catalog_, db_oid_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
+  return TableHandle(catalog_, NameToOid(txn, nsp_name), catalog_->GetDatabaseCatalog(db_oid_, pg_class),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_namespace),
                      catalog_->GetDatabaseCatalog(db_oid_, pg_tablespace));
 }

@@ -5,7 +5,6 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "catalog/schema.h"
-#include "catalog/transient_value_util.h"
 #include "loggers/main_logger.h"
 #include "storage/block_layout.h"
 #include "storage/projected_columns.h"
@@ -58,18 +57,17 @@ IndexHandle DatabaseHandle::GetIndexHandle(terrier::transaction::TransactionCont
   return IndexHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_index"));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                db_oid_t oid) {
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn, db_oid_t oid) {
   auto pg_database_rw = catalog_->GetDatabaseCatalog(oid, "pg_database");
 
   std::vector<type::TransientValue> search_vec;
   search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   auto row_vec = pg_database_rw->FindRow(txn, search_vec);
-  return std::make_shared<DatabaseEntry>(oid, std::move(row_vec));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw.get(), std::move(row_vec));
 }
 
-std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
-                                                                                const std::string &db_name) {
+std::shared_ptr<DatabaseEntry> DatabaseHandle::GetDatabaseEntry(transaction::TransactionContext *txn,
+                                                                const std::string &db_name) {
   // we don't need to do this lookup. pg_database is global
   // auto pg_database_rw = catalog_->GetDatabaseCatalog(DEFAULT_DATABASE_OID, "pg_database");
 
@@ -84,13 +82,13 @@ std::shared_ptr<DatabaseHandle::DatabaseEntry> DatabaseHandle::GetDatabaseEntry(
   }
   // specifying the oid is redundant. Eliminate?
   db_oid_t oid(type::TransientValuePeeker::PeekInteger(row_vec[0]));
-  return std::make_shared<DatabaseEntry>(oid, std::move(row_vec));
+  return std::make_shared<DatabaseEntry>(oid, pg_database_rw_.get(), std::move(row_vec));
 }
 
 bool DatabaseHandle::DeleteEntry(transaction::TransactionContext *txn, const std::shared_ptr<DatabaseEntry> &entry) {
   std::vector<type::TransientValue> search_vec;
   // get the oid of this row
-  search_vec.emplace_back(TransientValueUtil::MakeCopy(entry->GetColumn(0)));
+  search_vec.emplace_back(type::TransientValueFactory::GetCopy(entry->GetColumn(0)));
 
   // lookup and get back the projected column. Recover the tuple_slot
   auto proj_col_p = pg_database_rw_->FindRowProjCol(txn, search_vec);

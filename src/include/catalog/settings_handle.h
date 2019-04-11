@@ -15,42 +15,25 @@ namespace terrier::catalog {
 class Catalog;
 
 /**
+ * An SettingsEntry is a row in pg_setting catalog
+ */
+class SettingsEntry : public CatalogEntry<settings_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid settings oid
+   * @param sql_table associated with this entry
+   * @param entry a row in pg_settings that represents this table
+   */
+  SettingsEntry(settings_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
+};
+
+/**
  * The settings catalog contains, global settings.
  */
 class SettingsHandle {
  public:
-  /**
-   * An SettingsEntry is a row in pg_setting catalog
-   */
-  class SettingsEntry {
-   public:
-    /**
-     * Constructs a Settings entry.
-     * @param oid
-     * @param entry: the row as a vector of values
-     */
-    SettingsEntry(settings_oid_t oid, std::vector<type::TransientValue> &&entry)
-        : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the settings_oid of the attribute
-     * @return settings_oid of the attribute
-     */
-    settings_oid_t GetSettingsOid() { return oid_; }
-
-   private:
-    // the row
-    settings_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Get a specific settings entry.
    * @param txn the transaction that initiates the read
@@ -92,15 +75,14 @@ class SettingsHandle {
    * @param name settings name
    * @return settings entry
    */
-  std::shared_ptr<SettingsHandle::SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn,
-                                                                  const std::string &name) {
+  std::shared_ptr<SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn, const std::string &name) {
     std::vector<type::TransientValue> search_vec, ret_row;
     search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
     ret_row = pg_settings_->FindRow(txn, search_vec);
 
     settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
-    return std::make_shared<SettingsEntry>(oid, std::move(ret_row));
+    return std::make_shared<SettingsEntry>(oid, pg_settings_.get(), std::move(ret_row));
   }
 
   /**

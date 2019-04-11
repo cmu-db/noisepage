@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/catalog_entry.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
@@ -14,6 +15,21 @@ namespace terrier::catalog {
 
 class Catalog;
 struct SchemaCol;
+
+/**
+ * A attribute entry represent a row in pg_attribute catalog.
+ */
+class AttributeEntry : public CatalogEntry<col_oid_t> {
+ public:
+  /**
+   * Constructor
+   * @param oid attribute oid
+   * @param sql_table associated with this entry
+   * @param entry a row in pg_attribute that represents this table
+   */
+  AttributeEntry(col_oid_t oid, catalog::SqlTableRW *sql_table, std::vector<type::TransientValue> &&entry)
+      : CatalogEntry(oid, sql_table, std::move(entry)) {}
+};
 
 /**
  * An attribute handle provides accessors to the pg_attribute catalog.
@@ -28,39 +44,8 @@ struct SchemaCol;
  * The term attribute is equivalent to column and is used for historical
  * reasons.
  */
-
 class AttributeHandle {
  public:
-  /**
-   * A attribute entry represent a row in pg_attribute catalog.
-   */
-  class AttributeEntry {
-   public:
-    /**
-     * Constructs a attribute entry.
-     * @param oid the col_oid of the attribute
-     * @param entry: the row as a vector of values
-     */
-    AttributeEntry(col_oid_t oid, std::vector<type::TransientValue> &&entry) : oid_(oid), entry_(std::move(entry)) {}
-
-    /**
-     * Get the value for a given column
-     * @param col_num the column index
-     * @return the value of the column
-     */
-    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Return the col_oid of the attribute
-     * @return col_oid of the attribute
-     */
-    col_oid_t GetAttributeOid() { return oid_; }
-
-   private:
-    col_oid_t oid_;
-    std::vector<type::TransientValue> entry_;
-  };
-
   /**
    * Construct an attribute handle
    * @param catalog catalog ptr
@@ -68,15 +53,6 @@ class AttributeHandle {
    */
   explicit AttributeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
       : pg_attribute_hrw_(std::move(pg_attribute)) {}
-
-  /**
-   * Construct an attribute handle. It keeps a pointer to the pg_attribute sql table.
-   * @param table a pointer to SqlTableRW
-   * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
-   * Deprecate
-   */
-  explicit AttributeHandle(SqlTableRW *table, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
-      : table_(table), pg_attribute_hrw_(std::move(pg_attribute)) {}
 
   /**
    * Convert a attribute string to its oid representation
@@ -87,26 +63,24 @@ class AttributeHandle {
   col_oid_t NameToOid(transaction::TransactionContext *txn, const std::string &name);
 
   /**
-   * Get a attribute entry for a given col_oid. It's essentially equivalent to reading a
-   * row from pg_attribute. It has to be executed in a transaction context.
-   *
-   * @param txn the transaction that initiates the read
-   * @param oid the col_oid of the database the transaction wants to read
-   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist in
-   * the database
+   * Get an attribute entry.
+   * @param txn transaction (required)
+   * @param table_oid an attribute for this table
+   * @param col_oid attribute for col_oid of table_oid
+   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, col_oid_t oid);
+  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+                                                    col_oid_t col_oid);
 
   /**
-   * Get a attribute entry for a given attribute. It's essentially equivalent to reading a
-   * row from pg_attribute. It has to be executed in a transaction context.
-   *
-   * @param txn the transaction that initiates the read
-   * @param name the attribute of the database the transaction wants to read
-   * @return a shared pointer to Attribute entry; NULL if the attribute doesn't exist in
-   * the database
+   * Get an attribute entry.
+   * @param txn transaction (required)
+   * @param table_oid an attribute for this table
+   * @param name attribute for column name of table_oid
+   * @return a shared pointer to Attribute entry;
    */
-  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, const std::string &name);
+  std::shared_ptr<AttributeEntry> GetAttributeEntry(transaction::TransactionContext *txn, table_oid_t table_oid,
+                                                    const std::string &name);
 
   /**
    * Create the storage table
@@ -131,8 +105,6 @@ class AttributeHandle {
   static const std::vector<SchemaCol> unused_schema_cols_;
 
  private:
-  // Catalog *catalog_;
-  SqlTableRW *table_;
   std::shared_ptr<catalog::SqlTableRW> pg_attribute_hrw_;
 };
 

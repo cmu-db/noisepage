@@ -17,9 +17,10 @@ namespace terrier::catalog {
 
 std::shared_ptr<Catalog> terrier_catalog;
 
-Catalog::Catalog(transaction::TransactionManager *txn_manager) : txn_manager_(txn_manager), oid_(START_OID) {
+Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn)
+    : txn_manager_(txn_manager), oid_(START_OID) {
   CATALOG_LOG_TRACE("Creating catalog ...");
-  Bootstrap();
+  Bootstrap(txn);
   CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
 }
 
@@ -33,7 +34,7 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   // get database handle
   auto db_handle = GetDatabaseHandle();
   auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
-  auto oid = db_entry->GetDatabaseOid();
+  auto oid = db_entry->GetOid();
   // remove entry from pg_database
   db_handle.DeleteEntry(txn, db_entry);
 
@@ -158,10 +159,8 @@ std::shared_ptr<catalog::SqlTableRW> Catalog::GetDatabaseCatalog(db_oid_t db_oid
 
 uint32_t Catalog::GetNextOid() { return oid_++; }
 
-void Catalog::Bootstrap() {
+void Catalog::Bootstrap(transaction::TransactionContext *txn) {
   CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
-  transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-
   CreatePGDatabase(table_oid_t(GetNextOid()));
   PopulatePGDatabase(txn);
 
@@ -171,8 +170,6 @@ void Catalog::Bootstrap() {
   pg_settings_ = SettingsHandle::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
 
   BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
-  txn_manager_->Commit(txn, BootstrapCallback, nullptr);
-  delete txn;
 }
 
 void Catalog::AddUnusedSchemaColumns(const std::shared_ptr<catalog::SqlTableRW> &db_p,
@@ -198,7 +195,7 @@ void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_o
     auto type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
     auto s_type = ValueTypeIdToSchemaType(c.GetType());
     auto type_entry = type_handle.GetTypeEntry(txn, s_type);
-    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetTypeOid()));
+    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetOid()));
 
     // length of column type. Varlen columns have the sign bit set.
     // TODO(pakhtar): resolve what to store for varlens.
@@ -228,10 +225,10 @@ void Catalog::CreatePGDatabase(table_oid_t table_oid) {
   }
   // create the table
   pg_database_->Create();
-  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
+  db_oid_t default_db_oid = DEFAULT_DATABASE_OID;
 
   // add it to the map
-  map_[terrier_oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
+  map_[default_db_oid] = std::unordered_map<table_oid_t, std::shared_ptr<catalog::SqlTableRW>>();
   // what about the name map?
 }
 
@@ -271,11 +268,11 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
 
   // Order: pg_attribute -> pg_namespace -> pg_class
   CreatePGAttribute(txn, db_oid);
-  CreatePGNameSpace(txn, db_oid);
+  CreatePGNamespace(txn, db_oid);
   CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
   CreatePGIndex(txn, db_oid);
-  AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
+  CreatePGAttrDef(txn, db_oid);
 
   // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
@@ -295,7 +292,11 @@ void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, t
   std::shared_ptr<catalog::SqlTableRW> pg_attribute = AttributeHandle::Create(txn, this, db_oid, "pg_attribute");
 }
 
-void Catalog::CreatePGNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid) {
+void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid) {
+  std::shared_ptr<catalog::SqlTableRW> pg_attrdef = AttrDefHandle::Create(txn, this, db_oid, "pg_attrdef");
+}
+
+void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
   std::vector<type::TransientValue> row;
   std::shared_ptr<catalog::SqlTableRW> pg_namespace;
 
@@ -319,10 +320,10 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 
   // lookup oids inserted in multiple entries
   auto pg_catalog_namespace_oid =
-      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      !GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
-  auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetTablespaceOid();
-  auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetTablespaceOid();
+  auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetOid();
+  auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid();
 
   // Insert pg_database
   // (namespace: catalog, tablespace: global)
@@ -372,7 +373,7 @@ void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid
   // TODO(Yesheng): get rid of this strange calling chain
   auto pg_type_handle = GetDatabaseHandle().GetTypeHandle(txn, db_oid);
   auto catalog_ns_oid =
-      GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetNamespaceOid();
+      GetDatabaseHandle().GetNamespaceHandle(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
 
   // built-in types as in type/type_id.h
   pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,

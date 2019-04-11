@@ -14,8 +14,8 @@ struct DatabaseHandleTests : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {

@@ -13,8 +13,8 @@ struct NamespaceHandleTests : public TerrierTest {
     TerrierTest::SetUp();
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
 
-    catalog_ = new catalog::Catalog(txn_manager_);
     txn_ = txn_manager_->BeginTransaction();
+    catalog_ = new catalog::Catalog(txn_manager_, txn_);
   }
 
   void TearDown() override {
@@ -43,11 +43,13 @@ TEST_F(NamespaceHandleTests, BasicCorrectnessTest) {
 
   // get the pg_catalog namespace
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "pg_catalog");
-  EXPECT_EQ("pg_catalog", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+  // EXPECT_EQ("pg_catalog", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+  EXPECT_EQ("pg_catalog", namespace_entry_ptr->GetVarcharColumn("nspname"));
 
   // get the public namespace
   namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "public");
-  EXPECT_EQ("public", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+  EXPECT_EQ("public", namespace_entry_ptr->GetVarcharColumn("nspname"));
+  // EXPECT_EQ("public", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
 }
 
 // Tests that we can create namespace
@@ -61,6 +63,7 @@ TEST_F(NamespaceHandleTests, CreateTest) {
 
   // verify correctly created
   auto namespace_entry_ptr = namespace_handle.GetNamespaceEntry(txn_, "test_namespace");
-  EXPECT_EQ("test_namespace", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
+  EXPECT_EQ("test_namespace", namespace_entry_ptr->GetVarcharColumn("nspname"));
+  // EXPECT_EQ("test_namespace", type::TransientValuePeeker::PeekVarChar(namespace_entry_ptr->GetColumn(1)));
 }
 }  // namespace terrier
