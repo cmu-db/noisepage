@@ -77,7 +77,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @param trigger_columns trigger columns
      * @return builder object
      */
-    Builder &SetTriggerColumns(std::vector<std::string> &&trigger_columns) {
+    Builder &SetTriggerColumns(std::vector<catalog::col_oid_t> &&trigger_columns) {
       trigger_columns_ = std::move(trigger_columns);
       return *this;
     }
@@ -121,15 +121,12 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
         for (auto &s : create_stmt->GetTriggerArgs()) {
           trigger_args_.push_back(s);
         }
-        for (auto &s : create_stmt->GetTriggerColumns()) {
-          trigger_columns_.push_back(s);
-        }
       }
       return *this;
     }
 
     /**
-     * Build the create function plan node
+     * Build the create trigger plan node
      * @return plan node
      */
     std::unique_ptr<CreateTriggerPlanNode> Build() {
@@ -168,7 +165,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     /**
      * Trigger columns
      */
-    std::vector<std::string> trigger_columns_;
+    std::vector<catalog::col_oid_t> trigger_columns_;
 
     /**
      * Trigger when claus
@@ -198,7 +195,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                         catalog::table_oid_t table_oid, std::string trigger_name,
                         std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
-                        std::vector<std::string> &&trigger_columns,
+                        std::vector<catalog::col_oid_t> &&trigger_columns,
                         std::shared_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -246,7 +243,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * @return trigger columns
    */
-  std::vector<std::string> GetTriggerColumns() const { return trigger_columns_; }
+  std::vector<catalog::col_oid_t> GetTriggerColumns() const { return trigger_columns_; }
 
   /**
    * @return trigger when clause
@@ -294,7 +291,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * Trigger columns
    */
-  std::vector<std::string> trigger_columns_;
+  std::vector<catalog::col_oid_t> trigger_columns_;
 
   /**
    * Trigger when claus

@@ -98,11 +98,6 @@ class InsertPlanNode : public AbstractPlanNode {
     catalog::table_oid_t table_oid_;
 
     /**
-     * name of the table to insert into
-     */
-    std::string table_name_;
-
-    /**
      * values to insert
      */
     std::vector<type::TransientValue> values_;
@@ -114,7 +109,7 @@ class InsertPlanNode : public AbstractPlanNode {
     std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> parameter_info_;
 
     /**
-     * name of time to insert
+     * number of times to insert
      */
     uint32_t bulk_insert_count_;
   };

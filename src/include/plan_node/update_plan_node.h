@@ -76,11 +76,6 @@ class UpdatePlanNode : public AbstractPlanNode {
     catalog::table_oid_t table_oid_;
 
     /**
-     * Name of the table to update
-     */
-    std::string table_name_;
-
-    /**
      * Whether to update primary key
      */
     bool update_primary_key_;
@@ -92,7 +87,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
    * @param table_oid OID of the target SQL table
-   * @param table_name name of the target table
    * @param update_primary_key whether to update primary key
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,

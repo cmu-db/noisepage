@@ -94,7 +94,6 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param table_oid the OID of the target SQL table
-   * @param table_name name of the target table
    * @param delete_condition expression of delete condition
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
