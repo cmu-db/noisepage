@@ -1,8 +1,8 @@
-#include <pqxx/pqxx>
 #include <util/test_harness.h>
 #include <cstdio>
 #include <cstring>
 #include <memory>
+#include <pqxx/pqxx>  // NOLINT
 #include <string>
 #include <unordered_map>
 #include <vector>
