@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <string_view>
 #include "catalog/catalog_defs.h"
@@ -240,8 +241,22 @@ class Payment {
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
-//      for (const auto &tuple_slot : index_scan_results) {
-//      }
+      static const auto c_first_comparator = [&](const storage::TupleSlot &lhs, const storage::TupleSlot &rhs) -> bool {
+        auto *c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+        db->customer_table_->Select(txn, lhs, c_first_select_tuple);
+        const auto c_first_lhs =
+            *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
+
+        c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+        db->customer_table_->Select(txn, rhs, c_first_select_tuple);
+        const auto c_first_rhs =
+            *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
+
+        return storage::VarlenContentCompare()(c_first_lhs, c_first_rhs);
+      };
+
+      std::nth_element(index_scan_results.begin(), index_scan_results.begin() + index_scan_results.size() / 2,
+                       index_scan_results.end(), c_first_comparator);
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
