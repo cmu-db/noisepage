@@ -38,7 +38,7 @@ int MainDatabase::start(int argc, char *argv[]) {
   LOG_INFO("Initialization complete");
 
   terrier::network::TerrierServer terrier_server;
-  terrier_server.SetPort(settings_manager_.GetInt(terrier::settings::Param::port));
+  terrier_server.SetPort(static_cast<int16_t>(settings_manager_.GetInt(terrier::settings::Param::port)));
   terrier_server.SetupServer().ServerLoop();
 
   // TODO(pakhtar): fix so the catalog works nicely with the GC, and shutdown is clean and leak-free. (#323)
