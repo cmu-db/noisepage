@@ -238,7 +238,7 @@ struct Loader {
 
           storage::ProjectedRow *customer_name_key = nullptr;
           if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
-            customer_name_key = BuildCustomerNameKey(c_last_tuple, d_id + 1, w_id + 1, worker->customer_key_buffer,
+            customer_name_key = BuildCustomerNameKey(c_last_tuple, d_id + 1, w_id + 1, worker->customer_name_key_buffer,
                                                      customer_name_key_pr_initializer, customer_name_key_pr_map,
                                                      db->customer_name_key_schema_);
           } else {
