@@ -215,7 +215,7 @@ class Payment {
     result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
-    storage::TupleSlot customer;
+    storage::TupleSlot customer_slot;
     if (!args.use_c_last) {
       // Look up C_ID, D_ID, W_ID in index
       const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
@@ -228,7 +228,7 @@ class Payment {
       index_scan_results.clear();
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
-      customer = index_scan_results[0];
+      customer_slot = index_scan_results[0];
     } else {
       // Look up C_NAME, D_ID, W_ID in index
       const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
@@ -243,18 +243,22 @@ class Payment {
       db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
-      std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
-      for (const auto &tuple_slot : index_scan_results) {
-        auto *const customer_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-        db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
-        const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(0));
-        sorted_index_scan_results.emplace(
-            std::string(reinterpret_cast<const char *const>(c_first.Content()), c_first.Size()), tuple_slot);
-      }
+      if (index_scan_results.size() > 1) {
+        std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
+        for (const auto &tuple_slot : index_scan_results) {
+          auto *const customer_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+          db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
+          const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(0));
+          sorted_index_scan_results.emplace(
+              std::string(reinterpret_cast<const char *const>(c_first.Content()), c_first.Size()), tuple_slot);
+        }
 
-      auto median = sorted_index_scan_results.begin();
-      std::advance(median, (sorted_index_scan_results.size() + 1) / 2);
-      customer = median->second;
+        auto median = sorted_index_scan_results.cbegin();
+        std::advance(median, (sorted_index_scan_results.size() + 1) / 2);
+        customer_slot = median->second;
+      } else {
+        customer_slot = index_scan_results[0];
+      }
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
