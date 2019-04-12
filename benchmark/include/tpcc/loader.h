@@ -15,18 +15,20 @@
 
 namespace terrier::tpcc {
 
-constexpr uint32_t num_warehouses_ = 4;  // TODO(Matt): don't hard code this
-
 // 4.3.3.1
 struct Loader {
   Loader() = delete;
 
   template <class Random>
   static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Random *const generator,
-                               Database *const db, Worker *const worker) {
+                               Database *const db, const std::vector<Worker> &workers) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
     TERRIER_ASSERT(generator != nullptr, "Random number generator does not exist.");
     TERRIER_ASSERT(db != nullptr, "Database does not exist.");
+
+    // TODO(WAN): I have a stashed multi-threaded loading commit, but that might actually be slower. Punt.
+    const auto *worker = &workers[0];
+    const auto num_warehouses = static_cast<uint32_t>(workers.size());
 
     // Item tuple
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
@@ -137,7 +139,7 @@ struct Loader {
       }
     }
 
-    for (uint32_t w_id = 0; w_id < num_warehouses_; w_id++) {
+    for (uint32_t w_id = 0; w_id < num_warehouses; w_id++) {
       // 1 row in the WAREHOUSE table for each configured warehouse
       // insert in table
       const auto *const warehouse_tuple =
@@ -393,7 +395,7 @@ struct Loader {
                                                     const storage::ProjectedRowInitializer &pr_initializer,
                                                     const storage::ProjectionMap &projection_map,
                                                     const catalog::Schema &schema, Random *const generator) {
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -452,7 +454,7 @@ struct Loader {
       const int32_t w_id, byte *const buffer, const storage::ProjectedRowInitializer &pr_initializer,
       const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -474,7 +476,7 @@ struct Loader {
                                                 const storage::ProjectionMap &projection_map,
                                                 const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(s_i_id >= 1 && s_i_id <= 100000, "Invalid s_i_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -577,7 +579,7 @@ struct Loader {
                                               const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
                                               const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(s_i_id >= 1 && s_i_id <= 100000, "Invalid s_i_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -599,7 +601,7 @@ struct Loader {
                                                    const storage::ProjectionMap &projection_map,
                                                    const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -667,7 +669,7 @@ struct Loader {
                                                  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
                                                  const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -691,7 +693,7 @@ struct Loader {
                                                    const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -824,7 +826,7 @@ struct Loader {
                                                  const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -847,7 +849,7 @@ struct Loader {
       const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
       const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -872,7 +874,7 @@ struct Loader {
                                                   const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -924,7 +926,7 @@ struct Loader {
                                                    const catalog::Schema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -955,7 +957,7 @@ struct Loader {
                                                  const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(o_id >= 2101 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -987,7 +989,7 @@ struct Loader {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -1047,7 +1049,7 @@ struct Loader {
                                               const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -1073,7 +1075,7 @@ struct Loader {
                                                     const catalog::Schema &schema, Random *const generator) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);
@@ -1146,7 +1148,7 @@ struct Loader {
       const storage::index::IndexKeySchema &schema) {
     TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
     TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
-    TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
     TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
 
     auto *const pr = pr_initializer.InitializeRow(buffer);

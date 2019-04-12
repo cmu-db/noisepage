@@ -1,6 +1,5 @@
 #pragma once
 
-#include "tpcc/loader.h"
 #include "tpcc/util.h"
 
 namespace terrier::tpcc {
@@ -36,8 +35,8 @@ struct TransactionArgs {
 
 // 2.4.1
 template <class Random>
-TransactionArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+TransactionArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id, const uint32_t num_warehouses) {
+  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::NewOrder;
   args.w_id = w_id;
@@ -53,13 +52,13 @@ TransactionArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
     int32_t ol_i_id = (i == args.ol_cnt - 1 && args.rbk == 1) ? 8491138 : Util::NURand(8191, 1, 100000, generator);
     int32_t ol_supply_w_id;
     bool remote;
-    if (num_warehouses_ == 1 || Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
+    if (num_warehouses == 1 || Util::RandomWithin<uint8_t>(1, 100, 0, generator) > 1) {
       ol_supply_w_id = w_id;
       remote = false;
     } else {
       int32_t remote_w_id;
       do {
-        remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses_, 0, generator);
+        remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses, 0, generator);
       } while (remote_w_id == w_id);
       ol_supply_w_id = remote_w_id;
       remote = true;
@@ -74,8 +73,8 @@ TransactionArgs BuildNewOrderArgs(Random *const generator, const int32_t w_id) {
 
 // 2.5.1
 template <class Random>
-TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id, const uint32_t num_warehouses) {
+  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Payment;
   args.w_id = w_id;
@@ -88,13 +87,13 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
     args.c_d_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);
     int32_t remote_w_id;
     do {
-      remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses_, 0, generator);
-    } while (num_warehouses_ > 1 && remote_w_id == w_id);
+      remote_w_id = Util::RandomWithin<uint8_t>(1, num_warehouses, 0, generator);
+    } while (num_warehouses > 1 && remote_w_id == w_id);
     args.c_w_id = remote_w_id;
     args.remote = true;
   }
   if (Util::RandomWithin<int32_t>(1, 100, 0, generator) <= 60) {
-    args.c_last = Util::LastNameVarlenEntry(Util::NURand(255, 0, 999, generator));
+    args.c_last = Util::LastNameVarlenEntry(static_cast<uint16_t>(Util::NURand(255, 0, 999, generator)));
     args.use_c_last = true;
   } else {
     args.c_id = Util::NURand(1023, 1, 3000, generator);
@@ -107,7 +106,7 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
 
 template <class Random>
 TransactionArgs BuildOrderStatusArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::OrderStatus;
   return args;
@@ -115,7 +114,7 @@ TransactionArgs BuildOrderStatusArgs(Random *const generator, const int32_t w_id
 
 template <class Random>
 TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Delivery;
   return args;
@@ -123,7 +122,7 @@ TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id) {
 
 template <class Random>
 TransactionArgs BuildStockLevelArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::StockLevel;
   return args;

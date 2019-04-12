@@ -87,12 +87,13 @@ struct Util {
     TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
     const auto astring = AlphaNumericString(x, y, numeric_only, generator);
     if (astring.length() <= storage::VarlenEntry::InlineThreshold()) {
-      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(astring.data()), astring.length());
+      return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(astring.data()),
+                                                static_cast<uint32_t>(astring.length()));
     }
 
     auto *const varlen = common::AllocationUtil::AllocateAligned(astring.length());
     std::memcpy(varlen, astring.data(), astring.length());
-    return storage::VarlenEntry::Create(varlen, astring.length(), true);
+    return storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(astring.length()), true);
   }
 
   // 4.3.2.3
@@ -122,7 +123,7 @@ struct Util {
   // 4.3.2.5
   template <class T, class Random>
   static T RandomWithin(const uint32_t x, const uint32_t y, const uint32_t p, Random *const generator) {
-    return std::uniform_int_distribution(x, y)(*generator) / static_cast<T>(std::pow(10, p));
+    return static_cast<T>(std::uniform_int_distribution(x, y)(*generator) / static_cast<T>(std::pow(10, p)));
   }
 
   // 4.3.2.7

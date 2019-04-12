@@ -125,11 +125,11 @@ class Deck {
     TERRIER_ASSERT(w_new_order + w_payment + w_order_status + w_delivery + w_stock_level == 100,
                    "Weights must sum to 100.");
 
-    uint32_t min_new_order = std::ceil(w_new_order / 100.0 * 23);
-    uint32_t min_payment = std::ceil(w_payment / 100.0 * 23);
-    uint32_t min_order_status = std::ceil(w_order_status / 100.0 * 23);
-    uint32_t min_delivery = std::ceil(w_delivery / 100.0 * 23);
-    uint32_t min_stock_level = std::ceil(w_stock_level / 100.0 * 23);
+    uint32_t min_new_order = std::ceil(static_cast<double>(w_new_order) / 100.0 * 23);
+    uint32_t min_payment = std::ceil(static_cast<double>(w_payment) / 100.0 * 23);
+    uint32_t min_order_status = std::ceil(static_cast<double>(w_order_status) / 100.0 * 23);
+    uint32_t min_delivery = std::ceil(static_cast<double>(w_delivery) / 100.0 * 23);
+    uint32_t min_stock_level = std::ceil(static_cast<double>(w_stock_level) / 100.0 * 23);
 
     uint32_t min_num_cards = min_new_order + min_payment + min_order_status + min_delivery + min_stock_level;
     if (min_num_cards == 24) {
@@ -169,11 +169,12 @@ class Deck {
         cards.begin(), cards.end(), [](tpcc::TransactionType txn) { return txn == tpcc::TransactionType::Delivery; });
     auto UNUSED_ATTRIBUTE c_stock_level = std::count_if(
         cards.begin(), cards.end(), [](tpcc::TransactionType txn) { return txn == tpcc::TransactionType::StockLevel; });
-    TERRIER_ASSERT(c_new_order / 23.0 * 100 >= w_new_order, "New order weight unsatisfied.");
-    TERRIER_ASSERT(c_payment / 23.0 * 100 >= w_payment, "Payment weight unsatisfied.");
-    TERRIER_ASSERT(c_order_status / 23.0 * 100 >= w_order_status, "Order status weight unsatisfied.");
-    TERRIER_ASSERT(c_delivery / 23.0 * 100 >= w_delivery, "Delivery weight unsatisfied.");
-    TERRIER_ASSERT(c_stock_level / 23.0 * 100 >= w_stock_level, "Stock level weight unsatisfied.");
+    TERRIER_ASSERT(static_cast<double>(c_new_order) / 23.0 * 100 >= w_new_order, "New order weight unsatisfied.");
+    TERRIER_ASSERT(static_cast<double>(c_payment) / 23.0 * 100 >= w_payment, "Payment weight unsatisfied.");
+    TERRIER_ASSERT(static_cast<double>(c_order_status) / 23.0 * 100 >= w_order_status,
+                   "Order status weight unsatisfied.");
+    TERRIER_ASSERT(static_cast<double>(c_delivery) / 23.0 * 100 >= w_delivery, "Delivery weight unsatisfied.");
+    TERRIER_ASSERT(static_cast<double>(c_stock_level) / 23.0 * 100 >= w_stock_level, "Stock level weight unsatisfied.");
 
     std::shuffle(cards.begin(), cards.end(), generator_);
   }
@@ -219,10 +220,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
       switch (deck.NextCard()) {
         case tpcc::TransactionType::NewOrder:
-          txns.emplace_back(tpcc::BuildNewOrderArgs(&generator_, warehouse_id));
+          txns.emplace_back(tpcc::BuildNewOrderArgs(&generator_, warehouse_id, num_threads_));
           break;
         case tpcc::TransactionType::Payment:
-          txns.emplace_back(tpcc::BuildPaymentArgs(&generator_, warehouse_id));
+          txns.emplace_back(tpcc::BuildPaymentArgs(&generator_, warehouse_id, num_threads_));
           break;
         case tpcc::TransactionType::OrderStatus:
           txns.emplace_back(tpcc::BuildOrderStatusArgs(&generator_, warehouse_id));
@@ -252,8 +253,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       workers.emplace_back(tpcc_db);
     }
 
-    // TODO(WAN): I have a stashed commit for multi-threaded loaders, but we don't want that right now
-    tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &workers[0]);
+    tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     //    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
     //    StartLogging();
@@ -315,8 +315,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     }
 
     // figure out how many transactions committed
-    uint32_t num_items_processed = state.items_processed();
-    for (uint32_t i = 0; i < num_threads_; i++) {
+    uint64_t num_items_processed = state.items_processed();
+    for (uint64_t i = 0; i < num_threads_; i++) {
       num_items_processed += workers[i].num_committed_txns;
     }
 
