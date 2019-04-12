@@ -75,6 +75,10 @@ class TransactionManager {
    */
   TransactionQueue CompletedTransactionsForGC();
 
+  bool SetBufferPoolSizeLimit(uint64_t new_size) { return buffer_pool_->SetSizeLimit(new_size); }
+
+  uint64_t GetBufferPoolSizeLimit() const { return buffer_pool_->GetSizeLimit(); }
+
  private:
   storage::RecordBufferSegmentPool *buffer_pool_;
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)

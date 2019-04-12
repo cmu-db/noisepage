@@ -1,5 +1,5 @@
 #include "settings/settings_manager.h"
-#include "type/value_factory.h"
+#include "type/transient_value_factory.h"
 
 #include <gflags/gflags.h>
 #include <memory>
@@ -16,7 +16,8 @@
 namespace terrier::settings {
 
 using Index = catalog::SettingsTableColumn;
-using ValueFactory = type::ValueFactory;
+using ValueFactory = type::TransientValueFactory;
+using ValuePeeker = type::TransientValuePeeker;
 
 // Used for building temporary transactions
 void EmptyCallback(void * /*unused*/) {}
@@ -37,21 +38,20 @@ void SettingsManager::InitParams() {
 #undef __SETTING_DEFINE__
 }
 
-void SettingsManager::DefineSetting(Param param, const std::string &name, const type::Value &value,
-                                    const std::string &description, const type::Value &default_value,
-                                    const type::Value &min_value, const type::Value &max_value, bool is_mutable,
-                                    callback_fn callback) {
-  if (value.Type() == type::TypeId::INTEGER || value.Type() == type::TypeId::DECIMAL) {
-    if (!value.CompareBetweenInclusive(min_value, max_value)) {
-      SETTINGS_LOG_ERROR(
-          "Value given for \"{}"
-          "\" is not in its min-max bounds ({}-{})",
-          name, min_value.PeekAsString(), max_value.PeekAsString());
-      throw SETTINGS_EXCEPTION("Invalid setting value");
-    }
+void SettingsManager::DefineSetting(Param param, const std::string &name, const type::TransientValue &value,
+                                    const std::string &description, const type::TransientValue &default_value,
+                                    const type::TransientValue &min_value, const type::TransientValue &max_value,
+                                    bool is_mutable, callback_fn callback) {
+  if (!ValidateValue(value, min_value, max_value)) {
+    SETTINGS_LOG_ERROR(
+        "Value given for \"{}"
+        "\" is not in its min-max bounds ({}-{})",
+        name, ValuePeeker::PeekVarChar(min_value), ValuePeeker::PeekVarChar(max_value));
+    throw SETTINGS_EXCEPTION("Invalid setting value");
   }
 
-  param_map_.emplace(param, ParamInfo(name, value, description, default_value, is_mutable));
+  param_map_.emplace(param, ParamInfo(name, ValueFactory::GetCopy(value), description,
+                                      ValueFactory::GetCopy(default_value), is_mutable));
   callback_map_.emplace(param, callback);
 }
 
@@ -59,57 +59,62 @@ void SettingsManager::InitializeCatalog() {
   auto txn = txn_manager_->BeginTransaction();
   auto column_num = catalog::SettingsHandle::schema_cols_.size();
 
-  for (auto pair : param_map_) {
-    Param param = pair.first;
-    ParamInfo info = pair.second;
+  for (const auto &pair : param_map_) {
+    const Param param = pair.first;
+    const ParamInfo &info = pair.second;
 
     catalog::settings_oid_t oid(static_cast<uint32_t>(param));
-    std::vector<type::Value> entry(column_num, type::ValueFactory::GetNullValue(type::TypeId::VARCHAR));
+    std::vector<type::TransientValue> entry;
+    for (int i = 0; i < column_num; ++i) {
+      // NOLINTNEXTLINE
+      entry.emplace_back(ValueFactory::GetNull(type::TypeId::VARCHAR));
+    }
 
-    entry[static_cast<int>(Index::OID)] = ValueFactory::GetIntegerValue(!oid);
-    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarcharValue(info.name.c_str());
-    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarcharValue(info.desc.c_str());
+    entry[static_cast<int>(Index::OID)] = ValueFactory::GetInteger(!oid);
+    entry[static_cast<int>(Index::NAME)] = ValueFactory::GetVarChar(info.name.c_str());
+    entry[static_cast<int>(Index::SHORT_DESC)] = ValueFactory::GetVarChar(info.desc.c_str());
 
     settings_handle_.InsertRow(txn, entry);
   }
 
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
+  if (!txn_manager_->GCEnabled()) delete txn;
 }
 
-int32_t SettingsManager::GetInt(Param param) { return GetValue(param).GetIntValue(); }
+int32_t SettingsManager::GetInt(Param param) { return ValuePeeker::PeekInteger(GetValue(param)); }
 
-double SettingsManager::GetDouble(Param param) { return GetValue(param).GetDecimalValue(); }
+double SettingsManager::GetDouble(Param param) { return ValuePeeker::PeekDecimal(GetValue(param)); }
 
-bool SettingsManager::GetBool(Param param) { return GetValue(param).GetBooleanValue(); }
+bool SettingsManager::GetBool(Param param) { return ValuePeeker::PeekBoolean(GetValue(param)); }
 
-std::string SettingsManager::GetString(Param param) { return GetValue(param).GetVarcharValue(); }
+std::string_view SettingsManager::GetString(Param param) { return ValuePeeker::PeekVarChar(GetValue(param)); }
 
 void SettingsManager::SetInt(Param param, int32_t value) {
   int old_value = GetInt(param);
-  SetValue(param, type::ValueFactory::GetIntegerValue(value));
+  SetValue(param, ValueFactory::GetInteger(value));
   callback_fn callback = callback_map_.find(param)->second;
   callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
 }
 
 void SettingsManager::SetDouble(Param param, double value) {
   double old_value = GetDouble(param);
-  SetValue(param, type::ValueFactory::GetDecimalValue(value));
+  SetValue(param, ValueFactory::GetDecimal(value));
   callback_fn callback = callback_map_.find(param)->second;
   callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
 }
 
 void SettingsManager::SetBool(Param param, bool value) {
   bool old_value = GetBool(param);
-  SetValue(param, type::ValueFactory::GetBooleanValue(value));
+  SetValue(param, ValueFactory::GetBoolean(value));
   callback_fn callback = callback_map_.find(param)->second;
   callback(static_cast<void *>(&old_value), static_cast<void *>(&value));
 }
 
-void SettingsManager::SetString(Param param, const std::string &value) {
-  std::string old_value = GetString(param);
-  SetValue(param, type::ValueFactory::GetVarcharValue(value.c_str()));
+void SettingsManager::SetString(Param param, const std::string_view &value) {
+  std::string_view old_value = GetString(param);
+  SetValue(param, ValueFactory::GetVarChar(value));
   callback_fn callback = callback_map_.find(param)->second;
-  std::string new_value(value);
+  std::string_view new_value(value);
   callback(static_cast<void *>(&old_value), static_cast<void *>(&new_value));
 }
 
@@ -150,22 +155,37 @@ const std::string SettingsManager::GetInfo() {
 void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/
 }
 
-type::Value SettingsManager::GetValue(Param param) {
-  auto param_info = param_map_.find(param);
-  return param_info->second.value;
+type::TransientValue SettingsManager::GetValue(Param param) {
+  auto &param_info = param_map_.find(param)->second;
+  return ValueFactory::GetCopy(param_info.value);
 }
 
-void SettingsManager::SetValue(Param param, const type::Value &value) {
-  auto param_info = param_map_.find(param)->second;
+void SettingsManager::SetValue(Param param, const type::TransientValue &value) {
+  auto &param_info = param_map_.find(param)->second;
 
   if (!param_info.is_mutable) throw SETTINGS_EXCEPTION((param_info.name + " is not mutable.").c_str());
 
-  param_info.value = value;
+  param_info.value = ValueFactory::GetCopy(value);
 
   auto txn = txn_manager_->BeginTransaction();
   auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
   entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
+  if (!txn_manager_->GCEnabled()) delete txn;
+}
+
+bool SettingsManager::ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
+                                    const type::TransientValue &max_value) {
+  switch (value.Type()) {
+    case type::TypeId::INTEGER:
+      return ValuePeeker::PeekInteger(value) >= ValuePeeker::PeekInteger(min_value) &&
+             ValuePeeker::PeekInteger(value) <= ValuePeeker::PeekInteger(max_value);
+    case type::TypeId ::DECIMAL:
+      return ValuePeeker::PeekDecimal(value) >= ValuePeeker::PeekDecimal(min_value) &&
+             ValuePeeker::PeekDecimal(value) <= ValuePeeker::PeekDecimal(max_value);
+    default:
+      return true;
+  }
 }
 
 }  // namespace terrier::settings

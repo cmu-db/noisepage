@@ -6,14 +6,17 @@
 // CONNECTIONS
 //===----------------------------------------------------------------------===//
 
-// Peloton port
-SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, MainDatabase::EmptyCallback)
+// Terrier port
+SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, MainDatabase::EmptyCallback)
 
     // Maximum number of connections
     SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true,
                 MainDatabase::EmptyCallback)
+    // Buffer pool size in transaction manager
+    SETTING_int(buffer_pool_size, "Buffer pool size in transaction manager (default : 100000)", 100000, 1, 1000000,
+                true, MainDatabase::BufferPoolSizeCallback)
     // RPC port
-    SETTING_int(rpc_port, "Peloton rpc port (default: 15445)", 15445, 1024, 65535, false, MainDatabase::EmptyCallback)
+    SETTING_int(rpc_port, "Terrier rpc port (default: 15445)", 15445, 1024, 65535, false, MainDatabase::EmptyCallback)
 
     // TODO(tianyu): Remove when we change to a different rpc framework
     // This is here only because capnp cannot exit gracefully and thus causes
@@ -34,22 +37,22 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     // Enables SSL connection. The default value is false
     SETTING_bool(ssl, "Enable SSL connection (default: true)", true, false, false)
 
-    // Peloton private key file
+    // Terrier private key file
     // Currently use hardcoded private key path, may need to change
     // to generate file dynamically at runtime
     // The same applies to certificate file
     SETTING_string(private_key_file,
     "path to private key file",
-    "peloton_insecure_server.key",
+    "terrier_insecure_server.key",
     false, false)
 
-    // Peloton certificate file
+    // Terrier certificate file
     SETTING_string(certificate_file,
     "path to certificate file",
-    "peloton_insecure_server.crt",
+    "terrier_insecure_server.crt",
     false, false)
 
-    // Peloton root certificate file
+    // Terrier root certificate file
     SETTING_string(root_cert_file,
     "path to root certificate file",
     "root.crt",
@@ -71,7 +74,7 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     SETTING_int(monoqueue_worker_pool_size, "MonoQueue Worker Pool Size (default: 4)", 4, 1, 32, false,
                 MainDatabase::EmptyCallback)
 
-    // Number of connection threads used by peloton
+    // Number of connection threads used by terrier
     SETTING_int(connection_thread_count, "Number of connection threads (default: std::hardware_concurrency())",
                 std::thread::hardware_concurrency(), 1, 64, false, MainDatabase::EmptyCallback)
 
@@ -104,7 +107,7 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     /*
     SETTING_int(stats_mode,
     "Enable statistics collection (default: 0)",
-    static_cast<int>(peloton::StatsType::INVALID),
+    static_cast<int>(terrier::StatsType::INVALID),
     0, 16,
     true, true)
     */
@@ -127,8 +130,8 @@ SETTING_int(port, "Peloton port (default: 15721)", 15721, 1024, 65535, false, Ma
     SETTING_bool(brain, "Enable brain (default: false)", false, true)
 
     /*
-    SETTING_string(peloton_address,
-    "ip and port of the peloton rpc service, address:port",
+    SETTING_string(terrier_address,
+    "ip and port of the terrier rpc service, address:port",
     "127.0.0.1:15445",
     false, false)
     */

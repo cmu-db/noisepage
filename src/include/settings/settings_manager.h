@@ -3,11 +3,13 @@
 #include <catalog/settings_handle.h>
 #include <gflags/gflags.h>
 #include <unordered_map>
+#include "catalog/settings_handle.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
 #include "main/main_database.h"
 #include "settings/settings_param.h"
-#include "type/value.h"
+#include "type/transient_value.h"
+#include "type/transient_value_peeker.h"
 
 #define __SETTING_GFLAGS_DECLARE__
 #include "settings/settings_common.h"  // NOLINT
@@ -62,7 +64,7 @@ class SettingsManager {
    * @param param setting name
    * @return current setting value
    */
-  std::string GetString(Param param);
+  std::string_view GetString(Param param);
 
   /**
    * Set the value of an integer setting
@@ -90,7 +92,7 @@ class SettingsManager {
    * @param param setting name
    * @param value the new value
    */
-  void SetString(Param param, const std::string &value);
+  void SetString(Param param, const std::string_view &value);
 
   // Call this method in Catalog->Bootstrap
   // to store information into pg_settings
@@ -121,12 +123,15 @@ class SettingsManager {
   std::unordered_map<Param, ParamInfo> param_map_;
   std::unordered_map<Param, callback_fn> callback_map_;
 
-  void DefineSetting(Param param, const std::string &name, const type::Value &value, const std::string &description,
-                     const type::Value &default_value, const type::Value &min_value, const type::Value &max_value,
-                     bool is_mutable, callback_fn callback = nullptr);
+  void DefineSetting(Param param, const std::string &name, const type::TransientValue &value,
+                     const std::string &description, const type::TransientValue &default_value,
+                     const type::TransientValue &min_value, const type::TransientValue &max_value, bool is_mutable,
+                     callback_fn callback = nullptr);
 
-  type::Value GetValue(Param param);
-  void SetValue(Param param, const type::Value &value);
+  type::TransientValue GetValue(Param param);
+  void SetValue(Param param, const type::TransientValue &value);
+  bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
+                     const type::TransientValue &max_value);
 };
 
 }  // namespace terrier::settings

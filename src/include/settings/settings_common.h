@@ -99,27 +99,29 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
-#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                   \
-  DefineSetting(terrier::settings::Param::name, #name, type::ValueFactory::GetIntegerValue(FLAGS_##name), description, \
-                type::ValueFactory::GetIntegerValue(default_value), type::ValueFactory::GetIntegerValue(min_value),    \
-                type::ValueFactory::GetIntegerValue(max_value), is_mutable, callback_fn);
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)          \
+  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetInteger(FLAGS_##name), \
+                description, type::TransientValueFactory::GetInteger(default_value),                          \
+                type::TransientValueFactory::GetInteger(min_value),                                           \
+                type::TransientValueFactory::GetInteger(max_value), is_mutable, callback_fn);
 
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)                             \
-  DefineSetting(terrier::settings::Param::name, #name, type::ValueFactory::GetDecimalValue(FLAGS_##name), description, \
-                type::ValueFactory::GetDecimalValue(default_value), type::ValueFactory::GetDecimalValue(min_value),    \
-                type::ValueFactory::GetDecimalValue(max_value), is_mutable);
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable)                    \
+  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetDecimal(FLAGS_##name), \
+                description, type::TransientValueFactory::GetDecimal(default_value),                          \
+                type::TransientValueFactory::GetDecimal(min_value),                                           \
+                type::TransientValueFactory::GetDecimal(max_value), is_mutable);
 
-#define SETTING_bool(name, description, default_value, is_mutable)                                                     \
-  DefineSetting(terrier::settings::Param::name, #name, type::ValueFactory::GetBooleanValue(FLAGS_##name), description, \
-                type::ValueFactory::GetBooleanValue(default_value),                                                    \
-                type::ValueFactory::GetBooleanValue(default_value),                                                    \
-                type::ValueFactory::GetBooleanValue(default_value), is_mutable);
+#define SETTING_bool(name, description, default_value, is_mutable)                                            \
+  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetBoolean(FLAGS_##name), \
+                description, type::TransientValueFactory::GetBoolean(default_value),                          \
+                type::TransientValueFactory::GetBoolean(default_value),                                       \
+                type::TransientValueFactory::GetBoolean(default_value), is_mutable);
 
-#define SETTING_string(name, description, default_value, is_mutable)                                                   \
-  DefineSetting(terrier::settings::Param::name, #name, type::ValueFactory::GetVarcharValue(FLAGS_##name), description, \
-                type::ValueFactory::GetVarcharValue(default_value),                                                    \
-                type::ValueFactory::GetVarcharValue(default_value),                                                    \
-                type::ValueFactory::GetVarcharValue(default_value), is_mutable);
+#define SETTING_string(name, description, default_value, is_mutable)                                          \
+  DefineSetting(terrier::settings::Param::name, #name, type::TransientValueFactory::GetVarchar(FLAGS_##name), \
+                description, type::TransientValueFactory::GetVarchar(default_value),                          \
+                type::TransientValueFactory::GetVarchar(default_value),                                       \
+                type::TransientValueFactory::GetVarchar(default_value), is_mutable);
 #endif
 
 #ifdef __SETTING_ENUM__
