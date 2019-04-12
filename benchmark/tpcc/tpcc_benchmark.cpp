@@ -125,11 +125,11 @@ class Deck {
     TERRIER_ASSERT(w_new_order + w_payment + w_order_status + w_delivery + w_stock_level == 100,
                    "Weights must sum to 100.");
 
-    uint32_t min_new_order = static_cast<double>(std::ceil(static_cast<double>(w_new_order) / 100.0 * 23));
-    uint32_t min_payment = static_cast<double>(std::ceil(static_cast<double>(w_payment) / 100.0 * 23));
-    uint32_t min_order_status = static_cast<double>(std::ceil(static_cast<double>(w_order_status) / 100.0 * 23));
-    uint32_t min_delivery = static_cast<double>(std::ceil(static_cast<double>(w_delivery) / 100.0 * 23));
-    uint32_t min_stock_level = static_cast<double>(std::ceil(static_cast<double>(w_stock_level) / 100.0 * 23));
+    uint32_t min_new_order = std::ceil(static_cast<double>(w_new_order) / 100.0 * 23);
+    uint32_t min_payment = std::ceil(static_cast<double>(w_payment) / 100.0 * 23);
+    uint32_t min_order_status = std::ceil(static_cast<double>(w_order_status) / 100.0 * 23);
+    uint32_t min_delivery = std::ceil(static_cast<double>(w_delivery) / 100.0 * 23);
+    uint32_t min_stock_level = std::ceil(static_cast<double>(w_stock_level) / 100.0 * 23);
 
     uint32_t min_num_cards = min_new_order + min_payment + min_order_status + min_delivery + min_stock_level;
     if (min_num_cards == 24) {
