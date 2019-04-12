@@ -1,7 +1,8 @@
 #pragma once
 
+#include <map>
 #include <string_view>
-#include "../../../src/include/catalog/catalog_defs.h"
+#include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "tpcc/database.h"
@@ -59,6 +60,7 @@ class Payment {
   const uint8_t c_id_name_key_pr_offset;
   const uint8_t c_d_id_name_key_pr_offset;
   const uint8_t c_w_id_name_key_pr_offset;
+  const storage::ProjectedRowInitializer c_first_pr_initializer;
 
  public:
   explicit Payment(const Database *const db)
@@ -126,7 +128,9 @@ class Payment {
         c_d_id_name_key_pr_offset(
             db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid())),
         c_w_id_name_key_pr_offset(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid()))
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid())),
+        c_first_pr_initializer(
+            db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).GetOid()}).first)
 
   {}
 
@@ -208,6 +212,7 @@ class Payment {
     result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
+    storage::TupleSlot customer;
     if (!args.use_c_last) {
       // Look up C_ID, D_ID, W_ID in index
       const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
@@ -220,6 +225,7 @@ class Payment {
       index_scan_results.clear();
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
+      customer = index_scan_results[0];
     } else {
       // Look up C_NAME, D_ID, W_ID in index
       const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
@@ -233,6 +239,9 @@ class Payment {
       index_scan_results.clear();
       db->customer_index_->ScanKey(*customer_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
+
+//      for (const auto &tuple_slot : index_scan_results) {
+//      }
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
