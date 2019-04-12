@@ -425,6 +425,9 @@ UndoRecord *GarbageCollector::InitializeUndoRecord(const transaction::timestamp_
   // Get new entry for the undo record from the buffer
   uint32_t size = static_cast<uint32_t>(sizeof(UndoRecord)) + init.ProjectedRowSize();
   byte *head = delta_record_compaction_buffer_->NewEntry(size);
+
+  TERRIER_ASSERT(head != nullptr, "Delta Record Compaction Buffer should not fail to provide memory");
+
   // Undo record was empty, so mark the buffer as not empty
   compaction_buffer_empty = false;
 
