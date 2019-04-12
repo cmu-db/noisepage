@@ -5,10 +5,10 @@
 namespace terrier::settings {
 
 enum class Param {
-#define __SETTING_ENUM__
+#define __SETTING_ENUM__               // NOLINT
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_ENUM__
+#undef __SETTING_ENUM__                // NOLINT
 };
 
 /**

@@ -1,8 +1,10 @@
 #pragma once
 
-#include <catalog/settings_handle.h>
 #include <gflags/gflags.h>
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include "catalog/settings_handle.h"
 #include "common/exception.h"
 #include "loggers/settings_logger.h"
@@ -11,10 +13,10 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 
-#define __SETTING_GFLAGS_DECLARE__
+#define __SETTING_GFLAGS_DECLARE__     // NOLINT
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__
+#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
 
 namespace terrier::settings {
 

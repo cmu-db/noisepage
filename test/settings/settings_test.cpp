@@ -18,7 +18,7 @@ namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
-  std::shared_ptr<SettingsManager> settings_manager_;
+  SettingsManager* settings_manager_;
   storage::RecordBufferSegmentPool *buffer_pool_;
   transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
@@ -27,18 +27,18 @@ class SettingsTests : public TerrierTest {
     TerrierTest::SetUp();
 
     buffer_pool_ = new storage::RecordBufferSegmentPool(defaultBufferPoolSize, 10000);
-    txn_manager_ = new transaction::TransactionManager(buffer_pool_, false, nullptr);
+    txn_manager_ = new transaction::TransactionManager(buffer_pool_, true, nullptr);
     txn_ = txn_manager_->BeginTransaction();
     terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(txn_manager_, txn_);
-    settings_manager_ = std::make_shared<SettingsManager>(terrier::catalog::terrier_catalog, txn_manager_);
+    settings_manager_ = new SettingsManager(terrier::catalog::terrier_catalog, txn_manager_);
   }
 
   void TearDown() override {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     TerrierTest::TearDown();
-    delete buffer_pool_;
     delete txn_manager_;
     delete txn_;
+    delete settings_manager_;
   }
 };
 

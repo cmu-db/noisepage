@@ -1,17 +1,16 @@
-#include "settings/settings_manager.h"
-#include "type/transient_value_factory.h"
-
 #include <gflags/gflags.h>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "settings/settings_manager.h"
+#include "type/transient_value_factory.h"
 // This will expand to define all the settings defined in settings.h
 // using GFlag's DEFINE_...() macro. See settings_common.h.
-#define __SETTING_GFLAGS_DEFINE__
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 namespace terrier::settings {
 
@@ -65,7 +64,7 @@ void SettingsManager::InitializeCatalog() {
 
     catalog::settings_oid_t oid(static_cast<uint32_t>(param));
     std::vector<type::TransientValue> entry;
-    for (int i = 0; i < column_num; ++i) {
+    for (auto i = column_num; i > 0; --i) {
       // NOLINTNEXTLINE
       entry.emplace_back(ValueFactory::GetNull(type::TypeId::VARCHAR));
     }

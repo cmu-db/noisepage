@@ -1,4 +1,5 @@
 #include "main/main_database.h"
+#include <memory>
 
 namespace terrier {
 int MainDatabase::start(int argc, char *argv[]) {
