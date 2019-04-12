@@ -46,18 +46,26 @@ TEST_F(CatalogTests, CreateDatabaseTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CreateUserTableTest) {
-  const catalog::db_oid_t terrier_oid(catalog::DEFAULT_DATABASE_OID);
+  const catalog::db_oid_t default_db_oid(catalog::DEFAULT_DATABASE_OID);
+  std::vector<type::TransientValue> row;
 
   std::vector<catalog::Schema::Column> cols;
   cols.emplace_back("id", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, catalog::col_oid_t(catalog_->GetNextOid()));
   catalog::Schema schema(cols);
 
-  auto tbl_oid = catalog_->CreateTable(txn_, terrier_oid, "user_table_1", schema);
-  catalog_->Dump(txn_, terrier_oid);
+  auto tbl_oid = catalog_->CreateTable(txn_, default_db_oid, "user_table_1", schema);
+  catalog_->Dump(txn_, default_db_oid);
 
-  catalog_->DeleteTable(txn_, terrier_oid, tbl_oid);
-  catalog_->Dump(txn_, terrier_oid);
+  auto table_p = catalog_->GetCatalogTable(default_db_oid, tbl_oid);
+  // get the table ptr
+  row.emplace_back(type::TransientValueFactory::GetInteger(catalog_->GetNextOid()));
+  row.emplace_back(type::TransientValueFactory::GetInteger(7));
+  table_p->InsertRow(txn_, row);
+  table_p->Dump(txn_);
+
+  catalog_->DeleteTable(txn_, default_db_oid, tbl_oid);
+  catalog_->Dump(txn_, default_db_oid);
 }
 
 // NOLINTNEXTLINE

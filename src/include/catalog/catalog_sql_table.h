@@ -130,10 +130,16 @@ class SqlTableRW {
         }
         break;
       }
+
+      if (proj_col_bufp->NumTuples() > 0) {
+        delete col_initer;
+        all_cols.clear();
+        return;
+      }
+
       if (dtsi_ == tblrw_->GetSqlTable()->end()) {
         proj_col_bufp = nullptr;
       }
-
       delete col_initer;
       all_cols.clear();
     }

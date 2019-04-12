@@ -127,7 +127,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
+  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * Get a pointer to the storage table, by table_name.
@@ -138,7 +138,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
+  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
