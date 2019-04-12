@@ -246,7 +246,7 @@ struct Loader {
             std::memcpy(c_last_varlen, c_last_tuple.Content(), c_last_tuple.Size());
             const auto c_last_key = storage::VarlenEntry::Create(c_last_varlen, c_last_tuple.Size(), true);
 
-            customer_name_key = BuildCustomerNameKey(c_last_key, d_id + 1, w_id + 1, worker->customer_key_buffer,
+            customer_name_key = BuildCustomerNameKey(c_last_key, d_id + 1, w_id + 1, worker->customer_name_key_buffer,
                                                      customer_name_key_pr_initializer, customer_name_key_pr_map,
                                                      db->customer_name_key_schema_);
           }
