@@ -27,24 +27,24 @@ class Builder {
     auto order_line_schema = Schemas::BuildOrderLineTupleSchema(&oid_counter_);
 
     // instantiate all of the tables
-    auto *const item_table =
-        new storage::SqlTable(store_, item_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const warehouse_table =
-        new storage::SqlTable(store_, warehouse_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const stock_table =
-        new storage::SqlTable(store_, stock_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const district_table =
-        new storage::SqlTable(store_, district_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const customer_table =
-        new storage::SqlTable(store_, customer_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const history_table =
-        new storage::SqlTable(store_, history_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const new_order_table =
-        new storage::SqlTable(store_, new_order_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const order_table =
-        new storage::SqlTable(store_, order_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
-    auto *const order_line_table =
-        new storage::SqlTable(store_, order_line_schema, static_cast<catalog::table_oid_t>(++oid_counter_));
+    auto *const item_table = new storage::SqlTable(
+        store_, item_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const warehouse_table = new storage::SqlTable(
+        store_, warehouse_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const stock_table = new storage::SqlTable(
+        store_, stock_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const district_table = new storage::SqlTable(
+        store_, district_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const customer_table = new storage::SqlTable(
+        store_, customer_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const history_table = new storage::SqlTable(
+        store_, history_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const new_order_table = new storage::SqlTable(
+        store_, new_order_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const order_table = new storage::SqlTable(
+        store_, order_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
+    auto *const order_line_table = new storage::SqlTable(
+        store_, order_line_schema, static_cast<catalog::table_oid_t>(static_cast<uint32_t>(++oid_counter_)));
 
     // The following assertions verify that all of the primary key and their respective foreign key dependencies have
     // the same types across schemas.
@@ -137,14 +137,14 @@ class Builder {
  private:
   storage::index::Index *BuildPrimaryIndex(const storage::index::IndexKeySchema &key_schema) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(++oid_counter_))
+    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
         .SetKeySchema(key_schema)
         .SetConstraintType(storage::index::ConstraintType::UNIQUE);
     return index_builder.Build();
   }
   storage::index::Index *BuildSecondaryIndex(const storage::index::IndexKeySchema &key_schema) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(++oid_counter_))
+    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
         .SetKeySchema(key_schema)
         .SetConstraintType(storage::index::ConstraintType::DEFAULT);
     return index_builder.Build();
