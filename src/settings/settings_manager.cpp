@@ -154,9 +154,9 @@ const std::string SettingsManager::GetInfo() {
 void SettingsManager::ShowInfo() { /*LOG_INFO("\n%s\n", GetInfo().c_str());*/
 }
 
-type::TransientValue SettingsManager::GetValue(Param param) {
+type::TransientValue &SettingsManager::GetValue(Param param) {
   auto &param_info = param_map_.find(param)->second;
-  return ValueFactory::GetCopy(param_info.value);
+  return param_info.value;
 }
 
 void SettingsManager::SetValue(Param param, const type::TransientValue &value) {

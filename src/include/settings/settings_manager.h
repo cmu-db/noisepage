@@ -130,7 +130,7 @@ class SettingsManager {
                      const type::TransientValue &min_value, const type::TransientValue &max_value, bool is_mutable,
                      callback_fn callback = nullptr);
 
-  type::TransientValue GetValue(Param param);
+  type::TransientValue &GetValue(Param param);
   void SetValue(Param param, const type::TransientValue &value);
   bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
                      const type::TransientValue &max_value);
