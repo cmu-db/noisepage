@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tpcc/loader.h"
 #include "tpcc/util.h"
 
 namespace terrier::tpcc {
@@ -101,6 +102,30 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
   }
   args.h_amount = Util::RandomWithin<double>(100, 500000, 2, generator);
   args.h_date = Util::Timestamp();
+  return args;
+}
+
+template <class Random>
+TransactionArgs BuildOrderStatusArgs(Random *const generator, const int32_t w_id) {
+  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TransactionArgs args;
+  args.type = TransactionType::OrderStatus;
+  return args;
+}
+
+template <class Random>
+TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id) {
+  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TransactionArgs args;
+  args.type = TransactionType::Delivery;
+  return args;
+}
+
+template <class Random>
+TransactionArgs BuildStockLevelArgs(Random *const generator, const int32_t w_id) {
+  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses_, "Invalid w_id.");
+  TransactionArgs args;
+  args.type = TransactionType::StockLevel;
   return args;
 }
 
