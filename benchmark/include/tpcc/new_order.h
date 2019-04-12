@@ -1,10 +1,12 @@
 #pragma once
 
 #include <string_view>
+#include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "tpcc/database.h"
 #include "tpcc/util.h"
+#include "tpcc/worker.h"
 #include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
 #include "util/transaction_benchmark_util.h"

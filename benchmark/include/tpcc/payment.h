@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <map>
-#include <string_view>
+#include <string>
 #include "catalog/catalog_defs.h"
+#include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "tpcc/database.h"
 #include "tpcc/util.h"
+#include "tpcc/worker.h"
 #include "tpcc/workload.h"
 #include "transaction/transaction_manager.h"
 #include "util/transaction_benchmark_util.h"
@@ -241,22 +243,18 @@ class Payment {
       db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
-      static const auto c_first_comparator = [&](const storage::TupleSlot &lhs, const storage::TupleSlot &rhs) -> bool {
-        auto *c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-        db->customer_table_->Select(txn, lhs, c_first_select_tuple);
-        const auto c_first_lhs =
-            *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
+      std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
+      for (const auto &tuple_slot : index_scan_results) {
+        auto *const customer_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
+        db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
+        const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(0));
+        sorted_index_scan_results.emplace(
+            std::string(reinterpret_cast<const char *const>(c_first.Content()), c_first.Size()), tuple_slot);
+      }
 
-        c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-        db->customer_table_->Select(txn, rhs, c_first_select_tuple);
-        const auto c_first_rhs =
-            *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
-
-        return storage::VarlenContentCompare()(c_first_lhs, c_first_rhs);
-      };
-
-      std::nth_element(index_scan_results.begin(), index_scan_results.begin() + index_scan_results.size() / 2,
-                       index_scan_results.end(), c_first_comparator);
+      auto median = sorted_index_scan_results.begin();
+      std::advance(median, (sorted_index_scan_results.size() + 1) / 2);
+      customer = median->second;
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
