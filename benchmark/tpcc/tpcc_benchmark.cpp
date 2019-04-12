@@ -44,14 +44,18 @@ class TPCCBenchmark : public benchmark::Fixture {
     gc_->PerformGarbageCollection();
     delete gc_;
   }
+
   const uint64_t blockstore_size_limit_ = 1000;
   const uint64_t blockstore_reuse_limit_ = 1000;
   const uint64_t buffersegment_size_limit_ = 1000000;
   const uint64_t buffersegment_reuse_limit_ = 1000000;
+  const uint32_t num_threads_ = 4;
+  const uint32_t num_precomputed_txns_per_worker_ = 100000;
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
+  common::WorkerPool thread_pool_{num_threads_, {}};
 
  private:
   std::thread log_thread_;
@@ -80,79 +84,88 @@ class TPCCBenchmark : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
-  const uint32_t num_txns = 100000;
+  // one TPCC worker = one TPCC terminal = one thread
+  std::vector<tpcc::Worker> workers;
+  workers.reserve(num_threads_);
+
+  thread_pool_.Shutdown();
+  thread_pool_.SetNumWorkers(num_threads_);
+  thread_pool_.Startup();
+
+  // we need transactions, TPCC database, and GC
+  transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
+  auto tpcc_builder = tpcc::Builder(&block_store_);
+  StartGC(&txn_manager);
+
+  // random number generation is slow, so we precompute the args
+  std::vector<std::vector<tpcc::TransactionArgs>> precomputed_args;
+  precomputed_args.reserve(workers.size());
+
+  for (uint32_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
+    std::vector<tpcc::TransactionArgs> txns;
+    txns.reserve(num_precomputed_txns_per_worker_);
+    for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
+      // TODO(WAN): support other transaction types
+      txns.emplace_back(tpcc::BuildNewOrderArgs(&generator_, warehouse_id));
+    }
+    precomputed_args.emplace_back(txns);
+  }
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    // build the TPCC database
     //    log_manager_ = new storage::LogManager(LOG_FILE_NAME, &buffer_pool_);
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    auto tpcc_builder = tpcc::Builder(&block_store_);
     auto *const tpcc_db = tpcc_builder.Build();
 
-    tpcc::Worker worker_buffers1(tpcc_db);
-    tpcc::Worker worker_buffers2(tpcc_db);
-    tpcc::Worker worker_buffers3(tpcc_db);
-    tpcc::Worker worker_buffers4(tpcc_db);
+    // prepare the workers
+    workers.clear();
+    for (uint32_t i = 0; i < num_threads_; i++) {
+      workers.emplace_back(tpcc_db);
+    }
 
-    tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &worker_buffers1);
+    // TODO(WAN): I have a stashed commit for multi-threaded loaders, but we don't want that right now
+    tpcc::Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, &workers[0]);
     //    log_manager_->Process();  // log all of the Inserts from table creation
     StartGC(&txn_manager);
     //    StartLogging();
 
-    std::vector<tpcc::TransactionArgs> args1;
-    args1.reserve(num_txns);
-    std::vector<tpcc::TransactionArgs> args2;
-    args2.reserve(num_txns);
-    std::vector<tpcc::TransactionArgs> args3;
-    args3.reserve(num_txns);
-    std::vector<tpcc::TransactionArgs> args4;
-    args4.reserve(num_txns);
+    // define the TPCC workload
+    auto tpcc_workload = [&](uint32_t worker_id) {
+      auto new_order = tpcc::NewOrder(tpcc_db);
+      for (uint32_t i = 0; i < num_precomputed_txns_per_worker_; i++) {
+        // TODO(WAN): eventually switch on transaction type
+        auto new_order_committed =
+            new_order.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], precomputed_args[worker_id][i]);
+        workers[worker_id].num_committed_txns += new_order_committed ? 1 : 0;
+      }
+    };
 
-    for (uint32_t i = 0; i < num_txns; i++) {
-      args1.push_back(tpcc::BuildNewOrderArgs(&generator_, 1));
-      args2.push_back(tpcc::BuildNewOrderArgs(&generator_, 2));
-      args3.push_back(tpcc::BuildNewOrderArgs(&generator_, 3));
-      args4.push_back(tpcc::BuildNewOrderArgs(&generator_, 4));
-    }
-
-    tpcc::NewOrder new_order(tpcc_db);
+    // run the TPCC workload to completion
     uint64_t elapsed_ms;
     {
       common::ScopedTimer timer(&elapsed_ms);
-
-      std::thread worker1([&] {
-        for (const auto &arg : args1) {
-          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers1, arg);
-        }
-      });
-      std::thread worker2([&] {
-        for (const auto &arg : args2) {
-          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers2, arg);
-        }
-      });
-      std::thread worker3([&] {
-        for (const auto &arg : args3) {
-          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers3, arg);
-        }
-      });
-      std::thread worker4([&] {
-        for (const auto &arg : args4) {
-          new_order.Execute(&txn_manager, &generator_, tpcc_db, &worker_buffers4, arg);
-        }
-      });
-
-      worker1.join();
-      worker2.join();
-      worker3.join();
-      worker4.join();
+      for (uint32_t i = 0; i < num_threads_; i++) {
+        thread_pool_.SubmitTask([i, &tpcc_workload] { tpcc_workload(i); });
+      }
+      thread_pool_.WaitUntilAllFinished();
     }
+
+    // figure out how many transactions committed
+    uint32_t num_items_processed = state.items_processed();
+    for (uint32_t i = 0; i < num_threads_; i++) {
+      num_items_processed += workers[i].num_committed_txns;
+    }
+
+    // update benchmark state
+    state.SetItemsProcessed(num_items_processed);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+
+    // cleanup
     //    EndLogging();
     EndGC();
     delete tpcc_db;
     //    delete log_manager_;
   }
-  state.SetItemsProcessed(state.iterations() * num_txns * 4);
 }
 
 BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
