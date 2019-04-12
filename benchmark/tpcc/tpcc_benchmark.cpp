@@ -95,7 +95,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   // we need transactions, TPCC database, and GC
   transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
   auto tpcc_builder = tpcc::Builder(&block_store_);
-  StartGC(&txn_manager);
 
   // random number generation is slow, so we precompute the args
   std::vector<std::vector<tpcc::TransactionArgs>> precomputed_args;
