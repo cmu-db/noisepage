@@ -53,6 +53,13 @@ class Payment {
   const uint8_t d_ytd_select_pr_offset;
   const storage::ProjectedRowInitializer district_update_pr_initializer;
 
+  const uint8_t c_id_key_pr_offset;
+  const uint8_t c_d_id_key_pr_offset;
+  const uint8_t c_w_id_key_pr_offset;
+  const uint8_t c_id_name_key_pr_offset;
+  const uint8_t c_d_id_name_key_pr_offset;
+  const uint8_t c_w_id_name_key_pr_offset;
+
  public:
   explicit Payment(const Database *const db)
 
@@ -108,7 +115,18 @@ class Payment {
         d_state_select_pr_offset(district_select_pr_map.at(d_state_oid)),
         d_zip_select_pr_offset(district_select_pr_map.at(d_zip_oid)),
         d_ytd_select_pr_offset(district_select_pr_map.at(d_ytd_oid)),
-        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first)
+        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first),
+
+        // Customer metadata
+        c_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid())),
+        c_d_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid())),
+        c_w_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid())),
+        c_id_name_key_pr_offset(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(2).GetOid())),
+        c_d_id_name_key_pr_offset(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid())),
+        c_w_id_name_key_pr_offset(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid()))
 
   {}
 
@@ -189,6 +207,33 @@ class Payment {
 
     result = db->district_table_->Update(txn, index_scan_results[0], *district_update_tuple);
     TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+
+    if (!args.use_c_last) {
+      // Look up C_ID, D_ID, W_ID in index
+      const auto customer_key_pr_initializer = db->customer_index_->GetProjectedRowInitializer();
+      auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
+
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = args.c_id;
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
+
+      index_scan_results.clear();
+      db->customer_index_->ScanKey(*customer_key, &index_scan_results);
+      TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
+    } else {
+      // Look up C_NAME, D_ID, W_ID in index
+      const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
+      auto *const customer_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
+
+      *reinterpret_cast<storage::VarlenEntry *>(customer_key->AccessForceNotNull(c_id_name_key_pr_offset)) =
+          args.c_last;
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
+
+      index_scan_results.clear();
+      db->customer_index_->ScanKey(*customer_key, &index_scan_results);
+      TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
+    }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 

@@ -44,6 +44,8 @@ struct Worker {
             db->district_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         customer_key_buffer(common::AllocationUtil::AllocateAligned(
             db->customer_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+        customer_name_key_buffer(common::AllocationUtil::AllocateAligned(
+            db->customer_name_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         order_key_buffer(
             common::AllocationUtil::AllocateAligned(db->order_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         new_order_key_buffer(common::AllocationUtil::AllocateAligned(
@@ -67,6 +69,7 @@ struct Worker {
     delete[] stock_key_buffer;
     delete[] district_key_buffer;
     delete[] customer_key_buffer;
+    delete[] customer_name_key_buffer;
     delete[] order_key_buffer;
     delete[] new_order_key_buffer;
     delete[] order_line_key_buffer;
@@ -87,6 +90,7 @@ struct Worker {
   byte *const stock_key_buffer;
   byte *const district_key_buffer;
   byte *const customer_key_buffer;
+  byte *const customer_name_key_buffer;
   byte *const order_key_buffer;
   byte *const new_order_key_buffer;
   byte *const order_line_key_buffer;
