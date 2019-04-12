@@ -4,12 +4,12 @@
 
 namespace terrier::settings {
 
-enum class Param {
+enum class Param {                     // NOLINT
 #define __SETTING_ENUM__               // NOLINT
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_ENUM__                // NOLINT
-};
+};                                     // NOLINT
 
 /**
  * ParamInfo is the structure to hold settings information.

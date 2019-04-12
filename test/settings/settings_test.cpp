@@ -18,7 +18,7 @@ namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
-  SettingsManager* settings_manager_;
+  SettingsManager *settings_manager_;
   transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
   const uint64_t defaultBufferPoolSize = 100000;

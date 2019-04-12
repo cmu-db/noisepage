@@ -177,6 +177,10 @@ class ObjectPool {
     }
   }
 
+  /**
+   * Get the size limit of the object pool
+   * @return the size limit
+   */
   int64_t GetSizeLimit() const { return size_limit_; }
 
  private:

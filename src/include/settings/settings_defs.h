@@ -86,10 +86,10 @@ SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, Ma
     SETTING_bool(parallel_execution, "Enable parallel execution of queries (default: true)", true, true)
 
     // Minimum number of tuples a table must have
-    SETTING_int(min_parallel_table_scan_size,
-                "Minimum number of tuples a table must have before we consider performing parallel scans "
-                "(default: 10K)",
-                10 * 1000, 1, std::numeric_limits<int32_t>::max(), true, MainDatabase::EmptyCallback)
+    SETTING_int(min_parallel_table_scan_size,                                                               // NOLINT
+                "Minimum number of tuples a table must have before we consider performing parallel scans "  // NOLINT
+                "(default: 10K)",                                                                           // NOLINT
+                10 * 1000, 1, std::numeric_limits<int32_t>::max(), true, MainDatabase::EmptyCallback)       // NOLINT
 
     //===----------------------------------------------------------------------===//
     // WRITE AHEAD LOG
@@ -168,11 +168,11 @@ SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, Ma
     // If bloom filter for hash join in codegen is enabled
     SETTING_bool(hash_join_bloom_filter, "Enable bloom filter for hash join in codegen (default: false)", false, true)
     // Timeout for task execution
-    SETTING_int(task_execution_timeout,
-                "Maximum allowed length of time (in ms) for task "
-                "execution step of optimizer, "
-                "assuming one plan has been found (default 5000)",
-                5000, 1000, 60000, true, MainDatabase::EmptyCallback)
+    SETTING_int(task_execution_timeout,                                // NOLINT
+                "Maximum allowed length of time (in ms) for task "     // NOLINT
+                "execution step of optimizer, "                        // NOLINT
+                "assuming one plan has been found (default 5000)",     // NOLINT
+                5000, 1000, 60000, true, MainDatabase::EmptyCallback)  // NOLINT
 
     //===----------------------------------------------------------------------===//
     // GENERAL

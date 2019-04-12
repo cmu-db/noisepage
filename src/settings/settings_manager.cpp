@@ -77,7 +77,7 @@ void SettingsManager::InitializeCatalog() {
   }
 
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
-  if (!txn_manager_->GCEnabled()) delete txn;
+  delete txn;
 }
 
 int32_t SettingsManager::GetInt(Param param) { return ValuePeeker::PeekInteger(GetValue(param)); }
