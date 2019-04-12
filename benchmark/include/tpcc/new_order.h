@@ -118,8 +118,8 @@ class NewOrder {
  public:
   explicit NewOrder(const Database *const db)
 
-      // Warehouse metadata
-      : warehouse_select_pr_initializer(
+      :  // Warehouse metadata
+        warehouse_select_pr_initializer(
             db->warehouse_table_->InitializerForProjectedRow({db->warehouse_schema_.GetColumn(7).GetOid()}).first),
 
         // District metadata

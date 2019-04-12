@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tpcc/util.h"
+
 namespace terrier::tpcc {
 
 enum class TransactionType : uint8_t { NewOrder, Payment, OrderStatus, Delivery, StockLevel };
@@ -77,7 +79,6 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
   args.type = TransactionType::Payment;
   args.w_id = w_id;
   args.d_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);
-  args.c_id = Util::NURand(1023, 1, 3000, generator);
   if (Util::RandomWithin<int32_t>(1, 100, 0, generator) <= 85) {
     args.c_d_id = args.d_id;
     args.c_w_id = args.w_id;
@@ -95,6 +96,7 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id) {
     args.c_last = Util::LastNameVarlenEntry(Util::NURand(255, 0, 999, generator));
     args.use_c_last = true;
   } else {
+    args.c_id = Util::NURand(1023, 1, 3000, generator);
     args.use_c_last = false;
   }
   args.h_amount = Util::RandomWithin<double>(100, 500000, 2, generator);
