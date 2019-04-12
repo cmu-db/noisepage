@@ -230,15 +230,15 @@ class Payment {
     } else {
       // Look up C_NAME, D_ID, W_ID in index
       const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
-      auto *const customer_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
+      auto *const customer_name_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
 
-      *reinterpret_cast<storage::VarlenEntry *>(customer_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
+      *reinterpret_cast<storage::VarlenEntry *>(customer_name_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
           args.c_last;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
+      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int32_t *>(customer_name_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;
 
       index_scan_results.clear();
-      db->customer_index_->ScanKey(*customer_key, &index_scan_results);
+      db->customer_name_index_->ScanKey(*customer_name_key, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
       static const auto c_first_comparator = [&](const storage::TupleSlot &lhs, const storage::TupleSlot &rhs) -> bool {
