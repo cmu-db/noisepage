@@ -83,7 +83,7 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
-  const uint32_t num_iterations_ = 1;
+  const uint32_t num_iterations_ = 100;
   const uint16_t max_columns_ = 100;
 };
 

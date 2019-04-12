@@ -53,7 +53,8 @@ class TransactionManager {
   void Abort(TransactionContext *txn);
 
   /**
-   * @return unordered_set of all active txns
+   * Return all active txns' timestamps. If there are no active txns then return the current timestamp.
+   * @return vector containing all active txns' timestamps
    */
   std::vector<timestamp_t> GetActiveTxns();
 

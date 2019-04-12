@@ -158,6 +158,8 @@ std::vector<timestamp_t> TransactionManager::GetActiveTxns() {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   timestamp_t curr_time = time_.load();
   std::vector<timestamp_t> active_txns(curr_running_txns_.begin(), curr_running_txns_.end());
+  // This ensures that the GC doesn't ever receive an empty txn list
+  // The GC should not collect an undo record by a txn that started after the GC requested this
   if (active_txns.empty()) {
     active_txns.push_back(curr_time);
   }
