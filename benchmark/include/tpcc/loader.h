@@ -242,9 +242,9 @@ struct Loader {
                                                      customer_name_key_pr_initializer, customer_name_key_pr_map,
                                                      db->customer_name_key_schema_);
           } else {
-            auto *const c_last_varlen = common::AllocationUtil::AllocateAligned(c_last_tuple.Size());
-            std::memcpy(c_last_varlen, c_last_tuple.Content(), c_last_tuple.Size());
-            const auto c_last_key = storage::VarlenEntry::Create(c_last_varlen, c_last_tuple.Size(), true);
+            std::memcpy(worker->customer_name_varlen_buffer, c_last_tuple.Content(), c_last_tuple.Size());
+            const auto c_last_key =
+                storage::VarlenEntry::Create(worker->customer_name_varlen_buffer, c_last_tuple.Size(), false);
 
             customer_name_key = BuildCustomerNameKey(c_last_key, d_id + 1, w_id + 1, worker->customer_name_key_buffer,
                                                      customer_name_key_pr_initializer, customer_name_key_pr_map,
