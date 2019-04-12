@@ -58,7 +58,7 @@ class Payment {
   const uint8_t c_id_key_pr_offset;
   const uint8_t c_d_id_key_pr_offset;
   const uint8_t c_w_id_key_pr_offset;
-  const uint8_t c_id_name_key_pr_offset;
+  const uint8_t c_last_name_key_pr_offset;
   const uint8_t c_d_id_name_key_pr_offset;
   const uint8_t c_w_id_name_key_pr_offset;
   const storage::ProjectedRowInitializer c_first_pr_initializer;
@@ -124,7 +124,7 @@ class Payment {
         c_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid())),
         c_d_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid())),
         c_w_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid())),
-        c_id_name_key_pr_offset(
+        c_last_name_key_pr_offset(
             db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(2).GetOid())),
         c_d_id_name_key_pr_offset(
             db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid())),
@@ -232,7 +232,7 @@ class Payment {
       const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
       auto *const customer_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
 
-      *reinterpret_cast<storage::VarlenEntry *>(customer_key->AccessForceNotNull(c_id_name_key_pr_offset)) =
+      *reinterpret_cast<storage::VarlenEntry *>(customer_key->AccessForceNotNull(c_last_name_key_pr_offset)) =
           args.c_last;
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_name_key_pr_offset)) = args.d_id;
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_name_key_pr_offset)) = args.w_id;

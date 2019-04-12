@@ -110,15 +110,15 @@ class Builder {
     auto order_key_schema = Schemas::BuildOrderKeySchema(order_schema, &oid_counter_);
     auto order_line_key_schema = Schemas::BuildOrderLineKeySchema(order_line_schema, &oid_counter_);
 
-    auto *const item_index = BuildIndex(item_key_schema);
-    auto *const warehouse_index = BuildIndex(warehouse_key_schema);
-    auto *const stock_index = BuildIndex(stock_key_schema);
-    auto *const district_index = BuildIndex(district_key_schema);
-    auto *const customer_index = BuildIndex(customer_key_schema);
-    auto *const customer_name_index = BuildIndex(customer_name_key_schema);
-    auto *const new_order_index = BuildIndex(new_order_key_schema);
-    auto *const order_index = BuildIndex(order_key_schema);
-    auto *const order_line_index = BuildIndex(order_line_key_schema);
+    auto *const item_index = BuildPrimaryIndex(item_key_schema);
+    auto *const warehouse_index = BuildPrimaryIndex(warehouse_key_schema);
+    auto *const stock_index = BuildPrimaryIndex(stock_key_schema);
+    auto *const district_index = BuildPrimaryIndex(district_key_schema);
+    auto *const customer_index = BuildPrimaryIndex(customer_key_schema);
+    auto *const customer_name_index = BuildSecondaryIndex(customer_name_key_schema);
+    auto *const new_order_index = BuildPrimaryIndex(new_order_key_schema);
+    auto *const order_index = BuildPrimaryIndex(order_key_schema);
+    auto *const order_line_index = BuildPrimaryIndex(order_line_key_schema);
 
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
                         new_order_schema, order_schema, order_line_schema,
@@ -135,11 +135,18 @@ class Builder {
   }
 
  private:
-  storage::index::Index *BuildIndex(const storage::index::IndexKeySchema &key_schema) {
+  storage::index::Index *BuildPrimaryIndex(const storage::index::IndexKeySchema &key_schema) {
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(static_cast<catalog::index_oid_t>(++oid_counter_))
         .SetKeySchema(key_schema)
         .SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    return index_builder.Build();
+  }
+  storage::index::Index *BuildSecondaryIndex(const storage::index::IndexKeySchema &key_schema) {
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(static_cast<catalog::index_oid_t>(++oid_counter_))
+        .SetKeySchema(key_schema)
+        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
     return index_builder.Build();
   }
 

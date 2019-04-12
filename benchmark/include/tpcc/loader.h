@@ -251,8 +251,7 @@ struct Loader {
                                                      db->customer_name_key_schema_);
           }
 
-          index_insert_result = db->customer_name_index_->ConditionalInsert(
-              *customer_name_key, customer_slot, [](const storage::TupleSlot &) { return false; });
+          index_insert_result = db->customer_name_index_->Insert(*customer_name_key, customer_slot);
           TERRIER_ASSERT(index_insert_result, "Customer Name index insertion failed.");
 
           // For each row in the CUSTOMER table:
