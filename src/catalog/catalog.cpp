@@ -52,8 +52,10 @@ void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::st
   name_map_.erase(oid);
 }
 
-table_oid_t Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                                 const Schema &schema) {
+table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn,
+                                     db_oid_t db_oid,
+                                     const std::string &table_name,
+                                     const Schema &schema) {
   auto db_handle = GetDatabaseHandle();
   auto table_handle = db_handle.GetNamespaceHandle(txn, db_oid).GetTableHandle(txn, "public");
 
@@ -69,8 +71,9 @@ table_oid_t Catalog::CreateTable(transaction::TransactionContext *txn, db_oid_t 
   return tbl_rw->Oid();
 }
 
-void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid) {
+void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name) {
   auto db_handle = GetDatabaseHandle();
+  auto table_oid = table_oid_t(name_map_[db_oid][table_name]);
 
   // remove entries from pg_attribute, if attrelid == table_oid
   auto attr_table = GetCatalogTable(db_oid, "pg_attribute");
@@ -135,6 +138,10 @@ void Catalog::DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid,
     }
     ++class_it;
   }
+
+  // delete from the maps
+  name_map_[db_oid].erase(table_name);
+  map_[db_oid].erase(table_oid);
 
   // TODO(pakhtar): drop table
 }
@@ -265,9 +272,9 @@ void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t d
   // Order: pg_attribute -> pg_namespace -> pg_class
   CreatePGAttribute(txn, db_oid);
   CreatePGNamespace(txn, db_oid);
-  CreatePGClass(txn, db_oid);
   CreatePGType(txn, db_oid);
   CreatePGAttrDef(txn, db_oid);
+  CreatePGClass(txn, db_oid);
 
   // add column information into pg_attribute, for the catalog tables just created
   // pg_database, pg_tablespace and pg_settings are global, but
@@ -357,6 +364,21 @@ void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oi
 
   class_handle.AddEntry(txn, pg_attr_tbl_p, pg_attr_entry_oid, "pg_attribute", pg_catalog_namespace_oid,
                         pg_default_ts_oid);
+
+  // Insert pg_attrdef
+  // (namespace: catalog, tablespace: default)
+  auto pg_attrdef_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_attrdef").get());
+  auto pg_attrdef_entry_oid = !GetCatalogTable(db_oid, "pg_attrdef")->Oid();
+
+  class_handle.AddEntry(txn, pg_attrdef_tbl_p, pg_attrdef_entry_oid, "pg_attrdef", pg_catalog_namespace_oid,
+                        pg_default_ts_oid);
+
+  // Insert pg_type
+  // (namespace: catalog, tablespace: default)
+  auto pg_type_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, "pg_type").get());
+  auto pg_type_entry_oid = !GetCatalogTable(db_oid, "pg_type")->Oid();
+
+  class_handle.AddEntry(txn, pg_type_tbl_p, pg_type_entry_oid, "pg_type", pg_catalog_namespace_oid, pg_default_ts_oid);
 }
 
 void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
