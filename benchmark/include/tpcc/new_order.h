@@ -262,6 +262,8 @@ class NewOrder {
   template <class Random>
   bool Execute(transaction::TransactionManager *const txn_manager, Random *const generator, Database *const db,
                Worker *const worker, const TransactionArgs &args) const {
+    TERRIER_ASSERT(args.type == TransactionType::NewOrder, "Wrong transaction type.");
+
     double total_amount = 0;
 
     auto *const txn = txn_manager->BeginTransaction();
