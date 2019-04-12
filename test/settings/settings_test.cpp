@@ -19,15 +19,14 @@ namespace terrier::settings {
 class SettingsTests : public TerrierTest {
  protected:
   SettingsManager* settings_manager_;
-  storage::RecordBufferSegmentPool *buffer_pool_;
   transaction::TransactionContext *txn_;
   transaction::TransactionManager *txn_manager_;
-  const int64_t defaultBufferPoolSize = 100000;
+  const uint64_t defaultBufferPoolSize = 100000;
+  storage::RecordBufferSegmentPool buffer_pool_{defaultBufferPoolSize, 100};
   void SetUp() override {
     TerrierTest::SetUp();
 
-    buffer_pool_ = new storage::RecordBufferSegmentPool(defaultBufferPoolSize, 10000);
-    txn_manager_ = new transaction::TransactionManager(buffer_pool_, true, nullptr);
+    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, nullptr);
     txn_ = txn_manager_->BeginTransaction();
     terrier::catalog::terrier_catalog = std::make_shared<terrier::catalog::Catalog>(txn_manager_, txn_);
     settings_manager_ = new SettingsManager(terrier::catalog::terrier_catalog, txn_manager_);
