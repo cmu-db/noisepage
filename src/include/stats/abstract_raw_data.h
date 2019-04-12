@@ -1,5 +1,6 @@
 #pragma once
 
+#include <transaction/transaction_manager.h>
 #include "common/macros.h"
 #include "stats/statistic_defs.h"
 
@@ -32,8 +33,9 @@ class AbstractRawData {
    * Make necessary updates to the metric raw data and persist the content of
    * this RawData into internal SQL tables. Expect this object
    * to be garbage-collected after this method is called.
+   * @param txn_manager transaction manager of the system
    */
-  virtual void UpdateAndPersist() = 0;
+  virtual void UpdateAndPersist(transaction::TransactionManager *txn_manager) = 0;
 
   /**
    * @return the type of the metric this object is holding the data for

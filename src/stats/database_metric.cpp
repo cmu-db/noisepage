@@ -6,8 +6,7 @@
 
 namespace terrier::stats {
 
-void DatabaseMetricRawData::UpdateAndPersist() {
-  auto txn_manager = ThreadLevelStatsCollector::GetTxnManager();
+void DatabaseMetricRawData::UpdateAndPersist(transaction::TransactionManager *const txn_manager) {
   auto txn = txn_manager->BeginTransaction();
 
   // TODO(Wen) find a way to store collected data

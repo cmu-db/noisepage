@@ -4,22 +4,6 @@
 
 namespace terrier::stats {
 
-void StatsAggregator::Terminate() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  exiting_ = true;
-  while (exiting_) exec_finished_.wait(lock);
-}
-
-void StatsAggregator::RunTask() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  while (exec_finished_.wait_for(lock, std::chrono::milliseconds(aggregation_interval_ms_)) ==
-             std::cv_status::timeout &&
-         !exiting_)
-    Aggregate();
-  exiting_ = false;
-  exec_finished_.notify_all();
-}
-
 using RawDataCollect = std::vector<std::shared_ptr<AbstractRawData>>;
 RawDataCollect StatsAggregator::AggregateRawData() {
   RawDataCollect acc = std::vector<std::shared_ptr<AbstractRawData>>();
@@ -40,7 +24,7 @@ RawDataCollect StatsAggregator::AggregateRawData() {
 void StatsAggregator::Aggregate() {
   auto acc = AggregateRawData();
   for (auto &raw_data : acc) {
-    raw_data->UpdateAndPersist();
+    raw_data->UpdateAndPersist(txn_manager_);
   }
 }
 

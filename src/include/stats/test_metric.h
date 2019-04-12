@@ -29,8 +29,9 @@ class TestMetricRawData : public AbstractRawData {
    * Make necessary updates to the metric raw data and persist the content of
    * this RawData into internal SQL tables. Expect this object
    * to be garbage-collected after this method is called.
+   * @param txn_manager transaction manager of the system
    */
-  void UpdateAndPersist() override{};
+  void UpdateAndPersist(transaction::TransactionManager *txn_manager) override {}
 
   /**
    * @return the type of the metric this object is holding the data for

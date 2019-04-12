@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <thread>  // NOLINT
 #include <unordered_map>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -48,16 +47,6 @@ class ThreadLevelStatsCollector {
    * @return A mapping from each thread to their assigned Collector
    */
   static CollectorsMap &GetAllCollectors() { return collector_map_; }
-
-  /**
-   * @return the txn_manager of the system
-   */
-  static transaction::TransactionManager *GetTxnManager() { return txn_manager_; }
-
-  /**
-   * @return the txn_manager of the system
-   */
-  static void SetTxnManager(transaction::TransactionManager *txn_manager) { txn_manager_ = txn_manager; }
 
   /**
    * @brief Constructor of collector
@@ -316,23 +305,22 @@ class ThreadLevelStatsCollector {
   }
 
   using MetricList = std::vector<std::shared_ptr<Metric>>;
+
   /**
    * List of all registered metrics
    */
   MetricList metrics_;
+
   /**
    * Mapping from each type of event to a list of metrics registered to
    * receive updates from that type of event.
    */
   std::unordered_map<StatsEventType, MetricList, EnumHash<StatsEventType>> metric_dispatch_;
+
   /**
    * Mapping from thread ID to stats collector
    */
   static CollectorsMap collector_map_;
-  /**
-   * Transaction manager of the system
-   */
-  static transaction::TransactionManager *txn_manager_;
 };
 
 }  // namespace stats
