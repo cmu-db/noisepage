@@ -48,10 +48,9 @@ class AttributeHandle {
  public:
   /**
    * Construct an attribute handle
-   * @param catalog catalog ptr
    * @param pg_attribute a pointer to pg_attribute sql table rw helper instance
    */
-  explicit AttributeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg_attribute)
+  explicit AttributeHandle(std::shared_ptr<catalog::SqlTableRW> pg_attribute)
       : pg_attribute_hrw_(std::move(pg_attribute)) {}
 
   /**

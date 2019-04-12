@@ -45,7 +45,7 @@ TypeHandle DatabaseHandle::GetTypeHandle(transaction::TransactionContext *txn, d
 }
 
 AttributeHandle DatabaseHandle::GetAttributeHandle(transaction::TransactionContext *txn, db_oid_t oid) {
-  return AttributeHandle(catalog_, catalog_->GetDatabaseCatalog(oid, "pg_attribute"));
+  return AttributeHandle(catalog_->GetDatabaseCatalog(oid, "pg_attribute"));
 }
 
 AttrDefHandle DatabaseHandle::GetAttrDefHandle(transaction::TransactionContext *txn, db_oid_t oid) {
