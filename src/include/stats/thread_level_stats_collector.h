@@ -90,10 +90,10 @@ class ThreadLevelStatsCollector {
    * @param database_oid OID of the database that the tuple read happens
    * @param table_oid OID of the table that the tuple read happens
    */
-  void CollectTupleRead(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+  void CollectTupleRead(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                         catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_READ])
-      metric->OnTupleRead(current_txn, {database_oid, table_oid});
+      metric->OnTupleRead(txn, {database_oid, table_oid});
   }
 
   /**
@@ -102,10 +102,10 @@ class ThreadLevelStatsCollector {
    * @param database_oid OID of the database that the tuple update happens
    * @param table_oid OID of the table that the tuple update happens
    */
-  void CollectTupleUpdate(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+  void CollectTupleUpdate(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_UPDATE])
-      metric->OnTupleUpdate(current_txn, {database_oid, table_oid});
+      metric->OnTupleUpdate(txn, {database_oid, table_oid});
   }
 
   /**
@@ -114,10 +114,10 @@ class ThreadLevelStatsCollector {
    * @param database_oid OID of the database that the tuple insert happens
    * @param table_oid OID of the table that the tuple insert happens
    */
-  void CollectTupleInsert(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+  void CollectTupleInsert(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_INSERT])
-      metric->OnTupleInsert(current_txn, {database_oid, table_oid});
+      metric->OnTupleInsert(txn, {database_oid, table_oid});
   }
 
   /**
@@ -126,10 +126,10 @@ class ThreadLevelStatsCollector {
    * @param database_oid OID of the database that the tuple delete happens
    * @param table_oid OID of the table that the tuple delete happens
    */
-  void CollectTupleDelete(const transaction::TransactionContext *current_txn, catalog::db_oid_t database_oid,
+  void CollectTupleDelete(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid,
                           catalog::table_oid_t table_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TUPLE_DELETE])
-      metric->OnTupleDelete(current_txn, {database_oid, table_oid});
+      metric->OnTupleDelete(txn, {database_oid, table_oid});
   }
 
   /**
