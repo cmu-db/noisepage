@@ -82,30 +82,22 @@ class ArrowVarlenColumn {
   /**
    * @return length of the values array
    */
-  uint32_t ValuesLength() const {
-    return values_length_;
-  }
+  uint32_t ValuesLength() const { return values_length_; }
 
   /**
    * @return length of the offsets array
    */
-  uint32_t getOffsetsLength() const {
-    return offsets_length_;
-  }
+  uint32_t getOffsetsLength() const { return offsets_length_; }
 
   /**
    * @return the values array
    */
-  byte *getValues() const {
-    return values_;
-  }
+  byte *getValues() const { return values_; }
 
   /**
    * @return the offsets array
    */
-  uint32_t *getOffsets() const {
-    return offsets_;
-  }
+  uint32_t *getOffsets() const { return offsets_; }
 
  private:
   uint32_t values_length_ = 0, offsets_length_ = 0;
@@ -119,22 +111,16 @@ class ArrowVarlenColumn {
  */
 class ArrowColumnInfo {
  public:
-  ~ArrowColumnInfo() {
-    delete[] indices_;
-  }
+  ~ArrowColumnInfo() { delete[] indices_; }
 
   /**
    * @return type of the Arrow Column
    */
-  ArrowColumnType Type() const {
-    return type_;
-  }
+  ArrowColumnType Type() const { return type_; }
   /**
    * @return ArrowVarlenColumn object for the column
    */
-  ArrowVarlenColumn &VarlenColumn() {
-    return varlen_column_;
-  }
+  ArrowVarlenColumn &VarlenColumn() { return varlen_column_; }
 
   /**
    * Returns the indices array. This array is only meaningful if the column is dictionary compressed. The
@@ -154,7 +140,7 @@ class ArrowColumnInfo {
   ArrowColumnType type_;
   ArrowVarlenColumn varlen_column_;  // For varlen and dictionary
   // TODO(Tianyu): Add null bitmap
-  uint32_t *indices_ = nullptr;      // for dictionary
+  uint32_t *indices_ = nullptr;  // for dictionary
 };
 
 /**
@@ -176,7 +162,7 @@ class ArrowBlockMetadata {
    */
   static uint32_t Size(uint16_t num_cols) {
     return StorageUtil::PadUpToSize(sizeof(uint64_t), static_cast<uint32_t>(sizeof(uint32_t)) * (num_cols + 1)) +
-        num_cols * static_cast<uint32_t>(sizeof(ArrowColumnInfo));
+           num_cols * static_cast<uint32_t>(sizeof(ArrowColumnInfo));
   }
 
   /**
@@ -206,9 +192,9 @@ class ArrowBlockMetadata {
   uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
 
   /**
-    * @param col_id the column of interest
-    * @return the null count for given column
-    */
+   * @param col_id the column of interest
+   * @return the null count for given column
+   */
   uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
 
   /**
