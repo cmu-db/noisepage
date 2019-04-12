@@ -46,7 +46,7 @@ TEST_F(AttributeHandleTests, BasicCorrectnessTest) {
   EXPECT_NE(attribute_entry_ptr, nullptr);
 
   // the oid should belongs to pg_database table
-  uint32_t rel_id = attribute_entry_ptr->GetColumn(1).GetIntValue();
+  uint32_t rel_id = type::TransientValuePeeker::PeekInteger(attribute_entry_ptr->GetColumn(1));
   EXPECT_EQ(rel_id, !table_handle.NameToOid(txn_, "pg_database"));
 
   // pg_database doesn't have column "attrelid". Searching for such column should result in an exception.

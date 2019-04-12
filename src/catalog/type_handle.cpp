@@ -1,3 +1,4 @@
+#include <catalog/transient_value_util.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -36,49 +37,50 @@ TypeHandle::TypeHandle(Catalog *catalog, std::shared_ptr<catalog::SqlTableRW> pg
 
 type_oid_t TypeHandle::TypeToOid(transaction::TransactionContext *txn, const std::string &type) {
   auto te = GetTypeEntry(txn, type);
-  return type_oid_t(te->GetColumn(0).GetIntValue());
+  return type_oid_t(type::TransientValuePeeker::PeekInteger(te->GetColumn(0)));
 }
 
 std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn, type_oid_t oid) {
-  std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetIntegerValue(!oid));
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetInteger(!oid));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
-  return std::make_shared<TypeEntry>(oid, ret_row);
+  return std::make_shared<TypeEntry>(oid, std::move(ret_row));
 }
 
 std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
                                                                 const std::string &type) {
-  std::vector<type::Value> search_vec, ret_row;
-  search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-  search_vec.push_back(type::ValueFactory::GetVarcharValue(type.c_str()));
+  std::vector<type::TransientValue> search_vec, ret_row;
+  search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+  search_vec.push_back(type::TransientValueFactory::GetVarChar(type.c_str()));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
-  type_oid_t oid(ret_row[0].GetIntValue());
-  return std::make_shared<TypeHandle::TypeEntry>(oid, ret_row);
+  type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  return std::make_shared<TypeHandle::TypeEntry>(oid, std::move(ret_row));
 }
 
 /*
  * Lookup a type and return the entry, e.g. "boolean"
  */
 std::shared_ptr<TypeHandle::TypeEntry> TypeHandle::GetTypeEntry(transaction::TransactionContext *txn,
-                                                                const type::Value &type) {
-  std::vector<type::Value> search_vec, ret_row;
+                                                                const type::TransientValue &type) {
+  std::vector<type::TransientValue> search_vec, ret_row;
   for (int32_t i = 0; i < 1; i++) {
-    search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
+    search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
   }
-  search_vec.push_back(type);
+  search_vec.push_back(TransientValueUtil::MakeCopy(type));
   ret_row = pg_type_rw_->FindRow(txn, search_vec);
-  type_oid_t oid(ret_row[0].GetIntValue());
-  return std::make_shared<TypeHandle::TypeEntry>(oid, ret_row);
+  type_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+  return std::make_shared<TypeHandle::TypeEntry>(oid, std::move(ret_row));
 }
 
 void TypeHandle::AddEntry(transaction::TransactionContext *txn, type_oid_t oid, const std::string &typname,
                           namespace_oid_t typnamespace, int32_t typlen, const std::string &typtype) {
-  std::vector<type::Value> row;
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!oid));
-  row.emplace_back(type::ValueFactory::GetVarcharValue(typname.c_str()));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(!typnamespace));
-  row.emplace_back(type::ValueFactory::GetIntegerValue(typlen));
-  row.emplace_back(type::ValueFactory::GetVarcharValue(typtype.c_str()));
+  std::vector<type::TransientValue> row;
+  // FIXME might be problematic
+  row.emplace_back(type::TransientValueFactory::GetInteger(!oid));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(typname.c_str()));
+  row.emplace_back(type::TransientValueFactory::GetInteger(!typnamespace));
+  row.emplace_back(type::TransientValueFactory::GetInteger(typlen));
+  row.emplace_back(type::TransientValueFactory::GetVarChar(typtype.c_str()));
   catalog_->SetUnusedColumns(&row, TypeHandle::unused_schema_cols_);
   pg_type_rw_->InsertRow(txn, row);
 }

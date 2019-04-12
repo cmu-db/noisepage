@@ -15,6 +15,11 @@ class TransientValueFactory {
   TransientValueFactory() = delete;
 
   /**
+   * @param type type id of the NULL value.
+   * @return TransientValue representing a NULL value
+   */
+  static TransientValue GetNull(TypeId type) { return TransientValue(type); }
+  /**
    * @param value C type to generate a TransientValue with TypeId BOOLEAN. If you want a NULL with this TypeId, just
    * instantiate one with this factory method and then change its NULL value. @see TransientValue::SetNull().
    * @return TransientValue representing the value of the bool

@@ -42,7 +42,8 @@ class TablespaceHandle {
      * @param oid the tablespace_oid of the underlying database
      * @param entry: the row as a vector of values
      */
-    TablespaceEntry(tablespace_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    TablespaceEntry(tablespace_oid_t oid, std::vector<type::TransientValue> &&entry)
+        : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Return the tablespace_oid
@@ -55,11 +56,11 @@ class TablespaceHandle {
      * @param col_num the column index
      * @return the value of the column
      */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
+    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
    private:
     tablespace_oid_t oid_;
-    std::vector<type::Value> entry_;
+    std::vector<type::TransientValue> entry_;
   };
 
   /**

@@ -29,21 +29,15 @@ class SettingsHandle {
      * @param oid
      * @param entry: the row as a vector of values
      */
-    SettingsEntry(settings_oid_t oid, std::vector<type::Value> entry) : oid_(oid), entry_(std::move(entry)) {}
+    SettingsEntry(settings_oid_t oid, std::vector<type::TransientValue> &&entry)
+        : oid_(oid), entry_(std::move(entry)) {}
 
     /**
      * Get the value for a given column
      * @param col_num the column index
      * @return the value of the column
      */
-    const type::Value &GetColumn(int32_t col_num) { return entry_[col_num]; }
-
-    /**
-     * Set the value for a given column
-     * @param col_num the column index
-     * @param value the value of the column
-     */
-    void SetColumn(int32_t col_num, const type::Value &value) { entry_[col_num] = value; }
+    const type::TransientValue &GetColumn(int32_t col_num) { return entry_[col_num]; }
 
     /**
      * Return the settings_oid of the attribute
@@ -54,7 +48,7 @@ class SettingsHandle {
    private:
     // the row
     settings_oid_t oid_;
-    std::vector<type::Value> entry_;
+    std::vector<type::TransientValue> entry_;
   };
 
   /**
@@ -83,30 +77,19 @@ class SettingsHandle {
   static std::shared_ptr<catalog::SqlTableRW> Create(transaction::TransactionContext *txn, Catalog *catalog,
                                                      db_oid_t db_oid, const std::string &name);
 
-  /**
-   * Insert row into pg_settings table
-   * @param txn the txn that inserts the row
-   * @param row the row to be inserted
-   */
-  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::Value> &row) {
+  void InsertRow(transaction::TransactionContext *txn, const std::vector<type::TransientValue> &row) {
     pg_settings_->InsertRow(txn, row);
   }
 
-  /**
-   * Get settings entry by its name attribute
-   * @param txn the txn that gets the entry
-   * @param name the name of the entry to get
-   * @return a shared pointer to the settings entry
-   */
   std::shared_ptr<SettingsHandle::SettingsEntry> GetSettingsEntry(transaction::TransactionContext *txn,
                                                                   const std::string &name) {
-    std::vector<type::Value> search_vec, ret_row;
-    search_vec.push_back(type::ValueFactory::GetNullValue(type::TypeId::INTEGER));
-    search_vec.push_back(type::ValueFactory::GetVarcharValue(name.c_str()));
+    std::vector<type::TransientValue> search_vec, ret_row;
+    search_vec.push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
+    search_vec.push_back(type::TransientValueFactory::GetVarChar(name.c_str()));
     ret_row = pg_settings_->FindRow(txn, search_vec);
 
-    settings_oid_t oid(ret_row[0].GetIntValue());
-    return std::make_shared<SettingsEntry>(oid, ret_row);
+    settings_oid_t oid(type::TransientValuePeeker::PeekInteger(ret_row[0]));
+    return std::make_shared<SettingsEntry>(oid, std::move(ret_row));
   }
 
   /**
@@ -122,27 +105,6 @@ class SettingsHandle {
  private:
   // storage for this table
   std::shared_ptr<catalog::SqlTableRW> pg_settings_;
-};
-
-enum class SettingsTableColumn {
-  OID = 0,
-  NAME = 1,
-  SETTING = 2,
-  UNIT = 3,
-  CATEGORY = 4,
-  SHORT_DESC = 5,
-  EXTRA_DESC = 6,
-  CONTEXT = 7,
-  VARTYPE = 8,
-  SOURCE = 9,
-  MIN_VAL = 10,
-  MAX_VAL = 11,
-  ENUMVALS = 12,
-  BOOT_VAL = 13,
-  RESET_VAL = 14,
-  SOURCEFILE = 15,
-  SOURCELINE = 16,
-  PENDING_RESTART = 17
 };
 
 }  // namespace terrier::catalog

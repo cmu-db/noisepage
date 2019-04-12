@@ -12,8 +12,9 @@
 #include "loggers/catalog_logger.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
-#include "type/value.h"
-#include "type/value_factory.h"
+#include "type/transient_value.h"
+#include "type/transient_value_factory.h"
+
 namespace terrier::catalog {
 
 class Catalog;
@@ -52,6 +53,7 @@ class TableHandle {
    public:
     /**
      * Constructs a table entry in pg_tables.
+     * TODO(yeshengm): consider using universal reference here??? we are now forcing a rvalue ref.
      *
      * @param oid the table oid
      * @param row a row in pg_class that represents this table
@@ -60,7 +62,7 @@ class TableHandle {
      * @param pg_namespace a pointer to pg_namespace
      * @param pg_tablespace a pointer to tablespace
      */
-    TableEntry(table_oid_t oid, const std::vector<type::Value> &row, transaction::TransactionContext *txn,
+    TableEntry(table_oid_t oid, std::vector<type::TransientValue> &&row, transaction::TransactionContext *txn,
                std::shared_ptr<SqlTableRW> pg_class, std::shared_ptr<SqlTableRW> pg_namespace,
                std::shared_ptr<SqlTableRW> pg_tablespace)
         : oid_(oid),
@@ -69,7 +71,7 @@ class TableHandle {
           pg_namespace_(std::move(pg_namespace)),
           pg_tablespace_(std::move(pg_tablespace)) {
       rows_.resize(3);
-      rows_[1] = row;
+      rows_[1] = std::move(row);
     }
 
     /**
@@ -77,21 +79,20 @@ class TableHandle {
      * @param col_num the column number
      * @return the value
      */
-    const type::Value &GetColInRow(uint32_t col_num) {
+    const type::TransientValue &GetColInRow(uint32_t col_num) {
       // TODO(yangjuns): error handling
       // get the namespace_oid and tablespace_oid of the table
-      namespace_oid_t nsp_oid = namespace_oid_t(rows_[1][3].GetIntValue());
-      tablespace_oid_t tsp_oid = tablespace_oid_t(rows_[1][4].GetIntValue());
+      namespace_oid_t nsp_oid = namespace_oid_t(type::TransientValuePeeker::PeekInteger(rows_[1][3]));
+      tablespace_oid_t tsp_oid = tablespace_oid_t(type::TransientValuePeeker::PeekInteger(rows_[1][4]));
 
       // for different attribute we need to look up different sql tables
       switch (col_num) {
         case 0: {
           // schemaname
           if (rows_[0].empty()) {
-            std::vector<type::Value> search_vec;
-            search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!nsp_oid));
-            std::vector<type::Value> nsp_row = pg_namespace_->FindRow(txn_, search_vec);
-            rows_[0] = nsp_row;
+            std::vector<type::TransientValue> search_vec;
+            search_vec.emplace_back(type::TransientValueFactory::GetInteger(!nsp_oid));
+            rows_[0] = pg_namespace_->FindRow(txn_, search_vec);
           }
           return rows_[0][1];
         }
@@ -101,10 +102,9 @@ class TableHandle {
         }
         case 2: {
           if (rows_[2].empty()) {
-            std::vector<type::Value> search_vec;
-            search_vec.emplace_back(type::ValueFactory::GetIntegerValue(!tsp_oid));
-            std::vector<type::Value> tsp_row = pg_tablespace_->FindRow(txn_, search_vec);
-            rows_[2] = tsp_row;
+            std::vector<type::TransientValue> search_vec;
+            search_vec.emplace_back(type::TransientValueFactory::GetInteger(!tsp_oid));
+            rows_[2] = pg_tablespace_->FindRow(txn_, search_vec);
           }
           return rows_[2][1];
         }
@@ -123,7 +123,7 @@ class TableHandle {
     table_oid_t oid_;
     transaction::TransactionContext *txn_;
     // it stores three rows in three tables
-    std::vector<std::vector<type::Value>> rows_;
+    std::vector<std::vector<type::TransientValue>> rows_;
     std::shared_ptr<SqlTableRW> pg_class_;
     std::shared_ptr<SqlTableRW> pg_namespace_;
     std::shared_ptr<SqlTableRW> pg_tablespace_;

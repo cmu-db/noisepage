@@ -4,6 +4,7 @@
 #include "catalog/catalog.h"
 #include "catalog/namespace_handle.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value_peeker.h"
 #include "util/test_harness.h"
 #include "util/transaction_test_util.h"
 namespace terrier {
@@ -38,6 +39,6 @@ struct TablespaceHandleTests : public TerrierTest {
 TEST_F(TablespaceHandleTests, BasicCorrectnessTest) {
   auto tsp_handle = catalog_->GetTablespaceHandle();
   auto tsp_entry_ptr = tsp_handle.GetTablespaceEntry(txn_, "pg_global");
-  EXPECT_STREQ("pg_global", tsp_entry_ptr->GetColumn(1).GetVarcharValue());
+  EXPECT_STREQ("pg_global", type::TransientValuePeeker::PeekVarChar(tsp_entry_ptr->GetColumn(1)));
 }
 }  // namespace terrier
