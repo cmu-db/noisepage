@@ -170,7 +170,7 @@ void SettingsManager::SetValue(Param param, const type::TransientValue &value) {
   auto entry = settings_handle_.GetSettingsEntry(txn, param_info.name);
   entry->SetColumn(static_cast<int32_t>(Index::SETTING), value);
   txn_manager_->Commit(txn, EmptyCallback, nullptr);
-  if (!txn_manager_->GCEnabled()) delete txn;
+  delete txn;
 }
 
 bool SettingsManager::ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,

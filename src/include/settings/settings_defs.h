@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // Terrier port
-SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, MainDatabase::EmptyCallback)
+SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, MainDatabase::EmptyCallback)  // NOLINT
 
     // Maximum number of connections
     SETTING_int(max_connections, "Maximum number of connections (default: 64)", 64, 1, 512, true,
