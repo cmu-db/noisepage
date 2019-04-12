@@ -57,6 +57,9 @@ class MainDatabase {
    */
   static void BufferPoolSizeCallback(void *old_value, void *new_value);
 
+  /**
+   * The global pointer to transaction manager
+   */
   static transaction::TransactionManager *txn_manager_;
 };
 
