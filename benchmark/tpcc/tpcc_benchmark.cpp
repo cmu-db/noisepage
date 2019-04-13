@@ -61,7 +61,6 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   const uint32_t num_threads_ = 4;
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
-  const uint32_t w_new_order = 45;
   const uint32_t w_payment = 43;
   const uint32_t w_delivery = 4;
   const uint32_t w_order_status = 4;
@@ -116,27 +115,25 @@ class Deck {
    * User-specified transaction mix. The sum of the weights must be divisible by 100,
    * and the overall transaction mix must satisfy TPCC minimums, which are:
    * 43% payment, 4% order_status, 4% delivery, 4% stock_level
+   *
+   * The weight of new_order will be approximately (100% - sum of the others), because the TPCC spec
+   * calls for deck sizes to be multiples of 23, an exact lower bound cannot always be achieved.
    */
-  Deck(uint32_t w_new_order, uint32_t w_payment, uint32_t w_order_status, uint32_t w_delivery, uint32_t w_stock_level) {
+  Deck(uint32_t w_payment, uint32_t w_order_status, uint32_t w_delivery, uint32_t w_stock_level) {
     TERRIER_ASSERT(w_payment >= 43, "At least 43% payment.");
     TERRIER_ASSERT(w_order_status >= 4, "At least 4% order status.");
     TERRIER_ASSERT(w_delivery >= 4, "At least 4% delivery.");
     TERRIER_ASSERT(w_payment >= 4, "At least 4% stock level.");
-    TERRIER_ASSERT(w_new_order + w_payment + w_order_status + w_delivery + w_stock_level == 100,
-                   "Weights must sum to 100.");
+    TERRIER_ASSERT(w_payment + w_order_status + w_delivery + w_stock_level <= 100, "Weights cannot be more than 100.");
 
-    auto min_new_order = static_cast<uint32_t>(std::ceil(static_cast<double>(w_new_order) / 100.0 * 23));
     auto min_payment = static_cast<uint32_t>(std::ceil(static_cast<double>(w_payment) / 100.0 * 23));
     auto min_order_status = static_cast<uint32_t>(std::ceil(static_cast<double>(w_order_status) / 100.0 * 23));
     auto min_delivery = static_cast<uint32_t>(std::ceil(static_cast<double>(w_delivery) / 100.0 * 23));
     auto min_stock_level = static_cast<uint32_t>(std::ceil(static_cast<double>(w_stock_level) / 100.0 * 23));
 
-    uint32_t min_num_cards = min_new_order + min_payment + min_order_status + min_delivery + min_stock_level;
-    if (min_num_cards == 24) {
-      min_new_order--;
-      min_num_cards--;
-    }
-    TERRIER_ASSERT(min_num_cards <= 23, "If this fails, the above math sucks.");
+    uint32_t min_num_cards = min_payment + min_order_status + min_delivery + min_stock_level;
+    TERRIER_ASSERT(min_num_cards <= 23, "Can't have more than 23 cards!");
+    auto min_new_order = 23 - min_num_cards;
 
     cards.reserve(23);
     for (uint32_t i = 0; i < min_new_order; i++) cards.emplace_back(tpcc::TransactionType::NewOrder);
@@ -144,20 +141,6 @@ class Deck {
     for (uint32_t i = 0; i < min_order_status; i++) cards.emplace_back(tpcc::TransactionType::OrderStatus);
     for (uint32_t i = 0; i < min_delivery; i++) cards.emplace_back(tpcc::TransactionType::Delivery);
     for (uint32_t i = 0; i < min_stock_level; i++) cards.emplace_back(tpcc::TransactionType::StockLevel);
-
-    while (true) {
-      if (cards.size() == 23) break;
-      cards.emplace_back(tpcc::TransactionType::NewOrder);
-      if (cards.size() == 23) break;
-      cards.emplace_back(tpcc::TransactionType::Payment);
-      if (cards.size() == 23) break;
-      cards.emplace_back(tpcc::TransactionType::OrderStatus);
-      if (cards.size() == 23) break;
-      cards.emplace_back(tpcc::TransactionType::Delivery);
-      if (cards.size() == 23) break;
-      cards.emplace_back(tpcc::TransactionType::StockLevel);
-      if (cards.size() == 23) break;
-    }
 
     auto UNUSED_ATTRIBUTE c_new_order = std::count_if(
         cards.begin(), cards.end(), [](tpcc::TransactionType txn) { return txn == tpcc::TransactionType::NewOrder; });
@@ -170,7 +153,6 @@ class Deck {
         cards.begin(), cards.end(), [](tpcc::TransactionType txn) { return txn == tpcc::TransactionType::Delivery; });
     auto UNUSED_ATTRIBUTE c_stock_level = std::count_if(
         cards.begin(), cards.end(), [](tpcc::TransactionType txn) { return txn == tpcc::TransactionType::StockLevel; });
-    TERRIER_ASSERT(static_cast<double>(c_new_order) / 23.0 * 100 >= w_new_order, "New order weight unsatisfied.");
     TERRIER_ASSERT(static_cast<double>(c_payment) / 23.0 * 100 >= w_payment, "Payment weight unsatisfied.");
     TERRIER_ASSERT(static_cast<double>(c_order_status) / 23.0 * 100 >= w_order_status,
                    "Order status weight unsatisfied.");
@@ -213,7 +195,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   std::vector<std::vector<tpcc::TransactionArgs>> precomputed_args;
   precomputed_args.reserve(workers.size());
 
-  Deck deck(w_new_order, w_payment, w_order_status, w_delivery, w_stock_level);
+  Deck deck(w_payment, w_order_status, w_delivery, w_stock_level);
 
   for (uint32_t warehouse_id = 1; warehouse_id <= num_threads_; warehouse_id++) {
     std::vector<tpcc::TransactionArgs> txns;
