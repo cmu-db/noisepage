@@ -146,6 +146,7 @@ class Deck {
     for (uint32_t i = 0; i < min_stock_level; i++) cards.emplace_back(tpcc::TransactionType::StockLevel);
 
     while (true) {
+      if (cards.size() == 23) break;
       cards.emplace_back(tpcc::TransactionType::NewOrder);
       if (cards.size() == 23) break;
       cards.emplace_back(tpcc::TransactionType::Payment);
