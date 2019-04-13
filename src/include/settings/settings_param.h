@@ -5,6 +5,14 @@
 
 namespace terrier::settings {
 
+/**
+ * Param is a enum class, where all the setting names
+ * are defined as enumerators.
+ *
+ * The enumerator list is defined by expanding the
+ * _SETTING_ENUM_ part of macros defined in 
+ * settings_common.h
+ */
 enum class Param {                     // NOLINT
 #define __SETTING_ENUM__               // NOLINT
 #include "settings/settings_common.h"  // NOLINT

@@ -167,12 +167,14 @@ SETTING_int(port, "Terrier port (default: 15721)", 15721, 1024, 65535, false, Ma
 
     // If bloom filter for hash join in codegen is enabled
     SETTING_bool(hash_join_bloom_filter, "Enable bloom filter for hash join in codegen (default: false)", false, true)
+
     // Timeout for task execution
     SETTING_int(task_execution_timeout,                                // NOLINT
                 "Maximum allowed length of time (in ms) for task "     // NOLINT
                 "execution step of optimizer, "                        // NOLINT
                 "assuming one plan has been found (default 5000)",     // NOLINT
                 5000, 1000, 60000, true, MainDatabase::EmptyCallback)  // NOLINT
+                                                                       // NOLINT
 
     //===----------------------------------------------------------------------===//
     // GENERAL
