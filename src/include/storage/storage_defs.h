@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
-#include <string_view>
+#include <string_view>  // NOLINT
 #include <unordered_map>
 #include <utility>
 #include <vector>
