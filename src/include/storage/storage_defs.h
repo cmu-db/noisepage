@@ -46,7 +46,8 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   std::atomic<uint32_t> insert_head_;
   /**
-   * Access controller of this block
+   * Access controller of this block that coordinates access among Arrow readers, transactional workers
+   * and the transformation thread. In practice this can be used almost like a lock.
    */
   BlockAccessController controller_;
 
