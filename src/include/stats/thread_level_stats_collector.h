@@ -69,7 +69,7 @@ class ThreadLevelStatsCollector {
   /**
    * Collector action on transaction commit
    * @param txn context of the transaction committing
-   * @param database_oid OID fo the database where the txn happens.
+   * @param database_oid OID of the database where the txn happens.
    */
   void CollectTransactionCommit(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {
     for (auto &metric : metric_dispatch_[StatsEventType::TXN_COMMIT]) metric->OnTransactionCommit(txn, database_oid);
