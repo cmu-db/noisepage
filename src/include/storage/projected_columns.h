@@ -184,7 +184,6 @@ class PACKED ProjectedColumns {
   // TODO(Tianyu): If we make RowView mutable, then remove this function and make the constructor of RowView public.
   /**
    *
-   * @param layout block layout of the data table this ProjectedColumns come from
    * @param row_offset the row offset within the ProjectedColumns to look at
    * @return a view into the desired row within the ProjectedColumns
    */
