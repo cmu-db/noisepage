@@ -27,7 +27,7 @@ class ArrowVarlenColumn {
 
   /**
    * Constructs a new arrow varlen column object
-   * @param values_length size of the values buffer, in bytes
+   * @param values_length length of the values array
    * @param offsets_length number of elements in the offsets array
    */
   ArrowVarlenColumn(uint32_t values_length, uint32_t offsets_length)
