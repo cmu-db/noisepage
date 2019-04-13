@@ -1,4 +1,6 @@
 #include <random>
+#include <string>
+#include <string_view>  // NOLINT
 #include "common/allocator.h"
 #include "storage/storage_defs.h"
 #include "util/storage_test_util.h"
@@ -36,5 +38,26 @@ TEST(VarlenEntryTests, Basic) {
   EXPECT_EQ(std::memcmp(entry.Prefix(), inlined, storage::VarlenEntry::PrefixSize()), 0);
   EXPECT_EQ(std::memcmp(entry.Content(), inlined, inlined_size), 0);
   EXPECT_NE(entry.Content(), inlined);
+}
+
+/**
+ * Simple test to demonstrate std::string_view functionalty.
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, StringView) {
+  std::string hello_world = "hello world";
+  const auto inlined_entry =
+      storage::VarlenEntry::CreateInline(reinterpret_cast<byte *const>(hello_world.data()), hello_world.length());
+  auto inlined_string_view = inlined_entry.StringView();
+  EXPECT_EQ(inlined_string_view, hello_world);
+
+  std::string not_hello_world = "this is not a hello world string at all.";
+  const uint32_t large_size = 40;
+  byte *large_buffer = common::AllocationUtil::AllocateAligned(large_size);
+  std::memcpy(large_buffer, not_hello_world.data(), not_hello_world.length());
+  storage::VarlenEntry non_inlined_entry = storage::VarlenEntry::Create(large_buffer, large_size, true);
+  auto non_inlined_string_view = non_inlined_entry.StringView();
+  EXPECT_EQ(non_inlined_string_view, not_hello_world);
+  delete[] large_buffer;
 }
 }  // namespace terrier

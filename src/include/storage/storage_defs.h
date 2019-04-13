@@ -257,7 +257,7 @@ class VarlenEntry {
    * @warning It is the programmer's responsibility to ensure that std::string_view does not outlive the VarlenEntry
    */
   std::string_view StringView() const {
-    return std::string_view(reinterpret_cast<const char *const>(Content(), Size()));
+    return std::string_view(reinterpret_cast<const char *const>(Content()), Size());
   }
 
  private:
