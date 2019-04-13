@@ -43,8 +43,6 @@ class NewOrder {
   const storage::ProjectedRowInitializer customer_select_pr_initializer;
   const storage::ProjectionMap customer_select_pr_map;
   const uint8_t c_discount_select_pr_offset;
-  const uint8_t c_last_select_pr_offset;
-  const uint8_t c_credit_select_pr_offset;
   const uint8_t c_id_key_pr_offset;
   const uint8_t c_d_id_key_pr_offset;
   const uint8_t c_w_id_key_pr_offset;
@@ -80,7 +78,6 @@ class NewOrder {
   const storage::ProjectedRowInitializer item_select_pr_initializer;
   const storage::ProjectionMap item_select_pr_map;
   const uint8_t i_price_select_pr_offset;
-  const uint8_t i_name_select_pr_offset;
   const uint8_t i_data_select_pr_offset;
 
   const catalog::col_oid_t s_quantity_oid;
@@ -147,8 +144,6 @@ class NewOrder {
         customer_select_pr_map(
             db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid}).second),
         c_discount_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_discount_oid))),
-        c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))),
-        c_credit_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_credit_oid))),
         c_id_key_pr_offset(static_cast<uint8_t>(
             db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid()))),
         c_d_id_key_pr_offset(static_cast<uint8_t>(
@@ -206,7 +201,6 @@ class NewOrder {
             db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid}).first),
         item_select_pr_map(db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid}).second),
         i_price_select_pr_offset(static_cast<uint8_t>(item_select_pr_map.at(i_price_oid))),
-        i_name_select_pr_offset(static_cast<uint8_t>(item_select_pr_map.at(i_name_oid))),
         i_data_select_pr_offset(static_cast<uint8_t>(item_select_pr_map.at(i_data_oid))),
 
         // Stock metadata
@@ -355,10 +349,6 @@ class NewOrder {
     db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
     const auto c_discount =
         *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_discount_select_pr_offset));
-    const auto UNUSED_ATTRIBUTE c_last =
-        *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(c_last_select_pr_offset));
-    const auto UNUSED_ATTRIBUTE c_credit = *reinterpret_cast<storage::VarlenEntry *>(
-        customer_select_tuple->AccessWithNullCheck(c_credit_select_pr_offset));
 
     // Insert new row in New Order
     auto *const new_order_insert_tuple = new_order_insert_pr_initializer.InitializeRow(worker->new_order_key_buffer);
@@ -408,8 +398,6 @@ class NewOrder {
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
-    const auto UNUSED_ATTRIBUTE ol_cnt = args.ol_cnt;
-
     // for each item in order
     for (const auto &item : args.items) {
       uint32_t ol_number = 1;
@@ -434,8 +422,6 @@ class NewOrder {
       db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
       const auto i_price =
           *reinterpret_cast<double *>(item_select_tuple->AccessWithNullCheck(i_price_select_pr_offset));
-      const auto i_name UNUSED_ATTRIBUTE =
-          *reinterpret_cast<storage::VarlenEntry *>(item_select_tuple->AccessWithNullCheck(i_name_select_pr_offset));
       const auto i_data =
           *reinterpret_cast<storage::VarlenEntry *>(item_select_tuple->AccessWithNullCheck(i_data_select_pr_offset));
 

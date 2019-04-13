@@ -97,6 +97,17 @@ class Payment {
   const uint8_t c_payment_cnt_update_pr_offset;
   const storage::ProjectedRowInitializer c_data_pr_initializer;
 
+  const storage::ProjectedRowInitializer history_insert_pr_initializer;
+  const storage::ProjectionMap history_insert_pr_map;
+  const uint8_t h_c_id_insert_pr_offset;
+  const uint8_t h_c_d_id_insert_pr_offset;
+  const uint8_t h_c_w_id_insert_pr_offset;
+  const uint8_t h_d_id_insert_pr_offset;
+  const uint8_t h_w_id_insert_pr_offset;
+  const uint8_t h_date_insert_pr_offset;
+  const uint8_t h_amount_insert_pr_offset;
+  const uint8_t h_data_insert_pr_offset;
+
  public:
   explicit Payment(const Database *const db)
 
@@ -118,11 +129,6 @@ class Payment {
                                                                   w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
                                     .second),
         w_name_select_pr_offset(warehouse_select_pr_map.at(w_name_oid)),
-        //        w_street_1_select_pr_offset(warehouse_select_pr_map.at(w_street_1_oid)),
-        //        w_street_2_select_pr_offset(warehouse_select_pr_map.at(w_street_2_oid)),
-        //        w_city_select_pr_offset(warehouse_select_pr_map.at(w_city_oid)),
-        //        w_state_select_pr_offset(warehouse_select_pr_map.at(w_state_oid)),
-        //        w_zip_select_pr_offset(warehouse_select_pr_map.at(w_zip_oid)),
         w_ytd_select_pr_offset(warehouse_select_pr_map.at(w_ytd_oid)),
         warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid}).first),
 
@@ -146,11 +152,6 @@ class Payment {
                                                                  d_state_oid, d_zip_oid, d_ytd_oid})
                                    .second),
         d_name_select_pr_offset(district_select_pr_map.at(d_name_oid)),
-        //        d_street_1_select_pr_offset(district_select_pr_map.at(d_street_1_oid)),
-        //        d_street_2_select_pr_offset(district_select_pr_map.at(d_street_2_oid)),
-        //        d_city_select_pr_offset(district_select_pr_map.at(d_city_oid)),
-        //        d_state_select_pr_offset(district_select_pr_map.at(d_state_oid)),
-        //        d_zip_select_pr_offset(district_select_pr_map.at(d_zip_oid)),
         d_ytd_select_pr_offset(district_select_pr_map.at(d_ytd_oid)),
         district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first),
 
@@ -179,19 +180,7 @@ class Payment {
         c_data_oid(db->customer_schema_.GetColumn(20).GetOid()),
 
         c_id_select_pr_offset(customer_select_pr_map.at(c_id_oid)),
-        //        c_first_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(3).GetOid())),
-        //        c_middle_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(4).GetOid())),
-        //        c_last_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(5).GetOid())),
-        //        c_street_1_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(6).GetOid())),
-        //        c_street_2_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(7).GetOid())),
-        //        c_city_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(8).GetOid())),
-        //        c_state_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(9).GetOid())),
-        //        c_zip_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(10).GetOid())),
-        //        c_phone_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(11).GetOid())),
-        //        c_since_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(12).GetOid())),
         c_credit_select_pr_offset(customer_select_pr_map.at(c_credit_oid)),
-        //        c_credit_lim_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(14).GetOid())),
-        //        c_discount_select_pr_offset(customer_select_pr_map.at(db->customer_schema_.GetColumn(15).GetOid())),
         c_balance_select_pr_offset(customer_select_pr_map.at(c_balance_oid)),
         c_ytd_payment_select_pr_offset(customer_select_pr_map.at(c_ytd_payment_oid)),
         c_payment_cnt_select_pr_offset(customer_select_pr_map.at(c_payment_cnt_oid)),
@@ -205,7 +194,21 @@ class Payment {
         c_balance_update_pr_offset(customer_update_pr_map.at(c_balance_oid)),
         c_ytd_payment_update_pr_offset(customer_update_pr_map.at(c_ytd_payment_oid)),
         c_payment_cnt_update_pr_offset(customer_update_pr_map.at(c_payment_cnt_oid)),
-        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid}).first)
+        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid}).first),
+
+        history_insert_pr_initializer(
+            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).first),
+        history_insert_pr_map(
+            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).second),
+
+        h_c_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(0).GetOid())),
+        h_c_d_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(1).GetOid())),
+        h_c_w_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(2).GetOid())),
+        h_d_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(3).GetOid())),
+        h_w_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(4).GetOid())),
+        h_date_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(5).GetOid())),
+        h_amount_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(6).GetOid())),
+        h_data_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(7).GetOid()))
 
   {}
 
@@ -230,20 +233,8 @@ class Payment {
     // Select W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_YTD in table
     auto *const warehouse_select_tuple = warehouse_select_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
     db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
-    const auto UNUSED_ATTRIBUTE w_name =
+    const auto w_name =
         *reinterpret_cast<storage::VarlenEntry *>(warehouse_select_tuple->AccessWithNullCheck(w_name_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE w_street_1 = *reinterpret_cast<storage::VarlenEntry *>(
-    //        warehouse_select_tuple->AccessWithNullCheck(w_street_1_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE w_street_2 = *reinterpret_cast<storage::VarlenEntry *>(
-    //        warehouse_select_tuple->AccessWithNullCheck(w_street_2_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE w_city =
-    //        *reinterpret_cast<storage::VarlenEntry
-    //        *>(warehouse_select_tuple->AccessWithNullCheck(w_city_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE w_state = *reinterpret_cast<storage::VarlenEntry *>(
-    //        warehouse_select_tuple->AccessWithNullCheck(w_state_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE w_zip =
-    //        *reinterpret_cast<storage::VarlenEntry
-    //        *>(warehouse_select_tuple->AccessWithNullCheck(w_zip_select_pr_offset));
     const auto w_ytd = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(w_ytd_select_pr_offset));
 
     // Increase W_YTD by H_AMOUNT in table
@@ -268,21 +259,8 @@ class Payment {
     // Select D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_YTD in table
     auto *const district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
     db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
-    const auto UNUSED_ATTRIBUTE d_name =
+    const auto d_name =
         *reinterpret_cast<storage::VarlenEntry *>(district_select_tuple->AccessWithNullCheck(d_name_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE d_street_1 = *reinterpret_cast<storage::VarlenEntry *>(
-    //        district_select_tuple->AccessWithNullCheck(d_street_1_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE d_street_2 = *reinterpret_cast<storage::VarlenEntry *>(
-    //        district_select_tuple->AccessWithNullCheck(d_street_2_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE d_city =
-    //        *reinterpret_cast<storage::VarlenEntry
-    //        *>(district_select_tuple->AccessWithNullCheck(d_city_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE d_state =
-    //        *reinterpret_cast<storage::VarlenEntry
-    //        *>(district_select_tuple->AccessWithNullCheck(d_state_select_pr_offset));
-    //    const auto UNUSED_ATTRIBUTE d_zip =
-    //        *reinterpret_cast<storage::VarlenEntry
-    //        *>(district_select_tuple->AccessWithNullCheck(d_zip_select_pr_offset));
     const auto d_ytd = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_ytd_select_pr_offset));
 
     // Increase D_YTD by H_AMOUNT in table
@@ -342,7 +320,7 @@ class Payment {
     auto *const customer_select_tuple = customer_select_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
     db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
 
-    const auto UNUSED_ATTRIBUTE c_id =
+    const auto c_id =
         !args.use_c_last
             ? args.c_id
             : *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
@@ -351,7 +329,7 @@ class Payment {
     const auto c_ytd_payment =
         *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_ytd_payment_select_pr_offset));
     const auto c_payment_cnt =
-        *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_payment_cnt_select_pr_offset));
+        *reinterpret_cast<int16_t *>(customer_select_tuple->AccessWithNullCheck(c_payment_cnt_select_pr_offset));
     const auto c_credit = *reinterpret_cast<storage::VarlenEntry *>(
         customer_select_tuple->AccessWithNullCheck(c_credit_select_pr_offset));
     const auto c_data =
@@ -363,7 +341,7 @@ class Payment {
         c_balance - args.h_amount;
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_ytd_payment_update_pr_offset)) =
         c_ytd_payment + args.h_amount;
-    *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset)) =
+    *reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset)) =
         c_payment_cnt + 1;
 
     result = db->customer_table_->Update(txn, customer_slot, *customer_update_tuple);
@@ -391,6 +369,29 @@ class Payment {
       TERRIER_ASSERT(result,
                      "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
+
+    auto h_data_str = std::string(reinterpret_cast<const char *const>(w_name.Content()), w_name.Size());
+    h_data_str.append("    ");
+    h_data_str.append(std::string_view(reinterpret_cast<const char *const>(d_name.Content()), d_name.Size()));
+    const auto h_data_length = h_data_str.length();
+    auto *const varlen = common::AllocationUtil::AllocateAligned(h_data_length);
+    std::memcpy(varlen, h_data_str.data(), h_data_length);
+    const auto h_data = storage::VarlenEntry::Create(varlen, h_data_length, true);
+
+    // Insert in History table
+    auto *const history_insert_tuple = history_insert_pr_initializer.InitializeRow(worker->history_tuple_buffer);
+    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_id_insert_pr_offset)) = c_id;
+    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_d_id_insert_pr_offset)) = args.c_d_id;
+    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_c_w_id_insert_pr_offset)) = args.c_w_id;
+    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_d_id_insert_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(history_insert_tuple->AccessForceNotNull(h_w_id_insert_pr_offset)) = args.w_id;
+    *reinterpret_cast<uint64_t *>(history_insert_tuple->AccessForceNotNull(h_date_insert_pr_offset)) = args.h_date;
+    *reinterpret_cast<double *>(history_insert_tuple->AccessForceNotNull(h_amount_insert_pr_offset)) = args.h_amount;
+    *reinterpret_cast<storage::VarlenEntry *>(history_insert_tuple->AccessForceNotNull(h_data_insert_pr_offset)) =
+        h_data;
+
+    db->history_table_->Insert(txn, *history_insert_tuple);
+
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
     return true;
