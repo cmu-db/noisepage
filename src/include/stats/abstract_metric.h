@@ -54,7 +54,7 @@ class Metric {
 
   /**
    * @param txn context of the transaction aborting
-   * @param database_oid OID fo the database where the txn happens.
+   * @param database_oid OID of the database where the txn happens.
    */
   virtual void OnTransactionAbort(const transaction::TransactionContext *txn, catalog::db_oid_t database_oid) {}
 
