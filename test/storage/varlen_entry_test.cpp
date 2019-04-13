@@ -46,8 +46,8 @@ TEST(VarlenEntryTests, Basic) {
 // NOLINTNEXTLINE
 TEST(VarlenEntryTests, StringView) {
   std::string hello_world = "hello world";
-  const auto inlined_entry =
-      storage::VarlenEntry::CreateInline(reinterpret_cast<byte *const>(hello_world.data()), hello_world.length());
+  const auto inlined_entry = storage::VarlenEntry::CreateInline(reinterpret_cast<byte *const>(hello_world.data()),
+                                                                static_cast<uint32_t>(hello_world.length()));
   auto inlined_string_view = inlined_entry.StringView();
   EXPECT_EQ(inlined_string_view, hello_world);
 
