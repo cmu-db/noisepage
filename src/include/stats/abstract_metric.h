@@ -29,7 +29,7 @@ namespace stats {
  *
  * While you could write your own metric directly extending from this class,
  * it is recommended that you use @see AbstractMetric class, which takes in
- * an AbstractRawData class a a template argument and implements the tricky
+ * an AbstractRawData class as a template argument and implements the tricky
  * concurrent code for you.
  *
  * To write a new Metric, first write your own RawData class, extending from

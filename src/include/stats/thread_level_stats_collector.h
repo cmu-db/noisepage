@@ -304,18 +304,18 @@ class ThreadLevelStatsCollector {
     for (StatsEventType type : types) metric_dispatch_[type].push_back(m);
   }
 
-  using MetricList = std::vector<std::shared_ptr<Metric>>;
+  using RegisteredMetric = std::vector<std::shared_ptr<Metric>>;
 
   /**
-   * List of all registered metrics
+   * Vector of all registered metrics
    */
-  MetricList metrics_;
+  RegisteredMetric metrics_;
 
   /**
    * Mapping from each type of event to a list of metrics registered to
    * receive updates from that type of event.
    */
-  std::unordered_map<StatsEventType, MetricList, EnumHash<StatsEventType>> metric_dispatch_;
+  std::unordered_map<StatsEventType, RegisteredMetric, EnumHash<StatsEventType>> metric_dispatch_;
 
   /**
    * Mapping from thread ID to stats collector
