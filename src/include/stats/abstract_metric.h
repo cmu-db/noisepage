@@ -302,7 +302,7 @@ class AbstractMetric : public Metric {
    */
   std::atomic<DataType *> raw_data_;
   /**
-   * Indicate whether it is safe ti read the raw data, similar to a latch
+   * Indicate whether it is safe to read the raw data, similar to a latch
    */
   std::atomic<bool> safe_;
 };
