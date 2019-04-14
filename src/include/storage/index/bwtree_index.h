@@ -74,6 +74,20 @@ class BwTreeIndex final : public Index {
     index_key.SetFromProjectedRow(key, metadata_);
     bwtree_->GetValue(index_key, *value_list);
   }
+
+  void Scan(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(
+        value_list->empty(),
+        "Result set should begin empty. This can be changed in the future if index scan behavior requires it.");
+    KeyType index_low_key, index_high_key;
+    index_low_key.SetFromProjectedRow(low_key, metadata_);
+    index_high_key.SetFromProjectedRow(high_key, metadata_);
+
+    for (auto scan_itr = bwtree_->Begin(index_low_key);
+         !scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key)); scan_itr++) {
+      value_list->emplace_back(scan_itr->second);
+    }
+  }
 };
 
 }  // namespace terrier::storage::index
