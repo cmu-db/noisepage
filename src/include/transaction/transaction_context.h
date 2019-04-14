@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <vector>
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
@@ -148,7 +149,6 @@ class TransactionContext {
   bool log_processed_ = false;
 
   // Functions to be invoked on rollback
-  // std::vector<transaction::rollback_fn> rollback_functions_;
   std::map<transaction::rollback_fn, void *> rollback_functions_;
 };
 }  // namespace terrier::transaction
