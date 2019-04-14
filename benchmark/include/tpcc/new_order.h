@@ -422,9 +422,8 @@ class NewOrder {
     *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
     *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
 
-    index_insert_result =
-        db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
-    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+    index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
+    TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
     // TODO(Matt): need to undo this if the transaction aborts
 
     // for each item in order
