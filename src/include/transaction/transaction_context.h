@@ -119,7 +119,8 @@ class TransactionContext {
 
   /**
    * Registers a function so that it will be called when this transaction is rollbacked
-   * @param callback the function to be called, must be a function that returns void and takes no parameters
+   * @param fn the function to be called, must be a function that returns void and takes in a (void *)
+   * @param callback_arg the (void *) that represents the arguments to fn
    */
   void RegisterRollBackFunction(transaction::rollback_fn fn, void *callback_arg) {
     rollback_functions_.push_front(std::make_pair(fn, callback_arg));
