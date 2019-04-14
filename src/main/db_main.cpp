@@ -1,9 +1,15 @@
-#include "main/db_main.h"
 #include <memory>
+#include <main/db_main.h>
+
+#include "main/db_main.h"
+#include "loggers/index_logger.h"
+#include "loggers/storage_logger.h"
+#include "loggers/transaction_logger.h"
+#include "loggers/parser_logger.h"
 
 namespace terrier {
 
-int DBMain::Init(int argc, char **argv) {
+void DBMain::InitLoggers() {
   try {
     init_main_logger();
     // initialize namespace specific loggers
@@ -16,36 +22,43 @@ int DBMain::Init(int argc, char **argv) {
     // Registered loggers must be thread safe for this to work correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
   } catch (const spdlog::spdlog_ex &ex) {
-    std::cout << "debug log init failed " << ex.what() << std::endl;  // NOLINT
-    return 1;
+    std::cerr << "debug log init failed " << ex.what() << std::endl;  // NOLINT
+    throw ex;
   }
   LOG_TRACE("Logger initialization complete");
+}
+
+void DBMain::Init(int argc, char **argv) {
+
+  InitLoggers();
 
   // TODO(Weichen): init settings manager
   // init gc
   // init catalog
   // init worker pool
-
   main_stat_reg_ = std::make_shared<common::StatisticsRegistry>();
 
   LOG_INFO("Initialization complete");
-  return 0;
 }
 
-int DBMain::Start() {
+void DBMain::Run() {
   // TODO(Weichen): Boot Traffic cop here
   terrier_server_.SetupServer().ServerLoop();
-  return 0;
+
+  // server loop exited, begin cleaning up
+  CleanUp();
 }
 
-void DBMain::Shutdown() {
+void DBMain::ForceShutdown() {
   terrier_server_.Close();
+  CleanUp();
+}
+
+void DBMain::CleanUp() {
 
   main_stat_reg_->Shutdown(false);
-
   LOG_INFO("Terrier has shut down.");
 
-  // shutdown loggers
   spdlog::shutdown();
 }
 
