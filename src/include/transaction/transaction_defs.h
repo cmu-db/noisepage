@@ -14,4 +14,5 @@ class TransactionContext;
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
+using rollback_fn = void (*)(void *);
 }  // namespace terrier::transaction

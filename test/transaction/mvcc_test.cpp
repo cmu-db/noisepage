@@ -79,6 +79,7 @@ class MVCCDataTableTestObject {
       layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
   bool select_result_;
+  bool callback_executed_;
 };
 
 class MVCCTests : public ::terrier::TerrierTest {
@@ -1346,6 +1347,76 @@ TEST_F(MVCCTests, SimpleDelete2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
     txn_manager.Commit(txn1, TestCallbacks::EmptyCallback, nullptr);
+  }
+}
+
+//    Txn #0
+//    --------------------------
+//    BEGIN
+//    W(X)
+//    R(X)
+//
+//
+//    ABORT
+// Tests whether the rollback callback function registered is called
+// NOLINTNEXTLINE
+TEST_F(MVCCTests, AbortRollbackCallback) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    tested.callback_executed_ = false;
+    txn0->RegisterRollBackFunction(
+        [](void *test_obj) { (static_cast<MVCCDataTableTestObject *>(test_obj))->callback_executed_ = true; }, &tested);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Abort(txn0);
+
+    EXPECT_TRUE(tested.callback_executed_);
+  }
+}
+
+//    Txn #0
+//    --------------------------
+//    BEGIN
+//    W(X)
+//    R(X)
+//
+//
+//    COMMIT
+// Tests whether the rollback callback function registered is not called
+// NOLINTNEXTLINE
+TEST_F(MVCCTests, CommitRollbackCallback) {
+  for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
+    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+
+    auto *txn0 = txn_manager.BeginTransaction();
+    tested.loose_txns_.push_back(txn0);
+
+    tested.callback_executed_ = false;
+    txn0->RegisterRollBackFunction(
+        [](void *test_obj) { (static_cast<MVCCDataTableTestObject *>(test_obj))->callback_executed_ = true; }, &tested);
+
+    auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
+    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+
+    storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    EXPECT_TRUE(tested.select_result_);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqual(tested.Layout(), select_tuple, insert_tuple));
+
+    txn_manager.Commit(txn0, TestCallbacks::EmptyCallback, nullptr);
+
+    EXPECT_FALSE(tested.callback_executed_);
   }
 }
 }  // namespace terrier

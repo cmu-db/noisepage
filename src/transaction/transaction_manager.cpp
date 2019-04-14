@@ -103,6 +103,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 void TransactionManager::Abort(TransactionContext *const txn) {
   // no commit latch required here since all operations are transaction-local
   for (auto &it : txn->undo_buffer_) Rollback(txn, it);
+  txn->ExecuteRollBackFunctions();
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);

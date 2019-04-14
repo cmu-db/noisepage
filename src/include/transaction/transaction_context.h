@@ -115,6 +115,23 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, table, slot);
   }
 
+  /**
+   * Registers a function so that it will be called when this transaction is rollbacked
+   * @param callback the function to be called, must be a function that returns void and takes no parameters
+   */
+  void RegisterRollBackFunction(transaction::rollback_fn fn, void *callback_arg) {
+    rollback_functions_.emplace(fn, callback_arg);
+  }
+
+  /**
+   * Executes each function registered as a rollback function.
+   */
+  void ExecuteRollBackFunctions() {
+    for (auto const &[fn, arg] : rollback_functions_) {
+      fn(arg);
+    }
+  }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
@@ -129,5 +146,9 @@ class TransactionContext {
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.
   bool log_processed_ = false;
+
+  // Functions to be invoked on rollback
+  // std::vector<transaction::rollback_fn> rollback_functions_;
+  std::map<transaction::rollback_fn, void *> rollback_functions_;
 };
 }  // namespace terrier::transaction
