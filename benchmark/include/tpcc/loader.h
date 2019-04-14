@@ -93,6 +93,10 @@ struct Loader {
     const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
     const auto order_key_pr_map = db->order_index_->GetKeyOidToOffsetMap();
 
+    // Order secondary key
+    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
+    const auto order_secondary_key_pr_map = db->order_secondary_index_->GetKeyOidToOffsetMap();
+
     // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
     const auto [new_order_tuple_pr_initializer, new_order_tuple_pr_map] =
@@ -279,6 +283,13 @@ struct Loader {
           index_insert_result = db->order_index_->ConditionalInsert(*order_key, order_slot,
                                                                     [](const storage::TupleSlot &) { return false; });
           TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+
+          // insert in secondary index
+          const auto *const order_secondary_key = BuildOrderSecondaryKey(
+              o_id + 1, o_c_ids[c_id], d_id + 1, w_id + 1, worker->order_secondary_key_buffer,
+              order_secondary_key_pr_initializer, order_secondary_key_pr_map, db->order_secondary_key_schema_);
+          index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
+          TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
           // For each row in the ORDER table:
           // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
@@ -1062,6 +1073,32 @@ struct Loader {
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order key.");
+
+    return pr;
+  }
+
+  static storage::ProjectedRow *BuildOrderSecondaryKey(
+      const int32_t o_id, const int32_t c_id, const int32_t d_id, const int32_t w_id, byte *const buffer,
+      const storage::ProjectedRowInitializer &pr_initializer,
+      const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &pr_map,
+      const storage::index::IndexKeySchema &schema) {
+    TERRIER_ASSERT(o_id >= 1 && o_id <= 3000, "Invalid o_id.");
+    TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id.");
+    TERRIER_ASSERT(d_id >= 1 && d_id <= 10, "Invalid d_id.");
+    TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
+    TERRIER_ASSERT(buffer != nullptr, "buffer is nullptr.");
+
+    auto *const pr = pr_initializer.InitializeRow(buffer);
+
+    uint32_t col_offset = 0;
+
+    // Secondary Key: (O_W_ID, O_D_ID, O_C_ID O_ID)
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
+    Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
+
+    TERRIER_ASSERT(col_offset == schema.size(), "Didn't get every attribute for Order secondary key.");
 
     return pr;
   }
