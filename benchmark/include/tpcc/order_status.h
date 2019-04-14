@@ -34,6 +34,11 @@ class OrderStatus {
   const uint8_t c_middle_select_pr_offset;
   const uint8_t c_last_select_pr_offset;
 
+  const uint8_t o_id_secondary_key_pr_offset;
+  const uint8_t o_d_id_secondary_key_pr_offset;
+  const uint8_t o_w_id_secondary_key_pr_offset;
+  const uint8_t o_c_id_secondary_key_pr_offset;
+
  public:
   explicit OrderStatus(const Database *const db)
       : c_id_key_pr_offset(static_cast<uint8_t>(
@@ -69,7 +74,15 @@ class OrderStatus {
         c_balance_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_balance_oid))),
         c_first_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_first_oid))),
         c_middle_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_middle_oid))),
-        c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))) {}
+        c_last_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_last_oid))),
+        o_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(3).GetOid()))),
+        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(1).GetOid()))),
+        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(0).GetOid()))),
+        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))) {}
 
   // 2.4.2
   template <class Random>
@@ -134,6 +147,33 @@ class OrderStatus {
         !args.use_c_last
             ? args.c_id
             : *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+
+    // look up in secondary Order index
+    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
+    auto *const order_secondary_low_key =
+        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
+    auto *const order_secondary_high_key =
+        order_secondary_key_pr_initializer.InitializeRow(worker->order_tuple_buffer);  // it's large enough
+
+    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = 0;
+    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
+        args.d_id;
+    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
+        args.w_id;
+    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) =
+        args.c_id;
+
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) =
+        INT32_MAX;
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) =
+        args.d_id;
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
+        args.w_id;
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) =
+        args.c_id;
+
+    index_scan_results.clear();
+    db->order_secondary_index_->Scan(*order_secondary_low_key, *order_secondary_high_key, &index_scan_results);
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
