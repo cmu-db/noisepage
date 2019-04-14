@@ -315,7 +315,8 @@ class NewOrder {
 
     // Select W_TAX in table
     auto *const warehouse_select_tuple = warehouse_select_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
-    db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+    bool select_result = db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+    TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
     const auto w_tax = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(0));
 
     // Look up D_ID, W_ID in index
@@ -331,7 +332,8 @@ class NewOrder {
 
     // Select D_TAX, D_NEXT_O_ID in table
     auto *const district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
-    db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+    select_result = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+    TERRIER_ASSERT(select_result, "District table doesn't change. All lookups should succeed.");
 
     const auto d_tax = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_tax_select_pr_offset));
     const auto d_next_o_id =
@@ -358,7 +360,8 @@ class NewOrder {
 
     // Select C_DISCOUNT, C_LAST, and C_CREDIT in table
     auto *const customer_select_tuple = customer_select_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-    db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
+    select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
+    TERRIER_ASSERT(select_result, "Customer table doesn't change. All lookups should succeed.");
     const auto c_discount =
         *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_discount_select_pr_offset));
 
@@ -447,7 +450,8 @@ class NewOrder {
 
       // Select I_PRICE, I_NAME, and I_DATE in table
       auto *const item_select_tuple = item_select_pr_initializer.InitializeRow(worker->item_tuple_buffer);
-      db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
+      select_result = db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
+      TERRIER_ASSERT(select_result, "Item table doesn't change. All lookups should succeed.");
       const auto i_price =
           *reinterpret_cast<double *>(item_select_tuple->AccessWithNullCheck(i_price_select_pr_offset));
       const auto i_data =
@@ -467,7 +471,8 @@ class NewOrder {
       // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA in table
       auto *const stock_select_tuple =
           stock_select_initializers[args.d_id - 1].first.InitializeRow(worker->stock_tuple_buffer);
-      db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
+      select_result = db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
+      TERRIER_ASSERT(select_result, "Stock table doesn't change (no new entries). All lookups should succeed.");
       const auto s_quantity = *reinterpret_cast<int16_t *>(
           stock_select_tuple->AccessWithNullCheck(stock_select_pr_offsets[args.d_id - 1].s_quantity_select_pr_offset));
       const auto s_dist_xx = *reinterpret_cast<storage::VarlenEntry *>(

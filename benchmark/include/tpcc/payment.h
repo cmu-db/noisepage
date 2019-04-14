@@ -224,7 +224,8 @@ class Payment {
 
     // Select W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_YTD in table
     auto *const warehouse_select_tuple = warehouse_select_pr_initializer.InitializeRow(worker->warehouse_tuple_buffer);
-    db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+    bool select_result = db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+    TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
     const auto w_name =
         *reinterpret_cast<storage::VarlenEntry *>(warehouse_select_tuple->AccessWithNullCheck(w_name_select_pr_offset));
     const auto w_ytd = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(w_ytd_select_pr_offset));
@@ -250,7 +251,8 @@ class Payment {
 
     // Select D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_YTD in table
     auto *const district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
-    db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+    select_result = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+    TERRIER_ASSERT(select_result, "District table doesn't change. All lookups should succeed.");
     const auto d_name =
         *reinterpret_cast<storage::VarlenEntry *>(district_select_tuple->AccessWithNullCheck(d_name_select_pr_offset));
     const auto d_ytd = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_ytd_select_pr_offset));
@@ -294,7 +296,8 @@ class Payment {
         std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
         for (const auto &tuple_slot : index_scan_results) {
           auto *const c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-          db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
+          select_result = db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
+          TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
           const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
           sorted_index_scan_results.emplace(
               std::string(reinterpret_cast<const char *const>(c_first.Content()), c_first.Size()), tuple_slot);
@@ -310,7 +313,8 @@ class Payment {
 
     // Select customer in table
     auto *const customer_select_tuple = customer_select_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-    db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
+    select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
+    TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
     const auto c_id =
         !args.use_c_last
