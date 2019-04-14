@@ -171,7 +171,7 @@ class OrderStatus {
         std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
         for (const auto &tuple_slot : index_scan_results) {
           auto *const c_first_select_tuple = c_first_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-          bool select_result = db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
+          bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
           TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
           const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
           sorted_index_scan_results.emplace(
