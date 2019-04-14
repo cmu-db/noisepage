@@ -28,11 +28,6 @@ class Payment {
   const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
   const storage::ProjectionMap warehouse_select_pr_map;
   const uint8_t w_name_select_pr_offset;
-  //  const uint8_t w_street_1_select_pr_offset;
-  //  const uint8_t w_street_2_select_pr_offset;
-  //  const uint8_t w_city_select_pr_offset;
-  //  const uint8_t w_state_select_pr_offset;
-  //  const uint8_t w_zip_select_pr_offset;
   const uint8_t w_ytd_select_pr_offset;
   const storage::ProjectedRowInitializer warehouse_update_pr_initializer;
 
@@ -49,11 +44,6 @@ class Payment {
   const storage::ProjectedRowInitializer district_select_pr_initializer;
   const storage::ProjectionMap district_select_pr_map;
   const uint8_t d_name_select_pr_offset;
-  //  const uint8_t d_street_1_select_pr_offset;
-  //  const uint8_t d_street_2_select_pr_offset;
-  //  const uint8_t d_city_select_pr_offset;
-  //  const uint8_t d_state_select_pr_offset;
-  //  const uint8_t d_zip_select_pr_offset;
   const uint8_t d_ytd_select_pr_offset;
   const storage::ProjectedRowInitializer district_update_pr_initializer;
 
@@ -73,19 +63,7 @@ class Payment {
   const catalog::col_oid_t c_payment_cnt_oid;
   const catalog::col_oid_t c_data_oid;
   const uint8_t c_id_select_pr_offset;
-  //  const uint8_t c_first_select_pr_offset;
-  //  const uint8_t c_middle_select_pr_offset;
-  //  const uint8_t c_last_select_pr_offset;
-  //  const uint8_t c_street_1_select_pr_offset;
-  //  const uint8_t c_street_2_select_pr_offset;
-  //  const uint8_t c_city_select_pr_offset;
-  //  const uint8_t c_state_select_pr_offset;
-  //  const uint8_t c_zip_select_pr_offset;
-  //  const uint8_t c_phone_select_pr_offset;
-  //  const uint8_t c_since_select_pr_offset;
   const uint8_t c_credit_select_pr_offset;
-  //  const uint8_t c_credit_lim_select_pr_offset;
-  //  const uint8_t c_discount_select_pr_offset;
   const uint8_t c_balance_select_pr_offset;
   const uint8_t c_ytd_payment_select_pr_offset;
   const uint8_t c_payment_cnt_select_pr_offset;
