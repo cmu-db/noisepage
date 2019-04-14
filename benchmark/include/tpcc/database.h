@@ -70,6 +70,7 @@ class Database {
   const storage::index::IndexKeySchema customer_name_key_schema_;
   const storage::index::IndexKeySchema new_order_key_schema_;
   const storage::index::IndexKeySchema order_key_schema_;
+  const storage::index::IndexKeySchema order_secondary_key_schema_;
   const storage::index::IndexKeySchema order_line_key_schema_;
 
   storage::index::Index *const item_index_;
@@ -80,6 +81,7 @@ class Database {
   storage::index::Index *const customer_name_index_;
   storage::index::Index *const new_order_index_;
   storage::index::Index *const order_index_;
+  storage::index::Index *const order_secondary_index_;
   storage::index::Index *const order_line_index_;
 
  private:
@@ -97,13 +99,14 @@ class Database {
            storage::index::IndexKeySchema stock_key_schema, storage::index::IndexKeySchema district_key_schema,
            storage::index::IndexKeySchema customer_key_schema, storage::index::IndexKeySchema customer_name_key_schema,
            storage::index::IndexKeySchema new_order_key_schema, storage::index::IndexKeySchema order_key_schema,
+           storage::index::IndexKeySchema order_secondary_key_schema,
            storage::index::IndexKeySchema order_line_key_schema,
 
            storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
            storage::index::Index *const stock_index, storage::index::Index *const district_index,
            storage::index::Index *const customer_index, storage::index::Index *const customer_name_index,
            storage::index::Index *const new_order_index, storage::index::Index *const order_index,
-           storage::index::Index *const order_line_index)
+           storage::index::Index *const order_secondary_index, storage::index::Index *const order_line_index)
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
         stock_schema_(std::move(stock_schema)),
@@ -130,6 +133,7 @@ class Database {
         customer_name_key_schema_(std::move(customer_name_key_schema)),
         new_order_key_schema_(std::move(new_order_key_schema)),
         order_key_schema_(std::move(order_key_schema)),
+        order_secondary_key_schema_(std::move(order_secondary_key_schema)),
         order_line_key_schema_(std::move(order_line_key_schema)),
         item_index_(item_index),
         warehouse_index_(warehouse_index),
@@ -139,6 +143,7 @@ class Database {
         customer_name_index_(customer_name_index),
         new_order_index_(new_order_index),
         order_index_(order_index),
+        order_secondary_index_(order_secondary_index),
         order_line_index_(order_line_index) {}
 };
 

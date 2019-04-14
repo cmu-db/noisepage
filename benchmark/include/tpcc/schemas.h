@@ -394,6 +394,31 @@ struct Schemas {
     return order_key_schema;
   }
 
+  static storage::index::IndexKeySchema BuildOrderSecondaryKeySchema(const catalog::Schema &schema,
+                                                                     uint64_t *const oid_counter) {
+    storage::index::IndexKeySchema order_secondary_key_schema;
+    order_secondary_key_schema.reserve(num_order_secondary_key_cols);
+
+    // key: O_W_ID, O_D_ID, O_C_ID, O_ID (for Order Status)
+    order_secondary_key_schema.emplace_back(
+        static_cast<catalog::indexkeycol_oid_t>(static_cast<uint32_t>(++(*oid_counter))), schema.GetColumn(2).GetType(),
+        schema.GetColumn(2).GetNullable());
+    order_secondary_key_schema.emplace_back(
+        static_cast<catalog::indexkeycol_oid_t>(static_cast<uint32_t>(++(*oid_counter))), schema.GetColumn(1).GetType(),
+        schema.GetColumn(1).GetNullable());
+    order_secondary_key_schema.emplace_back(
+        static_cast<catalog::indexkeycol_oid_t>(static_cast<uint32_t>(++(*oid_counter))), schema.GetColumn(3).GetType(),
+        schema.GetColumn(3).GetNullable());
+    order_secondary_key_schema.emplace_back(
+        static_cast<catalog::indexkeycol_oid_t>(static_cast<uint32_t>(++(*oid_counter))), schema.GetColumn(0).GetType(),
+        schema.GetColumn(0).GetNullable());
+
+    TERRIER_ASSERT(order_secondary_key_schema.size() == num_order_secondary_key_cols,
+                   "Wrong number of columns for Order secondary key schema.");
+
+    return order_secondary_key_schema;
+  }
+
   static catalog::Schema BuildOrderLineTupleSchema(uint64_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_line_columns;
     order_line_columns.reserve(num_order_line_cols);
@@ -464,6 +489,7 @@ struct Schemas {
   static constexpr uint8_t num_customer_name_key_cols = 3;
   static constexpr uint8_t num_new_order_key_cols = 3;
   static constexpr uint8_t num_order_key_cols = 3;
+  static constexpr uint8_t num_order_secondary_key_cols = 4;
   static constexpr uint8_t num_order_line_key_cols = 4;
 };
 

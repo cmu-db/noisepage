@@ -108,6 +108,7 @@ class Builder {
     auto customer_name_key_schema = Schemas::BuildCustomerNameKeySchema(customer_schema, &oid_counter_);
     auto new_order_key_schema = Schemas::BuildNewOrderKeySchema(new_order_schema, &oid_counter_);
     auto order_key_schema = Schemas::BuildOrderKeySchema(order_schema, &oid_counter_);
+    auto order_secondary_key_schema = Schemas::BuildOrderSecondaryKeySchema(order_schema, &oid_counter_);
     auto order_line_key_schema = Schemas::BuildOrderLineKeySchema(order_line_schema, &oid_counter_);
 
     auto *const item_index = BuildPrimaryIndex(item_key_schema);
@@ -118,6 +119,7 @@ class Builder {
     auto *const customer_name_index = BuildSecondaryIndex(customer_name_key_schema);
     auto *const new_order_index = BuildPrimaryIndex(new_order_key_schema);
     auto *const order_index = BuildPrimaryIndex(order_key_schema);
+    auto *const order_secondary_index = BuildSecondaryIndex(order_secondary_key_schema);
     auto *const order_line_index = BuildPrimaryIndex(order_line_key_schema);
 
     return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
@@ -128,10 +130,10 @@ class Builder {
 
                         item_key_schema, warehouse_key_schema, stock_key_schema, district_key_schema,
                         customer_key_schema, customer_name_key_schema, new_order_key_schema, order_key_schema,
-                        order_line_key_schema,
+                        order_secondary_key_schema, order_line_key_schema,
 
                         item_index, warehouse_index, stock_index, district_index, customer_index, customer_name_index,
-                        new_order_index, order_index, order_line_index);
+                        new_order_index, order_index, order_secondary_index, order_line_index);
   }
 
  private:
