@@ -104,7 +104,7 @@ class Index {
   /**
    * @return mapping from key oid to projected row offset
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &GetKeyOidToOffsetMap() const {
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &GetKeyOidToOffsetMap() const {
     return metadata_.GetKeyOidToOffsetMap();
   }
 

@@ -76,7 +76,7 @@ class IndexMetadata {
   /**
    * @return mapping from key oid to projected row offset
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &GetKeyOidToOffsetMap() const {
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &GetKeyOidToOffsetMap() const {
     return key_oid_to_offset_;
   }
 
@@ -101,7 +101,7 @@ class IndexMetadata {
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
   std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
-  std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> key_oid_to_offset_;  // for execution layer
+  std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only
 
@@ -208,9 +208,9 @@ class IndexMetadata {
   /**
    * Computes the mapping from key oid to projected row offset.
    */
-  static std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> ComputeKeyOidToOffset(
+  static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
       const IndexKeySchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
-    std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> key_oid_to_offset;
+    std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
     key_oid_to_offset.reserve(key_schema.size());
     for (uint16_t i = 0; i < key_schema.size(); i++) {
       key_oid_to_offset[key_schema[i].GetOid()] = pr_offsets[i];
