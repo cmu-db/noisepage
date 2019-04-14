@@ -325,10 +325,10 @@ class Payment {
     result = db->customer_table_->Update(txn, customer_slot, *customer_update_tuple);
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
-    const std::string_view c_credit_str(reinterpret_cast<const char *const>(c_credit.Content()), c_credit.Size());
+    const auto c_credit_str = c_credit.StringView();
     if (c_credit_str.compare("BC") == 0) {
       auto *const c_data_update_tuple = c_data_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
-      const std::string_view c_data_str(reinterpret_cast<const char *const>(c_data.Content()), c_data.Size());
+      const auto c_data_str = c_data.StringView();
       auto new_c_data = std::to_string(c_id);
       new_c_data.append(std::to_string(args.c_d_id));
       new_c_data.append(std::to_string(args.c_w_id));
@@ -350,7 +350,7 @@ class Payment {
 
     auto h_data_str = std::string(reinterpret_cast<const char *const>(w_name.Content()), w_name.Size());
     h_data_str.append("    ");
-    h_data_str.append(std::string_view(reinterpret_cast<const char *const>(d_name.Content()), d_name.Size()));
+    h_data_str.append(d_name.StringView());
     const auto h_data_length = h_data_str.length();
     auto *const varlen = common::AllocationUtil::AllocateAligned(h_data_length);
     std::memcpy(varlen, h_data_str.data(), h_data_length);

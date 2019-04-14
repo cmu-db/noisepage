@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string_view>
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -474,8 +473,8 @@ class NewOrder {
 
       const double ol_amount = item.ol_quantity * i_price;
 
-      const std::string_view i_data_str(reinterpret_cast<const char *const>(i_data.Content()), i_data.Size());
-      const std::string_view s_data_str(reinterpret_cast<const char *const>(s_data.Content()), s_data.Size());
+      const auto i_data_str = i_data.StringView();
+      const auto s_data_str = s_data.StringView();
 
       const std::string UNUSED_ATTRIBUTE brand_generic =
           i_data_str.find("ORIGINAL", 0) != std::string::npos && s_data_str.find("ORIGINAL", 0 != std::string::npos)
