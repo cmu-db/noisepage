@@ -135,7 +135,6 @@ class TableHandle {
    * It uses use these three tables to provide the view of pg_tables.
    * @param catalog a pointer to catalog
    * @param nsp_oid the namespace oid which the tables belong to
-   * @param db_oid the database oid
    * @param pg_class a pointer to pg_class
    * @param pg_namespace a pointer to pg_namespace
    * @param pg_tablespace a pointer to pg_tablespace

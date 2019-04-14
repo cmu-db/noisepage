@@ -88,17 +88,16 @@ class Catalog {
    * @param table_name table name
    * @param schema schema to use
    */
-  table_oid_t CreateTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
-                          const Schema &schema);
+  table_oid_t CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name,
+                              const Schema &schema);
 
   /**
    * Delete a table
    * @param txn transaction to use
    * @param db_oid oid of the database
-   * @param table_oid table to delete
+   * @param table_name table to delete
    */
-
-  void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, table_oid_t table_oid);
+  void DeleteTable(transaction::TransactionContext *txn, db_oid_t db_oid, const std::string &table_name);
 
   /**
    * Return a database handle.
@@ -127,7 +126,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, table_oid_t table_oid);
+  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, table_oid_t table_oid);
 
   /**
    * Get a pointer to the storage table, by table_name.
@@ -138,7 +137,7 @@ class Catalog {
    * @return a pointer to the catalog
    * @throw out_of_range exception if either oid doesn't exist or the catalog doesn't exist.
    */
-  std::shared_ptr<catalog::SqlTableRW> GetDatabaseCatalog(db_oid_t db_oid, const std::string &table_name);
+  std::shared_ptr<catalog::SqlTableRW> GetCatalogTable(db_oid_t db_oid, const std::string &table_name);
 
   /**
    * The global counter for getting next oid. The return result should be converted into corresponding oid type
