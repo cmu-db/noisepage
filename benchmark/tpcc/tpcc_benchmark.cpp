@@ -313,6 +313,15 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
     delete tpcc_db;
     //    delete log_manager_;
   }
+
+  // Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
+  for (const auto &worker_id : precomputed_args) {
+    for (const auto &args : worker_id) {
+      if (args.use_c_last && args.c_last.NeedReclaim()) {
+        delete[] args.c_last.Content();
+      }
+    }
+  }
 }
 
 BENCHMARK_REGISTER_F(TPCCBenchmark, Basic)->Unit(benchmark::kMillisecond)->UseManualTime();
