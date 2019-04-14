@@ -91,8 +91,11 @@ template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayo
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
   TERRIER_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");
-  const uint32_t remainder = offset & (word_size - 1);
-  return remainder == 0 ? offset : offset + word_size - remainder;
+  // Because size is a power of two, mask is always all 1s up to the length of size.
+  // example, size is 8 (1000), mask is (0111)
+  uint32_t mask = word_size - 1;
+  // This is equivalent to (offset + (size - 1)) / size, which always pads up as desired
+  return (offset + mask) & (~mask);
 }
 
 std::pair<BlockLayout, ColumnMap> StorageUtil::BlockLayoutFromSchema(const catalog::Schema &schema) {
