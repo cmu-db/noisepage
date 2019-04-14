@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <forward_list>
 #include <vector>
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
@@ -121,7 +121,7 @@ class TransactionContext {
    * @param callback the function to be called, must be a function that returns void and takes no parameters
    */
   void RegisterRollBackFunction(transaction::rollback_fn fn, void *callback_arg) {
-    rollback_functions_.emplace(fn, callback_arg);
+    rollback_functions_.push_front(std::make_pair(fn, callback_arg));
   }
 
   /**
@@ -149,6 +149,6 @@ class TransactionContext {
   bool log_processed_ = false;
 
   // Functions to be invoked on rollback
-  std::map<transaction::rollback_fn, void *> rollback_functions_;
+  std::forward_list<std::pair<transaction::rollback_fn, void *>> rollback_functions_;
 };
 }  // namespace terrier::transaction
