@@ -17,9 +17,9 @@ class StarExpression : public AbstractExpression {
    */
   StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
+  std::shared_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return std::make_unique<StarExpression>(*this);
+    return std::make_shared<StarExpression>(*this);
   }
 
   /**

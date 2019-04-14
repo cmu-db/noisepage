@@ -81,7 +81,7 @@ class AbstractExpression {
    */
   // It is incorrect to supply a default implementation here since that will return an object
   // of base type AbstractExpression instead of the desired non-abstract type.
-  virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
+  virtual std::shared_ptr<AbstractExpression> Copy() const = 0;
 
   /**
    * @return type of this expression

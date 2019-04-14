@@ -21,7 +21,7 @@ class TypeCastExpression : public AbstractExpression {
 
   TypeCastExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<TypeCastExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TypeCastExpression>(*this); }
 
   /**
    * @return The type this node casts to

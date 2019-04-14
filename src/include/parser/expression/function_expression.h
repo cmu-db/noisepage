@@ -27,7 +27,7 @@ class FunctionExpression : public AbstractExpression {
 
   FunctionExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<FunctionExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
 
   /**
    * @return function name

@@ -24,7 +24,7 @@ class ComparisonExpression : public AbstractExpression {
 
   ComparisonExpression() = default;
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ComparisonExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ComparisonExpression>(*this); }
 
   /**
    * @return expression serialized to json

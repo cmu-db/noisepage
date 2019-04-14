@@ -34,7 +34,7 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<ConstantValueExpression>(*this); }
+  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
 
   /**
    * @return the constant value stored in this expression
