@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
@@ -83,6 +84,14 @@ class Index {
   virtual void ScanKey(const ProjectedRow &key, std::vector<TupleSlot> *value_list) = 0;
 
   /**
+   * Finds all the values between the given keys in our index.
+   * @param low_key the key to start at
+   * @param high_key the key to end at
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void Scan(const ProjectedRow &low_key, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+
+  /**
    * @return type of this index
    */
   ConstraintType GetConstraintType() const { return constraint_type_; }
@@ -91,6 +100,18 @@ class Index {
    * @return oid of this indes
    */
   catalog::index_oid_t GetOid() const { return oid_; }
+
+  /**
+   * @return mapping from key oid to projected row offset
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &GetKeyOidToOffsetMap() const {
+    return metadata_.GetKeyOidToOffsetMap();
+  }
+
+  /**
+   * @return projected row initializer for the given key schema
+   */
+  const ProjectedRowInitializer &GetProjectedRowInitializer() const { return metadata_.GetProjectedRowInitializer(); }
 };
 
 }  // namespace terrier::storage::index
