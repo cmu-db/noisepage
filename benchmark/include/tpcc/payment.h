@@ -106,13 +106,15 @@ class Payment {
                                     ->InitializerForProjectedRow({w_name_oid, w_street_1_oid, w_street_2_oid,
                                                                   w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
                                     .second),
-        w_name_select_pr_offset(warehouse_select_pr_map.at(w_name_oid)),
-        w_ytd_select_pr_offset(warehouse_select_pr_map.at(w_ytd_oid)),
+        w_name_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_name_oid))),
+        w_ytd_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_ytd_oid))),
         warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid}).first),
 
         // District metadata
-        d_id_key_pr_offset(db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(1).GetOid())),
-        d_w_id_key_pr_offset(db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(0).GetOid())),
+        d_id_key_pr_offset(static_cast<uint8_t>(
+            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(1).GetOid()))),
+        d_w_id_key_pr_offset(static_cast<uint8_t>(
+            db->district_index_->GetKeyOidToOffsetMap().at(db->district_key_schema_.at(0).GetOid()))),
 
         d_name_oid(db->district_schema_.GetColumn(2).GetOid()),
         d_street_1_oid(db->district_schema_.GetColumn(3).GetOid()),
@@ -129,20 +131,23 @@ class Payment {
                                    ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid,
                                                                  d_state_oid, d_zip_oid, d_ytd_oid})
                                    .second),
-        d_name_select_pr_offset(district_select_pr_map.at(d_name_oid)),
-        d_ytd_select_pr_offset(district_select_pr_map.at(d_ytd_oid)),
+        d_name_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_name_oid))),
+        d_ytd_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_ytd_oid))),
         district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first),
 
         // Customer metadata
-        c_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid())),
-        c_d_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid())),
-        c_w_id_key_pr_offset(db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid())),
-        c_last_name_key_pr_offset(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(2).GetOid())),
-        c_d_id_name_key_pr_offset(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid())),
-        c_w_id_name_key_pr_offset(
-            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid())),
+        c_id_key_pr_offset(static_cast<uint8_t>(
+            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(2).GetOid()))),
+        c_d_id_key_pr_offset(static_cast<uint8_t>(
+            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(1).GetOid()))),
+        c_w_id_key_pr_offset(static_cast<uint8_t>(
+            db->customer_index_->GetKeyOidToOffsetMap().at(db->customer_key_schema_.at(0).GetOid()))),
+        c_last_name_key_pr_offset(static_cast<uint8_t>(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(2).GetOid()))),
+        c_d_id_name_key_pr_offset(static_cast<uint8_t>(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(1).GetOid()))),
+        c_w_id_name_key_pr_offset(static_cast<uint8_t>(
+            db->customer_name_index_->GetKeyOidToOffsetMap().at(db->customer_name_key_schema_.at(0).GetOid()))),
         c_first_pr_initializer(
             db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).GetOid()}).first),
         customer_select_pr_initializer(
@@ -157,21 +162,21 @@ class Payment {
         c_payment_cnt_oid(db->customer_schema_.GetColumn(18).GetOid()),
         c_data_oid(db->customer_schema_.GetColumn(20).GetOid()),
 
-        c_id_select_pr_offset(customer_select_pr_map.at(c_id_oid)),
-        c_credit_select_pr_offset(customer_select_pr_map.at(c_credit_oid)),
-        c_balance_select_pr_offset(customer_select_pr_map.at(c_balance_oid)),
-        c_ytd_payment_select_pr_offset(customer_select_pr_map.at(c_ytd_payment_oid)),
-        c_payment_cnt_select_pr_offset(customer_select_pr_map.at(c_payment_cnt_oid)),
-        c_data_select_pr_offset(customer_select_pr_map.at(c_data_oid)),
+        c_id_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_id_oid))),
+        c_credit_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_credit_oid))),
+        c_balance_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_balance_oid))),
+        c_ytd_payment_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_ytd_payment_oid))),
+        c_payment_cnt_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_payment_cnt_oid))),
+        c_data_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_data_oid))),
         customer_update_pr_initializer(
             db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
                 .first),
         customer_update_pr_map(
             db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
                 .second),
-        c_balance_update_pr_offset(customer_update_pr_map.at(c_balance_oid)),
-        c_ytd_payment_update_pr_offset(customer_update_pr_map.at(c_ytd_payment_oid)),
-        c_payment_cnt_update_pr_offset(customer_update_pr_map.at(c_payment_cnt_oid)),
+        c_balance_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_balance_oid))),
+        c_ytd_payment_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_ytd_payment_oid))),
+        c_payment_cnt_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_payment_cnt_oid))),
         c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid}).first),
 
         history_insert_pr_initializer(
@@ -179,14 +184,22 @@ class Payment {
         history_insert_pr_map(
             db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).second),
 
-        h_c_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(0).GetOid())),
-        h_c_d_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(1).GetOid())),
-        h_c_w_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(2).GetOid())),
-        h_d_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(3).GetOid())),
-        h_w_id_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(4).GetOid())),
-        h_date_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(5).GetOid())),
-        h_amount_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(6).GetOid())),
-        h_data_insert_pr_offset(history_insert_pr_map.at(db->history_schema_.GetColumn(7).GetOid()))
+        h_c_id_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(0).GetOid()))),
+        h_c_d_id_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(1).GetOid()))),
+        h_c_w_id_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(2).GetOid()))),
+        h_d_id_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(3).GetOid()))),
+        h_w_id_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(4).GetOid()))),
+        h_date_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(5).GetOid()))),
+        h_amount_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(6).GetOid()))),
+        h_data_insert_pr_offset(
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(7).GetOid())))
 
   {}
 
@@ -320,7 +333,7 @@ class Payment {
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_ytd_payment_update_pr_offset)) =
         c_ytd_payment + args.h_amount;
     *reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset)) =
-        c_payment_cnt + 1;
+        static_cast<int16_t>(c_payment_cnt + 1);
 
     result = db->customer_table_->Update(txn, customer_slot, *customer_update_tuple);
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
@@ -339,7 +352,7 @@ class Payment {
       const auto new_c_data_length = std::min(new_c_data.length(), static_cast<std::size_t>(500));
       auto *const varlen = common::AllocationUtil::AllocateAligned(new_c_data_length);
       std::memcpy(varlen, new_c_data.data(), new_c_data_length);
-      const auto varlen_entry = storage::VarlenEntry::Create(varlen, new_c_data_length, true);
+      const auto varlen_entry = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(new_c_data_length), true);
 
       *reinterpret_cast<storage::VarlenEntry *>(c_data_update_tuple->AccessForceNotNull(0)) = varlen_entry;
 
@@ -354,7 +367,7 @@ class Payment {
     const auto h_data_length = h_data_str.length();
     auto *const varlen = common::AllocationUtil::AllocateAligned(h_data_length);
     std::memcpy(varlen, h_data_str.data(), h_data_length);
-    const auto h_data = storage::VarlenEntry::Create(varlen, h_data_length, true);
+    const auto h_data = storage::VarlenEntry::Create(varlen, static_cast<uint32_t>(h_data_length), true);
 
     // Insert in History table
     auto *const history_insert_tuple = history_insert_pr_initializer.InitializeRow(worker->history_tuple_buffer);
