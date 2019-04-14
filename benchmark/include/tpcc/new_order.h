@@ -73,6 +73,10 @@ class NewOrder {
   const uint8_t o_id_key_pr_offset;
   const uint8_t o_d_id_key_pr_offset;
   const uint8_t o_w_id_key_pr_offset;
+  const uint8_t o_id_secondary_key_pr_offset;
+  const uint8_t o_d_id_secondary_key_pr_offset;
+  const uint8_t o_w_id_secondary_key_pr_offset;
+  const uint8_t o_c_id_secondary_key_pr_offset;
 
   const catalog::col_oid_t i_price_oid;
   const catalog::col_oid_t i_name_oid;
@@ -194,6 +198,14 @@ class NewOrder {
             static_cast<uint8_t>(db->order_index_->GetKeyOidToOffsetMap().at(db->order_key_schema_.at(1).GetOid()))),
         o_w_id_key_pr_offset(
             static_cast<uint8_t>(db->order_index_->GetKeyOidToOffsetMap().at(db->order_key_schema_.at(0).GetOid()))),
+        o_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(3).GetOid()))),
+        o_d_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(1).GetOid()))),
+        o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(0).GetOid()))),
+        o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))),
 
         // Item metadata
         i_price_oid(db->item_schema_.GetColumn(3).GetOid()),
@@ -394,6 +406,21 @@ class NewOrder {
     *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
     *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
     *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
+
+    index_insert_result =
+        db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
+    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+    // TODO(Matt): need to undo this if the transaction aborts
+
+    // insert in secondary index
+    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
+    auto *const order_secondary_key =
+        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
+
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
 
     index_insert_result =
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
