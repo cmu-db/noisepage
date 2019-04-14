@@ -37,7 +37,7 @@ struct Util {
 
   template <typename T>
   static void SetKeyAttribute(const storage::index::IndexKeySchema &schema, const uint32_t col_offset,
-                              const std::unordered_map<catalog::indexkeycol_oid_t, uint32_t> &projection_map,
+                              const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
     TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");

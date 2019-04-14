@@ -38,6 +38,12 @@ class OrderStatus {
   const uint8_t o_d_id_secondary_key_pr_offset;
   const uint8_t o_w_id_secondary_key_pr_offset;
   const uint8_t o_c_id_secondary_key_pr_offset;
+  const catalog::col_oid_t o_id_oid;
+  const catalog::col_oid_t o_entry_d_oid;
+  const catalog::col_oid_t o_carrier_id_oid;
+  const storage::ProjectedRowInitializer order_select_pr_initializer;
+  const storage::ProjectionMap order_select_pr_map;
+  const uint8_t o_id_select_pr_offset;
 
  public:
   explicit OrderStatus(const Database *const db)
@@ -82,7 +88,15 @@ class OrderStatus {
         o_w_id_secondary_key_pr_offset(static_cast<uint8_t>(
             db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(0).GetOid()))),
         o_c_id_secondary_key_pr_offset(static_cast<uint8_t>(
-            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))) {}
+            db->order_secondary_index_->GetKeyOidToOffsetMap().at(db->order_secondary_key_schema_.at(2).GetOid()))),
+        o_id_oid(db->order_schema_.GetColumn(0).GetOid()),
+        o_entry_d_oid(db->order_schema_.GetColumn(4).GetOid()),
+        o_carrier_id_oid(db->order_schema_.GetColumn(5).GetOid()),
+        order_select_pr_initializer(
+            db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).first),
+        order_select_pr_map(
+            db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).second),
+        o_id_select_pr_offset(static_cast<uint8_t>(order_select_pr_map.at(o_id_oid))) {}
 
   // 2.4.2
   template <class Random>
@@ -175,10 +189,21 @@ class OrderStatus {
     index_scan_results.clear();
     db->order_secondary_index_->Scan(*order_secondary_low_key, *order_secondary_high_key, &index_scan_results);
 
+    // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table
+    auto *const order_select_tuple = order_select_pr_initializer.InitializeRow(worker->order_tuple_buffer);
+    for (auto reverse_it = index_scan_results.rbegin(); reverse_it != index_scan_results.rend(); reverse_it++) {
+      const bool select_result = db->order_table_->Select(txn, *reverse_it, order_select_tuple);
+      if (select_result) break;  // It can fail if the index scan results in uncommitted TupleSlots
+    }
+
+    const auto o_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(o_id_select_pr_offset));
+
+
+
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 
     return true;
   }
-};
+};  // namespace terrier::tpcc
 
 }  // namespace terrier::tpcc
