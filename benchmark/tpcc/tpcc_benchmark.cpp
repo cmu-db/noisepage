@@ -209,13 +209,13 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
           txns.emplace_back(tpcc::BuildPaymentArgs(&generator_, warehouse_id, num_threads_));
           break;
         case tpcc::TransactionType::OrderStatus:
-          txns.emplace_back(tpcc::BuildOrderStatusArgs(&generator_, warehouse_id));
+          txns.emplace_back(tpcc::BuildOrderStatusArgs(&generator_, warehouse_id, num_threads_));
           break;
         case tpcc::TransactionType::Delivery:
-          txns.emplace_back(tpcc::BuildDeliveryArgs(&generator_, warehouse_id));
+          txns.emplace_back(tpcc::BuildDeliveryArgs(&generator_, warehouse_id, num_threads_));
           break;
         case tpcc::TransactionType::StockLevel:
-          txns.emplace_back(tpcc::BuildStockLevelArgs(&generator_, warehouse_id));
+          txns.emplace_back(tpcc::BuildStockLevelArgs(&generator_, warehouse_id, num_threads_));
           break;
         default:
           throw std::runtime_error("Unexpected transaction type.");

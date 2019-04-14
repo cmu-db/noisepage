@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -257,9 +260,7 @@ class NewOrder {
         ol_w_id_key_pr_offset(static_cast<uint8_t>(
             db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(0).GetOid()))),
         ol_number_key_pr_offset(static_cast<uint8_t>(
-            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(3).GetOid())))
-
-  {
+            db->order_line_index_->GetKeyOidToOffsetMap().at(db->order_line_key_schema_.at(3).GetOid()))) {
     stock_select_initializers.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).GetOid();

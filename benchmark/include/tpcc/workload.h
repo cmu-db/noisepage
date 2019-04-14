@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "tpcc/util.h"
 
 namespace terrier::tpcc {
@@ -16,9 +17,9 @@ struct TransactionArgs {
     bool remote;
   };
 
-  int32_t w_id;                     // NewOrder, Payment
-  int32_t d_id;                     // NewOrder, Payment
-  int32_t c_id;                     // NewOrder, Payment
+  int32_t w_id;                     // NewOrder, Payment, Order Status
+  int32_t d_id;                     // NewOrder, Payment, Order Status
+  int32_t c_id;                     // NewOrder, Payment, Order Status
   int32_t ol_cnt;                   // NewOrder
   uint8_t rbk;                      // NewOrder
   std::vector<NewOrderItem> items;  // NewOrder
@@ -27,8 +28,8 @@ struct TransactionArgs {
   int32_t c_d_id;                   // Payment
   int32_t c_w_id;                   // Payment
   bool remote;                      // Payment
-  bool use_c_last;                  // Payment
-  storage::VarlenEntry c_last;      // Payment
+  bool use_c_last;                  // Payment, Order Status
+  storage::VarlenEntry c_last;      // Payment, Order Status
   double h_amount;                  // Payment
   uint64_t h_date;                  // Payment
 };
@@ -105,24 +106,33 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int32_t w_id, co
 }
 
 template <class Random>
-TransactionArgs BuildOrderStatusArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
+TransactionArgs BuildOrderStatusArgs(Random *const generator, const int32_t w_id, const uint32_t num_warehouses) {
+  TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::OrderStatus;
+  args.w_id = w_id;
+  args.d_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);
+  if (Util::RandomWithin<int32_t>(1, 100, 0, generator) <= 60) {
+    args.c_last = Util::LastNameVarlenEntry(static_cast<uint16_t>(Util::NURand(255, 0, 999, generator)));
+    args.use_c_last = true;
+  } else {
+    args.c_id = Util::NURand(1023, 1, 3000, generator);
+    args.use_c_last = false;
+  }
   return args;
 }
 
 template <class Random>
-TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
+TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id, const uint32_t num_warehouses) {
+  TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Delivery;
   return args;
 }
 
 template <class Random>
-TransactionArgs BuildStockLevelArgs(Random *const generator, const int32_t w_id) {
-  TERRIER_ASSERT(w_id >= 1, "Invalid w_id.");
+TransactionArgs BuildStockLevelArgs(Random *const generator, const int32_t w_id, const uint32_t num_warehouses) {
+  TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::StockLevel;
   return args;

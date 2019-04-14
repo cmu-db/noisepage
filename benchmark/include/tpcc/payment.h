@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <string>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
