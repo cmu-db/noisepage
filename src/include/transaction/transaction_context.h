@@ -1,5 +1,6 @@
 #pragma once
 #include <forward_list>
+#include <utility>
 #include <vector>
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
