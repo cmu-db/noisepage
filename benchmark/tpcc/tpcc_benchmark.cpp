@@ -317,7 +317,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
   // Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
   for (const auto &worker_id : precomputed_args) {
     for (const auto &args : worker_id) {
-      if (args.use_c_last && args.c_last.NeedReclaim()) {
+      if ((args.type == tpcc::TransactionType::Payment || args.type == tpcc::TransactionType::OrderStatus) &&
+          args.use_c_last && !args.c_last.IsInlined()) {
         delete[] args.c_last.Content();
       }
     }
