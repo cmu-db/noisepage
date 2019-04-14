@@ -277,7 +277,7 @@ class Payment {
       TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
       customer_slot = index_scan_results[0];
     } else {
-      // Look up C_NAME, D_ID, W_ID in index
+      // Look up C_LAST, D_ID, W_ID in index
       const auto customer_name_key_pr_initializer = db->customer_name_index_->GetProjectedRowInitializer();
       auto *const customer_name_key = customer_name_key_pr_initializer.InitializeRow(worker->customer_name_key_buffer);
 

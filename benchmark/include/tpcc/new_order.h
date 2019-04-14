@@ -370,6 +370,7 @@ class NewOrder {
     bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
         *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
+    // TODO(Matt): need to undo this if the transaction aborts
 
     // Insert new row in Order
     auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
@@ -397,6 +398,7 @@ class NewOrder {
     index_insert_result =
         db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
     TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+    // TODO(Matt): need to undo this if the transaction aborts
 
     // for each item in order
     for (const auto &item : args.items) {
@@ -526,6 +528,7 @@ class NewOrder {
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, order_line_slot,
                                                                      [](const storage::TupleSlot &) { return false; });
       TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
+      // TODO(Matt): need to undo this if the transaction aborts
 
       ol_number++;
       total_amount += ol_amount;
