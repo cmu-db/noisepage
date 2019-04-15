@@ -1,7 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <map>
+#include <vector>
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
