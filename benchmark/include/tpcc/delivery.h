@@ -220,7 +220,7 @@ class Delivery {
 
       *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
       *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = d_id;
-      *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_o_id_key_pr_offset)) = no_o_id;
+      *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_o_id_key_pr_offset)) = no_o_id;
       *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) =
           15;  // max OL_NUMBER
 
