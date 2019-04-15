@@ -518,6 +518,7 @@ class NewOrder {
 
       const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
 
+      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
       order_line_index_inserts.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
 
       ol_number++;
@@ -573,7 +574,6 @@ class NewOrder {
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
-      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
       *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
 
       index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, ol_item.slot,

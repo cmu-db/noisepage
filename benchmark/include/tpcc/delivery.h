@@ -227,14 +227,14 @@ class Delivery {
       // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
       index_scan_results.clear();
       db->order_line_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
-      TERRIER_ASSERT(!index_scan_results.empty(), "Order line index scan failed.");
+      TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
+                     "There should be at least 1 Order Line item, but no more than 15.");
 
       auto *order_line_select_tuple = order_line_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
 
       double ol_amount = 0.0;
       for (const auto &tuple_slot : index_scan_results) {
         db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
-        // TODO(Matt): can't assume these Selects are succeeding because of aborts polluting indexes
         ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(ol_amount_pr_offset));
         *reinterpret_cast<uint64_t *>(order_line_select_tuple->AccessForceNotNull(ol_delivery_d_pr_offset)) =
             args.ol_delivery_d;
