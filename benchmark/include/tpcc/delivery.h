@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <map>
-#include <string_view>
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -221,26 +220,26 @@ class Delivery {
       *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) =
           15;  // max OL_NUMBER
 
-      // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
       index_scan_results.clear();
       db->order_line_index_->Scan(*order_line_key_lo, *order_line_key_hi, &index_scan_results);
       TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                      "There should be at least 1 Order Line item, but no more than 15.");
 
+      // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
       storage::ProjectedRow *order_line_select_tuple, *order_line_update_tuple;
       double ol_amount = 0.0;
       for (const auto &tuple_slot : index_scan_results) {
         order_line_select_tuple = order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
         select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
         TERRIER_ASSERT(select_result,
-                       "Select select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                       "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
         ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
 
         order_line_update_tuple = order_line_update_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
         *reinterpret_cast<uint64_t *>(order_line_update_tuple->AccessForceNotNull(0)) = args.ol_delivery_d;
         update_result = db->order_line_table_->Update(txn, tuple_slot, *order_line_update_tuple);
         TERRIER_ASSERT(update_result,
-                       "Update select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                       "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       }
 
       // Look up C_W_ID, C_D_ID, C_ID
@@ -259,11 +258,14 @@ class Delivery {
       auto *const customer_select_tuple = customer_pr_initializer.InitializeRow(worker->customer_tuple_buffer);
 
       for (const auto &tuple_slot : index_scan_results) {
-        // TODO(WAN): SelectForUpdate would be nice
-        db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
+        select_result = db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
+        TERRIER_ASSERT(select_result,
+                       "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
         *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount;
         (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
-        db->customer_table_->Update(txn, tuple_slot, *customer_select_tuple);
+        update_result = db->customer_table_->Update(txn, tuple_slot, *customer_select_tuple);
+        TERRIER_ASSERT(update_result,
+                       "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       }
     }
 
