@@ -1,11 +1,9 @@
 #include <memory>
-#include <main/db_main.h>
-
-#include "main/db_main.h"
 #include "loggers/index_logger.h"
+#include "loggers/parser_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
-#include "loggers/parser_logger.h"
+#include "main/db_main.h"
 
 namespace terrier {
 
@@ -18,7 +16,8 @@ void DBMain::InitLoggers() {
     transaction::init_transaction_logger();
     parser::init_parser_logger();
     network::init_network_logger();
-    // Flush all *registered* loggers using a worker thread.
+
+    // Flush all *registered* loggers using a background thread.
     // Registered loggers must be thread safe for this to work correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
   } catch (const spdlog::spdlog_ex &ex) {
@@ -29,7 +28,6 @@ void DBMain::InitLoggers() {
 }
 
 void DBMain::Init(int argc, char **argv) {
-
   InitLoggers();
 
   // TODO(Weichen): init settings manager
@@ -55,7 +53,6 @@ void DBMain::ForceShutdown() {
 }
 
 void DBMain::CleanUp() {
-
   main_stat_reg_->Shutdown(false);
   LOG_INFO("Terrier has shut down.");
 

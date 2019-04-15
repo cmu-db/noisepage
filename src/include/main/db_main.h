@@ -1,8 +1,8 @@
 #pragma once
 #include <utility>
+#include <memory>
 #include "common/stat_registry.h"
 #include "network/terrier_server.h"
-
 
 namespace terrier {
 
@@ -14,7 +14,8 @@ namespace terrier {
 class DBMain {
  public:
   /**
-   * This function initializes the following components in order:
+   * This function boots the backend components.
+   * It initializes the following components in the following order:
    *    SettingsManager
    *    Garbage Collector
    *    Catalog
@@ -25,16 +26,15 @@ class DBMain {
   void Init(int argc, char **argv);
 
   /**
-   * This function boots traffic cop and networking layer.
+   * Boots the traffic cop and networking layer, starts the server loop.
    * It will block until server shuts down.
-   * @return 0 if started successfully; 1 otherwise
    */
   void Run();
 
   /**
    * Shuts down the server.
    * It is worth noting that in normal cases, terrier will shut down and return from Run().
-   * Use this function only when you want to force shutdown the server.
+   * So, use this function only when you want to shutdown the server from code.
    * For example, in the end of unit tests when you want to shut down your test server.
    */
   void ForceShutdown();
@@ -44,8 +44,15 @@ class DBMain {
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   network::TerrierServer terrier_server_;
 
+  /**
+   * Initializes all loggers.
+   * If you have a new logger to initialize, put it here.
+   */
   void InitLoggers();
 
+  /**
+   * Cleans up and exit.
+   */
   void CleanUp();
 };
 }  // namespace terrier
