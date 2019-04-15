@@ -39,6 +39,7 @@ class Database {
     delete customer_name_index_;
     delete new_order_index_;
     delete order_index_;
+    delete order_secondary_index_;
     delete order_line_index_;
   }
 
