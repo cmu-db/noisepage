@@ -208,8 +208,7 @@ class OrderStatus {
         args.d_id;
     *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
         args.w_id;
-    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) =
-        args.c_id;
+    *reinterpret_cast<int32_t *>(order_secondary_low_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
     *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) =
         INT32_MAX;
@@ -217,8 +216,7 @@ class OrderStatus {
         args.d_id;
     *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) =
         args.w_id;
-    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) =
-        args.c_id;
+    *reinterpret_cast<int32_t *>(order_secondary_high_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = c_id;
 
     index_scan_results.clear();
     db->order_secondary_index_->Scan(*order_secondary_low_key, *order_secondary_high_key, &index_scan_results);
