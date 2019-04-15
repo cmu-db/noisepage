@@ -69,6 +69,9 @@ class DatabaseMetricRawData : public AbstractRawData {
   std::unordered_map<catalog::db_oid_t, std::pair<int64_t, int64_t>> counters_;
 };
 
+/**
+ * Interface that owns and manipulates DatabaseMetricRawData
+ */
 class DatabaseMetric : public AbstractMetric<DatabaseMetricRawData> {
  public:
   /**

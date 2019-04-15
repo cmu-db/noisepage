@@ -13,6 +13,9 @@
 
 namespace terrier::stats {
 
+/**
+ * Background thread that periodically collects data from thread level collectors
+ */
 class StatsAggregator {
   /**
    * Per-thread stats aggregator

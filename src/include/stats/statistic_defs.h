@@ -67,6 +67,10 @@ enum class StatsEventType {
 template <class E>
 class EnumHash {
  public:
+  /**
+   * @param e ENUM to be hashed
+   * @return hashed value of the supplied enum
+   */
   size_t operator()(const E &e) const {
     return std::hash<typename std::underlying_type<E>::type>()(static_cast<typename std::underlying_type<E>::type>(e));
   }
