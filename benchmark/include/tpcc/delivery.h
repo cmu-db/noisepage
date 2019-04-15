@@ -116,7 +116,8 @@ class Delivery {
         ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_o_id_key_oid))),
         ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_d_id_key_oid))),
         ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_w_id_key_oid))),
-        ol_number_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_number_key_oid))),
+        ol_number_key_pr_offset(
+            static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_number_key_oid))),
 
         c_balance_oid(db->customer_schema_.GetColumn(16).GetOid()),
         c_delivery_cnt_oid(db->customer_schema_.GetColumn(19).GetOid()),
@@ -242,7 +243,7 @@ class Delivery {
       // TODO(WAN): SelectForUpdate would be nice
       db->customer_table_->Select(txn, tuple_slot, customer_select_tuple);
       *reinterpret_cast<double *>(customer_select_tuple->AccessForceNotNull(c_balance_pr_offset)) += ol_amount;
-      *reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)) += 1;
+      (*reinterpret_cast<int16_t *>(customer_select_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset)))++;
       db->customer_table_->Update(txn, tuple_slot, *customer_select_tuple);
     }
 
