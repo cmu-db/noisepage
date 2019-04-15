@@ -120,10 +120,10 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
       break;
     }
 
-      //    case ExpressionType::ROW_SUBQUERY: {
-      //      expr = std::make_shared<SubqueryExpression>();
-      //      break;
-      //    }
+    case ExpressionType::ROW_SUBQUERY: {
+      expr = std::make_shared<SubqueryExpression>();
+      break;
+    }
 
     case ExpressionType::VALUE_TUPLE: {
       expr = std::make_shared<TupleValueExpression>();

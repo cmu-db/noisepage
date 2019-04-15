@@ -73,6 +73,10 @@ class CaseExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::OPERATOR_CASE_EXPR, return_value_type, {}),
         when_clauses_(std::move(when_clauses)),
         default_expr_(std::move(default_expr)) {}
+
+  /**
+   * Default constructor for deserialization
+   */
   CaseExpression() = default;
 
   common::hash_t Hash() const override {
@@ -88,7 +92,7 @@ class CaseExpression : public AbstractExpression {
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
-    if (GetExpressionType() != rhs.GetExpressionType()) return false;
+    if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const CaseExpression &>(rhs);
     auto clause_size = GetWhenClauseSize();
     if (clause_size != other.GetWhenClauseSize()) return false;

@@ -22,6 +22,9 @@ class ComparisonExpression : public AbstractExpression {
   ComparisonExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   ComparisonExpression() = default;
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ComparisonExpression>(*this); }

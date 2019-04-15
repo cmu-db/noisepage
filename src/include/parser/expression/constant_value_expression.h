@@ -20,6 +20,9 @@ class ConstantValueExpression : public AbstractExpression {
   explicit ConstantValueExpression(const type::TransientValue &value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   ConstantValueExpression() = default;
 
   common::hash_t Hash() const override {
@@ -27,9 +30,7 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   bool operator==(const AbstractExpression &other) const override {
-    if (GetExpressionType() != other.GetExpressionType()) {
-      return false;
-    }
+    if (!AbstractExpression::operator==(other)) return false;
     auto const &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
     return value_ == const_expr.GetValue();
   }

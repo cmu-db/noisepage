@@ -20,6 +20,7 @@
 #include "parser/expression/tuple_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
+#include "parser/postgresparser.h"
 
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
@@ -196,8 +197,10 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*case_expr, *deserialized_expression);
-  EXPECT_EQ(case_expr->GetReturnValueType(),
-            static_cast<CaseExpression *>(deserialized_expression.get())->GetReturnValueType());
+  auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression.get());
+  EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
+  EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
+  EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
@@ -350,6 +353,33 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, SubqueryExpressionJsonTest) {
+  // Create expression
+  PostgresParser pgparser;
+  auto stmts = pgparser.BuildParseTree("SELECT * FROM foo;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+
+  auto select = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts[0].release()));
+  auto original_expr = std::make_shared<SubqueryExpression>(select);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  // EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto *deserialized_subquery_expr = static_cast<SubqueryExpression *>(deserialized_expression.get());
+  EXPECT_TRUE(deserialized_subquery_expr->GetSubselect() != nullptr);
+  EXPECT_TRUE(deserialized_subquery_expr->GetSubselect()->GetSelectTable() != nullptr);
+  EXPECT_EQ("foo", deserialized_subquery_expr->GetSubselect()->GetSelectTable()->GetTableName());
+  EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
+  EXPECT_EQ(ExpressionType::STAR,
+            deserialized_subquery_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
 }
 
 }  // namespace terrier::parser::expression

@@ -23,9 +23,18 @@ class AggregateExpression : public AbstractExpression {
   AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children, bool distinct)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   AggregateExpression() = default;
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<AggregateExpression>(*this); }
+
+  bool operator==(const AbstractExpression &rhs) const override {
+    if (!AbstractExpression::operator==(rhs)) return false;
+    auto const &other = dynamic_cast<const AggregateExpression &>(rhs);
+    return IsDistinct() == other.IsDistinct();
+  }
 
   /**
    * @return true if we should eliminate duplicate values in aggregate function calculations

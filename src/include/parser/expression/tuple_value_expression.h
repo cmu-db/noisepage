@@ -25,19 +25,28 @@ class TupleValueExpression : public AbstractExpression {
         col_name_(std::move(col_name)),
         table_name_(std::move(table_name)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   TupleValueExpression() = default;
 
   /**
    * @return column name
    */
-  std::string GetColumnName() { return col_name_; }
+  std::string GetColumnName() const { return col_name_; }
 
   /**
    * @return table name
    */
-  std::string GetTableName() { return table_name_; }
+  std::string GetTableName() const { return table_name_; }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<TupleValueExpression>(*this); }
+
+  bool operator==(const AbstractExpression &rhs) const override {
+    if (!AbstractExpression::operator==(rhs)) return false;
+    auto const &other = dynamic_cast<const TupleValueExpression &>(rhs);
+    return GetColumnName() == other.GetColumnName() && GetTableName() == other.GetTableName();
+  }
 
   /**
    * @return expression serialized to json

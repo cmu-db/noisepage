@@ -24,6 +24,9 @@ class OperatorExpression : public AbstractExpression {
                      std::vector<std::shared_ptr<AbstractExpression>> &&children)
       : AbstractExpression(expression_type, return_value_type, std::move(children)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   OperatorExpression() = default;
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<OperatorExpression>(*this); }

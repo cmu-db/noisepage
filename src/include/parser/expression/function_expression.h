@@ -25,9 +25,18 @@ class FunctionExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),
         func_name_(std::move(func_name)) {}
 
+  /**
+   * Default constructor for deserialization
+   */
   FunctionExpression() = default;
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
+
+  bool operator==(const AbstractExpression &rhs) const override {
+    if (!AbstractExpression::operator==(rhs)) return false;
+    auto const &other = dynamic_cast<const FunctionExpression &>(rhs);
+    return GetFuncName() == other.GetFuncName();
+  }
 
   /**
    * @return function name
