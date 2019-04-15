@@ -245,7 +245,7 @@ class Delivery {
       auto *const customer_key = customer_key_pr_initializer.InitializeRow(worker->customer_key_buffer);
 
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = args.d_id;
+      *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_d_id_key_pr_offset)) = d_id;
       *reinterpret_cast<int32_t *>(customer_key->AccessForceNotNull(c_id_key_pr_offset)) = o_c_id;
 
       // Increase C_BALANCE by OL_AMOUNT, increase C_DELIVERY_CNT
