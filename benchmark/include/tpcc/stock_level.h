@@ -135,7 +135,7 @@ class StockLevel {
 
     uint8_t low_stock = 0;
     for (const auto &it : item_counts) {
-      low_stock += static_cast<uint8_t>(it.second < args.s_quantity_threshold);
+      low_stock = static_cast<uint8_t>(low_stock + static_cast<uint8_t>(it.second < args.s_quantity_threshold));
     }
 
     return true;
