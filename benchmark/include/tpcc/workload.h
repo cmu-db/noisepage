@@ -129,6 +129,7 @@ TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id, c
   TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Delivery;
+  args.w_id = w_id;
   args.o_carrier_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);
   args.ol_delivery_d = Util::Timestamp();
   return args;

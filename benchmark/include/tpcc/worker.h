@@ -103,6 +103,5 @@ struct Worker {
   byte *const order_line_key_buffer;
 
   uint32_t num_committed_txns = 0;
-  uint32_t num_orders_skipped = 0;  // Delivery
 };
 }  // namespace terrier::tpcc
