@@ -234,6 +234,7 @@ class Delivery {
       double ol_amount = 0.0;
       for (const auto &tuple_slot : index_scan_results) {
         db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
+        // TODO(Matt): can't assume these Selects are succeeding because of aborts polluting indexes
         ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(ol_amount_pr_offset));
         *reinterpret_cast<uint64_t *>(order_line_select_tuple->AccessForceNotNull(ol_delivery_d_pr_offset)) =
             args.ol_delivery_d;
