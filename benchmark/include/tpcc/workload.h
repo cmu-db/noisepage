@@ -32,6 +32,8 @@ struct TransactionArgs {
   storage::VarlenEntry c_last;      // Payment, Order Status
   double h_amount;                  // Payment
   uint64_t h_date;                  // Payment
+  int32_t o_carrier_id;             // Delivery
+  uint64_t ol_delivery_d;           // Delivery
 };
 
 // 2.4.1
@@ -127,6 +129,8 @@ TransactionArgs BuildDeliveryArgs(Random *const generator, const int32_t w_id, c
   TERRIER_ASSERT(w_id >= 1 && static_cast<uint32_t>(w_id) <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type = TransactionType::Delivery;
+  args.o_carrier_id = Util::RandomWithin<int32_t>(1, 10, 0, generator);
+  args.ol_delivery_d = Util::Timestamp();
   return args;
 }
 
