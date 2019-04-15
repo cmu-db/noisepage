@@ -92,7 +92,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
     return nullptr;
   }
 
-  std::unique_ptr<SQLStatement> result = nullptr;
+  std::unique_ptr<SQLStatement> result;
   switch (node->type) {
     case T_CopyStmt: {
       result = CopyTransform(reinterpret_cast<CopyStmt *>(node));
