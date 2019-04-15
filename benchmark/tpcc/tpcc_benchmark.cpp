@@ -59,6 +59,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
 
+  const bool only_count_new_order_ = true;
   const uint32_t num_threads_ = 4;
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
   const uint32_t w_payment = 43;
@@ -253,32 +254,23 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
         const auto &txn_args = precomputed_args[worker_id][i];
         switch (txn_args.type) {
           case tpcc::TransactionType::NewOrder: {
-            auto new_order_committed =
-                new_order.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
-            workers[worker_id].num_committed_txns += new_order_committed ? 1 : 0;
+            new_order.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           case tpcc::TransactionType::Payment: {
-            auto payment_committed = payment.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
-            workers[worker_id].num_committed_txns += payment_committed ? 1 : 0;
+            payment.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           case tpcc::TransactionType::OrderStatus: {
-            auto order_status_committed =
-                order_status.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
-            workers[worker_id].num_committed_txns += order_status_committed ? 1 : 0;
+            order_status.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           case tpcc::TransactionType::Delivery: {
-            auto delivery_committed =
-                delivery.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
-            workers[worker_id].num_committed_txns += delivery_committed ? 1 : 0;
+            delivery.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           case tpcc::TransactionType::StockLevel: {
-            auto stock_level_committed =
-                stock_level.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
-            workers[worker_id].num_committed_txns += stock_level_committed ? 1 : 0;
+            stock_level.Execute(&txn_manager, &generator_, tpcc_db, &workers[worker_id], txn_args);
             break;
           }
           default:
@@ -297,14 +289,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
       thread_pool_.WaitUntilAllFinished();
     }
 
-    // figure out how many transactions committed
-    uint64_t num_items_processed = state.items_processed();
-    for (uint64_t i = 0; i < num_threads_; i++) {
-      num_items_processed += workers[i].num_committed_txns;
-    }
-
-    // update benchmark state
-    state.SetItemsProcessed(num_items_processed);
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
@@ -322,6 +306,19 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, Basic)(benchmark::State &state) {
         delete[] args.c_last.Content();
       }
     }
+  }
+
+  // Count the number of txns processed
+  if (only_count_new_order_) {
+    uint64_t num_new_orders = 0;
+    for (const auto &worker_txns : precomputed_args) {
+      for (const auto &txn : worker_txns) {
+        if (txn.type == tpcc::TransactionType::NewOrder) num_new_orders++;
+      }
+    }
+    state.SetItemsProcessed(state.iterations() * num_new_orders);
+  } else {
+    state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ * num_threads_);
   }
 }
 

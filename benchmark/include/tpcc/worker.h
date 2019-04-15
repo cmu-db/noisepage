@@ -101,7 +101,5 @@ struct Worker {
   byte *const order_secondary_key_buffer;
   byte *const new_order_key_buffer;
   byte *const order_line_key_buffer;
-
-  uint32_t num_committed_txns = 0;
 };
 }  // namespace terrier::tpcc
