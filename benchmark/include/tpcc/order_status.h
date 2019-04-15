@@ -251,16 +251,16 @@ class OrderStatus {
     index_scan_results.clear();
     db->order_line_index_->Scan(*order_line_low_key, *order_line_high_key, &index_scan_results);
 
-    TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
-                   "There should be at least 1 Order Line item, but no more than 15.");
+//    TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
+//                   "There should be at least 1 Order Line item, but no more than 15.");
 
     // Select OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DELIVERY_D for every result of the index scan
     auto *const order_line_select_tuple =
         order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
     for (const auto &tuple_slot : index_scan_results) {
       select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
-      TERRIER_ASSERT(select_result,
-                     "We already confirmed that this is a committed order above, so none of these should fail.");
+//      TERRIER_ASSERT(select_result,
+//                     "We already confirmed that this is a committed order above, so none of these should fail.");
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
