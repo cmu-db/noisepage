@@ -43,10 +43,8 @@ class Delivery {
   catalog::indexkeycol_oid_t ol_w_id_key_oid;
   catalog::indexkeycol_oid_t ol_number_key_oid;
 
-  const storage::ProjectedRowInitializer order_line_pr_initializer;
-  const storage::ProjectionMap order_line_pr_map;
-  const uint8_t ol_amount_pr_offset;
-  const uint8_t ol_delivery_d_pr_offset;
+  const storage::ProjectedRowInitializer order_line_select_pr_initializer;
+  const storage::ProjectedRowInitializer order_line_update_pr_initializer;
   const uint8_t ol_o_id_key_pr_offset;
   const uint8_t ol_d_id_key_pr_offset;
   const uint8_t ol_w_id_key_pr_offset;
@@ -97,11 +95,10 @@ class Delivery {
         ol_w_id_key_oid(db->order_line_key_schema_.at(0).GetOid()),
         ol_number_key_oid(db->order_line_key_schema_.at(3).GetOid()),
 
-        order_line_pr_initializer(
-            db->order_line_table_->InitializerForProjectedRow({ol_amount_oid, ol_delivery_d_oid}).first),
-        order_line_pr_map(db->order_line_table_->InitializerForProjectedRow({ol_amount_oid, ol_delivery_d_oid}).second),
-        ol_amount_pr_offset(static_cast<uint8_t>(order_line_pr_map.at(ol_amount_oid))),
-        ol_delivery_d_pr_offset(static_cast<uint8_t>(order_line_pr_map.at(ol_delivery_d_oid))),
+        order_line_select_pr_initializer(
+            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(8).GetOid()}).first),
+        order_line_update_pr_initializer(
+            db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(6).GetOid()}).first),
         ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_o_id_key_oid))),
         ol_d_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_d_id_key_oid))),
         ol_w_id_key_pr_offset(static_cast<uint8_t>(db->order_line_index_->GetKeyOidToOffsetMap().at(ol_w_id_key_oid))),
@@ -204,7 +201,7 @@ class Delivery {
       // update O_CARRIER_ID
       auto *order_update_tuple = order_update_pr_initializer.InitializeRow(worker->order_tuple_buffer);
       *reinterpret_cast<int32_t *>(order_update_tuple->AccessForceNotNull(0)) = args.o_carrier_id;
-      const bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_slot, *order_update_tuple);
+      bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_slot, *order_update_tuple);
       TERRIER_ASSERT(select_result,
                      "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -230,14 +227,20 @@ class Delivery {
       TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                      "There should be at least 1 Order Line item, but no more than 15.");
 
-      auto *order_line_select_tuple = order_line_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
-
+      storage::ProjectedRow *order_line_select_tuple, *order_line_update_tuple;
       double ol_amount = 0.0;
       for (const auto &tuple_slot : index_scan_results) {
-        db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
-        ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(ol_amount_pr_offset));
-        *reinterpret_cast<uint64_t *>(order_line_select_tuple->AccessForceNotNull(ol_delivery_d_pr_offset)) =
-            args.ol_delivery_d;
+        order_line_select_tuple = order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+        select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
+        TERRIER_ASSERT(select_result,
+                       "Select select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+        ol_amount += *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
+
+        order_line_update_tuple = order_line_update_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+        *reinterpret_cast<uint64_t *>(order_line_update_tuple->AccessForceNotNull(0)) = args.ol_delivery_d;
+        update_result = db->order_line_table_->Update(txn, tuple_slot, *order_line_update_tuple);
+        TERRIER_ASSERT(update_result,
+                       "Update select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       }
 
       // Look up C_W_ID, C_D_ID, C_ID
