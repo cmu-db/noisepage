@@ -356,7 +356,7 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(ExpressionTests, SubqueryExpressionJsonTest) {
+TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   // Create expression
   PostgresParser pgparser;
   auto stmts = pgparser.BuildParseTree("SELECT * FROM foo;");
@@ -372,14 +372,70 @@ TEST(ExpressionTests, SubqueryExpressionJsonTest) {
 
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
-  // EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
   auto *deserialized_subquery_expr = static_cast<SubqueryExpression *>(deserialized_expression.get());
   EXPECT_TRUE(deserialized_subquery_expr->GetSubselect() != nullptr);
   EXPECT_TRUE(deserialized_subquery_expr->GetSubselect()->GetSelectTable() != nullptr);
-  EXPECT_EQ("foo", deserialized_subquery_expr->GetSubselect()->GetSelectTable()->GetTableName());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetTableName(),
+            deserialized_subquery_expr->GetSubselect()->GetSelectTable()->GetTableName());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns().size(),
+            deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
   EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
-  EXPECT_EQ(ExpressionType::STAR,
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType(),
             deserialized_subquery_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
+}
+
+// NOLINTNEXTLINE
+TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
+  // Create expression
+  PostgresParser pgparser;
+  auto stmts = pgparser.BuildParseTree(
+      "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
+  EXPECT_EQ(stmts.size(), 1);
+  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+
+  auto select = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts[0].release()));
+  auto original_expr = std::make_shared<SubqueryExpression>(select);
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto *deserialized_subquery_expr = static_cast<SubqueryExpression *>(deserialized_expression.get());
+
+  // Check Limit
+  auto subselect = deserialized_subquery_expr->GetSubselect();
+  EXPECT_TRUE(subselect != nullptr);
+  EXPECT_TRUE(subselect->GetSelectLimit() != nullptr);
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectLimit()->GetLimit(), subselect->GetSelectLimit()->GetLimit());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectLimit()->GetOffset(), subselect->GetSelectLimit()->GetOffset());
+
+  // Check Order By
+  EXPECT_TRUE(subselect->GetSelectOrderBy() != nullptr);
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectOrderBy()->GetOrderByTypes(),
+            subselect->GetSelectOrderBy()->GetOrderByTypes());
+
+  // Check Group By
+  EXPECT_TRUE(subselect->GetSelectGroupBy() != nullptr);
+
+  // Check SELECT *
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns().size(), subselect->GetSelectColumns().size());
+  EXPECT_EQ(1, subselect->GetSelectColumns().size());
+
+  // Check join
+  EXPECT_TRUE(subselect->GetSelectTable() != nullptr);
+  EXPECT_TRUE(subselect->GetSelectTable()->GetJoin() != nullptr);
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetJoin()->GetJoinType(),
+            subselect->GetSelectTable()->GetJoin()->GetJoinType());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetJoin()->GetLeftTable()->GetTableName(),
+            subselect->GetSelectTable()->GetJoin()->GetLeftTable()->GetTableName());
+  EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetJoin()->GetRightTable()->GetTableName(),
+            subselect->GetSelectTable()->GetJoin()->GetRightTable()->GetTableName());
+  EXPECT_EQ(*original_expr->GetSubselect()->GetSelectTable()->GetJoin()->GetJoinCondition(),
+            *subselect->GetSelectTable()->GetJoin()->GetJoinCondition());
 }
 
 }  // namespace terrier::parser::expression

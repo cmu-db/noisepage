@@ -62,8 +62,10 @@ void TableRef::FromJson(const nlohmann::json &j) {
   alias_ = j.at("alias").get<std::string>();
 
   // Deserialize table info
-  table_info_ = std::make_shared<TableInfo>();
-  table_info_->FromJson(j.at("table_info"));
+  if (!j.at("table_info").is_null()) {
+    table_info_ = std::make_shared<TableInfo>();
+    table_info_->FromJson(j.at("table_info"));
+  }
 
   // Deserialize select
   if (!j.at("select").is_null()) {
