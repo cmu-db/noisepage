@@ -11,7 +11,7 @@ namespace terrier {
 class StatsFrameworkTests : public TerrierTest {};
 
 /**
- * Basic test for testing metric registrction and stats collection
+ * Basic test for testing metric registration and stats collection
  */
 // NOLINTNEXTLINE
 TEST_F(StatsFrameworkTests, BasicTest) {
