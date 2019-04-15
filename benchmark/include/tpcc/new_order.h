@@ -26,6 +26,14 @@ class NewOrder {
     const uint8_t s_data_select_pr_offset;
   };
 
+  struct OrderLineIndexInserts {
+    const int32_t o_id;
+    const int32_t d_id;
+    const int32_t w_id;
+    const int32_t ol_number;
+    storage::TupleSlot slot;
+  };
+
   const storage::ProjectedRowInitializer warehouse_select_pr_initializer;
 
   const catalog::col_oid_t d_tax_oid;
@@ -299,6 +307,9 @@ class NewOrder {
                Worker *const worker, const TransactionArgs &args) const {
     TERRIER_ASSERT(args.type == TransactionType::NewOrder, "Wrong transaction type.");
 
+    std::vector<OrderLineIndexInserts> order_line_index_inserts;
+    order_line_index_inserts.reserve(args.items.size());
+
     double total_amount = 0;
 
     auto *const txn = txn_manager->BeginTransaction();
@@ -375,19 +386,6 @@ class NewOrder {
 
     const auto new_order_slot = db->new_order_table_->Insert(txn, *new_order_insert_tuple);
 
-    // insert in index
-    const auto new_order_key_pr_initializer = db->new_order_index_->GetProjectedRowInitializer();
-    auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
-
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
-
-    bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
-        *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
-    TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
-    // TODO(Matt): need to undo this if the transaction aborts
-
     // Insert new row in Order
     auto *const order_insert_tuple = order_insert_pr_initializer.InitializeRow(worker->order_tuple_buffer);
 
@@ -403,35 +401,8 @@ class NewOrder {
 
     const auto order_slot = db->order_table_->Insert(txn, *order_insert_tuple);
 
-    // insert in index
-    const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
-    auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
-
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
-
-    index_insert_result =
-        db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
-    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
-    // TODO(Matt): need to undo this if the transaction aborts
-
-    // insert in secondary index
-    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
-    auto *const order_secondary_key =
-        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
-
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
-    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
-
-    index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
-    TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
-    // TODO(Matt): need to undo this if the transaction aborts
-
     // for each item in order
-    uint32_t ol_number = 1;
+    int32_t ol_number = 1;
     for (const auto &item : args.items) {
       // Look up I_ID in index
       const auto item_key_pr_initializer = db->item_index_->GetProjectedRowInitializer();
@@ -547,23 +518,67 @@ class NewOrder {
 
       const auto order_line_slot = db->order_line_table_->Insert(txn, *order_line_insert_tuple);
 
-      // insert in index
-      const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
-      auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
-
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id;
-      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
-      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_number;
-
-      index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, order_line_slot,
-                                                                     [](const storage::TupleSlot &) { return false; });
-      TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
-      // TODO(Matt): need to undo this if the transaction aborts
+      order_line_index_inserts.push_back({d_next_o_id, args.d_id, args.w_id, ol_number, order_line_slot});
 
       ol_number++;
       total_amount += ol_amount;
+    }
+
+    TERRIER_ASSERT(order_line_index_inserts.size() == args.items.size(),
+                   "Didn't generate Order Line index inserts for every item.");
+
+    // Do all index insertions now that transaction is guaranteed to commit
+    // insert in New Order index
+    const auto new_order_key_pr_initializer = db->new_order_index_->GetProjectedRowInitializer();
+    auto *const new_order_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer);
+
+    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_o_id_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset)) = args.w_id;
+
+    bool UNUSED_ATTRIBUTE index_insert_result = db->new_order_index_->ConditionalInsert(
+        *new_order_key, new_order_slot, [](const storage::TupleSlot &) { return false; });
+    TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
+
+    // insert in Order index
+    const auto order_key_pr_initializer = db->order_index_->GetProjectedRowInitializer();
+    auto *const order_key = order_key_pr_initializer.InitializeRow(worker->order_key_buffer);
+
+    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_id_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset)) = args.w_id;
+
+    index_insert_result =
+        db->order_index_->ConditionalInsert(*order_key, order_slot, [](const storage::TupleSlot &) { return false; });
+    TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+
+    // insert in Order secondary index
+    const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
+    auto *const order_secondary_key =
+        order_secondary_key_pr_initializer.InitializeRow(worker->order_secondary_key_buffer);
+
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_id_secondary_key_pr_offset)) = d_next_o_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_d_id_secondary_key_pr_offset)) = args.d_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
+    *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
+
+    index_insert_result = db->order_secondary_index_->Insert(*order_secondary_key, order_slot);
+    TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
+
+    // insert in Order Line index
+    for (const auto &ol_item : order_line_index_inserts) {
+      const auto order_line_key_pr_initializer = db->order_line_index_->GetProjectedRowInitializer();
+      auto *const order_line_key = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
+
+      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_w_id_key_pr_offset)) = ol_item.w_id;
+      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_d_id_key_pr_offset)) = ol_item.d_id;
+      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset)) = ol_item.o_id;
+      TERRIER_ASSERT(ol_number <= 15, "There should be at least 1 Order Line item, but no more than 15.");
+      *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset)) = ol_item.ol_number;
+
+      index_insert_result = db->order_line_index_->ConditionalInsert(*order_line_key, ol_item.slot,
+                                                                     [](const storage::TupleSlot &) { return false; });
+      TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
     }
 
     txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
